@@ -7,24 +7,24 @@ import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
 import io.stargate.grpc.service.ExceptionHandler;
-import io.stargate.grpc.service.SuccessHandler;
+import io.stargate.grpc.service.StreamingSuccessHandler;
 import io.stargate.proto.QueryOuterClass;
 import java.util.Optional;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 
 public class StreamingExceptionHandler extends ExceptionHandler {
-  private final SuccessHandler successHandler;
+  private final StreamingSuccessHandler streamingSuccessHandler;
 
-  public StreamingExceptionHandler(SuccessHandler successHandler) {
-    this.successHandler = successHandler;
+  public StreamingExceptionHandler(StreamingSuccessHandler streamingSuccessHandler) {
+    this.streamingSuccessHandler = streamingSuccessHandler;
   }
 
   @Override
   protected void onError(
       @Nullable Status status, @Nonnull Throwable throwable, @Nullable Metadata trailer) {
     // propagate streaming error as a Status
-    successHandler.handleResponse(
+    streamingSuccessHandler.handleResponse(
         QueryOuterClass.StreamingResponse.newBuilder()
             .setStatus(convertStatus(status, throwable))
             .build());

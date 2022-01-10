@@ -3,25 +3,25 @@ package io.stargate.grpc.service.streaming;
 import io.stargate.db.Persistence;
 import io.stargate.grpc.service.BatchHandler;
 import io.stargate.grpc.service.ExceptionHandler;
-import io.stargate.grpc.service.SuccessHandler;
+import io.stargate.grpc.service.StreamingSuccessHandler;
 import io.stargate.proto.QueryOuterClass;
 
 public class StreamingBatchHandler extends BatchHandler {
-  private final SuccessHandler successHandler;
+  private final StreamingSuccessHandler streamingSuccessHandler;
 
   StreamingBatchHandler(
       QueryOuterClass.Batch batch,
       Persistence.Connection connection,
       Persistence persistence,
-      SuccessHandler successHandler,
+      StreamingSuccessHandler streamingSuccessHandler,
       ExceptionHandler exceptionHandler) {
     super(batch, connection, persistence, exceptionHandler);
-    this.successHandler = successHandler;
+    this.streamingSuccessHandler = streamingSuccessHandler;
   }
 
   @Override
   protected void setSuccess(QueryOuterClass.Response response) {
-    successHandler.handleResponse(
+    streamingSuccessHandler.handleResponse(
         QueryOuterClass.StreamingResponse.newBuilder().setResponse(response).build());
   }
 }

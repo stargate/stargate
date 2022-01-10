@@ -8,7 +8,7 @@ import com.google.protobuf.Any;
 import com.google.rpc.ErrorInfo;
 import io.grpc.Status;
 import io.grpc.StatusException;
-import io.stargate.grpc.service.SuccessHandler;
+import io.stargate.grpc.service.StreamingSuccessHandler;
 import io.stargate.proto.QueryOuterClass;
 import java.util.stream.Stream;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
@@ -29,15 +29,15 @@ class StreamingExceptionHandlerTest {
       String expectedDescription,
       String expectedCause) {
     // given
-    SuccessHandler successHandler = mock(SuccessHandler.class);
+    StreamingSuccessHandler streamingSuccessHandler = mock(StreamingSuccessHandler.class);
     StreamingExceptionHandler streamingExceptionHandler =
-        new StreamingExceptionHandler(successHandler);
+        new StreamingExceptionHandler(streamingSuccessHandler);
 
     // when
     streamingExceptionHandler.handleException(throwable);
 
     // then
-    verify(successHandler, times(1))
+    verify(streamingSuccessHandler, times(1))
         .handleResponse(
             QueryOuterClass.StreamingResponse.newBuilder()
                 .setStatus(

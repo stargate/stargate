@@ -4,7 +4,7 @@ import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.stub.StreamObserver;
 import io.stargate.grpc.service.ExceptionHandler;
 import io.stargate.grpc.service.MessageHandler;
-import io.stargate.grpc.service.SuccessHandler;
+import io.stargate.grpc.service.StreamingSuccessHandler;
 import io.stargate.proto.QueryOuterClass;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
@@ -18,7 +18,7 @@ import java.util.function.Function;
  *     io.stargate.proto.QueryOuterClass.Query} and {@link io.stargate.proto.QueryOuterClass.Batch}
  */
 public class MessageStreamObserver<MessageT extends GeneratedMessageV3>
-    implements StreamObserver<MessageT>, SuccessHandler {
+    implements StreamObserver<MessageT>, StreamingSuccessHandler {
 
   private final AtomicLong inFlight = new AtomicLong(0);
   private final AtomicBoolean clientSignalComplete = new AtomicBoolean(false);
@@ -28,7 +28,7 @@ public class MessageStreamObserver<MessageT extends GeneratedMessageV3>
 
   public MessageStreamObserver(
       StreamObserver<QueryOuterClass.StreamingResponse> responseObserver,
-      Function<SuccessHandler, ExceptionHandler> exceptionHandlerProducer,
+      Function<StreamingSuccessHandler, ExceptionHandler> exceptionHandlerProducer,
       StreamingHandlerFactory<MessageT> streamingHandlerFactory) {
     this.responseObserver = responseObserver;
     this.streamingHandlerFactory = streamingHandlerFactory;

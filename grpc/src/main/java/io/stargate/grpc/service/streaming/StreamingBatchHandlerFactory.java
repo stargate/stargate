@@ -3,7 +3,7 @@ package io.stargate.grpc.service.streaming;
 import io.stargate.db.Persistence;
 import io.stargate.grpc.service.ExceptionHandler;
 import io.stargate.grpc.service.MessageHandler;
-import io.stargate.grpc.service.SuccessHandler;
+import io.stargate.grpc.service.StreamingSuccessHandler;
 import io.stargate.proto.QueryOuterClass;
 
 public class StreamingBatchHandlerFactory
@@ -20,9 +20,9 @@ public class StreamingBatchHandlerFactory
   @Override
   public MessageHandler<QueryOuterClass.Batch, ?> create(
       QueryOuterClass.Batch batch,
-      SuccessHandler successHandler,
+      StreamingSuccessHandler streamingSuccessHandler,
       ExceptionHandler exceptionHandler) {
     return new StreamingBatchHandler(
-        batch, connection, persistence, successHandler, exceptionHandler);
+        batch, connection, persistence, streamingSuccessHandler, exceptionHandler);
   }
 }
