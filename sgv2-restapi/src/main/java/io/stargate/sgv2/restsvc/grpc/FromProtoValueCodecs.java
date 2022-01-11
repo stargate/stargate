@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -153,6 +154,15 @@ public class FromProtoValueCodecs {
     return new SetCodec(codecFor(columnSpec, setSpec.getElement()));
   }
 
+  protected FromProtoValueCodec tupleCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
+    QueryOuterClass.TypeSpec.Tuple tupleSpec = columnSpec.getType().getTuple();
+    List<FromProtoValueCodec> codecs = new ArrayList<>();
+    for (QueryOuterClass.TypeSpec elementSpec : tupleSpec.getElementsList()) {
+      codecs.add(codecFor(columnSpec, elementSpec));
+    }
+    return new TupleCodec(codecs);
+  }
+
   protected FromProtoValueCodec udtCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
     QueryOuterClass.TypeSpec.Udt udtSpec = columnSpec.getType().getUdt();
     Map<String, QueryOuterClass.TypeSpec> fieldSpecs = udtSpec.getFieldsMap();
@@ -162,19 +172,6 @@ public class FromProtoValueCodecs {
       fieldCodecs.put(fieldName, codecFor(columnSpec, entry.getValue()));
     }
     return new UDTCodec(udtSpec.getName(), fieldCodecs);
-  }
-
-  protected FromProtoValueCodec tupleCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
-    QueryOuterClass.TypeSpec.Tuple tupleSpec = columnSpec.getType().getTuple();
-
-    // !!! TO IMPLEMENT
-    throw new IllegalArgumentException(
-        "Can not (yet) create Codec for TUPLE column specified as: " + columnSpec);
-    /*
-    return new TupleCodec(
-            codecFor(columnSpec, tupleSpec.getElementsList()));
-
-     */
   }
 
   /* Basic/scalar codec implementations: textual */
@@ -564,6 +561,47 @@ public class FromProtoValueCodecs {
       if ((len & 1) != 0) {
         throw new IllegalArgumentException(
             "Illegal Map representation, odd number of Value elements (" + len + ")");
+      }
+      return len;
+    }
+  }
+
+  protected static final class TupleCodec extends FromProtoValueCodec {
+    private final List<FromProtoValueCodec> elementCodecs;
+
+    public TupleCodec(List<FromProtoValueCodec> elementCodecs) {
+      this.elementCodecs = elementCodecs;
+    }
+
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      QueryOuterClass.Collection coll = value.getCollection();
+      final int len = verifyTupleLength(coll);
+      List<Object> result = new ArrayList<>(len);
+      for (int i = 0; i < len; ++i) {
+        result.add(elementCodecs.get(i).fromProtoValue(coll.getElements(i)));
+      }
+      return result;
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      QueryOuterClass.Collection coll = value.getCollection();
+      ArrayNode result = jsonNodeFactory.arrayNode();
+      final int len = verifyTupleLength(coll);
+      for (int i = 0; i < len; ++i) {
+        result.add(elementCodecs.get(i).jsonNodeFrom(coll.getElements(i)));
+      }
+      return result;
+    }
+
+    private int verifyTupleLength(QueryOuterClass.Collection tupleValue) {
+      int len = tupleValue.getElementsCount();
+      if (len != elementCodecs.size()) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Illegal Tuple representation, expected %d values, received %d",
+                elementCodecs.size(), len));
       }
       return len;
     }
