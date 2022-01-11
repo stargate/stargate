@@ -16,8 +16,6 @@
 package io.stargate.grpc.service;
 
 import com.google.protobuf.StringValue;
-import com.sun.org.slf4j.internal.Logger;
-import com.sun.org.slf4j.internal.LoggerFactory;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import io.stargate.db.EventListener;
@@ -28,6 +26,8 @@ import io.stargate.proto.QueryOuterClass.SchemaChange.Type;
 import io.stargate.proto.Schema.SchemaNotification;
 import java.util.Collections;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 class SchemaNotificationsHandler implements EventListener {
 
