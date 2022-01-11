@@ -483,7 +483,11 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     ApiError response = objectMapper.readValue(body, ApiError.class);
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription()).contains("Index test_idx already exists");
+    // 11-Jan-2022, tatu: Specific message seems to vary a bit depending on backend
+    //  (some quote index name, some don't) so need to use looser match:
+    final String failDesc = response.getDescription();
+
+    assertThat(response.getDescription()).containsPattern("Index .*test_idx .*already exists");
 
     // successufully index a collection
     indexAdd.setColumn("email");
