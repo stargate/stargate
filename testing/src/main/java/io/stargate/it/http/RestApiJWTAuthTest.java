@@ -55,6 +55,7 @@ import org.slf4j.LoggerFactory;
       "GRANT MODIFY ON TABLE store1.shopping_cart TO web_user",
       "GRANT SELECT ON TABLE store1.shopping_cart TO web_user",
     })
+@ExtendWith(RestApiExtension.class)
 @RestApiSpec()
 public class RestApiJWTAuthTest extends BaseIntegrationTest {
 
