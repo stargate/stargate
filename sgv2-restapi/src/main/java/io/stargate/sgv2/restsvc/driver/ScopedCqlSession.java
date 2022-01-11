@@ -18,18 +18,15 @@ package io.stargate.sgv2.restsvc.driver;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.context.DriverContext;
-import com.datastax.oss.driver.api.core.cql.PrepareRequest;
-import com.datastax.oss.driver.api.core.cql.Statement;
 import com.datastax.oss.driver.api.core.metadata.Metadata;
 import com.datastax.oss.driver.api.core.metrics.Metrics;
 import com.datastax.oss.driver.api.core.session.Request;
 import com.datastax.oss.driver.api.core.type.reflect.GenericType;
+import com.datastax.oss.protocol.internal.util.Bytes;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -42,32 +39,28 @@ import java.util.concurrent.CompletionStage;
  */
 public class ScopedCqlSession implements CqlSession {
 
-  // TODO shared with PersistenceConnectionFactory in the cql module, maybe find a way to factor
-  private static final String TOKEN_PAYLOAD_KEY = "stargate.bridge.token";
-  private static final String TENANT_PAYLOAD_KEY = "stargate.bridge.tenantId";
-
   private final CqlSession delegate;
-  private final String tenantId;
+  private final String keyspacePrefix;
   private final Map<String, ByteBuffer> extraPayload;
 
   public ScopedCqlSession(CqlSession delegate, String token, String tenantId) {
     this.delegate = delegate;
-    this.tenantId = tenantId;
-    this.extraPayload = buildExtraPayload(token, tenantId);
+    this.keyspacePrefix = tenantId == null ? null : hexEncode(tenantId) + '_';
+    this.extraPayload = PayloadHelper.buildExtraPayload(token, tenantId);
   }
 
   @Nullable
   @Override
   public <RequestT extends Request, ResultT> ResultT execute(
       @NonNull RequestT request, @NonNull GenericType<ResultT> resultType) {
-    return delegate.execute(augment(request, extraPayload), resultType);
+    return delegate.execute(PayloadHelper.augment(request, extraPayload), resultType);
   }
 
   @NonNull
   @Override
   public Metadata getMetadata() {
-    // TODO filter keyspaces by tenantId
-    return delegate.getMetadata();
+    Metadata metadata = delegate.getMetadata();
+    return keyspacePrefix == null ? metadata : new ScopedMetadata(metadata, keyspacePrefix);
   }
 
   @NonNull
@@ -117,60 +110,6 @@ public class ScopedCqlSession implements CqlSession {
     return delegate.getMetrics();
   }
 
-  private static Map<String, ByteBuffer> buildExtraPayload(String token, String tenantId) {
-    assert token != null || tenantId != null;
-    Map<String, ByteBuffer> payload = new HashMap<>();
-    if (token != null) {
-      payload.put(TOKEN_PAYLOAD_KEY, StandardCharsets.UTF_8.encode(token));
-    }
-    if (tenantId != null) {
-      payload.put(TENANT_PAYLOAD_KEY, StandardCharsets.UTF_8.encode(tenantId));
-    }
-    return Collections.unmodifiableMap(payload);
-  }
-
-  private static <RequestT extends Request> RequestT augment(
-      RequestT request, Map<String, ByteBuffer> extraPayload) {
-    if (request instanceof Statement) {
-      Statement<?> statement = (Statement<?>) request;
-      Map<String, ByteBuffer> newPayload = augment(statement.getCustomPayload(), extraPayload);
-      statement = statement.setCustomPayload(newPayload);
-      // The cast is safe because setCustomPayload returns the statement's self type
-      @SuppressWarnings("unchecked")
-      RequestT newRequest = (RequestT) statement;
-      return newRequest;
-    } else if (request instanceof PrepareRequest) {
-      PrepareRequest prepare = (PrepareRequest) request;
-      Map<String, ByteBuffer> newPayload = augment(prepare.getCustomPayload(), extraPayload);
-      Map<String, ByteBuffer> newPayloadForBoundStatements =
-          augment(prepare.getCustomPayloadForBoundStatements(), extraPayload);
-      @SuppressWarnings("unchecked")
-      RequestT newRequest =
-          (RequestT) new ScopedPrepareRequest(prepare, newPayload, newPayloadForBoundStatements);
-      return newRequest;
-    } else {
-      // That's all we should encounter for CQL
-      throw new UnsupportedOperationException(
-          "Unexpected request type " + request.getClass().getName());
-    }
-  }
-
-  private static Map<String, ByteBuffer> augment(
-      Map<String, ByteBuffer> payload, Map<String, ByteBuffer> toAdd) {
-    if (payload == null || payload.isEmpty()) {
-      return toAdd;
-    } else {
-      try {
-        payload.putAll(toAdd);
-        return payload;
-      } catch (UnsupportedOperationException e) {
-        Map<String, ByteBuffer> newPayload = new HashMap<>(payload);
-        newPayload.putAll(toAdd);
-        return newPayload;
-      }
-    }
-  }
-
   @NonNull
   @Override
   public CompletionStage<Void> closeFuture() {
@@ -187,5 +126,11 @@ public class ScopedCqlSession implements CqlSession {
   @Override
   public CompletionStage<Void> forceCloseAsync() {
     throw new UnsupportedOperationException("This wrapper is not meant to be closed");
+  }
+
+  private static String hexEncode(String tenantId) {
+    byte[] bytes = tenantId.getBytes(StandardCharsets.UTF_8);
+    // Use the driver utility class to convert to hex. It prepends with `0x` so remove it.
+    return Bytes.toHexString(bytes).substring(2);
   }
 }
