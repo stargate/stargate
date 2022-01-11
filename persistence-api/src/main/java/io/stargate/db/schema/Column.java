@@ -576,7 +576,8 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
       if (dataTypeName.charAt(0) == '"') {
         // The quote should be terminated and we should have at least 1 character + the quotes,
         if (dataTypeName.charAt(lastCharIdx) != '"' || dataTypeName.length() < 3) {
-          throw new IllegalArgumentException("Malformed type name: " + dataTypeName);
+          throw new IllegalArgumentException(
+              "Malformed type name (missing closing quote): " + dataTypeName);
         }
         String udtName = dataTypeName.substring(1, lastCharIdx).replaceAll("\"\"", "\"");
         return findUDTType(keyspace, udtName, strict);
@@ -586,7 +587,8 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
       String baseTypeName =
           paramsIdx < 0 ? dataTypeName : dataTypeName.substring(0, paramsIdx).trim();
       if (!ColumnUtils.isValidUnquotedIdentifier(baseTypeName)) {
-        throw new IllegalArgumentException("Malformed type name: " + dataTypeName);
+        throw new IllegalArgumentException(
+            "Malformed type name (requires quoting but is not quoted): " + dataTypeName);
       }
       Type baseType = parseBaseType(baseTypeName);
       boolean isFrozen = baseType == null && baseTypeName.equalsIgnoreCase("frozen");
