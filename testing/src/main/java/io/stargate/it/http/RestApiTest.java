@@ -57,12 +57,14 @@ import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @NotThreadSafe
 @ExtendWith(RestApiExtension.class)
 @RestApiSpec()
+@Disabled("SGv2 does not currently support REST v1 API")
 public class RestApiTest extends BaseIntegrationTest {
 
   private static final Pattern GRAPHQL_OPERATIONS_METRIC_REGEXP =
