@@ -38,6 +38,7 @@ import java.util.Map;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
@@ -112,6 +113,7 @@ public class RestApiJWTAuthTest extends BaseIntegrationTest {
                 assertThat(value).isEqualToComparingFieldByField(new Keyspace("system", null)));
   }
 
+  @Disabled("SGv2 does not currently support REST v1 API")
   @Test
   public void getKeyspacesV1() throws IOException {
     String body =
@@ -123,6 +125,7 @@ public class RestApiJWTAuthTest extends BaseIntegrationTest {
             "system", "system_auth", "system_distributed", "system_schema", "system_traces");
   }
 
+  @Disabled("SGv2 does not currently support REST v1 API")
   @Test
   public void getAllRowsV1() throws IOException {
     String body =
@@ -143,6 +146,7 @@ public class RestApiJWTAuthTest extends BaseIntegrationTest {
     }
   }
 
+  @Disabled("SGv2 does not currently support REST v1 API")
   @Test
   public void getRowV1() throws IOException {
     String body = getRowV1(tableName, "9876");
@@ -158,6 +162,7 @@ public class RestApiJWTAuthTest extends BaseIntegrationTest {
     }
   }
 
+  @Disabled("SGv2 does not currently support REST v1 API")
   @Test
   public void getRowV1NotAuthorized() throws IOException {
     RestUtils.get(
@@ -187,6 +192,7 @@ public class RestApiJWTAuthTest extends BaseIntegrationTest {
     }
   }
 
+  @Disabled("SGv2 does not currently support Row Level Access Control (RLAC)")
   @Test
   public void getRowsV2NotAuthorized() throws IOException {
     RestUtils.get(
@@ -195,6 +201,7 @@ public class RestApiJWTAuthTest extends BaseIntegrationTest {
         HttpStatus.SC_UNAUTHORIZED);
   }
 
+  @Disabled("SGv2 does not currently support REST v1 API")
   @Test
   public void updateRowV1() throws IOException {
     String rowIdentifier = "9876";
@@ -241,6 +248,7 @@ public class RestApiJWTAuthTest extends BaseIntegrationTest {
     assertThat(rowResponse.getRows().get(0).get("item_count")).isEqualTo(8);
   }
 
+  @Disabled("SGv2 does not currently support REST v1 API")
   @Test
   public void updateRowV1NotAuthorized() throws IOException {
     String rowIdentifier = "1234";
@@ -264,6 +272,7 @@ public class RestApiJWTAuthTest extends BaseIntegrationTest {
         HttpStatus.SC_UNAUTHORIZED);
   }
 
+  @Disabled("SGv2 does not currently support REST v1 API")
   @Test
   public void addRowV1NotAuthorized() throws IOException {
     String rowIdentifier = "1234";
@@ -296,6 +305,7 @@ public class RestApiJWTAuthTest extends BaseIntegrationTest {
         HttpStatus.SC_UNAUTHORIZED);
   }
 
+  @Disabled("SGv2 does not currently support REST v1 API")
   @Test
   public void queryRowV1() throws IOException {
     String rowIdentifier = "9876";
@@ -338,6 +348,7 @@ public class RestApiJWTAuthTest extends BaseIntegrationTest {
         .isEqualTo(updateTimestamp);
   }
 
+  @Disabled("SGv2 does not currently support REST v1 API")
   @Test
   public void queryRowV1NotAuthorized() throws IOException {
     String rowIdentifier = "1234";
@@ -370,6 +381,7 @@ public class RestApiJWTAuthTest extends BaseIntegrationTest {
         HttpStatus.SC_UNAUTHORIZED);
   }
 
+  @Disabled("SGv2 does not currently support REST v1 API")
   @Test
   public void deleteRowV1() throws IOException {
     String rowIdentifier = "9876";
@@ -388,6 +400,7 @@ public class RestApiJWTAuthTest extends BaseIntegrationTest {
         HttpStatus.SC_NO_CONTENT);
   }
 
+  @Disabled("SGv2 does not currently support REST v1 API")
   @Test
   public void deleteRowV1NotAuthorized() throws IOException {
     String rowIdentifier = "1234";
@@ -432,6 +445,7 @@ public class RestApiJWTAuthTest extends BaseIntegrationTest {
     assertThat(data).containsAllEntriesOf(rowUpdate);
   }
 
+  @Disabled("SGv2 does not currently support Row Level Access Control (RLAC)")
   @Test
   public void updateRowV2NotAuthorized() throws IOException {
     String rowIdentifier = "1234";
@@ -454,6 +468,7 @@ public class RestApiJWTAuthTest extends BaseIntegrationTest {
         HttpStatus.SC_UNAUTHORIZED);
   }
 
+  @Disabled("SGv2 does not currently support Row Level Access Control (RLAC)")
   @Test
   public void addRowV2NotAuthorized() throws IOException {
     String rowIdentifier = "1234";
@@ -494,6 +509,7 @@ public class RestApiJWTAuthTest extends BaseIntegrationTest {
     assertThat(data.get(0).get("item_count")).isEqualTo(99);
   }
 
+  @Disabled("SGv2 does not currently support Row Level Access Control (RLAC)")
   @Test
   public void queryRowV2NotAuthorized() throws IOException {
     String rowIdentifier = "1234";
@@ -529,6 +545,7 @@ public class RestApiJWTAuthTest extends BaseIntegrationTest {
         HttpStatus.SC_NO_CONTENT);
   }
 
+  @Disabled("SGv2 does not currently support Row Level Access Control (RLAC)")
   @Test
   public void deleteRowV2NotAuthorized() throws IOException {
     String rowIdentifier = "1234";
