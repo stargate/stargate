@@ -2,6 +2,7 @@ package io.stargate.sgv2.restsvc.grpc;
 
 import io.stargate.proto.QueryOuterClass;
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -169,6 +170,76 @@ public class StringifiedValueUtil {
     }
     throw new IllegalArgumentException(
         String.format("Invalid map value '%s': missing closing '}'", value));
+  }
+
+  // Quite a bit of similarities with Collection handler but not enough to
+  // refactor
+  public static void decodeStringifiedTuple(
+      String value, List<ToProtoValueCodec> elementCodecs, List<QueryOuterClass.Value> results) {
+    final int length = value.length();
+    int idx = skipSpaces(value, 0);
+    if (idx >= value.length()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid Tuple value '%s': at character %d expecting '(' but got EOF", value, idx));
+    }
+    if (value.charAt(idx) != '(') {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid tuple value '%s': at character %d expecting '(' but got '%c'",
+              value, idx, value.charAt(idx)));
+    }
+
+    idx++;
+    idx = skipSpaces(value, idx);
+
+    int fieldIndex = 0;
+    while (idx < length) {
+      if (value.charAt(idx) == ')') {
+        idx = skipSpaces(value, idx + 1);
+        if (idx == length) {
+          return;
+        }
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid tuple value '%s': at character %d expecting EOF or blank, but got \"%s\"",
+                value, idx, value.substring(idx)));
+      }
+      int n = skipCqlValue(value, idx);
+      if (n < 0) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid tuple value '%s': invalid CQL value at field %d (character %d)",
+                value, fieldIndex, idx));
+      }
+
+      String fieldValue = value.substring(idx, n);
+      QueryOuterClass.Value v =
+          elementCodecs.get(fieldIndex).protoValueFromStringified(handleSingleQuotes(fieldValue));
+      results.add(v);
+      idx = n;
+      idx = skipSpaces(value, idx);
+      if (idx == length) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid tuple value '%s': at field %d (character %d) expecting ',' or ')', but got EOF",
+                value, fieldIndex, idx));
+      }
+      char c = value.charAt(idx);
+      if (c == ')') {
+        continue;
+      }
+      if (c != ',') {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid tuple value '%s': at field %d (character %d) expecting ',' but got '%c'",
+                value, fieldIndex, idx, c));
+      }
+      ++idx; // skip ','
+
+      idx = skipSpaces(value, idx);
+      fieldIndex += 1;
+    }
   }
 
   // Unfortunately lots of duplication with preceding Map handler; may want to

@@ -64,16 +64,10 @@ public class ToProtoValueCodecs {
       case SET:
         return setCodecFor(columnSpec);
 
+      case TUPLE:
+        return tupleCodecFor(columnSpec);
       case UDT:
         return udtCodecFor(columnSpec);
-
-        // Cases not yet supported:
-      case TUPLE:
-        throw new IllegalArgumentException(
-            "Can not (yet) create Codec for TypeSpec "
-                + type.getSpecCase()
-                + " for column "
-                + columnDesc(columnSpec));
 
         // Invalid cases:
       case SPEC_NOT_SET:
@@ -159,6 +153,15 @@ public class ToProtoValueCodecs {
     QueryOuterClass.TypeSpec.Set setSpec = columnSpec.getType().getSet();
     return new CollectionCodec(
         "TypeSpec.Set", codecFor(columnSpec, setSpec.getElement()), '{', '}');
+  }
+
+  protected ToProtoValueCodec tupleCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
+    QueryOuterClass.TypeSpec.Tuple spec = columnSpec.getType().getTuple();
+    List<ToProtoValueCodec> codecs = new ArrayList<>();
+    for (QueryOuterClass.TypeSpec elementSpec : spec.getElementsList()) {
+      codecs.add(codecFor(columnSpec, elementSpec));
+    }
+    return new TupleCodec(codecs);
   }
 
   protected ToProtoValueCodec udtCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
@@ -764,6 +767,54 @@ public class ToProtoValueCodecs {
       List<QueryOuterClass.Value> elements = new ArrayList<>();
       StringifiedValueUtil.decodeStringifiedMap(value, keyCodec, valueCodec, elements);
       return Values.of(elements);
+    }
+  }
+
+  protected static final class TupleCodec extends ToProtoCodecBase {
+    private final List<ToProtoValueCodec> elementCodecs;
+
+    public TupleCodec(List<ToProtoValueCodec> elementCodecs) {
+      super("TypeSpec.Tuple");
+      this.elementCodecs = elementCodecs;
+    }
+
+    @Override
+    public ToProtoValueCodec getKeyCodec() {
+      return null;
+    }
+
+    @Override
+    public ToProtoValueCodec getValueCodec() {
+      return null;
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof Collection<?>) {
+        Collection<Object> collectionValue = (Collection<Object>) value;
+        final int len = collectionValue.size();
+        if (len != elementCodecs.size()) {
+          throw new IllegalArgumentException(
+              String.format("Tuple expected %d values, got %d", elementCodecs.size(), len));
+        }
+        int i = 0;
+        List<QueryOuterClass.Value> decoded = new ArrayList<>();
+
+        for (Object rawElement : collectionValue) {
+          final ToProtoValueCodec codec = elementCodecs.get(i++);
+          decoded.add(codec.protoValueFromStrictlyTyped(rawElement));
+        }
+        // Tuples are essentially Collections when transported over gRPC
+        return Values.of(decoded);
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      List<QueryOuterClass.Value> decoded = new ArrayList<>(elementCodecs.size());
+      StringifiedValueUtil.decodeStringifiedTuple(value, elementCodecs, decoded);
+      return Values.of(decoded);
     }
   }
 
