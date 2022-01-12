@@ -44,7 +44,7 @@ public class SchemaTest extends GrpcIntegrationTest {
     Schema.CqlKeyspaceDescribe response =
         stub.describeKeyspace(
             Schema.DescribeKeyspaceQuery.newBuilder()
-                .setKeyspaceName(keyspace.asCql(true))
+                .setKeyspaceName(keyspace.asInternal())
                 .build());
     assertThat(response).isNotNull();
     assertThat(response.getTablesCount() == 1).isTrue();
@@ -71,6 +71,7 @@ public class SchemaTest extends GrpcIntegrationTest {
                 .getTypes(0)
                 .getFieldsMap()
                 .get("street")
+                .getBasic()
                 .equals(QueryOuterClass.TypeSpec.Basic.VARCHAR))
         .isTrue();
     assertThat(
@@ -78,6 +79,7 @@ public class SchemaTest extends GrpcIntegrationTest {
                 .getTypes(0)
                 .getFieldsMap()
                 .get("number")
+                .getBasic()
                 .equals(QueryOuterClass.TypeSpec.Basic.INT))
         .isTrue();
   }
