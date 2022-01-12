@@ -42,49 +42,11 @@ public class RestHealthCheckerTest extends BaseIntegrationTest {
     assertThat(body).isEqualTo("UP");
   }
 
-  // TODO: what should the parameters be for REST? Or do we even have this capability?
-  @ParameterizedTest
-  @CsvSource({
-    ",",
-    "?check=deadlocks",
-    "?check=graphql",
-    "?check=grpc",
-    "?check=deadlocks&check=graphql",
-    "?check=datastore",
-    "?check=storage"
-  })
-  public void readiness(String query) throws IOException {
-    query = query == null ? "" : query;
-    String body =
-        RestUtils.get(
-            "", String.format("%s/checker/readiness%s", healthUrlBase, query), HttpStatus.SC_OK);
-
-    assertThat(body).isEqualTo("READY");
-  }
-
   @Test
-  public void missingReadinessCheck() throws IOException {
-    String body =
-        RestUtils.get(
-            "",
-            String.format("%s/checker/readiness?check=testUnknown", healthUrlBase),
-            HttpStatus.SC_SERVICE_UNAVAILABLE);
+  public void readiness() throws IOException {
+    // Root URL responds like Ping at this point: may change in future
+    String body = RestUtils.get("", String.format("%s/", healthUrlBase), HttpStatus.SC_OK);
 
-    assertThat(body).isEqualTo("NOT READY");
-  }
-
-  @Test
-  public void healthCheck() throws IOException {
-    String body =
-        RestUtils.get("", String.format("%s/admin/healthcheck", healthUrlBase), HttpStatus.SC_OK);
-    @SuppressWarnings("unchecked")
-    Map<String, Object> json = OBJECT_MAPPER.readValue(body, Map.class);
-    assertThat(json)
-        .extracting("deadlocks", InstanceOfAssertFactories.MAP)
-        .containsEntry("healthy", true);
-    assertThat(json)
-        .extracting("graphql", InstanceOfAssertFactories.MAP)
-        .containsEntry("healthy", true)
-        .containsEntry("message", "Available");
+    assertThat(body).isEqualTo("It's Alive");
   }
 }
