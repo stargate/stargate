@@ -487,9 +487,9 @@ public class RestApiv2Test extends BaseIntegrationTest {
     //  (some quote index name, some don't) so need to use looser match:
     final String failDesc = response.getDescription();
 
-    assertThat(response.getDescription()).containsPattern("Index .*test_idx .*already exists");
+    assertThat(response.getDescription()).containsPattern("Index .*test_idx.* already exists");
 
-    // successufully index a collection
+    // successfully index a collection
     indexAdd.setColumn("email");
     indexAdd.setName(null);
     indexAdd.setKind(IndexKind.VALUES);
