@@ -28,8 +28,14 @@ service Stargate {
   // Executes a single CQL query.
   rpc ExecuteQuery(Query) returns (Response) {}
 
+  // Executes a bi-directional streaming for CQL queries.
+  rpc ExecuteQueryStream(stream Query) returns (stream StreamingResponse) {}
+
   // Executes a batch of CQL queries.
   rpc ExecuteBatch(Batch) returns (Response) {}
+
+  // Executes a bi-directional streaming for batches of CQL queries.
+  rpc ExecuteBatchStream(stream Batch) returns (stream StreamingResponse) {}
 
   // Schema creation
   rpc CreateTable(CqlTableCreate) returns (Response) {}
