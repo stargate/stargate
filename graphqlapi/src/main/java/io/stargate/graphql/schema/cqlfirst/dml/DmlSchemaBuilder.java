@@ -79,9 +79,9 @@ public class DmlSchemaBuilder {
 
   private static final Logger LOG = LoggerFactory.getLogger(DmlSchemaBuilder.class);
   public static final String STARGATE_MUTATION_CONSISTENCY_LEVELS =
-      "stargate.mutation_consistency_levels";
+      "stargate.graphql.mutation_consistency_levels";
   public static final String STARGATE_QUERY_CONSISTENCY_LEVELS =
-      "stargate.query_consistency_levels";
+      "stargate.graphql.query_consistency_levels";
 
   private final Map<Table, GraphQLOutputType> entityResultMap = new HashMap<>();
   private final List<String> warnings = new ArrayList<>();
