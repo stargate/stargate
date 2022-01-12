@@ -1498,7 +1498,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     // create UDT: note -- UDT names must be lower-case it seems (mixed case fails)
     String udtString =
-        "{\"name\": \"test_udt\", \"fields\":"
+        "{\"name\": \"testUDT\", \"fields\":"
             + "[{\"name\":\"name\",\"typeDefinition\":\"text\"},"
             + "{\"name\":\"age\",\"typeDefinition\":\"int\"}]}";
     RestUtils.post(
@@ -1509,7 +1509,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     createTestTable(
         tableName,
-        Arrays.asList("id text", "details test_udt"),
+        Arrays.asList("id text", "details testUDT"),
         Collections.singletonList("id"),
         Collections.emptyList());
 
