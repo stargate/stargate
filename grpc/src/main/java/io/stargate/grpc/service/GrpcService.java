@@ -21,15 +21,22 @@ import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
 import io.stargate.db.query.TypedValue;
+import io.stargate.grpc.service.streaming.MessageStreamObserver;
+import io.stargate.grpc.service.streaming.StreamingBatchHandlerFactory;
+import io.stargate.grpc.service.streaming.StreamingExceptionHandler;
+import io.stargate.grpc.service.streaming.StreamingQueryHandlerFactory;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
+import io.stargate.proto.QueryOuterClass.StreamingResponse;
 import io.stargate.proto.Schema.CqlKeyspaceCreate;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.CqlTable;
 import io.stargate.proto.Schema.CqlTableCreate;
 import io.stargate.proto.Schema.DescribeKeyspaceQuery;
 import io.stargate.proto.Schema.DescribeTableQuery;
+import io.stargate.proto.Schema.GetSchemaNotificationsParams;
+import io.stargate.proto.Schema.SchemaNotification;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
@@ -65,19 +72,53 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
 
   @Override
   public void executeQuery(Query query, StreamObserver<Response> responseObserver) {
-    new QueryHandler(
+    SynchronizedStreamObserver<Response> synchronizedStreamObserver =
+        new SynchronizedStreamObserver<>(responseObserver);
+    new SingleQueryHandler(
             query,
             CONNECTION_KEY.get(),
             persistence,
             executor,
             schemaAgreementRetries,
-            responseObserver)
+            synchronizedStreamObserver,
+            new SingleExceptionHandler(synchronizedStreamObserver))
         .handle();
   }
 
   @Override
   public void executeBatch(Batch batch, StreamObserver<Response> responseObserver) {
-    new BatchHandler(batch, CONNECTION_KEY.get(), persistence, responseObserver).handle();
+    SynchronizedStreamObserver<Response> synchronizedStreamObserver =
+        new SynchronizedStreamObserver<>(responseObserver);
+    new SingleBatchHandler(
+            batch,
+            CONNECTION_KEY.get(),
+            persistence,
+            synchronizedStreamObserver,
+            new SingleExceptionHandler(synchronizedStreamObserver))
+        .handle();
+  }
+
+  @Override
+  public StreamObserver<Query> executeQueryStream(
+      StreamObserver<StreamingResponse> responseObserver) {
+    SynchronizedStreamObserver<StreamingResponse> synchronizedStreamObserver =
+        new SynchronizedStreamObserver<>(responseObserver);
+    return new MessageStreamObserver<>(
+        synchronizedStreamObserver,
+        StreamingExceptionHandler::new,
+        new StreamingQueryHandlerFactory(
+            CONNECTION_KEY.get(), persistence, executor, schemaAgreementRetries));
+  }
+
+  @Override
+  public StreamObserver<Batch> executeBatchStream(
+      StreamObserver<StreamingResponse> responseObserver) {
+    SynchronizedStreamObserver<StreamingResponse> synchronizedStreamObserver =
+        new SynchronizedStreamObserver<>(responseObserver);
+    return new MessageStreamObserver<>(
+        synchronizedStreamObserver,
+        StreamingExceptionHandler::new,
+        new StreamingBatchHandlerFactory(CONNECTION_KEY.get(), persistence));
   }
 
   @Override
@@ -106,6 +147,12 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
   @Override
   public void describeTable(DescribeTableQuery request, StreamObserver<CqlTable> responseObserver) {
     SchemaHandler.describeTable(request, persistence, responseObserver);
+  }
+
+  @Override
+  public void getSchemaNotifications(
+      GetSchemaNotificationsParams request, StreamObserver<SchemaNotification> responseObserver) {
+    new SchemaNotificationsHandler(persistence, responseObserver).handle();
   }
 
   static class ResponseAndTraceId {

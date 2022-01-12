@@ -108,3 +108,16 @@ message DescribeTableQuery {
 }
 
 // Note: the existing Response type is designed for both DML and DDL (schema) queries
+
+// The arguments to a `getSchemaNotifications` query.
+// Intentionally empty, the query doesn't take arguments. This only exists for future extensibility.
+message GetSchemaNotificationsParams {
+}
+
+message SchemaNotification {
+  SchemaChange change = 1;
+
+  // The full metadata of the keyspace that was impacted by the change.
+  // This is present for every kind of change, except DROP KEYSPACE.
+  CqlKeyspaceDescribe keyspace = 2;
+}

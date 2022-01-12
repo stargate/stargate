@@ -483,9 +483,13 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     ApiError response = objectMapper.readValue(body, ApiError.class);
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription()).contains("Index test_idx already exists");
+    // 11-Jan-2022, tatu: Specific message seems to vary a bit depending on backend
+    //  (some quote index name, some don't) so need to use looser match:
+    final String failDesc = response.getDescription();
 
-    // successufully index a collection
+    assertThat(response.getDescription()).containsPattern("Index .*test_idx.* already exists");
+
+    // successfully index a collection
     indexAdd.setColumn("email");
     indexAdd.setName(null);
     indexAdd.setKind(IndexKind.VALUES);
@@ -816,13 +820,12 @@ public class RestApiv2Test extends BaseIntegrationTest {
                 "%s/v2/keyspaces/%s/%s?where=%s",
                 restUrlBase, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
-
     JsonNodeGetResponseWrapper getResponseWrapper =
         objectMapper.readValue(body, JsonNodeGetResponseWrapper.class);
     JsonNode data = getResponseWrapper.getData();
     assertThat(data.size()).isEqualTo(1);
     assertThat(data.at("/0/id").asText()).isEqualTo(rowIdentifier);
-    assertThat(data.at("/0/firstName").asText()).isEqualTo("John");
+    assertThat(data.at("/0/firstname").asText()).isEqualTo("John");
   }
 
   @Test
@@ -1090,7 +1093,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         Collections.singletonList("id"),
         Collections.singletonList("firstName"));
     // Cannot query against non-key columns, unless there's an index, so:
-    createTestIndex(keyspaceName, tableName, "tags", "tags_index", false);
+    createTestIndex(keyspaceName, tableName, "tags", "tags_index", false, IndexKind.VALUES);
 
     insertTestTableRows(
         Arrays.asList(
@@ -1127,6 +1130,100 @@ public class RestApiv2Test extends BaseIntegrationTest {
     // 05-Jan-2022, tatu: API does allow specifying an ARRAY of things to contain, but,
     //    alas, resulting query will not work ("need to ALLOW FILTERING").
     //    So not testing that case.
+  }
+
+  @Test
+  public void getRowsWithContainsKeyQuery() throws IOException {
+    createKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "attributes map<text,text>", "firstName text"),
+        Collections.singletonList("id"),
+        Collections.singletonList("firstName"));
+    // Cannot query against non-key columns, unless there's an index, so:
+    createTestIndex(
+        keyspaceName, tableName, "attributes", "attributes_map_index", false, IndexKind.KEYS);
+
+    insertTestTableRows(
+        Arrays.asList(
+            Arrays.asList("id 1", "firstName Bob", "attributes {'a':'1'}"),
+            Arrays.asList("id 1", "firstName Dave", "attributes {'b':'2'}"),
+            Arrays.asList("id 1", "firstName Fred", "attributes {'c':'3'}")));
+
+    // First, no match
+    String whereClause = "{\"id\":{\"$eq\":\"1\"},\"attributes\":{\"$containsKey\":\"d\"}}";
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
+                restUrlBase, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_OK);
+    JsonNode json = objectMapper.readTree(body);
+    assertThat(json.size()).isEqualTo(0);
+
+    // and then a single match
+    whereClause = "{\"id\":{\"$eq\":\"1\"},\"attributes\":{\"$containsKey\":\"b\"}}";
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
+                restUrlBase, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_OK);
+    json = objectMapper.readTree(body);
+    assertThat(json.size()).isEqualTo(1);
+    assertThat(json.at("/0/firstName").asText()).isEqualTo("Dave");
+
+    // 06-Jan-2022, tatu: API does allow specifying an ARRAY of things to contain, but,
+    //    alas, resulting query will not work ("need to ALLOW FILTERING").
+    //    So not testing that case.
+  }
+
+  @Test
+  public void getRowsWithContainsEntryQuery() throws IOException {
+    createKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "attributes map<text,text>", "firstName text"),
+        Collections.singletonList("id"),
+        Collections.singletonList("firstName"));
+    // Cannot query against non-key columns, unless there's an index, so:
+    createTestIndex(
+        keyspaceName, tableName, "attributes", "attributes_map_index", false, IndexKind.ENTRIES);
+
+    insertTestTableRows(
+        Arrays.asList(
+            Arrays.asList("id 1", "firstName Bob", "attributes {'a':'1'}"),
+            Arrays.asList("id 1", "firstName Dave", "attributes {'b':'2'}"),
+            Arrays.asList("id 1", "firstName Fred", "attributes {'c':'3'}")));
+
+    // First, no match
+    String whereClause =
+        "{\"id\":{\"$eq\":\"1\"},\"attributes\":{\"$containsEntry\":{\"key\":\"b\",\"value\":\"1\"}}}";
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
+                restUrlBase, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_OK);
+    JsonNode json = objectMapper.readTree(body);
+    assertThat(json.size()).isEqualTo(0);
+
+    // and then a single match
+    whereClause =
+        "{\"id\":{\"$eq\":\"1\"},\"attributes\":{\"$containsEntry\":{\"key\":\"c\",\"value\":\"3\"}}}";
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s?where=%s&raw=true",
+                restUrlBase, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_OK);
+    json = objectMapper.readTree(body);
+    assertThat(json.size()).isEqualTo(1);
+    assertThat(json.at("/0/firstName").asText()).isEqualTo("Fred");
   }
 
   @Test
@@ -1398,6 +1495,70 @@ public class RestApiv2Test extends BaseIntegrationTest {
     // and that its contents match
     assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
     assertThat(data.get(0).get("firstname")).isEqualTo("John");
+  }
+
+  @Test
+  public void getRowsWithTuple() throws IOException {
+    createKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "data tuple<int,boolean>"),
+        Collections.singletonList("id"),
+        Collections.emptyList());
+    insertTestTableRows(
+        Arrays.asList(
+            Arrays.asList("id 1", "data (28,false)"), Arrays.asList("id 2", "data (39,true)")));
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s/%s?raw=true", restUrlBase, keyspaceName, tableName, "2"),
+            HttpStatus.SC_OK);
+    JsonNode json = objectMapper.readTree(body);
+    assertThat(json.size()).isEqualTo(1);
+    assertThat(json.at("/0/id").asText()).isEqualTo("2");
+    assertThat(json.at("/0/data/0").intValue()).isEqualTo(39);
+    assertThat(json.at("/0/data/1").booleanValue()).isTrue();
+    assertThat(json.at("/0/data").size()).isEqualTo(2);
+  }
+
+  @Test
+  public void getRowsWithUDT() throws IOException {
+    createKeyspace(keyspaceName);
+
+    // create UDT: note -- UDT names must be lower-case it seems (mixed case fails)
+    String udtString =
+        "{\"name\": \"test_udt\", \"fields\":"
+            + "[{\"name\":\"name\",\"typeDefinition\":\"text\"},"
+            + "{\"name\":\"age\",\"typeDefinition\":\"int\"}]}";
+    RestUtils.post(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "details test_udt"),
+        Collections.singletonList("id"),
+        Collections.emptyList());
+
+    insertTestTableRows(
+        Arrays.asList(
+            Arrays.asList("id 1", "details {name:'Bob',age:36}"),
+            Arrays.asList("id 2", "details {name:'Alice',age:29}"),
+            Arrays.asList("id 3", "details {name:'Peter',age:75}")));
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s/%s?raw=true", restUrlBase, keyspaceName, tableName, "2"),
+            HttpStatus.SC_OK);
+    JsonNode json = objectMapper.readTree(body);
+    assertThat(json.size()).isEqualTo(1);
+    assertThat(json.at("/0/details/name").asText()).isEqualTo("Alice");
+    assertThat(json.at("/0/details/age").intValue()).isEqualTo(29);
   }
 
   @Test
@@ -3301,12 +3462,14 @@ public class RestApiv2Test extends BaseIntegrationTest {
       String tableName,
       String columnName,
       String indexName,
-      boolean ifNotExists)
+      boolean ifNotExists,
+      IndexKind kind)
       throws IOException {
     IndexAdd indexAdd = new IndexAdd();
     indexAdd.setColumn(columnName);
     indexAdd.setName(indexName);
     indexAdd.setIfNotExists(ifNotExists);
+    indexAdd.setKind(kind);
 
     String body =
         RestUtils.post(

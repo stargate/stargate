@@ -17,7 +17,6 @@ package io.stargate.grpc.service;
 
 import com.google.protobuf.GeneratedMessageV3;
 import io.grpc.Status;
-import io.grpc.stub.StreamObserver;
 import io.stargate.db.BoundStatement;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
@@ -51,8 +50,8 @@ abstract class PreparedMessageHandler<MessageT extends GeneratedMessageV3, Prepa
       MessageT message,
       Connection connection,
       Persistence persistence,
-      StreamObserver<Response> responseObserver) {
-    super(message, responseObserver);
+      ExceptionHandler exceptionHandler) {
+    super(message, exceptionHandler);
     this.connection = connection;
     this.persistence = persistence;
   }

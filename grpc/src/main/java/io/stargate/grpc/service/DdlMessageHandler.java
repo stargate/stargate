@@ -49,6 +49,7 @@ abstract class DdlMessageHandler<MessageT extends GeneratedMessageV3>
     extends MessageHandler<MessageT> {
 
   protected final Persistence.Connection connection;
+  private final StreamObserver<Response> responseObserver;
   protected final String query;
   private final SchemaAgreementHelper schemaAgreementHelper;
 
@@ -60,8 +61,9 @@ abstract class DdlMessageHandler<MessageT extends GeneratedMessageV3>
       ScheduledExecutorService executor,
       int schemaAgreementRetries,
       StreamObserver<Response> responseObserver) {
-    super(message, responseObserver);
+    super(message, new SingleExceptionHandler(responseObserver));
     this.connection = connection;
+    this.responseObserver = responseObserver;
 
     // Note that, due to executor being null, the returned queries are not executable. This is only
     // intended to construct CQL query strings.
@@ -70,6 +72,12 @@ abstract class DdlMessageHandler<MessageT extends GeneratedMessageV3>
     this.query = buildQuery(message, persistence, queryBuilder);
     this.schemaAgreementHelper =
         new SchemaAgreementHelper(connection, schemaAgreementRetries, executor);
+  }
+
+  @Override
+  protected void setSuccess(QueryOuterClass.Response response) {
+    responseObserver.onNext(response);
+    responseObserver.onCompleted();
   }
 
   protected abstract String buildQuery(
