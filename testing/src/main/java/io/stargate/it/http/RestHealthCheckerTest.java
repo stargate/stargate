@@ -2,7 +2,6 @@ package io.stargate.it.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.it.BaseIntegrationTest;
 import java.io.IOException;
 import net.jcip.annotations.NotThreadSafe;
@@ -15,16 +14,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(RestApiExtension.class)
 @RestApiSpec()
 public class RestHealthCheckerTest extends BaseIntegrationTest {
-
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
   private static String healthUrlBase;
-
-  // TODO: what does this do, and is this needed for REST API?
-  static {
-    System.setProperty("stargate.health_check.data_store.enabled", "true");
-    System.setProperty("stargate.health_check.data_store.create_ks_and_table", "true");
-  }
 
   @BeforeAll
   public static void setup(RestApiConnectionInfo restApi) {
