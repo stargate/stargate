@@ -1,0 +1,38 @@
+cassandra:
+  version: "4.0.0"
+  cassandraLibDirVolume:
+    storageClass: local-path
+    size: 5Gi
+  allowMultipleNodesPerWorker: true
+  heap:
+    size: 1G
+    newGenSize: 1G
+  resources:
+    requests:
+      cpu: 1000m
+      memory: 2Gi
+    limits:
+      cpu: 1000m
+      memory: 2Gi
+  datacenters:
+    - name: dc1
+      size: 1
+      racks:
+        - name: default
+stargate:
+  enabled: true
+  image:
+    registry: stargateio
+    repository: sgv2-coordinator-4_0
+    tag: v2.0.0-ALPHA1
+    pullPolicy: IfNotPresent
+  replicas: 1
+  heapMB: 256
+  cpuReqMillicores: 200
+  cpuLimMillicores: 1000
+reaper:
+  enabled: false
+medusa:
+  enabled: false
+kube-prometheus-stack:
+  enabled: false
