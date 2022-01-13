@@ -586,10 +586,11 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
       int paramsIdx = dataTypeName.indexOf('<');
       String baseTypeName =
           paramsIdx < 0 ? dataTypeName : dataTypeName.substring(0, paramsIdx).trim();
-      if (!ColumnUtils.isValidUnquotedIdentifier(baseTypeName)) {
-        throw new IllegalArgumentException(
-            "Malformed type name (requires quoting but is not quoted): " + dataTypeName);
-      }
+
+      // 11-Jan-2022, tatu: There used to be a call to
+      //     `ColumnUtils.isValidUnquotedIdentifier(baseTypeName)`
+      //   but it caused issue #1538 and seems like this is not the place for such check.
+
       Type baseType = parseBaseType(baseTypeName);
       boolean isFrozen = baseType == null && baseTypeName.equalsIgnoreCase("frozen");
       boolean isParameterized = isFrozen || (baseType != null && baseType.isParameterized());
