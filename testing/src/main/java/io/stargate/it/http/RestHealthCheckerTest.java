@@ -5,15 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.it.BaseIntegrationTest;
 import java.io.IOException;
-import java.util.Map;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
-import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.CsvSource;
 
 @NotThreadSafe
 @ExtendWith(RestApiExtension.class)
