@@ -96,7 +96,7 @@ public class RestApiMetricsTest extends BaseIntegrationTest {
                       metric ->
                           assertThat(metric)
                               .contains("method=\"GET\"")
-                              .contains("module=\"restapi\"")
+                              .contains("module=\"sgv2_rest_service\"")
                               .contains("uri=\"/v2/schemas/keyspaces\"")
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
@@ -106,7 +106,7 @@ public class RestApiMetricsTest extends BaseIntegrationTest {
                       metric ->
                           assertThat(metric)
                               .contains("method=\"GET\"")
-                              .contains("module=\"restapi\"")
+                              .contains("module=\"sgv2_rest_service\"")
                               .contains("uri=\"/v2/schemas/keyspaces\"")
                               .contains(String.format("status=\"%d\"", status))
                               .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
@@ -124,7 +124,7 @@ public class RestApiMetricsTest extends BaseIntegrationTest {
                       metric ->
                           assertThat(metric)
                               .contains("error=\"false\"")
-                              .contains("module=\"restapi\"")
+                              .contains("module=\"sgv2_rest_service\"")
                               .doesNotContain("method=\"GET\"")
                               .doesNotContain("uri=\"/v2/schemas/keyspaces\"")
                               .doesNotContain(String.format("status=\"%d\"", status))
@@ -134,7 +134,7 @@ public class RestApiMetricsTest extends BaseIntegrationTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"health_checker", "restapi"})
+  @ValueSource(strings = {"sgv2_rest_service"})
   public void dropwizardMetricsModule(String module) throws IOException {
     String[] expectedMetricGroups =
         new String[] {"TimeBoundHealthCheck", "io_dropwizard_jersey", "org_eclipse_jetty"};
