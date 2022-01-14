@@ -2,6 +2,7 @@ package io.stargate.grpc.service.interceptors;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.google.protobuf.Descriptors;
 import io.grpc.Context;
 import io.grpc.Contexts;
 import io.grpc.Grpc;
@@ -36,12 +37,10 @@ import org.slf4j.LoggerFactory;
 public class NewConnectionInterceptor implements ServerInterceptor {
 
   private static final Logger logger = LoggerFactory.getLogger(NewConnectionInterceptor.class);
+  // stargate.Stargate.GetSchemaNotifications
+  // stargate.Stargate/GetSchemaNotifications
   private static final String GET_SCHEMA_NOTIFICATIONS_NAME =
-      StargateOuterClass.getDescriptor()
-          .getServices()
-          .get(0)
-          .findMethodByName("GetSchemaNotifications")
-          .getFullName();
+      getFullMethodName("GetSchemaNotifications");
 
   public static final Metadata.Key<String> TOKEN_KEY =
       Metadata.Key.of("X-Cassandra-Token", Metadata.ASCII_STRING_MARSHALLER);
@@ -184,4 +183,12 @@ public class NewConnectionInterceptor implements ServerInterceptor {
   }
 
   private static class NopListener<ReqT> extends ServerCall.Listener<ReqT> {}
+
+  private static String getFullMethodName(String simpleName) {
+    Descriptors.MethodDescriptor fromProtobuf =
+        StargateOuterClass.getDescriptor().getServices().get(0).findMethodByName(simpleName);
+    // Can't use getFullName() here because it uses '.' as the separator between service and method,
+    // whereas ServerCall.getMethodDescriptor().getFullName() uses '/'.
+    return fromProtobuf.getService().getFullName() + '/' + fromProtobuf.getName();
+  }
 }
