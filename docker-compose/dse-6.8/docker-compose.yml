@@ -46,7 +46,7 @@ services:
       - DC=dc1
       - DS_LICENSE=accept
   coordinator:
-    image: stargateio/stargate-dse-68:${SGTAG}
+    image: stargateio/coordinator-dse-68:${SGTAG}
     depends_on: 
       - dse-1
     networks:
@@ -67,7 +67,7 @@ services:
       - DATACENTER_NAME=dc1
       - ENABLE_AUTH=true
   restapi:
-    image: stargateio/stargate-restapi:${SGTAG}
+    image: stargateio/restapi:${SGTAG}
     depends_on:
       - coordinator
     networks:

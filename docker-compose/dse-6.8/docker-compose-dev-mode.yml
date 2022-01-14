@@ -2,7 +2,7 @@ version: '2'
 
 services:
   coordinator:
-    image: stargateio/sgv2-coordinator-dse-68:${SGTAG}
+    image: stargateio/coordinator-dse-68:${SGTAG}
     networks:
       - stargate
     ports:
@@ -21,7 +21,7 @@ services:
       - ENABLE_AUTH=true
       - DEVELOPER_MODE=true
   restapi:
-    image: stargateio/stargate-restapi:${SGTAG}
+    image: stargateio/restapi:${SGTAG}
     depends_on:
       - coordinator
     networks:

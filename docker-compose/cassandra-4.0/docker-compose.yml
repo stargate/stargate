@@ -38,7 +38,7 @@ services:
       - CASSANDRA_SEEDS=cassandra-1
       - CASSANDRA_CLUSTER_NAME=c4-${CASSTAG}-cluster
   coordinator:
-    image: stargateio/stargate-4_0:${SGTAG}
+    image: stargateio/coordinator-4_0:${SGTAG}
     depends_on: 
       - cassandra-1
     networks:
@@ -58,7 +58,7 @@ services:
       - DATACENTER_NAME=datacenter1
       - ENABLE_AUTH=true
   restapi:
-    image: stargateio/stargate-restapi:${SGTAG}
+    image: stargateio/restapi:${SGTAG}
     depends_on:
       - coordinator
     networks:

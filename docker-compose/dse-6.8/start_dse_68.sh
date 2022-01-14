@@ -22,7 +22,7 @@ docker-compose up -d dse-3
 
 # Bring up the stargate
 
-docker-compose up -d stargate
+docker-compose up -d stargate restapi
 
 # Wait until stargate is up before bringing up zeppelin
 
