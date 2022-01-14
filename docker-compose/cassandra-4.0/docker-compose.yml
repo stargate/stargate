@@ -1,7 +1,7 @@
 version: '2'
 
 services:
-  backend-1:
+  cassandra-1:
     image: cassandra:${CASSTAG}
     networks:
       - stargate
@@ -11,36 +11,36 @@ services:
     environment:
       - HEAP_NEWSIZE=128M
       - MAX_HEAP_SIZE=1024M
-      - CASSANDRA_SEEDS=backend-1
+      - CASSANDRA_SEEDS=cassandra-1
       - CASSANDRA_CLUSTER_NAME=c4-${CASSTAG}-cluster
-  backend-2:
+  cassandra-2:
     image: cassandra:${CASSTAG}
     networks:
       - stargate
     mem_limit: 2G
     depends_on:
-      - backend-1
+      - cassandra-1
     environment:
       - HEAP_NEWSIZE=128M
       - MAX_HEAP_SIZE=1024M
-      - CASSANDRA_SEEDS=backend-1
+      - CASSANDRA_SEEDS=cassandra-1
       - CASSANDRA_CLUSTER_NAME=c4-${CASSTAG}-cluster
-  backend-3:
+  cassandra-3:
     image: cassandra:${CASSTAG}
     networks:
       - stargate
     mem_limit: 2G
     depends_on:
-      - backend-2
+      - cassandra-2
     environment:
       - HEAP_NEWSIZE=128M
       - MAX_HEAP_SIZE=1024M
-      - CASSANDRA_SEEDS=backend-1
+      - CASSANDRA_SEEDS=cassandra-1
       - CASSANDRA_CLUSTER_NAME=c4-${CASSTAG}-cluster
   coordinator:
     image: stargateio/stargate-4_0:${SGTAG}
     depends_on: 
-      - backend-1
+      - cassandra-1
     networks:
       - stargate
     ports:
@@ -53,7 +53,7 @@ services:
       - JAVA_OPTS="-Xmx2G"
       - CLUSTER_NAME=c4-${CASSTAG}-cluster
       - CLUSTER_VERSION=4.0
-      - SEED=backend-1
+      - SEED=cassandra-1
       - RACK_NAME=rack1
       - DATACENTER_NAME=datacenter1
       - ENABLE_AUTH=true

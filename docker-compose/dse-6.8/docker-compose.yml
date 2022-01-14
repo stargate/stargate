@@ -1,7 +1,7 @@
 version: '2'
 
 services:
-  backend-1:
+  dse-1:
     image: datastax/dse-server:${DSETAG}
     networks:
       - stargate
@@ -11,44 +11,44 @@ services:
     environment:
       - HEAP_NEWSIZE=128M
       - MAX_HEAP_SIZE=1024M
-      - SEEDS=backend-1
+      - SEEDS=dse-1
       - CLUSTER_NAME=dse-${DSETAG}-cluster
       - DC=dc1
       - RACK=rack1
       - DS_LICENSE=accept
-  backend-2:
+  dse-2:
     image: datastax/dse-server:${DSETAG}
     networks:
       - stargate
     mem_limit: 2G
     depends_on:
-      - backend-1
+      - dse-1
     environment:
       - HEAP_NEWSIZE=128M
       - MAX_HEAP_SIZE=1024M
-      - SEEDS=backend-1
+      - SEEDS=dse-1
       - CLUSTER_NAME=dse-${DSETAG}-cluster
       - DC=dc1
       - RACK=rack1
       - DS_LICENSE=accept
-  backend-3:
+  dse-3:
     image: datastax/dse-server:${DSETAG}
     networks:
       - stargate
     mem_limit: 2G
     depends_on:
-      - backend-2
+      - dse-2
     environment:
       - HEAP_NEWSIZE=128M
       - MAX_HEAP_SIZE=1024M
-      - SEEDS=backend-1
+      - SEEDS=dse-1
       - CLUSTER_NAME=dse-${DSETAG}-cluster
       - DC=dc1
       - DS_LICENSE=accept
   coordinator:
     image: stargateio/stargate-dse-68:${SGTAG}
     depends_on: 
-      - backend-1
+      - dse-1
     networks:
       - stargate
     ports:
@@ -62,7 +62,7 @@ services:
       - CLUSTER_NAME=dse-${DSETAG}-cluster
       - CLUSTER_VERSION=6.8
       - DSE=1
-      - SEED=backend-1
+      - SEED=dse-1
       - RACK_NAME=rack1
       - DATACENTER_NAME=dc1
       - ENABLE_AUTH=true
