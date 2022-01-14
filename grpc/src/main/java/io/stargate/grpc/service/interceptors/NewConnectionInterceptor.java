@@ -37,8 +37,6 @@ import org.slf4j.LoggerFactory;
 public class NewConnectionInterceptor implements ServerInterceptor {
 
   private static final Logger logger = LoggerFactory.getLogger(NewConnectionInterceptor.class);
-  // stargate.Stargate.GetSchemaNotifications
-  // stargate.Stargate/GetSchemaNotifications
   private static final String GET_SCHEMA_NOTIFICATIONS_NAME =
       getFullMethodName("GetSchemaNotifications");
 
