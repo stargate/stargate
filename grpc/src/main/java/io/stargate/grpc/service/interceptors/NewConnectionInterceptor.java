@@ -60,6 +60,7 @@ public class NewConnectionInterceptor implements ServerInterceptor {
   @Value.Immutable
   interface RequestInfo {
 
+    @Nullable
     String token();
 
     Map<String, String> headers();
@@ -82,10 +83,6 @@ public class NewConnectionInterceptor implements ServerInterceptor {
 
       if (shouldCreateConnection(call)) {
         String token = headers.get(TOKEN_KEY);
-        if (token == null) {
-          call.close(Status.UNAUTHENTICATED.withDescription("No token provided"), new Metadata());
-          return new NopListener<>();
-        }
 
         Map<String, String> stringHeaders = convertAndFilterHeaders(headers);
 
@@ -139,27 +136,32 @@ public class NewConnectionInterceptor implements ServerInterceptor {
   }
 
   private Connection newConnection(RequestInfo info) throws UnauthorizedException {
-    AuthenticationSubject authenticationSubject =
-        authenticationService.validateToken(info.token(), info.headers());
-
-    AuthenticatedUser user = authenticationSubject.asUser();
     Connection connection;
-    if (!user.isFromExternalAuth()) {
-      SocketAddress remoteAddress = info.remoteAddress();
-      // This is best effort attempt to set the remote address, if the remote address is not the
-      // correct type then use a dummy value. Note: `remoteAddress` is almost always a
-      // `InetSocketAddress`.
-      InetSocketAddress inetSocketAddress =
-          remoteAddress instanceof InetSocketAddress
-              ? (InetSocketAddress) remoteAddress
-              : DUMMY_ADDRESS;
-      connection = persistence.newConnection(new ClientInfo(inetSocketAddress, null));
-    } else {
+    String token = info.token();
+    if (token == null) {
       connection = persistence.newConnection();
-    }
-    connection.login(user);
-    if (user.token() != null) {
-      connection.clientInfo().ifPresent(c -> c.setAuthenticatedUser(user));
+    } else {
+      AuthenticationSubject authenticationSubject =
+          authenticationService.validateToken(token, info.headers());
+
+      AuthenticatedUser user = authenticationSubject.asUser();
+      if (!user.isFromExternalAuth()) {
+        SocketAddress remoteAddress = info.remoteAddress();
+        // This is best effort attempt to set the remote address, if the remote address is not the
+        // correct type then use a dummy value. Note: `remoteAddress` is almost always a
+        // `InetSocketAddress`.
+        InetSocketAddress inetSocketAddress =
+            remoteAddress instanceof InetSocketAddress
+                ? (InetSocketAddress) remoteAddress
+                : DUMMY_ADDRESS;
+        connection = persistence.newConnection(new ClientInfo(inetSocketAddress, null));
+      } else {
+        connection = persistence.newConnection();
+      }
+      connection.login(user);
+      if (user.token() != null) {
+        connection.clientInfo().ifPresent(c -> c.setAuthenticatedUser(user));
+      }
     }
     connection.setCustomProperties(info.headers());
     return connection;
