@@ -1502,12 +1502,13 @@ public class RestApiv2Test extends BaseIntegrationTest {
     createKeyspace(keyspaceName);
     createTestTable(
         tableName,
-        Arrays.asList("id text", "data tuple<int,boolean>"),
+        Arrays.asList("id text", "data tuple<int,boolean,text>"),
         Collections.singletonList("id"),
         Collections.emptyList());
     insertTestTableRows(
         Arrays.asList(
-            Arrays.asList("id 1", "data (28,false)"), Arrays.asList("id 2", "data (39,true)")));
+            Arrays.asList("id 1", "data (28,false,'foobar')"),
+            Arrays.asList("id 2", "data (39,true,'bingo')")));
     String body =
         RestUtils.get(
             authToken,
@@ -1519,7 +1520,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(json.at("/0/id").asText()).isEqualTo("2");
     assertThat(json.at("/0/data/0").intValue()).isEqualTo(39);
     assertThat(json.at("/0/data/1").booleanValue()).isTrue();
-    assertThat(json.at("/0/data").size()).isEqualTo(2);
+    assertThat(json.at("/0/data/2").textValue()).isEqualTo("bingo");
+    assertThat(json.at("/0/data").size()).isEqualTo(3);
   }
 
   @Test
@@ -1528,7 +1530,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     // create UDT: note -- UDT names must be lower-case it seems (mixed case fails)
     String udtString =
-        "{\"name\": \"test_udt\", \"fields\":"
+        "{\"name\": \"testUDT\", \"fields\":"
             + "[{\"name\":\"name\",\"typeDefinition\":\"text\"},"
             + "{\"name\":\"age\",\"typeDefinition\":\"int\"}]}";
     RestUtils.post(
@@ -1539,7 +1541,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     createTestTable(
         tableName,
-        Arrays.asList("id text", "details test_udt"),
+        Arrays.asList("id text", "details testUDT"),
         Collections.singletonList("id"),
         Collections.emptyList());
 

@@ -8,11 +8,9 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
-import io.stargate.grpc.StargateBearerToken;
 import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
-import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.proto.QueryOuterClass.SchemaChange;
 import io.stargate.proto.QueryOuterClass.SchemaChange.Target;
@@ -38,9 +36,7 @@ public class SchemaNotificationsTest extends BaseIntegrationTest {
     String seedAddress = cluster.seedAddress();
     ManagedChannel channel =
         ManagedChannelBuilder.forAddress(seedAddress, 8090).usePlaintext().build();
-    asyncStub =
-        StargateGrpc.newStub(channel)
-            .withCallCredentials(new StargateBearerToken(RestUtils.getAuthToken(seedAddress)));
+    asyncStub = StargateGrpc.newStub(channel);
   }
 
   @Test
