@@ -12,6 +12,7 @@ import io.stargate.sgv2.common.cql.builder.Value;
 import io.stargate.sgv2.common.cql.builder.ValueModifier;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
+import io.stargate.sgv2.restsvc.impl.CachedSchemaAccessor;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -23,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Path;
@@ -42,9 +44,10 @@ import org.slf4j.LoggerFactory;
 @Singleton
 @CreateGrpcStub
 public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResourceApi {
-
   // Singleton resource so no need to be static
   protected final Logger logger = LoggerFactory.getLogger(getClass());
+
+  @Inject protected CachedSchemaAccessor schemaAccess;
 
   /*
   /////////////////////////////////////////////////////////////////////////
@@ -169,6 +172,9 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final String sortJson,
       final HttpServletRequest request) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
+
+    logger.warn("SchemaAccess: " + schemaAccess);
+
     List<Column> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
     Map<String, Column.Order> sortOrder;
     try {

@@ -30,6 +30,7 @@ import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.metrics.jersey.MetricsBinder;
 import io.stargate.proto.StargateGrpc;
+import io.stargate.sgv2.common.schema.SchemaCache;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcStubFilter;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
 import io.stargate.sgv2.restsvc.resources.Sgv2RowsResourceImpl;
@@ -46,6 +47,7 @@ import io.swagger.jaxrs.listing.ApiListingResource;
 import io.swagger.jaxrs.listing.SwaggerSerializers;
 import java.io.IOException;
 import java.util.EnumSet;
+import java.util.concurrent.TimeUnit;
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
 import org.eclipse.jetty.servlets.CrossOriginFilter;
@@ -95,7 +97,11 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   public void run(final RestServiceServerConfiguration appConfig, final Environment environment)
       throws IOException {
 
-    environment.jersey().register(new CreateGrpcStubFilter(buildChannel(appConfig.stargate.grpc)));
+    environment
+        .jersey()
+        .register(
+            new CreateGrpcStubFilter(
+                buildChannel(appConfig.stargate.grpc, "Data Access for REST API")));
 
     environment
         .jersey()
@@ -118,6 +124,30 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
 
     // General healthcheck endpoint
     environment.jersey().register(HealthResource.class);
+
+    // Create gRPC/Schema handler separately as it is blocking; needed before
+    // data endpoints
+    logger.info("Starting gRPC/Schema access for caching...");
+    final long startTime = System.currentTimeMillis();
+
+    final ManagedChannel schemaChannel =
+        buildChannel(appConfig.stargate.grpc, "Schema Access for REST API");
+    final StargateGrpc.StargateStub stub =
+        StargateGrpc.newStub(schemaChannel).withDeadlineAfter(10, TimeUnit.SECONDS);
+
+    final CachedSchemaAccessor schemaAccess =
+        CachedSchemaAccessor.construct(SchemaCache.newInstance(stub));
+    environment
+        .jersey()
+        .register(
+            new AbstractBinder() {
+              @Override
+              protected void configure() {
+                bind(schemaAccess).to(CachedSchemaAccessor.class);
+              }
+            });
+    logger.info(
+        "Completed gRPC/Schema access start up in {} msec", System.currentTimeMillis() - startTime);
 
     // Main data endpoints
     environment.jersey().register(Sgv2RowsResourceImpl.class);
@@ -144,8 +174,9 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     environment.jersey().property(ServerProperties.RESPONSE_SET_STATUS_OVER_SEND_ERROR, true);
   }
 
-  private ManagedChannel buildChannel(RestServiceServerConfiguration.EndpointConfig grpcEndpoint) {
-    logger.info("gRPC endpoint for RestService v2 is to use: {}", grpcEndpoint);
+  private ManagedChannel buildChannel(
+      RestServiceServerConfiguration.EndpointConfig grpcEndpoint, String caller) {
+    logger.info("gRPC endpoint {} is to use: {}", caller, grpcEndpoint);
     ManagedChannelBuilder<?> builder =
         ManagedChannelBuilder.forAddress(grpcEndpoint.host, grpcEndpoint.port).directExecutor();
     if (grpcEndpoint.useTls) {
