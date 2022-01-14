@@ -36,13 +36,13 @@ COPY ./starctl /starctl
 RUN chmod +x starctl
 ENTRYPOINT ["./starctl"]
 
-FROM base as sgv2-coordinator-4_0
+FROM base as coordinator-4_0
 RUN rm -rf stargate-lib/persistence-cassandra-3.11*.jar stargate-lib/persistence-dse*.jar
 
-FROM base as sgv2-coordinator-3_11
+FROM base as coordinator-3_11
 RUN rm -rf stargate-lib/persistence-cassandra-4.0*.jar stargate-lib/persistence-dse*.jar
 
-FROM base as sgv2-coordinator-dse-68
+FROM base as coordinator-dse-68
 RUN rm -rf stargate-lib/persistence-cassandra-4.0*.jar stargate-lib/persistence-cassandra-3.11*.jar
 
 
@@ -51,7 +51,7 @@ RUN rm -rf stargate-lib/persistence-cassandra-4.0*.jar stargate-lib/persistence-
 #
 
 # Using Java 11
-FROM openjdk:11.0.13-jre-slim as sgv2-restapi
+FROM openjdk:11.0.13-jre-slim as restapi
 
 # REST
 EXPOSE 8082
