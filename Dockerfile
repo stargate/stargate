@@ -10,13 +10,6 @@ RUN apt update -qq \
     && apt clean all \
     && rm -rf /var/lib/apt/lists/*
 
-#RUN apt update -qq \
-#    && apt-get upgrade -y \
-#    && apt install iproute2 libaio1 -y \
-#    && apt autoremove --yes \
-#    && apt clean all \
-#    && rm -rf /var/lib/{apt,dpkg,cache,log}/
-
 # CQL
 EXPOSE 9042
 
@@ -29,22 +22,23 @@ EXPOSE 8081
 # Health
 EXPOSE 8084
 
-# this will include all persistence jars, we'll remove the ones we don't want below
-COPY ./stargate-lib/* /stargate-lib/
+# we use a script to build a directory with contents of ./stargate-lib, omitting all persistence jars
+# we can then add the proper set of persistence jars to each of the images below
+ARG LIBDIR
+COPY ${LIBDIR} /stargate-lib/
 
 COPY ./starctl /starctl
 RUN chmod +x starctl
 ENTRYPOINT ["./starctl"]
 
 FROM base as coordinator-4_0
-RUN rm -rf stargate-lib/persistence-cassandra-3.11*.jar stargate-lib/persistence-dse*.jar
+COPY stargate-lib/persistence-api*.jar stargate-lib/persistence-cassandra-4.0*.jar /stargate-lib/
 
 FROM base as coordinator-3_11
-RUN rm -rf stargate-lib/persistence-cassandra-4.0*.jar stargate-lib/persistence-dse*.jar
+COPY stargate-lib/persistence-api*.jar stargate-lib/persistence-cassandra-3.11*.jar /stargate-lib/
 
 FROM base as coordinator-dse-68
-RUN rm -rf stargate-lib/persistence-cassandra-4.0*.jar stargate-lib/persistence-cassandra-3.11*.jar
-
+COPY stargate-lib/persistence-api*.jar stargate-lib/persistence-dse*.jar /stargate-lib/
 
 #
 # Dockerfile for building REST API image
