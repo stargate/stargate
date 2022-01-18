@@ -76,7 +76,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
   // Due to Guava's null hatred, ImmutableMap cannot contain nulls.
   // But we have a need for null values in JSON so here's something that
   // will get serialized as JSON null.
-  private final Object GUAVA_NULL_VALUE =
+  final Object GUAVA_NULL_VALUE =
       new Object() {
         @JsonValue
         public Integer nullValue() {
@@ -1495,13 +1495,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
             // Put UUID for the first row; leave second one empty/missing
             Arrays.asList("id 1", "data (28,false,'foobar')", "alt_id " + altUid1),
             Arrays.asList("id 2", "data (39,true,'bingo')")));
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s/v2/keyspaces/%s/%s/%s?raw=true", restUrlBase, keyspaceName, tableName, "2"),
-            HttpStatus.SC_OK);
-    JsonNode json = objectMapper.readTree(body);
+    JsonNode json = readRawRowsBySingleKey(keyspaceName, tableName, "2");
     assertThat(json.size()).isEqualTo(1);
     assertThat(json.at("/0/id").asText()).isEqualTo("2");
     assertThat(json.at("/0/data/0").intValue()).isEqualTo(39);
@@ -1527,13 +1521,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
                 "id", "1", "data", Arrays.asList(28, false, "foobar"), "alt_id", altUid1),
             ImmutableMap.of(
                 "id", "2", "data", Arrays.asList(39, true, "bingo"), "alt_id", GUAVA_NULL_VALUE)));
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s/v2/keyspaces/%s/%s/%s?raw=true", restUrlBase, keyspaceName, tableName, "2"),
-            HttpStatus.SC_OK);
-    JsonNode json = objectMapper.readTree(body);
+    JsonNode json = readRawRowsBySingleKey(keyspaceName, tableName, "2");
     assertThat(json.size()).isEqualTo(1);
     assertThat(json.at("/0/id").asText()).isEqualTo("2");
     assertThat(json.at("/0/data/0").intValue()).isEqualTo(39);
@@ -1899,7 +1887,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -1911,7 +1899,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         RestUtils.put(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+                "%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, rowIdentifier),
             objectMapper.writeValueAsString(rowUpdate),
             HttpStatus.SC_OK);
     Map<String, String> data = readWrappedRESTResponse(body, Map.class);
@@ -1950,6 +1938,27 @@ public class RestApiv2Test extends BaseIntegrationTest {
     @SuppressWarnings("unchecked")
     Map<String, String> data = objectMapper.readValue(body, Map.class);
     assertThat(data).containsAllEntriesOf(rowUpdate);
+
+    // Also verify that we can "delete" lastName
+    Map<String, String> update2 = new HashMap<>();
+    update2.put("firstName", "Roger");
+    update2.put("lastName", null);
+    body =
+        RestUtils.put(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, rowIdentifier),
+            objectMapper.writeValueAsString(update2),
+            HttpStatus.SC_OK);
+
+    // And that change actually occurs
+    JsonNode json = readRawRowsBySingleKey(keyspaceName, tableName, rowIdentifier);
+    assertThat(json.size()).isEqualTo(1);
+    assertThat(json.at("/0/id").asText()).isEqualTo(rowIdentifier);
+    assertThat(json.at("/0/firstName").asText()).isEqualTo("Roger");
+    assertThat(json.at("/0/lastName").isNull());
+    assertThat(json.at("/0/age").isNull());
+    assertThat(json.at("/0").size()).isEqualTo(4);
   }
 
   @Test
@@ -3519,5 +3528,18 @@ public class RestApiv2Test extends BaseIntegrationTest {
             .constructParametricType(RESTResponseWrapper.class, resolvedWrappedType);
     RESTResponseWrapper<T> wrapped = objectMapper.readValue(body, wrapperType);
     return wrapped.getData();
+  }
+
+  // Simple helper method for the case of single primary key, standard auth token;
+  // will use "raw" Rows endpoint to access entries, return as Tree (JsonNode)
+  private JsonNode readRawRowsBySingleKey(String keyspaceName, String tableName, Object rowId)
+      throws IOException {
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s/%s?raw=true", restUrlBase, keyspaceName, tableName, rowId),
+            HttpStatus.SC_OK);
+    return objectMapper.readTree(body);
   }
 }
