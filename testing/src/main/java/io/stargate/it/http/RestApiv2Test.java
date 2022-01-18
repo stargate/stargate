@@ -17,6 +17,7 @@ package io.stargate.it.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
+import static org.junit.Assert.assertTrue;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
@@ -945,13 +946,12 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String rowIdentifier = setupClusteringTestCase();
 
     String whereClause = String.format("{\"id\":{\"$eq\":\"%s\"}}", rowIdentifier);
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/keyspaces/%s/%s?where=%s&sort={\"expense_id\"\":\"desc\"}",
-                host, keyspaceName, tableName, whereClause),
-            HttpStatus.SC_BAD_REQUEST);
+    RestUtils.get(
+        authToken,
+        String.format(
+            "%s:8082/v2/keyspaces/%s/%s?where=%s&sort={\"expense_id\"\":\"desc\"}",
+            host, keyspaceName, tableName, whereClause),
+        HttpStatus.SC_BAD_REQUEST);
   }
 
   @Test
@@ -1501,7 +1501,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(json.at("/0/data/0").intValue()).isEqualTo(39);
     assertThat(json.at("/0/data/1").booleanValue()).isTrue();
     assertThat(json.at("/0/data").size()).isEqualTo(3);
-    assertThat(json.at("/0/alt_id").isNull());
+    assertTrue(json.at("/0/alt_id").isNull());
   }
 
   // Test for inserting and fetching row(s) with Tuple values: inserts using
@@ -1527,7 +1527,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(json.at("/0/data/0").intValue()).isEqualTo(39);
     assertThat(json.at("/0/data/1").booleanValue()).isTrue();
     assertThat(json.at("/0/data").size()).isEqualTo(3);
-    assertThat(json.at("/0/alt_id").isNull());
+    assertTrue(json.at("/0/alt_id").isNull());
   }
 
   @Test
@@ -1943,21 +1943,20 @@ public class RestApiv2Test extends BaseIntegrationTest {
     Map<String, String> update2 = new HashMap<>();
     update2.put("firstName", "Roger");
     update2.put("lastName", null);
-    body =
-        RestUtils.put(
-            authToken,
-            String.format(
-                "%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, rowIdentifier),
-            objectMapper.writeValueAsString(update2),
-            HttpStatus.SC_OK);
+    RestUtils.put(
+        authToken,
+        String.format(
+            "%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, rowIdentifier),
+        objectMapper.writeValueAsString(update2),
+        HttpStatus.SC_OK);
 
     // And that change actually occurs
     JsonNode json = readRawRowsBySingleKey(keyspaceName, tableName, rowIdentifier);
     assertThat(json.size()).isEqualTo(1);
     assertThat(json.at("/0/id").asText()).isEqualTo(rowIdentifier);
     assertThat(json.at("/0/firstName").asText()).isEqualTo("Roger");
-    assertThat(json.at("/0/lastName").isNull());
-    assertThat(json.at("/0/age").isNull());
+    assertTrue(json.at("/0/lastName").isNull());
+    assertTrue(json.at("/0/age").isNull());
     assertThat(json.at("/0").size()).isEqualTo(4);
   }
 
