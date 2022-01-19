@@ -24,7 +24,6 @@ import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
-import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -74,17 +73,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec()
 public class RestApiv2Test extends BaseIntegrationTest {
-  // Due to Guava's null hatred, ImmutableMap cannot contain nulls.
-  // But we have a need for null values in JSON so here's something that
-  // will get serialized as JSON null.
-  final Object GUAVA_NULL_VALUE =
-      new Object() {
-        @JsonValue
-        public Integer nullValue() {
-          return null;
-        }
-      };
-
   private String keyspaceName;
   private String tableName;
   private static String authToken;
@@ -1520,7 +1508,12 @@ public class RestApiv2Test extends BaseIntegrationTest {
             ImmutableMap.of(
                 "id", "1", "data", Arrays.asList(28, false, "foobar"), "alt_id", altUid1),
             ImmutableMap.of(
-                "id", "2", "data", Arrays.asList(39, true, "bingo"), "alt_id", GUAVA_NULL_VALUE)));
+                "id",
+                "2",
+                "data",
+                Arrays.asList(39, true, "bingo"),
+                "alt_id",
+                objectMapper.nullNode())));
     JsonNode json = readRawRowsBySingleKey(keyspaceName, tableName, "2");
     assertThat(json.size()).isEqualTo(1);
     assertThat(json.at("/0/id").asText()).isEqualTo("2");
