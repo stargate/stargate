@@ -3541,6 +3541,38 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
   }
 
   @Test
+  public void testBuiltInPushPopFunctionWithNestedArray() throws IOException {
+    String json = "[{\"array\":[]}]";
+    JsonNode doc1 = OBJECT_MAPPER.readTree(json);
+    RestUtils.put(authToken, collectionPath + "/1", doc1.toString(), 200);
+
+    // Push some data to the nested array
+    // A string
+    RestUtils.post(
+        authToken,
+        collectionPath + "/1/[0]/array/function",
+        "{\"operation\": \"$push\", \"value\": \"new_value\"}",
+        200);
+    String currentDoc =
+        RestUtils.get(authToken, collectionPath + "/1?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc)).isEqualTo(OBJECT_MAPPER.readTree("[{\"array\":[\"new_value\"]}]"));
+
+    // then pop string
+    String popped =
+            RestUtils.post(
+                    authToken,
+                    collectionPath + "/1/[0]/array/function",
+                    "{\"operation\": \"$pop\"}",
+                    200);
+    assertThat(OBJECT_MAPPER.readTree(popped).requiredAt("/data"))
+            .isEqualTo(OBJECT_MAPPER.readTree("\"new_value\""));
+
+    currentDoc =
+            RestUtils.get(authToken, collectionPath + "/1?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc)).isEqualTo(OBJECT_MAPPER.readTree(json));
+    }
+
+    @Test
   public void testPaginationFilterDocWithFields() throws IOException {
     JsonNode doc1 =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("longSearch.json"));

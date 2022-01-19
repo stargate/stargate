@@ -36,6 +36,7 @@ import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.core.util.TimeSource;
+import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
@@ -63,9 +64,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
-import javax.ws.rs.core.PathSegment;
 import org.javatuples.Pair;
-import org.jsfr.json.JsonSurferJackson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,7 +77,6 @@ public class ReactiveDocumentService {
   @Inject DocumentWriteService writeService;
   @Inject JsonConverter jsonConverter;
   @Inject JsonSchemaHandler jsonSchemaHandler;
-  @Inject DocsShredder docsShredder;
   @Inject JsonDocumentShredder jsonDocumentShredder;
   @Inject ObjectMapper objectMapper;
   @Inject TimeSource timeSource;
@@ -92,7 +90,6 @@ public class ReactiveDocumentService {
       DocumentWriteService writeService,
       JsonConverter jsonConverter,
       JsonSchemaHandler jsonSchemaHandler,
-      DocsShredder docsShredder,
       JsonDocumentShredder jsonDocumentShredder,
       ObjectMapper objectMapper,
       TimeSource timeSource,
@@ -102,7 +99,6 @@ public class ReactiveDocumentService {
     this.writeService = writeService;
     this.jsonConverter = jsonConverter;
     this.jsonSchemaHandler = jsonSchemaHandler;
-    this.docsShredder = docsShredder;
     this.jsonDocumentShredder = jsonDocumentShredder;
     this.objectMapper = objectMapper;
     this.timeSource = timeSource;
@@ -579,7 +575,7 @@ public class ReactiveDocumentService {
    * from the end of an array, respectively.
    *
    * @param db @link DocumentDB} to execute the function in
-   * @param keyspace the keyspace to execute the function against
+   * @param namespace the keyspace to execute the function against
    * @param collection the collection to execute the function against
    * @param id the document ID to execute the function against
    * @param funcPayload information about the function to execute
@@ -589,24 +585,36 @@ public class ReactiveDocumentService {
    */
   public Maybe<DocumentResponseWrapper<? extends JsonNode>> executeBuiltInFunction(
       DocumentDB db,
-      String keyspace,
+      String namespace,
       String collection,
       String id,
       ExecuteBuiltInFunction funcPayload,
-      List<PathSegment> path,
+      List<String> path,
       ExecutionContext context) {
     return Maybe.defer(
         () -> {
-          List<String> pathString =
-              path.stream().map(seg -> seg.getPath()).collect(Collectors.toList());
-          Maybe<JsonNode> result = null;
+          // process path
+          List<String> processedPath = processSubDocumentPath(path);
+
+          // note that currently all built in-functions require auth for modify and delete
+          // please adapt if needed in future
           BuiltInApiFunction function = BuiltInApiFunction.fromName(funcPayload.getOperation());
+          authorizeWrite(db, namespace, collection, Scope.MODIFY, Scope.DELETE);
+
+          // based on type switch the result
+          Maybe<JsonNode> result = null;
           if (function == BuiltInApiFunction.ARRAY_PUSH) {
-            result =
-                handlePush(
-                    db, keyspace, collection, id, funcPayload.getValue(), pathString, context);
+            // explicit null check to ensure we have a value to push
+            if (null == funcPayload.getValue()) {
+              throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_INVALID_JSON_VALUE);
+            }
+
+            // TODO Eric what's the desired object here and how would this me mapped anyway?
+            //  should we fix the value in the Function payload to JsonNode?
+            JsonNode payload = objectMapper.valueToTree(funcPayload.getValue());
+            result = handlePush(db, namespace, collection, id, payload, processedPath, context);
           } else if (function == BuiltInApiFunction.ARRAY_POP) {
-            result = handlePop(db, keyspace, collection, id, pathString, context);
+            result = handlePop(db, namespace, collection, id, processedPath, context);
           }
           if (result == null) {
             throw new IllegalStateException(
@@ -703,7 +711,7 @@ public class ReactiveDocumentService {
       String collection,
       String documentId,
       List<String> processedPath,
-      Object value,
+      JsonNode value,
       ExecutionContext context) {
     return getDocument(db, namespace, collection, documentId, processedPath, null, context)
         .map(
@@ -715,7 +723,7 @@ public class ReactiveDocumentService {
                     "The path provided to push to has no array");
               }
               ArrayNode arrayData = (ArrayNode) data;
-              arrayData.insertPOJO(arrayData.size(), value);
+              arrayData.insert(arrayData.size(), value);
               return arrayData;
             });
   }
@@ -759,38 +767,24 @@ public class ReactiveDocumentService {
             });
   }
 
-  private void writeNewArrayState(
+  private Single<ResultSet> writeNewArrayState(
       DocumentDB db,
       String keyspace,
       String collection,
       String id,
       JsonNode jsonArray,
-      List<String> pathString,
-      ExecutionContext context)
-      throws UnauthorizedException {
-    List<String> processedPath = processSubDocumentPath(pathString);
-
-    // TODO use here the new shredder and move to the new writer once we implement the write with
-    // sub-path
-
-    List<Object[]> bindParams =
-        docsShredder.shredPayload(
-                JsonSurferJackson.INSTANCE,
-                processedPath,
-                id,
-                jsonArray.toString(),
-                false,
-                db.treatBooleansAsNumeric(),
-                true)
-            .left;
-    db.deleteThenInsertBatch(
+      List<String> processedPath,
+      ExecutionContext context) {
+    List<JsonShreddedRow> rows = jsonDocumentShredder.shred(jsonArray, processedPath);
+    return writeService.updateDocument(
+        db.getQueryExecutor().getDataStore(),
         keyspace,
         collection,
         id,
-        bindParams,
         processedPath,
-        timeSource.currentTimeMicros(),
-        context.nested("ASYNC INSERT"));
+        rows,
+        db.treatBooleansAsNumeric(),
+        context);
   }
 
   private Maybe<JsonNode> handlePush(
@@ -798,15 +792,14 @@ public class ReactiveDocumentService {
       String keyspace,
       String collection,
       String id,
-      Object valueToPush,
+      JsonNode valueToPush,
       List<String> pathString,
       ExecutionContext context) {
     return getArrayAfterPush(db, keyspace, collection, id, pathString, valueToPush, context)
-        .map(
-            jsonArray -> {
-              writeNewArrayState(db, keyspace, collection, id, jsonArray, pathString, context);
-              return jsonArray;
-            });
+        .flatMapSingle(
+            jsonArray ->
+                writeNewArrayState(db, keyspace, collection, id, jsonArray, pathString, context)
+                    .map(any -> jsonArray));
   }
 
   private Maybe<JsonNode> handlePop(
@@ -817,12 +810,17 @@ public class ReactiveDocumentService {
       List<String> pathString,
       ExecutionContext context) {
     return getArrayAndValueAfterPop(db, keyspace, collection, id, pathString, context)
-        .map(
-            arrayAndValue -> {
-              writeNewArrayState(
-                  db, keyspace, collection, id, arrayAndValue.getValue0(), pathString, context);
-              return arrayAndValue.getValue1();
-            });
+        .flatMapSingle(
+            arrayAndValue ->
+                writeNewArrayState(
+                        db,
+                        keyspace,
+                        collection,
+                        id,
+                        arrayAndValue.getValue0(),
+                        pathString,
+                        context)
+                    .map(any -> arrayAndValue.getValue1()));
   }
 
   /////////////////////

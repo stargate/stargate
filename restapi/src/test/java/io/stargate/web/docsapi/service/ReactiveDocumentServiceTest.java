@@ -102,8 +102,6 @@ class ReactiveDocumentServiceTest {
 
   @Mock JsonConverter jsonConverter;
 
-  @Mock DocsShredder docsShredder;
-
   @Mock JsonDocumentShredder jsonDocumentShredder;
 
   @Mock JsonSchemaHandler jsonSchemaHandler;
@@ -143,7 +141,6 @@ class ReactiveDocumentServiceTest {
             writeService,
             jsonConverter,
             jsonSchemaHandler,
-            docsShredder,
             jsonDocumentShredder,
             objectMapper,
             timeSource,

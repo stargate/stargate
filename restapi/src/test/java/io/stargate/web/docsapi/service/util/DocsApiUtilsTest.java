@@ -63,6 +63,16 @@ class DocsApiUtilsTest {
     }
 
     @Test
+    public void doubleConversionWorks() {
+      int index = RandomUtils.nextInt(100, 999);
+      String first = DocsApiUtils.convertArrayPath(String.format("[%d]", index), 999999);
+
+      String result = DocsApiUtils.convertArrayPath(first, 999999);
+
+      assertThat(result).isEqualTo(String.format("[000%d]", index));
+    }
+
+    @Test
     public void limitExceeded() {
       int index = RandomUtils.nextInt(100, 999);
 

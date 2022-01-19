@@ -602,8 +602,12 @@ public class ReactiveDocumentResourceV2 {
         .flatMap(
             db -> {
               ExecutionContext context = ExecutionContext.create(profile);
+              List<String> pathStrings =
+                  path.stream().map(PathSegment::getPath).collect(Collectors.toList());
+
               return reactiveDocumentService
-                  .executeBuiltInFunction(db, namespace, collection, id, payload, path, context)
+                  .executeBuiltInFunction(
+                      db, namespace, collection, id, payload, pathStrings, context)
                   .map(rawDocumentHandler(raw))
                   .defaultIfEmpty(Response.status(Response.Status.NOT_FOUND).build());
             })
