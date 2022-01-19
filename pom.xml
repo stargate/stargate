@@ -43,8 +43,8 @@
     <immutables.version>2.8.8</immutables.version>
     <javatuples.version>1.2</javatuples.version>
     <!-- Make sure micrometer and prometheus versions are in sync  -->
-    <micrometer.version>1.7.3</micrometer.version>
-    <prometheus.version>0.10.0</prometheus.version>
+    <micrometer.version>1.8.2</micrometer.version>
+    <prometheus.version>0.12.0</prometheus.version>
     <swagger-ui.version>3.52.5</swagger-ui.version>
     <swagger-jersey2-jaxrs.version>1.6.3</swagger-jersey2-jaxrs.version>
 
