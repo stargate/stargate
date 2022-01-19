@@ -43,11 +43,11 @@ class SchemaNotificationsHandler implements EventListener {
   }
 
   public void handle() {
+    synchronized (responseObserver) {
+      responseObserver.setOnCancelHandler(() -> persistence.unregisterEventListener(this));
+      responseObserver.setOnCloseHandler(() -> persistence.unregisterEventListener(this));
+    }
     persistence.registerEventListener(this);
-    responseObserver.setOnCancelHandler(
-        () -> {
-          persistence.unregisterEventListener(this);
-        });
   }
 
   private void onSchemaChange(
@@ -64,11 +64,14 @@ class SchemaNotificationsHandler implements EventListener {
       if (type != Type.DROPPED || target != Target.KEYSPACE) {
         notification.setKeyspace(SchemaHandler.buildKeyspaceDescription(keyspace, persistence));
       }
-      responseObserver.onNext(notification.build());
+      synchronized (responseObserver) {
+        responseObserver.onNext(notification.build());
+      }
     } catch (Throwable t) {
       try {
-        responseObserver.onError(t);
-        persistence.unregisterEventListener(this);
+        synchronized (responseObserver) {
+          responseObserver.onError(t);
+        }
       } catch (Throwable t2) {
         // Be defensive here because the Cassandra internals don't guard against listener errors.
         t2.addSuppressed(t);
