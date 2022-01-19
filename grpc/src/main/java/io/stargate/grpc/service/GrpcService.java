@@ -29,10 +29,8 @@ import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.StreamingResponse;
-import io.stargate.proto.Schema.CqlKeyspaceCreate;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.CqlTable;
-import io.stargate.proto.Schema.CqlTableCreate;
 import io.stargate.proto.Schema.DescribeKeyspaceQuery;
 import io.stargate.proto.Schema.DescribeTableQuery;
 import io.stargate.proto.Schema.GetSchemaNotificationsParams;
@@ -119,23 +117,6 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
         synchronizedStreamObserver,
         StreamingExceptionHandler::new,
         new StreamingBatchHandlerFactory(CONNECTION_KEY.get(), persistence));
-  }
-
-  @Override
-  public void createKeyspace(
-      CqlKeyspaceCreate schemaOperation, StreamObserver<Response> responseObserver) {}
-
-  @Override
-  public void createTable(CqlTableCreate createTable, StreamObserver<Response> responseObserver) {
-    new CreateTableHandler(
-            createTable,
-            CONNECTION_KEY.get(),
-            persistence,
-            valueCodec,
-            executor,
-            schemaAgreementRetries,
-            responseObserver)
-        .handle();
   }
 
   @Override
