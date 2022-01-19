@@ -371,7 +371,14 @@ class ReactiveDocumentServiceTest {
       when(jsonDocumentShredder.shred(objectMapper.readTree(payload), Collections.emptyList()))
           .thenReturn(rows);
       when(writeService.updateDocument(
-              dataStore, namespace, collection, documentId, rows, true, context))
+              dataStore,
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              rows,
+              true,
+              context))
           .thenReturn(Single.just(ResultSet.empty()));
 
       Single<DocumentResponseWrapper<Void>> result =
@@ -391,7 +398,58 @@ class ReactiveDocumentServiceTest {
               });
 
       verify(writeService)
-          .updateDocument(dataStore, namespace, collection, documentId, rows, true, context);
+          .updateDocument(
+              dataStore,
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              rows,
+              true,
+              context);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void happyPathWithSubPath() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      String path = RandomStringUtils.randomAlphanumeric(16);
+      List<String> subPath = Collections.singletonList(path);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+
+      when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
+      when(jsonDocumentShredder.shred(objectMapper.readTree(payload), subPath)).thenReturn(rows);
+      when(writeService.updateDocument(
+              dataStore, namespace, collection, documentId, subPath, rows, true, context))
+          .thenReturn(Single.just(ResultSet.empty()));
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.updateDocument(
+              documentDB, namespace, collection, documentId, subPath, payload, context);
+
+      result
+          .test()
+          .await()
+          .assertValue(
+              v -> {
+                assertThat(v.getDocumentId()).isEqualTo(documentId);
+                assertThat(v.getData()).isNull();
+                assertThat(v.getPageState()).isNull();
+                assertThat(v.getProfile()).isEqualTo(context.toProfile());
+                return true;
+              });
+
+      verify(writeService)
+          .updateDocument(
+              dataStore, namespace, collection, documentId, subPath, rows, true, context);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
       verify(authService)
@@ -415,7 +473,14 @@ class ReactiveDocumentServiceTest {
           .thenReturn(schema);
       when(jsonDocumentShredder.shred(document, Collections.emptyList())).thenReturn(rows);
       when(writeService.updateDocument(
-              dataStore, namespace, collection, documentId, rows, false, context))
+              dataStore,
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              rows,
+              false,
+              context))
           .thenReturn(Single.just(ResultSet.empty()));
 
       Single<DocumentResponseWrapper<Void>> result =
@@ -435,7 +500,15 @@ class ReactiveDocumentServiceTest {
               });
 
       verify(writeService)
-          .updateDocument(dataStore, namespace, collection, documentId, rows, false, context);
+          .updateDocument(
+              dataStore,
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              rows,
+              false,
+              context);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
       verify(authService)

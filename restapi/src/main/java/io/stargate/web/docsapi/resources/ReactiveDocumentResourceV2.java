@@ -31,6 +31,7 @@ import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.ResponseHeader;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -55,11 +56,9 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
 import org.glassfish.jersey.server.ManagedAsync;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,8 +109,6 @@ public class ReactiveDocumentResourceV2 {
   @Consumes({MediaType.APPLICATION_JSON})
   @Produces(MediaType.APPLICATION_JSON)
   public void postDoc(
-      @Context HttpHeaders headers,
-      @Context UriInfo ui,
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -181,8 +178,6 @@ public class ReactiveDocumentResourceV2 {
   @Consumes({MediaType.APPLICATION_JSON})
   @Produces(MediaType.APPLICATION_JSON)
   public void putDoc(
-      @Context HttpHeaders headers,
-      @Context UriInfo ui,
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -206,6 +201,57 @@ public class ReactiveDocumentResourceV2 {
           Boolean profile,
       @Context HttpServletRequest request,
       @Suspended AsyncResponse asyncResponse) {
+    // just delegate to put with empty path
+    List<PathSegment> path = Collections.emptyList();
+    putDocPath(
+        authToken, namespace, collection, id, path, payload, profile, request, asyncResponse);
+  }
+
+  @PUT
+  @ManagedAsync
+  @ApiOperation(
+      value = "Replace data at a path in a document",
+      notes = "Removes whatever was previously present at the path")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK", response = WriteDocResponse.class),
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 422, message = "Unprocessable entity", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
+      })
+  @Path("collections/{collection-id}/{document-id}/{document-path: .*}")
+  @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_FORM_URLENCODED})
+  @Produces(MediaType.APPLICATION_JSON)
+  public void putDocPath(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
+          String id,
+      @ApiParam(value = "the path in the JSON that you want to retrieve", required = true)
+          @PathParam("document-path")
+          List<PathSegment> path,
+      @ApiParam(value = "The JSON document", required = true)
+          @NotNull(message = "payload not provided")
+          @NotBlank(message = "payload must not be empty")
+          String payload,
+      @ApiParam(
+              value = "Whether to include profiling information in the response (advanced)",
+              defaultValue = "false")
+          @QueryParam("profile")
+          Boolean profile,
+      @Context HttpServletRequest request,
+      @Suspended AsyncResponse asyncResponse) {
     // create table if needed, if not validate it's a doc table
     Single.fromCallable(
             () -> createOrValidateDbFromToken(authToken, request, namespace, collection))
@@ -214,10 +260,12 @@ public class ReactiveDocumentResourceV2 {
         .flatMap(
             db -> {
               ExecutionContext context = ExecutionContext.create(profile);
+              List<String> subPath =
+                  path.stream().map(PathSegment::getPath).collect(Collectors.toList());
 
               // and call the document service to fire write
               return reactiveDocumentService
-                  .updateDocument(db, namespace, collection, id, payload, context)
+                  .updateDocument(db, namespace, collection, id, subPath, payload, context)
 
                   // map to response
                   .map(
@@ -252,8 +300,6 @@ public class ReactiveDocumentResourceV2 {
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   public void getDocumentPath(
-      @Context HttpHeaders headers,
-      @Context UriInfo ui,
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -293,8 +339,6 @@ public class ReactiveDocumentResourceV2 {
       @Context HttpServletRequest request,
       @Suspended AsyncResponse asyncResponse) {
     getDocumentPath(
-        headers,
-        ui,
         authToken,
         namespace,
         collection,
@@ -331,8 +375,6 @@ public class ReactiveDocumentResourceV2 {
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   public void getDocumentPath(
-      @Context HttpHeaders headers,
-      @Context UriInfo ui,
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -438,7 +480,6 @@ public class ReactiveDocumentResourceV2 {
   @Path("collections/{collection-id: [a-zA-Z_0-9]+}")
   @Produces(MediaType.APPLICATION_JSON)
   public void searchDoc(
-      @Context HttpHeaders headers,
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -518,8 +559,6 @@ public class ReactiveDocumentResourceV2 {
   @Consumes({MediaType.APPLICATION_JSON})
   @Produces(MediaType.APPLICATION_JSON)
   public void executeBuiltInFunction(
-      @Context HttpHeaders headers,
-      @Context UriInfo ui,
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",

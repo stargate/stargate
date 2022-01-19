@@ -31,6 +31,7 @@ import io.stargate.web.docsapi.service.JsonShreddedRow;
 import io.stargate.web.docsapi.service.write.db.DeleteQueryBuilder;
 import io.stargate.web.docsapi.service.write.db.InsertQueryBuilder;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -55,7 +56,7 @@ public class DocumentWriteService {
     this.timeSource = timeSource;
     this.config = config;
     this.insertQueryBuilder = new InsertQueryBuilder(config.getMaxDepth());
-    this.deleteQueryBuilder = new DeleteQueryBuilder();
+    this.deleteQueryBuilder = new DeleteQueryBuilder(config.getMaxDepth());
 
     // only set log batches if explicitly disabled
     this.useLoggedBatches =
@@ -139,9 +140,48 @@ public class DocumentWriteService {
       List<JsonShreddedRow> rows,
       boolean numericBooleans,
       ExecutionContext context) {
+    List<String> subDocumentPath = Collections.emptyList();
+    return updateDocument(
+        dataStore,
+        keyspace,
+        collection,
+        documentId,
+        subDocumentPath,
+        rows,
+        numericBooleans,
+        context);
+  }
+
+  /**
+   * Updates a single document, ensuring that existing document with the same key have the given
+   * sub-path deleted.
+   *
+   * @param dataStore {@link DataStore}
+   * @param keyspace Keyspace to store document in.
+   * @param collection Collection the document belongs to.
+   * @param documentId Document ID.
+   * @param subDocumentPath The sub-document path to delete.
+   * @param rows Rows of this document.
+   * @param numericBooleans If numeric boolean should be stored.
+   * @param context Execution content for profiling.
+   * @return Single containing the {@link ResultSet} of the batch execution.
+   */
+  public Single<ResultSet> updateDocument(
+      DataStore dataStore,
+      String keyspace,
+      String collection,
+      String documentId,
+      List<String> subDocumentPath,
+      List<JsonShreddedRow> rows,
+      boolean numericBooleans,
+      ExecutionContext context) {
+    // TODO for review
+    //  should we double check that each row begins with the given sub-path
+    //  ensuring correctness of the update
+
     // create and cache the remove query prepare
     Single<? extends Query<? extends BoundQuery>> deleteQueryPrepare =
-        prepareDeleteDocumentQuery(dataStore, keyspace, collection);
+        prepareDeleteDocumentQuery(dataStore, keyspace, collection, subDocumentPath);
 
     // create and cache the insert query prepare
     Single<? extends Query<? extends BoundQuery>> insertQueryPrepare =
@@ -160,7 +200,8 @@ public class DocumentWriteService {
 
               // add delete
               BoundQuery deleteExistingQuery =
-                  deleteQueryBuilder.bind(pair.getLeft(), documentId, timestamp - 1);
+                  deleteQueryBuilder.bind(
+                      pair.getLeft(), documentId, subDocumentPath, timestamp - 1);
               queries.add(deleteExistingQuery);
 
               // then all inserts
@@ -192,12 +233,14 @@ public class DocumentWriteService {
         .cache();
   }
 
-  // create and cache the insert query prepare
+  // create and cache delete query prepare
   private Single<? extends Query<? extends BoundQuery>> prepareDeleteDocumentQuery(
-      DataStore dataStore, String keyspace, String collection) {
+      DataStore dataStore, String keyspace, String collection, List<String> subDocumentPath) {
 
     return Single.fromCallable(
-            () -> deleteQueryBuilder.buildQuery(dataStore::queryBuilder, keyspace, collection))
+            () ->
+                deleteQueryBuilder.buildQuery(
+                    dataStore::queryBuilder, keyspace, collection, subDocumentPath))
         .flatMap(query -> Single.fromCompletionStage(dataStore.prepare(query)))
         .cache();
   }

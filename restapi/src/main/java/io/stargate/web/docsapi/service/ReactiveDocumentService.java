@@ -177,11 +177,38 @@ public class ReactiveDocumentService {
       String documentId,
       String payload,
       ExecutionContext context) {
+    List<String> subPath = Collections.emptyList();
+    return updateDocument(db, namespace, collection, documentId, subPath, payload, context);
+  }
+
+  /**
+   * Updates a document with given ID in the given namespace and collection. Any previously existing
+   * document with the same ID will be overwritten.
+   *
+   * @param db {@link DocumentDB} to write in
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to update
+   * @param payload Document represented as JSON string
+   * @param context Execution content
+   * @return Document response wrapper containing the generated ID.
+   */
+  public Single<DocumentResponseWrapper<Void>> updateDocument(
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String documentId,
+      List<String> subPath,
+      String payload,
+      ExecutionContext context) {
 
     return Single.defer(
             () -> {
               // authentication for writing before anything
               authorizeWrite(db, namespace, collection, Scope.MODIFY, Scope.DELETE);
+
+              // pre-process to support array elements
+              List<String> subPathProcessed = processSubDocumentPath(subPath);
 
               // read the root
               JsonNode root = readPayload(payload);
@@ -190,8 +217,7 @@ public class ReactiveDocumentService {
               checkSchemaFullDocument(db, namespace, collection, root);
 
               // shred rows
-              List<JsonShreddedRow> rows =
-                  jsonDocumentShredder.shred(root, Collections.emptyList());
+              List<JsonShreddedRow> rows = jsonDocumentShredder.shred(root, subPathProcessed);
 
               // call write document
               return writeService.updateDocument(
@@ -199,6 +225,7 @@ public class ReactiveDocumentService {
                   namespace,
                   collection,
                   documentId,
+                  subPathProcessed,
                   rows,
                   db.treatBooleansAsNumeric(),
                   context);
