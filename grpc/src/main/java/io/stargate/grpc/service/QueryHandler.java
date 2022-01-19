@@ -37,7 +37,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ScheduledExecutorService;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
-public abstract class QueryHandler extends PreparedMessageHandler<Query, Prepared> {
+public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
 
   private final String decoratedKeyspace;
   private final SchemaAgreementHelper schemaAgreementHelper;

@@ -19,7 +19,7 @@ public class StreamingBatchHandlerFactory
   }
 
   @Override
-  public MessageHandler<QueryOuterClass.Batch> create(
+  public MessageHandler<QueryOuterClass.Batch, ?> create(
       QueryOuterClass.Batch batch,
       StreamingSuccessHandler streamingSuccessHandler,
       ExceptionHandler exceptionHandler) {

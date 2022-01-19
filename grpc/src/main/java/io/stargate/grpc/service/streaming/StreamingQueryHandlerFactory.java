@@ -28,7 +28,7 @@ public class StreamingQueryHandlerFactory
   }
 
   @Override
-  public MessageHandler<QueryOuterClass.Query> create(
+  public MessageHandler<QueryOuterClass.Query, ?> create(
       QueryOuterClass.Query query,
       StreamingSuccessHandler streamingSuccessHandler,
       ExceptionHandler exceptionHandler) {

@@ -37,10 +37,6 @@ service Stargate {
   // Executes a bi-directional streaming for batches of CQL queries.
   rpc ExecuteBatchStream(stream Batch) returns (stream StreamingResponse) {}
 
-  // Schema creation
-  rpc CreateTable(CqlTableCreate) returns (Response) {}
-  rpc CreateKeyspace(CqlKeyspaceCreate) returns (Response) {}
-
   // Similar to CQL "DESCRIBE KEYSPACE"
   rpc DescribeKeyspace(DescribeKeyspaceQuery) returns (CqlKeyspaceDescribe) {}
 

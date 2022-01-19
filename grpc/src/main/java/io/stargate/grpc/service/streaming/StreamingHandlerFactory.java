@@ -12,7 +12,7 @@ import io.stargate.grpc.service.StreamingSuccessHandler;
  * @param <MessageT>
  */
 public interface StreamingHandlerFactory<MessageT extends GeneratedMessageV3> {
-  MessageHandler<MessageT> create(
+  MessageHandler<MessageT, ?> create(
       MessageT messageT,
       StreamingSuccessHandler streamingSuccessHandler,
       ExceptionHandler exceptionHandler);
