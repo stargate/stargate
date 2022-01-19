@@ -3553,26 +3553,22 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
         collectionPath + "/1/[0]/array/function",
         "{\"operation\": \"$push\", \"value\": \"new_value\"}",
         200);
-    String currentDoc =
-        RestUtils.get(authToken, collectionPath + "/1?raw=true", 200);
-    assertThat(OBJECT_MAPPER.readTree(currentDoc)).isEqualTo(OBJECT_MAPPER.readTree("[{\"array\":[\"new_value\"]}]"));
+    String currentDoc = RestUtils.get(authToken, collectionPath + "/1?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc))
+        .isEqualTo(OBJECT_MAPPER.readTree("[{\"array\":[\"new_value\"]}]"));
 
     // then pop string
     String popped =
-            RestUtils.post(
-                    authToken,
-                    collectionPath + "/1/[0]/array/function",
-                    "{\"operation\": \"$pop\"}",
-                    200);
+        RestUtils.post(
+            authToken, collectionPath + "/1/[0]/array/function", "{\"operation\": \"$pop\"}", 200);
     assertThat(OBJECT_MAPPER.readTree(popped).requiredAt("/data"))
-            .isEqualTo(OBJECT_MAPPER.readTree("\"new_value\""));
+        .isEqualTo(OBJECT_MAPPER.readTree("\"new_value\""));
 
-    currentDoc =
-            RestUtils.get(authToken, collectionPath + "/1?raw=true", 200);
+    currentDoc = RestUtils.get(authToken, collectionPath + "/1?raw=true", 200);
     assertThat(OBJECT_MAPPER.readTree(currentDoc)).isEqualTo(OBJECT_MAPPER.readTree(json));
-    }
+  }
 
-    @Test
+  @Test
   public void testPaginationFilterDocWithFields() throws IOException {
     JsonNode doc1 =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("longSearch.json"));
