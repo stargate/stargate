@@ -23,14 +23,6 @@ option go_package = "stargate/proto";
 
 package stargate;
 
-// TYPES
-
-message UserDefinedTypeCreate {
-  string keyspace_name = 1;
-  TypeSpec.Udt udt = 2;
-  bool if_not_exists = 3;
-}
-
 // COLUMNS
 
 enum ColumnOrderBy {
@@ -72,22 +64,11 @@ message CqlTable {
   repeated CqlMaterializedView materialized_views = 9;
 }
 
-message CqlTableCreate {
-  string keyspace_name = 1;
-  CqlTable table = 2;
-  bool if_not_exists = 3;
-}
-
 // KEYSPACES
 
 message CqlKeyspace {
   string name = 1;
   map<string, string> options = 2;
-}
-
-message CqlKeyspaceCreate {
-  CqlKeyspace keyspace = 1;
-  bool if_not_exists = 2;
 }
 
 message DescribeKeyspaceQuery {

@@ -3,6 +3,8 @@ package io.stargate.sgv2.restsvc.resources.schemas;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
 import io.stargate.proto.StargateGrpc;
+import io.stargate.sgv2.common.cql.builder.Column;
+import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoTypeTranslator;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
@@ -76,13 +78,50 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
       final HttpServletRequest request) {
     final String tableName = tableAdd.getName();
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    Schema.CqlTableCreate addTable =
-        Schema.CqlTableCreate.newBuilder()
-            .setKeyspaceName(keyspaceName)
-            .setTable(table2table(tableAdd))
-            .setIfNotExists(tableAdd.getIfNotExists())
+
+    List<Column> columns = new ArrayList<>();
+    final Sgv2Table.PrimaryKey primaryKeys = tableAdd.getPrimaryKey();
+    final List<Sgv2Table.ClusteringExpression> clusterings = tableAdd.findClusteringExpressions();
+    for (Sgv2ColumnDefinition columnDef : tableAdd.getColumnDefinitions()) {
+      final String columnName = columnDef.getName();
+      ImmutableColumn.Builder column =
+          ImmutableColumn.builder().name(columnName).type(columnDef.getTypeDefinition());
+      if (primaryKeys.hasPartitionKey(columnName)) {
+        column.kind(Column.Kind.PARTITION_KEY);
+      } else if (primaryKeys.hasClusteringKey(columnName)) {
+        column.kind(Column.Kind.CLUSTERING);
+      } else if (columnDef.getIsStatic()) {
+        column.kind(Column.Kind.STATIC);
+      }
+      for (Sgv2Table.ClusteringExpression clustering : clusterings) {
+        if (columnName.equals(clustering.getColumn())) {
+          if (clustering.hasOrderAsc()) {
+            column.order(Column.Order.ASC);
+          } else if (clustering.hasOrderDesc()) {
+            column.order(Column.Order.DESC);
+          } else {
+            throw new IllegalArgumentException(
+                "Unrecognized ordering value '" + clustering.getOrder() + "'");
+          }
+        }
+      }
+      columns.add(column.build());
+    }
+
+    String cql =
+        new QueryBuilder()
+            .create()
+            .table(keyspaceName, tableAdd.getName())
+            .ifNotExists(tableAdd.getIfNotExists())
+            .column(columns)
             .build();
-    BridgeSchemaClient.create(blockingStub).createTable(addTable);
+
+    blockingStub.executeQuery(
+        QueryOuterClass.Query.newBuilder()
+            .setParameters(parametersForLocalQuorum())
+            .setCql(cql)
+            .build());
+
     return Response.status(Status.CREATED)
         .entity(Collections.singletonMap("name", tableName))
         .build();
@@ -149,46 +188,6 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
   // Helper methods for structural conversions
   /////////////////////////////////////////////////////////////////////////
    */
-
-  private Schema.CqlTable table2table(Sgv2TableAddRequest restTable) {
-    final String name = restTable.getName();
-    Schema.CqlTable.Builder b = Schema.CqlTable.newBuilder().setName(name);
-
-    // First, convert and add column definitions:
-    final Sgv2Table.PrimaryKey primaryKeys = restTable.getPrimaryKey();
-    for (Sgv2ColumnDefinition columnDef : restTable.getColumnDefinitions()) {
-      final String columnName = columnDef.getName();
-      QueryOuterClass.ColumnSpec column =
-          QueryOuterClass.ColumnSpec.newBuilder()
-              .setName(columnName)
-              .setType(
-                  BridgeProtoTypeTranslator.cqlTypeFromBridgeTypeSpec(
-                      columnDef.getTypeDefinition()))
-              .build();
-      if (primaryKeys.hasPartitionKey(columnName)) {
-        b.addPartitionKeyColumns(column);
-      } else if (primaryKeys.hasClusteringKey(columnName)) {
-        b.addClusteringKeyColumns(column);
-      } else if (columnDef.getIsStatic()) {
-        b.addStaticColumns(column);
-      } else {
-        b.addColumns(column);
-      }
-    }
-
-    // And then add ordering (ASC, DESC)
-    for (Sgv2Table.ClusteringExpression expr : restTable.findClusteringExpressions()) {
-      if (expr.hasOrderAsc()) {
-        b.putClusteringOrders(expr.getColumn(), Schema.ColumnOrderBy.ASC);
-      } else if (expr.hasOrderDesc()) {
-        b.putClusteringOrders(expr.getColumn(), Schema.ColumnOrderBy.DESC);
-      } else {
-        throw new IllegalArgumentException("Unrecognized ordering value '" + expr.getOrder() + "'");
-      }
-    }
-
-    return b.build();
-  }
 
   private Sgv2Table table2table(Schema.CqlTable grpcTable, String keyspace) {
     final List<Sgv2ColumnDefinition> columns = new ArrayList<>();
