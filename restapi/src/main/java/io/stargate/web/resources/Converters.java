@@ -203,7 +203,9 @@ public class Converters {
   /** Converts an incoming JSON value into a Java type suitable for the given column type. */
   @SuppressWarnings("unchecked")
   public static Object toCqlValue(Column.ColumnType type, Object jsonValue) {
-
+    if (jsonValue == null) {
+      return null;
+    }
     if (jsonValue instanceof String) {
       return toCqlValue(type, (String) jsonValue);
     }
