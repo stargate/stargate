@@ -66,7 +66,14 @@ class SchemaNotificationsHandler implements EventListener {
       }
       responseObserver.onNext(notification.build());
     } catch (Throwable t) {
-      responseObserver.onError(t);
+      try {
+        responseObserver.onError(t);
+        persistence.unregisterEventListener(this);
+      } catch (Throwable t2) {
+        // Be defensive here because the Cassandra internals don't guard against listener errors.
+        t2.addSuppressed(t);
+        LOG.warn("Unexpected error while notifying error", t2);
+      }
     }
   }
 
