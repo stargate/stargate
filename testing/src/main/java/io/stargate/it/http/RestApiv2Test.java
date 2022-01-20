@@ -1965,8 +1965,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     // Also verify that we can "delete" lastName
     Map<String, String> update2 = new HashMap<>();
-    update2.put("firstName", "Roger");
-    update2.put("lastName", null);
+    update2.put("firstname", "Roger");
+    update2.put("lastname", null);
     RestUtils.put(
         authToken,
         String.format(
@@ -1978,8 +1978,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
     JsonNode json = readRawRowsBySingleKey(keyspaceName, tableName, rowIdentifier);
     assertThat(json.size()).isEqualTo(1);
     assertThat(json.at("/0/id").asText()).isEqualTo(rowIdentifier);
-    assertThat(json.at("/0/firstName").asText()).isEqualTo("Roger");
-    assertTrue(json.at("/0/lastName").isNull());
+    assertThat(json.at("/0/firstname").asText()).isEqualTo("Roger");
+    assertTrue(json.at("/0/lastname").isNull());
     assertTrue(json.at("/0/age").isNull());
     assertThat(json.at("/0").size()).isEqualTo(4);
   }
