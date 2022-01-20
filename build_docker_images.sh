@@ -3,7 +3,7 @@ set -euo pipefail
 
 # Script to generate Docker images for Stargate
 # Assumes that you have done a complete build so that all jars have been created, i.e.:
-#   mvn install -P dse
+#   ./mvnw install -P dse -DskipTests=true
 
 export SGTAG=v2.0.0-ALPHA1
 
