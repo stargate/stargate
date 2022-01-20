@@ -178,13 +178,14 @@ public class ReactiveDocumentService {
   }
 
   /**
-   * Updates a document with given ID in the given namespace and collection. Any previously existing
-   * document with the same ID will be overwritten.
+   * Updates a document with given ID in the given namespace and collection at the specified
+   * sub-path. Any previously existing sub-document at the given path will be overwritten.
    *
    * @param db {@link DocumentDB} to write in
    * @param namespace Namespace
    * @param collection Collection name
    * @param documentId The ID of the document to update
+   * @param subPath Sub-path of the document to update. If empty will update the whole doc.
    * @param payload Document represented as JSON string
    * @param context Execution content
    * @return Document response wrapper containing the generated ID.
@@ -603,23 +604,21 @@ public class ReactiveDocumentService {
 
           // based on type switch the result
           Maybe<JsonNode> result = null;
-          if (function == BuiltInApiFunction.ARRAY_PUSH) {
-            // explicit null check to ensure we have a value to push
-            if (null == funcPayload.getValue()) {
-              throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_INVALID_JSON_VALUE);
-            }
+          switch (function) {
+            case ARRAY_PUSH:
+              JsonNode payload = objectMapper.valueToTree(funcPayload.getValue());
+              result = handlePush(db, namespace, collection, id, payload, processedPath, context);
+              break;
 
-            // TODO Eric what's the desired object here and how would this me mapped anyway?
-            //  should we fix the value in the Function payload to JsonNode?
-            JsonNode payload = objectMapper.valueToTree(funcPayload.getValue());
-            result = handlePush(db, namespace, collection, id, payload, processedPath, context);
-          } else if (function == BuiltInApiFunction.ARRAY_POP) {
-            result = handlePop(db, namespace, collection, id, processedPath, context);
+            case ARRAY_POP:
+              result = handlePop(db, namespace, collection, id, processedPath, context);
+              break;
+
+            default:
+              throw new IllegalStateException(
+                  "Invalid operation found at execution time: " + function.name);
           }
-          if (result == null) {
-            throw new IllegalStateException(
-                "Invalid operation found at execution time: " + function.name);
-          }
+
           return result.map(
               json -> new DocumentResponseWrapper<>(id, null, json, context.toProfile()));
         });
@@ -696,13 +695,6 @@ public class ReactiveDocumentService {
    * what the array will look like after the append. Note that this doesn't write the array back to
    * the data store.
    *
-   * @param db
-   * @param namespace
-   * @param collection
-   * @param documentId
-   * @param processedPath
-   * @param value
-   * @param context
    * @return a JSON representation of the array after pushing the new value
    */
   private Maybe<JsonNode> getArrayAfterPush(
@@ -733,12 +725,6 @@ public class ReactiveDocumentService {
    * value, and returns both what the array will look like after the pop and the value that was
    * popped. Note that this doesn't write the array back to the data store.
    *
-   * @param db
-   * @param namespace
-   * @param collection
-   * @param documentId
-   * @param processedPath
-   * @param context
    * @return a Pair containing the JSON representation of the array after popping the value and the
    *     value itself
    */
