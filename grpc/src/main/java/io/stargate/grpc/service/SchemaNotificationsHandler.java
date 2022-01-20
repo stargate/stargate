@@ -45,18 +45,27 @@ class SchemaNotificationsHandler implements EventListener {
 
   public void handle() {
     synchronized (responseObserver) {
-      responseObserver.setOnCancelHandler(() -> persistence.unregisterEventListener(this));
-      responseObserver.setOnCloseHandler(() -> persistence.unregisterEventListener(this));
+      responseObserver.setOnCancelHandler(
+          () -> {
+            LOG.info("{} Unregister after cancellation", SchemaNotificationsHandler.this);
+            persistence.unregisterEventListener(this);
+          });
+      responseObserver.setOnCloseHandler(
+          () -> {
+            LOG.info("{} Unregister after error", SchemaNotificationsHandler.this);
+            persistence.unregisterEventListener(this);
+          });
     }
     persistence.registerEventListener(this);
   }
 
   private void onSchemaChange(
       Type type, Target target, String keyspace, String name, List<String> argumentTypes) {
+    LOG.info("{} onSchemaChange({}, {}, {}, {})", this, type, target, keyspace, name);
     synchronized (responseObserver) {
-      if (isFailed) {
-        return;
-      }
+      //      if (isFailed) {
+      //        return;
+      //      }
       try {
         SchemaChange.Builder change =
             SchemaChange.newBuilder().setChangeType(type).setTarget(target).setKeyspace(keyspace);
@@ -69,9 +78,11 @@ class SchemaNotificationsHandler implements EventListener {
         if (type != Type.DROPPED || target != Target.KEYSPACE) {
           notification.setKeyspace(SchemaHandler.buildKeyspaceDescription(keyspace, persistence));
         }
+        LOG.info("{} invoke responseObserver.onNext", this);
         responseObserver.onNext(notification.build());
       } catch (Throwable t) {
         try {
+          LOG.info("{} invoke responseObserver.onError", this, t);
           isFailed = true;
           responseObserver.onError(t);
         } catch (Throwable t2) {
