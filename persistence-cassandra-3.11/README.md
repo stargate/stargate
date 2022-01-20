@@ -8,6 +8,7 @@ The current Cassandra version this module depends on is `3.11.11`.
 In order to update to a newer patch version, please follow the guidelines below:
 
 * Update the `cassandra.version` property in the [pom.xml](pom.xml).
+* Update the cassandra version in the Docker compose [environment](../docker-compose/cassandra-3.11/.env) 
 * Check the transitive dependencies of the `org.apache.cassandra:cassandra-all` for the new version.
 Make sure that the version of the `com.datastax.cassandra:cassandra-driver-core` that `cassandra-all` depends on, is same as in the `cassandra.bundled-driver.version` property in the [pom.xml](pom.xml).
 This dependency is set as optional in the `cassandra-all`, but we need it to correctly handle UDFs.
