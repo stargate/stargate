@@ -888,7 +888,7 @@ public class QueryBuilderImpl {
                     c ->
                         c.cqlName()
                             + " "
-                            + c.type()
+                            + Strings.doubleQuoteUdts(c.type())
                             + (c.kind() == Column.Kind.STATIC ? " STATIC" : ""))
                 .collect(Collectors.joining(", ")))
         .append(", ");
@@ -913,7 +913,7 @@ public class QueryBuilderImpl {
                   c ->
                       c.cqlName()
                           + " "
-                          + c.type()
+                          + Strings.doubleQuoteUdts(c.type())
                           + (c.kind() == Column.Kind.STATIC ? " STATIC" : ""))
               .collect(Collectors.joining(", ", " ADD (", ")")));
     }
@@ -1048,7 +1048,7 @@ public class QueryBuilderImpl {
         .append(maybeQualify(typeName))
         .append(
             createColumns.stream()
-                .map(c -> c.cqlName() + " " + c.type())
+                .map(c -> c.cqlName() + " " + Strings.doubleQuoteUdts(c.type()))
                 .collect(Collectors.joining(", ", "(", ")")));
     return query.toString();
   }
@@ -1077,7 +1077,7 @@ public class QueryBuilderImpl {
         + maybeQualify(typeName)
         + " ADD "
         + addColumns.stream()
-            .map(c -> c.cqlName() + " " + c.type())
+            .map(c -> c.cqlName() + " " + Strings.doubleQuoteUdts(c.type()))
             .collect(Collectors.joining(", "));
   }
 
