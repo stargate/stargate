@@ -35,6 +35,7 @@ class SchemaNotificationsHandler implements EventListener {
 
   private final Persistence persistence;
   private final ServerCallStreamObserver<SchemaNotification> responseObserver;
+  private boolean isFailed;
 
   SchemaNotificationsHandler(
       Persistence persistence, StreamObserver<SchemaNotification> responseObserver) {
@@ -52,30 +53,32 @@ class SchemaNotificationsHandler implements EventListener {
 
   private void onSchemaChange(
       Type type, Target target, String keyspace, String name, List<String> argumentTypes) {
-    try {
-      SchemaChange.Builder change =
-          SchemaChange.newBuilder().setChangeType(type).setTarget(target).setKeyspace(keyspace);
-      if (name != null) {
-        change.setName(StringValue.of(name));
+    synchronized (responseObserver) {
+      if (isFailed) {
+        return;
       }
-      change.addAllArgumentTypes(argumentTypes);
-
-      SchemaNotification.Builder notification = SchemaNotification.newBuilder().setChange(change);
-      if (type != Type.DROPPED || target != Target.KEYSPACE) {
-        notification.setKeyspace(SchemaHandler.buildKeyspaceDescription(keyspace, persistence));
-      }
-      synchronized (responseObserver) {
-        responseObserver.onNext(notification.build());
-      }
-    } catch (Throwable t) {
       try {
-        synchronized (responseObserver) {
-          responseObserver.onError(t);
+        SchemaChange.Builder change =
+            SchemaChange.newBuilder().setChangeType(type).setTarget(target).setKeyspace(keyspace);
+        if (name != null) {
+          change.setName(StringValue.of(name));
         }
-      } catch (Throwable t2) {
-        // Be defensive here because the Cassandra internals don't guard against listener errors.
-        t2.addSuppressed(t);
-        LOG.warn("Unexpected error while notifying error", t2);
+        change.addAllArgumentTypes(argumentTypes);
+
+        SchemaNotification.Builder notification = SchemaNotification.newBuilder().setChange(change);
+        if (type != Type.DROPPED || target != Target.KEYSPACE) {
+          notification.setKeyspace(SchemaHandler.buildKeyspaceDescription(keyspace, persistence));
+        }
+        responseObserver.onNext(notification.build());
+      } catch (Throwable t) {
+        try {
+          isFailed = true;
+          responseObserver.onError(t);
+        } catch (Throwable t2) {
+          // Be defensive here because the Cassandra internals don't guard against listener errors.
+          t2.addSuppressed(t);
+          LOG.warn("Unexpected error while notifying error", t2);
+        }
       }
     }
   }
