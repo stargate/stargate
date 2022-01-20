@@ -20,7 +20,7 @@ docker-compose up -d cassandra-3
 
 # Bring up the stargate
 
-docker-compose up -d stargate restapi
+docker-compose up -d coordinator restapi
 
 # Wait until stargate is up before bringing up zeppelin
 
