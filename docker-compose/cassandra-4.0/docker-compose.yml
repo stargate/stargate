@@ -11,7 +11,6 @@ services:
     environment:
       - HEAP_NEWSIZE=128M
       - MAX_HEAP_SIZE=1024M
-      - CASSANDRA_SEEDS=cassandra-1
       - CASSANDRA_CLUSTER_NAME=c4-${CASSTAG}-cluster
   cassandra-2:
     image: cassandra:${CASSTAG}
