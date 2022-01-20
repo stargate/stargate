@@ -17,6 +17,7 @@ package io.stargate.it.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
+import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import com.datastax.oss.driver.api.core.CqlSession;
@@ -24,6 +25,7 @@ import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
+import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -77,7 +79,6 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(RestApiExtension.class)
 @RestApiSpec()
 public class RestApiv2Test extends BaseIntegrationTest {
-
   private String keyspaceName;
   private String tableName;
   private static String authToken;
@@ -1497,31 +1498,60 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(data.get(0).get("firstname")).isEqualTo("John");
   }
 
+  // Test for inserting and fetching row(s) with Tuple values: inserts using
+  // "Stringified" (non-JSON, CQL literal) notation.
   @Test
-  public void getRowsWithTuple() throws IOException {
+  public void getRowsWithTupleStringified() throws IOException {
     createKeyspace(keyspaceName);
     createTestTable(
         tableName,
-        Arrays.asList("id text", "data tuple<int,boolean,text>"),
+        Arrays.asList("id text", "data tuple<int,boolean,text>", "alt_id uuid"),
         Collections.singletonList("id"),
         Collections.emptyList());
+    String altUid1 = UUID.randomUUID().toString();
     insertTestTableRows(
         Arrays.asList(
-            Arrays.asList("id 1", "data (28,false,'foobar')"),
+            // Put UUID for the first row; leave second one empty/missing
+            Arrays.asList("id 1", "data (28,false,'foobar')", "alt_id " + altUid1),
             Arrays.asList("id 2", "data (39,true,'bingo')")));
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s/v2/keyspaces/%s/%s/%s?raw=true", restUrlBase, keyspaceName, tableName, "2"),
-            HttpStatus.SC_OK);
-    JsonNode json = objectMapper.readTree(body);
+    JsonNode json = readRawRowsBySingleKey(keyspaceName, tableName, "2");
     assertThat(json.size()).isEqualTo(1);
     assertThat(json.at("/0/id").asText()).isEqualTo("2");
     assertThat(json.at("/0/data/0").intValue()).isEqualTo(39);
     assertThat(json.at("/0/data/1").booleanValue()).isTrue();
-    assertThat(json.at("/0/data/2").textValue()).isEqualTo("bingo");
     assertThat(json.at("/0/data").size()).isEqualTo(3);
+    assertTrue(json.at("/0/alt_id").isNull());
+  }
+
+  // Test for inserting and fetching row(s) with Tuple values: inserts using
+  // standard JSON payload
+  @Test
+  public void getRowsWithTupleTyped() throws IOException {
+    createKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "data tuple<int,boolean,text>", "alt_id uuid"),
+        Collections.singletonList("id"),
+        Collections.emptyList());
+    String altUid1 = UUID.randomUUID().toString();
+    insertTypedTestTableRows(
+        Arrays.asList(
+            ImmutableMap.of(
+                "id", "1", "data", Arrays.asList(28, false, "foobar"), "alt_id", altUid1),
+            ImmutableMap.of(
+                "id",
+                "2",
+                "data",
+                Arrays.asList(39, true, "bingo"),
+                "alt_id",
+                objectMapper.nullNode())));
+    JsonNode json = readRawRowsBySingleKey(keyspaceName, tableName, "2");
+    assertThat(json.size()).isEqualTo(1);
+    assertThat(json.at("/0/id").asText()).isEqualTo("2");
+    assertThat(json.at("/0/data/0").intValue()).isEqualTo(39);
+    assertThat(json.at("/0/data/1").booleanValue()).isTrue();
+    assertThat(json.at("/0/data").size()).isEqualTo(3);
+    assertTrue(json.at("/0/alt_id").isNull());
   }
 
   @Test
@@ -1932,6 +1962,26 @@ public class RestApiv2Test extends BaseIntegrationTest {
     @SuppressWarnings("unchecked")
     Map<String, String> data = objectMapper.readValue(body, Map.class);
     assertThat(data).containsAllEntriesOf(rowUpdate);
+
+    // Also verify that we can "delete" lastName
+    Map<String, String> update2 = new HashMap<>();
+    update2.put("firstname", "Roger");
+    update2.put("lastname", null);
+    RestUtils.put(
+        authToken,
+        String.format(
+            "%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, rowIdentifier),
+        objectMapper.writeValueAsString(update2),
+        HttpStatus.SC_OK);
+
+    // And that change actually occurs
+    JsonNode json = readRawRowsBySingleKey(keyspaceName, tableName, rowIdentifier);
+    assertThat(json.size()).isEqualTo(1);
+    assertThat(json.at("/0/id").asText()).isEqualTo(rowIdentifier);
+    assertThat(json.at("/0/firstname").asText()).isEqualTo("Roger");
+    assertTrue(json.at("/0/lastname").isNull());
+    assertTrue(json.at("/0/age").isNull());
+    assertThat(json.at("/0").size()).isEqualTo(4);
   }
 
   @Test
@@ -3486,14 +3536,22 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(successResponse.getSuccess()).isTrue();
   }
 
-  /** @return {@code List} of entries to expect back for given definitions. */
+  /**
+   * Helper method for inserting table entries using so-called "Stringified" values for columns:
+   * this differs a bit from full JSON values and is mostly useful for simple String and number
+   * fields.
+   *
+   * @return {@code List} of entries to expect back for given definitions.
+   */
   private List<Map<String, String>> insertTestTableRows(List<List<String>> rows)
       throws IOException {
     final List<Map<String, String>> insertedRows = new ArrayList<>();
     for (List<String> row : rows) {
       Map<String, String> rowMap = new HashMap<>();
       for (String kv : row) {
-        String[] parts = kv.split(" ");
+        // Split on first space, leave others in (with no limit we'd silently
+        // drop later space-separated parts)
+        String[] parts = kv.split(" ", 2);
         rowMap.put(parts[0].trim(), parts[1].trim());
       }
       insertedRows.add(rowMap);
@@ -3505,6 +3563,19 @@ public class RestApiv2Test extends BaseIntegrationTest {
           HttpStatus.SC_CREATED);
     }
     return insertedRows;
+  }
+
+  // Variant of "insertTestTableRows" in which entries are defined as partially
+  // typed Java Objects and serialized as real JSON and NOT as "Stringified"
+  // CQL-style format.
+  private void insertTypedTestTableRows(List<Map<String, Object>> rows) throws IOException {
+    for (Map<String, Object> row : rows) {
+      RestUtils.post(
+          authToken,
+          String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+          objectMapper.writeValueAsString(row),
+          HttpStatus.SC_CREATED);
+    }
   }
 
   private String setupClusteringTestCase() throws IOException {
@@ -3627,5 +3698,18 @@ public class RestApiv2Test extends BaseIntegrationTest {
             .constructParametricType(RESTResponseWrapper.class, resolvedWrappedType);
     RESTResponseWrapper<T> wrapped = objectMapper.readValue(body, wrapperType);
     return wrapped.getData();
+  }
+
+  // Simple helper method for the case of single primary key, standard auth token;
+  // will use "raw" Rows endpoint to access entries, return as Tree (JsonNode)
+  private JsonNode readRawRowsBySingleKey(String keyspaceName, String tableName, Object rowId)
+      throws IOException {
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s/%s?raw=true", restUrlBase, keyspaceName, tableName, rowId),
+            HttpStatus.SC_OK);
+    return objectMapper.readTree(body);
   }
 }
