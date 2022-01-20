@@ -1,5 +1,6 @@
 package io.stargate.sgv2.restsvc.grpc;
 
+import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
 import java.util.Map;
 
@@ -25,6 +26,9 @@ public class ToProtoConverter {
    * decoded and coerced as necessary).
    */
   public QueryOuterClass.Value protoValueFromLooselyTyped(String fieldName, Object value) {
+    if (value == null) {
+      return Values.NULL;
+    }
     final ToProtoValueCodec codec = getCodec(fieldName);
     try {
       if (value instanceof String) {
@@ -48,6 +52,9 @@ public class ToProtoConverter {
    * alternatives.
    */
   public QueryOuterClass.Value protoValueFromStrictlyTyped(String fieldName, Object value) {
+    if (value == null) {
+      return Values.NULL;
+    }
     final ToProtoValueCodec codec = getCodec(fieldName);
     try {
       return codec.protoValueFromStrictlyTyped(value);
