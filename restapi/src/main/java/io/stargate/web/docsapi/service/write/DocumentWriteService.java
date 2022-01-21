@@ -237,6 +237,71 @@ public class DocumentWriteService {
         .observeOn(Schedulers.io());
   }
 
+  /**
+   * Deletes a single whole document.
+   *
+   * @param dataStore {@link DataStore}
+   * @param keyspace Keyspace to delete a document from.
+   * @param collection Collection the document belongs to.
+   * @param documentId Document ID.
+   * @param rows Rows of this document.
+   * @param numericBooleans If numeric boolean should be stored.
+   * @param context Execution content for profiling.
+   * @return Single containing the {@link ResultSet} of the batch execution.
+   */
+  public Single<ResultSet> deleteDocument(
+      DataStore dataStore,
+      String keyspace,
+      String collection,
+      String documentId,
+      ExecutionContext context) {
+    List<String> subDocumentPath = Collections.emptyList();
+    return deleteDocument(dataStore, keyspace, collection, documentId, subDocumentPath, context);
+  }
+
+  /**
+   * Deletes a single (sub-)document, ensuring that existing document with the same key have the
+   * given sub-path deleted.
+   *
+   * @param dataStore {@link DataStore}
+   * @param keyspace Keyspace to delete a document from.
+   * @param collection Collection the document belongs to.
+   * @param documentId Document ID.
+   * @param subDocumentPath The sub-document path to delete.
+   * @param context Execution content for profiling.
+   * @return Single containing the {@link ResultSet} of the batch execution.
+   */
+  public Single<ResultSet> deleteDocument(
+      DataStore dataStore,
+      String keyspace,
+      String collection,
+      String documentId,
+      List<String> subDocumentPath,
+      ExecutionContext context) {
+    // create and cache the remove query prepare
+    Single<? extends Query<? extends BoundQuery>> deleteQueryPrepare =
+        prepareDeleteDocumentQuery(dataStore, keyspace, collection, subDocumentPath);
+
+    // execute when prepared
+    return deleteQueryPrepare
+        .observeOn(Schedulers.computation())
+        .map(
+            prepared -> {
+              // take current timestamp for binding
+              long timestamp = timeSource.currentTimeMicros();
+
+              // return bind delete
+              // TODO Eric I feel keeping deletes always with the timestamp - 1 feels right
+              //  Although this should not make any difference what so ever
+              return deleteQueryBuilder.bind(prepared, documentId, subDocumentPath, timestamp - 1);
+            })
+        // then execute single
+        .flatMap(query -> executeSingle(dataStore, query, context.nested("ASYNC DELETE")))
+
+        // move away from the data store thread
+        .observeOn(Schedulers.io());
+  }
+
   // create and cache the remove query prepare
   private Single<? extends Query<? extends BoundQuery>> prepareInsertDocumentRowQuery(
       DataStore dataStore, String keyspace, String collection) {
@@ -274,6 +339,21 @@ public class DocumentWriteService {
     } else {
       future = dataStore.unloggedBatch(boundQueries, ConsistencyLevel.LOCAL_QUORUM);
     }
+
+    // return
+    return Single.fromCompletionStage(future);
+  }
+
+  // executes single query
+  private SingleSource<ResultSet> executeSingle(
+      DataStore dataStore, BoundQuery boundQuery, ExecutionContext context) {
+
+    // trace queries in context
+    context.traceDeferredDml(boundQuery);
+
+    // then execute batch
+    CompletableFuture<ResultSet> future =
+        dataStore.execute(boundQuery, ConsistencyLevel.LOCAL_QUORUM);
 
     // return
     return Single.fromCompletionStage(future);
