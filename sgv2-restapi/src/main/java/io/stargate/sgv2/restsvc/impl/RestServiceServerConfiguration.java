@@ -22,7 +22,7 @@ public class RestServiceServerConfiguration extends Configuration {
 
   /** Value class definitions */
   static class StargateConfig {
-    public EndpointConfig grpc = new EndpointConfig("localhost", 8090, false);
+    public EndpointConfig grpc = new EndpointConfig("localhost", 8091, false);
   }
 
   static class EndpointConfig {

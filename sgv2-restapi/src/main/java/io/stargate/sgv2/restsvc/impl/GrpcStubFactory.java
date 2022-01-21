@@ -15,7 +15,7 @@
  */
 package io.stargate.sgv2.restsvc.impl;
 
-import io.stargate.proto.StargateGrpc.StargateBlockingStub;
+import io.stargate.proto.StargateBridgeGrpc.StargateBridgeBlockingStub;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcStubFilter;
 import javax.inject.Inject;
 import javax.ws.rs.container.ContainerRequestContext;
@@ -25,7 +25,7 @@ import org.glassfish.hk2.api.Factory;
  * Provides the stub that we created in {@link CreateGrpcStubFilter} to the Jersey context, so that
  * it can be injected into resource methods with {@code @Context}.
  */
-public class GrpcStubFactory implements Factory<StargateBlockingStub> {
+public class GrpcStubFactory implements Factory<StargateBridgeBlockingStub> {
 
   private final ContainerRequestContext context;
 
@@ -35,12 +35,12 @@ public class GrpcStubFactory implements Factory<StargateBlockingStub> {
   }
 
   @Override
-  public StargateBlockingStub provide() {
-    return (StargateBlockingStub) context.getProperty(CreateGrpcStubFilter.GRPC_STUB_KEY);
+  public StargateBridgeBlockingStub provide() {
+    return (StargateBridgeBlockingStub) context.getProperty(CreateGrpcStubFilter.GRPC_STUB_KEY);
   }
 
   @Override
-  public void dispose(StargateBlockingStub instance) {
+  public void dispose(StargateBridgeBlockingStub instance) {
     // intentionally empty
   }
 }

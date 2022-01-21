@@ -2,7 +2,7 @@ package io.stargate.sgv2.restsvc.resources.schemas;
 
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
-import io.stargate.proto.StargateGrpc;
+import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
@@ -29,7 +29,7 @@ import javax.ws.rs.core.Response;
 public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2ColumnsResourceApi {
   @Override
   public Response getAllColumns(
-      StargateGrpc.StargateBlockingStub blockingStub,
+      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       String keyspaceName,
       String tableName,
       boolean raw,
@@ -48,7 +48,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
 
   @Override
   public Response createColumn(
-      StargateGrpc.StargateBlockingStub blockingStub,
+      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       String keyspaceName,
       String tableName,
       Sgv2ColumnDefinition columnDefinition,
@@ -91,7 +91,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
 
   @Override
   public Response getOneColumn(
-      StargateGrpc.StargateBlockingStub blockingStub,
+      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       String keyspaceName,
       String tableName,
       String columnName,
@@ -119,7 +119,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
 
   @Override
   public Response updateColumn(
-      StargateGrpc.StargateBlockingStub blockingStub,
+      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       String keyspaceName,
       String tableName,
       String columnName,
@@ -165,7 +165,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
 
   @Override
   public Response deleteColumn(
-      StargateGrpc.StargateBlockingStub blockingStub,
+      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       String keyspaceName,
       String tableName,
       String columnName,

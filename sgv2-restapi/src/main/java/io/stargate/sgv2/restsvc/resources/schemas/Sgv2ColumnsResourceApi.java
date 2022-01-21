@@ -1,7 +1,7 @@
 package io.stargate.sgv2.restsvc.resources.schemas;
 
 import com.codahale.metrics.annotation.Timed;
-import io.stargate.proto.StargateGrpc;
+import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2ColumnDefinition;
 import io.swagger.annotations.Api;
@@ -55,7 +55,7 @@ public interface Sgv2ColumnsResourceApi {
             response = RestServiceError.class)
       })
   Response getAllColumns(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
+      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -85,7 +85,7 @@ public interface Sgv2ColumnsResourceApi {
             response = RestServiceError.class)
       })
   Response createColumn(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
+      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -113,7 +113,7 @@ public interface Sgv2ColumnsResourceApi {
       })
   @Path("/{columnName}")
   Response getOneColumn(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
+      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -146,7 +146,7 @@ public interface Sgv2ColumnsResourceApi {
       })
   @Path("/{columnName}")
   Response updateColumn(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
+      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -171,7 +171,7 @@ public interface Sgv2ColumnsResourceApi {
       })
   @Path("/{columnName}")
   public Response deleteColumn(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
+      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,

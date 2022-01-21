@@ -29,12 +29,6 @@ import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.StreamingResponse;
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
-import io.stargate.proto.Schema.CqlTable;
-import io.stargate.proto.Schema.DescribeKeyspaceQuery;
-import io.stargate.proto.Schema.DescribeTableQuery;
-import io.stargate.proto.Schema.GetSchemaNotificationsParams;
-import io.stargate.proto.Schema.SchemaNotification;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
@@ -117,23 +111,6 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
         synchronizedStreamObserver,
         StreamingExceptionHandler::new,
         new StreamingBatchHandlerFactory(CONNECTION_KEY.get(), persistence));
-  }
-
-  @Override
-  public void describeKeyspace(
-      DescribeKeyspaceQuery request, StreamObserver<CqlKeyspaceDescribe> responseObserver) {
-    SchemaHandler.describeKeyspace(request, persistence, responseObserver);
-  }
-
-  @Override
-  public void describeTable(DescribeTableQuery request, StreamObserver<CqlTable> responseObserver) {
-    SchemaHandler.describeTable(request, persistence, responseObserver);
-  }
-
-  @Override
-  public void getSchemaNotifications(
-      GetSchemaNotificationsParams request, StreamObserver<SchemaNotification> responseObserver) {
-    new SchemaNotificationsHandler(persistence, responseObserver).handle();
   }
 
   static class ResponseAndTraceId {

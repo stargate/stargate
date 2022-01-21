@@ -1,4 +1,4 @@
-package io.stargate.it.grpc;
+package io.stargate.it.bridge;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
@@ -18,7 +18,7 @@ import io.stargate.proto.QueryOuterClass.SchemaChange.Target;
 import io.stargate.proto.QueryOuterClass.SchemaChange.Type;
 import io.stargate.proto.Schema.GetSchemaNotificationsParams;
 import io.stargate.proto.Schema.SchemaNotification;
-import io.stargate.proto.StargateGrpc;
+import io.stargate.proto.StargateBridgeGrpc;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
@@ -30,15 +30,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(CqlSessionExtension.class)
 public class SchemaNotificationsTest extends BaseIntegrationTest {
 
-  private StargateGrpc.StargateStub asyncStub;
+  private StargateBridgeGrpc.StargateBridgeStub asyncStub;
 
   @BeforeEach
   public void setup(StargateConnectionInfo cluster) throws IOException {
     String seedAddress = cluster.seedAddress();
     ManagedChannel channel =
-        ManagedChannelBuilder.forAddress(seedAddress, 8090).usePlaintext().build();
+        ManagedChannelBuilder.forAddress(seedAddress, 8091).usePlaintext().build();
     asyncStub =
-        StargateGrpc.newStub(channel)
+        StargateBridgeGrpc.newStub(channel)
             .withCallCredentials(new StargateBearerToken("mockAdminToken"));
   }
 

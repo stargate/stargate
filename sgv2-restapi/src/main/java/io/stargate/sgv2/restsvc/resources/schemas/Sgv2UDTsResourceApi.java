@@ -3,7 +3,7 @@ package io.stargate.sgv2.restsvc.resources.schemas;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 import com.codahale.metrics.annotation.Timed;
-import io.stargate.proto.StargateGrpc;
+import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.models.Sgv2UDT;
@@ -67,7 +67,7 @@ public interface Sgv2UDTsResourceApi {
             response = RestServiceError.class)
       })
   Response findAll(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
+      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       @ApiParam(value = "Keyspace to find all udts", required = true) @PathParam("keyspaceName")
           final String keyspaceName,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
@@ -92,7 +92,7 @@ public interface Sgv2UDTsResourceApi {
       })
   @Path("/{typeName}")
   Response findById(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
+      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -133,7 +133,7 @@ public interface Sgv2UDTsResourceApi {
             response = RestServiceError.class)
       })
   Response createType(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
+      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -156,7 +156,7 @@ public interface Sgv2UDTsResourceApi {
       })
   @Path("/{typeName}")
   Response delete(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
+      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -182,7 +182,7 @@ public interface Sgv2UDTsResourceApi {
             response = RestServiceError.class)
       })
   Response update(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
+      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
