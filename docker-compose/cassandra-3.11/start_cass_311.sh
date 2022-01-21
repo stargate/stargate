@@ -26,7 +26,7 @@ docker-compose up -d coordinator restapi
 
 echo ""
 echo "Waiting for stargate to start up..."
-while [[ "$(curl -s -o /dev/null -w ''%{http_code}'' http://localhost:8082/health)" != "200" ]]; do
+while [ "$(curl -s -o /dev/null -w ''%{http_code}'' http://localhost:8082/health)" != "200" ]; do
     printf '.'
     sleep 5
 done

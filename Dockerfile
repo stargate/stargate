@@ -2,7 +2,7 @@
 # Dockerfile for building coordinator node images
 #
 
-FROM openjdk:8u312-jre-slim as base
+FROM openjdk:8-jre-slim as base
 
 RUN apt update -qq \
     && apt install iproute2 libaio1 -y \
@@ -45,7 +45,7 @@ COPY stargate-lib/persistence-api*.jar stargate-lib/persistence-dse*.jar /starga
 #
 
 # Using Java 11
-FROM openjdk:11.0.13-jre-slim as restapi
+FROM openjdk:11-jre-slim as restapi
 
 # REST
 EXPOSE 8082
