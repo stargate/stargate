@@ -50,21 +50,20 @@ class SchemaHandler {
       Persistence persistence,
       StreamObserver<CqlKeyspaceDescribe> responseObserver) {
     try {
-      responseObserver.onNext(buildKeyspaceDescription(query.getKeyspaceName(), persistence));
+      String decoratedKeyspace =
+          persistence.decorateKeyspaceName(query.getKeyspaceName(), GrpcService.HEADERS_KEY.get());
+      Keyspace keyspace = persistence.schema().keyspace(decoratedKeyspace);
+      if (keyspace == null) {
+        throw Status.NOT_FOUND.withDescription("Keyspace not found").asException();
+      }
+      responseObserver.onNext(buildKeyspaceDescription(keyspace));
       responseObserver.onCompleted();
     } catch (StatusException e) {
       responseObserver.onError(e);
     }
   }
 
-  static CqlKeyspaceDescribe buildKeyspaceDescription(String keyspaceName, Persistence persistence)
-      throws StatusException {
-    String decoratedKeyspace =
-        persistence.decorateKeyspaceName(keyspaceName, GrpcService.HEADERS_KEY.get());
-    Keyspace keyspace = persistence.schema().keyspace(decoratedKeyspace);
-    if (keyspace == null) {
-      throw Status.NOT_FOUND.withDescription("Keyspace not found").asException();
-    }
+  static CqlKeyspaceDescribe buildKeyspaceDescription(Keyspace keyspace) throws StatusException {
 
     CqlKeyspaceDescribe.Builder describeResultBuilder = CqlKeyspaceDescribe.newBuilder();
     CqlKeyspace.Builder cqlKeyspaceBuilder = CqlKeyspace.newBuilder();

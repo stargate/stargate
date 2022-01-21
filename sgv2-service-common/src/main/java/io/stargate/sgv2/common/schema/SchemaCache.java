@@ -16,8 +16,6 @@
 package io.stargate.sgv2.common.schema;
 
 import io.stargate.proto.QueryOuterClass.SchemaChange;
-import io.stargate.proto.QueryOuterClass.SchemaChange.Target;
-import io.stargate.proto.QueryOuterClass.SchemaChange.Type;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.SchemaNotification;
 import io.stargate.proto.StargateGrpc.StargateStub;
@@ -145,7 +143,6 @@ public class SchemaCache {
       if (notification.hasKeyspace()) {
         updateKeyspace(notification.getKeyspace(), false);
       } else {
-        assert change.getChangeType() == Type.DROPPED && change.getTarget() == Target.KEYSPACE;
         deleteKeyspace(change.getKeyspace());
       }
     }
