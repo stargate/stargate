@@ -22,7 +22,7 @@ import com.github.misberner.duzzt.annotations.DSLAction;
 import com.github.misberner.duzzt.annotations.GenerateEmbeddedDSL;
 import com.github.misberner.duzzt.annotations.SubExpr;
 import io.stargate.sgv2.common.cql.ColumnUtils;
-import io.stargate.sgv2.common.cql.Strings;
+import io.stargate.sgv2.common.cql.CqlStrings;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -855,7 +855,7 @@ public class QueryBuilderImpl {
 
   private void addComment(WithAdder with) {
     if (comment != null) {
-      String quotedComment = Strings.quote(comment);
+      String quotedComment = CqlStrings.quote(comment);
       with.add().append(" comment = ").append(quotedComment);
     }
   }
@@ -888,7 +888,7 @@ public class QueryBuilderImpl {
                     c ->
                         c.cqlName()
                             + " "
-                            + Strings.doubleQuoteUdts(c.type())
+                            + CqlStrings.doubleQuoteUdts(c.type())
                             + (c.kind() == Column.Kind.STATIC ? " STATIC" : ""))
                 .collect(Collectors.joining(", ")))
         .append(", ");
@@ -913,7 +913,7 @@ public class QueryBuilderImpl {
                   c ->
                       c.cqlName()
                           + " "
-                          + Strings.doubleQuoteUdts(c.type())
+                          + CqlStrings.doubleQuoteUdts(c.type())
                           + (c.kind() == Column.Kind.STATIC ? " STATIC" : ""))
               .collect(Collectors.joining(", ", " ADD (", ")")));
     }
@@ -1048,7 +1048,7 @@ public class QueryBuilderImpl {
         .append(maybeQualify(typeName))
         .append(
             createColumns.stream()
-                .map(c -> c.cqlName() + " " + Strings.doubleQuoteUdts(c.type()))
+                .map(c -> c.cqlName() + " " + CqlStrings.doubleQuoteUdts(c.type()))
                 .collect(Collectors.joining(", ", "(", ")")));
     return query.toString();
   }
@@ -1077,7 +1077,7 @@ public class QueryBuilderImpl {
         + maybeQualify(typeName)
         + " ADD "
         + addColumns.stream()
-            .map(c -> c.cqlName() + " " + Strings.doubleQuoteUdts(c.type()))
+            .map(c -> c.cqlName() + " " + CqlStrings.doubleQuoteUdts(c.type()))
             .collect(Collectors.joining(", "));
   }
 
@@ -1110,7 +1110,7 @@ public class QueryBuilderImpl {
     } else if (value instanceof ConcreteValue) {
       Object v = ((ConcreteValue<?>) value).get();
       if (v instanceof CharSequence) {
-        return Strings.quote(v.toString());
+        return CqlStrings.quote(v.toString());
       } else {
         // This works for simple values. We assume that this will be good enough for our needs.
         return v.toString();

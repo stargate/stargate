@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class Strings {
+public class CqlStrings {
 
   private static final Set<String> BUILT_IN_TYPES =
       Collections.unmodifiableSet(
@@ -171,7 +171,7 @@ public class Strings {
       // is case-insensitive.
       return baseTypeName
           + parameters.stream()
-              .map(Strings::doubleQuoteUdts)
+              .map(CqlStrings::doubleQuoteUdts)
               .collect(Collectors.joining(",", "<", ">"));
     }
   }
