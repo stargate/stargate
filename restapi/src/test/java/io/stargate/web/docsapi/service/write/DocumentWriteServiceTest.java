@@ -18,6 +18,7 @@
 package io.stargate.web.docsapi.service.write;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.when;
 
 import io.reactivex.rxjava3.core.Single;
@@ -30,6 +31,8 @@ import io.stargate.db.datastore.ValidatingDataStore;
 import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.DocsApiTestSchemaProvider;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.ImmutableJsonShreddedRow;
@@ -377,6 +380,72 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
                           assertThat(queryInfo.rowCount()).isEqualTo(2);
                         });
               });
+    }
+
+    @Test
+    public void updateSubPathRowsNotMatching() {
+      DataStore datastore = datastore();
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      List<String> subDocumentPath = Collections.singletonList("key1");
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(MAX_DEPTH)
+              .addPath("key1")
+              .stringValue("value1")
+              .build();
+      JsonShreddedRow row2 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(MAX_DEPTH)
+              .addPath("key2")
+              .addPath("nested")
+              .doubleValue(2.2d)
+              .build();
+      List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
+
+      Throwable throwable =
+          catchThrowable(
+              () ->
+                  service.updateDocument(
+                      datastore,
+                      KEYSPACE_NAME,
+                      COLLECTION_NAME,
+                      documentId,
+                      subDocumentPath,
+                      rows,
+                      false,
+                      context));
+
+      assertThat(throwable)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_UPDATE_PATH_NOT_MATCHING);
+    }
+
+    @Test
+    public void updateSubPathRowsNoPath() {
+      DataStore datastore = datastore();
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      List<String> subDocumentPath = Collections.singletonList("key1");
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder().maxDepth(MAX_DEPTH).stringValue("value1").build();
+
+      List<JsonShreddedRow> rows = Collections.singletonList(row1);
+
+      Throwable throwable =
+          catchThrowable(
+              () ->
+                  service.updateDocument(
+                      datastore,
+                      KEYSPACE_NAME,
+                      COLLECTION_NAME,
+                      documentId,
+                      subDocumentPath,
+                      rows,
+                      false,
+                      context));
+
+      assertThat(throwable)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_UPDATE_PATH_NOT_MATCHING);
     }
   }
 }

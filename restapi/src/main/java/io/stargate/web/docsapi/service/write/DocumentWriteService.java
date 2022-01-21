@@ -25,6 +25,8 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Query;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.JsonShreddedRow;
@@ -33,6 +35,7 @@ import io.stargate.web.docsapi.service.write.db.InsertQueryBuilder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import javax.inject.Inject;
@@ -175,9 +178,20 @@ public class DocumentWriteService {
       List<JsonShreddedRow> rows,
       boolean numericBooleans,
       ExecutionContext context) {
-    // TODO for review
-    //  should we double check that each row begins with the given sub-path
-    //  ensuring correctness of the update
+    // check that update path matches the rows supplied
+    // TODO this smells like a bad design
+    //  for v2 we need to not include sub-path to shredding, and cover it here as a wrapper
+    if (!subDocumentPath.isEmpty()) {
+      int subDocumentPathSize = subDocumentPath.size();
+      for (JsonShreddedRow row : rows) {
+        List<String> path = row.getPath();
+        if (path.size() < subDocumentPathSize
+            || !Objects.equals(subDocumentPath, path.subList(0, subDocumentPathSize))) {
+          ErrorCode code = ErrorCode.DOCS_API_UPDATE_PATH_NOT_MATCHING;
+          throw new ErrorCodeRuntimeException(code);
+        }
+      }
+    }
 
     // create and cache the remove query prepare
     Single<? extends Query<? extends BoundQuery>> deleteQueryPrepare =
