@@ -40,7 +40,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 @NotThreadSafe
 @StargateSpec(parametersCustomizer = "buildParameters")
 @ExtendWith(RestApiExtension.class)
-@RestApiSpec()
+@RestApiSpec(parametersCustomizer = "buildParameters")
 public class RestApiMetricsTest extends BaseIntegrationTest {
 
   private static String restUrlBase;
@@ -49,6 +49,19 @@ public class RestApiMetricsTest extends BaseIntegrationTest {
   // TODO
   @SuppressWarnings("unused") // referenced in @StargateSpec
   public static void buildParameters(StargateParameters.Builder builder) {
+    // 13-Jan-2022, tatu: In StargateV1 HTTP Tag Provider is registered using OSGi.
+    //    SGv2 does not have equivalent mechanism implemented yet, so tag functionality
+    //    NOT verified currently.
+    /*builder.putSystemProperties(
+    TestingServicesActivator.HTTP_TAG_PROVIDER_PROPERTY,
+    TestingServicesActivator.TAG_ME_HTTP_TAG_PROVIDER); */
+    // This does not seem to do anything (triggered at wrong point)?
+    builder.putSystemProperties("stargate.metrics.http_server_requests_percentiles", "0.95,0.99");
+    builder.putSystemProperties(
+        "stargate.metrics.http_server_requests_path_param_tags", "keyspaceName");
+  }
+
+  public static void buildParameters(RestApiParameters.Builder builder) {
     // 13-Jan-2022, tatu: In StargateV1 HTTP Tag Provider is registered using OSGi.
     //    SGv2 does not have equivalent mechanism implemented yet, so tag functionality
     //    NOT verified currently.
@@ -111,10 +124,7 @@ public class RestApiMetricsTest extends BaseIntegrationTest {
                               // 13-Jan-2022, tatu: As mentioned above, no tags yet
                               // .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY +
                               // "=\"test-value\"")
-                              // 13-Jan-2022, tatu: And for some reason, these entries do not have
-                              // quantiles
-                              //    either, unlike some other entries in /metrics
-                              // .contains("quantile=\"0.95\"")
+                              .contains("quantile=\"0.95\"")
                               .doesNotContain("error"))
                   .anySatisfy(
                       metric ->
@@ -126,10 +136,7 @@ public class RestApiMetricsTest extends BaseIntegrationTest {
                               // 13-Jan-2022, tatu: As mentioned above, no tags yet
                               // .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY +
                               // "=\"test-value\"")
-                              // 13-Jan-2022, tatu: And for some reason, these entries do not have
-                              // quantiles
-                              //    either, unlike some other entries in /metrics
-                              // .contains("quantile=\"0.99\""))
+                              .contains("quantile=\"0.99\"")
                               .doesNotContain("error"));
 
               // counted http request lines
