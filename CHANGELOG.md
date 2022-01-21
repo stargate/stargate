@@ -1,5 +1,37 @@
 # Changelog
 
+## [v1.0.47](https://github.com/stargate/stargate/tree/v1.0.47) (2022-01-19)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.46...v1.0.47)
+
+**Implemented enhancements:**
+
+- Improve validation fail messages inspired by \#1538 [\#1539](https://github.com/stargate/stargate/pull/1539) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+**Closed issues:**
+
+- Should allow JSON `null` values for inserts via REST API [\#1558](https://github.com/stargate/stargate/issues/1558)
+- Failure if trying to create User-Defined Type \(UDT\) with mixed-case name, using REST API [\#1538](https://github.com/stargate/stargate/issues/1538)
+- Missing integration tests for REST API operators $EXISTS, $CONTAINS\(|KEY|ENTRY\) [\#1517](https://github.com/stargate/stargate/issues/1517)
+- How to run a query \(REST or GraphQL\) with "SELECT count\(\*\)" [\#1514](https://github.com/stargate/stargate/issues/1514)
+- SGv2/REST: implement "getWithWhere\(\)" [\#1477](https://github.com/stargate/stargate/issues/1477)
+- Feature Request: Configurable allow-list of consistency levels [\#877](https://github.com/stargate/stargate/issues/877)
+
+**Merged pull requests:**
+
+- Update pull\_request\_template.md [\#1563](https://github.com/stargate/stargate/pull/1563) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Upgrade Micrometer and prometheus-client versions in v2.0.0 [\#1560](https://github.com/stargate/stargate/pull/1560) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#1558: allow insertion of JSON `null` values via REST API [\#1559](https://github.com/stargate/stargate/pull/1559) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Improve gprc value decode exception messages to help troubleshooting [\#1552](https://github.com/stargate/stargate/pull/1552) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#1538: do not verify quoting for Column as it prevents use of mixed-case UDT names [\#1548](https://github.com/stargate/stargate/pull/1548) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Remove myself from codeowners [\#1546](https://github.com/stargate/stargate/pull/1546) ([dougwettlaufer](https://github.com/dougwettlaufer))
+- Add Integration Test that inserts+gets a Tuple value \(was missing\) [\#1540](https://github.com/stargate/stargate/pull/1540) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add Integration test to cover UDT insert/get for REST API [\#1536](https://github.com/stargate/stargate/pull/1536) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add test for GET-where/$containsKey and $containsEntry [\#1533](https://github.com/stargate/stargate/pull/1533) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- More REST API test coverage: test with 2 filters for one field \(gt + lt\) [\#1530](https://github.com/stargate/stargate/pull/1530) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release [\#1529](https://github.com/stargate/stargate/pull/1529) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Support a gRPC bi-directional streaming API [\#1469](https://github.com/stargate/stargate/pull/1469) ([tomekl007](https://github.com/tomekl007))
+
 ## [v1.0.46](https://github.com/stargate/stargate/tree/v1.0.46) (2022-01-06)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.45...v1.0.46)
