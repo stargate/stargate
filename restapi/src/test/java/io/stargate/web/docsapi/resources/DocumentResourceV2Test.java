@@ -68,36 +68,6 @@ public class DocumentResourceV2Test {
   }
 
   @Test
-  public void putDocPath() throws JsonProcessingException {
-    HttpHeaders headers = mock(HttpHeaders.class);
-    when(headers.getHeaderString(anyString())).thenReturn("application/json");
-    UriInfo ui = mock(UriInfo.class);
-    String authToken = "auth_token";
-    String keyspace = "keyspace";
-    String collection = "collection";
-    String id = "id";
-    List<PathSegment> path = new ArrayList<>();
-    String payload = "{}";
-
-    Response r =
-        documentResourceV2.putDocPath(
-            headers,
-            ui,
-            authToken,
-            keyspace,
-            collection,
-            id,
-            path,
-            payload,
-            false,
-            httpServletRequest);
-
-    assertThat(r.getStatus()).isEqualTo(200);
-    assertThat(mapper.readTree((String) r.getEntity()).requiredAt("/documentId").asText())
-        .isEqualTo(id);
-  }
-
-  @Test
   public void patchDoc() throws JsonProcessingException {
     HttpHeaders headers = mock(HttpHeaders.class);
     when(headers.getHeaderString(anyString())).thenReturn("application/json");

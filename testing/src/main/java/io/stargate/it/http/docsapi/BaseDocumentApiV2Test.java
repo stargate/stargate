@@ -650,6 +650,51 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
   }
 
   @Test
+  public void testPutOverwriteWithPrimitive() throws IOException {
+    JsonNode fullObj =
+        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
+    RestUtils.put(authToken, collectionPath + "/1", fullObj.toString(), 200);
+
+    JsonNode obj = OBJECT_MAPPER.readTree("true");
+    RestUtils.put(authToken, collectionPath + "/1/quiz", obj.toString(), 200);
+
+    String r = RestUtils.get(authToken, collectionPath + "/1?raw=true", 200);
+    JsonNode resultNode = OBJECT_MAPPER.readTree(r);
+    assertThat(resultNode.requiredAt("/quiz").booleanValue()).isEqualTo(true);
+  }
+
+  @Test
+  public void testPutOverwriteWithNull() throws IOException {
+    JsonNode fullObj =
+        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
+    RestUtils.put(authToken, collectionPath + "/1", fullObj.toString(), 200);
+
+    JsonNode obj = OBJECT_MAPPER.readTree("null");
+    RestUtils.put(authToken, collectionPath + "/1/quiz", obj.toString(), 200);
+
+    String r = RestUtils.get(authToken, collectionPath + "/1?raw=true", 200);
+    JsonNode resultNode = OBJECT_MAPPER.readTree(r);
+    assertThat(resultNode.requiredAt("/quiz").isNull()).isEqualTo(true);
+  }
+
+  @Test
+  public void testPutOverwriteWithPrimitiveBackAndForth() throws IOException {
+    JsonNode fullObj =
+        OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
+    RestUtils.put(authToken, collectionPath + "/1", fullObj.toString(), 200);
+
+    JsonNode primitive = OBJECT_MAPPER.readTree("true");
+    RestUtils.put(authToken, collectionPath + "/1/quiz", primitive.toString(), 200);
+
+    JsonNode obj = OBJECT_MAPPER.readTree("{\"some\": \"value\"}");
+    RestUtils.put(authToken, collectionPath + "/1/quiz", obj.toString(), 200);
+
+    String r = RestUtils.get(authToken, collectionPath + "/1?raw=true", 200);
+    JsonNode resultNode = OBJECT_MAPPER.readTree(r);
+    assertThat(resultNode.requiredAt("/quiz")).isEqualTo(obj);
+  }
+
+  @Test
   public void testInvalidPuts() throws IOException {
     JsonNode fullObj =
         OBJECT_MAPPER.readTree(this.getClass().getClassLoader().getResource("example.json"));
@@ -665,24 +710,6 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"Updating a key with just a JSON primitive is not allowed. Hint: update the parent path with a defined object instead.\",\"code\":400}");
-
-    obj = OBJECT_MAPPER.readTree("true");
-    r = RestUtils.put(authToken, collectionPath + "/1/quiz", obj.toString(), 400);
-    assertThat(r)
-        .isEqualTo(
-            "{\"description\":\"Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: true. Hint: update the parent path with a defined object instead.\",\"code\":400}");
-
-    obj = OBJECT_MAPPER.readTree("null");
-    r = RestUtils.put(authToken, collectionPath + "/1/quiz", obj.toString(), 400);
-    assertThat(r)
-        .isEqualTo(
-            "{\"description\":\"Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: null. Hint: update the parent path with a defined object instead.\",\"code\":400}");
-
-    obj = OBJECT_MAPPER.readTree("\"Eric\"");
-    r = RestUtils.put(authToken, collectionPath + "/1/quiz/sport", obj.toString(), 400);
-    assertThat(r)
-        .isEqualTo(
-            "{\"description\":\"Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: \\\"Eric\\\". Hint: update the parent path with a defined object instead.\",\"code\":400}");
 
     r = RestUtils.put(authToken, collectionPath + "/1/quiz/sport", "", 422);
     assertThat(r)
@@ -3511,6 +3538,34 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
         .isEqualTo(
             OBJECT_MAPPER.readTree(
                 "[\"New York Bulls\",\"Los Angeles Kings\",\"Golden State Warriros\",\"Huston Rocket\"]"));
+  }
+
+  @Test
+  public void testBuiltInPushPopFunctionWithNestedArray() throws IOException {
+    String json = "[{\"array\":[]}]";
+    JsonNode doc1 = OBJECT_MAPPER.readTree(json);
+    RestUtils.put(authToken, collectionPath + "/1", doc1.toString(), 200);
+
+    // Push some data to the nested array
+    // A string
+    RestUtils.post(
+        authToken,
+        collectionPath + "/1/[0]/array/function",
+        "{\"operation\": \"$push\", \"value\": \"new_value\"}",
+        200);
+    String currentDoc = RestUtils.get(authToken, collectionPath + "/1?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc))
+        .isEqualTo(OBJECT_MAPPER.readTree("[{\"array\":[\"new_value\"]}]"));
+
+    // then pop string
+    String popped =
+        RestUtils.post(
+            authToken, collectionPath + "/1/[0]/array/function", "{\"operation\": \"$pop\"}", 200);
+    assertThat(OBJECT_MAPPER.readTree(popped).requiredAt("/data"))
+        .isEqualTo(OBJECT_MAPPER.readTree("\"new_value\""));
+
+    currentDoc = RestUtils.get(authToken, collectionPath + "/1?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(currentDoc)).isEqualTo(OBJECT_MAPPER.readTree(json));
   }
 
   @Test

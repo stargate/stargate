@@ -124,7 +124,11 @@ public enum ErrorCode {
   DOCS_API_WRITE_BATCH_INVALID_ID_PATH(
       Response.Status.BAD_REQUEST, "ID path is invalid for document during batch write."),
   DOCS_API_WRITE_BATCH_FAILED(
-      Response.Status.INTERNAL_SERVER_ERROR, "Write failed during batched document write.");
+      Response.Status.INTERNAL_SERVER_ERROR, "Write failed during batched document write."),
+
+  DOCS_API_UPDATE_PATH_NOT_MATCHING(
+      Response.Status.INTERNAL_SERVER_ERROR,
+      "Updating a document failed as internally shredded rows did not match the update path.");
 
   /** Status of the response. */
   private final Response.Status responseStatus;
