@@ -12,7 +12,7 @@ specified in `docker-compose.yml`:
 This alternate configuration that runs the Stargate coordinator node in developer mode, so that no
 separate Cassandra cluster is required. This can be run directly with the command:
 
-`docker-compose -f docker-compose-dev-mode.yaml up`
+`docker-compose -f docker-compose-dev-mode.yml up`
 
 # Notes
 
