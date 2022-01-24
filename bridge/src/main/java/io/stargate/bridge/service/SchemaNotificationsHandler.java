@@ -22,6 +22,7 @@ import io.grpc.stub.StreamObserver;
 import io.stargate.db.EventListener;
 import io.stargate.db.Persistence;
 import io.stargate.db.schema.Keyspace;
+import io.stargate.grpc.service.GrpcService;
 import io.stargate.proto.QueryOuterClass.SchemaChange;
 import io.stargate.proto.QueryOuterClass.SchemaChange.Target;
 import io.stargate.proto.QueryOuterClass.SchemaChange.Type;
