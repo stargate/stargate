@@ -3,7 +3,7 @@ name: Release
 on:
   push:
     tags:
-      - 'v1.*.*'
+      - 'v2.*.*'
 
 jobs:
   create-release:
@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          ref: "master"
+          ref: "v2.0.0"
       - name: Setup Java JDK
         uses: actions/setup-java@v1
         with:
@@ -92,7 +92,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          ref: "master"
+          ref: "v2.0.0"
       - name: Set version
         id: vars
         run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
@@ -147,4 +147,4 @@ jobs:
           commit-message: "Bumping version for next release"
           title: "Bumping version for next release"
           branch-suffix: "short-commit-hash"
-          base: "master"
+          base: "v2.0.0"
