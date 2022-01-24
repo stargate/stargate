@@ -20,12 +20,12 @@ import java.util.Map;
 import org.immutables.value.Value;
 
 /**
- * Defines parameters for each of the REST API instances requested by a test.
+ * Defines parameters for each of the Service API instances requested by a test.
  *
- * @see RestApiSpec#parametersCustomizer()
+ * @see ApiServiceSpec#parametersCustomizer()
  */
 @Value.Immutable(prehash = true)
-public interface RestApiParameters {
+public interface ApiServiceParameters {
 
   @Value.Default
   default Map<String, String> systemProperties() {
@@ -42,7 +42,7 @@ public interface RestApiParameters {
   }
 
   @Value.Default
-  default int restPort() {
+  default int servicePort() {
     return 8088;
   }
 
@@ -51,18 +51,18 @@ public interface RestApiParameters {
     return 8088;
   }
 
-  static RestApiParameters.Builder builder() {
-    return ImmutableRestApiParameters.builder();
+  static Builder builder() {
+    return ImmutableApiServiceParameters.builder();
   }
 
   interface Builder {
 
     Builder putSystemProperties(String key, String value);
 
-    Builder restPort(int port);
+    Builder servicePort(int port);
 
     Builder metricsPort(int port);
 
-    RestApiParameters build();
+    ApiServiceParameters build();
   }
 }

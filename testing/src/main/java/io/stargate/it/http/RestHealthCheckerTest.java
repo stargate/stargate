@@ -11,13 +11,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @NotThreadSafe
-@ExtendWith(RestApiExtension.class)
-@RestApiSpec()
+@ExtendWith(ApiServiceExtension.class)
+@ApiServiceSpec()
 public class RestHealthCheckerTest extends BaseIntegrationTest {
   private static String healthUrlBase;
 
   @BeforeAll
-  public static void setup(RestApiConnectionInfo restApi) {
+  public static void setup(ApiServiceConnectionInfo restApi) {
     healthUrlBase = "http://" + restApi.host() + ":" + restApi.healthPort();
   }
 

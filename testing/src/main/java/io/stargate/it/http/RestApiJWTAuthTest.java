@@ -56,8 +56,8 @@ import org.slf4j.LoggerFactory;
       "GRANT MODIFY ON TABLE store1.shopping_cart TO web_user",
       "GRANT SELECT ON TABLE store1.shopping_cart TO web_user",
     })
-@ExtendWith(RestApiExtension.class)
-@RestApiSpec()
+@ExtendWith(ApiServiceExtension.class)
+@ApiServiceSpec()
 public class RestApiJWTAuthTest extends BaseIntegrationTest {
 
   private static final Logger logger = LoggerFactory.getLogger(RestApiJWTAuthTest.class);
@@ -90,7 +90,7 @@ public class RestApiJWTAuthTest extends BaseIntegrationTest {
   }
 
   @BeforeEach
-  public void setup(RestApiConnectionInfo restApi) throws IOException {
+  public void setup(ApiServiceConnectionInfo restApi) throws IOException {
     restUrlBase = "http://" + restApi.host() + ":" + restApi.port();
 
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);

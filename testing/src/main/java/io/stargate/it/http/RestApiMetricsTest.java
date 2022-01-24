@@ -39,8 +39,8 @@ import org.junit.jupiter.params.provider.ValueSource;
 
 @NotThreadSafe
 @StargateSpec(parametersCustomizer = "buildParameters")
-@ExtendWith(RestApiExtension.class)
-@RestApiSpec(parametersCustomizer = "buildParameters")
+@ExtendWith(ApiServiceExtension.class)
+@ApiServiceSpec(parametersCustomizer = "buildParameters")
 public class RestApiMetricsTest extends BaseIntegrationTest {
 
   private static String restUrlBase;
@@ -61,7 +61,7 @@ public class RestApiMetricsTest extends BaseIntegrationTest {
         "stargate.metrics.http_server_requests_path_param_tags", "keyspaceName");
   }
 
-  public static void buildParameters(RestApiParameters.Builder builder) {
+  public static void buildParameters(ApiServiceParameters.Builder builder) {
     // 13-Jan-2022, tatu: In StargateV1 HTTP Tag Provider is registered using OSGi.
     //    SGv2 does not have equivalent mechanism implemented yet, so tag functionality
     //    NOT verified currently.
@@ -75,7 +75,7 @@ public class RestApiMetricsTest extends BaseIntegrationTest {
   }
 
   @BeforeAll
-  public static void setup(RestApiConnectionInfo restApi) {
+  public static void setup(ApiServiceConnectionInfo restApi) {
     restUrlBase = "http://" + restApi.host() + ":" + restApi.port();
     metricsUrlBase = "http://" + restApi.host() + ":" + restApi.metricsPort();
   }

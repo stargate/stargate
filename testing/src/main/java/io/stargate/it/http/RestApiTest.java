@@ -62,8 +62,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @NotThreadSafe
-@ExtendWith(RestApiExtension.class)
-@RestApiSpec()
+@ExtendWith(ApiServiceExtension.class)
+@ApiServiceSpec()
 @Disabled("SGv2 does not currently support REST v1 API")
 public class RestApiTest extends BaseIntegrationTest {
 
@@ -79,7 +79,7 @@ public class RestApiTest extends BaseIntegrationTest {
   private CqlSession session;
 
   @BeforeEach
-  public void setup(StargateConnectionInfo cluster, RestApiConnectionInfo restApi)
+  public void setup(StargateConnectionInfo cluster, ApiServiceConnectionInfo restApi)
       throws IOException {
     authUrlBase = "http://" + cluster.seedAddress() + ":8081"; // TODO: make auth port configurable
     restUrlBase = "http://" + restApi.host() + ":" + restApi.port();

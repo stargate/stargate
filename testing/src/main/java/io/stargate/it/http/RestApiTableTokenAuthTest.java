@@ -38,8 +38,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "INSERT INTO table_token_test.tbl_test (key, value) VALUES ('a', 'alpha')",
       "GRANT SELECT ON KEYSPACE table_token_test TO read_only_user",
     })
-@ExtendWith(RestApiExtension.class)
-@RestApiSpec()
+@ExtendWith(ApiServiceExtension.class)
+@ApiServiceSpec()
 public class RestApiTableTokenAuthTest extends BaseIntegrationTest {
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
@@ -58,7 +58,7 @@ public class RestApiTableTokenAuthTest extends BaseIntegrationTest {
   }
 
   @BeforeEach
-  public void setup(StargateConnectionInfo cluster, RestApiConnectionInfo restApi) {
+  public void setup(StargateConnectionInfo cluster, ApiServiceConnectionInfo restApi) {
     authUrlBase = "http://" + cluster.seedAddress() + ":8081"; // TODO: make auth port configurable
     restUrlBase = "http://" + restApi.host() + ":" + restApi.port();
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);

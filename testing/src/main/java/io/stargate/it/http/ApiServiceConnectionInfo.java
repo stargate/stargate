@@ -15,7 +15,7 @@
  */
 package io.stargate.it.http;
 
-public interface RestApiConnectionInfo {
+public interface ApiServiceConnectionInfo {
 
   String host();
 
