@@ -99,6 +99,9 @@ message SchemaNotification {
   SchemaChange change = 1;
 
   // The full metadata of the keyspace that was impacted by the change.
-  // This is present for every kind of change, except DROP KEYSPACE.
+  // This is present for every kind of change, except if the keyspace doesn't exist anymore at the
+  // time of the notification (note that this is not only for a DROP KEYSPACE event, for example if
+  // a keyspace that contained a table gets dropped, the DROP TABLE event will also have no
+  // keyspace).
   CqlKeyspaceDescribe keyspace = 2;
 }
