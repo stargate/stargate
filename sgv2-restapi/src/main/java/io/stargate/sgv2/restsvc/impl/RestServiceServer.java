@@ -26,9 +26,11 @@ import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.stargate.core.grpc.BridgeConfig;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
+import io.stargate.grpc.StargateBearerToken;
 import io.stargate.metrics.jersey.MetricsBinder;
 import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.common.schema.SchemaCache;
@@ -142,7 +144,9 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     final ManagedChannel schemaChannel =
         buildChannel(appConfig.stargate.grpc, "Schema Access for REST API");
     final StargateGrpc.StargateStub stub =
-        StargateGrpc.newStub(schemaChannel).withDeadlineAfter(10, TimeUnit.SECONDS);
+        StargateGrpc.newStub(schemaChannel)
+            .withDeadlineAfter(10, TimeUnit.SECONDS)
+            .withCallCredentials(new StargateBearerToken(BridgeConfig.ADMIN_TOKEN));
 
     final CachedSchemaAccessor schemaAccess =
         CachedSchemaAccessor.construct(SchemaCache.newInstance(stub));
