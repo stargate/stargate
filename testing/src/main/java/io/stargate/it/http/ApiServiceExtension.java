@@ -52,9 +52,17 @@ public class ApiServiceExtension
 
   public static final File LIB_DIR = initLibDir();
 
-  public static final String STORE_KEY = "restapi-service";
+  public static final String STORE_KEY = storeKey();
 
-  public static final String RESTAPI_STARTED_MESSAGE = "Started RestServiceServer";
+  public static final String SERVICE_STARTED_MESSAGE = serviceStartedMessage();
+
+  private static String storeKey() {
+    return "restapi-service";
+  }
+
+  private static String serviceStartedMessage() {
+    return "Started RestServiceServer";
+  }
 
   private static File initLibDir() {
     String dir = System.getProperty("stargate.rest.libdir");
@@ -244,7 +252,7 @@ public class ApiServiceExtension
 
       addStdOutListener(
           (node, line) -> {
-            if (line.contains(RESTAPI_STARTED_MESSAGE)) {
+            if (line.contains(SERVICE_STARTED_MESSAGE)) {
               ready();
             }
           });
