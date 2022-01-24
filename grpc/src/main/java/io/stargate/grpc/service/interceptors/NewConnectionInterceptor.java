@@ -2,7 +2,6 @@ package io.stargate.grpc.service.interceptors;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
-import com.google.protobuf.Descriptors;
 import io.grpc.Context;
 import io.grpc.Contexts;
 import io.grpc.Grpc;
@@ -21,7 +20,6 @@ import io.stargate.db.ClientInfo;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.grpc.service.GrpcService;
-import io.stargate.proto.StargateOuterClass;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.time.Duration;
@@ -37,8 +35,6 @@ import org.slf4j.LoggerFactory;
 public class NewConnectionInterceptor implements ServerInterceptor {
 
   private static final Logger logger = LoggerFactory.getLogger(NewConnectionInterceptor.class);
-  private static final String GET_SCHEMA_NOTIFICATIONS_NAME =
-      getFullMethodName("GetSchemaNotifications");
 
   public static final Metadata.Key<String> TOKEN_KEY =
       Metadata.Key.of("X-Cassandra-Token", Metadata.ASCII_STRING_MARSHALLER);
@@ -51,6 +47,7 @@ public class NewConnectionInterceptor implements ServerInterceptor {
 
   private final Persistence persistence;
   private final AuthenticationService authenticationService;
+  private final String adminToken;
   private final LoadingCache<RequestInfo, Connection> connectionCache =
       Caffeine.newBuilder()
           .expireAfterWrite(Duration.ofSeconds(CACHE_TTL_SECS))
@@ -60,6 +57,7 @@ public class NewConnectionInterceptor implements ServerInterceptor {
   @Value.Immutable
   interface RequestInfo {
 
+    @Nullable
     String token();
 
     Map<String, String> headers();
@@ -69,9 +67,10 @@ public class NewConnectionInterceptor implements ServerInterceptor {
   }
 
   public NewConnectionInterceptor(
-      Persistence persistence, AuthenticationService authenticationService) {
+      Persistence persistence, AuthenticationService authenticationService, String adminToken) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
+    this.adminToken = adminToken;
   }
 
   @Override
@@ -80,38 +79,36 @@ public class NewConnectionInterceptor implements ServerInterceptor {
     try {
       Context context = Context.current();
 
-      if (shouldCreateConnection(call)) {
-        String token = headers.get(TOKEN_KEY);
-        if (token == null) {
-          call.close(Status.UNAUTHENTICATED.withDescription("No token provided"), new Metadata());
-          return new NopListener<>();
-        }
-
-        Map<String, String> stringHeaders = convertAndFilterHeaders(headers);
-
-        // Some authentication service and persistence implementations depend on the "host" header
-        // being set. HTTP/2 uses the ":authority" pseudo-header for this purpose and the
-        // `grpc-netty-shaded` implementation will move the "host" header into the ":authority"
-        // value:
-        // https://github.com/grpc/grpc-java/commit/122b3b2f7cf2b50fe0a0cebc55a84133441a4348
-        String authority = call.getAuthority();
-        if (authority != null && !authority.isEmpty()) {
-          stringHeaders.put("host", authority);
-        }
-
-        RequestInfo info =
-            ImmutableRequestInfo.builder()
-                .token(token)
-                .headers(stringHeaders)
-                .remoteAddress(call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR))
-                .build();
-
-        Connection connection = connectionCache.get(info);
-        context =
-            context
-                .withValue(GrpcService.HEADERS_KEY, stringHeaders)
-                .withValue(GrpcService.CONNECTION_KEY, connection);
+      String token = headers.get(TOKEN_KEY);
+      if (token == null) {
+        call.close(Status.UNAUTHENTICATED.withDescription("No token provided"), new Metadata());
+        return new NopListener<>();
       }
+
+      Map<String, String> stringHeaders = convertAndFilterHeaders(headers);
+
+      // Some authentication service and persistence implementations depend on the "host" header
+      // being set. HTTP/2 uses the ":authority" pseudo-header for this purpose and the
+      // `grpc-netty-shaded` implementation will move the "host" header into the ":authority"
+      // value:
+      // https://github.com/grpc/grpc-java/commit/122b3b2f7cf2b50fe0a0cebc55a84133441a4348
+      String authority = call.getAuthority();
+      if (authority != null && !authority.isEmpty()) {
+        stringHeaders.put("host", authority);
+      }
+
+      RequestInfo info =
+          ImmutableRequestInfo.builder()
+              .token(token)
+              .headers(stringHeaders)
+              .remoteAddress(call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR))
+              .build();
+
+      Connection connection = connectionCache.get(info);
+      context =
+          context
+              .withValue(GrpcService.HEADERS_KEY, stringHeaders)
+              .withValue(GrpcService.CONNECTION_KEY, connection);
 
       return Contexts.interceptCall(context, call, headers, next);
     } catch (Exception e) {
@@ -133,33 +130,33 @@ public class NewConnectionInterceptor implements ServerInterceptor {
     return new NopListener<>();
   }
 
-  private boolean shouldCreateConnection(ServerCall<?, ?> call) {
-    // getSchemaNotifications only interacts with the Persistence, we don't need a connection.
-    return !GET_SCHEMA_NOTIFICATIONS_NAME.equals(call.getMethodDescriptor().getFullMethodName());
-  }
-
   private Connection newConnection(RequestInfo info) throws UnauthorizedException {
-    AuthenticationSubject authenticationSubject =
-        authenticationService.validateToken(info.token(), info.headers());
-
-    AuthenticatedUser user = authenticationSubject.asUser();
     Connection connection;
-    if (!user.isFromExternalAuth()) {
-      SocketAddress remoteAddress = info.remoteAddress();
-      // This is best effort attempt to set the remote address, if the remote address is not the
-      // correct type then use a dummy value. Note: `remoteAddress` is almost always a
-      // `InetSocketAddress`.
-      InetSocketAddress inetSocketAddress =
-          remoteAddress instanceof InetSocketAddress
-              ? (InetSocketAddress) remoteAddress
-              : DUMMY_ADDRESS;
-      connection = persistence.newConnection(new ClientInfo(inetSocketAddress, null));
-    } else {
+    String token = info.token();
+    if (adminToken.equals(token)) {
       connection = persistence.newConnection();
-    }
-    connection.login(user);
-    if (user.token() != null) {
-      connection.clientInfo().ifPresent(c -> c.setAuthenticatedUser(user));
+    } else {
+      AuthenticationSubject authenticationSubject =
+          authenticationService.validateToken(token, info.headers());
+
+      AuthenticatedUser user = authenticationSubject.asUser();
+      if (!user.isFromExternalAuth()) {
+        SocketAddress remoteAddress = info.remoteAddress();
+        // This is best effort attempt to set the remote address, if the remote address is not the
+        // correct type then use a dummy value. Note: `remoteAddress` is almost always a
+        // `InetSocketAddress`.
+        InetSocketAddress inetSocketAddress =
+            remoteAddress instanceof InetSocketAddress
+                ? (InetSocketAddress) remoteAddress
+                : DUMMY_ADDRESS;
+        connection = persistence.newConnection(new ClientInfo(inetSocketAddress, null));
+      } else {
+        connection = persistence.newConnection();
+      }
+      connection.login(user);
+      if (user.token() != null) {
+        connection.clientInfo().ifPresent(c -> c.setAuthenticatedUser(user));
+      }
     }
     connection.setCustomProperties(info.headers());
     return connection;
@@ -181,12 +178,4 @@ public class NewConnectionInterceptor implements ServerInterceptor {
   }
 
   private static class NopListener<ReqT> extends ServerCall.Listener<ReqT> {}
-
-  private static String getFullMethodName(String simpleName) {
-    Descriptors.MethodDescriptor fromProtobuf =
-        StargateOuterClass.getDescriptor().getServices().get(0).findMethodByName(simpleName);
-    // Can't use getFullName() here because it uses '.' as the separator between service and method,
-    // whereas ServerCall.getMethodDescriptor().getFullName() uses '/'.
-    return fromProtobuf.getService().getFullName() + '/' + fromProtobuf.getName();
-  }
 }

@@ -34,8 +34,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 // note: JAX-RS Class Annotations MUST be in the impl class; only method annotations inherited
 // (but Swagger allows inheritance)
@@ -44,9 +42,6 @@ import org.slf4j.LoggerFactory;
 @Singleton
 @CreateGrpcStub
 public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResourceApi {
-  // Singleton resource so no need to be static
-  protected final Logger logger = LoggerFactory.getLogger(getClass());
-
   @Inject protected CachedSchemaAccessor schemaAccess;
 
   /*
@@ -155,8 +150,6 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
             tableDef,
             valuesBuilder,
             toProtoConverter);
-    logger.info("getRows(): try to call backend with CQL of '{}'", cql);
-
     return fetchRows(blockingStub, pageSizeParam, pageStateParam, raw, cql, valuesBuilder);
   }
 
@@ -230,8 +223,6 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     } catch (IllegalArgumentException e) {
       throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
     }
-    logger.info("createRow(): try to call backend with CQL of '{}'", cql);
-
     final QueryOuterClass.Query query =
         QueryOuterClass.Query.newBuilder()
             .setParameters(parametersForLocalQuorum())
@@ -327,8 +318,6 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     } catch (IllegalArgumentException e) {
       throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
     }
-    logger.info("modifyRow(): try to call backend with CQL of '{}'", cql);
-
     final QueryOuterClass.Query query =
         QueryOuterClass.Query.newBuilder()
             .setParameters(parametersForLocalQuorum())

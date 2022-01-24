@@ -230,6 +230,8 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
         cmd.addArgument("-D" + e.getKey() + "=" + e.getValue());
       }
 
+      cmd.addArgument("-Dstargate.grpc.admin_token=mockAdminToken");
+
       if (isDebug()) {
         int debuggerPort = 5200;
         cmd.addArgument(
