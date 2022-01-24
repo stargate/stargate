@@ -29,8 +29,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Produces(APPLICATION_JSON)
 @Consumes(APPLICATION_JSON)
@@ -38,9 +36,6 @@ import org.slf4j.LoggerFactory;
 @Singleton
 @CreateGrpcStub
 public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResourceApi {
-  // Singleton resource so no need to be static
-  private final Logger logger = LoggerFactory.getLogger(getClass());
-
   @Override
   public Response findAll(
       final StargateGrpc.StargateBlockingStub blockingStub,
@@ -131,16 +126,13 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
     final String typeName = udtAdd.getName();
     requireNonEmptyTypename(typeName);
 
-    String cql =
+    final String cql =
         new QueryBuilder()
             .create()
             .type(keyspaceName, typeName)
             .ifNotExists(udtAdd.getIfNotExists())
             .column(columns2columns(udtAdd.getFields()))
             .build();
-
-    logger.info("createUDT() with CQL: {}", cql);
-
     try {
       blockingStub.executeQuery(
           QueryOuterClass.Query.newBuilder()
