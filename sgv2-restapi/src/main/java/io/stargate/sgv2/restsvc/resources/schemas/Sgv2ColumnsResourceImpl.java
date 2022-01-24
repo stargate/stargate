@@ -21,17 +21,12 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Path("/v2/schemas/keyspaces/{keyspaceName}/tables/{tableName}/columns")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 @CreateGrpcStub
 public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2ColumnsResourceApi {
-  // Singleton resource so no need to be static
-  protected final Logger logger = LoggerFactory.getLogger(getClass());
-
   @Override
   public Response getAllColumns(
       StargateGrpc.StargateBlockingStub blockingStub,

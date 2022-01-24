@@ -27,17 +27,12 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Path("/v2/schemas/keyspaces/{keyspaceName}/tables")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 @CreateGrpcStub
 public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesResourceApi {
-  // Singleton resource so no need to be static
-  private final Logger logger = LoggerFactory.getLogger(getClass());
-
   @Override
   public Response getAllTables(
       final StargateGrpc.StargateBlockingStub blockingStub,
