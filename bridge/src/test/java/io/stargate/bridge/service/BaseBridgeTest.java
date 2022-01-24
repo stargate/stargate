@@ -64,7 +64,7 @@ public class BaseBridgeTest {
         clientChannel.shutdown().awaitTermination(60, TimeUnit.SECONDS);
       }
     } catch (InterruptedException e) {
-      e.printStackTrace();
+      throw new AssertionError("Unexpected interruption", e);
     }
   }
 
