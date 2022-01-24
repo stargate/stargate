@@ -18,6 +18,7 @@
 package io.stargate.web.docsapi.service.write;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.when;
 
 import io.reactivex.rxjava3.core.Single;
@@ -30,11 +31,14 @@ import io.stargate.db.datastore.ValidatingDataStore;
 import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.DocsApiTestSchemaProvider;
+import io.stargate.web.docsapi.exception.ErrorCode;
+import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.ImmutableJsonShreddedRow;
 import io.stargate.web.docsapi.service.JsonShreddedRow;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -267,6 +271,181 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
                           assertThat(queryInfo.rowCount()).isEqualTo(2);
                         });
               });
+    }
+
+    @Test
+    public void updateSubPath() throws Exception {
+      DataStore datastore = datastore();
+      BatchType batchType =
+          datastore.supportsLoggedBatches() ? BatchType.LOGGED : BatchType.UNLOGGED;
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      List<String> subDocumentPath = Collections.singletonList("key1");
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(MAX_DEPTH)
+              .addPath("key1")
+              .stringValue("value1")
+              .build();
+      JsonShreddedRow row2 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(MAX_DEPTH)
+              .addPath("key1")
+              .addPath("nested")
+              .doubleValue(2.2d)
+              .build();
+      List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
+
+      long timestamp = RandomUtils.nextLong();
+      when(timeSource.currentTimeMicros()).thenReturn(timestamp);
+
+      String insertCql =
+          "INSERT INTO %s (key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?";
+      ValidatingDataStore.QueryAssert row1QueryAssert =
+          withQuery(
+                  SCHEMA_PROVIDER.getTable(),
+                  insertCql,
+                  documentId,
+                  "key1",
+                  "",
+                  "",
+                  "",
+                  "key1",
+                  "value1",
+                  null,
+                  null,
+                  timestamp)
+              .inBatch(batchType)
+              .returningNothing();
+      ValidatingDataStore.QueryAssert row2QueryAssert =
+          withQuery(
+                  SCHEMA_PROVIDER.getTable(),
+                  insertCql,
+                  documentId,
+                  "key1",
+                  "nested",
+                  "",
+                  "",
+                  "nested",
+                  null,
+                  2.2d,
+                  null,
+                  timestamp)
+              .inBatch(batchType)
+              .returningNothing();
+
+      String deleteCql = "DELETE FROM %s USING TIMESTAMP ? WHERE key = ? AND p0 = ?";
+      ValidatingDataStore.QueryAssert deleteQueryAssert =
+          withQuery(SCHEMA_PROVIDER.getTable(), deleteCql, timestamp - 1, documentId, "key1")
+              .inBatch(batchType)
+              .returningNothing();
+
+      Single<ResultSet> result =
+          service.updateDocument(
+              datastore,
+              KEYSPACE_NAME,
+              COLLECTION_NAME,
+              documentId,
+              subDocumentPath,
+              rows,
+              false,
+              context);
+
+      result.test().await().assertValueCount(1).assertComplete();
+      row1QueryAssert.assertExecuteCount().isEqualTo(1);
+      row2QueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteQueryAssert.assertExecuteCount().isEqualTo(1);
+
+      // execution context
+      assertThat(context.toProfile().nested())
+          .singleElement()
+          .satisfies(
+              nested -> {
+                assertThat(nested.description()).isEqualTo("ASYNC UPDATE");
+                assertThat(nested.queries())
+                    .hasSize(2)
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(deleteCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(0);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(insertCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.rowCount()).isEqualTo(2);
+                        });
+              });
+    }
+
+    @Test
+    public void updateSubPathRowsNotMatching() {
+      DataStore datastore = datastore();
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      List<String> subDocumentPath = Collections.singletonList("key1");
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(MAX_DEPTH)
+              .addPath("key1")
+              .stringValue("value1")
+              .build();
+      JsonShreddedRow row2 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(MAX_DEPTH)
+              .addPath("key2")
+              .addPath("nested")
+              .doubleValue(2.2d)
+              .build();
+      List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
+
+      Throwable throwable =
+          catchThrowable(
+              () ->
+                  service.updateDocument(
+                      datastore,
+                      KEYSPACE_NAME,
+                      COLLECTION_NAME,
+                      documentId,
+                      subDocumentPath,
+                      rows,
+                      false,
+                      context));
+
+      assertThat(throwable)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_UPDATE_PATH_NOT_MATCHING);
+    }
+
+    @Test
+    public void updateSubPathRowsNoPath() {
+      DataStore datastore = datastore();
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      List<String> subDocumentPath = Collections.singletonList("key1");
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder().maxDepth(MAX_DEPTH).stringValue("value1").build();
+
+      List<JsonShreddedRow> rows = Collections.singletonList(row1);
+
+      Throwable throwable =
+          catchThrowable(
+              () ->
+                  service.updateDocument(
+                      datastore,
+                      KEYSPACE_NAME,
+                      COLLECTION_NAME,
+                      documentId,
+                      subDocumentPath,
+                      rows,
+                      false,
+                      context));
+
+      assertThat(throwable)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_UPDATE_PATH_NOT_MATCHING);
     }
   }
 }

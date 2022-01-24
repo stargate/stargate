@@ -16,13 +16,16 @@
 package io.stargate.grpc.service;
 
 import com.google.protobuf.StringValue;
+import io.grpc.StatusException;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import io.stargate.db.EventListener;
 import io.stargate.db.Persistence;
+import io.stargate.db.schema.Keyspace;
 import io.stargate.proto.QueryOuterClass.SchemaChange;
 import io.stargate.proto.QueryOuterClass.SchemaChange.Target;
 import io.stargate.proto.QueryOuterClass.SchemaChange.Type;
+import io.stargate.proto.Schema;
 import io.stargate.proto.Schema.SchemaNotification;
 import java.util.Collections;
 import java.util.List;
@@ -35,6 +38,7 @@ class SchemaNotificationsHandler implements EventListener {
 
   private final Persistence persistence;
   private final ServerCallStreamObserver<SchemaNotification> responseObserver;
+  private boolean isFailed;
 
   SchemaNotificationsHandler(
       Persistence persistence, StreamObserver<SchemaNotification> responseObserver) {
@@ -43,31 +47,61 @@ class SchemaNotificationsHandler implements EventListener {
   }
 
   public void handle() {
+    synchronized (responseObserver) {
+      responseObserver.setOnCancelHandler(() -> persistence.unregisterEventListener(this));
+      responseObserver.setOnCloseHandler(() -> persistence.unregisterEventListener(this));
+    }
     persistence.registerEventListener(this);
-    responseObserver.setOnCancelHandler(
-        () -> {
-          persistence.unregisterEventListener(this);
-        });
   }
 
   private void onSchemaChange(
-      Type type, Target target, String keyspace, String name, List<String> argumentTypes) {
-    try {
-      SchemaChange.Builder change =
-          SchemaChange.newBuilder().setChangeType(type).setTarget(target).setKeyspace(keyspace);
-      if (name != null) {
-        change.setName(StringValue.of(name));
+      Type type,
+      Target target,
+      String keyspaceName,
+      String elementName,
+      List<String> argumentTypes) {
+    synchronized (responseObserver) {
+      if (isFailed) {
+        return;
       }
-      change.addAllArgumentTypes(argumentTypes);
+      try {
+        SchemaChange.Builder change =
+            SchemaChange.newBuilder()
+                .setChangeType(type)
+                .setTarget(target)
+                .setKeyspace(keyspaceName);
+        if (elementName != null) {
+          change.setName(StringValue.of(elementName));
+        }
+        change.addAllArgumentTypes(argumentTypes);
 
-      SchemaNotification.Builder notification = SchemaNotification.newBuilder().setChange(change);
-      if (type != Type.DROPPED || target != Target.KEYSPACE) {
-        notification.setKeyspace(SchemaHandler.buildKeyspaceDescription(keyspace, persistence));
+        SchemaNotification.Builder notification = SchemaNotification.newBuilder().setChange(change);
+        Schema.CqlKeyspaceDescribe keyspaceDescription = describeKeyspace(keyspaceName);
+        if (keyspaceDescription != null) {
+          notification.setKeyspace(keyspaceDescription);
+        }
+        responseObserver.onNext(notification.build());
+      } catch (Throwable t) {
+        try {
+          // responseObserver.onCloseHandler runs asynchronously, so more events can arrive before
+          // we've had a chance to unregister. Make sure we won't notify the observer anymore.
+          isFailed = true;
+
+          responseObserver.onError(t);
+        } catch (Throwable t2) {
+          // Be defensive here because the Cassandra internals don't guard against listener errors.
+          t2.addSuppressed(t);
+          LOG.warn("Unexpected error while notifying error", t2);
+        }
       }
-      responseObserver.onNext(notification.build());
-    } catch (Throwable t) {
-      responseObserver.onError(t);
     }
+  }
+
+  private Schema.CqlKeyspaceDescribe describeKeyspace(String keyspaceName) throws StatusException {
+    String decoratedKeyspace =
+        persistence.decorateKeyspaceName(keyspaceName, GrpcService.HEADERS_KEY.get());
+    Keyspace keyspace = persistence.schema().keyspace(decoratedKeyspace);
+    return keyspace == null ? null : SchemaHandler.buildKeyspaceDescription(keyspace);
   }
 
   @Override

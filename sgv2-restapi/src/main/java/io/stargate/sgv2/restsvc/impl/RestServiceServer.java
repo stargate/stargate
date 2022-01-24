@@ -28,11 +28,13 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
+import io.stargate.core.metrics.api.MetricsScraper;
 import io.stargate.metrics.jersey.MetricsBinder;
 import io.stargate.proto.StargateGrpc;
 import io.stargate.sgv2.common.schema.SchemaCache;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcStubFilter;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
+import io.stargate.sgv2.restsvc.resources.MetricsResource;
 import io.stargate.sgv2.restsvc.resources.Sgv2RowsResourceImpl;
 import io.stargate.sgv2.restsvc.resources.SwaggerUIResource;
 import io.stargate.sgv2.restsvc.resources.schemas.Sgv2ColumnsResourceImpl;
@@ -64,10 +66,15 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
   private final Metrics metrics;
+  private final MetricsScraper metricsScraper;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
 
-  public RestServiceServer(Metrics metrics, HttpMetricsTagProvider httpMetricsTagProvider) {
+  public RestServiceServer(
+      Metrics metrics,
+      MetricsScraper metricsScraper,
+      HttpMetricsTagProvider httpMetricsTagProvider) {
     this.metrics = metrics;
+    this.metricsScraper = metricsScraper;
     this.httpMetricsTagProvider = httpMetricsTagProvider;
 
     BeanConfig beanConfig = new BeanConfig();
@@ -110,6 +117,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
               @Override
               protected void configure() {
                 bind(configureObjectMapper(environment.getObjectMapper())).to(ObjectMapper.class);
+                bind(metricsScraper).to(MetricsScraper.class);
                 bindFactory(GrpcStubFactory.class)
                     .to(StargateGrpc.StargateBlockingStub.class)
                     .in(RequestScoped.class);
@@ -122,8 +130,9 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     environment.jersey().register(new GrpcExceptionMapper());
     environment.jersey().register(new DefaultExceptionMapper());
 
-    // General healthcheck endpoint
+    // General healthcheck etc endpoints
     environment.jersey().register(HealthResource.class);
+    environment.jersey().register(MetricsResource.class);
 
     // Create gRPC/Schema handler separately as it is blocking; needed before
     // data endpoints
