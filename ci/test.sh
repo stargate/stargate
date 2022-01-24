@@ -15,7 +15,7 @@ echo '127.0.1.12 internal-stargate.local' >> /etc/hosts
 
 # Ensure we can connect to Docker daemon to resolve issue #1580, see:
 # https://dhananjay4058.medium.com/solving-docker-permission-denied-while-trying-to-connect-to-the-docker-daemon-socket-2e53cccffbaa
-sudo usermod -a -G docker ubuntu
+usermod -a -G docker ubuntu
 
 # Need to switch users since we can't pass the right flag to allow running Cassandra as root
 sudo -i -u ubuntu bash << EOF
