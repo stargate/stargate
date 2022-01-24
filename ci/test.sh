@@ -13,6 +13,9 @@ chown -R ubuntu:ubuntu /cache/
 echo '127.0.1.11 internal-stargate.local' >> /etc/hosts
 echo '127.0.1.12 internal-stargate.local' >> /etc/hosts
 
+# restart docker
+service docker --full-restart
+
 # Need to switch users since we can't pass the right flag to allow running Cassandra as root
 sudo -i -u ubuntu bash << EOF
 set -euo pipefail
