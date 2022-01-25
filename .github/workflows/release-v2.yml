@@ -144,7 +144,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          commit-message: "Bumping version for next release"
+          commit-message: "Bumping version for next v2 release"
           title: "Bumping version for next release"
           branch-suffix: "short-commit-hash"
           base: "v2.0.0"
