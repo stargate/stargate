@@ -1,5 +1,16 @@
 # Changelog
 
+## [v2.0.0-ALPHA-1](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-1) (2022-01-24)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.47...v2.0.0-ALPHA-1)
+
+**Merged pull requests:**
+
+- add separate release workflow for v2 [\#1574](https://github.com/stargate/stargate/pull/1574) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Bumping version for next release [\#1570](https://github.com/stargate/stargate/pull/1570) ([github-actions[bot]](https://github.com/apps/github-actions))
+- restart docker before running tests on CI [\#1567](https://github.com/stargate/stargate/pull/1567) ([ivansenic](https://github.com/ivansenic))
+- refactor update document sub-path to use new write service [\#1562](https://github.com/stargate/stargate/pull/1562) ([ivansenic](https://github.com/ivansenic))
+
 ## [v1.0.47](https://github.com/stargate/stargate/tree/v1.0.47) (2022-01-19)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.46...v1.0.47)
