@@ -171,8 +171,6 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final HttpServletRequest request) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
 
-    logger.warn("SchemaAccess: " + schemaAccess);
-
     List<Column> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
     Map<String, Column.Order> sortOrder;
     try {
