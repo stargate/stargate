@@ -2,7 +2,7 @@
 
 ## [v2.0.0-ALPHA-1](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-1) (2022-01-24)
 
-_Note: this is a manually generated changelog for initial v2 Alpha release due to large number of changes on `v2.0.0` branch since its creation._
+_Note: this is a manually generated changelog for initial v2 Alpha release due to large number of changes on `v2.0.0` branch since its creation. This is approximately the same as the commit list for the `v2.0.0` branch on [GitHub](https://github.com/stargate/stargate/commits/v2.0.0) through 2022-01-24 (minus commits not tied to a PR)._
 
 **Merged pull requests:**
 
