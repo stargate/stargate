@@ -22,6 +22,7 @@ import io.stargate.proto.StargateBridgeGrpc;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.TimeUnit;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -31,15 +32,21 @@ import org.junit.jupiter.api.extension.ExtendWith;
 public class SchemaNotificationsTest extends BaseIntegrationTest {
 
   private StargateBridgeGrpc.StargateBridgeStub asyncStub;
+  private ManagedChannel channel;
 
   @BeforeEach
   public void setup(StargateConnectionInfo cluster) throws IOException {
     String seedAddress = cluster.seedAddress();
-    ManagedChannel channel =
-        ManagedChannelBuilder.forAddress(seedAddress, 8091).usePlaintext().build();
+    channel = ManagedChannelBuilder.forAddress(seedAddress, 8091).usePlaintext().build();
     asyncStub =
         StargateBridgeGrpc.newStub(channel)
             .withCallCredentials(new StargateBearerToken("mockAdminToken"));
+  }
+
+  @AfterEach
+  public void teardown() throws InterruptedException {
+    channel.shutdownNow();
+    assertThat(channel.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
   }
 
   @Test
