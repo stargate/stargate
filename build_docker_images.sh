@@ -5,7 +5,8 @@ set -euo pipefail
 # Assumes that you have done a complete build so that all jars have been created, i.e.:
 #   ./mvnw clean install -P dse -DskipTests=true
 
-export SGTAG=v2.0.0-ALPHA1
+# extract Stargate version from project pom file
+export SGTAG=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
 
 # Create a temp directory under current directory to use as a staging area for image creation
 # This is a workaround since Docker COPY command provides no way to exclude files.
@@ -26,3 +27,13 @@ rm -rf ${LIBDIR}
 
 docker build --target restapi -t stargateio/restapi:$SGTAG .
 
+
+
+echo "Building $DOCKER_IMAGE"
+docker buildx build --push \
+--tag ${DOCKER_IMAGE}:${stargate_version} \
+--file Dockerfile \
+--platform linux/amd64,linux/arm64 .
+
+echo "Inspecting $DOCKER_IMAGE"
+docker buildx imagetools inspect ${DOCKER_IMAGE}:${stargate_version}
