@@ -535,7 +535,6 @@ public class DsePersistence
                 .execute(queryState, queryStartNanoTime)
                 .map(
                     response -> {
-                      try {
                         // There is only 2 types of response that can come out: either a
                         // ResultMessage (which itself can of different kind), or an ErrorMessage.
                         if (response instanceof ErrorMessage) {
@@ -551,11 +550,13 @@ public class DsePersistence
                                     Conversion.toInternal(parameters.protocolVersion()),
                                     ClientWarn.instance.getAndClearWarnings());
                         return result;
-                      } finally {
-                        // this is to clean the thread local in TPC thread
-                        ClientWarn.instance.resetWarnings();
-                      }
                     })
+                // doFinally runs after onComplete or onError
+                // thus after the lambdas in to subscribe below
+                .doFinally(() -> {
+                  // this is to clean the thread local in TPC thread
+                  ClientWarn.instance.resetWarnings();
+                })
                 .subscribe(
                     future::complete,
                     ex -> {
