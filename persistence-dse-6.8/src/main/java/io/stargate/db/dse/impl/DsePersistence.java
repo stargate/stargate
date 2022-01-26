@@ -552,7 +552,7 @@ public class DsePersistence
                         return result;
                     })
                 // doFinally runs after onComplete or onError
-                // thus after the lambdas in to subscribe below
+                // thus after the lambdas in subscribe below
                 .doFinally(() -> {
                   // this is to clean the thread local in TPC thread
                   ClientWarn.instance.resetWarnings();
