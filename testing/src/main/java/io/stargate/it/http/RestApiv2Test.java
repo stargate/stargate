@@ -1668,8 +1668,10 @@ public class RestApiv2Test extends BaseIntegrationTest {
             HttpStatus.SC_OK);
     JsonNode json = objectMapper.readTree(body);
     assertThat(json.size()).isEqualTo(2);
+    assertThat(json.at("/0/id").asText()).isEqualTo(mainKey);
     assertThat(json.at("/0/id2").asText()).isEqualTo("a");
     assertThat(json.at("/0/name").asText()).isEqualTo("Bob");
+    assertThat(json.at("/1/id").asText()).isEqualTo(mainKey);
     assertThat(json.at("/1/id2").asText()).isEqualTo("b");
     assertThat(json.at("/1/name").asText()).isEqualTo("Joe");
   }
