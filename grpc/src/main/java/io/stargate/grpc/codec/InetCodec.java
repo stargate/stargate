@@ -48,7 +48,8 @@ public class InetCodec implements ValueCodec {
 
   private int validateByteLength(int byteLength) {
     if (byteLength != 4 && byteLength != 16) {
-      throw new IllegalArgumentException("Expected 4 or 16 bytes for an IPv4 or IPv6 address, got "+byteLength);
+      throw new IllegalArgumentException(
+          "Expected 4 or 16 bytes for an IPv4 or IPv6 address, got " + byteLength);
     }
     return byteLength;
   }

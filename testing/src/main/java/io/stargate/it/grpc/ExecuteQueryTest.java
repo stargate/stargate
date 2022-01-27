@@ -35,7 +35,6 @@ import io.stargate.proto.StargateGrpc.StargateBlockingStub;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.UUID;
-
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -188,31 +187,30 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
     assertThat(rs.getPagingState()).isNotNull();
   }
 
-    @Test
-    public void uuidQueryWithPaging(@TestKeyspace CqlIdentifier keyspace)
-    {
-        StargateBlockingStub stub = stubWithCallCredentials();
-        final String uuid = UUID.randomUUID().toString();
+  @Test
+  public void uuidQueryWithPaging(@TestKeyspace CqlIdentifier keyspace) {
+    StargateBlockingStub stub = stubWithCallCredentials();
+    final String uuid = UUID.randomUUID().toString();
 
-        for (int i = 0; i < 5; i++) {
-            stub.executeQuery(
-                    cqlQuery(
-                            String.format("INSERT INTO test_uuid (id, value) VALUES (%s, %d)", uuid, i),
-                            queryParameters(keyspace)));
-        }
-
-        Response response =
-                stub.executeQuery(
-                        cqlQuery(
-                                "select id,value from test_uuid",
-                                queryParameters(keyspace)
-                                        .setPageSize(Int32Value.newBuilder().setValue(2).build())));
-
-        assertThat(response.hasResultSet()).isTrue();
-        ResultSet rs = response.getResultSet();
-        assertThat(rs.getRowsCount()).isEqualTo(2);
-        assertThat(rs.getPagingState()).isNotNull();
+    for (int i = 0; i < 5; i++) {
+      stub.executeQuery(
+          cqlQuery(
+              String.format("INSERT INTO test_uuid (id, value) VALUES (%s, %d)", uuid, i),
+              queryParameters(keyspace)));
     }
+
+    Response response =
+        stub.executeQuery(
+            cqlQuery(
+                "select id,value from test_uuid",
+                queryParameters(keyspace)
+                    .setPageSize(Int32Value.newBuilder().setValue(2).build())));
+
+    assertThat(response.hasResultSet()).isTrue();
+    ResultSet rs = response.getResultSet();
+    assertThat(rs.getRowsCount()).isEqualTo(2);
+    assertThat(rs.getPagingState()).isNotNull();
+  }
 
   @Test
   public void useKeyspace(@TestKeyspace CqlIdentifier keyspace) {
