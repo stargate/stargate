@@ -5,6 +5,14 @@ set -euo pipefail
 # Assumes that you have done a complete build so that all jars have been created, i.e.:
 #   ./mvnw clean install -P dse -DskipTests=true
 
+# Options:
+# -p - causes the images to be built for all supported platform architectures and pushed to
+#   Docker Hub (assumes you are logged in to Stargate Docker Hub account).
+#   This is intended to be used as part of automated builds.
+# -t <version> - overrides the default tag that will be applied to the image with the one
+#   you provide. By default the tag consists of the version is obtained from the parent
+#   pom.xml file, prepended with v, i.e. v2.0.0.
+
 #
 # Defaults
 #
