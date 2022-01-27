@@ -535,28 +535,29 @@ public class DsePersistence
                 .execute(queryState, queryStartNanoTime)
                 .map(
                     response -> {
-                        // There is only 2 types of response that can come out: either a
-                        // ResultMessage (which itself can of different kind), or an ErrorMessage.
-                        if (response instanceof ErrorMessage) {
-                          throw convertExceptionWithWarnings(
-                              (Throwable) ((ErrorMessage) response).error);
-                        }
+                      // There is only 2 types of response that can come out: either a
+                      // ResultMessage (which itself can of different kind), or an ErrorMessage.
+                      if (response instanceof ErrorMessage) {
+                        throw convertExceptionWithWarnings(
+                            (Throwable) ((ErrorMessage) response).error);
+                      }
 
-                        @SuppressWarnings("unchecked")
-                        T result =
-                            (T)
-                                Conversion.toResult(
-                                    (ResultMessage) response,
-                                    Conversion.toInternal(parameters.protocolVersion()),
-                                    ClientWarn.instance.getAndClearWarnings());
-                        return result;
+                      @SuppressWarnings("unchecked")
+                      T result =
+                          (T)
+                              Conversion.toResult(
+                                  (ResultMessage) response,
+                                  Conversion.toInternal(parameters.protocolVersion()),
+                                  ClientWarn.instance.getAndClearWarnings());
+                      return result;
                     })
                 // doFinally runs after onComplete or onError
                 // thus after the lambdas in subscribe below
-                .doFinally(() -> {
-                  // this is to clean the thread local in TPC thread
-                  ClientWarn.instance.resetWarnings();
-                })
+                .doFinally(
+                    () -> {
+                      // this is to clean the thread local in TPC thread
+                      ClientWarn.instance.resetWarnings();
+                    })
                 .subscribe(
                     future::complete,
                     ex -> {
