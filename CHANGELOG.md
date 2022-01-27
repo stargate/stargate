@@ -79,6 +79,13 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
 
+## [v1.0.48](https://github.com/stargate/stargate/tree/v1.0.48) (2022-01-21)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.47...v1.0.48)
+
+**Merged pull requests:**
+
+- refactor update document sub-path to use new write service [\#1562](https://github.com/stargate/stargate/pull/1562) ([ivansenic](https://github.com/ivansenic))
 
 ## [v1.0.47](https://github.com/stargate/stargate/tree/v1.0.47) (2022-01-19)
 
