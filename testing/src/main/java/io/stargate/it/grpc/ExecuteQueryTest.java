@@ -36,6 +36,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -188,7 +189,8 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
   }
 
   @Test
-  public void uuidQueryWithPaging(@TestKeyspace CqlIdentifier keyspace) {
+  @Disabled("Until issue #1577 fixed")
+  public void simpleQueryWithPagingUuidKey(@TestKeyspace CqlIdentifier keyspace) {
     StargateBlockingStub stub = stubWithCallCredentials();
     final String uuid = UUID.randomUUID().toString();
 
