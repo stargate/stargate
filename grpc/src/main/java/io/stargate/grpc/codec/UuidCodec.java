@@ -31,11 +31,8 @@ public class UuidCodec implements ValueCodec {
       throw new IllegalArgumentException("Expected UUID type");
     }
     ByteString uuid = value.getUuid().getValue();
-    int size = uuid.size();
-    if (size != 16) {
-      throw new IllegalArgumentException("Expected 16 bytes for a UUID, got " + size);
-    }
-    ByteBuffer bytes = ByteBuffer.allocate(16);
+    int size = validateByteLength(uuid.size());
+    ByteBuffer bytes = ByteBuffer.allocate(size);
     uuid.copyTo(bytes);
     bytes.flip();
     return bytes;
@@ -43,11 +40,16 @@ public class UuidCodec implements ValueCodec {
 
   @Override
   public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
-    if (bytes.remaining() != 16) {
-      throw new IllegalArgumentException("Expected 16 bytes for a UUID, got " + bytes.remaining());
-    }
+    validateByteLength(bytes.remaining());
     return Value.newBuilder()
         .setUuid(Uuid.newBuilder().setValue(ByteString.copyFrom(bytes)).build())
         .build();
+  }
+
+  private int validateByteLength(int byteLength) {
+    if (byteLength != 16) {
+      throw new IllegalArgumentException("Expected 16 bytes for a UUID, got " + byteLength);
+    }
+    return byteLength;
   }
 }
