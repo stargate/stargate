@@ -37,7 +37,7 @@ public class VarintCodec implements ValueCodec {
   public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
     if (bytes.remaining() == 0) {
       throw new IllegalArgumentException(
-          "Invalid decimal value, expecting non-empty Bytes but got 0");
+          "Invalid varint value, expecting non-empty Bytes but got 0");
     }
 
     return Value.newBuilder()
