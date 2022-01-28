@@ -1654,26 +1654,47 @@ public class RestApiv2Test extends BaseIntegrationTest {
             Arrays.asList("id " + mainKey, "id2 a", "name Bob"),
             Arrays.asList("id " + mainKey, "id2 b", "name Joe"),
             Arrays.asList("id " + mainKey, "id2 x", "name Patrick"),
-            Arrays.asList("id " + secondKey, "id2 c", "name Rick"),
             Arrays.asList("id " + secondKey, "id2 e", "name Alice")));
 
-    // get first page
+    // get first page; cannot use "raw" mode as we need pagingState
     String whereClause = String.format("{\"id\":{\"$eq\":\"%s\"}}", mainKey);
     String body =
         RestUtils.get(
             authToken,
             String.format(
-                "%s/v2/keyspaces/%s/%s?raw=true&page-size=2&where=%s",
+                "%s/v2/keyspaces/%s/%s?page-size=2&where=%s",
                 restUrlBase, keyspaceName, tableName, whereClause),
             HttpStatus.SC_OK);
     JsonNode json = objectMapper.readTree(body);
-    assertThat(json.size()).isEqualTo(2);
-    assertThat(json.at("/0/id").asText()).isEqualTo(mainKey);
-    assertThat(json.at("/0/id2").asText()).isEqualTo("a");
-    assertThat(json.at("/0/name").asText()).isEqualTo("Bob");
-    assertThat(json.at("/1/id").asText()).isEqualTo(mainKey);
-    assertThat(json.at("/1/id2").asText()).isEqualTo("b");
-    assertThat(json.at("/1/name").asText()).isEqualTo("Joe");
+    assertThat(json.at("/count").intValue()).isEqualTo(2);
+    JsonNode data = json.at("/data");
+    assertThat(data.size()).isEqualTo(2);
+    assertThat(data.at("/0/id").asText()).isEqualTo(mainKey);
+    assertThat(data.at("/0/id2").asText()).isEqualTo("a");
+    assertThat(data.at("/0/name").asText()).isEqualTo("Bob");
+    assertThat(data.at("/1/id").asText()).isEqualTo(mainKey);
+    assertThat(data.at("/1/id2").asText()).isEqualTo("b");
+    assertThat(data.at("/1/name").asText()).isEqualTo("Joe");
+
+    String pagingState = json.at("/pageState").asText();
+    assertThat(pagingState).isNotEmpty();
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s?page-size=99&page-state=%s&where=%s",
+                restUrlBase, keyspaceName, tableName, pagingState, whereClause),
+            HttpStatus.SC_OK);
+    json = objectMapper.readTree(body);
+    assertThat(json.at("/count").intValue()).isEqualTo(1);
+    data = json.at("/data");
+    assertThat(data.size()).isEqualTo(1);
+    assertThat(data.at("/0/id").asText()).isEqualTo(mainKey);
+    assertThat(data.at("/0/id2").asText()).isEqualTo("x");
+    assertThat(data.at("/0/name").asText()).isEqualTo("Patrick");
+
+    assertThat(json.at("/pageState").asText()).isEmpty();
   }
 
   @Test
