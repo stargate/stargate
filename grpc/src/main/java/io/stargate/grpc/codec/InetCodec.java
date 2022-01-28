@@ -44,7 +44,7 @@ public class InetCodec implements ValueCodec {
   @Override
   public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
     return Value.newBuilder()
-        .setInet(Inet.newBuilder().setValue(ByteString.copyFrom(bytes)))
+        .setInet(Inet.newBuilder().setValue(ByteString.copyFrom(bytes.duplicate())))
         .build();
   }
 }

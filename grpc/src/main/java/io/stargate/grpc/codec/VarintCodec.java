@@ -40,7 +40,7 @@ public class VarintCodec implements ValueCodec {
     }
 
     return Value.newBuilder()
-        .setVarint(Varint.newBuilder().setValue(ByteString.copyFrom(bytes)).build())
+        .setVarint(Varint.newBuilder().setValue(ByteString.copyFrom(bytes.duplicate())).build())
         .build();
   }
 }

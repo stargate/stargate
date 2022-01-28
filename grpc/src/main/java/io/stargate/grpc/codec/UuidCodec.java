@@ -47,7 +47,7 @@ public class UuidCodec implements ValueCodec {
       throw new IllegalArgumentException("Expected 16 bytes for a UUID, got " + bytes.remaining());
     }
     return Value.newBuilder()
-        .setUuid(Uuid.newBuilder().setValue(ByteString.copyFrom(bytes)).build())
+        .setUuid(Uuid.newBuilder().setValue(ByteString.copyFrom(bytes.duplicate())).build())
         .build();
   }
 }
