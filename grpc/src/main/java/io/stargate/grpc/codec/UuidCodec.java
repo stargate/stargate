@@ -42,7 +42,7 @@ public class UuidCodec implements ValueCodec {
   public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
     validateByteLength(bytes.remaining());
     return Value.newBuilder()
-        .setUuid(Uuid.newBuilder().setValue(ByteString.copyFrom(bytes)).build())
+        .setUuid(Uuid.newBuilder().setValue(ByteString.copyFrom(bytes.duplicate())).build())
         .build();
   }
 

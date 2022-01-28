@@ -42,7 +42,7 @@ public class InetCodec implements ValueCodec {
   public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
     validateByteLength(bytes.remaining());
     return Value.newBuilder()
-        .setInet(Inet.newBuilder().setValue(ByteString.copyFrom(bytes)))
+        .setInet(Inet.newBuilder().setValue(ByteString.copyFrom(bytes.duplicate())))
         .build();
   }
 
