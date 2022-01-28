@@ -89,19 +89,13 @@ public enum RequestFailureReason {
    */
   BUFFER_POOL_EXHAUSTED,
 
-  /**
-   * Backup service is not running.
-   */
+  /** Backup service is not running. */
   BACKUP_SERVICE_NOT_RUNNING,
 
-  /**
-   * The file could not be uploaded or downloaded from remote storage.
-   */
+  /** The file could not be uploaded or downloaded from remote storage. */
   REMOTE_STORAGE_FAILURE,
 
-  /**
-   * The node is still bootstrapping and is therefore not ready to serve read requests.
-   */
+  /** The node is still bootstrapping and is therefore not ready to serve read requests. */
   BOOTSTRAPPING,
 
   /**
