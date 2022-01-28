@@ -78,6 +78,11 @@ public class ValueCodecTest {
     ByteBuffer bytes = codec.encode(expectedValue, type);
     Value actualValue = codec.decode(bytes, type);
     assertThat(actualValue).isEqualTo(expectedValue);
+
+    // 27-Jan-2022, tatu: Specific kind of failure (see #1577) occurs if
+    //    we try to decode second time from same ByteBuffer!
+    Value actualValue2 = codec.decode(bytes, type);
+    assertThat(actualValue2).isEqualTo(expectedValue);
   }
 
   @ParameterizedTest
@@ -88,6 +93,11 @@ public class ValueCodecTest {
     ByteBuffer bytes = codec.encode(value, type);
     Value actualValue = codec.decode(bytes, type);
     assertThat(actualValue).isEqualTo(expectedValue);
+
+    // 27-Jan-2022, tatu: Specific kind of failure (see #1577) occurs if
+    //    we try to decode second time from same ByteBuffer!
+    Value actualValue2 = codec.decode(bytes, type);
+    assertThat(actualValue2).isEqualTo(expectedValue);
   }
 
   @ParameterizedTest

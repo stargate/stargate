@@ -34,6 +34,7 @@ import io.stargate.proto.QueryOuterClass.SchemaChange;
 import io.stargate.proto.StargateGrpc.StargateBlockingStub;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,12 +43,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @CqlSessionSpec(
     initQueries = {
       "CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k, v))",
+      "CREATE TABLE IF NOT EXISTS test_uuid (id uuid, value int, PRIMARY KEY(id, value))",
     })
 public class ExecuteQueryTest extends GrpcIntegrationTest {
 
   @AfterEach
   public void cleanup(CqlSession session) {
     session.execute("TRUNCATE TABLE test");
+    session.execute("TRUNCATE TABLE test_uuid");
   }
 
   @Test
@@ -180,6 +183,31 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
 
     assertThat(response.hasResultSet()).isTrue();
     rs = response.getResultSet();
+    assertThat(rs.getRowsCount()).isEqualTo(2);
+    assertThat(rs.getPagingState()).isNotNull();
+  }
+
+  @Test
+  public void simpleQueryWithPagingUuidKey(@TestKeyspace CqlIdentifier keyspace) {
+    StargateBlockingStub stub = stubWithCallCredentials();
+    final String uuid = UUID.randomUUID().toString();
+
+    for (int i = 0; i < 5; i++) {
+      stub.executeQuery(
+          cqlQuery(
+              String.format("INSERT INTO test_uuid (id, value) VALUES (%s, %d)", uuid, i),
+              queryParameters(keyspace)));
+    }
+
+    Response response =
+        stub.executeQuery(
+            cqlQuery(
+                "select id,value from test_uuid",
+                queryParameters(keyspace)
+                    .setPageSize(Int32Value.newBuilder().setValue(2).build())));
+
+    assertThat(response.hasResultSet()).isTrue();
+    ResultSet rs = response.getResultSet();
     assertThat(rs.getRowsCount()).isEqualTo(2);
     assertThat(rs.getPagingState()).isNotNull();
   }
