@@ -1636,6 +1636,67 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(data.get(0).get("expense_id")).isEqualTo(1);
   }
 
+  // Reproduction for https://github.com/stargate/stargate/issues/1577
+  @Test
+  public void getRowsPagingWithUUID() throws Exception {
+    createKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        // NOTE! Original test passes if "uuid" -> "text"
+        Arrays.asList("id uuid", "id2 text", "name text"),
+        Collections.singletonList("id"),
+        Collections.singletonList("id2"));
+
+    String mainKey = "113fbac2-0cad-40f8-940c-6a95f8d1a4cf"; // from original test
+    String secondKey = "113fbac2-0cad-40f8-940c-6a95f8d1afff";
+    insertTestTableRows(
+        Arrays.asList(
+            Arrays.asList("id " + mainKey, "id2 a", "name Bob"),
+            Arrays.asList("id " + mainKey, "id2 b", "name Joe"),
+            Arrays.asList("id " + mainKey, "id2 x", "name Patrick"),
+            Arrays.asList("id " + secondKey, "id2 e", "name Alice")));
+
+    // get first page; cannot use "raw" mode as we need pagingState
+    String whereClause = String.format("{\"id\":{\"$eq\":\"%s\"}}", mainKey);
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s?page-size=2&where=%s",
+                restUrlBase, keyspaceName, tableName, whereClause),
+            HttpStatus.SC_OK);
+    JsonNode json = objectMapper.readTree(body);
+    assertThat(json.at("/count").intValue()).isEqualTo(2);
+    JsonNode data = json.at("/data");
+    assertThat(data.size()).isEqualTo(2);
+    assertThat(data.at("/0/id").asText()).isEqualTo(mainKey);
+    assertThat(data.at("/0/id2").asText()).isEqualTo("a");
+    assertThat(data.at("/0/name").asText()).isEqualTo("Bob");
+    assertThat(data.at("/1/id").asText()).isEqualTo(mainKey);
+    assertThat(data.at("/1/id2").asText()).isEqualTo("b");
+    assertThat(data.at("/1/name").asText()).isEqualTo("Joe");
+
+    String pagingState = json.at("/pageState").asText();
+    assertThat(pagingState).isNotEmpty();
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s?page-size=99&page-state=%s&where=%s",
+                restUrlBase, keyspaceName, tableName, pagingState, whereClause),
+            HttpStatus.SC_OK);
+    json = objectMapper.readTree(body);
+    assertThat(json.at("/count").intValue()).isEqualTo(1);
+    data = json.at("/data");
+    assertThat(data.size()).isEqualTo(1);
+    assertThat(data.at("/0/id").asText()).isEqualTo(mainKey);
+    assertThat(data.at("/0/id2").asText()).isEqualTo("x");
+    assertThat(data.at("/0/name").asText()).isEqualTo("Patrick");
+
+    assertThat(json.at("/pageState").asText()).isEmpty();
+  }
+
   @Test
   public void getRowsNotFound() throws IOException {
     createKeyspace(keyspaceName);
