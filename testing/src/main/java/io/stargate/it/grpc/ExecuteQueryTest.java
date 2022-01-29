@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.google.protobuf.BytesValue;
 import com.google.protobuf.Int32Value;
 import com.google.protobuf.InvalidProtocolBufferException;
 import io.grpc.StatusRuntimeException;
@@ -190,12 +191,13 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
   @Test
   public void simpleQueryWithPagingUuidKey(@TestKeyspace CqlIdentifier keyspace) {
     StargateBlockingStub stub = stubWithCallCredentials();
-    final String uuid = UUID.randomUUID().toString();
+    final UUID uuid = UUID.randomUUID();
+    final String uuidStr = uuid.toString();
 
     for (int i = 0; i < 5; i++) {
       stub.executeQuery(
           cqlQuery(
-              String.format("INSERT INTO test_uuid (id, value) VALUES (%s, %d)", uuid, i),
+              String.format("INSERT INTO test_uuid (id, value) VALUES (%s, %d)", uuidStr, i),
               queryParameters(keyspace)));
     }
 
@@ -209,7 +211,34 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
     assertThat(response.hasResultSet()).isTrue();
     ResultSet rs = response.getResultSet();
     assertThat(rs.getRowsCount()).isEqualTo(2);
-    assertThat(rs.getPagingState()).isNotNull();
+    BytesValue pagingState = rs.getPagingState();
+    assertThat(pagingState).isNotNull();
+
+    assertThat(rs.getRows(0)).isEqualTo(rowOf(Values.of(uuid), Values.of(Integer.valueOf(0))));
+    assertThat(rs.getRows(1)).isEqualTo(rowOf(Values.of(uuid), Values.of(Integer.valueOf(1))));
+
+    // And then actual paging:
+    response =
+        stub.executeQuery(
+            cqlQuery(
+                "select id,value from test_uuid",
+                queryParameters(keyspace)
+                    .setPageSize(Int32Value.newBuilder().setValue(4).build())
+                    .setPagingState(pagingState)));
+    assertThat(response.hasResultSet()).isTrue();
+    rs = response.getResultSet();
+    assertThat(rs.getRowsCount()).isEqualTo(3);
+    assertThat(rs.getRows(0)).isEqualTo(rowOf(Values.of(uuid), Values.of(Integer.valueOf(2))));
+    assertThat(rs.getRows(1)).isEqualTo(rowOf(Values.of(uuid), Values.of(Integer.valueOf(3))));
+    assertThat(rs.getRows(2)).isEqualTo(rowOf(Values.of(uuid), Values.of(Integer.valueOf(4))));
+
+    // but should now get empty paging state
+    pagingState = rs.getPagingState();
+    assertThat(pagingState).isNotNull();
+    assertThat(pagingState.getValue().size()).isEqualTo(0);
+
+    // which means we should NOT try to ask for more rows
+    // (would give "io.grpc.StatusRuntimeException: INTERNAL: Invalid value for the paging state")
   }
 
   @Test
