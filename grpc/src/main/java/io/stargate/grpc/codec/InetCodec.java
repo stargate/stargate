@@ -31,10 +31,7 @@ public class InetCodec implements ValueCodec {
       throw new IllegalArgumentException("Expected bytes type");
     }
     ByteString address = value.getInet().getValue();
-    int size = address.size();
-    if (size != 4 && size != 16) {
-      throw new IllegalArgumentException("Expected 4 or 16 bytes for an IPv4 or IPv6 address");
-    }
+    int size = validateByteLength(address.size());
     ByteBuffer bytes = ByteBuffer.allocate(size);
     address.copyTo(bytes);
     bytes.flip();
@@ -43,8 +40,17 @@ public class InetCodec implements ValueCodec {
 
   @Override
   public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
+    validateByteLength(bytes.remaining());
     return Value.newBuilder()
         .setInet(Inet.newBuilder().setValue(ByteString.copyFrom(bytes.duplicate())))
         .build();
+  }
+
+  private int validateByteLength(int byteLength) {
+    if (byteLength != 4 && byteLength != 16) {
+      throw new IllegalArgumentException(
+          "Expected 4 or 16 bytes for an IPv4 or IPv6 address, got " + byteLength);
+    }
+    return byteLength;
   }
 }

@@ -43,9 +43,7 @@ public class DecimalCodec implements ValueCodec {
 
   @Override
   public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
-    if (bytes.remaining() == 0) {
-      return null;
-    } else if (bytes.remaining() < 4) {
+    if (bytes.remaining() < 4) {
       throw new IllegalArgumentException(
           "Invalid decimal value, expecting at least 4 bytes but got " + bytes.remaining());
     }
