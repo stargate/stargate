@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.grpc.service;
+package io.stargate.bridge.service;
 
 import com.google.protobuf.StringValue;
 import io.grpc.StatusException;
@@ -22,6 +22,7 @@ import io.grpc.stub.StreamObserver;
 import io.stargate.db.EventListener;
 import io.stargate.db.Persistence;
 import io.stargate.db.schema.Keyspace;
+import io.stargate.grpc.service.GrpcService;
 import io.stargate.proto.QueryOuterClass.SchemaChange;
 import io.stargate.proto.QueryOuterClass.SchemaChange.Target;
 import io.stargate.proto.QueryOuterClass.SchemaChange.Type;

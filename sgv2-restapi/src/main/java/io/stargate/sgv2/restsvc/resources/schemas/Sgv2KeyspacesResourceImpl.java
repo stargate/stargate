@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.stargate.proto.QueryOuterClass;
-import io.stargate.proto.StargateGrpc;
+import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
@@ -53,7 +53,7 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
 
   @Override
   public Response getAllKeyspaces(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final boolean raw,
       final HttpServletRequest request) {
 
@@ -81,7 +81,7 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
 
   @Override
   public Response getOneKeyspace(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final boolean raw,
       final HttpServletRequest request) {
@@ -113,7 +113,7 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
 
   @Override
   public Response createKeyspace(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final JsonNode payload,
       final HttpServletRequest request) {
     SchemaBuilderHelper.KeyspaceCreateDefinition ksCreateDef;
@@ -153,7 +153,7 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
 
   @Override
   public Response deleteKeyspace(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final HttpServletRequest request) {
     String cql = new QueryBuilder().drop().keyspace(keyspaceName).ifExists().build();

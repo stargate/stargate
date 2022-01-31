@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.grpc.service;
+package io.stargate.bridge.service;
 
 import com.google.protobuf.StringValue;
 import io.grpc.Status;
@@ -28,6 +28,8 @@ import io.stargate.db.schema.MaterializedView;
 import io.stargate.db.schema.SecondaryIndex;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
+import io.stargate.grpc.service.GrpcService;
+import io.stargate.grpc.service.ValuesHelper;
 import io.stargate.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.proto.QueryOuterClass.TypeSpec.Udt;
 import io.stargate.proto.Schema.ColumnOrderBy;

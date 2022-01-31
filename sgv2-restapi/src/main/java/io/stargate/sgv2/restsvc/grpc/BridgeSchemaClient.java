@@ -1,7 +1,7 @@
 package io.stargate.sgv2.restsvc.grpc;
 
 import io.stargate.proto.Schema;
-import io.stargate.proto.StargateGrpc;
+import io.stargate.proto.StargateBridgeGrpc;
 import java.util.List;
 import java.util.Objects;
 
@@ -10,13 +10,14 @@ import java.util.Objects;
  * operations directly, eventually likely hidden behind caching layer.
  */
 public class BridgeSchemaClient {
-  private final StargateGrpc.StargateBlockingStub blockingStub;
+  private final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub;
 
-  protected BridgeSchemaClient(StargateGrpc.StargateBlockingStub blockingStub) {
+  protected BridgeSchemaClient(StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub) {
     this.blockingStub = Objects.requireNonNull(blockingStub);
   }
 
-  public static BridgeSchemaClient create(StargateGrpc.StargateBlockingStub blockingStub) {
+  public static BridgeSchemaClient create(
+      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub) {
     return new BridgeSchemaClient(blockingStub);
   }
 

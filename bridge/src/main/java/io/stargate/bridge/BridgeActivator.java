@@ -13,20 +13,21 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.grpc;
+package io.stargate.bridge;
 
 import io.stargate.auth.AuthenticationService;
+import io.stargate.bridge.impl.BridgeImpl;
 import io.stargate.core.activator.BaseActivator;
+import io.stargate.core.grpc.BridgeConfig;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.DbActivator;
 import io.stargate.db.Persistence;
-import io.stargate.grpc.impl.GrpcImpl;
 import java.util.Arrays;
 import java.util.List;
 import org.jetbrains.annotations.Nullable;
 
-public class GrpcActivator extends BaseActivator {
-  private GrpcImpl grpc;
+public class BridgeActivator extends BaseActivator {
+  private BridgeImpl bridge;
   private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
   private final ServicePointer<AuthenticationService> authentication =
       ServicePointer.create(
@@ -36,29 +37,31 @@ public class GrpcActivator extends BaseActivator {
   private final ServicePointer<Persistence> persistence =
       ServicePointer.create(Persistence.class, "Identifier", DbActivator.PERSISTENCE_IDENTIFIER);
 
-  public GrpcActivator() {
-    super("gRPC", true);
+  public BridgeActivator() {
+    super("bridge", true);
   }
 
   @Nullable
   @Override
   protected ServiceAndProperties createService() {
-    if (grpc != null) { // Already started
+    if (bridge != null) { // Already started
       return null;
     }
-    grpc = new GrpcImpl(persistence.get(), metrics.get(), authentication.get());
-    grpc.start();
+    bridge =
+        new BridgeImpl(
+            persistence.get(), metrics.get(), authentication.get(), BridgeConfig.ADMIN_TOKEN);
+    bridge.start();
 
     return null;
   }
 
   @Override
   protected void stopService() {
-    if (grpc == null) { // Not started
+    if (bridge == null) { // Not started
       return;
     }
-    grpc.stop();
-    grpc = null;
+    bridge.stop();
+    bridge = null;
   }
 
   @Override

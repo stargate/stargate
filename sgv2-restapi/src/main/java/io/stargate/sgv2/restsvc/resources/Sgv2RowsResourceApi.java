@@ -1,7 +1,7 @@
 package io.stargate.sgv2.restsvc.resources;
 
 import com.codahale.metrics.annotation.Timed;
-import io.stargate.proto.StargateGrpc;
+import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.models.Sgv2RowsResponse;
@@ -65,7 +65,7 @@ public interface Sgv2RowsResourceApi {
             response = RestServiceError.class)
       })
   Response getRowWithWhere(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
+      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -121,7 +121,7 @@ public interface Sgv2RowsResourceApi {
       })
   @Path("/{primaryKey: .*}")
   Response getRows(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
+      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -169,7 +169,7 @@ public interface Sgv2RowsResourceApi {
       })
   @Path("/rows")
   javax.ws.rs.core.Response getAllRows(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
+      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -212,7 +212,7 @@ public interface Sgv2RowsResourceApi {
             response = RestServiceError.class)
       })
   Response createRow(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
+      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -240,7 +240,7 @@ public interface Sgv2RowsResourceApi {
       })
   @Path("/{primaryKey: .*}")
   Response updateRows(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
+      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -275,7 +275,7 @@ public interface Sgv2RowsResourceApi {
       })
   @Path("/{primaryKey: .*}")
   Response deleteRows(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
+      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -311,7 +311,7 @@ public interface Sgv2RowsResourceApi {
       })
   @Path("/{primaryKey: .*}")
   Response patchRows(
-      @Context StargateGrpc.StargateBlockingStub blockingStub,
+      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
