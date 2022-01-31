@@ -144,7 +144,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     final ManagedChannel schemaChannel =
         buildChannel(appConfig.stargate.grpc, "Schema Access for REST API");
     final StargateBridgeGrpc.StargateBridgeStub stub =
-          StargateBridgeGrpc.newStub(schemaChannel)
+        StargateBridgeGrpc.newStub(schemaChannel)
             .withDeadlineAfter(10, TimeUnit.SECONDS)
             .withCallCredentials(new StargateBearerToken(BridgeConfig.ADMIN_TOKEN));
 
