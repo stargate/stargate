@@ -8,7 +8,7 @@ import java.util.concurrent.ScheduledExecutorService;
 public class SingleQueryHandler extends QueryHandler {
   private final StreamObserver<QueryOuterClass.Response> responseObserver;
 
-  SingleQueryHandler(
+  public SingleQueryHandler(
       QueryOuterClass.Query query,
       Persistence.Connection connection,
       Persistence persistence,

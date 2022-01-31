@@ -45,9 +45,8 @@ public class NewConnectionInterceptor implements ServerInterceptor {
   private static final int CACHE_MAX_SIZE =
       Integer.getInteger("stargate.grpc.connection_cache_max_size", 10_000);
 
-  private final Persistence persistence;
+  protected final Persistence persistence;
   private final AuthenticationService authenticationService;
-  private final String adminToken;
   private final LoadingCache<RequestInfo, Connection> connectionCache =
       Caffeine.newBuilder()
           .expireAfterWrite(Duration.ofSeconds(CACHE_TTL_SECS))
@@ -55,7 +54,7 @@ public class NewConnectionInterceptor implements ServerInterceptor {
           .build(this::newConnection);
 
   @Value.Immutable
-  interface RequestInfo {
+  public interface RequestInfo {
 
     @Nullable
     String token();
@@ -67,10 +66,9 @@ public class NewConnectionInterceptor implements ServerInterceptor {
   }
 
   public NewConnectionInterceptor(
-      Persistence persistence, AuthenticationService authenticationService, String adminToken) {
+      Persistence persistence, AuthenticationService authenticationService) {
     this.persistence = persistence;
     this.authenticationService = authenticationService;
-    this.adminToken = adminToken;
   }
 
   @Override
@@ -130,33 +128,28 @@ public class NewConnectionInterceptor implements ServerInterceptor {
     return new NopListener<>();
   }
 
-  private Connection newConnection(RequestInfo info) throws UnauthorizedException {
+  protected Connection newConnection(RequestInfo info) throws UnauthorizedException {
     Connection connection;
     String token = info.token();
-    if (adminToken.equals(token)) {
-      connection = persistence.newConnection();
+    AuthenticationSubject authenticationSubject =
+        authenticationService.validateToken(token, info.headers());
+    AuthenticatedUser user = authenticationSubject.asUser();
+    if (!user.isFromExternalAuth()) {
+      SocketAddress remoteAddress = info.remoteAddress();
+      // This is best effort attempt to set the remote address, if the remote address is not the
+      // correct type then use a dummy value. Note: `remoteAddress` is almost always a
+      // `InetSocketAddress`.
+      InetSocketAddress inetSocketAddress =
+          remoteAddress instanceof InetSocketAddress
+              ? (InetSocketAddress) remoteAddress
+              : DUMMY_ADDRESS;
+      connection = persistence.newConnection(new ClientInfo(inetSocketAddress, null));
     } else {
-      AuthenticationSubject authenticationSubject =
-          authenticationService.validateToken(token, info.headers());
-
-      AuthenticatedUser user = authenticationSubject.asUser();
-      if (!user.isFromExternalAuth()) {
-        SocketAddress remoteAddress = info.remoteAddress();
-        // This is best effort attempt to set the remote address, if the remote address is not the
-        // correct type then use a dummy value. Note: `remoteAddress` is almost always a
-        // `InetSocketAddress`.
-        InetSocketAddress inetSocketAddress =
-            remoteAddress instanceof InetSocketAddress
-                ? (InetSocketAddress) remoteAddress
-                : DUMMY_ADDRESS;
-        connection = persistence.newConnection(new ClientInfo(inetSocketAddress, null));
-      } else {
-        connection = persistence.newConnection();
-      }
-      connection.login(user);
-      if (user.token() != null) {
-        connection.clientInfo().ifPresent(c -> c.setAuthenticatedUser(user));
-      }
+      connection = persistence.newConnection();
+    }
+    connection.login(user);
+    if (user.token() != null) {
+      connection.clientInfo().ifPresent(c -> c.setAuthenticatedUser(user));
     }
     connection.setCustomProperties(info.headers());
     return connection;

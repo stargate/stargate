@@ -5,7 +5,6 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.umd.cs.findbugs.annotations.NonNull;
-import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.DocumentDBFactory;
 import io.stargate.web.docsapi.examples.WriteDocResponse;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
@@ -24,7 +23,6 @@ import io.swagger.annotations.ApiResponses;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.Callable;
 import javax.inject.Inject;
@@ -33,7 +31,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.PATCH;
 import javax.ws.rs.POST;
@@ -301,89 +298,6 @@ public class DocumentResourceV2 {
                   mapper.writeValueAsString(
                       new DocumentResponseWrapper<>(id, null, null, context.toProfile())))
               .build();
-        });
-  }
-
-  @DELETE
-  @ManagedAsync
-  @ApiOperation(value = "Delete a document", notes = "Delete a document")
-  @ApiResponses(
-      value = {
-        @ApiResponse(code = 204, message = "No Content"),
-        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
-      })
-  @Path("collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}")
-  @Consumes(MediaType.APPLICATION_JSON)
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response deleteDoc(
-      @Context HttpHeaders headers,
-      @Context UriInfo ui,
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String authToken,
-      @ApiParam(value = "the namespace that the collection is in", required = true)
-          @PathParam("namespace-id")
-          String namespace,
-      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
-          String collection,
-      @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
-          String id,
-      @Context HttpServletRequest request) {
-    logger.debug("Delete: Collection = {}, id = {}, path = {}", collection, id, new ArrayList<>());
-    return handle(
-        () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          DocumentDB db = dbFactory.getDocDBForToken(authToken, allHeaders);
-          documentService.deleteAtPath(db, namespace, collection, id, new ArrayList<>());
-          return Response.noContent().build();
-        });
-  }
-
-  @DELETE
-  @ManagedAsync
-  @ApiOperation(value = "Delete a path in a document", notes = "Delete a path in a document")
-  @ApiResponses(
-      value = {
-        @ApiResponse(code = 204, message = "No Content"),
-        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
-        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
-        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
-      })
-  @Path("collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}/{document-path: .*}")
-  @Consumes(MediaType.APPLICATION_JSON)
-  @Produces(MediaType.APPLICATION_JSON)
-  public Response deleteDocPath(
-      @Context HttpHeaders headers,
-      @Context UriInfo ui,
-      @ApiParam(
-              value =
-                  "The token returned from the authorization endpoint. Use this token in each request.",
-              required = true)
-          @HeaderParam("X-Cassandra-Token")
-          String authToken,
-      @ApiParam(value = "the namespace that the collection is in", required = true)
-          @PathParam("namespace-id")
-          String namespace,
-      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
-          String collection,
-      @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
-          String id,
-      @ApiParam(value = "the path in the JSON that you want to retrieve", required = true)
-          @PathParam("document-path")
-          List<PathSegment> path,
-      @Context HttpServletRequest request) {
-    logger.debug("Delete: Collection = {}, id = {}, path = {}", collection, id, path);
-    return handle(
-        () -> {
-          Map<String, String> allHeaders = getAllHeaders(request);
-          DocumentDB db = dbFactory.getDocDBForToken(authToken, allHeaders);
-          documentService.deleteAtPath(db, namespace, collection, id, path);
-          return Response.noContent().build();
         });
   }
 

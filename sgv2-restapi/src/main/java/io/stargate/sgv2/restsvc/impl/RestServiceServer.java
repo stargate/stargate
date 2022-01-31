@@ -32,7 +32,7 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.metrics.jersey.MetricsBinder;
-import io.stargate.proto.StargateGrpc;
+import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.common.schema.SchemaCache;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcStubFilter;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
@@ -121,7 +121,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
                 bind(configureObjectMapper(environment.getObjectMapper())).to(ObjectMapper.class);
                 bind(metricsScraper).to(MetricsScraper.class);
                 bindFactory(GrpcStubFactory.class)
-                    .to(StargateGrpc.StargateBlockingStub.class)
+                    .to(StargateBridgeGrpc.StargateBridgeBlockingStub.class)
                     .in(RequestScoped.class);
               }
             });
@@ -143,8 +143,8 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
 
     final ManagedChannel schemaChannel =
         buildChannel(appConfig.stargate.grpc, "Schema Access for REST API");
-    final StargateGrpc.StargateStub stub =
-        StargateGrpc.newStub(schemaChannel)
+    final StargateBridgeGrpc.StargateBridgeStub stub =
+          StargateBridgeGrpc.newStub(schemaChannel)
             .withDeadlineAfter(10, TimeUnit.SECONDS)
             .withCallCredentials(new StargateBearerToken(BridgeConfig.ADMIN_TOKEN));
 

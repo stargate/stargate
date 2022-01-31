@@ -2,7 +2,7 @@ package io.stargate.sgv2.restsvc.resources.schemas;
 
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
-import io.stargate.proto.StargateGrpc;
+import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
@@ -35,7 +35,7 @@ import javax.ws.rs.core.Response.Status;
 public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesResourceApi {
   @Override
   public Response getAllTables(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final boolean raw,
       final HttpServletRequest request) {
@@ -50,7 +50,7 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
 
   @Override
   public Response getOneTable(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final boolean raw,
@@ -67,7 +67,7 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
 
   @Override
   public Response createTable(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final Sgv2TableAddRequest tableAdd,
       final HttpServletRequest request) {
@@ -124,7 +124,7 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
 
   @Override
   public Response updateTable(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final Sgv2TableAddRequest tableUpdate,
@@ -167,7 +167,7 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
 
   @Override
   public Response deleteTable(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final HttpServletRequest request) {

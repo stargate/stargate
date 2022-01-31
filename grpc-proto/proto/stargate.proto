@@ -21,7 +21,6 @@ option go_package = "stargate/proto";
 package stargate;
 
 import "query.proto";
-import "schema.proto";
 
 // The gPRC service to interact with a Stargate coordinator.
 service Stargate {
@@ -36,14 +35,5 @@ service Stargate {
 
   // Executes a bi-directional streaming for batches of CQL queries.
   rpc ExecuteBatchStream(stream Batch) returns (stream StreamingResponse) {}
-
-  // Similar to CQL "DESCRIBE KEYSPACE"
-  rpc DescribeKeyspace(DescribeKeyspaceQuery) returns (CqlKeyspaceDescribe) {}
-
-  // Similar to CQL "DESCRIBE KEYSPACE"
-  rpc DescribeTable(DescribeTableQuery) returns (CqlTable) {}
-
-  // Requests notification of schema changes.
-  rpc GetSchemaNotifications(GetSchemaNotificationsParams) returns (stream SchemaNotification) {}
 }
 

@@ -17,7 +17,6 @@ package io.stargate.grpc;
 
 import io.stargate.auth.AuthenticationService;
 import io.stargate.core.activator.BaseActivator;
-import io.stargate.core.grpc.BridgeConfig;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.DbActivator;
 import io.stargate.db.Persistence;
@@ -47,9 +46,7 @@ public class GrpcActivator extends BaseActivator {
     if (grpc != null) { // Already started
       return null;
     }
-    grpc =
-        new GrpcImpl(
-            persistence.get(), metrics.get(), authentication.get(), BridgeConfig.ADMIN_TOKEN);
+    grpc = new GrpcImpl(persistence.get(), metrics.get(), authentication.get());
     grpc.start();
 
     return null;

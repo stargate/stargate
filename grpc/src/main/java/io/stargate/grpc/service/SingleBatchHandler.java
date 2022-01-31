@@ -7,7 +7,7 @@ import io.stargate.proto.QueryOuterClass;
 public class SingleBatchHandler extends BatchHandler {
   private final StreamObserver<QueryOuterClass.Response> responseObserver;
 
-  SingleBatchHandler(
+  public SingleBatchHandler(
       QueryOuterClass.Batch batch,
       Persistence.Connection connection,
       Persistence persistence,

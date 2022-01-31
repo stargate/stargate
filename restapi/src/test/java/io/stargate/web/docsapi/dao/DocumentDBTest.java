@@ -270,36 +270,6 @@ public class DocumentDBTest {
   }
 
   @Test
-  public void delete() throws UnauthorizedException {
-    ds = new TestDataStore(schema);
-    AuthorizationService authorizationService = mock(AuthorizationService.class);
-    doNothing()
-        .when(authorizationService)
-        .authorizeDataRead(
-            any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
-    documentDB =
-        new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService, config);
-    List<String> path = Arrays.asList("a", "b", "c");
-    List<Object[]> vars = new ArrayList<>();
-    vars.add(new Object[path.size() + 2]);
-    vars.get(0)[0] = 1L;
-    vars.get(0)[1] = "key";
-    vars.get(0)[2] = "a";
-    vars.get(0)[3] = "b";
-    vars.get(0)[4] = "c";
-
-    documentDB.delete("keyspace", "table", "key", path, 1L);
-
-    List<BoundQuery> generatedQueries = ds.getRecentStatements();
-    assertThat(generatedQueries).hasSize(1);
-
-    assertThat(generatedQueries.get(0).queryString())
-        .isEqualTo(
-            "DELETE FROM \"keyspace\".\"table\" USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ?");
-    assertThat(javaValues(generatedQueries.get(0).values())).isEqualTo(makeValues(1L, "key", path));
-  }
-
-  @Test
   public void deleteDeadLeaves() throws UnauthorizedException {
     ds = new TestDataStore(schema);
     AuthorizationService authorizationService = mock(AuthorizationService.class);

@@ -45,10 +45,7 @@ public class GrpcImpl {
   private final ScheduledExecutorService executor;
 
   public GrpcImpl(
-      Persistence persistence,
-      Metrics metrics,
-      AuthenticationService authenticationService,
-      String adminToken) {
+      Persistence persistence, Metrics metrics, AuthenticationService authenticationService) {
 
     String listenAddress = null;
 
@@ -72,7 +69,7 @@ public class GrpcImpl {
             // `Persistence` operations are done asynchronously so there isn't a need for a separate
             // thread pool for handling gRPC callbacks in `GrpcService`.
             .directExecutor()
-            .intercept(new NewConnectionInterceptor(persistence, authenticationService, adminToken))
+            .intercept(new NewConnectionInterceptor(persistence, authenticationService))
             .intercept(new MetricCollectingServerInterceptor(metrics.getMeterRegistry()))
             .addService(new GrpcService(persistence, executor))
             .build();

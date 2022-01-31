@@ -640,20 +640,6 @@ public class DocumentDB {
     executeBatch(queries, context);
   }
 
-  public void delete(
-      String keyspace, String table, String key, List<String> pathToDelete, long microsSinceEpoch)
-      throws UnauthorizedException {
-
-    getAuthorizationService()
-        .authorizeDataWrite(
-            getAuthenticationSubject(), keyspace, table, Scope.DELETE, SourceAPI.REST);
-    dataStore
-        .execute(
-            getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch, pathToDelete),
-            ConsistencyLevel.LOCAL_QUORUM)
-        .join();
-  }
-
   public boolean authorizeDeleteDeadLeaves(String keyspaceName, String tableName) {
     try {
       getAuthorizationService()

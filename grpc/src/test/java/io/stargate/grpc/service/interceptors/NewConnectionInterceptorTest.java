@@ -72,7 +72,7 @@ public class NewConnectionInterceptorTest {
     metadata.put(NewConnectionInterceptor.TOKEN_KEY, "abc");
 
     NewConnectionInterceptor interceptor =
-        new NewConnectionInterceptor(persistence, authenticationService, "mockAdminToken");
+        new NewConnectionInterceptor(persistence, authenticationService);
     interceptor.interceptCall(
         call,
         metadata,
@@ -98,7 +98,7 @@ public class NewConnectionInterceptorTest {
 
     Metadata metadata = new Metadata();
     NewConnectionInterceptor interceptor =
-        new NewConnectionInterceptor(persistence, authenticationService, "mockAdminToken");
+        new NewConnectionInterceptor(persistence, authenticationService);
     interceptor.interceptCall(call, metadata, next);
 
     verify(call, times(1))
@@ -126,7 +126,7 @@ public class NewConnectionInterceptorTest {
     Metadata metadata = new Metadata();
     metadata.put(NewConnectionInterceptor.TOKEN_KEY, "invalid");
     NewConnectionInterceptor interceptor =
-        new NewConnectionInterceptor(persistence, authenticationService, "mockAdminToken");
+        new NewConnectionInterceptor(persistence, authenticationService);
     interceptor.interceptCall(call, metadata, next);
 
     verify(call, times(1))
@@ -154,7 +154,7 @@ public class NewConnectionInterceptorTest {
     Metadata metadata = new Metadata();
     metadata.put(NewConnectionInterceptor.TOKEN_KEY, "someToken");
     NewConnectionInterceptor interceptor =
-        new NewConnectionInterceptor(persistence, authenticationService, "mockAdminToken");
+        new NewConnectionInterceptor(persistence, authenticationService);
     interceptor.interceptCall(call, metadata, next);
 
     verify(call, times(1))
@@ -194,7 +194,7 @@ public class NewConnectionInterceptorTest {
     Metadata metadata = new Metadata();
     metadata.put(NewConnectionInterceptor.TOKEN_KEY, "someToken");
     NewConnectionInterceptor interceptor =
-        new NewConnectionInterceptor(persistence, authenticationService, "mockAdminToken");
+        new NewConnectionInterceptor(persistence, authenticationService);
     interceptor.interceptCall(call, metadata, next);
 
     verify(authenticationService, times(1)).validateToken(anyString(), any(Map.class));

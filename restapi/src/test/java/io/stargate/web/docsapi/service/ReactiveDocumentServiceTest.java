@@ -151,6 +151,7 @@ class ReactiveDocumentServiceTest {
             objectMapper,
             timeSource,
             config);
+    lenient().when(config.getMaxArrayLength()).thenReturn(99999);
     lenient()
         .when(documentDB.deleteDeadLeaves(any(), any(), any(), anyLong(), anyMap(), any()))
         .thenReturn(CompletableFuture.completedFuture(deleteResultSet));
@@ -1814,6 +1815,97 @@ class ReactiveDocumentServiceTest {
               });
 
       verifyNoInteractions(writeService, searchService);
+    }
+  }
+
+  @Nested
+  class DeleteDocument {
+
+    @Test
+    public void happyPath() throws Exception {
+      ExecutionContext context = ExecutionContext.create(true);
+      String docId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+
+      when(writeService.deleteDocument(
+              dataStore, namespace, collection, docId, Collections.emptyList(), context))
+          .thenReturn(Single.just(ResultSet.empty()));
+
+      Single<Boolean> result =
+          reactiveDocumentService.deleteDocument(documentDB, namespace, collection, docId, context);
+
+      result.test().await().assertValue(success -> success).assertComplete();
+
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(writeService)
+          .deleteDocument(
+              dataStore, namespace, collection, docId, Collections.emptyList(), context);
+      verifyNoMoreInteractions(authService, writeService, searchService, jsonDocumentShredder);
+    }
+
+    @Test
+    public void happyPathSubDocument() throws Exception {
+      ExecutionContext context = ExecutionContext.create(true);
+      String docId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      List<String> subPath = Arrays.asList("transactions", "[0]");
+
+      when(writeService.deleteDocument(
+              dataStore,
+              namespace,
+              collection,
+              docId,
+              Arrays.asList("transactions", "[000000]"),
+              context))
+          .thenReturn(Single.just(ResultSet.empty()));
+
+      Single<Boolean> result =
+          reactiveDocumentService.deleteDocument(
+              documentDB, namespace, collection, docId, subPath, context);
+
+      result.test().await().assertValue(success -> success).assertComplete();
+
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(writeService)
+          .deleteDocument(
+              dataStore,
+              namespace,
+              collection,
+              docId,
+              Arrays.asList("transactions", "[000000]"),
+              context);
+      verifyNoMoreInteractions(authService, writeService, searchService, jsonDocumentShredder);
+    }
+
+    @Test
+    public void unauthorized() throws Exception {
+      ExecutionContext context = ExecutionContext.create(true);
+      String docId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+
+      doThrow(UnauthorizedException.class)
+          .when(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+
+      Single<Boolean> result =
+          reactiveDocumentService.deleteDocument(documentDB, namespace, collection, docId, context);
+
+      result
+          .test()
+          .await()
+          .assertError(
+              e -> {
+                assertThat(e).isInstanceOf(UnauthorizedException.class);
+                return true;
+              });
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verifyNoMoreInteractions(authService, writeService, searchService, jsonDocumentShredder);
     }
   }
 }

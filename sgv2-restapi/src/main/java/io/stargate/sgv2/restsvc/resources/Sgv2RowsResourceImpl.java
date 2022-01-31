@@ -3,7 +3,7 @@ package io.stargate.sgv2.restsvc.resources;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
-import io.stargate.proto.StargateGrpc;
+import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.Predicate;
@@ -57,7 +57,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   @Override
   public Response getRowWithWhere(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final String where,
@@ -119,7 +119,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   @Override
   public Response getRows(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
@@ -160,7 +160,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   @Override
   public javax.ws.rs.core.Response getAllRows(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final String fields,
@@ -201,7 +201,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   @Override
   public Response createRow(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final String payloadAsString,
@@ -240,7 +240,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   @Override
   public Response updateRows(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
@@ -252,7 +252,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   @Override
   public Response deleteRows(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
@@ -281,7 +281,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   @Override
   public Response patchRows(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
@@ -293,7 +293,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   /** Implementation of POST/PATCH (update/patch rows) endpoints */
   private Response modifyRow(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
