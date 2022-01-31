@@ -231,6 +231,66 @@ public class ReactiveDocumentService {
   }
 
   /**
+   * Deletes a document with given ID in the given namespace and collection.
+   *
+   * @param db {@link DocumentDB} to write in
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to delete
+   * @param context Execution content @@return Flag representing if the operation was success.
+   */
+  public Single<Boolean> deleteDocument(
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String documentId,
+      ExecutionContext context) {
+    List<String> subPath = Collections.emptyList();
+    return deleteDocument(db, namespace, collection, documentId, subPath, context);
+  }
+
+  /**
+   * Deletes a document with given ID in the given namespace and collection at the specified
+   * sub-path. Any previously existing sub-document at the given path will be removed.
+   *
+   * @param db {@link DocumentDB} to write in
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to delete
+   * @param subPath Sub-path of the document to delete. If empty will delete the whole doc.
+   * @param context Execution content
+   * @return Flag representing if the operation was success.
+   */
+  public Single<Boolean> deleteDocument(
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String documentId,
+      List<String> subPath,
+      ExecutionContext context) {
+
+    return Single.defer(
+            () -> {
+              // authentication for writing before anything
+              authorizeWrite(db, namespace, collection, Scope.DELETE);
+
+              // pre-process to support array elements
+              List<String> subPathProcessed = processSubDocumentPath(subPath);
+
+              // call write document
+              return writeService.deleteDocument(
+                  db.getQueryExecutor().getDataStore(),
+                  namespace,
+                  collection,
+                  documentId,
+                  subPathProcessed,
+                  context);
+            })
+        // TODO should we extract applied here and return that
+        .map(any -> true);
+  }
+
+  /**
    * Searches for documents in the whole collection.
    *
    * @param db {@link DocumentDB} to search in

@@ -448,4 +448,86 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
           .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_UPDATE_PATH_NOT_MATCHING);
     }
   }
+
+  @Nested
+  class DeleteDocument {
+
+    @Test
+    public void happyPath() throws Exception {
+      DataStore datastore = datastore();
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+
+      long timestamp = RandomUtils.nextLong();
+      when(timeSource.currentTimeMicros()).thenReturn(timestamp);
+
+      String deleteCql = "DELETE FROM %s USING TIMESTAMP ? WHERE key = ?";
+      ValidatingDataStore.QueryAssert deleteQueryAssert =
+          withQuery(SCHEMA_PROVIDER.getTable(), deleteCql, timestamp - 1, documentId)
+              .returningNothing();
+
+      Single<ResultSet> result =
+          service.deleteDocument(datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, context);
+
+      result.test().await().assertValueCount(1).assertComplete();
+      deleteQueryAssert.assertExecuteCount().isEqualTo(1);
+
+      // execution context
+      assertThat(context.toProfile().nested())
+          .singleElement()
+          .satisfies(
+              nested -> {
+                assertThat(nested.description()).isEqualTo("ASYNC DELETE");
+                assertThat(nested.queries())
+                    .singleElement()
+                    .satisfies(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(deleteCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(0);
+                        });
+              });
+    }
+
+    @Test
+    public void deleteSubPath() throws Exception {
+      DataStore datastore = datastore();
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      List<String> subDocumentPath = Collections.singletonList("key1");
+
+      long timestamp = RandomUtils.nextLong();
+      when(timeSource.currentTimeMicros()).thenReturn(timestamp);
+
+      String deleteCql = "DELETE FROM %s USING TIMESTAMP ? WHERE key = ? AND p0 = ?";
+      ValidatingDataStore.QueryAssert deleteQueryAssert =
+          withQuery(SCHEMA_PROVIDER.getTable(), deleteCql, timestamp - 1, documentId, "key1")
+              .returningNothing();
+
+      Single<ResultSet> result =
+          service.deleteDocument(
+              datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, subDocumentPath, context);
+
+      result.test().await().assertValueCount(1).assertComplete();
+      deleteQueryAssert.assertExecuteCount().isEqualTo(1);
+
+      // execution context
+      assertThat(context.toProfile().nested())
+          .singleElement()
+          .satisfies(
+              nested -> {
+                assertThat(nested.description()).isEqualTo("ASYNC DELETE");
+                assertThat(nested.queries())
+                    .singleElement()
+                    .satisfies(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(deleteCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(0);
+                        });
+              });
+    }
+  }
 }
