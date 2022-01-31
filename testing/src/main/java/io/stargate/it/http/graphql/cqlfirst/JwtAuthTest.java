@@ -19,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 @StargateSpec(parametersCustomizer = "buildParameters")
 @ExtendWith(CqlSessionExtension.class)
@@ -31,6 +32,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE KEYSPACE IF NOT EXISTS stargate_graphql WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}",
       "GRANT SELECT ON KEYSPACE stargate_graphql TO web_user",
     })
+@Testcontainers(disabledWithoutDocker = true)
 public class JwtAuthTest extends BaseIntegrationTest {
 
   private static KeycloakContainer keycloakContainer;

@@ -244,18 +244,4 @@ public class DocumentService {
           context.nested("ASYNC INSERT"));
     }
   }
-
-  public void deleteAtPath(
-      DocumentDB db, String keyspace, String collection, String id, List<PathSegment> path)
-      throws UnauthorizedException {
-    List<String> convertedPath = new ArrayList<>(path.size());
-    for (PathSegment pathSegment : path) {
-      String pathStr = pathSegment.getPath();
-      convertedPath.add(DocsApiUtils.convertArrayPath(pathStr, config.getMaxArrayLength()));
-    }
-
-    long now = timeSource.currentTimeMicros();
-
-    db.delete(keyspace, collection, id, convertedPath, now);
-  }
 }

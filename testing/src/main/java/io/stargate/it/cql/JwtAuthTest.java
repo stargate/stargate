@@ -26,6 +26,7 @@ import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 @StargateSpec(parametersCustomizer = "buildParameters")
 @ExtendWith(CqlSessionExtension.class)
@@ -39,6 +40,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "GRANT MODIFY ON TABLE store2.shopping_cart TO web_user",
       "GRANT SELECT ON TABLE store2.shopping_cart TO web_user",
     })
+@Testcontainers(disabledWithoutDocker = true)
 public class JwtAuthTest extends BaseIntegrationTest {
 
   private final String keyspaceName = "store2";

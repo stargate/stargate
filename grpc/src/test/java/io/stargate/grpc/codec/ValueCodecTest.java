@@ -28,6 +28,7 @@ import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.grpc.Values;
+import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Inet;
 import io.stargate.proto.QueryOuterClass.Value;
 import java.math.BigDecimal;
@@ -77,6 +78,11 @@ public class ValueCodecTest {
     ByteBuffer bytes = codec.encode(expectedValue, type);
     Value actualValue = codec.decode(bytes, type);
     assertThat(actualValue).isEqualTo(expectedValue);
+
+    // 27-Jan-2022, tatu: Specific kind of failure (see #1577) occurs if
+    //    we try to decode second time from same ByteBuffer!
+    Value actualValue2 = codec.decode(bytes, type);
+    assertThat(actualValue2).isEqualTo(expectedValue);
   }
 
   @ParameterizedTest
@@ -87,6 +93,11 @@ public class ValueCodecTest {
     ByteBuffer bytes = codec.encode(value, type);
     Value actualValue = codec.decode(bytes, type);
     assertThat(actualValue).isEqualTo(expectedValue);
+
+    // 27-Jan-2022, tatu: Specific kind of failure (see #1577) occurs if
+    //    we try to decode second time from same ByteBuffer!
+    Value actualValue2 = codec.decode(bytes, type);
+    assertThat(actualValue2).isEqualTo(expectedValue);
   }
 
   @ParameterizedTest
@@ -357,9 +368,22 @@ public class ValueCodecTest {
   }
 
   public static Stream<Arguments> invalidUuidValues() {
+    final Value invalidEmptyUuid =
+        Value.newBuilder()
+            .setUuid(QueryOuterClass.Uuid.newBuilder().setValue(ByteString.copyFrom(new byte[0])))
+            .build();
+    final Value invalidLongUuid =
+        Value.newBuilder()
+            .setUuid(QueryOuterClass.Uuid.newBuilder().setValue(ByteString.copyFrom(new byte[24])))
+            .build();
+
     return Stream.of(
         arguments(Type.Uuid, Values.NULL, "Expected UUID type"),
-        arguments(Type.Timeuuid, Values.UNSET, "Expected UUID type"));
+        arguments(Type.Timeuuid, Values.UNSET, "Expected UUID type"),
+        arguments(Type.Uuid, invalidEmptyUuid, "Expected 16 bytes for a UUID, got 0"),
+        arguments(Type.Timeuuid, invalidEmptyUuid, "Expected 16 bytes for a UUID, got 0"),
+        arguments(Type.Uuid, invalidLongUuid, "Expected 16 bytes for a UUID, got 24"),
+        arguments(Type.Timeuuid, invalidLongUuid, "Expected 16 bytes for a UUID, got 24"));
   }
 
   public static Stream<Arguments> listValues() {
