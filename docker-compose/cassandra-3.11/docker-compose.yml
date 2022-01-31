@@ -6,7 +6,7 @@ services:
     networks:
       - stargate
     ports:
-      - 9044:9042
+      - 9042:9042
     mem_limit: 2G
     environment:
       - HEAP_NEWSIZE=128M
