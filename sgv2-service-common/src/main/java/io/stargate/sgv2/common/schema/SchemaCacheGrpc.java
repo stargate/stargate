@@ -26,7 +26,7 @@ import io.stargate.proto.Schema;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.DescribeKeyspaceQuery;
 import io.stargate.proto.Schema.GetSchemaNotificationsParams;
-import io.stargate.proto.StargateGrpc.StargateStub;
+import io.stargate.proto.StargateBridgeGrpc.StargateBridgeStub;
 import io.stargate.sgv2.common.futures.Futures;
 import io.stargate.sgv2.common.grpc.SingleStreamObserver;
 import java.util.ArrayList;
@@ -41,11 +41,12 @@ import java.util.stream.Collectors;
 class SchemaCacheGrpc {
 
   static void registerChangeObserver(
-      StargateStub stub, StreamObserver<Schema.SchemaNotification> observer) {
+      StargateBridgeStub stub, StreamObserver<Schema.SchemaNotification> observer) {
     stub.getSchemaNotifications(GetSchemaNotificationsParams.newBuilder().build(), observer);
   }
 
-  static CompletionStage<Map<String, CqlKeyspaceDescribe>> getAllKeyspaces(StargateStub stub) {
+  static CompletionStage<Map<String, CqlKeyspaceDescribe>> getAllKeyspaces(
+      StargateBridgeStub stub) {
     return SchemaCacheGrpc.getKeyspaceNames(stub)
         .thenCompose(
             keyspaceNames -> {
@@ -65,13 +66,13 @@ class SchemaCacheGrpc {
             });
   }
 
-  private static CompletionStage<List<String>> getKeyspaceNames(StargateStub stub) {
+  private static CompletionStage<List<String>> getKeyspaceNames(StargateBridgeStub stub) {
     List<String> keyspaceNames = new ArrayList<>();
     return getKeyspaceNames(stub, keyspaceNames, null);
   }
 
   private static CompletionStage<List<String>> getKeyspaceNames(
-      StargateStub stub, List<String> keyspaceNames, BytesValue pagingState) {
+      StargateBridgeStub stub, List<String> keyspaceNames, BytesValue pagingState) {
     Query.Builder query =
         Query.newBuilder().setCql("SELECT keyspace_name FROM system_schema.keyspaces");
     if (pagingState != null) {
@@ -95,7 +96,7 @@ class SchemaCacheGrpc {
   }
 
   private static CompletionStage<CqlKeyspaceDescribe> describeKeyspace(
-      StargateStub stub, String keyspaceName) {
+      StargateBridgeStub stub, String keyspaceName) {
     return SingleStreamObserver.toFuture(
         observer ->
             stub.describeKeyspace(

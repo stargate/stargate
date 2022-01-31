@@ -17,7 +17,7 @@ package io.stargate.sgv2.restsvc.resources.schemas;
 
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.Schema;
-import io.stargate.proto.StargateGrpc;
+import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
@@ -43,7 +43,7 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
 
   @Override
   public Response getAllIndexesForTable(
-      StargateGrpc.StargateBlockingStub blockingStub,
+      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       String keyspaceName,
       String tableName,
       HttpServletRequest request) {
@@ -68,7 +68,7 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
 
   @Override
   public Response addIndex(
-      StargateGrpc.StargateBlockingStub blockingStub,
+      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final Sgv2IndexAddRequest indexAdd,
@@ -110,7 +110,7 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
 
   @Override
   public Response dropIndex(
-      StargateGrpc.StargateBlockingStub blockingStub,
+      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       String keyspaceName,
       String tableName,
       String indexName,

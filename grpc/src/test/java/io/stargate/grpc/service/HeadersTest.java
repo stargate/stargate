@@ -78,7 +78,7 @@ public class HeadersTest extends BaseGrpcServiceTest {
     when(authenticationService.validateToken(anyString(), any(Map.class)))
         .thenReturn(authenticationSubject);
 
-    startServer(new NewConnectionInterceptor(persistence, authenticationService, "mockAdminToken"));
+    startServer(new NewConnectionInterceptor(persistence, authenticationService));
 
     // When
     executeQuery(stub, "mock query");

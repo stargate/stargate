@@ -381,7 +381,7 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
 
       cmd.addArgument("-Dstargate.enable_user_defined_functions=true");
 
-      cmd.addArgument("-Dstargate.grpc.admin_token=mockAdminToken");
+      cmd.addArgument("-Dstargate.bridge.admin_token=mockAdminToken");
 
       for (Entry<String, String> e : params.systemProperties().entrySet()) {
         cmd.addArgument("-D" + e.getKey() + "=" + e.getValue());
