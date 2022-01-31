@@ -10,7 +10,6 @@ import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.common.cql.builder.Value;
 import io.stargate.sgv2.common.cql.builder.ValueModifier;
-import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
 import io.stargate.sgv2.restsvc.impl.CachedSchemaAccessor;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
@@ -81,40 +80,44 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
     }
 
-    final Schema.CqlTable tableDef =
-        BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
-    final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+    return callWithTable(
+        blockingStub,
+        keyspaceName,
+        tableName,
+        (tableDef) -> {
+          final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
 
-    final QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
-    final List<BuiltCondition> whereConditions;
-    try {
-      whereConditions =
-          new WhereParser(tableDef, toProtoConverter).parseWhere(where, valuesBuilder);
-    } catch (IllegalArgumentException e) {
-      throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
-    }
+          final QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
+          final List<BuiltCondition> whereConditions;
+          try {
+            whereConditions =
+                new WhereParser(tableDef, toProtoConverter).parseWhere(where, valuesBuilder);
+          } catch (IllegalArgumentException e) {
+            throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
+          }
 
-    final String cql;
-    if (columns.isEmpty()) {
-      cql =
-          new QueryBuilder()
-              .select()
-              .star()
-              .from(keyspaceName, tableName)
-              .where(whereConditions)
-              .orderBy(sortOrder)
-              .build();
-    } else {
-      cql =
-          new QueryBuilder()
-              .select()
-              .column(columns)
-              .from(keyspaceName, tableName)
-              .where(whereConditions)
-              .orderBy(sortOrder)
-              .build();
-    }
-    return fetchRows(blockingStub, pageSizeParam, pageStateParam, raw, cql, valuesBuilder);
+          final String cql;
+          if (columns.isEmpty()) {
+            cql =
+                new QueryBuilder()
+                    .select()
+                    .star()
+                    .from(keyspaceName, tableName)
+                    .where(whereConditions)
+                    .orderBy(sortOrder)
+                    .build();
+          } else {
+            cql =
+                new QueryBuilder()
+                    .select()
+                    .column(columns)
+                    .from(keyspaceName, tableName)
+                    .where(whereConditions)
+                    .orderBy(sortOrder)
+                    .build();
+          }
+          return fetchRows(blockingStub, pageSizeParam, pageStateParam, raw, cql, valuesBuilder);
+        });
   }
 
   @Override
@@ -140,22 +143,26 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     }
 
     // To bind path/key parameters, need converter; and for that we need table metadata:
-    Schema.CqlTable tableDef =
-        BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
-    final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
-    QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
+    return callWithTable(
+        blockingStub,
+        keyspaceName,
+        tableName,
+        (tableDef) -> {
+          final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+          QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
 
-    final String cql =
-        buildGetRowsByPKCQL(
-            keyspaceName,
-            tableName,
-            path,
-            columns,
-            sortOrder,
-            tableDef,
-            valuesBuilder,
-            toProtoConverter);
-    return fetchRows(blockingStub, pageSizeParam, pageStateParam, raw, cql, valuesBuilder);
+          final String cql =
+              buildGetRowsByPKCQL(
+                  keyspaceName,
+                  tableName,
+                  path,
+                  columns,
+                  sortOrder,
+                  tableDef,
+                  valuesBuilder,
+                  toProtoConverter);
+          return fetchRows(blockingStub, pageSizeParam, pageStateParam, raw, cql, valuesBuilder);
+        });
   }
 
   @Override
@@ -214,28 +221,35 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       throw new WebApplicationException(
           "Invalid JSON payload: " + e.getMessage(), Status.BAD_REQUEST);
     }
-    final String cql;
 
-    Schema.CqlTable tableDef =
-        BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
-    final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
-    QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
+    return callWithTable(
+        blockingStub,
+        keyspaceName,
+        tableName,
+        (tableDef) -> {
+          final String cql;
 
-    try {
-      cql = buildAddRowCQL(keyspaceName, tableName, payloadMap, valuesBuilder, toProtoConverter);
-    } catch (IllegalArgumentException e) {
-      throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
-    }
-    final QueryOuterClass.Query query =
-        QueryOuterClass.Query.newBuilder()
-            .setParameters(parametersForLocalQuorum())
-            .setCql(cql)
-            .setValues(valuesBuilder.build())
-            .build();
+          final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+          QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
 
-    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
-    // apparently no useful data in ResultSet, we should simply return payload we got:
-    return Response.status(Status.CREATED).entity(payloadAsString).build();
+          try {
+            cql =
+                buildAddRowCQL(
+                    keyspaceName, tableName, payloadMap, valuesBuilder, toProtoConverter);
+          } catch (IllegalArgumentException e) {
+            throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
+          }
+          final QueryOuterClass.Query query =
+              QueryOuterClass.Query.newBuilder()
+                  .setParameters(parametersForLocalQuorum())
+                  .setCql(cql)
+                  .setValues(valuesBuilder.build())
+                  .build();
+
+          QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+          // apparently no useful data in ResultSet, we should simply return payload we got:
+          return Response.status(Status.CREATED).entity(payloadAsString).build();
+        });
   }
 
   @Override
@@ -259,24 +273,29 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       HttpServletRequest request) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     // To bind path/key parameters, need converter; and for that we need table metadata:
-    Schema.CqlTable tableDef =
-        BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
-    final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
-    QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
+    return callWithTable(
+        blockingStub,
+        keyspaceName,
+        tableName,
+        (tableDef) -> {
+          final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+          QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
 
-    final String cql =
-        buildDeleteRowsByPKCQL(
-            keyspaceName, tableName, path, tableDef, valuesBuilder, toProtoConverter);
+          final String cql =
+              buildDeleteRowsByPKCQL(
+                  keyspaceName, tableName, path, tableDef, valuesBuilder, toProtoConverter);
 
-    final QueryOuterClass.Query query =
-        QueryOuterClass.Query.newBuilder()
-            .setParameters(parametersForLocalQuorum())
-            .setCql(cql)
-            .setValues(valuesBuilder.build())
-            .build();
+          final QueryOuterClass.Query query =
+              QueryOuterClass.Query.newBuilder()
+                  .setParameters(parametersForLocalQuorum())
+                  .setCql(cql)
+                  .setValues(valuesBuilder.build())
+                  .build();
 
-    /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
-    return Response.status(Status.NO_CONTENT).build();
+          /*QueryOuterClass.Response grpcResponse =*/
+          blockingStub.executeQuery(query);
+          return Response.status(Status.NO_CONTENT).build();
+        });
   }
 
   @Override
@@ -308,30 +327,40 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       throw new WebApplicationException(
           "Invalid JSON payload: " + e.getMessage(), Status.BAD_REQUEST);
     }
-    final String cql;
-    Schema.CqlTable tableDef =
-        BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
-    final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
-    QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
+    return callWithTable(
+        blockingStub,
+        keyspaceName,
+        tableName,
+        (tableDef) -> {
+          final String cql;
+          final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+          QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
 
-    try {
-      cql =
-          buildUpdateRowCQL(
-              keyspaceName, tableName, path, tableDef, payloadMap, valuesBuilder, toProtoConverter);
-    } catch (IllegalArgumentException e) {
-      throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
-    }
-    final QueryOuterClass.Query query =
-        QueryOuterClass.Query.newBuilder()
-            .setParameters(parametersForLocalQuorum())
-            .setCql(cql)
-            .setValues(valuesBuilder.build())
-            .build();
+          try {
+            cql =
+                buildUpdateRowCQL(
+                    keyspaceName,
+                    tableName,
+                    path,
+                    tableDef,
+                    payloadMap,
+                    valuesBuilder,
+                    toProtoConverter);
+          } catch (IllegalArgumentException e) {
+            throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
+          }
+          final QueryOuterClass.Query query =
+              QueryOuterClass.Query.newBuilder()
+                  .setParameters(parametersForLocalQuorum())
+                  .setCql(cql)
+                  .setValues(valuesBuilder.build())
+                  .build();
 
-    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
-    // apparently no useful data in ResultSet, we should simply return payload we got:
-    final Object responsePayload = raw ? payloadMap : new Sgv2RESTResponse(payloadMap);
-    return Response.status(Status.OK).entity(responsePayload).build();
+          QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+          // apparently no useful data in ResultSet, we should simply return payload we got:
+          final Object responsePayload = raw ? payloadMap : new Sgv2RESTResponse(payloadMap);
+          return Response.status(Status.OK).entity(responsePayload).build();
+        });
   }
 
   /*
