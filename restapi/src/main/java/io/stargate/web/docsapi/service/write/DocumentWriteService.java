@@ -291,8 +291,6 @@ public class DocumentWriteService {
               long timestamp = timeSource.currentTimeMicros();
 
               // return bind delete
-              // TODO Eric I feel keeping deletes always with the timestamp - 1 feels right
-              //  Although this should not make any difference what so ever
               return deleteQueryBuilder.bind(prepared, documentId, subDocumentPath, timestamp - 1);
             })
         // then execute single
