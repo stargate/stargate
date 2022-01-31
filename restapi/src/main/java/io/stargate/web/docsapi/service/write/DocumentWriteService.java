@@ -30,7 +30,9 @@ import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.JsonShreddedRow;
-import io.stargate.web.docsapi.service.write.db.DeleteQueryBuilder;
+import io.stargate.web.docsapi.service.write.db.AbstractDeleteQueryBuilder;
+import io.stargate.web.docsapi.service.write.db.DeleteDocumentQueryBuilder;
+import io.stargate.web.docsapi.service.write.db.DeleteSubDocumentPathQueryBuilder;
 import io.stargate.web.docsapi.service.write.db.InsertQueryBuilder;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,7 +53,6 @@ public class DocumentWriteService {
   private final TimeSource timeSource;
   private final DocsApiConfiguration config;
   private final InsertQueryBuilder insertQueryBuilder;
-  private final DeleteQueryBuilder deleteQueryBuilder;
   private final Optional<Boolean> useLoggedBatches;
 
   @Inject
@@ -59,7 +60,6 @@ public class DocumentWriteService {
     this.timeSource = timeSource;
     this.config = config;
     this.insertQueryBuilder = new InsertQueryBuilder(config.getMaxDepth());
-    this.deleteQueryBuilder = new DeleteQueryBuilder(config.getMaxDepth());
 
     // only set log batches if explicitly disabled
     this.useLoggedBatches =
@@ -181,21 +181,14 @@ public class DocumentWriteService {
     // check that update path matches the rows supplied
     // TODO this smells like a bad design
     //  for v2 we need to not include sub-path to shredding, and cover it here as a wrapper
-    if (!subDocumentPath.isEmpty()) {
-      int subDocumentPathSize = subDocumentPath.size();
-      for (JsonShreddedRow row : rows) {
-        List<String> path = row.getPath();
-        if (path.size() < subDocumentPathSize
-            || !Objects.equals(subDocumentPath, path.subList(0, subDocumentPathSize))) {
-          ErrorCode code = ErrorCode.DOCS_API_UPDATE_PATH_NOT_MATCHING;
-          throw new ErrorCodeRuntimeException(code);
-        }
-      }
-    }
+    checkPathMatchesRows(subDocumentPath, rows);
+
+    // get the builder based on the sub path
+    AbstractDeleteQueryBuilder deleteQueryBuilder = getDeleteQueryBuilder(subDocumentPath);
 
     // create and cache the remove query prepare
     Single<? extends Query<? extends BoundQuery>> deleteQueryPrepare =
-        prepareDeleteDocumentQuery(dataStore, keyspace, collection, subDocumentPath);
+        prepareDeleteDocumentQuery(deleteQueryBuilder, dataStore, keyspace, collection);
 
     // create and cache the insert query prepare
     Single<? extends Query<? extends BoundQuery>> insertQueryPrepare =
@@ -214,8 +207,7 @@ public class DocumentWriteService {
 
               // add delete
               BoundQuery deleteExistingQuery =
-                  deleteQueryBuilder.bind(
-                      pair.getLeft(), documentId, subDocumentPath, timestamp - 1);
+                  deleteQueryBuilder.bind(pair.getLeft(), documentId, timestamp - 1);
               queries.add(deleteExistingQuery);
 
               // then all inserts
@@ -244,8 +236,6 @@ public class DocumentWriteService {
    * @param keyspace Keyspace to delete a document from.
    * @param collection Collection the document belongs to.
    * @param documentId Document ID.
-   * @param rows Rows of this document.
-   * @param numericBooleans If numeric boolean should be stored.
    * @param context Execution content for profiling.
    * @return Single containing the {@link ResultSet} of the batch execution.
    */
@@ -278,9 +268,13 @@ public class DocumentWriteService {
       String documentId,
       List<String> subDocumentPath,
       ExecutionContext context) {
+
+    // get the builder based on sub-path
+    AbstractDeleteQueryBuilder deleteQueryBuilder = getDeleteQueryBuilder(subDocumentPath);
+
     // create and cache the remove query prepare
     Single<? extends Query<? extends BoundQuery>> deleteQueryPrepare =
-        prepareDeleteDocumentQuery(dataStore, keyspace, collection, subDocumentPath);
+        prepareDeleteDocumentQuery(deleteQueryBuilder, dataStore, keyspace, collection);
 
     // execute when prepared
     return deleteQueryPrepare
@@ -291,13 +285,21 @@ public class DocumentWriteService {
               long timestamp = timeSource.currentTimeMicros();
 
               // return bind delete
-              return deleteQueryBuilder.bind(prepared, documentId, subDocumentPath, timestamp - 1);
+              return deleteQueryBuilder.bind(prepared, documentId, timestamp - 1);
             })
         // then execute single
         .flatMap(query -> executeSingle(dataStore, query, context.nested("ASYNC DELETE")))
 
         // move away from the data store thread
         .observeOn(Schedulers.io());
+  }
+
+  private AbstractDeleteQueryBuilder getDeleteQueryBuilder(List<String> subDocumentPath) {
+    if (subDocumentPath.isEmpty()) {
+      return DeleteDocumentQueryBuilder.INSTANCE;
+    } else {
+      return new DeleteSubDocumentPathQueryBuilder(subDocumentPath, false, config.getMaxDepth());
+    }
   }
 
   // create and cache the remove query prepare
@@ -310,14 +312,14 @@ public class DocumentWriteService {
         .cache();
   }
 
-  // create and cache delete query prepare
+  // create and cache delete query prepare based on the query builder
   private Single<? extends Query<? extends BoundQuery>> prepareDeleteDocumentQuery(
-      DataStore dataStore, String keyspace, String collection, List<String> subDocumentPath) {
-
+      AbstractDeleteQueryBuilder queryBuilder,
+      DataStore dataStore,
+      String keyspace,
+      String collection) {
     return Single.fromCallable(
-            () ->
-                deleteQueryBuilder.buildQuery(
-                    dataStore::queryBuilder, keyspace, collection, subDocumentPath))
+            () -> queryBuilder.buildQuery(dataStore::queryBuilder, keyspace, collection))
         .flatMap(query -> Single.fromCompletionStage(dataStore.prepare(query)))
         .cache();
   }
@@ -355,5 +357,20 @@ public class DocumentWriteService {
 
     // return
     return Single.fromCompletionStage(future);
+  }
+
+  // makes sure that any row starts with the given sub-document path
+  private void checkPathMatchesRows(List<String> subDocumentPath, List<JsonShreddedRow> rows) {
+    if (!subDocumentPath.isEmpty()) {
+      int subDocumentPathSize = subDocumentPath.size();
+      for (JsonShreddedRow row : rows) {
+        List<String> path = row.getPath();
+        if (path.size() < subDocumentPathSize
+            || !Objects.equals(subDocumentPath, path.subList(0, subDocumentPathSize))) {
+          ErrorCode code = ErrorCode.DOCS_API_UPDATE_PATH_NOT_MATCHING;
+          throw new ErrorCodeRuntimeException(code);
+        }
+      }
+    }
   }
 }
