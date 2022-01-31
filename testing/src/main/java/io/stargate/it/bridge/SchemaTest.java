@@ -13,18 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.it.grpc;
+package io.stargate.it.bridge;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.google.protobuf.InvalidProtocolBufferException;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
-import io.stargate.proto.StargateGrpc.StargateBlockingStub;
+import io.stargate.proto.StargateBridgeGrpc.StargateBridgeBlockingStub;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -34,12 +33,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE TYPE address(street VARCHAR, number int);",
       "CREATE TABLE users_with_address(id int PRIMARY KEY, address address);"
     })
-public class SchemaTest extends GrpcIntegrationTest {
+public class SchemaTest extends BridgeIntegrationTest {
 
   @Test
-  public void describeKeyspace(@TestKeyspace CqlIdentifier keyspace)
-      throws InvalidProtocolBufferException {
-    StargateBlockingStub stub = stubWithCallCredentials();
+  public void describeKeyspace(@TestKeyspace CqlIdentifier keyspace) {
+    StargateBridgeBlockingStub stub = stubWithCallCredentials();
 
     Schema.CqlKeyspaceDescribe response =
         stub.describeKeyspace(

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.grpc.service;
+package io.stargate.bridge.service;
 
 import static io.stargate.db.schema.Column.Kind.*;
 import static io.stargate.db.schema.Column.Order.*;
@@ -25,7 +25,7 @@ import io.stargate.db.schema.Column;
 import io.stargate.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.proto.QueryOuterClass.TypeSpec;
 import io.stargate.proto.Schema;
-import io.stargate.proto.StargateGrpc;
+import io.stargate.proto.StargateBridgeGrpc;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -33,14 +33,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 // Note: StargateV2-only test
-public class SchemaOperationsTest extends BaseGrpcServiceTest {
+public class SchemaOperationsTest extends BaseBridgeTest {
 
   @Test
   @DisplayName(
       "Describe keyspace with a single table with columns using only simple types and no options")
   public void schemaDescribeSingleTableSimpleTypesNoOptions() {
     // Given
-    StargateGrpc.StargateBlockingStub stub = makeBlockingStub();
+    StargateBridgeGrpc.StargateBridgeBlockingStub stub = makeBlockingStub();
     when(persistence.decorateKeyspaceName(any(String.class), any())).thenReturn("my_keyspace");
 
     io.stargate.db.schema.Schema schema =
@@ -118,7 +118,7 @@ public class SchemaOperationsTest extends BaseGrpcServiceTest {
   @DisplayName("Describe table with an index")
   public void schemaDescribeTableWithIndex() {
     // Given
-    StargateGrpc.StargateBlockingStub stub = makeBlockingStub();
+    StargateBridgeGrpc.StargateBridgeBlockingStub stub = makeBlockingStub();
     when(persistence.decorateKeyspaceName(any(String.class), any())).thenReturn("ks");
 
     io.stargate.db.schema.Schema schema =
@@ -165,7 +165,7 @@ public class SchemaOperationsTest extends BaseGrpcServiceTest {
   @DisplayName("Describe table with materialized view")
   public void schemaTableWithMaterializedView() {
     // Given
-    StargateGrpc.StargateBlockingStub stub = makeBlockingStub();
+    StargateBridgeGrpc.StargateBridgeBlockingStub stub = makeBlockingStub();
     when(persistence.decorateKeyspaceName(any(String.class), any())).thenReturn("my_stuff");
 
     io.stargate.db.schema.Schema schema =

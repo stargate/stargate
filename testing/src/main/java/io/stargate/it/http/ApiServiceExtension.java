@@ -232,12 +232,14 @@ public class ApiServiceExtension
 
       cmd.addArgument(
           "-Ddw.stargate.grpc.host=" + stargateEnvironmentInfo.nodes().get(0).seedAddress());
-      cmd.addArgument("-Ddw.stargate.grpc.port=" + 8090);
+      cmd.addArgument("-Ddw.stargate.grpc.port=" + 8091);
       cmd.addArgument("-Ddw.server.connector.port=" + params.servicePort());
 
       for (Entry<String, String> e : params.systemProperties().entrySet()) {
         cmd.addArgument("-D" + e.getKey() + "=" + e.getValue());
       }
+
+      cmd.addArgument("-Dstargate.bridge.admin_token=mockAdminToken");
 
       if (isDebug()) {
         int debuggerPort = 5200;

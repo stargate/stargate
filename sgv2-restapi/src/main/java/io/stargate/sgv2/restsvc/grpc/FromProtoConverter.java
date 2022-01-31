@@ -38,7 +38,15 @@ public class FromProtoConverter {
   public Map<String, Object> mapFromProtoValues(List<QueryOuterClass.Value> values) {
     Map<String, Object> result = new LinkedHashMap<>();
     for (int i = 0, end = values.size(); i < end; ++i) {
-      result.put(columnNames[i], codecs[i].fromProtoValue(values.get(i)));
+      try {
+        result.put(columnNames[i], codecs[i].fromProtoValue(values.get(i)));
+      } catch (Exception e) {
+        throw new IllegalStateException(
+            String.format(
+                "Internal error: failed to convert value of column #%d/#%d ('%s'), problem: %s",
+                i + 1, end, columnNames[i], e.getMessage()),
+            e);
+      }
     }
     return result;
   }
@@ -51,7 +59,15 @@ public class FromProtoConverter {
   public ObjectNode objectNodeFromProtoValues(List<QueryOuterClass.Value> values) {
     ObjectNode result = jsonNodeFactory.objectNode();
     for (int i = 0, end = values.size(); i < end; ++i) {
-      result.set(columnNames[i], codecs[i].jsonNodeFrom(values.get(i)));
+      try {
+        result.set(columnNames[i], codecs[i].jsonNodeFrom(values.get(i)));
+      } catch (Exception e) {
+        throw new IllegalStateException(
+            String.format(
+                "Internal error: failed to convert value of column #%d/#%d ('%s'), problem: %s",
+                i + 1, end, columnNames[i], e.getMessage()),
+            e);
+      }
     }
     return result;
   }

@@ -30,7 +30,7 @@ import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
 import io.stargate.metrics.jersey.MetricsBinder;
-import io.stargate.proto.StargateGrpc;
+import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcStubFilter;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
 import io.stargate.sgv2.restsvc.resources.MetricsResource;
@@ -113,7 +113,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
                 bind(configureObjectMapper(environment.getObjectMapper())).to(ObjectMapper.class);
                 bind(metricsScraper).to(MetricsScraper.class);
                 bindFactory(GrpcStubFactory.class)
-                    .to(StargateGrpc.StargateBlockingStub.class)
+                    .to(StargateBridgeGrpc.StargateBridgeBlockingStub.class)
                     .in(RequestScoped.class);
               }
             });

@@ -11,7 +11,7 @@ import com.google.protobuf.Int32Value;
 import io.grpc.StatusRuntimeException;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
-import io.stargate.proto.StargateGrpc;
+import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
@@ -46,7 +46,7 @@ public abstract class ResourceBase {
    * or, create and return an appropriate error Response if access fails.
    */
   protected Response callWithTable(
-      StargateGrpc.StargateBlockingStub blockingStub,
+      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       String keyspaceName,
       String tableName,
       Function<Schema.CqlTable, Response> function) {
@@ -114,7 +114,7 @@ public abstract class ResourceBase {
   }
 
   protected Response fetchRows(
-      StargateGrpc.StargateBlockingStub blockingStub,
+      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       int pageSizeParam,
       String pageStateParam,
       boolean raw,

@@ -6,7 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.grpc.StatusRuntimeException;
 import io.stargate.proto.QueryOuterClass;
-import io.stargate.proto.StargateGrpc;
+import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.common.cql.builder.Predicate;
@@ -29,8 +29,6 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Produces(APPLICATION_JSON)
 @Consumes(APPLICATION_JSON)
@@ -38,12 +36,9 @@ import org.slf4j.LoggerFactory;
 @Singleton
 @CreateGrpcStub
 public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResourceApi {
-  // Singleton resource so no need to be static
-  private final Logger logger = LoggerFactory.getLogger(getClass());
-
   @Override
   public Response findAll(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final boolean raw,
       final HttpServletRequest request) {
@@ -74,7 +69,7 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
 
   @Override
   public Response findById(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String typeName,
       final boolean raw,
@@ -123,7 +118,7 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
 
   @Override
   public Response createType(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final Sgv2UDTAddRequest udtAdd,
       final HttpServletRequest request) {
@@ -131,16 +126,13 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
     final String typeName = udtAdd.getName();
     requireNonEmptyTypename(typeName);
 
-    String cql =
+    final String cql =
         new QueryBuilder()
             .create()
             .type(keyspaceName, typeName)
             .ifNotExists(udtAdd.getIfNotExists())
             .column(columns2columns(udtAdd.getFields()))
             .build();
-
-    logger.info("createUDT() with CQL: {}", cql);
-
     try {
       blockingStub.executeQuery(
           QueryOuterClass.Query.newBuilder()
@@ -169,7 +161,7 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
 
   @Override
   public Response delete(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String typeName,
       final HttpServletRequest request) {
@@ -191,7 +183,7 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
 
   @Override
   public Response update(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final Sgv2UDTUpdateRequest udtUpdate,
       final HttpServletRequest request) {

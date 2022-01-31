@@ -16,11 +16,9 @@
 package io.stargate.sgv2.common.schema;
 
 import io.stargate.proto.QueryOuterClass.SchemaChange;
-import io.stargate.proto.QueryOuterClass.SchemaChange.Target;
-import io.stargate.proto.QueryOuterClass.SchemaChange.Type;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.SchemaNotification;
-import io.stargate.proto.StargateGrpc.StargateStub;
+import io.stargate.proto.StargateBridgeGrpc.StargateBridgeStub;
 import io.stargate.sgv2.common.futures.Futures;
 import io.stargate.sgv2.common.grpc.InitReplayingStreamObserver;
 import java.util.HashSet;
@@ -36,7 +34,7 @@ public class SchemaCache {
 
   private static final Logger LOG = LoggerFactory.getLogger(SchemaCache.class);
 
-  public static SchemaCache newInstance(StargateStub stub) {
+  public static SchemaCache newInstance(StargateBridgeStub stub) {
     SchemaCache cache = new SchemaCache(stub);
     // Blocking is fine here, the caller will be some application initializer (e.g. DropWizard's
     // Application.run())
@@ -44,13 +42,13 @@ public class SchemaCache {
     return cache;
   }
 
-  private final StargateStub stub;
+  private final StargateBridgeStub stub;
   private final ConcurrentMap<String, CqlKeyspaceDescribe> keyspaces = new ConcurrentHashMap<>();
   private final CopyOnWriteArrayList<SchemaListener> listeners = new CopyOnWriteArrayList<>();
 
   private volatile Observer observer;
 
-  private SchemaCache(StargateStub stub) {
+  private SchemaCache(StargateBridgeStub stub) {
     this.stub = stub;
   }
 
@@ -145,7 +143,6 @@ public class SchemaCache {
       if (notification.hasKeyspace()) {
         updateKeyspace(notification.getKeyspace(), false);
       } else {
-        assert change.getChangeType() == Type.DROPPED && change.getTarget() == Target.KEYSPACE;
         deleteKeyspace(change.getKeyspace());
       }
     }

@@ -45,6 +45,7 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
 import javax.ws.rs.POST;
@@ -611,6 +612,97 @@ public class ReactiveDocumentResourceV2 {
                   .map(rawDocumentHandler(raw))
                   .defaultIfEmpty(Response.status(Response.Status.NOT_FOUND).build());
             })
+        .safeSubscribe(
+            AsyncObserver.forResponseWithHandler(
+                asyncResponse, ErrorHandler.EXCEPTION_TO_RESPONSE));
+  }
+
+  @DELETE
+  @ManagedAsync
+  @ApiOperation(value = "Delete a document", notes = "Delete a document")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 204, message = "No Content"),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
+      })
+  @Path("collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  public void deleteDoc(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "the id of the document", required = true) @PathParam("document-id")
+          String id,
+      @QueryParam("profile") Boolean profile,
+      @Context HttpServletRequest request,
+      @Suspended AsyncResponse asyncResponse) {
+    List<PathSegment> path = Collections.emptyList();
+    deleteDocPath(authToken, namespace, collection, id, path, profile, request, asyncResponse);
+  }
+
+  @DELETE
+  @ManagedAsync
+  @ApiOperation(value = "Delete a path in a document", notes = "Delete a path in a document")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 204, message = "No Content"),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
+      })
+  @Path("collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}/{document-path: .*}")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  public void deleteDocPath(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "the id of the document", required = true) @PathParam("document-id")
+          String id,
+      @ApiParam(value = "the path in the JSON that you want to delete", required = true)
+          @PathParam("document-path")
+          List<PathSegment> path,
+      @QueryParam("profile") Boolean profile,
+      @Context HttpServletRequest request,
+      @Suspended AsyncResponse asyncResponse) {
+    // get valid db from token
+    Single.fromCallable(() -> getValidDbFromToken(authToken, request, namespace, collection))
+
+        // then create execution context
+        .flatMap(
+            db -> {
+              ExecutionContext context = ExecutionContext.create(profile);
+              List<String> subPath =
+                  path.stream().map(PathSegment::getPath).collect(Collectors.toList());
+
+              // and call the document service to fire delete
+              return reactiveDocumentService
+                  .deleteDocument(db, namespace, collection, id, subPath, context)
+
+                  // map to noContent response
+                  .map(result -> Response.noContent().build());
+            })
+
+        // then subscribe
         .safeSubscribe(
             AsyncObserver.forResponseWithHandler(
                 asyncResponse, ErrorHandler.EXCEPTION_TO_RESPONSE));

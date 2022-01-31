@@ -17,7 +17,7 @@ package io.stargate.sgv2.restsvc.resources;
 
 import io.grpc.ManagedChannel;
 import io.stargate.grpc.StargateBearerToken;
-import io.stargate.proto.StargateGrpc;
+import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.restsvc.impl.GrpcStubFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import java.util.concurrent.TimeUnit;
@@ -60,7 +60,7 @@ public class CreateGrpcStubFilter implements ContainerRequestFilter {
     } else {
       context.setProperty(
           GRPC_STUB_KEY,
-          StargateGrpc.newBlockingStub(grpcChannel)
+          StargateBridgeGrpc.newBlockingStub(grpcChannel)
               .withDeadlineAfter(5, TimeUnit.SECONDS)
               .withCallCredentials(new StargateBearerToken(token)));
     }

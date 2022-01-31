@@ -116,37 +116,4 @@ public class DocumentResourceV2Test {
     assertThat(mapper.readTree((String) r.getEntity()).requiredAt("/documentId").asText())
         .isEqualTo(id);
   }
-
-  @Test
-  public void deleteDoc() {
-    HttpHeaders headers = mock(HttpHeaders.class);
-    UriInfo ui = mock(UriInfo.class);
-    String authToken = "auth_token";
-    String keyspace = "keyspace";
-    String collection = "collection";
-    String id = "id";
-
-    Response r =
-        documentResourceV2.deleteDoc(
-            headers, ui, authToken, keyspace, collection, id, httpServletRequest);
-
-    assertThat(r.getStatus()).isEqualTo(204);
-  }
-
-  @Test
-  public void deleteDocPath() {
-    HttpHeaders headers = mock(HttpHeaders.class);
-    UriInfo ui = mock(UriInfo.class);
-    String authToken = "auth_token";
-    String keyspace = "keyspace";
-    String collection = "collection";
-    String id = "id";
-    List<PathSegment> path = new ArrayList<>();
-
-    Response r =
-        documentResourceV2.deleteDocPath(
-            headers, ui, authToken, keyspace, collection, id, path, httpServletRequest);
-
-    assertThat(r.getStatus()).isEqualTo(204);
-  }
 }

@@ -2,7 +2,7 @@ package io.stargate.sgv2.restsvc.resources.schemas;
 
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
-import io.stargate.proto.StargateGrpc;
+import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
@@ -21,20 +21,15 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Path("/v2/schemas/keyspaces/{keyspaceName}/tables/{tableName}/columns")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 @CreateGrpcStub
 public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2ColumnsResourceApi {
-  // Singleton resource so no need to be static
-  protected final Logger logger = LoggerFactory.getLogger(getClass());
-
   @Override
   public Response getAllColumns(
-      StargateGrpc.StargateBlockingStub blockingStub,
+      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       String keyspaceName,
       String tableName,
       boolean raw,
@@ -53,7 +48,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
 
   @Override
   public Response createColumn(
-      StargateGrpc.StargateBlockingStub blockingStub,
+      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       String keyspaceName,
       String tableName,
       Sgv2ColumnDefinition columnDefinition,
@@ -96,7 +91,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
 
   @Override
   public Response getOneColumn(
-      StargateGrpc.StargateBlockingStub blockingStub,
+      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       String keyspaceName,
       String tableName,
       String columnName,
@@ -124,7 +119,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
 
   @Override
   public Response updateColumn(
-      StargateGrpc.StargateBlockingStub blockingStub,
+      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       String keyspaceName,
       String tableName,
       String columnName,
@@ -170,7 +165,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
 
   @Override
   public Response deleteColumn(
-      StargateGrpc.StargateBlockingStub blockingStub,
+      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       String keyspaceName,
       String tableName,
       String columnName,

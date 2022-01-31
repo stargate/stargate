@@ -3,7 +3,7 @@ package io.stargate.sgv2.restsvc.resources;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
-import io.stargate.proto.StargateGrpc;
+import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.Predicate;
@@ -32,8 +32,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 // note: JAX-RS Class Annotations MUST be in the impl class; only method annotations inherited
 // (but Swagger allows inheritance)
@@ -42,10 +40,6 @@ import org.slf4j.LoggerFactory;
 @Singleton
 @CreateGrpcStub
 public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResourceApi {
-
-  // Singleton resource so no need to be static
-  protected final Logger logger = LoggerFactory.getLogger(getClass());
-
   /*
   /////////////////////////////////////////////////////////////////////////
   // REST API endpoint implementation methods
@@ -54,7 +48,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   @Override
   public Response getRowWithWhere(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final String where,
@@ -116,7 +110,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   @Override
   public Response getRows(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
@@ -152,14 +146,12 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
             tableDef,
             valuesBuilder,
             toProtoConverter);
-    logger.info("getRows(): try to call backend with CQL of '{}'", cql);
-
     return fetchRows(blockingStub, pageSizeParam, pageStateParam, raw, cql, valuesBuilder);
   }
 
   @Override
   public javax.ws.rs.core.Response getAllRows(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final String fields,
@@ -199,7 +191,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   @Override
   public Response createRow(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final String payloadAsString,
@@ -224,8 +216,6 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     } catch (IllegalArgumentException e) {
       throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
     }
-    logger.info("createRow(): try to call backend with CQL of '{}'", cql);
-
     final QueryOuterClass.Query query =
         QueryOuterClass.Query.newBuilder()
             .setParameters(parametersForLocalQuorum())
@@ -240,7 +230,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   @Override
   public Response updateRows(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
@@ -252,7 +242,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   @Override
   public Response deleteRows(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
@@ -281,7 +271,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   @Override
   public Response patchRows(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
@@ -293,7 +283,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   /** Implementation of POST/PATCH (update/patch rows) endpoints */
   private Response modifyRow(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
@@ -321,8 +311,6 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     } catch (IllegalArgumentException e) {
       throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
     }
-    logger.info("modifyRow(): try to call backend with CQL of '{}'", cql);
-
     final QueryOuterClass.Query query =
         QueryOuterClass.Query.newBuilder()
             .setParameters(parametersForLocalQuorum())

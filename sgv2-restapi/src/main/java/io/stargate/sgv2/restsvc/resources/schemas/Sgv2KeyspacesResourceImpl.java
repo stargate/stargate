@@ -19,7 +19,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.stargate.proto.QueryOuterClass;
-import io.stargate.proto.StargateGrpc;
+import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
@@ -41,24 +41,19 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @Path("/v2/schemas/keyspaces")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 @CreateGrpcStub
 public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2KeyspacesResourceApi {
-  // Singleton resource so no need to be static
-  private final Logger logger = LoggerFactory.getLogger(getClass());
-
   private static final JsonMapper JSON_MAPPER = new JsonMapper();
 
   private static final SchemaBuilderHelper schemaBuilder = new SchemaBuilderHelper(JSON_MAPPER);
 
   @Override
   public Response getAllKeyspaces(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final boolean raw,
       final HttpServletRequest request) {
 
@@ -86,7 +81,7 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
 
   @Override
   public Response getOneKeyspace(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final boolean raw,
       final HttpServletRequest request) {
@@ -118,7 +113,7 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
 
   @Override
   public Response createKeyspace(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final JsonNode payload,
       final HttpServletRequest request) {
     SchemaBuilderHelper.KeyspaceCreateDefinition ksCreateDef;
@@ -158,7 +153,7 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
 
   @Override
   public Response deleteKeyspace(
-      final StargateGrpc.StargateBlockingStub blockingStub,
+      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
       final String keyspaceName,
       final HttpServletRequest request) {
     String cql = new QueryBuilder().drop().keyspace(keyspaceName).ifExists().build();

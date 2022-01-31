@@ -43,6 +43,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
 @StargateSpec(parametersCustomizer = "buildParameters")
 @ExtendWith(CqlSessionExtension.class)
@@ -58,6 +59,7 @@ import org.slf4j.LoggerFactory;
     })
 @ExtendWith(ApiServiceExtension.class)
 @ApiServiceSpec()
+@Testcontainers(disabledWithoutDocker = true)
 public class RestApiJWTAuthTest extends BaseIntegrationTest {
 
   private static final Logger logger = LoggerFactory.getLogger(RestApiJWTAuthTest.class);

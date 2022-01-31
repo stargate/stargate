@@ -1,0 +1,150 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v2.*.*'
+
+jobs:
+  create-release:
+    name: create release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+      - name: Copy release URL into file
+        run: |
+          mkdir release
+          printf "%s" "${{ steps.create_release.outputs.upload_url }}" > release/url.txt
+      - name: Stash file containing the release URL as an artifact
+        uses: actions/upload-artifact@v1
+        with:
+          name: release-url
+          path: ./release
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: "v2.0.0"
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Setup Maven
+        env:
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+        run: |
+          mkdir -p ~/.m2
+          cat <<EOF > ~/.m2/settings.xml
+          <settings>
+            <servers>
+              <server>
+                <id>artifactory-snapshots</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+              <server>
+                <id>artifactory-releases</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+             </server>
+           </servers>
+          </settings>
+          EOF
+      - name: Build with Maven
+        run: |
+          mvn versions:set -DremoveSnapshot versions:commit
+          mvn -P dse -q -ff clean package -DskipTests
+      - name: zip-up
+        run: |
+          zip stargate-jars.zip starctl stargate-lib/logback.xml stargate-lib/*.jar
+      - name: Retrieve stashed release URL
+        uses: actions/download-artifact@v1
+        with:
+          name: release-url
+      - name: Read release URL
+        id: get_release_url
+        run: echo ::set-output name=URL::$(cat release-url/url.txt)
+      - name: Upload jars
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.get_release_url.outputs.URL }}
+          asset_path: stargate-jars.zip
+          asset_name: stargate-jars.zip
+          asset_content_type: text/html
+
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: "v2.0.0"
+      - name: Set version
+        id: vars
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Setup Maven
+        env:
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_TOKEN: ${{ secrets.OSSRH_TOKEN }}
+        run: |
+          mkdir -p ~/.m2
+          cat <<EOF > ~/.m2/settings.xml
+          <settings>
+            <servers>
+              <server>
+                <id>ossrh</id>
+                <username>${OSSRH_USERNAME}</username>
+                <password>${OSSRH_TOKEN}</password>
+              </server>
+              <server>
+                <id>artifactory-snapshots</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+              <server>
+                <id>artifactory-releases</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+             </server>
+           </servers>
+          </settings>
+          EOF
+      - id: install-secret-key
+        name: Install gpg secret key
+        run: |
+          cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
+      - name: Publish package
+        run: |
+          mvn versions:set -DremoveSnapshot versions:commit && \
+          mvn -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse && \
+          mvn -B release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse && \
+          mvn xml-format:xml-format fmt:format -Pdse
+      - name: Rev Version
+        if: success()
+        uses: peter-evans/create-pull-request@v3
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          commit-message: "Bumping version for next release"
+          title: "Bumping version for next release"
+          branch-suffix: "short-commit-hash"
+          base: "v2.0.0"
