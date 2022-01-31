@@ -70,9 +70,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * Integration tests for REST API v2 that cover Row access CRUD methods.
- *<p>
- * Due to historical reasons, some Scheme CRUD tests are also included until
- * moved out to new, more granular IT classes.
+ *
+ * <p>Due to historical reasons, some Scheme CRUD tests are also included until moved out to new,
+ * more granular IT classes.
  */
 @NotThreadSafe
 @ExtendWith(CqlSessionExtension.class)

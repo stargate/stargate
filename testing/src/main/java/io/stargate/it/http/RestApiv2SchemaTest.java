@@ -15,7 +15,6 @@ import io.stargate.web.restapi.models.RESTResponseWrapper;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.Optional;
-
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,8 +23,8 @@ import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
- * Integration tests for REST API v2 that cover CRUD operations against schema,
- * but not actual Row data.
+ * Integration tests for REST API v2 that cover CRUD operations against schema, but not actual Row
+ * data.
  */
 @NotThreadSafe
 @ExtendWith(CqlSessionExtension.class)
