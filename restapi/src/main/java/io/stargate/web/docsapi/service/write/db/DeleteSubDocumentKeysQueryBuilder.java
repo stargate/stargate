@@ -41,11 +41,6 @@ public class DeleteSubDocumentKeysQueryBuilder extends DeleteSubDocumentPathQuer
   public DeleteSubDocumentKeysQueryBuilder(
       List<String> subDocumentPath, List<String> keys, int maxDepth) {
     super(subDocumentPath, false, maxDepth);
-
-    if (keys == null || keys.isEmpty()) {
-      throw new IllegalArgumentException("Keys to delete in the document path must not be empty.");
-    }
-
     this.keys = keys;
   }
 

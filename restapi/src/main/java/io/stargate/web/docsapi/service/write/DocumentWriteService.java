@@ -30,8 +30,11 @@ import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.JsonShreddedRow;
+import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import io.stargate.web.docsapi.service.write.db.AbstractDeleteQueryBuilder;
 import io.stargate.web.docsapi.service.write.db.DeleteDocumentQueryBuilder;
+import io.stargate.web.docsapi.service.write.db.DeleteSubDocumentArrayQueryBuilder;
+import io.stargate.web.docsapi.service.write.db.DeleteSubDocumentKeysQueryBuilder;
 import io.stargate.web.docsapi.service.write.db.DeleteSubDocumentPathQueryBuilder;
 import io.stargate.web.docsapi.service.write.db.InsertQueryBuilder;
 import java.util.ArrayList;
@@ -40,9 +43,11 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.commons.lang3.tuple.Pair;
+import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -230,6 +235,117 @@ public class DocumentWriteService {
   }
 
   /**
+   * Patches a single document at given sub-path, ensuring that:
+   *
+   * <ol>
+   *   <li>If path currently matches existing JSON primitive or empty object, it will be removed
+   *   <li>If path currently matches existing JSON array, it will be removed
+   *   <li>If path currently matches existing JSON object, only patched keys will be removed
+   * </ol>
+   *
+   * Note that this method does not allow array patching.
+   *
+   * @param dataStore {@link DataStore}
+   * @param keyspace Keyspace the document belongs to.
+   * @param collection Collection the document belongs to.
+   * @param documentId Document ID.
+   * @param subDocumentPath The sub-document path to patch. Empty patches at the root level.
+   * @param rows Rows of the patch.
+   * @param numericBooleans If numeric boolean should be stored.
+   * @param context Execution content for profiling.
+   * @return Single containing the {@link ResultSet} of the batch execution.
+   */
+  public Single<ResultSet> patchDocument(
+      DataStore dataStore,
+      String keyspace,
+      String collection,
+      String documentId,
+      List<String> subDocumentPath,
+      List<JsonShreddedRow> rows,
+      boolean numericBooleans,
+      ExecutionContext context) {
+    // check that sub path matches the rows supplied
+    // TODO this smells like a bad design
+    //  for v2 we need to not include sub-path to shredding, and cover it here as a wrapper
+    checkPathMatchesRows(subDocumentPath, rows);
+
+    // get all distinct first level keys after the sub-path
+    List<String> patchedKeys = firstLevelPatchedKeys(subDocumentPath, rows);
+
+    // delete all patched keys
+    DeleteSubDocumentKeysQueryBuilder deletePatchedKeysBuilder =
+        new DeleteSubDocumentKeysQueryBuilder(subDocumentPath, patchedKeys, config.getMaxDepth());
+    Single<? extends Query<? extends BoundQuery>> deletePatchedKeysPrepared =
+        prepareDeleteDocumentQuery(deletePatchedKeysBuilder, dataStore, keyspace, collection)
+            .observeOn(Schedulers.computation());
+
+    // exact path deletion to remove possible primitive or empty
+    DeleteSubDocumentPathQueryBuilder deleteExactPathBuilder =
+        new DeleteSubDocumentPathQueryBuilder(subDocumentPath, true, config.getMaxDepth());
+    Single<? extends Query<? extends BoundQuery>> deleteExactPrepared =
+        prepareDeleteDocumentQuery(deleteExactPathBuilder, dataStore, keyspace, collection)
+            .observeOn(Schedulers.computation());
+
+    // delete any existing array on the sub-path
+    DeleteSubDocumentArrayQueryBuilder deleteArrayBuilder =
+        new DeleteSubDocumentArrayQueryBuilder(subDocumentPath, config.getMaxDepth());
+    Single<? extends Query<? extends BoundQuery>> deleteArrayPrepared =
+        prepareDeleteDocumentQuery(deleteArrayBuilder, dataStore, keyspace, collection)
+            .observeOn(Schedulers.computation());
+
+    // create and cache the insert query prepare
+    Single<? extends Query<? extends BoundQuery>> insertPrepared =
+        prepareInsertDocumentRowQuery(dataStore, keyspace, collection)
+            .observeOn(Schedulers.computation());
+
+    // execute when both done
+    return Single.zip(
+            deletePatchedKeysPrepared,
+            deleteExactPrepared,
+            deleteArrayPrepared,
+            insertPrepared,
+            (deletePatchedKeys, deleteExact, deleteArray, insert) -> {
+              // take current timestamp for binding
+              long timestamp = timeSource.currentTimeMicros();
+
+              // create list of queries to send in batch
+              List<BoundQuery> queries = new ArrayList<>(rows.size() + 3);
+
+              // add delete keys
+              BoundQuery deletePatchedKeysQuery =
+                  deletePatchedKeysBuilder.bind(deletePatchedKeys, documentId, timestamp - 1);
+              queries.add(deletePatchedKeysQuery);
+
+              // add delete exact
+              BoundQuery deleteExactPathQuery =
+                  deleteExactPathBuilder.bind(deleteExact, documentId, timestamp - 1);
+              queries.add(deleteExactPathQuery);
+
+              // add delete array
+              BoundQuery deleteArrayQuery =
+                  deleteArrayBuilder.bind(deleteArray, documentId, timestamp - 1);
+              queries.add(deleteArrayQuery);
+
+              // then all inserts
+              rows.forEach(
+                  row -> {
+                    BoundQuery query =
+                        insertQueryBuilder.bind(
+                            insert, documentId, row, timestamp, numericBooleans);
+                    queries.add(query);
+                  });
+
+              return queries;
+            })
+        // then execute batch
+        .flatMap(
+            boundQueries -> executeBatch(dataStore, boundQueries, context.nested("ASYNC PATCH")))
+
+        // move away from the data store thread
+        .observeOn(Schedulers.io());
+  }
+
+  /**
    * Deletes a single whole document.
    *
    * @param dataStore {@link DataStore}
@@ -372,5 +488,46 @@ public class DocumentWriteService {
         }
       }
     }
+  }
+
+  // collects the first level patched keys
+  private List<String> firstLevelPatchedKeys(
+      List<String> subDocumentPath, List<JsonShreddedRow> rows) {
+    List<String> keys =
+        rows.stream()
+            // here we need the first key after the sub-document path
+            // protect against empty object patching
+            .filter(row -> row.getPath().size() > subDocumentPath.size())
+            // we need to ensure arrays are not allowed
+            .map(
+                row -> {
+                  String key = row.getPath().get(subDocumentPath.size());
+                  if (DocsApiUtils.isArrayPath(key)) {
+                    throw new ErrorCodeRuntimeException(
+                        ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED);
+                  }
+                  return key;
+                })
+            .distinct()
+            .collect(Collectors.toList());
+
+    // make sure it's not empty, at least one key needed if not on root
+    if (keys.isEmpty() && subDocumentPath.isEmpty()) {
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_PATCH_EMPTY_NOT_ACCEPTED);
+    }
+
+    return keys;
+  }
+
+  // helper for connecting AbstractDeleteQueryBuilder and prepared query
+  @Value.Immutable
+  public interface DeleteBuilderToQuery<
+      B extends AbstractDeleteQueryBuilder, Q extends Query<? extends BoundQuery>> {
+
+    @Value.Parameter
+    B getQueryBuilder();
+
+    @Value.Parameter
+    Q getPreparedQuery();
   }
 }

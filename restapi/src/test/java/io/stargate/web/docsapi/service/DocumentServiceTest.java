@@ -599,52 +599,5 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
                           .build())
                   .build());
     }
-
-    @Test
-    void patchDoc() throws JsonProcessingException {
-      BatchType batchType =
-          datastore().supportsLoggedBatches() ? BatchType.LOGGED : BatchType.UNLOGGED;
-
-      when(headers.getHeaderString(eq(HttpHeaders.CONTENT_TYPE))).thenReturn("application/json");
-
-      String delete1 =
-          "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ? AND p0 >= ? AND p0 <= ?";
-      withQuery(table, delete1, 199L, "id3", "[000000]", "[999999]")
-          .inBatch(batchType)
-          .returningNothing();
-      String delete2 =
-          "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ? AND p0 IN ?";
-      withQuery(table, delete2, 199L, "id3", ImmutableList.of("a"))
-          .inBatch(batchType)
-          .returningNothing();
-
-      when(timeSource.currentTimeMicros()).thenReturn(200L);
-      DocumentResponseWrapper<Object> r =
-          unwrap(
-              resource.patchDoc(
-                  headers,
-                  uriInfo,
-                  authToken,
-                  keyspace.name(),
-                  table.name(),
-                  "id3",
-                  "{\"a\":123}",
-                  true,
-                  request));
-      assertThat(r.getProfile())
-          .isEqualTo(
-              ImmutableExecutionProfile.builder()
-                  .description("root")
-                  .addNested(
-                      ImmutableExecutionProfile.builder()
-                          .description("ASYNC PATCH")
-                          // row count for DELETE is not known
-                          .addQueries(
-                              QueryInfo.of(insert, 1, 1),
-                              QueryInfo.of(delete2, 1, 0),
-                              QueryInfo.of(delete1, 1, 0))
-                          .build())
-                  .build());
-    }
   }
 }
