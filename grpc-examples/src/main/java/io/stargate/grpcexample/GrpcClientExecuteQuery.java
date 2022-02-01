@@ -67,7 +67,9 @@ public class GrpcClientExecuteQuery {
           }
 
           @Override
-          public void onError(Throwable t) {}
+          public void onError(Throwable t) {
+            System.out.println("Error: " + t);
+          }
 
           @Override
           public void onCompleted() {
@@ -95,7 +97,9 @@ public class GrpcClientExecuteQuery {
           }
 
           @Override
-          public void onError(Throwable t) {}
+          public void onError(Throwable t) {
+            System.out.println("Error: " + t);
+          }
 
           @Override
           public void onCompleted() {
@@ -132,7 +136,9 @@ public class GrpcClientExecuteQuery {
           }
 
           @Override
-          public void onError(Throwable t) {}
+          public void onError(Throwable t) {
+            System.out.println("Error: " + t);
+          }
 
           @Override
           public void onCompleted() {
