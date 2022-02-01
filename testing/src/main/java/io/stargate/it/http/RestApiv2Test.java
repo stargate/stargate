@@ -21,8 +21,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
-import com.datastax.oss.driver.api.core.cql.Row;
-import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
@@ -1751,49 +1749,6 @@ public class RestApiv2Test extends BaseIntegrationTest {
   /* Test methods for Column CRUD operations
   /************************************************************************
    */
-
-  @Test
-  public void getColumns() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
-            HttpStatus.SC_OK);
-    List<ColumnDefinition> columns =
-        readWrappedRESTResponse(body, new TypeReference<List<ColumnDefinition>>() {});
-    assertThat(columns)
-        .anySatisfy(
-            value ->
-                assertThat(value)
-                    .usingRecursiveComparison()
-                    .isEqualTo(new ColumnDefinition("id", "uuid", false)));
-  }
-
-  @Test
-  public void getColumnsRaw() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns?raw=true",
-                host, keyspaceName, tableName),
-            HttpStatus.SC_OK);
-    List<ColumnDefinition> columns =
-        objectMapper.readValue(body, new TypeReference<List<ColumnDefinition>>() {});
-    assertThat(columns)
-        .anySatisfy(
-            value ->
-                assertThat(value)
-                    .usingRecursiveComparison()
-                    .isEqualTo(new ColumnDefinition("id", "uuid", false)));
-  }
 
   @Test
   public void getColumnsComplex() throws IOException {
