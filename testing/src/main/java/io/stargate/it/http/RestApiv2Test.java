@@ -38,7 +38,6 @@ import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.web.models.ApiError;
-import io.stargate.web.models.Keyspace;
 import io.stargate.web.restapi.models.ColumnDefinition;
 import io.stargate.web.restapi.models.GetResponseWrapper;
 import io.stargate.web.restapi.models.IndexAdd;
@@ -73,6 +72,12 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+/**
+ * Integration tests for REST API v2 that cover Row access CRUD methods.
+ *
+ * <p>Due to historical reasons, some Scheme CRUD tests are also included until moved out to new,
+ * more granular IT classes.
+ */
 @NotThreadSafe
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec()
@@ -151,130 +156,11 @@ public class RestApiv2Test extends BaseIntegrationTest {
     tableName = "tbl_" + testName.toLowerCase() + "_" + System.currentTimeMillis();
   }
 
-  @Test
-  public void getKeyspaces() throws IOException {
-    String body =
-        RestUtils.get(
-            authToken, String.format("%s/v2/schemas/keyspaces", restUrlBase), HttpStatus.SC_OK);
-
-    List<Keyspace> keyspaces =
-        readWrappedRESTResponse(body, new TypeReference<List<Keyspace>>() {});
-    assertThat(keyspaces)
-        .anySatisfy(
-            value ->
-                assertThat(value)
-                    .usingRecursiveComparison()
-                    .isEqualTo(new Keyspace("system", null)));
-  }
-
-  @Test
-  public void getKeyspacesMissingToken() throws IOException {
-    RestUtils.get(
-        "", String.format("%s/v2/schemas/keyspaces", restUrlBase), HttpStatus.SC_UNAUTHORIZED);
-  }
-
-  @Test
-  public void getKeyspacesBadToken() throws IOException {
-    RestUtils.get(
-        "foo", String.format("%s/v2/schemas/keyspaces", restUrlBase), HttpStatus.SC_UNAUTHORIZED);
-  }
-
-  @Test
-  public void getKeyspacesRaw() throws IOException {
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format("%s/v2/schemas/keyspaces?raw=true", restUrlBase),
-            HttpStatus.SC_OK);
-
-    List<Keyspace> keyspaces = objectMapper.readValue(body, new TypeReference<List<Keyspace>>() {});
-    assertThat(keyspaces)
-        .anySatisfy(
-            value ->
-                assertThat(value)
-                    .usingRecursiveComparison()
-                    .isEqualTo(new Keyspace("system_schema", null)));
-  }
-
-  @Test
-  public void getKeyspace() throws IOException {
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format("%s/v2/schemas/keyspaces/system", restUrlBase),
-            HttpStatus.SC_OK);
-    Keyspace keyspace = readWrappedRESTResponse(body, Keyspace.class);
-    assertThat(keyspace).usingRecursiveComparison().isEqualTo(new Keyspace("system", null));
-  }
-
-  @Test
-  public void getKeyspaceRaw() throws IOException {
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format("%s/v2/schemas/keyspaces/system?raw=true", restUrlBase),
-            HttpStatus.SC_OK);
-
-    Keyspace keyspace = objectMapper.readValue(body, Keyspace.class);
-
-    assertThat(keyspace).usingRecursiveComparison().isEqualTo(new Keyspace("system", null));
-  }
-
-  @Test
-  public void getKeyspaceNotFound() throws IOException {
-    RestUtils.get(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/ks_not_found", restUrlBase),
-        HttpStatus.SC_NOT_FOUND);
-  }
-
-  @Test
-  public void createKeyspace() throws IOException {
-    String keyspaceName = "ks_createkeyspace_" + System.currentTimeMillis();
-
-    // Use the new Stargate V2 endpoint here
-    createKeyspace(keyspaceName, restUrlBase);
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format("%s/v2/schemas/keyspaces/%s?raw=true", restUrlBase, keyspaceName),
-            HttpStatus.SC_OK);
-
-    Keyspace keyspace = objectMapper.readValue(body, Keyspace.class);
-
-    assertThat(keyspace).usingRecursiveComparison().isEqualTo(new Keyspace(keyspaceName, null));
-  }
-
-  @Test
-  public void createKeyspaceWithInvalidJson() throws IOException {
-    RestUtils.post(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces", restUrlBase),
-        "{\"name\" \"badjsonkeyspace\", \"replicas\": 1}",
-        HttpStatus.SC_BAD_REQUEST);
-  }
-
-  @Test
-  public void deleteKeyspace() throws IOException {
-    String keyspaceName = "ks_createkeyspace_" + System.currentTimeMillis();
-    createKeyspace(keyspaceName);
-
-    RestUtils.get(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/%s", restUrlBase, keyspaceName),
-        HttpStatus.SC_OK);
-
-    RestUtils.delete(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/%s", restUrlBase, keyspaceName),
-        HttpStatus.SC_NO_CONTENT);
-
-    RestUtils.get(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/%s", restUrlBase, keyspaceName),
-        HttpStatus.SC_NOT_FOUND);
-  }
+  /*
+  /************************************************************************
+  /* Test methods for Table CRUD operations
+  /************************************************************************
+   */
 
   @Test
   public void getTables() throws IOException {
@@ -427,6 +313,12 @@ public class RestApiv2Test extends BaseIntegrationTest {
         String.format("%s/v2/schemas/keyspaces/%s/tables/%s", restUrlBase, keyspaceName, tableName),
         HttpStatus.SC_NO_CONTENT);
   }
+
+  /*
+  /************************************************************************
+  /* Test methods for Index CRUD operations
+  /************************************************************************
+   */
 
   @Test
   public void createIndex(CqlSession session) throws IOException {
@@ -796,6 +688,12 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(table.getTableOptions().getClusteringExpression().get(0).getOrder())
         .isEqualTo("ASC");
   }
+
+  /*
+  /************************************************************************
+  /* Test methods for Row Access CRUD operations
+  /************************************************************************
+   */
 
   @Test
   public void getRowsWithQuery() throws IOException {
@@ -2456,6 +2354,12 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(data.get(0).get("v")).isEqualTo(9);
   }
 
+  /*
+  /************************************************************************
+  /* Test methods for Column CRUD operations
+  /************************************************************************
+   */
+
   @Test
   public void getColumns() throws IOException {
     createKeyspace(keyspaceName);
@@ -2905,6 +2809,12 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(response.getDescription()).isNotEmpty();
   }
+
+  /*
+  /************************************************************************
+  /* Test methods for User-Defined Type (UDT) CRUD operations
+  /************************************************************************
+   */
 
   @Test
   public void createUdt() throws IOException {
@@ -3414,6 +3324,12 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(data.get(0).get("last_inspected_at")).isEqualTo("2021-12-10");
     assertThat(data.get(0).get("est_unit_cost")).isEqualTo(599.99);
   }
+
+  /*
+  /************************************************************************
+  /* Helper methods for setting up tests
+  /************************************************************************
+   */
 
   private void createTable(String keyspaceName, String tableName) throws IOException {
     createTable(keyspaceName, tableName, restUrlBase);
