@@ -47,7 +47,6 @@ import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.commons.lang3.tuple.Pair;
-import org.immutables.value.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -511,23 +510,11 @@ public class DocumentWriteService {
             .distinct()
             .collect(Collectors.toList());
 
-    // make sure it's not empty, at least one key needed if not on root
+    // make sure it's not empty, at least one key needed if on root doc
     if (keys.isEmpty() && subDocumentPath.isEmpty()) {
       throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_PATCH_EMPTY_NOT_ACCEPTED);
     }
 
     return keys;
-  }
-
-  // helper for connecting AbstractDeleteQueryBuilder and prepared query
-  @Value.Immutable
-  public interface DeleteBuilderToQuery<
-      B extends AbstractDeleteQueryBuilder, Q extends Query<? extends BoundQuery>> {
-
-    @Value.Parameter
-    B getQueryBuilder();
-
-    @Value.Parameter
-    Q getPreparedQuery();
   }
 }
