@@ -234,12 +234,46 @@ public class DocumentWriteService {
   }
 
   /**
+   * Patches a single document at root, ensuring that:
+   *
+   * <ol>
+   *   <li>If path currently matches an empty object, it will be removed
+   *   <li>If path currently matches an existing JSON array, it will be removed
+   *   <li>If path currently matches an existing JSON object, only patched keys will be removed
+   * </ol>
+   *
+   * Note that this method does not allow array patching.
+   *
+   * @param dataStore {@link DataStore}
+   * @param keyspace Keyspace the document belongs to.
+   * @param collection Collection the document belongs to.
+   * @param documentId Document ID.
+   * @param rows Rows of the patch.
+   * @param numericBooleans If numeric boolean should be stored.
+   * @param context Execution content for profiling.
+   * @return Single containing the {@link ResultSet} of the batch execution.
+   */
+  public Single<ResultSet> patchDocument(
+      DataStore dataStore,
+      String keyspace,
+      String collection,
+      String documentId,
+      List<JsonShreddedRow> rows,
+      boolean numericBooleans,
+      ExecutionContext context) {
+    List<String> path = Collections.emptyList();
+    return patchDocument(
+        dataStore, keyspace, collection, documentId, path, rows, numericBooleans, context);
+  }
+
+  /**
    * Patches a single document at given sub-path, ensuring that:
    *
    * <ol>
-   *   <li>If path currently matches existing JSON primitive or empty object, it will be removed
-   *   <li>If path currently matches existing JSON array, it will be removed
-   *   <li>If path currently matches existing JSON object, only patched keys will be removed
+   *   <li>If path currently matches an existing JSON primitive or an empty object, it will be
+   *       removed
+   *   <li>If path currently matches an existing JSON array, it will be removed
+   *   <li>If path currently matches an existing JSON object, only patched keys will be removed
    * </ol>
    *
    * Note that this method does not allow array patching.
