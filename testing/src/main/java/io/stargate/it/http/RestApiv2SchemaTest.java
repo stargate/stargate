@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectReader;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
@@ -12,6 +13,7 @@ import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.web.models.Keyspace;
 import io.stargate.web.restapi.models.ColumnDefinition;
+import io.stargate.web.restapi.models.GetResponseWrapper;
 import io.stargate.web.restapi.models.PrimaryKey;
 import io.stargate.web.restapi.models.RESTResponseWrapper;
 import io.stargate.web.restapi.models.TableAdd;
@@ -21,8 +23,12 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
+
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -43,6 +49,12 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
   private static String authToken;
   private String host;
   private String restUrlBase;
+
+  static class ListOfMapsGetResponseWrapper extends GetResponseWrapper<List<Map<String, Object>>> {
+    public ListOfMapsGetResponseWrapper() {
+      super(-1, null, null);
+    }
+  }
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -222,6 +234,80 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
   }
 
   @Test
+  public void tableCreateWithNullOptions() throws IOException {
+    createTestKeyspace(keyspaceName);
+
+    TableAdd tableAdd = new TableAdd();
+    tableAdd.setName("t1");
+
+    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
+
+    columnDefinitions.add(new ColumnDefinition("id", "uuid"));
+    columnDefinitions.add(new ColumnDefinition("lastName", "text"));
+    columnDefinitions.add(new ColumnDefinition("firstName", "text"));
+
+    tableAdd.setColumnDefinitions(columnDefinitions);
+
+    PrimaryKey primaryKey = new PrimaryKey();
+    primaryKey.setPartitionKey(Collections.singletonList("id"));
+    tableAdd.setPrimaryKey(primaryKey);
+    tableAdd.setTableOptions(null);
+
+    String body =
+            RestUtils.post(
+                    authToken,
+                    String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+                    objectMapper.writeValueAsString(tableAdd),
+                    HttpStatus.SC_CREATED);
+
+    RestApiv2Test.NameResponse response = objectMapper.readValue(body, RestApiv2Test.NameResponse.class);
+    assertThat(response.name).isEqualTo(tableAdd.getName());
+  }
+
+  @Test
+  public void tableCreateWithMissingClustering() throws IOException {
+    createTestKeyspace(keyspaceName);
+    TableAdd tableAdd = new TableAdd();
+    tableAdd.setName(tableName);
+
+    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
+
+    columnDefinitions.add(new ColumnDefinition("pk1", "int"));
+    columnDefinitions.add(new ColumnDefinition("ck1", "int"));
+
+    tableAdd.setColumnDefinitions(columnDefinitions);
+
+    PrimaryKey primaryKey = new PrimaryKey();
+    primaryKey.setPartitionKey(Collections.singletonList("pk1"));
+    primaryKey.setClusteringKey(Collections.singletonList("ck1"));
+    tableAdd.setPrimaryKey(primaryKey);
+
+    tableAdd.setTableOptions(new TableOptions(0, null));
+
+    String body =
+            RestUtils.post(
+                    authToken,
+                    String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+                    objectMapper.writeValueAsString(tableAdd),
+                    HttpStatus.SC_CREATED);
+
+    RestApiv2Test.NameResponse response = objectMapper.readValue(body, RestApiv2Test.NameResponse.class);
+    assertThat(response.name).isEqualTo(tableAdd.getName());
+
+    body =
+            RestUtils.get(
+                    authToken,
+                    String.format(
+                            "%s/v2/schemas/keyspaces/%s/tables/%s?raw=true",
+                            restUrlBase, keyspaceName, tableName),
+                    HttpStatus.SC_OK);
+
+    TableResponse table = objectMapper.readValue(body, TableResponse.class);
+    assertThat(table.getTableOptions().getClusteringExpression().get(0).getOrder())
+            .isEqualTo("ASC");
+  }
+
+  @Test
   public void tableUpdateSimple() throws IOException {
     createTestKeyspace(keyspaceName);
     createSimpleTestTable(keyspaceName, tableName);
@@ -351,6 +437,73 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
         String.format("%s/v2/schemas/keyspaces/%s/tables/%s", restUrlBase, keyspaceName, tableName),
         HttpStatus.SC_NO_CONTENT);
   }
+
+  @Test
+  public void testMixedCaseTable() throws IOException {
+    createTestKeyspace(keyspaceName);
+
+    String tableName = "MixedCaseTable";
+    TableAdd tableAdd = new TableAdd();
+    tableAdd.setName(tableName);
+
+    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
+
+    columnDefinitions.add(new ColumnDefinition("ID", "uuid"));
+    columnDefinitions.add(new ColumnDefinition("Lastname", "text"));
+    columnDefinitions.add(new ColumnDefinition("Firstname", "text"));
+    tableAdd.setColumnDefinitions(columnDefinitions);
+
+    PrimaryKey primaryKey = new PrimaryKey();
+    primaryKey.setPartitionKey(Collections.singletonList("ID"));
+    tableAdd.setPrimaryKey(primaryKey);
+
+    // ensure table name is preserved
+    String body =
+            RestUtils.post(
+                    authToken,
+                    String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+                    objectMapper.writeValueAsString(tableAdd),
+                    HttpStatus.SC_CREATED);
+
+    TableResponse tableResponse =
+            objectMapper.readValue(body, TableResponse.class);
+    assertThat(tableResponse.getName()).isEqualTo(tableName);
+
+    // insert a row
+    String rowIdentifier = UUID.randomUUID().toString();
+    Map<String, String> row = new HashMap<>();
+    row.put("ID", rowIdentifier);
+    row.put("Firstname", "John");
+    row.put("Lastname", "Doe");
+
+    RestUtils.post(
+            authToken,
+            String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+            objectMapper.writeValueAsString(row),
+            HttpStatus.SC_CREATED);
+
+    // retrieve the row by ID and ensure column names are as expected
+    String whereClause = String.format("{\"ID\":{\"$eq\":\"%s\"}}", rowIdentifier);
+    body =
+            RestUtils.get(
+                    authToken,
+                    String.format(
+                            "%s:8082/v2/keyspaces/%s/%s?where=%s", host, keyspaceName, tableName, whereClause),
+                    HttpStatus.SC_OK);
+    ListOfMapsGetResponseWrapper getResponseWrapper = objectMapper.readValue(body, ListOfMapsGetResponseWrapper.class);
+    List<Map<String, Object>> data = getResponseWrapper.getData();
+    assertThat(data.get(0).get("ID")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("Firstname")).isEqualTo("John");
+    assertThat(data.get(0).get("Lastname")).isEqualTo("Doe");
+  }
+
+  /*
+  /************************************************************************
+  /* Test methods for Index CRUD operations
+  /************************************************************************
+   */
+
+
 
   /*
   /************************************************************************
