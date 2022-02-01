@@ -11,9 +11,17 @@ import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.web.models.Keyspace;
+import io.stargate.web.restapi.models.ColumnDefinition;
+import io.stargate.web.restapi.models.PrimaryKey;
 import io.stargate.web.restapi.models.RESTResponseWrapper;
+import io.stargate.web.restapi.models.TableAdd;
+import io.stargate.web.restapi.models.TableOptions;
+import io.stargate.web.restapi.models.TableResponse;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
@@ -200,6 +208,162 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
 
   /*
   /************************************************************************
+  /* Test methods for Table CRUD operations
+  /************************************************************************
+   */
+
+  @Test
+  public void tableCreateSimple() throws IOException {
+    createTestKeyspace(keyspaceName);
+    createSimpleTestTable(keyspaceName, tableName);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/schemas/keyspaces/%s/tables/%s?raw=true",
+                restUrlBase, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+
+    TableResponse table = objectMapper.readValue(body, TableResponse.class);
+    assertThat(table.getKeyspace()).isEqualTo(keyspaceName);
+    assertThat(table.getName()).isEqualTo(tableName);
+    assertThat(table.getColumnDefinitions()).isNotNull();
+  }
+
+  @Test
+  public void tableUpdateSimple() throws IOException {
+    createTestKeyspace(keyspaceName);
+    createSimpleTestTable(keyspaceName, tableName);
+
+    TableAdd tableUpdate = new TableAdd();
+    tableUpdate.setName(tableName);
+
+    TableOptions tableOptions = new TableOptions();
+    tableOptions.setDefaultTimeToLive(5);
+    tableUpdate.setTableOptions(tableOptions);
+
+    RestUtils.put(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/tables/%s", restUrlBase, keyspaceName, tableName),
+        objectMapper.writeValueAsString(tableUpdate),
+        HttpStatus.SC_OK);
+  }
+
+  @Test
+  public void tablesGetWrapped() throws IOException {
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s/v2/schemas/keyspaces/system/tables", restUrlBase),
+            HttpStatus.SC_OK);
+
+    TableResponse[] tables = readWrappedRESTResponse(body, TableResponse[].class);
+
+    assertThat(tables.length).isGreaterThan(5);
+    assertThat(tables)
+        .anySatisfy(
+            value ->
+                assertThat(value)
+                    .isEqualToComparingOnlyGivenFields(
+                        new TableResponse("local", "system", null, null, null),
+                        "name",
+                        "keyspace"));
+  }
+
+  @Test
+  public void tablesGetRaw() throws IOException {
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s/v2/schemas/keyspaces/system/tables?raw=true", restUrlBase),
+            HttpStatus.SC_OK);
+
+    TableResponse[] tables = objectMapper.readValue(body, TableResponse[].class);
+
+    assertThat(tables.length).isGreaterThan(5);
+    assertThat(tables)
+        .anySatisfy(
+            value ->
+                assertThat(value)
+                    .usingRecursiveComparison()
+                    .ignoringFields("columnDefinitions", "primaryKey", "tableOptions")
+                    .isEqualTo(new TableResponse("local", "system", null, null, null)));
+  }
+
+  @Test
+  public void tableGetWrapped() throws IOException {
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s/v2/schemas/keyspaces/system/tables/local", restUrlBase),
+            HttpStatus.SC_OK);
+
+    TableResponse table = readWrappedRESTResponse(body, TableResponse.class);
+    assertThat(table.getKeyspace()).isEqualTo("system");
+    assertThat(table.getName()).isEqualTo("local");
+    assertThat(table.getColumnDefinitions()).isNotNull().isNotEmpty();
+  }
+
+  @Test
+  public void tableGetRaw() throws IOException {
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s/v2/schemas/keyspaces/system/tables/local?raw=true", restUrlBase),
+            HttpStatus.SC_OK);
+
+    TableResponse table = objectMapper.readValue(body, TableResponse.class);
+    assertThat(table.getKeyspace()).isEqualTo("system");
+    assertThat(table.getName()).isEqualTo("local");
+    assertThat(table.getColumnDefinitions()).isNotNull().isNotEmpty();
+  }
+
+  @Test
+  public void tableGetComplex() throws IOException {
+    createTestKeyspace(keyspaceName);
+    createComplexTestTable(keyspaceName, tableName);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/schemas/keyspaces/%s/tables/%s", restUrlBase, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+
+    TableResponse table = readWrappedRESTResponse(body, TableResponse.class);
+    assertThat(table.getKeyspace()).isEqualTo(keyspaceName);
+    assertThat(table.getName()).isEqualTo(tableName);
+    assertThat(table.getColumnDefinitions())
+        .hasSize(4)
+        .anySatisfy(
+            columnDefinition ->
+                assertThat(columnDefinition)
+                    .usingRecursiveComparison()
+                    .isEqualTo(new ColumnDefinition("col1", "frozen<map<date, text>>", false)));
+  }
+
+  @Test
+  public void tableGetFailNotFound() throws IOException {
+    RestUtils.get(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/system/tables/tbl_not_found", restUrlBase),
+        HttpStatus.SC_NOT_FOUND);
+  }
+
+  @Test
+  public void tableDelete() throws IOException {
+    createTestKeyspace(keyspaceName);
+    createSimpleTestTable(keyspaceName, tableName);
+
+    RestUtils.delete(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/tables/%s", restUrlBase, keyspaceName, tableName),
+        HttpStatus.SC_NO_CONTENT);
+  }
+
+  /*
+  /************************************************************************
   /* Helper methods for setting up tests
   /************************************************************************
    */
@@ -213,6 +377,62 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
           authToken,
           String.format("%s/v2/schemas/keyspaces", restUrlBase),
           createKeyspaceRequest,
+          HttpStatus.SC_CREATED);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private void createSimpleTestTable(String keyspaceName, String tableName) {
+    TableAdd tableAdd = new TableAdd();
+    tableAdd.setName(tableName);
+
+    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
+
+    columnDefinitions.add(new ColumnDefinition("id", "uuid"));
+    columnDefinitions.add(new ColumnDefinition("lastName", "text"));
+    columnDefinitions.add(new ColumnDefinition("firstName", "text"));
+    columnDefinitions.add(new ColumnDefinition("age", "int"));
+
+    tableAdd.setColumnDefinitions(columnDefinitions);
+
+    PrimaryKey primaryKey = new PrimaryKey();
+    primaryKey.setPartitionKey(Collections.singletonList("id"));
+    tableAdd.setPrimaryKey(primaryKey);
+
+    try {
+      RestUtils.post(
+          authToken,
+          String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+          objectMapper.writeValueAsString(tableAdd),
+          HttpStatus.SC_CREATED);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  private void createComplexTestTable(String keyspaceName, String tableName) {
+    TableAdd tableAdd = new TableAdd();
+    tableAdd.setName(tableName);
+
+    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
+
+    columnDefinitions.add(new ColumnDefinition("pk0", "uuid"));
+    columnDefinitions.add(new ColumnDefinition("col1", "frozen<map<date, text>>"));
+    columnDefinitions.add(new ColumnDefinition("col2", "frozen<set<boolean>>"));
+    columnDefinitions.add(new ColumnDefinition("col3", "frozen<tuple<duration, inet>>"));
+
+    tableAdd.setColumnDefinitions(columnDefinitions);
+
+    PrimaryKey primaryKey = new PrimaryKey();
+    primaryKey.setPartitionKey(Collections.singletonList("pk0"));
+    tableAdd.setPrimaryKey(primaryKey);
+
+    try {
+      RestUtils.post(
+          authToken,
+          String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+          objectMapper.writeValueAsString(tableAdd),
           HttpStatus.SC_CREATED);
     } catch (IOException e) {
       throw new RuntimeException(e);

@@ -152,6 +152,7 @@ jobs:
         run: |
           ./build_docker_images.sh -p -t ${{ steps.vars.outputs.tag }}
       - name: Update version numbers for next release
+        run: |
           mvn -B release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse && \
           mvn xml-format:xml-format fmt:format -Pdse
       - name: Rev Version
