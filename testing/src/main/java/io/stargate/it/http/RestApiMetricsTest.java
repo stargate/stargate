@@ -75,9 +75,9 @@ public class RestApiMetricsTest extends BaseIntegrationTest {
   }
 
   @BeforeAll
-  public static void setup(ApiServiceConnectionInfo restApi) {
-    restUrlBase = "http://" + restApi.host() + ":" + restApi.port();
-    metricsUrlBase = "http://" + restApi.host() + ":" + restApi.metricsPort();
+  public static void setup(ApiServiceConnectionInfo service) {
+    restUrlBase = "http://" + service.host() + ":" + service.port();
+    metricsUrlBase = "http://" + service.host() + ":" + service.metricsPort();
   }
 
   // 13-Jan-2022, tatu: In StargateV1 HTTP Tag Provider is registered using OSGi.
