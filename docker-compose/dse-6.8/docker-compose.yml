@@ -5,8 +5,6 @@ services:
     image: datastax/dse-server:${DSETAG}
     networks:
       - stargate
-    ports:
-      - 9042:9042
     mem_limit: 2G
     environment:
       - HEAP_NEWSIZE=128M
@@ -51,7 +49,7 @@ services:
     networks:
       - stargate
     ports:
-      - 9045:9042
+      - 9042:9042
       - 8080:8080
       - 8081:8081
       - 8084:8084
