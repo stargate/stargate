@@ -42,6 +42,113 @@ public class GrpcClientExecuteQuery {
     grpcClientExecuteQuery.executeSingleQuery();
     grpcClientExecuteQuery.executeBatchQueries();
     grpcClientExecuteQuery.executeAsyncQueries();
+    grpcClientExecuteQuery.executeStreamingQuery();
+    grpcClientExecuteQuery.executeStreamingBatchQueries();
+  }
+
+  private void executeStreamingBatchQueries() throws InterruptedException {
+    executeStreamingBatchInsertQueries();
+    executeStreamingSelectQuery();
+  }
+
+  private void executeStreamingQuery() throws InterruptedException {
+    executeStreamingInsertQuery();
+    executeStreamingSelectQuery();
+  }
+
+  private void executeStreamingSelectQuery() throws InterruptedException {
+    CountDownLatch responseRetrieved = new CountDownLatch(1);
+    StreamObserver<QueryOuterClass.StreamingResponse> responseStreamObserver =
+        new StreamObserver<QueryOuterClass.StreamingResponse>() {
+          @Override
+          public void onNext(QueryOuterClass.StreamingResponse value) {
+            System.out.println("Select streaming response: " + value);
+            responseRetrieved.countDown();
+          }
+
+          @Override
+          public void onError(Throwable t) {}
+
+          @Override
+          public void onCompleted() {
+            System.out.println("Select StreamObserver completed");
+          }
+        };
+
+    StreamObserver<QueryOuterClass.Query> queryStreamObserver =
+        asyncStub.executeQueryStream(responseStreamObserver);
+
+    queryStreamObserver.onNext(
+        QueryOuterClass.Query.newBuilder().setCql("SELECT k, v FROM ks.test").build());
+    queryStreamObserver.onCompleted();
+    responseRetrieved.await();
+  }
+
+  private void executeStreamingBatchInsertQueries() throws InterruptedException {
+    CountDownLatch responseRetrieved = new CountDownLatch(1);
+    StreamObserver<QueryOuterClass.StreamingResponse> responseStreamObserver =
+        new StreamObserver<QueryOuterClass.StreamingResponse>() {
+          @Override
+          public void onNext(QueryOuterClass.StreamingResponse value) {
+            System.out.println("Batch streaming response: " + value);
+            responseRetrieved.countDown();
+          }
+
+          @Override
+          public void onError(Throwable t) {}
+
+          @Override
+          public void onCompleted() {
+            System.out.println("Batch StreamObserver completed");
+          }
+        };
+
+    StreamObserver<QueryOuterClass.Batch> queryStreamObserver =
+        asyncStub.executeBatchStream(responseStreamObserver);
+
+    queryStreamObserver.onNext(
+        QueryOuterClass.Batch.newBuilder()
+            .addQueries(
+                QueryOuterClass.BatchQuery.newBuilder()
+                    .setCql("INSERT INTO ks.test (k, v) VALUES ('streaming_batch_a', 1)")
+                    .build())
+            .addQueries(
+                QueryOuterClass.BatchQuery.newBuilder()
+                    .setCql("INSERT INTO ks.test (k, v) VALUES ('streaming_batch_b', 2)")
+                    .build())
+            .build());
+    queryStreamObserver.onCompleted();
+    responseRetrieved.await();
+  }
+
+  private void executeStreamingInsertQuery() throws InterruptedException {
+    CountDownLatch responseRetrieved = new CountDownLatch(1);
+    StreamObserver<QueryOuterClass.StreamingResponse> responseStreamObserver =
+        new StreamObserver<QueryOuterClass.StreamingResponse>() {
+          @Override
+          public void onNext(QueryOuterClass.StreamingResponse value) {
+            System.out.println("Query streaming response: " + value);
+            responseRetrieved.countDown();
+          }
+
+          @Override
+          public void onError(Throwable t) {}
+
+          @Override
+          public void onCompleted() {
+            System.out.println("Query StreamObserver completed");
+          }
+        };
+
+    StreamObserver<QueryOuterClass.Query> queryStreamObserver =
+        asyncStub.executeQueryStream(responseStreamObserver);
+
+    queryStreamObserver.onNext(
+        QueryOuterClass.Query.newBuilder()
+            .setCql("INSERT INTO ks.test (k, v) VALUES ('streaming_query', 100)")
+            .build());
+    queryStreamObserver.onCompleted();
+    responseRetrieved.await();
   }
 
   private void prepareSchema() {
