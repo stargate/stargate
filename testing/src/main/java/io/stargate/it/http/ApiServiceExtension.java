@@ -58,6 +58,15 @@ public class ApiServiceExtension
 
   private static String SERVICE_JAR_BASE = "sgv2-rest-service";
 
+  private static String BRIDGE_HOST_PROPERTY_NAME = "dw.stargate.grpc.host";
+  private static String BRIDGE_PORT_PROPERTY_NAME = "dw.stargate.grpc.port";
+  private static String BRIDGE_TOKEN_PROPERTY_NAME = "stargate.bridge.admin_token";
+  private static String SERVICE_PORT_PROPERTY_NAME = "dw.server.connector.port";
+
+  // TODO - move these into environment info
+  private static String BRIDGE_PORT = "8091";
+  private static String BRIDGE_TOKEN = "mockAdminToken";
+
   private static final File LIB_DIR = initLibDir();
 
   private static File initLibDir() {
@@ -137,7 +146,16 @@ public class ApiServiceExtension
 
     LOG.info("Starting {} Service with spec {} for {}", SERVICE_NAME, spec, context.getUniqueId());
 
-    ApiService svc = new ApiService(stargateEnvironmentInfo, spec, params, SERVICE_NAME);
+    Properties connectionProperties = new Properties();
+    connectionProperties.put(SERVICE_PORT_PROPERTY_NAME, String.valueOf(params.servicePort()));
+    connectionProperties.put(
+        BRIDGE_HOST_PROPERTY_NAME, stargateEnvironmentInfo.nodes().get(0).seedAddress());
+    // TODO: get these property values from stargateEnvironmentInfo
+    connectionProperties.put(BRIDGE_PORT_PROPERTY_NAME, BRIDGE_PORT);
+    connectionProperties.put(BRIDGE_TOKEN_PROPERTY_NAME, BRIDGE_TOKEN);
+
+    ApiService svc =
+        new ApiService(stargateEnvironmentInfo, spec, params, SERVICE_NAME, connectionProperties);
     svc.start();
     return Optional.of(svc);
   }
@@ -166,13 +184,15 @@ public class ApiServiceExtension
         StargateEnvironmentInfo stargateEnvironmentInfo,
         ApiServiceSpec spec,
         ApiServiceParameters parameters,
-        String serviceName)
+        String serviceName,
+        Properties connectionProperties)
         throws Exception {
       this.stargateEnvironmentInfo = stargateEnvironmentInfo;
       this.spec = spec;
       this.parameters = parameters;
 
-      instance = new Instance(stargateEnvironmentInfo, parameters, serviceName);
+      instance =
+          new Instance(stargateEnvironmentInfo, parameters, serviceName, connectionProperties);
     }
 
     private void start() {
@@ -230,22 +250,21 @@ public class ApiServiceExtension
     private Instance(
         StargateEnvironmentInfo stargateEnvironmentInfo,
         ApiServiceParameters params,
-        String serviceName)
+        String serviceName,
+        Properties connectionProperties)
         throws Exception {
       super(serviceName, 1, 1);
 
       cmd = new CommandLine("java");
 
-      cmd.addArgument(
-          "-Ddw.stargate.grpc.host=" + stargateEnvironmentInfo.nodes().get(0).seedAddress());
-      cmd.addArgument("-Ddw.stargate.grpc.port=" + 8091);
-      cmd.addArgument("-Ddw.server.connector.port=" + params.servicePort());
+      // add configured connection properties first, then properties provided as test parameters
+      for (String name : connectionProperties.stringPropertyNames()) {
+        cmd.addArgument("-D" + name + "=" + connectionProperties.getProperty(name));
+      }
 
       for (Entry<String, String> e : params.systemProperties().entrySet()) {
         cmd.addArgument("-D" + e.getKey() + "=" + e.getValue());
       }
-
-      cmd.addArgument("-Dstargate.bridge.admin_token=mockAdminToken");
 
       if (isDebug()) {
         int debuggerPort = 5200;
