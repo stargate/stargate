@@ -48,6 +48,7 @@ import io.stargate.web.restapi.models.TableResponse;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -84,9 +85,6 @@ public class RestApiv2Test extends BaseIntegrationTest {
   private String tableName;
   private static String authToken;
   private String restUrlBase;
-
-  // TODO: can remove after new REST service implements schema and insert operations
-  private String legacyRestUrlBase;
 
   // NOTE! Does not automatically disable exception on unknown properties to have
   // stricter matching of expected return types: if needed, can override on
@@ -127,7 +125,6 @@ public class RestApiv2Test extends BaseIntegrationTest {
       TestInfo testInfo, StargateConnectionInfo cluster, RestApiConnectionInfo restApi)
       throws IOException {
     restUrlBase = "http://" + restApi.host() + ":" + restApi.port();
-    legacyRestUrlBase = "http://" + cluster.seedAddress() + ":8082";
     String authUrlBase =
         "http://" + cluster.seedAddress() + ":8081"; // TODO: make auth port configurable
 
@@ -1921,7 +1918,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row2.put("likes", (short) 926);
     row2.put("test_runs", BigInteger.ONE);
     row2.put("source_ip", "FE80:CD00:0:CDE:1257:0:211E:729C");
-    row2.put("description", (new String("AQID//7gEiMB")).getBytes());
+    row2.put("description", new String("AQID//7gEiMB").getBytes(StandardCharsets.UTF_8));
 
     RestUtils.post(
         authToken,
@@ -2288,11 +2285,6 @@ public class RestApiv2Test extends BaseIntegrationTest {
    */
 
   private void createTable(String keyspaceName, String tableName) throws IOException {
-    createTable(keyspaceName, tableName, restUrlBase);
-  }
-
-  private void createTable(String keyspaceName, String tableName, String urlBase)
-      throws IOException {
     TableAdd tableAdd = new TableAdd();
     tableAdd.setName(tableName);
 
