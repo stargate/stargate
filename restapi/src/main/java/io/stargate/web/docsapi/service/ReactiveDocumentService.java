@@ -264,6 +264,9 @@ public class ReactiveDocumentService {
               // read the root
               JsonNode root = readPayload(payload);
 
+              // check the schema
+              checkSchemaOnPatch(db, namespace, collection);
+
               // explicitly forbid arrays and empty objects
               if (root.isArray()) {
                 throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED);

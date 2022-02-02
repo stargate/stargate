@@ -288,7 +288,8 @@ public class ReactiveDocumentResourceV2 {
   @ManagedAsync
   @ApiOperation(
       value = "Update data at the root of a document",
-      notes = "Merges data at the root with requested data.")
+      notes =
+          "Merges data at the root with requested data. Note that operation is not allowed if a JSON schema exist for a target collection.")
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = WriteDocResponse.class),
@@ -337,7 +338,7 @@ public class ReactiveDocumentResourceV2 {
   @ApiOperation(
       value = "Update data at a path in a document",
       notes =
-          "Merges data at the path with requested data, assumes that the data at the path is already an object.")
+          "Merges data at the path with requested data, assumes that the data at the path is already an object. Note that operation is not allowed if a JSON schema exist for a target collection.")
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = WriteDocResponse.class),
