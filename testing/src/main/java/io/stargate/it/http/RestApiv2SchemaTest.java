@@ -1010,8 +1010,9 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
 
     ApiError response = objectMapper.readValue(body, ApiError.class);
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription())
-        .isEqualTo("Bad request: An index named test_idx already exists");
+    // 02-Feb-2022, tatu: Unfortunately exact error message from backend varies
+    //     a bit across Cassandra versions (as well as SGv1/SGv2) so need to:
+    assertThat(response.getDescription()).contains("test_idx").contains("already exists");
 
     // successfully index a collection
     indexAdd.setColumn("email");
@@ -1450,7 +1451,9 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
     createTestKeyspace(keyspaceName);
 
     String udtString =
-        "{\"name\": \"test_udt1\", \"fields\":[{\"name\":\"arrival\",\"typeDefinition\":\"timestamp\"}]}";
+        "{\"name\": \"test_udt1\", \"fields\":"
+            + "[{\"name\":\"arrival\",\"typeDefinition\":\"timestamp\"},"
+            + "{\"name\":\"props\",\"typeDefinition\":\"map<text,text>\"}]}";
 
     RestUtils.post(
         authToken,
@@ -1472,9 +1475,11 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
     assertThat(response.size()).isEqualTo(3);
     assertThat(response.get("name")).isEqualTo("test_udt1");
     List<Map<String, String>> fields = (List<Map<String, String>>) response.get("fields");
-    assertThat(fields.size()).isEqualTo(1);
+    assertThat(fields.size()).isEqualTo(2);
     assertThat(fields.get(0).get("name")).isEqualTo("arrival");
     assertThat(fields.get(0).get("typeDefinition")).isEqualTo("timestamp");
+    assertThat(fields.get(1).get("name")).isEqualTo("props");
+    assertThat(fields.get(1).get("typeDefinition")).isEqualTo("map<text, text>");
 
     // Also try to access non-existing one to verify correct HTTP status code (404)
     RestUtils.get(
