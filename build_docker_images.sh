@@ -54,7 +54,8 @@ echo "Building version $SGTAG"
 # Note: Docker will not recognize files that are not under current directory
 LIBDIR=./tmp-${RANDOM}
 mkdir ${LIBDIR}
-cp ./stargate-lib/* $LIBDIR
+cp ./stargate-lib/*.jar $LIBDIR
+cp ./stargate-lib/logback.xml $LIBDIR
 rm ${LIBDIR}/persistence*.jar
 
 docker buildx build --target coordinator-4_0 --build-arg LIBDIR="$LIBDIR" -t stargateio/coordinator-4_0:$SGTAG $DOCKER_FLAGS .

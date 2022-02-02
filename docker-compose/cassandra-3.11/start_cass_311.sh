@@ -1,5 +1,25 @@
 #!/bin/sh
 
+# Set variable SGTAG
+
+SGTAG="v$(../../mvnw -f ../.. help:evaluate -Dexpression=project.version -q -DforceStdout)"
+
+while getopts ":pt:" opt; do
+  case $opt in
+    t)
+      SGTAG=$OPTARG
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG" >&2
+      exit 1
+      ;;
+  esac
+done
+
+export SGTAG
+
+echo "Running Stargate version $SGTAG with Cassandra 3.11"
+
 # Make sure cassandra-1, the seed node, is up before bringing up other nodes and stargate
 
 docker-compose up -d cassandra-1
@@ -22,11 +42,3 @@ docker-compose up -d cassandra-3
 
 docker-compose up -d coordinator restapi
 
-# Wait until stargate is up before bringing up zeppelin
-
-echo ""
-echo "Waiting for stargate to start up..."
-while [ "$(curl -s -o /dev/null -w ''%{http_code}'' http://localhost:8082/health)" != "200" ]; do
-    printf '.'
-    sleep 5
-done
