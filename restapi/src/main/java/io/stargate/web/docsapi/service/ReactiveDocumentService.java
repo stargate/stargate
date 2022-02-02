@@ -231,6 +231,29 @@ public class ReactiveDocumentService {
   }
 
   /**
+   * Patches a document with given ID in the given namespace and collection. Any previously existing
+   * patched keys at the given path will be overwritten, as well as any existing array.
+   *
+   * @param db {@link DocumentDB} to write in
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to patch
+   * @param payload Document represented as JSON string
+   * @param context Execution content
+   * @return Document response wrapper containing the generated ID.
+   */
+  public Single<DocumentResponseWrapper<Void>> patchDocument(
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String documentId,
+      String payload,
+      ExecutionContext context) {
+    List<String> subPath = Collections.emptyList();
+    return patchDocument(db, namespace, collection, documentId, subPath, payload, context);
+  }
+
+  /**
    * Patches a document with given ID in the given namespace and collection at the specified
    * sub-path. Any previously existing patched keys at the given path will be overwritten, as well
    * as any existing array.
