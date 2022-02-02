@@ -72,7 +72,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @NotThreadSafe
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec()
-public class RestApiv2Test extends BaseIntegrationTest {
+public class RestApiv2RowsTest extends BaseIntegrationTest {
   private String keyspaceName;
   private String tableName;
   private static String authToken;

@@ -269,8 +269,8 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
-    RestApiv2Test.NameResponse response =
-        objectMapper.readValue(body, RestApiv2Test.NameResponse.class);
+    RestApiv2RowsTest.NameResponse response =
+        objectMapper.readValue(body, RestApiv2RowsTest.NameResponse.class);
     assertThat(response.name).isEqualTo(tableAdd.getName());
   }
 
@@ -301,8 +301,8 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
-    RestApiv2Test.NameResponse response =
-        objectMapper.readValue(body, RestApiv2Test.NameResponse.class);
+    RestApiv2RowsTest.NameResponse response =
+        objectMapper.readValue(body, RestApiv2RowsTest.NameResponse.class);
     assertThat(response.name).isEqualTo(tableAdd.getName());
 
     body =
