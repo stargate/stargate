@@ -1453,7 +1453,7 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
     String udtString =
         "{\"name\": \"test_udt1\", \"fields\":"
             + "[{\"name\":\"arrival\",\"typeDefinition\":\"timestamp\"},"
-            + "{\"name\":\"props\",\"typeDefinition\":\"map<text,text>\"}]}";
+            + "{\"name\":\"props\",\"typeDefinition\":\"frozen<map<text,text>>\"}]}";
 
     RestUtils.post(
         authToken,
@@ -1479,7 +1479,7 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
     assertThat(fields.get(0).get("name")).isEqualTo("arrival");
     assertThat(fields.get(0).get("typeDefinition")).isEqualTo("timestamp");
     assertThat(fields.get(1).get("name")).isEqualTo("props");
-    assertThat(fields.get(1).get("typeDefinition")).isEqualTo("map<text, text>");
+    assertThat(fields.get(1).get("typeDefinition")).isEqualTo("frozen<map<text, text>>");
 
     // Also try to access non-existing one to verify correct HTTP status code (404)
     RestUtils.get(
