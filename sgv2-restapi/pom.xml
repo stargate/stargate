@@ -35,11 +35,6 @@
       <artifactId>core</artifactId>
       <version>${project.version}</version>
     </dependency>
-    <dependency>
-      <groupId>io.stargate</groupId>
-      <artifactId>sgv2-service-common</artifactId>
-      <version>${project.version}</version>
-    </dependency>
     <!-- this should also bring transitively "io.grpc:grpc-netty-shaded"...
          but somehow does not seem to, despite being listed as a dep?!
       -->
