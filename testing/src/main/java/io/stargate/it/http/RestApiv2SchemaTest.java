@@ -29,8 +29,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @NotThreadSafe
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec()
-@ExtendWith(RestApiExtension.class)
-@RestApiSpec()
+@ExtendWith(ApiServiceExtension.class)
+@ApiServiceSpec()
 public class RestApiv2SchemaTest extends BaseIntegrationTest {
   private String keyspaceName;
   private String tableName;
@@ -41,7 +41,7 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
 
   @BeforeEach
   public void setup(
-      TestInfo testInfo, StargateConnectionInfo cluster, RestApiConnectionInfo restApi)
+      TestInfo testInfo, StargateConnectionInfo cluster, ApiServiceConnectionInfo restApi)
       throws IOException {
     restUrlBase = "http://" + restApi.host() + ":" + restApi.port();
     String authUrlBase =
