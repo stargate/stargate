@@ -50,24 +50,20 @@ public class ApiServiceExtension
     implements ParameterResolver {
   private static final Logger LOG = LoggerFactory.getLogger(ApiServiceExtension.class);
 
-  public static final File LIB_DIR = initLibDir();
+  private static String SERVICE_NAME = "REST API";
 
-  public static final String STORE_KEY = storeKey();
+  private static String SERVICE_STARTED_MESSAGE = "Started RestServiceServer";
 
-  public static final String SERVICE_STARTED_MESSAGE = serviceStartedMessage();
+  private static String SERVICE_LIBDIR_PROPERTY = "stargate.rest.libdir";
 
-  private static String storeKey() {
-    return "restapi-service";
-  }
+  private static String SERVICE_JAR_BASE = "sgv2-rest-service";
 
-  private static String serviceStartedMessage() {
-    return "Started RestServiceServer";
-  }
+  private static final File LIB_DIR = initLibDir();
 
   private static File initLibDir() {
-    String dir = System.getProperty("stargate.rest.libdir");
+    String dir = System.getProperty(SERVICE_LIBDIR_PROPERTY);
     if (dir == null) {
-      throw new IllegalStateException("stargate.rest.libdir system property is not set.");
+      throw new IllegalStateException(SERVICE_LIBDIR_PROPERTY + " system property is not set.");
     }
 
     return new File(dir);
@@ -77,17 +73,20 @@ public class ApiServiceExtension
     File[] files = LIB_DIR.listFiles();
     Assertions.assertNotNull(files, "No files in " + LIB_DIR.getAbsolutePath());
     return Arrays.stream(files)
-        .filter(f -> f.getName().startsWith("sgv2-rest-service"))
+        .filter(f -> f.getName().startsWith(SERVICE_JAR_BASE))
         .filter(f -> f.getName().endsWith(".jar"))
         .findFirst()
         .orElseThrow(
             () ->
                 new IllegalStateException(
-                    "Unable to find REST Service jar in: " + LIB_DIR.getAbsolutePath()));
+                    "Unable to find "
+                        + SERVICE_JAR_BASE
+                        + "*.jar in: "
+                        + LIB_DIR.getAbsolutePath()));
   }
 
   public ApiServiceExtension() {
-    super(ApiServiceSpec.class, STORE_KEY, Namespace.GLOBAL);
+    super(ApiServiceSpec.class, SERVICE_NAME, Namespace.GLOBAL);
   }
 
   private static ApiServiceParameters parameters(ApiServiceSpec spec, ExtensionContext context)
@@ -124,16 +123,19 @@ public class ApiServiceExtension
 
     if (service != null) {
       if (service.matches(stargateEnvironmentInfo, spec, params)) {
-        LOG.info("Reusing matching REST API Service {} for {}", spec, context.getUniqueId());
+        LOG.info(
+            "Reusing matching {} Service {} for {}", SERVICE_NAME, spec, context.getUniqueId());
         return Optional.empty();
       }
 
       LOG.info(
-          "Closing old REST API Service due to spec mismatch within {}", context.getUniqueId());
+          "Closing old {} Service due to spec mismatch within {}",
+          SERVICE_NAME,
+          context.getUniqueId());
       service.close();
     }
 
-    LOG.info("Starting REST API Service with spec {} for {}", spec, context.getUniqueId());
+    LOG.info("Starting {} Service with spec {} for {}", SERVICE_NAME, spec, context.getUniqueId());
 
     ApiService svc = new ApiService(stargateEnvironmentInfo, spec, params);
     svc.start();
