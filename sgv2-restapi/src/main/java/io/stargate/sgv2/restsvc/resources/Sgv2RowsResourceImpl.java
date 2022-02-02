@@ -137,7 +137,6 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
     }
 
-    // To bind path/key parameters, need converter; and for that we need table metadata:
     return callWithTable(
         blockingStub,
         keyspaceName,
@@ -222,11 +221,10 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         keyspaceName,
         tableName,
         (tableDef) -> {
-          final String cql;
-
           final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
           QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
 
+          final String cql;
           try {
             cql =
                 buildAddRowCQL(
@@ -240,7 +238,6 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
                   .setCql(cql)
                   .setValues(valuesBuilder.build())
                   .build();
-
           QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
           // apparently no useful data in ResultSet, we should simply return payload we got:
           return Response.status(Status.CREATED).entity(payloadAsString).build();
@@ -267,7 +264,6 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final List<PathSegment> path,
       HttpServletRequest request) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    // To bind path/key parameters, need converter; and for that we need table metadata:
     return callWithTable(
         blockingStub,
         keyspaceName,
@@ -327,10 +323,10 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         keyspaceName,
         tableName,
         (tableDef) -> {
-          final String cql;
           final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
           QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
 
+          final String cql;
           try {
             cql =
                 buildUpdateRowCQL(
