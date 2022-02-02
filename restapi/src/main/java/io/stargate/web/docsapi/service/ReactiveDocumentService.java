@@ -135,7 +135,7 @@ public class ReactiveDocumentService {
               JsonNode root = readPayload(payload);
 
               // check the schema
-              checkSchemaFullDocument(db, namespace, collection, root);
+              checkSchemaOnWrite(db, namespace, collection, root);
 
               // shred rows
               List<JsonShreddedRow> rows =
@@ -211,7 +211,7 @@ public class ReactiveDocumentService {
               JsonNode root = readPayload(payload);
 
               // check the schema
-              checkSchemaFullDocument(db, namespace, collection, root);
+              checkSchemaOnUpdate(db, namespace, collection, root, !subPath.isEmpty());
 
               // shred rows
               List<JsonShreddedRow> rows = jsonDocumentShredder.shred(root, subPathProcessed);
@@ -947,16 +947,39 @@ public class ReactiveDocumentService {
   /////////////////////
 
   // checks that node is in alignment with schema if exists
-  private void checkSchemaFullDocument(
+  private void checkSchemaOnWrite(
       DocumentDB db, String namespace, String collection, JsonNode root) {
     JsonNode schema = jsonSchemaHandler.getCachedJsonSchema(db, namespace, collection);
-    if (null != schema) {
-      try {
-        jsonSchemaHandler.validate(schema, root);
-      } catch (ProcessingException e) {
-        // TODO validate unchecked better?
-        throw new RuntimeException(e);
+    if (schema != null) {
+      validateSchema(schema, root);
+    }
+  }
+
+  // update is not allowed if schema exists and targets sub document
+  public void checkSchemaOnUpdate(
+      DocumentDB db, String namespace, String collection, JsonNode root, boolean subDocument) {
+    JsonNode schema = jsonSchemaHandler.getCachedJsonSchema(db, namespace, collection);
+    if (schema != null) {
+      if (subDocument) {
+        throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_JSON_SCHEMA_INVALID_PARTIAL_UPDATE);
       }
+      validateSchema(schema, root);
+    }
+  }
+
+  // patch is not allowed if schema exists
+  public void checkSchemaOnPatch(DocumentDB db, String namespace, String collection) {
+    JsonNode schema = jsonSchemaHandler.getCachedJsonSchema(db, namespace, collection);
+    if (schema != null) {
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_JSON_SCHEMA_INVALID_PARTIAL_UPDATE);
+    }
+  }
+
+  private void validateSchema(JsonNode schema, JsonNode root) {
+    try {
+      jsonSchemaHandler.validate(schema, root);
+    } catch (ProcessingException e) {
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_JSON_SCHEMA_PROCESSING_FAILED, e);
     }
   }
 

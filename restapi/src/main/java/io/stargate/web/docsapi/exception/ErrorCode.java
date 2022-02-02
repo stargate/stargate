@@ -119,10 +119,16 @@ public enum ErrorCode {
       Response.Status.BAD_REQUEST,
       "When a collection has a JSON schema, partial updates of documents are disallowed for performance reasons."),
 
+  DOCS_API_JSON_SCHEMA_PROCESSING_FAILED(
+      Response.Status.INTERNAL_SERVER_ERROR,
+      "Processing a JSON schema validation failed for a given document."),
+
   DOCS_API_INVALID_JSON_VALUE(
       Response.Status.BAD_REQUEST, "The provided JSON does not match the collection's schema."),
+
   DOCS_API_WRITE_BATCH_INVALID_ID_PATH(
       Response.Status.BAD_REQUEST, "ID path is invalid for document during batch write."),
+
   DOCS_API_WRITE_BATCH_FAILED(
       Response.Status.INTERNAL_SERVER_ERROR, "Write failed during batched document write."),
 

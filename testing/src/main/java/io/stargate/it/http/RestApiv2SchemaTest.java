@@ -1011,7 +1011,11 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
 
     ApiError response = objectMapper.readValue(body, ApiError.class);
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription()).contains("test_idx already exists");
+    // 02-Feb-2022, tatu: Unfortunately exact error message from backend varies
+    //     a bit across Cassandra versions (as well as SGv1/SGv2) so need to:
+    assertThat(response.getDescription())
+            .contains("test_idx")
+            .contains("already exists");
 
     // successfully index a collection
     indexAdd.setColumn("email");
