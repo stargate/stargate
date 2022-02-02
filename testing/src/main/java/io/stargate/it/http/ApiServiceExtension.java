@@ -137,7 +137,7 @@ public class ApiServiceExtension
 
     LOG.info("Starting {} Service with spec {} for {}", SERVICE_NAME, spec, context.getUniqueId());
 
-    ApiService svc = new ApiService(stargateEnvironmentInfo, spec, params);
+    ApiService svc = new ApiService(stargateEnvironmentInfo, spec, params, SERVICE_NAME);
     svc.start();
     return Optional.of(svc);
   }
@@ -165,13 +165,14 @@ public class ApiServiceExtension
     private ApiService(
         StargateEnvironmentInfo stargateEnvironmentInfo,
         ApiServiceSpec spec,
-        ApiServiceParameters parameters)
+        ApiServiceParameters parameters,
+        String serviceName)
         throws Exception {
       this.stargateEnvironmentInfo = stargateEnvironmentInfo;
       this.spec = spec;
       this.parameters = parameters;
 
-      instance = new Instance(stargateEnvironmentInfo, parameters);
+      instance = new Instance(stargateEnvironmentInfo, parameters, serviceName);
     }
 
     private void start() {
@@ -226,9 +227,12 @@ public class ApiServiceExtension
 
     private final CommandLine cmd;
 
-    private Instance(StargateEnvironmentInfo stargateEnvironmentInfo, ApiServiceParameters params)
+    private Instance(
+        StargateEnvironmentInfo stargateEnvironmentInfo,
+        ApiServiceParameters params,
+        String serviceName)
         throws Exception {
-      super("RestAPI", 1, 1);
+      super(serviceName, 1, 1);
 
       cmd = new CommandLine("java");
 
