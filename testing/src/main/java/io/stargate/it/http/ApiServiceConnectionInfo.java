@@ -15,6 +15,10 @@
  */
 package io.stargate.it.http;
 
+/**
+ * This interface represents the information that is needed by test cases in order to
+ * invoke an API service
+ */
 public interface ApiServiceConnectionInfo {
 
   String host();
