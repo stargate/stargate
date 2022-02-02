@@ -21,8 +21,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
-import com.datastax.oss.driver.api.core.cql.Row;
-import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
@@ -44,13 +42,11 @@ import io.stargate.web.restapi.models.PrimaryKey;
 import io.stargate.web.restapi.models.RESTResponseWrapper;
 import io.stargate.web.restapi.models.SuccessResponse;
 import io.stargate.web.restapi.models.TableAdd;
-import io.stargate.web.restapi.models.TableOptions;
 import io.stargate.web.restapi.models.TableResponse;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -146,363 +142,6 @@ public class RestApiv2Test extends BaseIntegrationTest {
   /* Test methods for Index CRUD operations
   /************************************************************************
    */
-
-  @Test
-  public void createIndex(CqlSession session) throws IOException {
-    createKeyspace(keyspaceName);
-    tableName = "tbl_createtable_" + System.currentTimeMillis();
-    createTestTable(
-        tableName,
-        Arrays.asList("id text", "firstName text", "lastName text", "email list<text>"),
-        Collections.singletonList("id"),
-        null);
-
-    IndexAdd indexAdd = new IndexAdd();
-    indexAdd.setColumn("firstName");
-    indexAdd.setName("test_idx");
-    indexAdd.setIfNotExists(false);
-
-    String body =
-        RestUtils.post(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
-            objectMapper.writeValueAsString(indexAdd),
-            HttpStatus.SC_CREATED);
-    SuccessResponse successResponse =
-        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
-    assertThat(successResponse.getSuccess()).isTrue();
-
-    List<Row> rows = session.execute("SELECT * FROM system_schema.indexes;").all();
-    assertThat(rows.stream().anyMatch(i -> "test_idx".equals(i.getString("index_name")))).isTrue();
-
-    // don't create and index if it already exists and don't throw error
-    indexAdd.setIfNotExists(true);
-    body =
-        RestUtils.post(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
-            objectMapper.writeValueAsString(indexAdd),
-            HttpStatus.SC_CREATED);
-    successResponse = objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
-    assertThat(successResponse.getSuccess()).isTrue();
-
-    // throw error if index already exists
-    indexAdd.setIfNotExists(false);
-    body =
-        RestUtils.post(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
-            objectMapper.writeValueAsString(indexAdd),
-            HttpStatus.SC_BAD_REQUEST);
-
-    ApiError response = objectMapper.readValue(body, ApiError.class);
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription())
-        .isEqualTo("Bad request: An index named test_idx already exists");
-
-    // successufully index a collection
-    indexAdd.setColumn("email");
-    indexAdd.setName(null);
-    indexAdd.setKind(IndexKind.VALUES);
-    body =
-        RestUtils.post(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
-            objectMapper.writeValueAsString(indexAdd),
-            HttpStatus.SC_CREATED);
-    successResponse = objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
-    assertThat(successResponse.getSuccess()).isTrue();
-  }
-
-  @Test
-  public void createCustomIndex(CqlSession session) throws IOException {
-    // TODO remove this when we figure out how to enable SAI indexes in Cassandra 4
-    assumeThat(isCassandra4())
-        .as(
-            "Disabled because it is currently not possible to enable SAI indexes "
-                + "on a Cassandra 4 backend")
-        .isFalse();
-
-    createKeyspace(keyspaceName);
-    tableName = "tbl_createtable_" + System.currentTimeMillis();
-    createTestTable(
-        tableName,
-        Arrays.asList("id text", "firstName text", "lastName text", "email list<text>"),
-        Collections.singletonList("id"),
-        null);
-
-    IndexAdd indexAdd = new IndexAdd();
-    String indexType = "org.apache.cassandra.index.sasi.SASIIndex";
-    indexAdd.setColumn("lastName");
-    indexAdd.setName("test_custom_idx");
-    indexAdd.setType(indexType);
-    indexAdd.setIfNotExists(false);
-    indexAdd.setKind(null);
-
-    Map<String, String> options = new HashMap<>();
-    options.put("mode", "CONTAINS");
-    indexAdd.setOptions(options);
-
-    String body =
-        RestUtils.post(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
-            objectMapper.writeValueAsString(indexAdd),
-            HttpStatus.SC_CREATED);
-    SuccessResponse successResponse =
-        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
-    assertThat(successResponse.getSuccess()).isTrue();
-
-    Collection<Row> rows = session.execute("SELECT * FROM system_schema.indexes;").all();
-    Optional<Row> row =
-        rows.stream().filter(i -> "test_custom_idx".equals(i.getString("index_name"))).findFirst();
-    Map<String, String> optionsReturned = row.get().getMap("options", String.class, String.class);
-
-    assertThat(optionsReturned.get("class_name")).isEqualTo(indexType);
-    assertThat(optionsReturned.get("target")).isEqualTo("\"lastName\"");
-    assertThat(optionsReturned.get("mode")).isEqualTo("CONTAINS");
-  }
-
-  @Test
-  public void createInvalidIndex() throws IOException {
-    createKeyspace(keyspaceName);
-    String tableName = "tbl_createtable_" + System.currentTimeMillis();
-    createTestTable(
-        tableName,
-        Arrays.asList("id text", "firstName text", "email list<text>"),
-        Collections.singletonList("id"),
-        null);
-
-    // invalid table
-    IndexAdd indexAdd = new IndexAdd();
-    indexAdd.setColumn("firstName");
-    String body =
-        RestUtils.post(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/invalid_table/indexes", host, keyspaceName),
-            objectMapper.writeValueAsString(indexAdd),
-            HttpStatus.SC_NOT_FOUND);
-    ApiError response = objectMapper.readValue(body, ApiError.class);
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_NOT_FOUND);
-    assertThat(response.getDescription()).isEqualTo("Table 'invalid_table' not found in keyspace.");
-
-    // invalid column
-    indexAdd.setColumn("invalid_column");
-    body =
-        RestUtils.post(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
-            objectMapper.writeValueAsString(indexAdd),
-            HttpStatus.SC_NOT_FOUND);
-
-    response = objectMapper.readValue(body, ApiError.class);
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_NOT_FOUND);
-    assertThat(response.getDescription()).isEqualTo("Column 'invalid_column' not found in table.");
-
-    // invalid index kind
-    indexAdd.setColumn("firstName");
-    indexAdd.setKind(IndexKind.ENTRIES);
-    body =
-        RestUtils.post(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
-            objectMapper.writeValueAsString(indexAdd),
-            HttpStatus.SC_BAD_REQUEST);
-
-    response = objectMapper.readValue(body, ApiError.class);
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription())
-        .isEqualTo("Bad request: Indexing entries can only be used with a map");
-  }
-
-  @Test
-  public void listAllIndexes(CqlSession session) throws IOException {
-    createKeyspace(keyspaceName);
-    tableName = "tbl_createtable_" + System.currentTimeMillis();
-    createTestTable(
-        tableName,
-        Arrays.asList("id text", "firstName text", "email list<text>"),
-        Collections.singletonList("id"),
-        null);
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
-            HttpStatus.SC_OK);
-    assertThat(body).isEqualTo("[]");
-
-    IndexAdd indexAdd = new IndexAdd();
-    indexAdd.setColumn("firstName");
-    indexAdd.setName("test_idx");
-    indexAdd.setIfNotExists(false);
-
-    RestUtils.post(
-        authToken,
-        String.format(
-            "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
-        objectMapper.writeValueAsString(indexAdd),
-        HttpStatus.SC_CREATED);
-
-    body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
-            HttpStatus.SC_OK);
-
-    List<Map<String, Object>> data =
-        objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
-
-    assertThat(data.stream().anyMatch(m -> "test_idx".equals(m.get("index_name")))).isTrue();
-  }
-
-  @Test
-  public void dropIndex(CqlSession session) throws IOException {
-    createKeyspace(keyspaceName);
-    tableName = "tbl_createtable_" + System.currentTimeMillis();
-    createTestTable(
-        tableName,
-        Arrays.asList("id text", "firstName text", "email list<text>"),
-        Collections.singletonList("id"),
-        null);
-
-    IndexAdd indexAdd = new IndexAdd();
-    indexAdd.setColumn("firstName");
-    indexAdd.setName("test_idx");
-    indexAdd.setIfNotExists(false);
-
-    RestUtils.post(
-        authToken,
-        String.format(
-            "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes", host, keyspaceName, tableName),
-        objectMapper.writeValueAsString(indexAdd),
-        HttpStatus.SC_CREATED);
-
-    SimpleStatement selectIndexes =
-        SimpleStatement.newInstance(
-            "SELECT * FROM system_schema.indexes WHERE keyspace_name = ? AND table_name = ?",
-            keyspaceName,
-            tableName);
-    List<Row> rows = session.execute(selectIndexes).all();
-    assertThat(rows.size()).isEqualTo(1);
-
-    String indexName = "test_idx";
-    RestUtils.delete(
-        authToken,
-        String.format(
-            "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes/%s",
-            host, keyspaceName, tableName, indexName),
-        HttpStatus.SC_NO_CONTENT);
-
-    rows = session.execute(selectIndexes).all();
-    assertThat(rows.size()).isEqualTo(0);
-
-    indexName = "invalid_idx";
-    String body =
-        RestUtils.delete(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes/%s",
-                host, keyspaceName, tableName, indexName),
-            HttpStatus.SC_NOT_FOUND);
-
-    ApiError response = objectMapper.readValue(body, ApiError.class);
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_NOT_FOUND);
-    assertThat(response.getDescription()).isEqualTo("Index 'invalid_idx' not found.");
-
-    // ifExists=true
-    indexName = "invalid_idx";
-    RestUtils.delete(
-        authToken,
-        String.format(
-            "%s:8082/v2/schemas/keyspaces/%s/tables/%s/indexes/%s?ifExists=true",
-            host, keyspaceName, tableName, indexName),
-        HttpStatus.SC_NO_CONTENT);
-  }
-
-  @Test
-  public void createTableWithNullOptions() throws IOException {
-    createKeyspace(keyspaceName);
-
-    TableAdd tableAdd = new TableAdd();
-    tableAdd.setName("t1");
-
-    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
-
-    columnDefinitions.add(new ColumnDefinition("id", "uuid"));
-    columnDefinitions.add(new ColumnDefinition("lastName", "text"));
-    columnDefinitions.add(new ColumnDefinition("firstName", "text"));
-
-    tableAdd.setColumnDefinitions(columnDefinitions);
-
-    PrimaryKey primaryKey = new PrimaryKey();
-    primaryKey.setPartitionKey(Collections.singletonList("id"));
-    tableAdd.setPrimaryKey(primaryKey);
-    tableAdd.setTableOptions(null);
-
-    String body =
-        RestUtils.post(
-            authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
-            objectMapper.writeValueAsString(tableAdd),
-            HttpStatus.SC_CREATED);
-
-    NameResponse response = objectMapper.readValue(body, NameResponse.class);
-    assertThat(response.name).isEqualTo(tableAdd.getName());
-  }
-
-  @Test
-  public void createTableMissingClustering() throws IOException {
-    createKeyspace(keyspaceName);
-    TableAdd tableAdd = new TableAdd();
-    tableAdd.setName(tableName);
-
-    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
-
-    columnDefinitions.add(new ColumnDefinition("pk1", "int"));
-    columnDefinitions.add(new ColumnDefinition("ck1", "int"));
-
-    tableAdd.setColumnDefinitions(columnDefinitions);
-
-    PrimaryKey primaryKey = new PrimaryKey();
-    primaryKey.setPartitionKey(Collections.singletonList("pk1"));
-    primaryKey.setClusteringKey(Collections.singletonList("ck1"));
-    tableAdd.setPrimaryKey(primaryKey);
-
-    tableAdd.setTableOptions(new TableOptions(0, null));
-
-    String body =
-        RestUtils.post(
-            authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
-            objectMapper.writeValueAsString(tableAdd),
-            HttpStatus.SC_CREATED);
-
-    NameResponse response = objectMapper.readValue(body, NameResponse.class);
-    assertThat(response.name).isEqualTo(tableAdd.getName());
-
-    body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s?raw=true",
-                host, keyspaceName, tableName),
-            HttpStatus.SC_OK);
-
-    TableResponse table = objectMapper.readValue(body, TableResponse.class);
-    assertThat(table.getTableOptions().getClusteringExpression().get(0).getOrder())
-        .isEqualTo("ASC");
-  }
 
   /*
   /************************************************************************
@@ -2111,451 +1750,6 @@ public class RestApiv2Test extends BaseIntegrationTest {
   /************************************************************************
    */
 
-  @Test
-  public void getColumns() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
-            HttpStatus.SC_OK);
-    List<ColumnDefinition> columns =
-        readWrappedRESTResponse(body, new TypeReference<List<ColumnDefinition>>() {});
-    assertThat(columns)
-        .anySatisfy(
-            value ->
-                assertThat(value)
-                    .usingRecursiveComparison()
-                    .isEqualTo(new ColumnDefinition("id", "uuid", false)));
-  }
-
-  @Test
-  public void getColumnsRaw() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns?raw=true",
-                host, keyspaceName, tableName),
-            HttpStatus.SC_OK);
-    List<ColumnDefinition> columns =
-        objectMapper.readValue(body, new TypeReference<List<ColumnDefinition>>() {});
-    assertThat(columns)
-        .anySatisfy(
-            value ->
-                assertThat(value)
-                    .usingRecursiveComparison()
-                    .isEqualTo(new ColumnDefinition("id", "uuid", false)));
-  }
-
-  @Test
-  public void getColumnsComplex() throws IOException {
-    createKeyspace(keyspaceName);
-    createComplexTable(keyspaceName, tableName);
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
-            HttpStatus.SC_OK);
-    List<ColumnDefinition> columns =
-        readWrappedRESTResponse(body, new TypeReference<List<ColumnDefinition>>() {});
-    assertThat(columns)
-        .anySatisfy(
-            value ->
-                assertThat(value)
-                    .usingRecursiveComparison()
-                    .isEqualTo(new ColumnDefinition("col2", "frozen<set<boolean>>", false)));
-  }
-
-  @Test
-  public void getColumnsBadTable() throws IOException {
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, "foo"),
-            HttpStatus.SC_BAD_REQUEST);
-    ApiError response = objectMapper.readValue(body, ApiError.class);
-
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription()).isNotEmpty();
-  }
-
-  @Test
-  public void getColumnsBadKeyspace() throws IOException {
-    createKeyspace(keyspaceName);
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, "foo", tableName),
-            HttpStatus.SC_BAD_REQUEST);
-    ApiError response = objectMapper.readValue(body, ApiError.class);
-
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription()).isNotEmpty();
-  }
-
-  @Test
-  public void getColumn() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, keyspaceName, tableName, "age"),
-            HttpStatus.SC_OK);
-    ColumnDefinition column = readWrappedRESTResponse(body, ColumnDefinition.class);
-    assertThat(column)
-        .usingRecursiveComparison()
-        .isEqualTo(new ColumnDefinition("age", "int", false));
-  }
-
-  @Test
-  public void getColumnNotFound() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, keyspaceName, tableName, "foo"),
-            HttpStatus.SC_NOT_FOUND);
-    ApiError response = objectMapper.readValue(body, ApiError.class);
-
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_NOT_FOUND);
-    assertThat(response.getDescription()).isNotEmpty();
-  }
-
-  @Test
-  public void getColumnRaw() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true",
-                host, keyspaceName, tableName, "age"),
-            HttpStatus.SC_OK);
-    ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
-    assertThat(column)
-        .usingRecursiveComparison()
-        .isEqualTo(new ColumnDefinition("age", "int", false));
-  }
-
-  @Test
-  public void getColumnComplex() throws IOException {
-    createKeyspace(keyspaceName);
-    createComplexTable(keyspaceName, tableName);
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, keyspaceName, tableName, "col1"),
-            HttpStatus.SC_OK);
-    ColumnDefinition column = readWrappedRESTResponse(body, ColumnDefinition.class);
-    assertThat(column)
-        .usingRecursiveComparison()
-        .isEqualTo(new ColumnDefinition("col1", "frozen<map<date, text>>", false));
-  }
-
-  @Test
-  public void getColumnBadTable() throws IOException {
-    createKeyspace(keyspaceName);
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, keyspaceName, "foo", "age"),
-            HttpStatus.SC_BAD_REQUEST);
-    ApiError response = objectMapper.readValue(body, ApiError.class);
-
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription()).isNotEmpty();
-  }
-
-  @Test
-  public void getColumnBadKeyspace() throws IOException {
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, "foo", tableName, "age"),
-            HttpStatus.SC_BAD_REQUEST);
-    ApiError response = objectMapper.readValue(body, ApiError.class);
-
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription()).isNotEmpty();
-  }
-
-  @Test
-  public void addColumn() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    ColumnDefinition columnDefinition = new ColumnDefinition("name", "text");
-
-    String body =
-        RestUtils.post(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
-            objectMapper.writeValueAsString(columnDefinition),
-            HttpStatus.SC_CREATED);
-    @SuppressWarnings("unchecked")
-    Map<String, String> response = objectMapper.readValue(body, Map.class);
-
-    assertThat(response.get("name")).isEqualTo("name");
-
-    body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true",
-                host, keyspaceName, tableName, "name"),
-            HttpStatus.SC_OK);
-    ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
-    assertThat(column).usingRecursiveComparison().isEqualTo(columnDefinition);
-  }
-
-  @Test
-  public void addColumnBadType() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    ColumnDefinition columnDefinition = new ColumnDefinition("name", "badType");
-
-    String body =
-        RestUtils.post(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
-            objectMapper.writeValueAsString(columnDefinition),
-            HttpStatus.SC_BAD_REQUEST);
-    ApiError response = objectMapper.readValue(body, ApiError.class);
-
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription()).isNotEmpty();
-  }
-
-  @Test
-  public void addColumnStatic() throws IOException {
-    createKeyspace(keyspaceName);
-    createTableWithClustering(keyspaceName, tableName);
-
-    ColumnDefinition columnDefinition = new ColumnDefinition("balance", "float", true);
-
-    String body =
-        RestUtils.post(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns", host, keyspaceName, tableName),
-            objectMapper.writeValueAsString(columnDefinition),
-            HttpStatus.SC_CREATED);
-    @SuppressWarnings("unchecked")
-    Map<String, String> response = objectMapper.readValue(body, Map.class);
-
-    assertThat(response.get("name")).isEqualTo("balance");
-
-    body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true",
-                host, keyspaceName, tableName, "balance"),
-            HttpStatus.SC_OK);
-    ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
-    assertThat(column).usingRecursiveComparison().isEqualTo(columnDefinition);
-  }
-
-  @Test
-  public void updateColumn() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    ColumnDefinition columnDefinition = new ColumnDefinition("identifier", "uuid");
-
-    String body =
-        RestUtils.put(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, keyspaceName, tableName, "id"),
-            objectMapper.writeValueAsString(columnDefinition),
-            HttpStatus.SC_OK);
-    @SuppressWarnings("unchecked")
-    Map<String, String> response = objectMapper.readValue(body, Map.class);
-
-    assertThat(response.get("name")).isEqualTo("identifier");
-
-    body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s?raw=true",
-                host, keyspaceName, tableName, "identifier"),
-            HttpStatus.SC_OK);
-    ColumnDefinition column = objectMapper.readValue(body, ColumnDefinition.class);
-    assertThat(column).usingRecursiveComparison().isEqualTo(columnDefinition);
-  }
-
-  @Test
-  public void updateColumnNotFound() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    ColumnDefinition columnDefinition = new ColumnDefinition("name", "text");
-
-    String body =
-        RestUtils.put(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, keyspaceName, tableName, "notFound"),
-            objectMapper.writeValueAsString(columnDefinition),
-            HttpStatus.SC_BAD_REQUEST);
-    ApiError response = objectMapper.readValue(body, ApiError.class);
-
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription()).isNotEmpty();
-  }
-
-  @Test
-  public void updateColumnBadTable() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    ColumnDefinition columnDefinition = new ColumnDefinition("name", "text");
-
-    String body =
-        RestUtils.put(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, keyspaceName, "foo", "age"),
-            objectMapper.writeValueAsString(columnDefinition),
-            HttpStatus.SC_BAD_REQUEST);
-    ApiError response = objectMapper.readValue(body, ApiError.class);
-
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription()).isNotEmpty();
-  }
-
-  @Test
-  public void updateColumnBadKeyspace() throws IOException {
-    ColumnDefinition columnDefinition = new ColumnDefinition("name", "text");
-
-    String body =
-        RestUtils.put(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, "foo", tableName, "age"),
-            objectMapper.writeValueAsString(columnDefinition),
-            HttpStatus.SC_BAD_REQUEST);
-    ApiError response = objectMapper.readValue(body, ApiError.class);
-
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription()).isNotEmpty();
-  }
-
-  @Test
-  public void deleteColumn() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    RestUtils.delete(
-        authToken,
-        String.format(
-            "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-            host, keyspaceName, tableName, "age"),
-        HttpStatus.SC_NO_CONTENT);
-  }
-
-  @Test
-  public void deleteColumnNotFound() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    RestUtils.delete(
-        authToken,
-        String.format(
-            "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-            host, keyspaceName, tableName, "foo"),
-        HttpStatus.SC_BAD_REQUEST);
-  }
-
-  @Test
-  public void deleteColumnBadTable() throws IOException {
-    createKeyspace(keyspaceName);
-
-    String body =
-        RestUtils.delete(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, keyspaceName, "foo", "age"),
-            HttpStatus.SC_BAD_REQUEST);
-    ApiError response = objectMapper.readValue(body, ApiError.class);
-
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription()).isNotEmpty();
-  }
-
-  @Test
-  public void deleteColumnBadKeyspace() throws IOException {
-    String body =
-        RestUtils.delete(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, "foo", tableName, "age"),
-            HttpStatus.SC_BAD_REQUEST);
-    ApiError response = objectMapper.readValue(body, ApiError.class);
-
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription()).isNotEmpty();
-  }
-
-  @Test
-  public void deleteColumnPartitionKey() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
-
-    String body =
-        RestUtils.delete(
-            authToken,
-            String.format(
-                "%s:8082/v2/schemas/keyspaces/%s/tables/%s/columns/%s",
-                host, keyspaceName, tableName, "id"),
-            HttpStatus.SC_BAD_REQUEST);
-    ApiError response = objectMapper.readValue(body, ApiError.class);
-
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(response.getDescription()).isNotEmpty();
-  }
-
   /*
   /************************************************************************
   /* Test methods for User-Defined Type (UDT) CRUD operations
@@ -2883,67 +2077,6 @@ public class RestApiv2Test extends BaseIntegrationTest {
     assertThat(fields.get(0).get("typeDefinition")).isEqualTo("text");
   }
 
-  @Test
-  public void testMixedCaseTable() throws IOException {
-    createKeyspace(keyspaceName);
-
-    String tableName = "MixedCaseTable";
-    TableAdd tableAdd = new TableAdd();
-    tableAdd.setName(tableName);
-
-    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
-
-    columnDefinitions.add(new ColumnDefinition("ID", "uuid"));
-    columnDefinitions.add(new ColumnDefinition("Lastname", "text"));
-    columnDefinitions.add(new ColumnDefinition("Firstname", "text"));
-    tableAdd.setColumnDefinitions(columnDefinitions);
-
-    PrimaryKey primaryKey = new PrimaryKey();
-    primaryKey.setPartitionKey(Collections.singletonList("ID"));
-    tableAdd.setPrimaryKey(primaryKey);
-
-    // ensure table name is preserved
-    String body =
-        RestUtils.post(
-            authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
-            objectMapper.writeValueAsString(tableAdd),
-            HttpStatus.SC_CREATED);
-
-    TableResponse tableResponse =
-        objectMapper.readValue(body, new TypeReference<TableResponse>() {});
-    assertThat(tableResponse.getName()).isEqualTo(tableName);
-
-    // insert a row
-    String rowIdentifier = UUID.randomUUID().toString();
-    Map<String, String> row = new HashMap<>();
-    row.put("ID", rowIdentifier);
-    row.put("Firstname", "John");
-    row.put("Lastname", "Doe");
-
-    RestUtils.post(
-        authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
-        objectMapper.writeValueAsString(row),
-        HttpStatus.SC_CREATED);
-
-    // retrieve the row by ID and ensure column names are as expected
-    String whereClause = String.format("{\"ID\":{\"$eq\":\"%s\"}}", rowIdentifier);
-    body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s:8082/v2/keyspaces/%s/%s?where=%s", host, keyspaceName, tableName, whereClause),
-            HttpStatus.SC_OK);
-
-    ListOfMapsGetResponseWrapper getResponseWrapper =
-        LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
-    List<Map<String, Object>> data = getResponseWrapper.getData();
-    assertThat(data.get(0).get("ID")).isEqualTo(rowIdentifier);
-    assertThat(data.get(0).get("Firstname")).isEqualTo("John");
-    assertThat(data.get(0).get("Lastname")).isEqualTo("Doe");
-  }
-
   /*
   /************************************************************************
   /* Helper methods for setting up tests
@@ -2969,7 +2102,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
   }
@@ -2997,40 +2130,16 @@ public class RestApiv2Test extends BaseIntegrationTest {
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
+            String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
-    TableResponse tableResponse =
-        objectMapper.readValue(body, new TypeReference<TableResponse>() {});
+    TableResponse tableResponse = objectMapper.readValue(body, TableResponse.class);
     assertThat(tableResponse.getName()).isEqualTo(tableName);
   }
 
-  private void createComplexTable(String keyspaceName, String tableName) throws IOException {
-    TableAdd tableAdd = new TableAdd();
-    tableAdd.setName(tableName);
-
-    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
-
-    columnDefinitions.add(new ColumnDefinition("pk0", "uuid"));
-    columnDefinitions.add(new ColumnDefinition("col1", "frozen<map<date, text>>"));
-    columnDefinitions.add(new ColumnDefinition("col2", "frozen<set<boolean>>"));
-    columnDefinitions.add(new ColumnDefinition("col3", "frozen<tuple<duration, inet>>"));
-
-    tableAdd.setColumnDefinitions(columnDefinitions);
-
-    PrimaryKey primaryKey = new PrimaryKey();
-    primaryKey.setPartitionKey(Collections.singletonList("pk0"));
-    tableAdd.setPrimaryKey(primaryKey);
-
-    RestUtils.post(
-        authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
-        objectMapper.writeValueAsString(tableAdd),
-        HttpStatus.SC_CREATED);
-  }
-
-  private void createTableWithClustering(String keyspaceName, String tableName) throws IOException {
+  private void createTestTableWithClustering(String keyspaceName, String tableName)
+      throws IOException {
     TableAdd tableAdd = new TableAdd();
     tableAdd.setName(tableName);
 
@@ -3051,12 +2160,12 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
   }
 
-  private void createTableWithMixedClustering(String keyspaceName, String tableName)
+  private void createTestTableWithMixedClustering(String keyspaceName, String tableName)
       throws IOException {
     TableAdd tableAdd = new TableAdd();
     tableAdd.setName(tableName);
@@ -3079,7 +2188,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces/%s/tables", host, keyspaceName),
+        String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
   }
@@ -3090,7 +2199,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/schemas/keyspaces", host),
+        String.format("%s/v2/schemas/keyspaces", restUrlBase),
         createKeyspaceRequest,
         HttpStatus.SC_CREATED);
   }
@@ -3117,8 +2226,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
                 restUrlBase, keyspaceName, tableName),
             objectMapper.writeValueAsString(indexAdd),
             HttpStatus.SC_CREATED);
-    SuccessResponse successResponse =
-        objectMapper.readValue(body, new TypeReference<SuccessResponse>() {});
+    SuccessResponse successResponse = objectMapper.readValue(body, SuccessResponse.class);
     assertThat(successResponse.getSuccess()).isTrue();
   }
 
@@ -3144,7 +2252,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
       RestUtils.post(
           authToken,
-          String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+          String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
           objectMapper.writeValueAsString(rowMap),
           HttpStatus.SC_CREATED);
     }
@@ -3166,7 +2274,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   private String setupClusteringTestCase() throws IOException {
     createKeyspace(keyspaceName);
-    createTableWithClustering(keyspaceName, tableName);
+    createTestTableWithClustering(keyspaceName, tableName);
 
     String rowIdentifier = "1";
     Map<String, String> row = new HashMap<>();
@@ -3176,7 +2284,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -3187,7 +2295,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -3198,7 +2306,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -3209,7 +2317,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -3218,7 +2326,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   private void setupMixedClusteringTestCase() throws IOException {
     createKeyspace(keyspaceName);
-    createTableWithMixedClustering(keyspaceName, tableName);
+    createTestTableWithMixedClustering(keyspaceName, tableName);
 
     Map<String, String> row = new HashMap<>();
     row.put("pk0", "1");
@@ -3230,7 +2338,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -3244,7 +2352,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
 
@@ -3258,7 +2366,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
     RestUtils.post(
         authToken,
-        String.format("%s:8082/v2/keyspaces/%s/%s", host, keyspaceName, tableName),
+        String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
   }
@@ -3268,16 +2376,6 @@ public class RestApiv2Test extends BaseIntegrationTest {
         objectMapper
             .getTypeFactory()
             .constructParametricType(RESTResponseWrapper.class, wrappedType);
-    RESTResponseWrapper<T> wrapped = objectMapper.readValue(body, wrapperType);
-    return wrapped.getData();
-  }
-
-  private <T> T readWrappedRESTResponse(String body, TypeReference wrappedType) throws IOException {
-    JavaType resolvedWrappedType = objectMapper.getTypeFactory().constructType(wrappedType);
-    JavaType wrapperType =
-        objectMapper
-            .getTypeFactory()
-            .constructParametricType(RESTResponseWrapper.class, resolvedWrappedType);
     RESTResponseWrapper<T> wrapped = objectMapper.readValue(body, wrapperType);
     return wrapped.getData();
   }
