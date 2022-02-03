@@ -1292,7 +1292,7 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
     assertThat(apiError.getDescription())
         .isEqualTo(
             String.format(
-                "Bad request: A type named \"%s\".%s already exists", keyspaceName, typeName));
+                "Bad request: A user type of name %s.%s already exists", keyspaceName, typeName));
 
     // don't create and don't throw exception because ifNotExists = true
     udtString =
