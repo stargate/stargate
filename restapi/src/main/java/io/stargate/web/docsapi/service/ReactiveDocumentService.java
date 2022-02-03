@@ -231,6 +231,91 @@ public class ReactiveDocumentService {
   }
 
   /**
+   * Patches a document with given ID in the given namespace and collection. Any previously existing
+   * patched keys at the given path will be overwritten, as well as any existing array.
+   *
+   * @param db {@link DocumentDB} to write in
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to patch
+   * @param payload Document represented as JSON string
+   * @param context Execution content
+   * @return Document response wrapper containing the generated ID.
+   */
+  public Single<DocumentResponseWrapper<Void>> patchDocument(
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String documentId,
+      String payload,
+      ExecutionContext context) {
+    List<String> subPath = Collections.emptyList();
+    return patchDocument(db, namespace, collection, documentId, subPath, payload, context);
+  }
+
+  /**
+   * Patches a document with given ID in the given namespace and collection at the specified
+   * sub-path. Any previously existing patched keys at the given path will be overwritten, as well
+   * as any existing array.
+   *
+   * @param db {@link DocumentDB} to write in
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to patch
+   * @param subPath Sub-path of the document to patch. If empty will patch the whole doc.
+   * @param payload Document represented as JSON string
+   * @param context Execution content
+   * @return Document response wrapper containing the generated ID.
+   */
+  public Single<DocumentResponseWrapper<Void>> patchDocument(
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String documentId,
+      List<String> subPath,
+      String payload,
+      ExecutionContext context) {
+
+    return Single.defer(
+            () -> {
+              // authentication for writing before anything
+              authorizeWrite(db, namespace, collection, Scope.MODIFY, Scope.DELETE);
+
+              // pre-process to support array elements
+              List<String> subPathProcessed = processSubDocumentPath(subPath);
+
+              // read the root
+              JsonNode root = readPayload(payload);
+
+              // check the schema
+              checkSchemaOnPatch(db, namespace, collection);
+
+              // explicitly forbid arrays and empty objects
+              if (root.isArray()) {
+                throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED);
+              }
+              if (root.isObject() && root.isEmpty()) {
+                throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_PATCH_EMPTY_NOT_ACCEPTED);
+              }
+
+              // shred rows
+              List<JsonShreddedRow> rows = jsonDocumentShredder.shred(root, subPathProcessed);
+
+              // call write document
+              return writeService.patchDocument(
+                  db.getQueryExecutor().getDataStore(),
+                  namespace,
+                  collection,
+                  documentId,
+                  subPathProcessed,
+                  rows,
+                  db.treatBooleansAsNumeric(),
+                  context);
+            })
+        .map(any -> new DocumentResponseWrapper<>(documentId, null, null, context.toProfile()));
+  }
+
+  /**
    * Deletes a document with given ID in the given namespace and collection.
    *
    * @param db {@link DocumentDB} to write in

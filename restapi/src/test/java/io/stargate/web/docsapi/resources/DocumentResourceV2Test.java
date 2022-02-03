@@ -13,12 +13,9 @@ import io.stargate.web.docsapi.service.DocsSchemaChecker;
 import io.stargate.web.docsapi.service.DocumentService;
 import io.stargate.web.restapi.dao.RestDB;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Collections;
-import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.HttpHeaders;
-import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import org.junit.jupiter.api.BeforeEach;
@@ -65,55 +62,5 @@ public class DocumentResourceV2Test {
 
     assertThat(r.getStatus()).isEqualTo(202);
     mapper.readTree((String) r.getEntity()).requiredAt("/documentIds");
-  }
-
-  @Test
-  public void patchDoc() throws JsonProcessingException {
-    HttpHeaders headers = mock(HttpHeaders.class);
-    when(headers.getHeaderString(anyString())).thenReturn("application/json");
-    UriInfo ui = mock(UriInfo.class);
-    String authToken = "auth_token";
-    String keyspace = "keyspace";
-    String collection = "collection";
-    String id = "id";
-    String payload = "{}";
-
-    Response r =
-        documentResourceV2.patchDoc(
-            headers, ui, authToken, keyspace, collection, id, payload, false, httpServletRequest);
-
-    assertThat(r.getStatus()).isEqualTo(200);
-    assertThat(mapper.readTree((String) r.getEntity()).requiredAt("/documentId").asText())
-        .isEqualTo(id);
-  }
-
-  @Test
-  public void patchDocPath() throws JsonProcessingException {
-    HttpHeaders headers = mock(HttpHeaders.class);
-    when(headers.getHeaderString(anyString())).thenReturn("application/json");
-    UriInfo ui = mock(UriInfo.class);
-    String authToken = "auth_token";
-    String keyspace = "keyspace";
-    String collection = "collection";
-    String id = "id";
-    List<PathSegment> path = new ArrayList<>();
-    String payload = "{}";
-
-    Response r =
-        documentResourceV2.patchDocPath(
-            headers,
-            ui,
-            authToken,
-            keyspace,
-            collection,
-            id,
-            path,
-            payload,
-            false,
-            httpServletRequest);
-
-    assertThat(r.getStatus()).isEqualTo(200);
-    assertThat(mapper.readTree((String) r.getEntity()).requiredAt("/documentId").asText())
-        .isEqualTo(id);
   }
 }

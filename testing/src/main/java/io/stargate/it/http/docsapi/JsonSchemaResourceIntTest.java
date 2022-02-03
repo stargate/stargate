@@ -173,15 +173,22 @@ public class JsonSchemaResourceIntTest extends BaseIntegrationTest {
 
       String doc = "{\"id\":1, \"name\":\"a\", \"price\":1}";
 
-      // partial update not allowed
+      // partial updates not allowed
       String updateResult =
           RestUtils.put(
               authToken, getCollectionPath(keyspace) + "/" + collectionName + "/1/path", doc, 400);
 
-      // TODO assert patch as well
-      //  https://github.com/stargate/stargate/pull/1605
+      String patchRootResult =
+          RestUtils.patch(
+              authToken, getCollectionPath(keyspace) + "/" + collectionName + "/1", doc, 400);
+
+      String patchPathResult =
+          RestUtils.patch(
+              authToken, getCollectionPath(keyspace) + "/" + collectionName + "/1/path", doc, 400);
 
       assertThat(updateResult)
+          .isEqualTo(patchRootResult)
+          .isEqualTo(patchPathResult)
           .isEqualTo(
               "{\"description\":\"When a collection has a JSON schema, partial updates of documents are disallowed for performance reasons.\",\"code\":400}");
     }
