@@ -19,7 +19,6 @@ package io.stargate.it.http;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.storage.StargateParameters;
 import io.stargate.it.storage.StargateSpec;
 import io.stargate.testing.metrics.TagMeHttpMetricsTagProvider;
@@ -41,7 +40,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 @StargateSpec(parametersCustomizer = "buildParameters")
 @ExtendWith(ApiServiceExtension.class)
 @ApiServiceSpec(parametersCustomizer = "buildApiServiceParameters")
-public class RestApiMetricsTest extends BaseIntegrationTest {
+public class RestApiMetricsTest extends BaseRestApiTest {
 
   private static String restUrlBase;
   private static String metricsUrlBase;
@@ -61,7 +60,9 @@ public class RestApiMetricsTest extends BaseIntegrationTest {
         "stargate.metrics.http_server_requests_path_param_tags", "keyspaceName");
   }
 
-  public static void buildParameters(ApiServiceParameters.Builder builder) {
+  @SuppressWarnings("unused") // referenced in @StargateSpec
+  public static void buildApiServiceParameters(ApiServiceParameters.Builder builder) {
+    BaseRestApiTest.buildApiServiceParameters(builder);
     // 13-Jan-2022, tatu: In StargateV1 HTTP Tag Provider is registered using OSGi.
     //    SGv2 does not have equivalent mechanism implemented yet, so tag functionality
     //    NOT verified currently.
