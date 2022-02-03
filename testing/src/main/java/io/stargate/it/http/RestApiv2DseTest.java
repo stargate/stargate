@@ -58,7 +58,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE TABLE index_test_table(k int PRIMARY KEY, l list<int>, m1 map<int, text>, m2 map<int, text>, m3 map<int, text>)",
     })
 @ExtendWith(ApiServiceExtension.class)
-@ApiServiceSpec(parametersCustomizer = "buildParameters")
+@ApiServiceSpec(parametersCustomizer = "buildApiServiceParameters")
 public class RestApiv2DseTest extends BaseRestApiTest {
 
   private static final ObjectMapper objectMapper =

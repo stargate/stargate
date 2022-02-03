@@ -5,7 +5,7 @@ import io.stargate.it.BaseIntegrationTest;
 public class BaseRestApiTest extends BaseIntegrationTest {
 
   @SuppressWarnings("unused") // referenced in @ApiServiceSpec
-  public static void buildParameters(ApiServiceParameters.Builder builder) {
+  public static void buildApiServiceParameters(ApiServiceParameters.Builder builder) {
     builder.serviceName("REST API Service");
     builder.servicePort(8088);
     builder.servicePortPropertyName("dw.server.connector.port");

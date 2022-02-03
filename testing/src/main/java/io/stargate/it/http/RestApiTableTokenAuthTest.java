@@ -38,7 +38,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "GRANT SELECT ON KEYSPACE table_token_test TO read_only_user",
     })
 @ExtendWith(ApiServiceExtension.class)
-@ApiServiceSpec(parametersCustomizer = "buildParameters")
+@ApiServiceSpec(parametersCustomizer = "buildApiServiceParameters")
 public class RestApiTableTokenAuthTest extends BaseRestApiTest {
 
   private static final ObjectMapper objectMapper = new ObjectMapper();

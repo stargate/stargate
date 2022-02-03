@@ -50,11 +50,6 @@ public class ApiServiceExtension
     implements ParameterResolver {
   private static final Logger LOG = LoggerFactory.getLogger(ApiServiceExtension.class);
 
-  private static String BRIDGE_HOST_PROPERTY_NAME = "dw.stargate.grpc.host";
-  private static String BRIDGE_PORT_PROPERTY_NAME = "dw.stargate.grpc.port";
-  private static String BRIDGE_TOKEN_PROPERTY_NAME = "stargate.bridge.admin_token";
-  private static String SERVICE_PORT_PROPERTY_NAME = "dw.server.connector.port";
-
   // TODO - move these into environment info
   private static String BRIDGE_PORT = "8091";
   private static String BRIDGE_TOKEN = "mockAdminToken";

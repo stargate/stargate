@@ -46,7 +46,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec()
 @ExtendWith(ApiServiceExtension.class)
-@ApiServiceSpec(parametersCustomizer = "buildParameters")
+@ApiServiceSpec(parametersCustomizer = "buildApiServiceParameters")
 public class RestApiv2SchemaTest extends BaseRestApiTest {
   private String keyspaceName;
   private String tableName;

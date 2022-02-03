@@ -57,7 +57,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
       "GRANT SELECT ON TABLE store1.shopping_cart TO web_user",
     })
 @ExtendWith(ApiServiceExtension.class)
-@ApiServiceSpec(parametersCustomizer = "buildParameters")
+@ApiServiceSpec(parametersCustomizer = "buildApiServiceParameters")
 @Testcontainers(disabledWithoutDocker = true)
 public class RestApiJWTAuthTest extends BaseRestApiTest {
 

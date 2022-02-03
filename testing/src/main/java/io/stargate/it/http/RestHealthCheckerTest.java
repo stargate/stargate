@@ -11,7 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 @NotThreadSafe
 @ExtendWith(ApiServiceExtension.class)
-@ApiServiceSpec(parametersCustomizer = "buildParameters")
+@ApiServiceSpec(parametersCustomizer = "buildApiServiceParameters")
 public class RestHealthCheckerTest extends BaseRestApiTest {
   private static String healthUrlBase;
 

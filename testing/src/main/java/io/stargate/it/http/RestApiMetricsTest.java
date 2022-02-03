@@ -40,7 +40,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 @NotThreadSafe
 @StargateSpec(parametersCustomizer = "buildParameters")
 @ExtendWith(ApiServiceExtension.class)
-@ApiServiceSpec(parametersCustomizer = "buildParameters")
+@ApiServiceSpec(parametersCustomizer = "buildApiServiceParameters")
 public class RestApiMetricsTest extends BaseIntegrationTest {
 
   private static String restUrlBase;

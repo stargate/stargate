@@ -63,7 +63,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 /** Integration tests for legacy Rest V1 endpoints (both DDL and DML). */
 @NotThreadSafe
 @ExtendWith(ApiServiceExtension.class)
-@ApiServiceSpec(parametersCustomizer = "buildParameters")
+@ApiServiceSpec(parametersCustomizer = "buildApiServiceParameters")
 @Disabled("SGv2 does not currently support REST v1 API")
 public class RestApiv1Test extends BaseRestApiTest {
   private static final Pattern GRAPHQL_OPERATIONS_METRIC_REGEXP =
