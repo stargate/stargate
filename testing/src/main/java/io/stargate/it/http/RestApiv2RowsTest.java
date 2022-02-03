@@ -48,12 +48,12 @@ import io.stargate.web.restapi.models.TableResponse;
 import java.io.IOException;
 import java.lang.reflect.Method;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -79,14 +79,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @CqlSessionSpec()
 @ExtendWith(RestApiExtension.class)
 @RestApiSpec()
-public class RestApiv2Test extends BaseIntegrationTest {
+public class RestApiv2RowsTest extends BaseIntegrationTest {
   private String keyspaceName;
   private String tableName;
   private static String authToken;
   private String restUrlBase;
-
-  // TODO: can remove after new REST service implements schema and insert operations
-  private String legacyRestUrlBase;
 
   // NOTE! Does not automatically disable exception on unknown properties to have
   // stricter matching of expected return types: if needed, can override on
@@ -96,17 +93,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
   private static final ObjectReader LIST_OF_MAPS_GETRESPONSE_READER =
       objectMapper.readerFor(ListOfMapsGetResponseWrapper.class);
 
-  private static final ObjectReader MAP_GETRESPONSE_READER =
-      objectMapper.readerFor(MapGetResponseWrapper.class);
-
   static class ListOfMapsGetResponseWrapper extends GetResponseWrapper<List<Map<String, Object>>> {
     public ListOfMapsGetResponseWrapper() {
-      super(-1, null, null);
-    }
-  }
-
-  static class MapGetResponseWrapper extends GetResponseWrapper<Map<String, Object>> {
-    public MapGetResponseWrapper() {
       super(-1, null, null);
     }
   }
@@ -127,7 +115,6 @@ public class RestApiv2Test extends BaseIntegrationTest {
       TestInfo testInfo, StargateConnectionInfo cluster, RestApiConnectionInfo restApi)
       throws IOException {
     restUrlBase = "http://" + restApi.host() + ":" + restApi.port();
-    legacyRestUrlBase = "http://" + cluster.seedAddress() + ":8082";
     String authUrlBase =
         "http://" + cluster.seedAddress() + ":8081"; // TODO: make auth port configurable
 
@@ -166,8 +153,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void getRowsWithQuery() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
+    createTestKeyspace(keyspaceName);
+    createTestTable(keyspaceName, tableName);
 
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
@@ -198,7 +185,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void getRowsWithQuery2Filters() throws IOException {
-    createKeyspace(keyspaceName);
+    createTestKeyspace(keyspaceName);
     createTestTable(
         tableName,
         Arrays.asList("id text", "age int", "firstName text"),
@@ -253,8 +240,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void getRowsWithQueryAndRaw() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
+    createTestKeyspace(keyspaceName);
+    createTestTable(keyspaceName, tableName);
 
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
@@ -340,8 +327,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void getRowsWithNotFound() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
+    createTestKeyspace(keyspaceName);
+    createTestTable(keyspaceName, tableName);
 
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
@@ -372,7 +359,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void getRowsWithInQuery() throws IOException {
-    createKeyspace(keyspaceName);
+    createTestKeyspace(keyspaceName);
     createTestTable(
         tableName,
         Arrays.asList("id text", "firstname text"),
@@ -425,7 +412,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
   //   this behavior is what exists.
   @Test
   public void getRowsWithExistsQuery() throws IOException {
-    createKeyspace(keyspaceName);
+    createTestKeyspace(keyspaceName);
     createTestTable(
         tableName,
         Arrays.asList("id text", "firstName text", "enabled boolean"),
@@ -454,7 +441,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void getRowsWithSetContainsQuery() throws IOException {
-    createKeyspace(keyspaceName);
+    createTestKeyspace(keyspaceName);
     createTestTable(
         tableName,
         Arrays.asList("id text", "tags set<text>", "firstName text"),
@@ -502,7 +489,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void getRowsWithContainsKeyQuery() throws IOException {
-    createKeyspace(keyspaceName);
+    createTestKeyspace(keyspaceName);
     createTestTable(
         tableName,
         Arrays.asList("id text", "attributes map<text,text>", "firstName text"),
@@ -550,7 +537,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void getRowsWithContainsEntryQuery() throws IOException {
-    createKeyspace(keyspaceName);
+    createTestKeyspace(keyspaceName);
     createTestTable(
         tableName,
         Arrays.asList("id text", "attributes map<text,text>", "firstName text"),
@@ -596,7 +583,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void getRowsWithTimestampQuery() throws IOException {
-    createKeyspace(keyspaceName);
+    createTestKeyspace(keyspaceName);
     createTestTable(
         tableName,
         Arrays.asList("id text", "firstname text", "created timestamp"),
@@ -629,7 +616,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void getAllRowsWithPaging() throws IOException {
-    createKeyspace(keyspaceName);
+    createTestKeyspace(keyspaceName);
     createTestTable(
         tableName,
         Arrays.asList("id text", "firstname text"),
@@ -694,7 +681,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void getAllRowsNoPaging() throws IOException {
-    createKeyspace(keyspaceName);
+    createTestKeyspace(keyspaceName);
     createTestTable(
         tableName,
         Arrays.asList("id text", "firstname text"),
@@ -737,7 +724,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         .as("Disabled because MVs are not enabled by default on a Cassandra 4 backend")
         .isFalse();
 
-    createKeyspace(keyspaceName);
+    createTestKeyspace(keyspaceName);
     tableName = "tbl_mvread_" + System.currentTimeMillis();
     createTestTable(
         tableName,
@@ -790,8 +777,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void getInvalidWhereClause() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
+    createTestKeyspace(keyspaceName);
+    createTestTable(keyspaceName, tableName);
 
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
@@ -820,8 +807,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void getRows() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
+    createTestKeyspace(keyspaceName);
+    createTestTable(keyspaceName, tableName);
 
     // To try to ensure we actually find the right entry, create one other entry first
     Map<String, String> row = new HashMap<>();
@@ -869,7 +856,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
   // "Stringified" (non-JSON, CQL literal) notation.
   @Test
   public void getRowsWithTupleStringified() throws IOException {
-    createKeyspace(keyspaceName);
+    createTestKeyspace(keyspaceName);
     createTestTable(
         tableName,
         Arrays.asList("id text", "data tuple<int,boolean,text>", "alt_id uuid"),
@@ -894,7 +881,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
   // standard JSON payload
   @Test
   public void getRowsWithTupleTyped() throws IOException {
-    createKeyspace(keyspaceName);
+    createTestKeyspace(keyspaceName);
     createTestTable(
         tableName,
         Arrays.asList("id text", "data tuple<int,boolean,text>", "alt_id uuid"),
@@ -923,7 +910,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void getRowsWithUDT() throws IOException {
-    createKeyspace(keyspaceName);
+    createTestKeyspace(keyspaceName);
 
     // create UDT: note -- UDT names must be lower-case it seems (mixed case fails)
     String udtString =
@@ -1006,7 +993,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
   // Reproduction for https://github.com/stargate/stargate/issues/1577
   @Test
   public void getRowsPagingWithUUID() throws Exception {
-    createKeyspace(keyspaceName);
+    createTestKeyspace(keyspaceName);
     createTestTable(
         tableName,
         // NOTE! Original test passes if "uuid" -> "text"
@@ -1066,8 +1053,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void getRowsNotFound() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
+    createTestKeyspace(keyspaceName);
+    createTestTable(keyspaceName, tableName);
 
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
@@ -1097,8 +1084,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void getRowsRaw() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
+    createTestKeyspace(keyspaceName);
+    createTestTable(keyspaceName, tableName);
 
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
@@ -1218,8 +1205,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void addRow() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
+    createTestKeyspace(keyspaceName);
+    createTestTable(keyspaceName, tableName);
 
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
@@ -1240,7 +1227,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void addRowWithCounter() throws IOException {
-    createKeyspace(keyspaceName);
+    createTestKeyspace(keyspaceName);
     createTestTable(
         tableName,
         Arrays.asList("id text", "counter counter"),
@@ -1261,7 +1248,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void addRowWithList() throws IOException {
-    createKeyspace(keyspaceName);
+    createTestKeyspace(keyspaceName);
     createTestTable(
         tableName,
         Arrays.asList("name text", "email list<text>"),
@@ -1294,8 +1281,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void addRowInvalidField() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
+    createTestKeyspace(keyspaceName);
+    createTestTable(keyspaceName, tableName);
 
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
@@ -1317,8 +1304,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void addRowWithInvalidJson() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
+    createTestKeyspace(keyspaceName);
+    createTestTable(keyspaceName, tableName);
 
     RestUtils.post(
         authToken,
@@ -1329,8 +1316,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void updateRow() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
+    createTestKeyspace(keyspaceName);
+    createTestTable(keyspaceName, tableName);
 
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
@@ -1360,8 +1347,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void updateRowRaw() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
+    createTestKeyspace(keyspaceName);
+    createTestTable(keyspaceName, tableName);
 
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
@@ -1414,7 +1401,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void updateRowWithCounter() throws IOException {
-    createKeyspace(keyspaceName);
+    createTestKeyspace(keyspaceName);
     createTestTable(
         tableName,
         Arrays.asList("id text", "counter counter"),
@@ -1478,7 +1465,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void updateRowWithMultipleCounters() throws IOException {
-    createKeyspace(keyspaceName);
+    createTestKeyspace(keyspaceName);
     createTestTable(
         tableName,
         Arrays.asList("id text", "counter1 counter", "counter2 counter"),
@@ -1521,8 +1508,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void updateRowWithInvalidJson() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
+    createTestKeyspace(keyspaceName);
+    createTestTable(keyspaceName, tableName);
 
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
@@ -1545,8 +1532,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void patchRow() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
+    createTestKeyspace(keyspaceName);
+    createTestTable(keyspaceName, tableName);
 
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
@@ -1590,8 +1577,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void patchRowRaw() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
+    createTestKeyspace(keyspaceName);
+    createTestTable(keyspaceName, tableName);
 
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
@@ -1638,8 +1625,8 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test
   public void deleteRow() throws IOException {
-    createKeyspace(keyspaceName);
-    createTable(keyspaceName, tableName);
+    createTestKeyspace(keyspaceName);
+    createTestTable(keyspaceName, tableName);
 
     String rowIdentifier = UUID.randomUUID().toString();
     Map<String, String> row = new HashMap<>();
@@ -1825,7 +1812,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
 
   @Test // v2.0.0 - only test
   public void rowCRUDWithTimestamps() throws IOException {
-    createKeyspace(keyspaceName);
+    createTestKeyspace(keyspaceName);
 
     String tableName = "widgets";
     TableAdd tableAdd = new TableAdd();
@@ -1921,7 +1908,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
     row2.put("likes", (short) 926);
     row2.put("test_runs", BigInteger.ONE);
     row2.put("source_ip", "FE80:CD00:0:CDE:1257:0:211E:729C");
-    row2.put("description", (new String("AQID//7gEiMB")).getBytes());
+    row2.put("description", new String("AQID//7gEiMB").getBytes(StandardCharsets.UTF_8));
 
     RestUtils.post(
         authToken,
@@ -1960,339 +1947,13 @@ public class RestApiv2Test extends BaseIntegrationTest {
   /************************************************************************
    */
 
-  @Test
-  public void createUdt() throws IOException {
-    createKeyspace(keyspaceName);
-
-    // create UDT
-    String udtString =
-        "{\"name\": \"udt1\", \"fields\":"
-            + "[{\"name\":\"firstname\",\"typeDefinition\":\"text\"},"
-            + "{\"name\":\"birthdate\",\"typeDefinition\":\"date\"}]}";
-
-    RestUtils.post(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
-        udtString,
-        HttpStatus.SC_CREATED);
-
-    // throws error because same name, but ifNotExists = false
-    String response =
-        RestUtils.post(
-            authToken,
-            String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
-            udtString,
-            HttpStatus.SC_BAD_REQUEST);
-
-    String typeName = "udt1";
-
-    ApiError apiError = objectMapper.readValue(response, ApiError.class);
-    assertThat(apiError.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(apiError.getDescription())
-        .contains("Bad request")
-        .contains(typeName)
-        .contains("already exists");
-
-    // don't create and don't throw exception because ifNotExists = true
-    udtString =
-        "{\"name\": \"udt1\", \"ifNotExists\": true,"
-            + "\"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
-    RestUtils.post(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
-        udtString,
-        HttpStatus.SC_CREATED);
-  }
-
-  @Test
-  public void updateInvalidUdt() throws IOException {
-    createKeyspace(keyspaceName);
-
-    // create UDT
-    String udtString =
-        "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
-
-    RestUtils.post(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
-        udtString,
-        HttpStatus.SC_CREATED);
-
-    // add existing field
-    udtString =
-        "{\"name\": \"udt1\", \"addFields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
-
-    RestUtils.put(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
-        udtString,
-        HttpStatus.SC_BAD_REQUEST);
-
-    // missing add-type and rename-type
-    udtString =
-        "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
-
-    RestUtils.put(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
-        udtString,
-        HttpStatus.SC_BAD_REQUEST);
-  }
-
-  @Test
-  public void updateUdt() throws IOException {
-    createKeyspace(keyspaceName);
-
-    // create UDT
-    String udtString =
-        "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
-
-    RestUtils.post(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
-        udtString,
-        HttpStatus.SC_CREATED);
-
-    // update UDT: add new field
-    udtString =
-        "{\"name\": \"udt1\", \"addFields\":[{\"name\":\"lastname\",\"typeDefinition\":\"text\"}]}";
-
-    RestUtils.put(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
-        udtString,
-        HttpStatus.SC_OK);
-
-    // udpate UDT: rename fields
-    udtString =
-        "{\"name\": \"udt1\",\"renameFields\":"
-            + "[{\"from\":\"firstname\",\"to\":\"name1\"}, {\"from\":\"lastname\",\"to\":\"name2\"}]}";
-
-    RestUtils.put(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
-        udtString,
-        HttpStatus.SC_OK);
-
-    // retrieve UDT
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format("%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "udt1"),
-            HttpStatus.SC_OK);
-
-    MapGetResponseWrapper getResponseWrapper = MAP_GETRESPONSE_READER.readValue(body);
-    Map<String, Object> response = getResponseWrapper.getData();
-
-    assertThat(response.size()).isEqualTo(3);
-    assertThat(response.get("name")).isEqualTo("udt1");
-    List<Map<String, String>> fields = (List<Map<String, String>>) response.get("fields");
-    assertThat(fields.size()).isEqualTo(2);
-
-    Set<String> fieldNames = new HashSet<>();
-    fieldNames.add(fields.get(0).get("name"));
-    fieldNames.add(fields.get(1).get("name"));
-
-    assertThat(fieldNames.contains("name1")).isTrue();
-    assertThat(fieldNames.contains("name2")).isTrue();
-
-    // create UDT
-    udtString = "{\"name\": \"udt2\", \"fields\":[{\"name\":\"age\",\"typeDefinition\":\"int\"}]}";
-
-    RestUtils.post(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
-        udtString,
-        HttpStatus.SC_CREATED);
-
-    // update UDT: add and rename field
-    udtString =
-        "{\"name\": \"udt2\","
-            + "\"addFields\":[{\"name\":\"name\",\"typeDefinition\":\"text\"}]},"
-            + "\"renameFields\": [{\"from\": \"name\", \"to\": \"firstname\"}";
-
-    RestUtils.put(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
-        udtString,
-        HttpStatus.SC_OK);
-  }
-
-  @Test
-  public void testInvalidUdtType() throws IOException {
-    createKeyspace(keyspaceName);
-
-    String udtString =
-        "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"invalid_type\"}}]}";
-    RestUtils.post(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
-        udtString,
-        HttpStatus.SC_BAD_REQUEST);
-
-    udtString = "{\"name\": \"udt1\", \"fields\":[]}";
-    RestUtils.post(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
-        udtString,
-        HttpStatus.SC_BAD_REQUEST);
-
-    udtString = "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\"}}]}";
-    RestUtils.post(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
-        udtString,
-        HttpStatus.SC_BAD_REQUEST);
-
-    udtString = "{\"name\": \"udt1\", \"fields\":[{\"typeDefinition\":\"text\"}}]}";
-    RestUtils.post(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
-        udtString,
-        HttpStatus.SC_BAD_REQUEST);
-  }
-
-  @Test
-  public void dropUdt() throws IOException {
-    createKeyspace(keyspaceName);
-
-    String udtString =
-        "{\"name\": \"test_udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
-
-    RestUtils.post(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
-        udtString,
-        HttpStatus.SC_CREATED);
-
-    RestUtils.delete(
-        authToken,
-        String.format(
-            "%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "test_udt1"),
-        HttpStatus.SC_NO_CONTENT);
-
-    // delete a non existent UDT
-    RestUtils.delete(
-        authToken,
-        String.format(
-            "%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "test_udt1"),
-        HttpStatus.SC_BAD_REQUEST);
-
-    // delete an UDT in use
-    udtString =
-        "{\"name\": \"fullname\", \"fields\":"
-            + "[{\"name\":\"firstname\",\"typeDefinition\":\"text\"},"
-            + "{\"name\":\"lastname\",\"typeDefinition\":\"text\"}]}";
-    RestUtils.post(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
-        udtString,
-        HttpStatus.SC_CREATED);
-
-    createTestTable(
-        tableName,
-        Arrays.asList("id text", "name fullname"),
-        Collections.singletonList("id"),
-        null);
-
-    RestUtils.delete(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "fullname"),
-        HttpStatus.SC_BAD_REQUEST);
-  }
-
-  @Test
-  public void getUdt() throws IOException {
-    createKeyspace(keyspaceName);
-
-    String udtString =
-        "{\"name\": \"test_udt1\", \"fields\":[{\"name\":\"arrival\",\"typeDefinition\":\"timestamp\"}]}";
-
-    RestUtils.post(
-        authToken,
-        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
-        udtString,
-        HttpStatus.SC_CREATED);
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "test_udt1"),
-            HttpStatus.SC_OK);
-
-    MapGetResponseWrapper getResponseWrapper = MAP_GETRESPONSE_READER.readValue(body);
-    Map<String, Object> response = getResponseWrapper.getData();
-
-    assertThat(response.size()).isEqualTo(3);
-    assertThat(response.get("name")).isEqualTo("test_udt1");
-    List<Map<String, String>> fields = (List<Map<String, String>>) response.get("fields");
-    assertThat(fields.size()).isEqualTo(1);
-    assertThat(fields.get(0).get("name")).isEqualTo("arrival");
-    assertThat(fields.get(0).get("typeDefinition")).isEqualTo("timestamp");
-
-    // get non existent UDT
-    RestUtils.get(
-        authToken,
-        String.format(
-            "%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "invalid_udt"),
-        HttpStatus.SC_NOT_FOUND);
-  }
-
-  @Test
-  public void listAllTypes() throws IOException {
-    createKeyspace(keyspaceName);
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
-            HttpStatus.SC_OK);
-
-    ListOfMapsGetResponseWrapper getResponseWrapper =
-        LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
-    List<Map<String, Object>> response = getResponseWrapper.getData();
-    assertThat(response.size()).isEqualTo(0);
-
-    // creates 10 UDTs
-    String udtString =
-        "{\"name\": \"%s\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
-    for (int i = 0; i < 10; i++) {
-      RestUtils.post(
-          authToken,
-          String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
-          String.format(udtString, "udt" + i),
-          HttpStatus.SC_CREATED);
-    }
-
-    body =
-        RestUtils.get(
-            authToken,
-            String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
-            HttpStatus.SC_OK);
-
-    getResponseWrapper = LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
-    response = getResponseWrapper.getData();
-    assertThat(response.size()).isEqualTo(10);
-
-    List<Map<String, String>> fields = (List<Map<String, String>>) response.get(0).get("fields");
-    assertThat(fields.size()).isEqualTo(1);
-    assertThat(fields.get(0).get("name")).isEqualTo("firstname");
-    assertThat(fields.get(0).get("typeDefinition")).isEqualTo("text");
-  }
-
   /*
   /************************************************************************
   /* Helper methods for setting up tests
   /************************************************************************
    */
 
-  private void createTable(String keyspaceName, String tableName) throws IOException {
-    createTable(keyspaceName, tableName, restUrlBase);
-  }
-
-  private void createTable(String keyspaceName, String tableName, String urlBase)
-      throws IOException {
+  private void createTestTable(String keyspaceName, String tableName) throws IOException {
     TableAdd tableAdd = new TableAdd();
     tableAdd.setName(tableName);
 
@@ -2402,7 +2063,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
         HttpStatus.SC_CREATED);
   }
 
-  private void createKeyspace(String keyspaceName) throws IOException {
+  private void createTestKeyspace(String keyspaceName) throws IOException {
     String createKeyspaceRequest =
         String.format("{\"name\": \"%s\", \"replicas\": 1}", keyspaceName);
     RestUtils.post(
@@ -2481,7 +2142,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
   }
 
   private String setupClusteringTestCase() throws IOException {
-    createKeyspace(keyspaceName);
+    createTestKeyspace(keyspaceName);
     createTestTableWithClustering(keyspaceName, tableName);
 
     final String restUrlForInserts = restUrlBase;
@@ -2535,7 +2196,7 @@ public class RestApiv2Test extends BaseIntegrationTest {
   }
 
   private void setupMixedClusteringTestCase() throws IOException {
-    createKeyspace(keyspaceName);
+    createTestKeyspace(keyspaceName);
     createTestTableWithMixedClustering(keyspaceName, tableName);
 
     final String restUrlForInserts = restUrlBase;

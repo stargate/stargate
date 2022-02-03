@@ -25,9 +25,11 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
@@ -54,6 +56,12 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
 
   static class ListOfMapsGetResponseWrapper extends GetResponseWrapper<List<Map<String, Object>>> {
     public ListOfMapsGetResponseWrapper() {
+      super(-1, null, null);
+    }
+  }
+
+  static class MapGetResponseWrapper extends GetResponseWrapper<Map<String, Object>> {
+    public MapGetResponseWrapper() {
       super(-1, null, null);
     }
   }
@@ -270,8 +278,8 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
-    RestApiv2Test.NameResponse response =
-        objectMapper.readValue(body, RestApiv2Test.NameResponse.class);
+    RestApiv2RowsTest.NameResponse response =
+        objectMapper.readValue(body, RestApiv2RowsTest.NameResponse.class);
     assertThat(response.name).isEqualTo(tableAdd.getName());
   }
 
@@ -302,8 +310,8 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
-    RestApiv2Test.NameResponse response =
-        objectMapper.readValue(body, RestApiv2Test.NameResponse.class);
+    RestApiv2RowsTest.NameResponse response =
+        objectMapper.readValue(body, RestApiv2RowsTest.NameResponse.class);
     assertThat(response.name).isEqualTo(tableAdd.getName());
 
     body =
@@ -1245,6 +1253,341 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
             "%s/v2/schemas/keyspaces/%s/tables/%s/indexes/%s?ifExists=true",
             restUrlBase, keyspaceName, tableName, indexName),
         HttpStatus.SC_NO_CONTENT);
+  }
+
+  /*
+  /************************************************************************
+  /* Test methods for User-Defined Type (UDT) CRUD operations
+  /************************************************************************
+   */
+
+  @Test
+  public void udtCreateBasic() throws IOException {
+    createTestKeyspace(keyspaceName);
+
+    // create UDT
+    String udtString =
+        "{\"name\": \"udt1\", \"fields\":"
+            + "[{\"name\":\"firstname\",\"typeDefinition\":\"text\"},"
+            + "{\"name\":\"birthdate\",\"typeDefinition\":\"date\"}]}";
+
+    RestUtils.post(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+
+    // throws error because same name, but ifNotExists = false
+    String response =
+        RestUtils.post(
+            authToken,
+            String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+            udtString,
+            HttpStatus.SC_BAD_REQUEST);
+
+    String typeName = "udt1";
+
+    ApiError apiError = objectMapper.readValue(response, ApiError.class);
+    assertThat(apiError.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(apiError.getDescription())
+        .isEqualTo(
+            String.format(
+                "Bad request: A type named \"%s\".%s already exists", keyspaceName, typeName));
+
+    // don't create and don't throw exception because ifNotExists = true
+    udtString =
+        "{\"name\": \"udt1\", \"ifNotExists\": true,"
+            + "\"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+    RestUtils.post(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+  }
+
+  @Test
+  public void udtCreateInvalid() throws IOException {
+    createTestKeyspace(keyspaceName);
+
+    String udtString =
+        "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"invalid_type\"}}]}";
+    RestUtils.post(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+        udtString,
+        HttpStatus.SC_BAD_REQUEST);
+
+    udtString = "{\"name\": \"udt1\", \"fields\":[]}";
+    RestUtils.post(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+        udtString,
+        HttpStatus.SC_BAD_REQUEST);
+
+    udtString = "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\"}}]}";
+    RestUtils.post(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+        udtString,
+        HttpStatus.SC_BAD_REQUEST);
+
+    udtString = "{\"name\": \"udt1\", \"fields\":[{\"typeDefinition\":\"text\"}}]}";
+    RestUtils.post(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+        udtString,
+        HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
+  public void udtUpdateBasic() throws IOException {
+    createTestKeyspace(keyspaceName);
+
+    // create UDT
+    String udtString =
+        "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+
+    RestUtils.post(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+
+    // update UDT: add new field
+    udtString =
+        "{\"name\": \"udt1\", \"addFields\":[{\"name\":\"lastname\",\"typeDefinition\":\"text\"}]}";
+
+    RestUtils.put(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+        udtString,
+        HttpStatus.SC_OK);
+
+    // udpate UDT: rename fields
+    udtString =
+        "{\"name\": \"udt1\",\"renameFields\":"
+            + "[{\"from\":\"firstname\",\"to\":\"name1\"}, {\"from\":\"lastname\",\"to\":\"name2\"}]}";
+
+    RestUtils.put(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+        udtString,
+        HttpStatus.SC_OK);
+
+    // retrieve UDT
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "udt1"),
+            HttpStatus.SC_OK);
+
+    MapGetResponseWrapper getResponseWrapper =
+        objectMapper.readValue(body, MapGetResponseWrapper.class);
+    Map<String, Object> response = getResponseWrapper.getData();
+
+    assertThat(response.size()).isEqualTo(3);
+    assertThat(response.get("name")).isEqualTo("udt1");
+    List<Map<String, String>> fields = (List<Map<String, String>>) response.get("fields");
+    assertThat(fields.size()).isEqualTo(2);
+
+    Set<String> fieldNames = new HashSet<>();
+    fieldNames.add(fields.get(0).get("name"));
+    fieldNames.add(fields.get(1).get("name"));
+
+    assertThat(fieldNames.contains("name1")).isTrue();
+    assertThat(fieldNames.contains("name2")).isTrue();
+
+    // create UDT
+    udtString = "{\"name\": \"udt2\", \"fields\":[{\"name\":\"age\",\"typeDefinition\":\"int\"}]}";
+
+    RestUtils.post(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+
+    // update UDT: add and rename field
+    udtString =
+        "{\"name\": \"udt2\","
+            + "\"addFields\":[{\"name\":\"name\",\"typeDefinition\":\"text\"}]},"
+            + "\"renameFields\": [{\"from\": \"name\", \"to\": \"firstname\"}";
+
+    RestUtils.put(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+        udtString,
+        HttpStatus.SC_OK);
+  }
+
+  @Test
+  public void udtUpdateInvalid() throws IOException {
+    createTestKeyspace(keyspaceName);
+
+    // create UDT
+    String udtString =
+        "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+
+    RestUtils.post(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+
+    // add existing field
+    udtString =
+        "{\"name\": \"udt1\", \"addFields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+
+    RestUtils.put(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+        udtString,
+        HttpStatus.SC_BAD_REQUEST);
+
+    // missing add-type and rename-type
+    udtString =
+        "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+
+    RestUtils.put(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+        udtString,
+        HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
+  public void udtGetOne() throws IOException {
+    createTestKeyspace(keyspaceName);
+
+    String udtString =
+        "{\"name\": \"test_udt1\", \"fields\":"
+            + "[{\"name\":\"arrival\",\"typeDefinition\":\"timestamp\"},"
+            + "{\"name\":\"props\",\"typeDefinition\":\"frozen<map<text,text>>\"}]}";
+
+    RestUtils.post(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "test_udt1"),
+            HttpStatus.SC_OK);
+
+    MapGetResponseWrapper getResponseWrapper =
+        objectMapper.readValue(body, MapGetResponseWrapper.class);
+    Map<String, Object> response = getResponseWrapper.getData();
+
+    assertThat(response.size()).isEqualTo(3);
+    assertThat(response.get("name")).isEqualTo("test_udt1");
+    List<Map<String, String>> fields = (List<Map<String, String>>) response.get("fields");
+    assertThat(fields.size()).isEqualTo(2);
+    assertThat(fields.get(0).get("name")).isEqualTo("arrival");
+    assertThat(fields.get(0).get("typeDefinition")).isEqualTo("timestamp");
+    assertThat(fields.get(1).get("name")).isEqualTo("props");
+    assertThat(fields.get(1).get("typeDefinition")).isEqualTo("frozen<map<text, text>>");
+
+    // Also try to access non-existing one to verify correct HTTP status code (404)
+    RestUtils.get(
+        authToken,
+        String.format(
+            "%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "invalid_udt"),
+        HttpStatus.SC_NOT_FOUND);
+  }
+
+  @Test
+  public void udtGetAll() throws IOException {
+    createTestKeyspace(keyspaceName);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+            HttpStatus.SC_OK);
+
+    ListOfMapsGetResponseWrapper getResponseWrapper =
+        objectMapper.readValue(body, ListOfMapsGetResponseWrapper.class);
+    List<Map<String, Object>> response = getResponseWrapper.getData();
+    assertThat(response.size()).isEqualTo(0);
+
+    // creates 10 UDTs
+    String udtString =
+        "{\"name\": \"%s\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+    for (int i = 0; i < 10; i++) {
+      RestUtils.post(
+          authToken,
+          String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+          String.format(udtString, "udt" + i),
+          HttpStatus.SC_CREATED);
+    }
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+            HttpStatus.SC_OK);
+
+    getResponseWrapper = objectMapper.readValue(body, ListOfMapsGetResponseWrapper.class);
+    response = getResponseWrapper.getData();
+    assertThat(response.size()).isEqualTo(10);
+
+    List<Map<String, String>> fields = (List<Map<String, String>>) response.get(0).get("fields");
+    assertThat(fields.size()).isEqualTo(1);
+    assertThat(fields.get(0).get("name")).isEqualTo("firstname");
+    assertThat(fields.get(0).get("typeDefinition")).isEqualTo("text");
+  }
+
+  @Test
+  public void udtDelete() throws IOException {
+    createTestKeyspace(keyspaceName);
+
+    String udtString =
+        "{\"name\": \"test_udt1\", \"fields\":[{\"name\":\"firstname\",\"typeDefinition\":\"text\"}]}";
+
+    RestUtils.post(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+
+    RestUtils.delete(
+        authToken,
+        String.format(
+            "%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "test_udt1"),
+        HttpStatus.SC_NO_CONTENT);
+
+    // delete a non existent UDT
+    RestUtils.delete(
+        authToken,
+        String.format(
+            "%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "test_udt1"),
+        HttpStatus.SC_BAD_REQUEST);
+
+    // delete an UDT in use
+    udtString =
+        "{\"name\": \"fullname\", \"fields\":"
+            + "[{\"name\":\"firstname\",\"typeDefinition\":\"text\"},"
+            + "{\"name\":\"lastname\",\"typeDefinition\":\"text\"}]}";
+    RestUtils.post(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/types", restUrlBase, keyspaceName),
+        udtString,
+        HttpStatus.SC_CREATED);
+
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "name fullname"),
+        Collections.singletonList("id"),
+        null);
+
+    String res =
+        RestUtils.delete(
+            authToken,
+            String.format(
+                "%s/v2/schemas/keyspaces/%s/types/%s", restUrlBase, keyspaceName, "fullname"),
+            HttpStatus.SC_BAD_REQUEST);
   }
 
   /*
