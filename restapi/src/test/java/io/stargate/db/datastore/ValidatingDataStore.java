@@ -38,6 +38,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.UnaryOperator;
 import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 import org.apache.cassandra.stargate.utils.MD5Digest;
 import org.assertj.core.api.AbstractIntegerAssert;
 import org.assertj.core.api.Assertions;
@@ -98,7 +99,18 @@ public class ValidatingDataStore implements DataStore {
     expectedQueries.stream()
         .filter(qe -> qe.matches(queryString))
         .findAny()
-        .orElseGet(() -> Assertions.fail("Unexpected query: " + queryString));
+        .orElseGet(
+            () -> {
+              String expectedQueries =
+                  this.expectedQueries.stream()
+                      .map(e -> e.cqlPattern.toString())
+                      .collect(Collectors.joining("\n"));
+              return Assertions.fail(
+                  "Unexpected query: "
+                      + queryString
+                      + "\n Expecting one of the following queries:\n"
+                      + expectedQueries);
+            });
 
     // Generate unique IDs for each `prepare` call to validate that all prepared statements get
     // executed.
@@ -211,9 +223,19 @@ public class ValidatingDataStore implements DataStore {
               .filter(qe -> qe.matches(actualCql, values))
               .findFirst()
               .orElseGet(
-                  () ->
-                      Assertions.fail(
-                          "Unexpected query: " + actualCql + " with params: " + values));
+                  () -> {
+                    String expectedQueries =
+                        ValidatingDataStore.this.expectedQueries.stream()
+                            .map(e -> e.cqlPattern + " with params " + Arrays.toString(e.params))
+                            .collect(Collectors.joining(",\n"));
+                    return Assertions.fail(
+                        "Unexpected query: "
+                            + actualCql
+                            + " with params: "
+                            + values
+                            + "\nExpecting one of:\n"
+                            + expectedQueries);
+                  });
 
       bound = true;
       return expectation;

@@ -82,6 +82,9 @@ public enum ErrorCode {
       Response.Status.BAD_REQUEST,
       "A patch operation must be done with a JSON object, not an array."),
 
+  DOCS_API_PATCH_EMPTY_NOT_ACCEPTED(
+      Response.Status.BAD_REQUEST, "A patch operation must be done with a non-empty JSON object."),
+
   DOCS_API_PUT_PAYLOAD_INVALID(
       Response.Status.BAD_REQUEST, "A put operation failed due to the invalid payload."),
 
