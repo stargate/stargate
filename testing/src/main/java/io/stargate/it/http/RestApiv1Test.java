@@ -61,7 +61,12 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-/** Integration tests for legacy Rest V1 endpoints (both DDL and DML). */
+/**
+ * Integration tests for legacy Rest V1 endpoints (both DDL and DML).
+ *
+ * <p>Disabled for StargateV2 since we do not (at least yet) support legacy REST V1 endpoints (final
+ * decision pending as of 2022-02-03).
+ */
 @NotThreadSafe
 @ExtendWith(RestApiExtension.class)
 @RestApiSpec()
