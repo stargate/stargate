@@ -50,14 +50,6 @@ public class ApiServiceExtension
     implements ParameterResolver {
   private static final Logger LOG = LoggerFactory.getLogger(ApiServiceExtension.class);
 
-  private static String SERVICE_NAME = "REST API";
-
-  private static String SERVICE_STARTED_MESSAGE = "Started RestServiceServer";
-
-  private static String SERVICE_LIBDIR_PROPERTY = "stargate.rest.libdir";
-
-  private static String SERVICE_JAR_BASE = "sgv2-rest-service";
-
   private static String BRIDGE_HOST_PROPERTY_NAME = "dw.stargate.grpc.host";
   private static String BRIDGE_PORT_PROPERTY_NAME = "dw.stargate.grpc.port";
   private static String BRIDGE_TOKEN_PROPERTY_NAME = "stargate.bridge.admin_token";
@@ -67,35 +59,10 @@ public class ApiServiceExtension
   private static String BRIDGE_PORT = "8091";
   private static String BRIDGE_TOKEN = "mockAdminToken";
 
-  private static final File LIB_DIR = initLibDir();
-
-  private static File initLibDir() {
-    String dir = System.getProperty(SERVICE_LIBDIR_PROPERTY);
-    if (dir == null) {
-      throw new IllegalStateException(SERVICE_LIBDIR_PROPERTY + " system property is not set.");
-    }
-
-    return new File(dir);
-  }
-
-  private static File starterJar() {
-    File[] files = LIB_DIR.listFiles();
-    Assertions.assertNotNull(files, "No files in " + LIB_DIR.getAbsolutePath());
-    return Arrays.stream(files)
-        .filter(f -> f.getName().startsWith(SERVICE_JAR_BASE))
-        .filter(f -> f.getName().endsWith(".jar"))
-        .findFirst()
-        .orElseThrow(
-            () ->
-                new IllegalStateException(
-                    "Unable to find "
-                        + SERVICE_JAR_BASE
-                        + "*.jar in: "
-                        + LIB_DIR.getAbsolutePath()));
-  }
+  public static final String STORE_KEY = "api-container";
 
   public ApiServiceExtension() {
-    super(ApiServiceSpec.class, SERVICE_NAME, Namespace.GLOBAL);
+    super(ApiServiceSpec.class, STORE_KEY, Namespace.GLOBAL);
   }
 
   private static ApiServiceParameters parameters(ApiServiceSpec spec, ExtensionContext context)
@@ -133,29 +100,27 @@ public class ApiServiceExtension
     if (service != null) {
       if (service.matches(stargateEnvironmentInfo, spec, params)) {
         LOG.info(
-            "Reusing matching {} Service {} for {}", SERVICE_NAME, spec, context.getUniqueId());
+            "Reusing matching {} Service {} for {}",
+            params.serviceName(),
+            spec,
+            context.getUniqueId());
         return Optional.empty();
       }
 
       LOG.info(
           "Closing old {} Service due to spec mismatch within {}",
-          SERVICE_NAME,
+          params.serviceName(),
           context.getUniqueId());
       service.close();
     }
 
-    LOG.info("Starting {} Service with spec {} for {}", SERVICE_NAME, spec, context.getUniqueId());
+    LOG.info(
+        "Starting {} Service with spec {} for {}",
+        params.serviceName(),
+        spec,
+        context.getUniqueId());
 
-    Properties connectionProperties = new Properties();
-    connectionProperties.put(SERVICE_PORT_PROPERTY_NAME, String.valueOf(params.servicePort()));
-    connectionProperties.put(
-        BRIDGE_HOST_PROPERTY_NAME, stargateEnvironmentInfo.nodes().get(0).seedAddress());
-    // TODO: get these property values from stargateEnvironmentInfo
-    connectionProperties.put(BRIDGE_PORT_PROPERTY_NAME, BRIDGE_PORT);
-    connectionProperties.put(BRIDGE_TOKEN_PROPERTY_NAME, BRIDGE_TOKEN);
-
-    ApiService svc =
-        new ApiService(stargateEnvironmentInfo, spec, params, SERVICE_NAME, connectionProperties);
+    ApiService svc = new ApiService(stargateEnvironmentInfo, spec, params);
     svc.start();
     return Optional.of(svc);
   }
@@ -183,16 +148,13 @@ public class ApiServiceExtension
     private ApiService(
         StargateEnvironmentInfo stargateEnvironmentInfo,
         ApiServiceSpec spec,
-        ApiServiceParameters parameters,
-        String serviceName,
-        Properties connectionProperties)
+        ApiServiceParameters parameters)
         throws Exception {
       this.stargateEnvironmentInfo = stargateEnvironmentInfo;
       this.spec = spec;
       this.parameters = parameters;
 
-      instance =
-          new Instance(stargateEnvironmentInfo, parameters, serviceName, connectionProperties);
+      instance = new Instance(stargateEnvironmentInfo, parameters);
     }
 
     private void start() {
@@ -247,20 +209,23 @@ public class ApiServiceExtension
 
     private final CommandLine cmd;
 
-    private Instance(
-        StargateEnvironmentInfo stargateEnvironmentInfo,
-        ApiServiceParameters params,
-        String serviceName,
-        Properties connectionProperties)
+    private Instance(StargateEnvironmentInfo stargateEnvironmentInfo, ApiServiceParameters params)
         throws Exception {
-      super(serviceName, 1, 1);
+      super(params.serviceName(), 1, 1);
 
       cmd = new CommandLine("java");
 
-      // add configured connection properties first, then properties provided as test parameters
-      for (String name : connectionProperties.stringPropertyNames()) {
-        cmd.addArgument("-D" + name + "=" + connectionProperties.getProperty(name));
-      }
+      // add configured connection properties
+      cmd.addArgument("-D" + params.servicePortPropertyName() + "=" + params.servicePort());
+      cmd.addArgument(
+          "-D"
+              + params.bridgeHostPropertyName()
+              + "="
+              + stargateEnvironmentInfo.nodes().get(0).seedAddress());
+
+      // TODO: get these property values from stargateEnvironmentInfo
+      cmd.addArgument("-D" + params.bridgePortPropertyName() + "=" + BRIDGE_PORT);
+      cmd.addArgument("-D" + params.bridgeTokenPropertyName() + "=" + BRIDGE_TOKEN);
 
       for (Entry<String, String> e : params.systemProperties().entrySet()) {
         cmd.addArgument("-D" + e.getKey() + "=" + e.getValue());
@@ -275,14 +240,36 @@ public class ApiServiceExtension
       }
 
       cmd.addArgument("-jar");
-      cmd.addArgument(starterJar().getAbsolutePath());
+      cmd.addArgument(getStarterJar(params).getAbsolutePath());
 
       addStdOutListener(
           (node, line) -> {
-            if (line.contains(SERVICE_STARTED_MESSAGE)) {
+            if (line.contains(params.serviceStartedMessage())) {
               ready();
             }
           });
+    }
+
+    private static File getStarterJar(ApiServiceParameters params) {
+      String dir = System.getProperty(params.serviceLibDirProperty());
+      if (dir == null) {
+        throw new IllegalStateException(
+            params.serviceLibDirProperty() + " system property is not set.");
+      }
+      File libDir = new File(dir);
+      File[] files = libDir.listFiles();
+      Assertions.assertNotNull(files, "No files in " + libDir.getAbsolutePath());
+      return Arrays.stream(files)
+          .filter(f -> f.getName().startsWith(params.serviceJarBase()))
+          .filter(f -> f.getName().endsWith(".jar"))
+          .findFirst()
+          .orElseThrow(
+              () ->
+                  new IllegalStateException(
+                      "Unable to find "
+                          + params.serviceJarBase()
+                          + "*.jar in: "
+                          + libDir.getAbsolutePath()));
     }
 
     private void start() {

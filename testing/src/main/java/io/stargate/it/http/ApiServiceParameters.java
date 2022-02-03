@@ -42,13 +42,63 @@ public interface ApiServiceParameters {
   }
 
   @Value.Default
-  default int servicePort() {
-    return 8088;
+  // Example: "REST API"
+  default String serviceName() {
+    return "Override me";
   }
 
   @Value.Default
+  // Example: 8088
+  default int servicePort() {
+    return 0;
+  }
+
+  @Value.Default
+  // Example: dw.server.connector.port
+  default String servicePortPropertyName() {
+    return "Override me";
+  }
+
+  @Value.Default
+  // Example: 8088
   default int metricsPort() {
-    return 8088;
+    return 0;
+  }
+
+  @Value.Default
+  // Example: "Started RestServiceServer"
+  default String serviceStartedMessage() {
+    return "Override me";
+  }
+
+  @Value.Default
+  // Example: "stargate.rest.libdir"
+  default String serviceLibDirProperty() {
+    return "Override me";
+  }
+
+  @Value.Default
+  // example: "sgv2-rest-service"
+  default String serviceJarBase() {
+    return "Override me";
+  }
+
+  @Value.Default
+  // example: "dw.stargate.grpc.host"
+  default String bridgeHostPropertyName() {
+    return "Override me";
+  }
+
+  @Value.Default
+  // example: "dw.stargate.grpc.port"
+  default String bridgePortPropertyName() {
+    return "Override me";
+  }
+
+  @Value.Default
+  // standard value
+  default String bridgeTokenPropertyName() {
+    return "stargate.bridge.admin_token";
   }
 
   static Builder builder() {
@@ -59,9 +109,25 @@ public interface ApiServiceParameters {
 
     Builder putSystemProperties(String key, String value);
 
+    Builder serviceName(String name);
+
     Builder servicePort(int port);
 
+    Builder servicePortPropertyName(String name);
+
     Builder metricsPort(int port);
+
+    Builder serviceStartedMessage(String message);
+
+    Builder serviceLibDirProperty(String serviceLibDirProperty);
+
+    Builder serviceJarBase(String serviceJarBase);
+
+    Builder bridgeHostPropertyName(String bridgeHostPropertyName);
+
+    Builder bridgePortPropertyName(String bridgePortPropertyName);
+
+    Builder bridgeTokenPropertyName(String bridgeTokenPropertyName);
 
     ApiServiceParameters build();
   }
