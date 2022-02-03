@@ -20,9 +20,12 @@ import java.util.Map;
 import org.immutables.value.Value;
 
 /**
- * Defines parameters for each of the Service API instances requested by a test.
+ * Defines parameters for each of the Service API instances requested by a test. Recommended usage:
+ * provide a base class for tests for each Service API that provides a method to customize these
+ * parameters as needed.
  *
  * @see ApiServiceSpec#parametersCustomizer()
+ * @see BaseRestApiTest#buildApiServiceParameters(Builder)
  */
 @Value.Immutable(prehash = true)
 public interface ApiServiceParameters {

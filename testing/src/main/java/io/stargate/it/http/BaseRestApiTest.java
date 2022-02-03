@@ -6,7 +6,7 @@ public class BaseRestApiTest extends BaseIntegrationTest {
 
   @SuppressWarnings("unused") // referenced in @ApiServiceSpec
   public static void buildApiServiceParameters(ApiServiceParameters.Builder builder) {
-    builder.serviceName("REST API Service");
+    builder.serviceName("rest-api");
     builder.servicePort(8088);
     builder.servicePortPropertyName("dw.server.connector.port");
     builder.metricsPort(8088);

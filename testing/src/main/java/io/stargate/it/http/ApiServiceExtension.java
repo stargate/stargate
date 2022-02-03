@@ -40,8 +40,6 @@ import org.slf4j.LoggerFactory;
  * activated as well. It is recommended that test classes be annotated with {@link
  * UseStargateCoordinator} to make sure both extensions are activated in the right order.
  *
- * <p>Note: this extension does not support concurrent test execution.
- *
  * @see ApiServiceSpec
  * @see ApiServiceParameters
  */
