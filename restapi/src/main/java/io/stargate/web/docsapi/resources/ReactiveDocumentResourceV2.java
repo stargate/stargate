@@ -379,8 +379,6 @@ public class ReactiveDocumentResourceV2 {
           Boolean profile,
       @Context HttpServletRequest request,
       @Suspended AsyncResponse asyncResponse) {
-    // TODO Eric should we actually fail the PATCH if the table is not there?
-
     // create table if needed, if not validate it's a doc table
     Single.fromCallable(
             () -> createOrValidateDbFromToken(authToken, request, namespace, collection))

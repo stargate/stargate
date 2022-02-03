@@ -331,7 +331,7 @@ public class DocumentWriteService {
         prepareInsertDocumentRowQuery(dataStore, keyspace, collection)
             .observeOn(Schedulers.computation());
 
-    // execute when both done
+    // execute when all done
     return Single.zip(
             deletePatchedKeysPrepared,
             deleteExactPrepared,
