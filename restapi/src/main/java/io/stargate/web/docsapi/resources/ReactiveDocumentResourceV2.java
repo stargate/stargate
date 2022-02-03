@@ -212,7 +212,8 @@ public class ReactiveDocumentResourceV2 {
   @ManagedAsync
   @ApiOperation(
       value = "Replace data at a path in a document",
-      notes = "Removes whatever was previously present at the path")
+      notes =
+          "Removes whatever was previously present at the path. Note that operation is not allowed if a JSON schema exist for a target collection.")
   @ApiResponses(
       value = {
         @ApiResponse(code = 200, message = "OK", response = WriteDocResponse.class),

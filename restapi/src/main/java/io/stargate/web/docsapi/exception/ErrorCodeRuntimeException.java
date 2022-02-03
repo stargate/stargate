@@ -35,6 +35,12 @@ public class ErrorCodeRuntimeException extends RuntimeException {
     this.errorCode = errorCode;
   }
 
+  /** @see Exception#Exception(Throwable) */
+  public ErrorCodeRuntimeException(ErrorCode errorCode, Throwable cause) {
+    super(cause);
+    this.errorCode = errorCode;
+  }
+
   /** @see Exception#Exception(String, Throwable) */
   public ErrorCodeRuntimeException(ErrorCode errorCode, String message, Throwable cause) {
     super(message, cause);
