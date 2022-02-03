@@ -7,7 +7,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
@@ -59,8 +58,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE TABLE index_test_table(k int PRIMARY KEY, l list<int>, m1 map<int, text>, m2 map<int, text>, m3 map<int, text>)",
     })
 @ExtendWith(ApiServiceExtension.class)
-@ApiServiceSpec()
-public class RestApiv2DseTest extends BaseIntegrationTest {
+@ApiServiceSpec(parametersCustomizer = "buildParameters")
+public class RestApiv2DseTest extends BaseRestApiTest {
 
   private static final ObjectMapper objectMapper =
       new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);

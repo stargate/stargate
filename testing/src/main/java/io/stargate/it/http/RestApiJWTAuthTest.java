@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.KeycloakContainer;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
@@ -58,9 +57,9 @@ import org.testcontainers.junit.jupiter.Testcontainers;
       "GRANT SELECT ON TABLE store1.shopping_cart TO web_user",
     })
 @ExtendWith(ApiServiceExtension.class)
-@ApiServiceSpec()
+@ApiServiceSpec(parametersCustomizer = "buildParameters")
 @Testcontainers(disabledWithoutDocker = true)
-public class RestApiJWTAuthTest extends BaseIntegrationTest {
+public class RestApiJWTAuthTest extends BaseRestApiTest {
 
   private static final Logger logger = LoggerFactory.getLogger(RestApiJWTAuthTest.class);
 
