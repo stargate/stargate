@@ -129,6 +129,14 @@ public enum ErrorCode {
   DOCS_API_INVALID_JSON_VALUE(
       Response.Status.BAD_REQUEST, "The provided JSON does not match the collection's schema."),
 
+  DOCS_API_WRITE_BATCH_NOT_ARRAY(
+      Response.Status.BAD_REQUEST,
+      "The payload for the batched document write must be a JSON array."),
+
+  DOCS_API_WRITE_BATCH_DUPLICATE_ID(
+      Response.Status.BAD_REQUEST,
+      "A same document ID is found in more than one documents when doing batched document write.."),
+
   DOCS_API_WRITE_BATCH_INVALID_ID_PATH(
       Response.Status.BAD_REQUEST, "ID path is invalid for document during batch write."),
 

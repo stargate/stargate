@@ -51,10 +51,6 @@ import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.Table;
 import io.stargate.web.docsapi.dao.DocumentDBFactory;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
-import io.stargate.web.docsapi.models.ImmutableExecutionProfile;
-import io.stargate.web.docsapi.models.MultiDocsResponse;
-import io.stargate.web.docsapi.models.QueryInfo;
-import io.stargate.web.docsapi.resources.DocumentResourceV2;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -127,7 +123,6 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
 
   private DocumentDBFactory documentDBFactory;
   private DocumentService service;
-  private DocumentResourceV2 resource;
 
   private static Column[] clusteringColumns() {
     Column[] columns = new Column[64];
@@ -157,7 +152,6 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
 
     when(authenticationService.validateToken(eq(authToken), anyMap())).thenReturn(subject);
     service = new DocumentService(timeSource, mapper, docsShredder);
-    resource = new DocumentResourceV2(documentDBFactory, mapper, service, config, schemaChecker);
   }
 
   private Map<String, Object> leafRow(String id) {
@@ -354,47 +348,6 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
       // expectations defined by setQueryExpectations() to reduce copy-paste, but we do not actually
       // expect all of them to be executed by each test method.
       resetExpectations();
-    }
-
-    @Test
-    void putManyDocs() throws JsonProcessingException {
-      BatchType batchType =
-          datastore().supportsLoggedBatches() ? BatchType.LOGGED : BatchType.UNLOGGED;
-
-      String delete = "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ?";
-      withQuery(table, delete, 199L, "123").inBatch(batchType).returningNothing();
-      withQuery(table, delete, 199L, "234").inBatch(batchType).returningNothing();
-      withQuery(table, insert, fillParams(70, "123", "a", SEPARATOR, "a", "123", null, null, 200L))
-          .inBatch(batchType)
-          .returningNothing();
-      withQuery(table, insert, fillParams(70, "234", "a", SEPARATOR, "a", "234", null, null, 200L))
-          .inBatch(batchType)
-          .returningNothing();
-
-      when(timeSource.currentTimeMicros()).thenReturn(200L);
-      Response r =
-          resource.writeManyDocs(
-              headers,
-              uriInfo,
-              authToken,
-              keyspace.name(),
-              table.name(),
-              new ByteArrayInputStream("[{\"a\":\"123\"},{\"a\":\"234\"}]".getBytes()),
-              "a",
-              true,
-              request);
-      MultiDocsResponse mdr = mapper.readValue((String) r.getEntity(), MultiDocsResponse.class);
-      assertThat(mdr.getProfile())
-          .isEqualTo(
-              ImmutableExecutionProfile.builder()
-                  .description("root")
-                  .addNested(
-                      ImmutableExecutionProfile.builder()
-                          .description("ASYNC INSERT")
-                          // row count for DELETE is not known
-                          .addQueries(QueryInfo.of(insert, 2, 2), QueryInfo.of(delete, 2, 0))
-                          .build())
-                  .build());
     }
   }
 }
