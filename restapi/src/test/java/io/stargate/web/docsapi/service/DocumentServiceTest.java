@@ -32,12 +32,9 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap.Builder;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.guava.GuavaModule;
-import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
-import io.stargate.auth.Scope;
-import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.core.util.TimeSource;
 import io.stargate.db.BatchType;
@@ -58,7 +55,6 @@ import io.stargate.web.docsapi.models.ImmutableExecutionProfile;
 import io.stargate.web.docsapi.models.MultiDocsResponse;
 import io.stargate.web.docsapi.models.QueryInfo;
 import io.stargate.web.docsapi.resources.DocumentResourceV2;
-import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -73,7 +69,6 @@ import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
-import org.assertj.core.api.ThrowableAssert.ThrowingCallable;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -81,7 +76,6 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -119,7 +113,6 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
   private final DocsSchemaChecker schemaChecker = new DocsSchemaChecker();
   private final String authToken = "test-auth-token";
   private final AuthenticationSubject subject = AuthenticationSubject.of(authToken, "user1", false);
-  @Mock private JsonSchemaHandler jsonSchemaHandler;
   private final DocsShredder docsShredder = new DocsShredder(config);
   @Mock private AuthenticationService authenticationService;
   @Mock private AuthorizationService authorizationService;
@@ -163,9 +156,7 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
             authenticationService, authorizationService, dataStoreFactory, config);
 
     when(authenticationService.validateToken(eq(authToken), anyMap())).thenReturn(subject);
-    service =
-        new DocumentService(
-            timeSource, mapper, schemaChecker, jsonSchemaHandler, docsShredder, config);
+    service = new DocumentService(timeSource, mapper, docsShredder);
     resource = new DocumentResourceV2(documentDBFactory, mapper, service, config, schemaChecker);
   }
 
@@ -267,200 +258,6 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
     }
 
     return result;
-  }
-
-  @Test
-  void testPutAtPathRoot() throws UnauthorizedException, ProcessingException {
-    BatchType batchType =
-        datastore().supportsLoggedBatches() ? BatchType.LOGGED : BatchType.UNLOGGED;
-
-    withQuery(table, "DELETE FROM %s USING TIMESTAMP ? WHERE key = ?", 99L, "id1")
-        .inBatch(batchType)
-        .returningNothing();
-
-    withQuery(table, insert, fillParams(70, "id1", "a", SEPARATOR, "a", null, 123.0d, null, 100L))
-        .inBatch(batchType)
-        .returningNothing();
-    withQuery(table, insert, fillParams(70, "id1", "b", SEPARATOR, "b", null, null, true, 100L))
-        .inBatch(batchType)
-        .returningNothing();
-    withQuery(table, insert, fillParams(70, "id1", "c", SEPARATOR, "c", "text", null, null, 100L))
-        .inBatch(batchType)
-        .returningNothing();
-    withQuery(
-            table,
-            insert,
-            fillParams(
-                70,
-                "id1",
-                "d",
-                SEPARATOR,
-                "d",
-                DocsApiConstants.EMPTY_OBJECT_MARKER,
-                null,
-                null,
-                100L))
-        .inBatch(batchType)
-        .returningNothing();
-    withQuery(
-            table,
-            insert,
-            fillParams(
-                70,
-                "id1",
-                "e",
-                SEPARATOR,
-                "e",
-                DocsApiConstants.EMPTY_ARRAY_MARKER,
-                null,
-                null,
-                100L))
-        .inBatch(batchType)
-        .returningNothing();
-    withQuery(table, insert, fillParams(70, "id1", "f", SEPARATOR, "f", null, null, null, 100L))
-        .inBatch(batchType)
-        .returningNothing();
-    withQuery(
-            table,
-            insert,
-            fillParams(70, "id1", "g", "[000000]", "h", SEPARATOR, "h", null, 1.0d, null, 100L))
-        .inBatch(batchType)
-        .returningNothing();
-
-    when(timeSource.currentTimeMicros()).thenReturn(100L);
-    service.putAtPath(
-        authToken,
-        keyspace.name(),
-        table.name(),
-        "id1",
-        "{\"a\":123, \"b\":true, \"c\":\"text\", \"d\":{}, \"e\":[], \"f\":null, \"g\":[{\"h\":1}]}",
-        ImmutableList.of(),
-        false,
-        documentDBFactory,
-        true,
-        Collections.emptyMap(),
-        ExecutionContext.NOOP_CONTEXT);
-  }
-
-  @Test
-  void testPutAtPathNested() throws UnauthorizedException, ProcessingException {
-    BatchType batchType =
-        datastore().supportsLoggedBatches() ? BatchType.LOGGED : BatchType.UNLOGGED;
-
-    withQuery(
-            table,
-            "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ?",
-            199L,
-            "id2",
-            "x",
-            "y",
-            "[000000]")
-        .inBatch(batchType)
-        .returningNothing();
-
-    String insert =
-        "INSERT INTO %s (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?";
-    withQuery(
-            table,
-            insert,
-            fillParams(
-                70, "id2", "x", "y", "[000000]", "a", SEPARATOR, "a", null, 123.0d, null, 200L))
-        .inBatch(batchType)
-        .returningNothing();
-
-    when(timeSource.currentTimeMicros()).thenReturn(200L);
-    service.putAtPath(
-        authToken,
-        keyspace.name(),
-        table.name(),
-        "id2",
-        "{\"a\":123}",
-        ImmutableList.of(p("x"), p("y"), p("[000000]")),
-        false,
-        documentDBFactory,
-        true,
-        Collections.emptyMap(),
-        ExecutionContext.NOOP_CONTEXT);
-  }
-
-  @Test
-  void testPutAtPathPatch() throws UnauthorizedException, ProcessingException {
-    BatchType batchType =
-        datastore().supportsLoggedBatches() ? BatchType.LOGGED : BatchType.UNLOGGED;
-
-    String insert =
-        "INSERT INTO %s (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?";
-    withQuery(table, insert, fillParams(70, "id3", "a", SEPARATOR, "a", null, 123.0d, null, 200L))
-        .inBatch(batchType)
-        .returningNothing();
-
-    withQuery(
-            table,
-            "DELETE FROM %s USING TIMESTAMP ? WHERE key = ? AND p0 >= ? AND p0 <= ?",
-            199L,
-            "id3",
-            "[000000]",
-            "[999999]")
-        .inBatch(batchType)
-        .returningNothing();
-    withQuery(
-            table,
-            "DELETE FROM %s USING TIMESTAMP ? WHERE key = ? AND p0 IN ?",
-            199L,
-            "id3",
-            ImmutableList.of("a"))
-        .inBatch(batchType)
-        .returningNothing();
-
-    when(timeSource.currentTimeMicros()).thenReturn(200L);
-    service.putAtPath(
-        authToken,
-        keyspace.name(),
-        table.name(),
-        "id3",
-        "{\"a\":123}",
-        ImmutableList.of(),
-        true,
-        documentDBFactory,
-        true,
-        Collections.emptyMap(),
-        ExecutionContext.NOOP_CONTEXT);
-  }
-
-  @Test
-  void testPutAtPathUnauthorized() throws UnauthorizedException {
-    ThrowingCallable action =
-        () ->
-            service.putAtPath(
-                authToken,
-                keyspace.name(),
-                table.name(),
-                "id3",
-                "{\"a\":123}",
-                ImmutableList.of(),
-                true,
-                documentDBFactory,
-                true,
-                Collections.emptyMap(),
-                ExecutionContext.NOOP_CONTEXT);
-
-    Mockito.doThrow(new UnauthorizedException("test1"))
-        .when(authorizationService)
-        .authorizeDataWrite(
-            any(), eq(keyspace.name()), eq(table.name()), eq(Scope.DELETE), eq(SourceAPI.REST));
-
-    assertThatThrownBy(action).hasMessage("test1");
-
-    Mockito.doNothing()
-        .when(authorizationService)
-        .authorizeDataWrite(
-            any(), eq(keyspace.name()), eq(table.name()), eq(Scope.DELETE), eq(SourceAPI.REST));
-    Mockito.doThrow(new UnauthorizedException("test2"))
-        .when(authorizationService)
-        .authorizeDataWrite(
-            any(), eq(keyspace.name()), eq(table.name()), eq(Scope.MODIFY), eq(SourceAPI.REST));
-
-    assertThatThrownBy(action).hasMessage("test2");
   }
 
   @Test
@@ -596,53 +393,6 @@ public class DocumentServiceTest extends AbstractDataStoreTest {
                           .description("ASYNC INSERT")
                           // row count for DELETE is not known
                           .addQueries(QueryInfo.of(insert, 2, 2), QueryInfo.of(delete, 2, 0))
-                          .build())
-                  .build());
-    }
-
-    @Test
-    void patchDoc() throws JsonProcessingException {
-      BatchType batchType =
-          datastore().supportsLoggedBatches() ? BatchType.LOGGED : BatchType.UNLOGGED;
-
-      when(headers.getHeaderString(eq(HttpHeaders.CONTENT_TYPE))).thenReturn("application/json");
-
-      String delete1 =
-          "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ? AND p0 >= ? AND p0 <= ?";
-      withQuery(table, delete1, 199L, "id3", "[000000]", "[999999]")
-          .inBatch(batchType)
-          .returningNothing();
-      String delete2 =
-          "DELETE FROM test_docs.collection1 USING TIMESTAMP ? WHERE key = ? AND p0 IN ?";
-      withQuery(table, delete2, 199L, "id3", ImmutableList.of("a"))
-          .inBatch(batchType)
-          .returningNothing();
-
-      when(timeSource.currentTimeMicros()).thenReturn(200L);
-      DocumentResponseWrapper<Object> r =
-          unwrap(
-              resource.patchDoc(
-                  headers,
-                  uriInfo,
-                  authToken,
-                  keyspace.name(),
-                  table.name(),
-                  "id3",
-                  "{\"a\":123}",
-                  true,
-                  request));
-      assertThat(r.getProfile())
-          .isEqualTo(
-              ImmutableExecutionProfile.builder()
-                  .description("root")
-                  .addNested(
-                      ImmutableExecutionProfile.builder()
-                          .description("ASYNC PATCH")
-                          // row count for DELETE is not known
-                          .addQueries(
-                              QueryInfo.of(insert, 1, 1),
-                              QueryInfo.of(delete2, 1, 0),
-                              QueryInfo.of(delete1, 1, 0))
                           .build())
                   .build());
     }

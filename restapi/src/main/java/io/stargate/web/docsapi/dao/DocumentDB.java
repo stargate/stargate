@@ -493,67 +493,6 @@ public class DocumentDB {
     return prepared.bind(microsTimestamp);
   }
 
-  /** Deletes from @param tableName all rows that match @param pathToDelete exactly. */
-  public BoundQuery getExactPathDeleteStatement(
-      String keyspaceName,
-      String tableName,
-      String key,
-      long microsTimestamp,
-      List<String> pathToDelete) {
-
-    int pathSize = pathToDelete.size();
-    List<BuiltCondition> where = new ArrayList<>(1 + config.getMaxDepth());
-    where.add(BuiltCondition.of("key", Predicate.EQ, key));
-    for (int i = 0; i < pathSize; i++) {
-      where.add(BuiltCondition.of("p" + i, Predicate.EQ, pathToDelete.get(i)));
-    }
-    for (int i = pathSize; i < config.getMaxDepth(); i++) {
-      where.add(BuiltCondition.of("p" + i, Predicate.EQ, ""));
-    }
-    Query prepared =
-        dataStore
-            .prepare(
-                dataStore
-                    .queryBuilder()
-                    .delete()
-                    .from(keyspaceName, tableName)
-                    .timestamp()
-                    .where(where)
-                    .build())
-            .join();
-    return prepared.bind(microsTimestamp);
-  }
-
-  /**
-   * Performs a delete of all the rows that are prefixed by the @param path, and then does an insert
-   * using the @param vars provided, all in one batch.
-   */
-  public void deleteThenInsertBatch(
-      String keyspace,
-      String table,
-      String key,
-      List<Object[]> vars,
-      List<String> pathToDelete,
-      long microsSinceEpoch,
-      ExecutionContext context)
-      throws UnauthorizedException {
-
-    getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
-
-    getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
-
-    List<BoundQuery> queries = new ArrayList<>(1 + vars.size());
-    queries.add(getPrefixDeleteStatement(keyspace, table, key, microsSinceEpoch - 1, pathToDelete));
-
-    for (Object[] values : vars) {
-      queries.add(getInsertStatement(keyspace, table, microsSinceEpoch, values));
-    }
-
-    executeBatch(queries, context);
-  }
-
   /**
    * Performs a delete of all the rows that are prefixed by the @param path, and then does an insert
    * using the @param vars provided, all in one batch.
@@ -582,59 +521,6 @@ public class DocumentDB {
 
     for (Object[] values : vars) {
       queries.add(getInsertStatement(keyspace, table, microsSinceEpoch, values));
-    }
-
-    executeBatch(queries, context);
-  }
-
-  /**
-   * Performs a delete of all the rows that match exactly the @param path, deletes all array paths,
-   * and then does an insert using the @param vars provided, all in one batch.
-   */
-  public void deletePatchedPathsThenInsertBatch(
-      String keyspace,
-      String table,
-      String key,
-      List<Object[]> vars,
-      List<String> pathToDelete,
-      List<String> patchedKeys,
-      long microsSinceEpoch,
-      ExecutionContext context)
-      throws UnauthorizedException {
-    boolean hasPath = !pathToDelete.isEmpty();
-
-    getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
-
-    getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
-
-    long insertTs = microsSinceEpoch;
-    long deleteTs = microsSinceEpoch - 1;
-
-    List<BoundQuery> queries = new ArrayList<>(vars.size() + 3);
-    for (Object[] values : vars) {
-      queries.add(getInsertStatement(keyspace, table, insertTs, values));
-    }
-
-    if (hasPath) {
-      // Only deleting the root path when there is a defined `pathToDelete` ensures that the DOCROOT
-      // entry is never deleted out.
-      queries.add(getExactPathDeleteStatement(keyspace, table, key, deleteTs, pathToDelete));
-    }
-
-    queries.add(getSubpathArrayDeleteStatement(keyspace, table, key, deleteTs, pathToDelete));
-    queries.add(
-        getPathKeysDeleteStatement(keyspace, table, key, deleteTs, pathToDelete, patchedKeys));
-
-    Object[] deleteVarsWithPathKeys = new Object[pathToDelete.size() + patchedKeys.size() + 2];
-    deleteVarsWithPathKeys[0] = microsSinceEpoch - 1;
-    deleteVarsWithPathKeys[1] = key;
-    for (int i = 0; i < pathToDelete.size(); i++) {
-      deleteVarsWithPathKeys[i + 2] = pathToDelete.get(i);
-    }
-    for (int i = 0; i < patchedKeys.size(); i++) {
-      deleteVarsWithPathKeys[i + 2 + pathToDelete.size()] = patchedKeys.get(i);
     }
 
     executeBatch(queries, context);

@@ -150,6 +150,31 @@ class DocsApiUtilsTest {
   }
 
   @Nested
+  class IsArrayPath {
+
+    @Test
+    public void notConverted() {
+      boolean result = DocsApiUtils.isArrayPath("[5]");
+
+      assertThat(result).isTrue();
+    }
+
+    @Test
+    public void alreadyConverted() {
+      boolean result = DocsApiUtils.isArrayPath("[000123]");
+
+      assertThat(result).isTrue();
+    }
+
+    @Test
+    public void notArray() {
+      boolean result = DocsApiUtils.isArrayPath("whooo");
+
+      assertThat(result).isFalse();
+    }
+  }
+
+  @Nested
   class ConvertEscapedCharacters {
 
     @Test

@@ -5,7 +5,6 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.core.util.TimeSource;
 import io.stargate.web.docsapi.dao.DocumentDB;
@@ -24,8 +23,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
-import javax.ws.rs.core.PathSegment;
-import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.jsfr.json.JsonSurfer;
 import org.jsfr.json.JsonSurferJackson;
 import org.slf4j.Logger;
@@ -36,25 +33,13 @@ public class DocumentService {
 
   private final TimeSource timeSource;
   private final ObjectMapper mapper;
-  private final DocsSchemaChecker schemaChecker;
-  private final JsonSchemaHandler jsonSchemaHandler;
   private final DocsShredder docsShredder;
-  private final DocsApiConfiguration config;
 
   @Inject
-  public DocumentService(
-      TimeSource timeSource,
-      ObjectMapper mapper,
-      DocsSchemaChecker schemaChecker,
-      JsonSchemaHandler jsonSchemaHandler,
-      DocsShredder docsShredder,
-      DocsApiConfiguration config) {
+  public DocumentService(TimeSource timeSource, ObjectMapper mapper, DocsShredder docsShredder) {
     this.timeSource = timeSource;
     this.mapper = mapper;
-    this.schemaChecker = schemaChecker;
-    this.jsonSchemaHandler = jsonSchemaHandler;
     this.docsShredder = docsShredder;
-    this.config = config;
   }
 
   private Optional<String> convertToJsonPtr(Optional<String> path) {
@@ -169,79 +154,5 @@ public class DocumentService {
       idsWritten.addAll(ids);
     }
     return idsWritten;
-  }
-
-  public void putAtPath(
-      String authToken,
-      String keyspace,
-      String collection,
-      String id,
-      String payload,
-      List<PathSegment> path,
-      boolean patching,
-      DocumentDBFactory dbFactory,
-      boolean isJson,
-      Map<String, String> headers,
-      ExecutionContext context)
-      throws UnauthorizedException, ProcessingException {
-    DocumentDB db = dbFactory.getDocDBForToken(authToken, headers);
-    JsonSurfer surfer = JsonSurferJackson.INSTANCE;
-
-    db = maybeCreateTableAndIndexes(dbFactory, db, keyspace, collection, headers, authToken);
-
-    JsonNode schema = jsonSchemaHandler.getCachedJsonSchema(db, keyspace, collection);
-    if (schema != null && path.isEmpty() && isJson) {
-      jsonSchemaHandler.validate(schema, payload);
-    } else if (schema != null) {
-      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_JSON_SCHEMA_INVALID_PARTIAL_UPDATE);
-    }
-
-    schemaChecker.checkValidity(keyspace, collection, db);
-
-    // Left-pad the path segments that represent arrays
-    List<String> convertedPath = new ArrayList<>(path.size());
-    for (PathSegment pathSegment : path) {
-      String pathStr = pathSegment.getPath();
-      convertedPath.add(DocsApiUtils.convertArrayPath(pathStr, config.getMaxArrayLength()));
-    }
-
-    ImmutablePair<List<Object[]>, List<String>> shreddingResults =
-        docsShredder.shredPayload(
-            surfer, convertedPath, id, payload, patching, db.treatBooleansAsNumeric(), isJson);
-
-    List<Object[]> bindVariableList = shreddingResults.left;
-    List<String> firstLevelKeys = shreddingResults.right;
-
-    if (bindVariableList.isEmpty() && isJson) {
-      String msg =
-          "Updating a key with just a JSON primitive, empty object, or empty array is not allowed. Found: "
-              + payload
-              + ". Hint: update the parent path with a defined object instead.";
-      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_PUT_PAYLOAD_INVALID, msg);
-    }
-
-    logger.debug("Bind {}", bindVariableList.size());
-
-    long now = timeSource.currentTimeMicros();
-    if (patching) {
-      db.deletePatchedPathsThenInsertBatch(
-          keyspace,
-          collection,
-          id,
-          bindVariableList,
-          convertedPath,
-          firstLevelKeys,
-          now,
-          context.nested("ASYNC PATCH"));
-    } else {
-      db.deleteThenInsertBatch(
-          keyspace,
-          collection,
-          id,
-          bindVariableList,
-          convertedPath,
-          now,
-          context.nested("ASYNC INSERT"));
-    }
   }
 }
