@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.http.models.Credentials;
@@ -30,8 +29,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec()
 @ExtendWith(ApiServiceExtension.class)
-@ApiServiceSpec()
-public class RestApiv2SchemaTest extends BaseIntegrationTest {
+@ApiServiceSpec(parametersCustomizer = "buildParameters")
+public class RestApiv2SchemaTest extends BaseRestApiTest {
   private String keyspaceName;
   private String tableName;
   private static String authToken;
