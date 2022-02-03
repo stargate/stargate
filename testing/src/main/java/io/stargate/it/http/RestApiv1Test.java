@@ -61,12 +61,12 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
+/** Integration tests for legacy Rest V1 endpoints (both DDL and DML). */
 @NotThreadSafe
 @ExtendWith(RestApiExtension.class)
 @RestApiSpec()
 @Disabled("SGv2 does not currently support REST v1 API")
-public class RestApiTest extends BaseIntegrationTest {
-
+public class RestApiv1Test extends BaseIntegrationTest {
   private static final Pattern GRAPHQL_OPERATIONS_METRIC_REGEXP =
       Pattern.compile(
           "(restapi_io_dropwizard_jetty_MutableServletContextHandler_dispatches_count\\s*)(\\d+.\\d+)");
