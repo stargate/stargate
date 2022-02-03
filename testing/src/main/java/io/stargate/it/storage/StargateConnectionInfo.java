@@ -22,6 +22,10 @@ public interface StargateConnectionInfo {
 
   int cqlPort();
 
+  int bridgePort();
+
+  String bridgeToken();
+
   int jmxPort();
 
   String clusterName();

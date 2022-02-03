@@ -48,10 +48,6 @@ public class ApiServiceExtension
     implements ParameterResolver {
   private static final Logger LOG = LoggerFactory.getLogger(ApiServiceExtension.class);
 
-  // TODO - move these into environment info
-  private static String BRIDGE_PORT = "8091";
-  private static String BRIDGE_TOKEN = "mockAdminToken";
-
   public static final String STORE_KEY = "api-container";
 
   public ApiServiceExtension() {
@@ -206,19 +202,15 @@ public class ApiServiceExtension
         throws Exception {
       super(params.serviceName(), 1, 1);
 
+      StargateConnectionInfo connectionInfo = stargateEnvironmentInfo.nodes().get(0);
+
       cmd = new CommandLine("java");
 
       // add configured connection properties
       cmd.addArgument("-D" + params.servicePortPropertyName() + "=" + params.servicePort());
-      cmd.addArgument(
-          "-D"
-              + params.bridgeHostPropertyName()
-              + "="
-              + stargateEnvironmentInfo.nodes().get(0).seedAddress());
-
-      // TODO: get these property values from stargateEnvironmentInfo
-      cmd.addArgument("-D" + params.bridgePortPropertyName() + "=" + BRIDGE_PORT);
-      cmd.addArgument("-D" + params.bridgeTokenPropertyName() + "=" + BRIDGE_TOKEN);
+      cmd.addArgument("-D" + params.bridgeHostPropertyName() + "=" + connectionInfo.seedAddress());
+      cmd.addArgument("-D" + params.bridgePortPropertyName() + "=" + connectionInfo.bridgePort());
+      cmd.addArgument("-D" + params.bridgeTokenPropertyName() + "=" + connectionInfo.bridgeToken());
 
       for (Entry<String, String> e : params.systemProperties().entrySet()) {
         cmd.addArgument("-D" + e.getKey() + "=" + e.getValue());

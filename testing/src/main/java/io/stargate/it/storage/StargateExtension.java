@@ -346,6 +346,8 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
     private final String clusterName;
     private final CommandLine cmd;
     private final int cqlPort;
+    private final int bridgePort;
+    private final String bridgeToken;
     private final int jmxPort;
     private final String datacenter;
     private final String rack;
@@ -362,6 +364,8 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
       this.nodeIndex = nodeIndex;
       this.listenAddress = env.listenAddress(nodeIndex);
       this.cqlPort = env.cqlPort();
+      this.bridgePort = env.bridgePort();
+      this.bridgeToken = env.bridgeToken();
       this.jmxPort = env.jmxPort(nodeIndex);
       this.clusterName = backend.clusterName();
       this.datacenter = backend.datacenter();
@@ -381,7 +385,7 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
 
       cmd.addArgument("-Dstargate.enable_user_defined_functions=true");
 
-      cmd.addArgument("-Dstargate.bridge.admin_token=mockAdminToken");
+      cmd.addArgument("-Dstargate.bridge.admin_token=" + bridgeToken);
 
       for (Entry<String, String> e : params.systemProperties().entrySet()) {
         cmd.addArgument("-D" + e.getKey() + "=" + e.getValue());
@@ -469,6 +473,16 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
     }
 
     @Override
+    public int bridgePort() {
+      return bridgePort;
+    }
+
+    @Override
+    public String bridgeToken() {
+      return bridgeToken;
+    }
+
+    @Override
     public int jmxPort() {
       return jmxPort;
     }
@@ -516,6 +530,14 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
 
     private int cqlPort() {
       return 9043;
+    }
+
+    private int bridgePort() {
+      return 8091;
+    }
+
+    private String bridgeToken() {
+      return "mockAdminToken";
     }
 
     public File cacheDir(int nodeIndex) throws IOException {
