@@ -450,6 +450,397 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
   }
 
   @Nested
+  class PatchDocument {
+
+    @Test
+    public void happyPath() throws Exception {
+      DataStore datastore = datastore();
+      BatchType batchType =
+          datastore.supportsLoggedBatches() ? BatchType.LOGGED : BatchType.UNLOGGED;
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(MAX_DEPTH)
+              .addPath("key1")
+              .stringValue("value1")
+              .build();
+      JsonShreddedRow row2 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(MAX_DEPTH)
+              .addPath("key2")
+              .addPath("nested")
+              .doubleValue(2.2d)
+              .build();
+      List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
+
+      long timestamp = RandomUtils.nextLong();
+      when(timeSource.currentTimeMicros()).thenReturn(timestamp);
+
+      String insertCql =
+          "INSERT INTO %s (key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?";
+      ValidatingDataStore.QueryAssert row1QueryAssert =
+          withQuery(
+                  SCHEMA_PROVIDER.getTable(),
+                  insertCql,
+                  documentId,
+                  "key1",
+                  "",
+                  "",
+                  "",
+                  "key1",
+                  "value1",
+                  null,
+                  null,
+                  timestamp)
+              .inBatch(batchType)
+              .returningNothing();
+      ValidatingDataStore.QueryAssert row2QueryAssert =
+          withQuery(
+                  SCHEMA_PROVIDER.getTable(),
+                  insertCql,
+                  documentId,
+                  "key2",
+                  "nested",
+                  "",
+                  "",
+                  "nested",
+                  null,
+                  2.2d,
+                  null,
+                  timestamp)
+              .inBatch(batchType)
+              .returningNothing();
+
+      String deleteExactCql =
+          "DELETE FROM %s USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ?";
+      ValidatingDataStore.QueryAssert deleteExactQueryAssert =
+          withQuery(
+                  SCHEMA_PROVIDER.getTable(),
+                  deleteExactCql,
+                  timestamp - 1,
+                  documentId,
+                  "",
+                  "",
+                  "",
+                  "")
+              .inBatch(batchType)
+              .returningNothing();
+
+      String deletePatchedKeys = "DELETE FROM %s USING TIMESTAMP ? WHERE key = ? AND p0 IN ?";
+      ValidatingDataStore.QueryAssert deleteKeysQueryAssert =
+          withQuery(
+                  SCHEMA_PROVIDER.getTable(),
+                  deletePatchedKeys,
+                  timestamp - 1,
+                  documentId,
+                  Arrays.asList("key1", "key2"))
+              .inBatch(batchType)
+              .returningNothing();
+
+      String deleteArray = "DELETE FROM %s USING TIMESTAMP ? WHERE key = ? AND p0 >= ? AND p0 <= ?";
+      ValidatingDataStore.QueryAssert deleteArrayQueryAssert =
+          withQuery(
+                  SCHEMA_PROVIDER.getTable(),
+                  deleteArray,
+                  timestamp - 1,
+                  documentId,
+                  "[000000]",
+                  "[999999]")
+              .inBatch(batchType)
+              .returningNothing();
+
+      Single<ResultSet> result =
+          service.patchDocument(
+              datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, false, context);
+
+      result.test().await().assertValueCount(1).assertComplete();
+      row1QueryAssert.assertExecuteCount().isEqualTo(1);
+      row2QueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteExactQueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteKeysQueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteArrayQueryAssert.assertExecuteCount().isEqualTo(1);
+
+      // execution context
+      assertThat(context.toProfile().nested())
+          .singleElement()
+          .satisfies(
+              nested -> {
+                assertThat(nested.description()).isEqualTo("ASYNC PATCH");
+                assertThat(nested.queries())
+                    .hasSize(4)
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(
+                                      deleteExactCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(
+                                      deletePatchedKeys, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(
+                                      deleteArray, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(insertCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.rowCount()).isEqualTo(2);
+                        });
+              });
+    }
+
+    @Test
+    public void happyPathSubDocument() throws Exception {
+      DataStore datastore = datastore();
+      BatchType batchType =
+          datastore.supportsLoggedBatches() ? BatchType.LOGGED : BatchType.UNLOGGED;
+      List<String> subPath = Collections.singletonList("path");
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(MAX_DEPTH)
+              .addAllPath(subPath)
+              .addPath("key1")
+              .stringValue("value1")
+              .build();
+      JsonShreddedRow row2 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(MAX_DEPTH)
+              .addAllPath(subPath)
+              .addPath("key2")
+              .addPath("nested")
+              .doubleValue(2.2d)
+              .build();
+      List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
+
+      long timestamp = RandomUtils.nextLong();
+      when(timeSource.currentTimeMicros()).thenReturn(timestamp);
+
+      String insertCql =
+          "INSERT INTO %s (key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?";
+      ValidatingDataStore.QueryAssert row1QueryAssert =
+          withQuery(
+                  SCHEMA_PROVIDER.getTable(),
+                  insertCql,
+                  documentId,
+                  "path",
+                  "key1",
+                  "",
+                  "",
+                  "key1",
+                  "value1",
+                  null,
+                  null,
+                  timestamp)
+              .inBatch(batchType)
+              .returningNothing();
+      ValidatingDataStore.QueryAssert row2QueryAssert =
+          withQuery(
+                  SCHEMA_PROVIDER.getTable(),
+                  insertCql,
+                  documentId,
+                  "path",
+                  "key2",
+                  "nested",
+                  "",
+                  "nested",
+                  null,
+                  2.2d,
+                  null,
+                  timestamp)
+              .inBatch(batchType)
+              .returningNothing();
+
+      String deleteExactCql =
+          "DELETE FROM %s USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ?";
+      ValidatingDataStore.QueryAssert deleteExactQueryAssert =
+          withQuery(
+                  SCHEMA_PROVIDER.getTable(),
+                  deleteExactCql,
+                  timestamp - 1,
+                  documentId,
+                  "path",
+                  "",
+                  "",
+                  "")
+              .inBatch(batchType)
+              .returningNothing();
+
+      String deletePatchedKeys =
+          "DELETE FROM %s USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 IN ?";
+      ValidatingDataStore.QueryAssert deleteKeysQueryAssert =
+          withQuery(
+                  SCHEMA_PROVIDER.getTable(),
+                  deletePatchedKeys,
+                  timestamp - 1,
+                  documentId,
+                  "path",
+                  Arrays.asList("key1", "key2"))
+              .inBatch(batchType)
+              .returningNothing();
+
+      String deleteArray =
+          "DELETE FROM %s USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 >= ? AND p1 <= ?";
+      ValidatingDataStore.QueryAssert deleteArrayQueryAssert =
+          withQuery(
+                  SCHEMA_PROVIDER.getTable(),
+                  deleteArray,
+                  timestamp - 1,
+                  documentId,
+                  "path",
+                  "[000000]",
+                  "[999999]")
+              .inBatch(batchType)
+              .returningNothing();
+
+      Single<ResultSet> result =
+          service.patchDocument(
+              datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, subPath, rows, false, context);
+
+      result.test().await().assertValueCount(1).assertComplete();
+      row1QueryAssert.assertExecuteCount().isEqualTo(1);
+      row2QueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteExactQueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteKeysQueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteArrayQueryAssert.assertExecuteCount().isEqualTo(1);
+
+      // execution context
+      assertThat(context.toProfile().nested())
+          .singleElement()
+          .satisfies(
+              nested -> {
+                assertThat(nested.description()).isEqualTo("ASYNC PATCH");
+                assertThat(nested.queries())
+                    .hasSize(4)
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(
+                                      deleteExactCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(
+                                      deletePatchedKeys, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(
+                                      deleteArray, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(insertCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.rowCount()).isEqualTo(2);
+                        });
+              });
+    }
+
+    @Test
+    public void subPathRowsNotMatching() {
+      DataStore datastore = datastore();
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      List<String> subDocumentPath = Collections.singletonList("key1");
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(MAX_DEPTH)
+              .addPath("key1")
+              .stringValue("value1")
+              .build();
+      JsonShreddedRow row2 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(MAX_DEPTH)
+              .addPath("key2")
+              .addPath("nested")
+              .doubleValue(2.2d)
+              .build();
+      List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
+
+      Throwable throwable =
+          catchThrowable(
+              () ->
+                  service.patchDocument(
+                      datastore,
+                      KEYSPACE_NAME,
+                      COLLECTION_NAME,
+                      documentId,
+                      subDocumentPath,
+                      rows,
+                      false,
+                      context));
+
+      assertThat(throwable)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_UPDATE_PATH_NOT_MATCHING);
+    }
+
+    @Test
+    public void withArray() {
+      DataStore datastore = datastore();
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(MAX_DEPTH)
+              .addPath("[000000]")
+              .stringValue("value1")
+              .build();
+      List<JsonShreddedRow> rows = Arrays.asList(row1);
+
+      Throwable throwable =
+          catchThrowable(
+              () ->
+                  service.patchDocument(
+                      datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, false, context));
+
+      assertThat(throwable)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED);
+    }
+
+    @Test
+    public void withNoRows() {
+      DataStore datastore = datastore();
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      List<JsonShreddedRow> rows = Collections.emptyList();
+
+      Throwable throwable =
+          catchThrowable(
+              () ->
+                  service.patchDocument(
+                      datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, false, context));
+
+      assertThat(throwable)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_PATCH_EMPTY_NOT_ACCEPTED);
+    }
+  }
+
+  @Nested
   class DeleteDocument {
 
     @Test

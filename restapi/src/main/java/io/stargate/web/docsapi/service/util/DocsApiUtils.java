@@ -114,7 +114,7 @@ public final class DocsApiUtils {
    */
   public static Optional<Integer> extractArrayPathIndex(String path, int maxArrayLength) {
     // check if we have array path
-    if (ARRAY_PATH_PATTERN.matcher(path).matches()) {
+    if (isArrayPath(path)) {
       String innerPath = path.substring(1, path.length() - 1);
       // if it's wildcard keep as it is
       if (!Objects.equals(innerPath, DocsApiConstants.GLOB_VALUE)) {
@@ -135,6 +135,16 @@ public final class DocsApiUtils {
       }
     }
     return Optional.empty();
+  }
+
+  /**
+   * Returns true if this path is denoting an array element index.
+   *
+   * @param path single filter or field path
+   * @return if it's array path
+   */
+  public static boolean isArrayPath(String path) {
+    return ARRAY_PATH_PATTERN.matcher(path).matches();
   }
 
   /**

@@ -1289,10 +1289,12 @@ public class RestApiv2SchemaTest extends BaseRestApiTest {
 
     ApiError apiError = objectMapper.readValue(response, ApiError.class);
     assertThat(apiError.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    // Sample output:
+    //  Cassandra 4.0: “Bad request: A user type with name ‘udt1’ already exists”
+    //  Cassandra 3.11, DSE 6.8: “Bad request: A user type of name
+    //     ks_udtCreateBasic_1643916413499.udt1 already exists”
     assertThat(apiError.getDescription())
-        .isEqualTo(
-            String.format(
-                "Bad request: A type named \"%s\".%s already exists", keyspaceName, typeName));
+        .matches(String.format("Bad request: A user type .*%s.* already exists", typeName));
 
     // don't create and don't throw exception because ifNotExists = true
     udtString =
