@@ -59,8 +59,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+/** Integration tests for legacy Rest V1 endpoints (both DDL and DML). */
 @NotThreadSafe
-public class RestApiTest extends BaseIntegrationTest {
+public class RestApiv1Test extends BaseIntegrationTest {
 
   private static final Pattern GRAPHQL_OPERATIONS_METRIC_REGEXP =
       Pattern.compile(
