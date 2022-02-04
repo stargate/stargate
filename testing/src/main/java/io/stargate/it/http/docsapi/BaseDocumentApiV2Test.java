@@ -837,6 +837,18 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
   }
 
   @Test
+  public void testWriteManyDocsDuplicateId() throws IOException {
+    String body = "[{\"id\":\"1\"},{\"id\":\"1\"}]";
+
+    String resp = RestUtils.post(authToken, collectionPath + "/batch?id-path=id", body, 400);
+
+    JsonNode respBody = OBJECT_MAPPER.readTree(resp);
+    assertThat(respBody.requiredAt("/description").asText())
+            .isEqualTo(
+                    "A same document ID is found in more than one documents when doing batched document write.");
+  }
+
+  @Test
   public void testWriteManyDocsInvalidPath() throws IOException {
     URL url = Resources.getResource("multiExample.json");
     String body = Resources.toString(url, StandardCharsets.UTF_8);
