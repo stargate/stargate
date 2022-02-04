@@ -76,7 +76,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     }
 
     return callWithTable(
-        blockingStub,
+        schemaAccess,
         keyspaceName,
         tableName,
         (tableDef) -> {
@@ -138,7 +138,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     }
 
     return callWithTable(
-        blockingStub,
+        schemaAccess,
         keyspaceName,
         tableName,
         (tableDef) -> {
@@ -217,7 +217,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     }
 
     return callWithTable(
-        blockingStub,
+        schemaAccess,
         keyspaceName,
         tableName,
         (tableDef) -> {
@@ -265,7 +265,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       HttpServletRequest request) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     return callWithTable(
-        blockingStub,
+        schemaAccess,
         keyspaceName,
         tableName,
         (tableDef) -> {
@@ -319,7 +319,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
           "Invalid JSON payload: " + e.getMessage(), Status.BAD_REQUEST);
     }
     return callWithTable(
-        blockingStub,
+        schemaAccess,
         keyspaceName,
         tableName,
         (tableDef) -> {

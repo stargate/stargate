@@ -16,6 +16,7 @@ import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
+import io.stargate.sgv2.restsvc.impl.CachedSchemaAccessor;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2RowsResponse;
 import java.io.IOException;
@@ -67,6 +68,21 @@ public abstract class ResourceBase {
               Response.Status.BAD_REQUEST);
       }
       throw grpcE;
+    }
+    return function.apply(tableDef);
+  }
+
+  protected Response callWithTable(
+      CachedSchemaAccessor schemaAccess,
+      String keyspaceName,
+      String tableName,
+      Function<Schema.CqlTable, Response> function) {
+    final Schema.CqlTable tableDef;
+    try {
+      tableDef = schemaAccess.findTable(keyspaceName, tableName);
+    } catch (IllegalArgumentException e) {
+      // Should be "Unknown keyspace" so pass through as-is (may refine in future if need be)
+      throw new WebApplicationException(e.getMessage(), Response.Status.BAD_REQUEST);
     }
     return function.apply(tableDef);
   }
