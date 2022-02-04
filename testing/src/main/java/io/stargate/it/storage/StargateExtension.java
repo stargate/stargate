@@ -279,7 +279,8 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
     private boolean matches(
         ClusterConnectionInfo backend, StargateSpec spec, StargateParameters parameters) {
       return this.backend.id().equals(backend.id())
-          && this.spec.equals(spec)
+          && this.spec.nodes() == spec.nodes()
+          && this.spec.shared() == spec.shared()
           && this.parameters.equals(parameters);
     }
 
