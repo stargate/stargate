@@ -100,8 +100,7 @@ class SchemaHandler {
       udtBuilder.setFrozen(udt.isFrozen());
       for (Column column : udt.columns()) {
         udtBuilder.putFields(
-            column.name(),
-            ValuesHelper.convertType(ValuesHelper.columnTypeNotNull(column).rawType()));
+            column.name(), ValuesHelper.convertType(ValuesHelper.columnTypeNotNull(column)));
       }
       describeResultBuilder.addTypes(udtBuilder.build());
     }
@@ -153,7 +152,7 @@ class SchemaHandler {
     }
 
     for (Column column : table.regularAndStaticColumns()) {
-      if (column.kind().equals(Column.Kind.Static)) {
+      if (column.kind() == Column.Kind.Static) {
         cqlTableBuilder.addStaticColumns(buildColumnSpec(column));
       } else {
         cqlTableBuilder.addColumns(buildColumnSpec(column));
