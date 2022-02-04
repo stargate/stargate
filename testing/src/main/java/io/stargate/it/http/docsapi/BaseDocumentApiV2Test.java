@@ -844,8 +844,8 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
 
     JsonNode respBody = OBJECT_MAPPER.readTree(resp);
     assertThat(respBody.requiredAt("/description").asText())
-            .isEqualTo(
-                    "A same document ID is found in more than one documents when doing batched document write.");
+        .isEqualTo(
+            "A same document ID is found in more than one documents when doing batched document write.");
   }
 
   @Test
