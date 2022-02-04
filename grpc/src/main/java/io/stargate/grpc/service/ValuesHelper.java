@@ -253,7 +253,7 @@ public class ValuesHelper {
         TypeSpec.Udt.Builder udtBuilder = TypeSpec.Udt.newBuilder();
         udtBuilder.setName(udt.name());
         for (Column column : udt.columns()) {
-          udtBuilder.putFields(column.name(), convertType(columnTypeNotNull(column).rawType()));
+          udtBuilder.putFields(column.name(), convertType(columnTypeNotNull(column)));
         }
         udtBuilder.setFrozen(columnType.isFrozen());
         builder.setUdt(udtBuilder.build());

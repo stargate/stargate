@@ -21,8 +21,10 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
-import io.stargate.proto.QueryOuterClass;
+import io.stargate.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.proto.QueryOuterClass.TypeSpec;
 import io.stargate.proto.Schema;
+import io.stargate.proto.Schema.CqlTable;
 import io.stargate.proto.StargateBridgeGrpc.StargateBridgeBlockingStub;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,7 +32,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(
     initQueries = {
-      "CREATE TYPE address(street VARCHAR, number int);",
+      "CREATE TYPE address(street VARCHAR, number int, phone_numbers frozen<map<text,text>>);",
       "CREATE TABLE users_with_address(id int PRIMARY KEY, address address);"
     })
 public class SchemaTest extends BridgeIntegrationTest {
@@ -45,40 +47,30 @@ public class SchemaTest extends BridgeIntegrationTest {
                 .setKeyspaceName(keyspace.asInternal())
                 .build());
     assertThat(response).isNotNull();
-    assertThat(response.getTablesCount() == 1).isTrue();
-    assertThat(response.getTables(0).getName().equals("users_with_address")).isTrue();
-    assertThat(response.getTables(0).getPartitionKeyColumnsCount() == 1).isTrue();
-    assertThat(response.getTables(0).getPartitionKeyColumns(0).getName().equals("id")).isTrue();
-    assertThat(
-            response
-                .getTables(0)
-                .getPartitionKeyColumns(0)
-                .getType()
-                .getBasic()
-                .equals(QueryOuterClass.TypeSpec.Basic.INT))
-        .isTrue();
-    assertThat(response.getTables(0).getColumnsCount() == 1).isTrue();
-    assertThat(response.getTables(0).getColumns(0).getName().equals("address")).isTrue();
-    assertThat(response.getTables(0).getColumns(0).getType().getUdt().getName().equals("address"))
-        .isTrue();
+    assertThat(response.getTablesCount()).isEqualTo(1);
+    CqlTable usersTable = response.getTables(0);
+    assertThat(usersTable.getName()).isEqualTo("users_with_address");
+    assertThat(usersTable.getPartitionKeyColumnsCount()).isEqualTo(1);
+    ColumnSpec idColumn = usersTable.getPartitionKeyColumns(0);
+    assertThat(idColumn.getName()).isEqualTo("id");
+    assertThat(idColumn.getType().getBasic()).isEqualTo(TypeSpec.Basic.INT);
+    assertThat(usersTable.getColumnsCount() == 1).isTrue();
+    ColumnSpec addressColumn = usersTable.getColumns(0);
+    assertThat(addressColumn.getName()).isEqualTo("address");
+    assertThat(addressColumn.getType().getUdt().getName()).isEqualTo("address");
 
-    assertThat(response.getTypesCount() == 1).isTrue();
-    assertThat(response.getTypes(0).getName().equals("address")).isTrue();
-    assertThat(
-            response
-                .getTypes(0)
-                .getFieldsMap()
-                .get("street")
-                .getBasic()
-                .equals(QueryOuterClass.TypeSpec.Basic.VARCHAR))
-        .isTrue();
-    assertThat(
-            response
-                .getTypes(0)
-                .getFieldsMap()
-                .get("number")
-                .getBasic()
-                .equals(QueryOuterClass.TypeSpec.Basic.INT))
-        .isTrue();
+    assertThat(response.getTypesCount()).isEqualTo(1);
+    TypeSpec.Udt addressType = response.getTypes(0);
+    assertThat(addressType.getName()).isEqualTo("address");
+    assertThat(addressType.getFieldsMap().get("street").getBasic())
+        .isEqualTo(TypeSpec.Basic.VARCHAR);
+    assertThat(addressType.getFieldsMap().get("number").getBasic()).isEqualTo(TypeSpec.Basic.INT);
+    assertThat(addressType.getFieldsMap().get("phone_numbers").getMap())
+        .satisfies(
+            phonesType -> {
+              assertThat(phonesType.getFrozen()).isTrue();
+              assertThat(phonesType.getKey().getBasic()).isEqualTo(TypeSpec.Basic.VARCHAR);
+              assertThat(phonesType.getValue().getBasic()).isEqualTo(TypeSpec.Basic.VARCHAR);
+            });
   }
 }
