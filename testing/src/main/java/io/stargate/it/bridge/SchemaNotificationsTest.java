@@ -18,6 +18,7 @@ import io.stargate.proto.QueryOuterClass.SchemaChange.Target;
 import io.stargate.proto.QueryOuterClass.SchemaChange.Type;
 import io.stargate.proto.Schema.GetSchemaNotificationsParams;
 import io.stargate.proto.Schema.SchemaNotification;
+import io.stargate.proto.Schema.SchemaNotification.InnerCase;
 import io.stargate.proto.StargateBridgeGrpc;
 import java.io.IOException;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -51,13 +52,12 @@ public class SchemaNotificationsTest extends BaseIntegrationTest {
 
   @Test
   @DisplayName("Should receive table changes")
-  public void tableChangesTest(CqlSession session, @TestKeyspace CqlIdentifier keyspace)
-      throws Exception {
+  public void tableChangesTest(CqlSession session, @TestKeyspace CqlIdentifier keyspace) {
     // Given
     SchemaNotificationObserver observer = new SchemaNotificationObserver();
     asyncStub.getSchemaNotifications(GetSchemaNotificationsParams.newBuilder().build(), observer);
-    // getSchemaChanges is async, wait a bit to ensure that the event listener has been registered
-    TimeUnit.MILLISECONDS.sleep(500);
+
+    assertReady(observer);
 
     // When
     session.execute("CREATE TABLE foo(k int PRIMARY KEY)");
@@ -73,6 +73,15 @@ public class SchemaNotificationsTest extends BaseIntegrationTest {
     session.execute("DROP TABLE foo");
     // Then
     assertNextChange(observer, Type.DROPPED, Target.TABLE, keyspace, "foo");
+  }
+
+  private void assertReady(SchemaNotificationObserver observer) {
+    await().until(() -> observer.hasNext() || observer.error != null);
+    if (observer.error != null) {
+      throw observer.error;
+    }
+    SchemaNotification notification = observer.next();
+    assertThat(notification.getInnerCase()).isEqualTo(InnerCase.READY);
   }
 
   private void assertNextChange(
@@ -93,10 +102,6 @@ public class SchemaNotificationsTest extends BaseIntegrationTest {
     assertThat(change.getKeyspace()).isEqualTo(keyspaceId.asInternal());
     assertThat(change.getName().getValue()).isEqualTo(name);
     assertThat(change.getArgumentTypesList()).isEmpty();
-
-    boolean isKeyspaceDrop =
-        change.getChangeType() == Type.DROPPED && change.getTarget() == Target.KEYSPACE;
-    assertThat(notification.hasKeyspace()).isEqualTo(!isKeyspaceDrop);
   }
 
   static class SchemaNotificationObserver implements StreamObserver<SchemaNotification> {

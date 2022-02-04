@@ -13,21 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.sgv2.common.schema;
+package io.stargate.sgv2.common.grpc;
 
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.grpc.Channel;
+import io.grpc.Metadata;
 
-/**
- * Allows clients to register with {@link SchemaCache} to get notified when keyspaces change.
- *
- * <p>Note no guarantee is made as to which threads will invoke those methods; implementations
- * should use proper synchronization if needed, and not block.
- */
-public interface SchemaListener {
+public interface GrpcClientFactory {
 
-  void onCreateKeyspace(CqlKeyspaceDescribe newKeyspace);
+  static GrpcClientFactory newInstance(Channel channel, String adminToken) {
+    return new DefaultGrpcClientFactory(channel, adminToken);
+  }
 
-  void onUpdateKeyspace(CqlKeyspaceDescribe oldKeyspace, CqlKeyspaceDescribe newKeyspace);
+  GrpcClient newClient(String authToken, Metadata metadata);
 
-  void onDropKeyspace(CqlKeyspaceDescribe oldKeyspace);
+  GrpcSchema getSchema();
 }
