@@ -32,6 +32,7 @@ import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.ResultSet;
 import io.stargate.proto.QueryOuterClass.SchemaChange;
+import io.stargate.proto.QueryOuterClass.TypeSpec;
 import io.stargate.proto.StargateGrpc.StargateBlockingStub;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -45,6 +46,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
     initQueries = {
       "CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k, v))",
       "CREATE TABLE IF NOT EXISTS test_uuid (id uuid, value int, PRIMARY KEY(id, value))",
+      "CREATE TYPE IF NOT EXISTS address(street text, phone_numbers frozen<map<text,text>>)",
+      "CREATE TABLE IF NOT EXISTS user(id int PRIMARY KEY, name text, address address)",
     })
 public class ExecuteQueryTest extends GrpcIntegrationTest {
 
@@ -301,5 +304,26 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
         stub.executeQuery(
             cqlQuery("INSERT INTO drop_table_test(pk) VALUES('1')", queryParameters(keyspace)));
     assertThat(response).isNotNull();
+  }
+
+  @Test
+  public void resultSetContainsUdt(@TestKeyspace CqlIdentifier keyspace) {
+    StargateBlockingStub stub = stubWithCallCredentials();
+
+    // Note: the table is empty but we're only interested in the metadata
+    Response response =
+        stub.executeQuery(
+            cqlQuery("SELECT address FROM user WHERE id=1", queryParameters(keyspace)));
+
+    TypeSpec addressType = response.getResultSet().getColumns(0).getType();
+    assertThat(addressType.getSpecCase()).isEqualTo(TypeSpec.SpecCase.UDT);
+    TypeSpec phoneNumbersType = addressType.getUdt().getFieldsMap().get("phone_numbers");
+    assertThat(phoneNumbersType.getSpecCase()).isEqualTo(TypeSpec.SpecCase.MAP);
+    assertThat(phoneNumbersType.getMap())
+        .satisfies(
+            map -> {
+              assertThat(map.getKey().getBasic()).isEqualTo(TypeSpec.Basic.VARCHAR);
+              assertThat(map.getValue().getBasic()).isEqualTo(TypeSpec.Basic.VARCHAR);
+            });
   }
 }
