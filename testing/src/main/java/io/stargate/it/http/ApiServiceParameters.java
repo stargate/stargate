@@ -44,59 +44,40 @@ public interface ApiServiceParameters {
     return "127.0.3.1";
   }
 
-  @Value.Default
+  @Value.Parameter
   // Example: "REST API"
-  default String serviceName() {
-    return "Override me";
-  }
+  String serviceName();
 
-  @Value.Default
+  @Value.Parameter
   // Example: 8088
-  default int servicePort() {
-    return 0;
-  }
+  int servicePort();
 
-  @Value.Default
-  // Example: dw.server.connector.port
-  default String servicePortPropertyName() {
-    return "Override me";
-  }
+  @Value.Parameter
+  String servicePortPropertyName();
 
-  @Value.Default
+  @Value.Parameter
   // Example: 8088
-  default int metricsPort() {
-    return 0;
-  }
+  int metricsPort();
 
-  @Value.Default
+  @Value.Parameter
   // Example: "Started RestServiceServer"
-  default String serviceStartedMessage() {
-    return "Override me";
-  }
+  String serviceStartedMessage();
 
-  @Value.Default
+  @Value.Parameter
   // Example: "stargate.rest.libdir"
-  default String serviceLibDirProperty() {
-    return "Override me";
-  }
+  String serviceLibDirProperty();
 
-  @Value.Default
+  @Value.Parameter
   // example: "sgv2-rest-service"
-  default String serviceJarBase() {
-    return "Override me";
-  }
+  String serviceJarBase();
 
-  @Value.Default
+  @Value.Parameter
   // example: "dw.stargate.grpc.host"
-  default String bridgeHostPropertyName() {
-    return "Override me";
-  }
+  String bridgeHostPropertyName();
 
-  @Value.Default
+  @Value.Parameter
   // example: "dw.stargate.grpc.port"
-  default String bridgePortPropertyName() {
-    return "Override me";
-  }
+  String bridgePortPropertyName();
 
   @Value.Default
   // standard value
