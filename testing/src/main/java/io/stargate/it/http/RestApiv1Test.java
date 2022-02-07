@@ -25,7 +25,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.web.restapi.models.Changeset;
@@ -68,10 +67,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
  * decision pending as of 2022-02-03).
  */
 @NotThreadSafe
-@ExtendWith(RestApiExtension.class)
-@RestApiSpec()
+@ExtendWith(ApiServiceExtension.class)
+@ApiServiceSpec(parametersCustomizer = "buildApiServiceParameters")
 @Disabled("SGv2 does not currently support REST v1 API")
-public class RestApiv1Test extends BaseIntegrationTest {
+public class RestApiv1Test extends BaseRestApiTest {
   private static final Pattern GRAPHQL_OPERATIONS_METRIC_REGEXP =
       Pattern.compile(
           "(restapi_io_dropwizard_jetty_MutableServletContextHandler_dispatches_count\\s*)(\\d+.\\d+)");
@@ -84,7 +83,7 @@ public class RestApiv1Test extends BaseIntegrationTest {
   private CqlSession session;
 
   @BeforeEach
-  public void setup(StargateConnectionInfo cluster, RestApiConnectionInfo restApi)
+  public void setup(StargateConnectionInfo cluster, ApiServiceConnectionInfo restApi)
       throws IOException {
     authUrlBase = "http://" + cluster.seedAddress() + ":8081"; // TODO: make auth port configurable
     restUrlBase = "http://" + restApi.host() + ":" + restApi.port();

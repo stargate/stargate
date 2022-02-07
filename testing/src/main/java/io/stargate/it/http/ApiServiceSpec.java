@@ -17,22 +17,22 @@ package io.stargate.it.http;
 
 import java.lang.annotation.*;
 
-/** Defines how the REST API node(s) required by a test should be configured. */
+/** Defines how the API service instance(s) required by a test should be configured. */
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)
-public @interface RestApiSpec {
+public @interface ApiServiceSpec {
 
   /**
-   * Indicates whether REST API instances started from this specification can be shared among
+   * Indicates whether API service instances started from this specification can be shared among
    * different tests.
    */
   boolean shared() default true; // assume stateless invocations
 
   /**
    * Defines the name of a method (static or instance depending on the target of this annotation)
-   * that will be called on parameter of type {@link RestApiParameters.Builder} before starting REST
-   * API instances.
+   * that will be called on parameter of type {@link ApiServiceParameters.Builder} before starting
+   * API service instances.
    *
    * @return method name
    */

@@ -34,62 +34,35 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * JUnit 5 extension for tests that need a REST API Service running in a separate process.
+ * JUnit 5 extension for tests that need an API Service running in a separate process.
  *
  * <p>Note: this extension requires {@link ExternalStorage} and {@link StargateExtension} to be
  * activated as well. It is recommended that test classes be annotated with {@link
  * UseStargateCoordinator} to make sure both extensions are activated in the right order.
  *
- * <p>Note: this extension does not support concurrent test execution.
- *
- * @see RestApiSpec
- * @see RestApiParameters
+ * @see ApiServiceSpec
+ * @see ApiServiceParameters
  */
-public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExtension.RestApiService>
+public class ApiServiceExtension
+    extends ExternalResource<ApiServiceSpec, ApiServiceExtension.ApiService>
     implements ParameterResolver {
-  private static final Logger LOG = LoggerFactory.getLogger(RestApiExtension.class);
+  private static final Logger LOG = LoggerFactory.getLogger(ApiServiceExtension.class);
 
-  public static final File LIB_DIR = initLibDir();
+  public static final String STORE_KEY = "api-container";
 
-  public static final String STORE_KEY = "restapi-service";
-
-  public static final String RESTAPI_STARTED_MESSAGE = "Started RestServiceServer";
-
-  private static File initLibDir() {
-    String dir = System.getProperty("stargate.rest.libdir");
-    if (dir == null) {
-      throw new IllegalStateException("stargate.rest.libdir system property is not set.");
-    }
-
-    return new File(dir);
+  public ApiServiceExtension() {
+    super(ApiServiceSpec.class, STORE_KEY, Namespace.GLOBAL);
   }
 
-  private static File starterJar() {
-    File[] files = LIB_DIR.listFiles();
-    Assertions.assertNotNull(files, "No files in " + LIB_DIR.getAbsolutePath());
-    return Arrays.stream(files)
-        .filter(f -> f.getName().startsWith("sgv2-rest-service"))
-        .filter(f -> f.getName().endsWith(".jar"))
-        .findFirst()
-        .orElseThrow(
-            () ->
-                new IllegalStateException(
-                    "Unable to find REST Service jar in: " + LIB_DIR.getAbsolutePath()));
-  }
-
-  public RestApiExtension() {
-    super(RestApiSpec.class, STORE_KEY, Namespace.GLOBAL);
-  }
-
-  private static RestApiParameters parameters(RestApiSpec spec, ExtensionContext context)
+  private static ApiServiceParameters parameters(ApiServiceSpec spec, ExtensionContext context)
       throws Exception {
-    RestApiParameters.Builder builder = RestApiParameters.builder();
+    ApiServiceParameters.Builder builder = ApiServiceParameters.builder();
 
     String customizer = spec.parametersCustomizer().trim();
     if (!customizer.isEmpty()) {
       Object testInstance = context.getTestInstance().orElse(null);
       Class<?> testClass = context.getRequiredTestClass();
-      Method method = testClass.getMethod(customizer, RestApiParameters.Builder.class);
+      Method method = testClass.getMethod(customizer, ApiServiceParameters.Builder.class);
       method.invoke(testInstance, builder);
     }
 
@@ -97,13 +70,13 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
   }
 
   @Override
-  protected boolean isShared(RestApiSpec spec) {
+  protected boolean isShared(ApiServiceSpec spec) {
     return spec.shared();
   }
 
   @Override
-  protected Optional<RestApiService> processResource(
-      RestApiService service, RestApiSpec spec, ExtensionContext context) throws Exception {
+  protected Optional<ApiService> processResource(
+      ApiService service, ApiServiceSpec spec, ExtensionContext context) throws Exception {
     StargateEnvironmentInfo stargateEnvironmentInfo =
         (StargateEnvironmentInfo)
             context.getStore(Namespace.GLOBAL).get(StargateExtension.STORE_KEY);
@@ -111,22 +84,32 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
         stargateEnvironmentInfo,
         "Stargate coordinator is not available in " + context.getUniqueId());
 
-    RestApiParameters params = parameters(spec, context);
+    ApiServiceParameters params = parameters(spec, context);
 
     if (service != null) {
       if (service.matches(stargateEnvironmentInfo, spec, params)) {
-        LOG.info("Reusing matching REST API Service {} for {}", spec, context.getUniqueId());
+        LOG.info(
+            "Reusing matching {} Service {} for {}",
+            params.serviceName(),
+            spec,
+            context.getUniqueId());
         return Optional.empty();
       }
 
       LOG.info(
-          "Closing old REST API Service due to spec mismatch within {}", context.getUniqueId());
+          "Closing old {} Service due to spec mismatch within {}",
+          params.serviceName(),
+          context.getUniqueId());
       service.close();
     }
 
-    LOG.info("Starting REST API Service with spec {} for {}", spec, context.getUniqueId());
+    LOG.info(
+        "Starting {} Service with spec {} for {}",
+        params.serviceName(),
+        spec,
+        context.getUniqueId());
 
-    RestApiService svc = new RestApiService(stargateEnvironmentInfo, spec, params);
+    ApiService svc = new ApiService(stargateEnvironmentInfo, spec, params);
     svc.start();
     return Optional.of(svc);
   }
@@ -134,7 +117,7 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
   @Override
   public boolean supportsParameter(ParameterContext pc, ExtensionContext ec)
       throws ParameterResolutionException {
-    return pc.getParameter().getType() == RestApiConnectionInfo.class;
+    return pc.getParameter().getType() == ApiServiceConnectionInfo.class;
   }
 
   @Override
@@ -143,18 +126,18 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
     return getResource(ec).orElseThrow(() -> new IllegalStateException("Cluster not available"));
   }
 
-  protected static class RestApiService extends ExternalResource.Holder
-      implements RestApiConnectionInfo, AutoCloseable {
+  protected static class ApiService extends ExternalResource.Holder
+      implements ApiServiceConnectionInfo, AutoCloseable {
 
     private final StargateEnvironmentInfo stargateEnvironmentInfo;
-    private final RestApiSpec spec;
-    private final RestApiParameters parameters;
+    private final ApiServiceSpec spec;
+    private final ApiServiceParameters parameters;
     private final Instance instance;
 
-    private RestApiService(
+    private ApiService(
         StargateEnvironmentInfo stargateEnvironmentInfo,
-        RestApiSpec spec,
-        RestApiParameters parameters)
+        ApiServiceSpec spec,
+        ApiServiceParameters parameters)
         throws Exception {
       this.stargateEnvironmentInfo = stargateEnvironmentInfo;
       this.spec = spec;
@@ -183,8 +166,8 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
 
     private boolean matches(
         StargateEnvironmentInfo stargateEnvironmentInfo,
-        RestApiSpec spec,
-        RestApiParameters parameters) {
+        ApiServiceSpec spec,
+        ApiServiceParameters parameters) {
       return this.stargateEnvironmentInfo.id().equals(stargateEnvironmentInfo.id())
           && this.spec.equals(spec)
           && this.parameters.equals(parameters);
@@ -197,7 +180,7 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
 
     @Override
     public int port() {
-      return parameters.restPort();
+      return parameters.servicePort();
     }
 
     @Override
@@ -215,22 +198,23 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
 
     private final CommandLine cmd;
 
-    private Instance(StargateEnvironmentInfo stargateEnvironmentInfo, RestApiParameters params)
+    private Instance(StargateEnvironmentInfo stargateEnvironmentInfo, ApiServiceParameters params)
         throws Exception {
-      super("RestAPI", 1, 1);
+      super(params.serviceName(), 1, 1);
+
+      StargateConnectionInfo connectionInfo = stargateEnvironmentInfo.nodes().get(0);
 
       cmd = new CommandLine("java");
 
-      cmd.addArgument(
-          "-Ddw.stargate.grpc.host=" + stargateEnvironmentInfo.nodes().get(0).seedAddress());
-      cmd.addArgument("-Ddw.stargate.grpc.port=" + 8091);
-      cmd.addArgument("-Ddw.server.connector.port=" + params.restPort());
+      // add configured connection properties
+      cmd.addArgument("-D" + params.servicePortPropertyName() + "=" + params.servicePort());
+      cmd.addArgument("-D" + params.bridgeHostPropertyName() + "=" + connectionInfo.seedAddress());
+      cmd.addArgument("-D" + params.bridgePortPropertyName() + "=" + connectionInfo.bridgePort());
+      cmd.addArgument("-D" + params.bridgeTokenPropertyName() + "=" + connectionInfo.bridgeToken());
 
       for (Entry<String, String> e : params.systemProperties().entrySet()) {
         cmd.addArgument("-D" + e.getKey() + "=" + e.getValue());
       }
-
-      cmd.addArgument("-Dstargate.bridge.admin_token=mockAdminToken");
 
       if (isDebug()) {
         int debuggerPort = 5200;
@@ -241,14 +225,36 @@ public class RestApiExtension extends ExternalResource<RestApiSpec, RestApiExten
       }
 
       cmd.addArgument("-jar");
-      cmd.addArgument(starterJar().getAbsolutePath());
+      cmd.addArgument(getStarterJar(params).getAbsolutePath());
 
       addStdOutListener(
           (node, line) -> {
-            if (line.contains(RESTAPI_STARTED_MESSAGE)) {
+            if (line.contains(params.serviceStartedMessage())) {
               ready();
             }
           });
+    }
+
+    private static File getStarterJar(ApiServiceParameters params) {
+      String dir = System.getProperty(params.serviceLibDirProperty());
+      if (dir == null) {
+        throw new IllegalStateException(
+            params.serviceLibDirProperty() + " system property is not set.");
+      }
+      File libDir = new File(dir);
+      File[] files = libDir.listFiles();
+      Assertions.assertNotNull(files, "No files in " + libDir.getAbsolutePath());
+      return Arrays.stream(files)
+          .filter(f -> f.getName().startsWith(params.serviceJarBase()))
+          .filter(f -> f.getName().endsWith(".jar"))
+          .findFirst()
+          .orElseThrow(
+              () ->
+                  new IllegalStateException(
+                      "Unable to find "
+                          + params.serviceJarBase()
+                          + "*.jar in: "
+                          + libDir.getAbsolutePath()));
     }
 
     private void start() {

@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.KeycloakContainer;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
@@ -57,10 +56,10 @@ import org.testcontainers.junit.jupiter.Testcontainers;
       "GRANT MODIFY ON TABLE store1.shopping_cart TO web_user",
       "GRANT SELECT ON TABLE store1.shopping_cart TO web_user",
     })
-@ExtendWith(RestApiExtension.class)
-@RestApiSpec()
+@ExtendWith(ApiServiceExtension.class)
+@ApiServiceSpec(parametersCustomizer = "buildApiServiceParameters")
 @Testcontainers(disabledWithoutDocker = true)
-public class RestApiJWTAuthTest extends BaseIntegrationTest {
+public class RestApiJWTAuthTest extends BaseRestApiTest {
 
   private static final Logger logger = LoggerFactory.getLogger(RestApiJWTAuthTest.class);
 
@@ -92,7 +91,7 @@ public class RestApiJWTAuthTest extends BaseIntegrationTest {
   }
 
   @BeforeEach
-  public void setup(RestApiConnectionInfo restApi) throws IOException {
+  public void setup(ApiServiceConnectionInfo restApi) throws IOException {
     restUrlBase = "http://" + restApi.host() + ":" + restApi.port();
 
     objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);

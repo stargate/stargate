@@ -7,7 +7,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
@@ -58,9 +57,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
       // Table for index test
       "CREATE TABLE index_test_table(k int PRIMARY KEY, l list<int>, m1 map<int, text>, m2 map<int, text>, m3 map<int, text>)",
     })
-@ExtendWith(RestApiExtension.class)
-@RestApiSpec()
-public class RestApiv2DseTest extends BaseIntegrationTest {
+@ExtendWith(ApiServiceExtension.class)
+@ApiServiceSpec(parametersCustomizer = "buildApiServiceParameters")
+public class RestApiv2DseTest extends BaseRestApiTest {
 
   private static final ObjectMapper objectMapper =
       new ObjectMapper().configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
@@ -72,7 +71,7 @@ public class RestApiv2DseTest extends BaseIntegrationTest {
   public static void beforeAll(
       StargateConnectionInfo cluster,
       @TestKeyspace CqlIdentifier keyspaceId,
-      RestApiConnectionInfo restApi)
+      ApiServiceConnectionInfo restApi)
       throws IOException {
     String restUrlBase = restApi.host() + ":" + restApi.port();
     authToken = fetchAuthToken(cluster.seedAddress());
