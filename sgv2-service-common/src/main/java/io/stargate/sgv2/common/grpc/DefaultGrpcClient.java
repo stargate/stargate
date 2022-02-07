@@ -57,9 +57,10 @@ class DefaultGrpcClient implements GrpcClient {
         ClientCalls.blockingUnaryCall(
             channel, StargateBridgeGrpc.getExecuteQueryMethod(), callOptions, request);
     if (response.hasSchemaChange()) {
-      // Ensure the impacted keyspace is fresh before we return control to the caller
+      // Ensure we're not holding a stale copy of the impacted keyspace by the time we return
+      // control to the caller
       String keyspaceName = decorateKeyspaceName(response.getSchemaChange().getKeyspace());
-      schema.forceKeyspaceRefresh(keyspaceName);
+      schema.removeKeyspace(keyspaceName);
     }
     return response;
   }

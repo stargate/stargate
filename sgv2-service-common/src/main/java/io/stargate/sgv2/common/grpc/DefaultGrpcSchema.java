@@ -67,10 +67,9 @@ class DefaultGrpcSchema implements GrpcSchema {
 
   @Override
   public CompletionStage<CqlKeyspaceDescribe> getKeyspaceAsync(String keyspaceName) {
-    LOG.debug("getKeyspaceAsync({})", keyspaceName);
     CompletionStage<CqlKeyspaceDescribe> existing = keyspaceCache.getIfPresent(keyspaceName);
     if (existing != null) {
-      LOG.debug("Found entry in the cache, returning");
+      LOG.debug("getKeyspaceAsync({}): Found entry in the cache, returning", keyspaceName);
       return existing;
     }
     // Prepare to query from the gRPC backend ourselves
@@ -78,7 +77,9 @@ class DefaultGrpcSchema implements GrpcSchema {
     existing = keyspaceCache.asMap().putIfAbsent(keyspaceName, mine);
     // Check that nobody beat us to it concurrently
     if (existing != null) {
-      LOG.debug("Someone else started loading the entry first, returning");
+      LOG.debug(
+          "getKeyspaceAsync({}): Someone else started loading the entry first, returning",
+          keyspaceName);
       return existing;
     }
     executeGrpcQuery(keyspaceName, mine);
