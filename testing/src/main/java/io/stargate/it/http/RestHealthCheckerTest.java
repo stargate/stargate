@@ -2,7 +2,6 @@ package io.stargate.it.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.stargate.it.BaseIntegrationTest;
 import java.io.IOException;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
@@ -11,13 +10,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @NotThreadSafe
-@ExtendWith(RestApiExtension.class)
-@RestApiSpec()
-public class RestHealthCheckerTest extends BaseIntegrationTest {
+@ExtendWith(ApiServiceExtension.class)
+@ApiServiceSpec(parametersCustomizer = "buildApiServiceParameters")
+public class RestHealthCheckerTest extends BaseRestApiTest {
   private static String healthUrlBase;
 
   @BeforeAll
-  public static void setup(RestApiConnectionInfo restApi) {
+  public static void setup(ApiServiceConnectionInfo restApi) {
     healthUrlBase = "http://" + restApi.host() + ":" + restApi.healthPort();
   }
 

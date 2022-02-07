@@ -19,8 +19,6 @@ package io.stargate.it.http;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
-import io.stargate.it.BaseIntegrationTest;
-import io.stargate.it.storage.StargateParameters;
 import io.stargate.it.storage.StargateSpec;
 import io.stargate.testing.metrics.TagMeHttpMetricsTagProvider;
 import java.io.IOException;
@@ -38,30 +36,17 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @NotThreadSafe
-@StargateSpec(parametersCustomizer = "buildParameters")
-@ExtendWith(RestApiExtension.class)
-@RestApiSpec(parametersCustomizer = "buildParameters")
-public class RestApiMetricsTest extends BaseIntegrationTest {
+@StargateSpec()
+@ExtendWith(ApiServiceExtension.class)
+@ApiServiceSpec(parametersCustomizer = "buildApiServiceParameters")
+public class RestApiMetricsTest extends BaseRestApiTest {
 
   private static String restUrlBase;
   private static String metricsUrlBase;
 
-  // TODO
   @SuppressWarnings("unused") // referenced in @StargateSpec
-  public static void buildParameters(StargateParameters.Builder builder) {
-    // 13-Jan-2022, tatu: In StargateV1 HTTP Tag Provider is registered using OSGi.
-    //    SGv2 does not have equivalent mechanism implemented yet, so tag functionality
-    //    NOT verified currently.
-    /*builder.putSystemProperties(
-    TestingServicesActivator.HTTP_TAG_PROVIDER_PROPERTY,
-    TestingServicesActivator.TAG_ME_HTTP_TAG_PROVIDER); */
-    // This does not seem to do anything (triggered at wrong point)?
-    builder.putSystemProperties("stargate.metrics.http_server_requests_percentiles", "0.95,0.99");
-    builder.putSystemProperties(
-        "stargate.metrics.http_server_requests_path_param_tags", "keyspaceName");
-  }
-
-  public static void buildParameters(RestApiParameters.Builder builder) {
+  public static void buildApiServiceParameters(ApiServiceParameters.Builder builder) {
+    BaseRestApiTest.buildApiServiceParameters(builder);
     // 13-Jan-2022, tatu: In StargateV1 HTTP Tag Provider is registered using OSGi.
     //    SGv2 does not have equivalent mechanism implemented yet, so tag functionality
     //    NOT verified currently.
@@ -75,9 +60,9 @@ public class RestApiMetricsTest extends BaseIntegrationTest {
   }
 
   @BeforeAll
-  public static void setup(RestApiConnectionInfo restApi) {
-    restUrlBase = "http://" + restApi.host() + ":" + restApi.port();
-    metricsUrlBase = "http://" + restApi.host() + ":" + restApi.metricsPort();
+  public static void setup(ApiServiceConnectionInfo service) {
+    restUrlBase = "http://" + service.host() + ":" + service.port();
+    metricsUrlBase = "http://" + service.host() + ":" + service.metricsPort();
   }
 
   // 13-Jan-2022, tatu: In StargateV1 HTTP Tag Provider is registered using OSGi.

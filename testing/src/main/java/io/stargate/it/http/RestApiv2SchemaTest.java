@@ -10,7 +10,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.http.models.Credentials;
@@ -46,9 +45,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @NotThreadSafe
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec()
-@ExtendWith(RestApiExtension.class)
-@RestApiSpec()
-public class RestApiv2SchemaTest extends BaseIntegrationTest {
+@ExtendWith(ApiServiceExtension.class)
+@ApiServiceSpec(parametersCustomizer = "buildApiServiceParameters")
+public class RestApiv2SchemaTest extends BaseRestApiTest {
   private String keyspaceName;
   private String tableName;
   private static String authToken;
@@ -69,7 +68,8 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
   @BeforeEach
-  void setup(TestInfo testInfo, StargateConnectionInfo cluster, RestApiConnectionInfo restApi)
+  public void setup(
+      TestInfo testInfo, StargateConnectionInfo cluster, ApiServiceConnectionInfo restApi)
       throws IOException {
     restUrlBase = "http://" + restApi.host() + ":" + restApi.port();
     String authUrlBase =
