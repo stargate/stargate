@@ -221,13 +221,13 @@ have done a recent build, for example:
 Then you can run the individual test using the `-Dit.test` option, for example:
 
 ```sh
-mvn -pl testing -Pit-cassandra-3.11 verify -Dit.test=RestApiv2Test
+mvn -pl testing -Pit-cassandra-3.11 verify -Dit.test=RestApiv2SchemaTest
 ```
 
 You can even run a single case (method):
 
 ```sh
-mvn -pl testing -Pit-cassandra-3.11 verify -Dit.test=RestApiv2Test#testMixedCaseTable
+mvn -pl testing -Pit-cassandra-3.11 verify -Dit.test="RestApiv2SchemaTest#tableWithMixedCaseNames"
 ```
 
 ### Debugging Integration Tests
@@ -292,7 +292,7 @@ There are two custom JUnit 5 extensions used when running integration tests.
   When this extension is active, it will automatically inject test method parameters of type
   `StargateConnectionInfo` and `StargateEnvironmentInfo`.
 
-Integration tests that do not need Stargate nodes (e.g. `CassandraPersistenceIT`) can use only
+Integration tests that do not need Stargate nodes (e.g. `Cassandra40PersistenceIT`) can use only
 the `ExternalStorage` extension by having the `@ExtendWith(ExternalStorage.class)` annotation
 either directly on the test class or on one of its super-classes.
 
