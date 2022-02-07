@@ -30,7 +30,6 @@ import io.stargate.core.grpc.BridgeConfig;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
-import io.stargate.grpc.StargateBearerToken;
 import io.stargate.metrics.jersey.MetricsBinder;
 import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.common.schema.SchemaCache;
@@ -51,7 +50,6 @@ import io.swagger.jaxrs.listing.ApiListingResource;
 import io.swagger.jaxrs.listing.SwaggerSerializers;
 import java.io.IOException;
 import java.util.EnumSet;
-import java.util.concurrent.TimeUnit;
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
 import org.eclipse.jetty.servlets.CrossOriginFilter;
@@ -143,13 +141,9 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
 
     final ManagedChannel schemaChannel =
         buildChannel(appConfig.stargate.grpc, "Schema Access for REST API");
-    final StargateBridgeGrpc.StargateBridgeStub stub =
-        StargateBridgeGrpc.newStub(schemaChannel)
-            .withDeadlineAfter(10, TimeUnit.SECONDS)
-            .withCallCredentials(new StargateBearerToken(BridgeConfig.ADMIN_TOKEN));
-
     final CachedSchemaAccessor schemaAccess =
-        CachedSchemaAccessor.construct(SchemaCache.newInstance(stub));
+        CachedSchemaAccessor.construct(
+            SchemaCache.newInstance(schemaChannel, BridgeConfig.ADMIN_TOKEN));
     environment
         .jersey()
         .register(
