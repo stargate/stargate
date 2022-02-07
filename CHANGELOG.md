@@ -28,15 +28,6 @@
 - use doFinally in the `DseConnection\#executeRequest` to reset warnings [\#1585](https://github.com/stargate/stargate/pull/1585) ([ivansenic](https://github.com/ivansenic))
 - updated delete document paths to use new write service [\#1572](https://github.com/stargate/stargate/pull/1572) ([ivansenic](https://github.com/ivansenic))
 
-## [v2.0.0-ALPHA-1](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-1) (2022-01-24)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.48...v2.0.0-ALPHA-1)
-
-**Merged pull requests:**
-
-- add separate release workflow for v2 [\#1574](https://github.com/stargate/stargate/pull/1574) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
-- restart docker before running tests on CI [\#1567](https://github.com/stargate/stargate/pull/1567) ([ivansenic](https://github.com/ivansenic))
-
 ## [v1.0.48](https://github.com/stargate/stargate/tree/v1.0.48) (2022-01-21)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.47...v1.0.48)
