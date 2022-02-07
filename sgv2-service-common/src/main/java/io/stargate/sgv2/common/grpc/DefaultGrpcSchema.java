@@ -109,11 +109,6 @@ class DefaultGrpcSchema implements GrpcSchema {
     keyspaceCache.invalidate(keyspaceName);
   }
 
-  void forceKeyspaceRefresh(String keyspaceName) {
-    removeKeyspace(keyspaceName);
-    getKeyspace(keyspaceName);
-  }
-
   private void registerChangeObserver() {
     LOG.debug("Registering change observer");
     StargateBridgeStub stub = newStub(); // note: no deadline
