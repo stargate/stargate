@@ -31,7 +31,7 @@ public @interface StargateSpec {
    * Indicates whether Stargate instances started from this specification can be shared among
    * different tests.
    */
-  boolean shared() default false;
+  boolean shared() default true;
 
   /**
    * Defines the name of a method (static or instance depending on the target of this annotation)

@@ -25,7 +25,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
-@StargateSpec(nodes = 2)
+@StargateSpec(nodes = 2, shared = false)
 @ExtendWith(CqlSessionExtension.class)
 class SystemTablesTest extends BaseIntegrationTest {
   @Test
