@@ -15,9 +15,13 @@
  */
 package io.stargate.sgv2.common.schema;
 
+import io.grpc.CallCredentials;
+import io.grpc.ManagedChannel;
+import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass.SchemaChange;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.SchemaNotification;
+import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.proto.StargateBridgeGrpc.StargateBridgeStub;
 import io.stargate.sgv2.common.futures.Futures;
 import io.stargate.sgv2.common.grpc.InitReplayingStreamObserver;
@@ -34,22 +38,23 @@ public class SchemaCache {
 
   private static final Logger LOG = LoggerFactory.getLogger(SchemaCache.class);
 
-  public static SchemaCache newInstance(StargateBridgeStub stub) {
-    SchemaCache cache = new SchemaCache(stub);
+  public static SchemaCache newInstance(ManagedChannel channel, String token) {
+    SchemaCache cache = new SchemaCache(channel, token);
     // Blocking is fine here, the caller will be some application initializer (e.g. DropWizard's
     // Application.run())
     Futures.getUninterruptibly(cache.refreshKeyspaces(true));
     return cache;
   }
 
-  private final StargateBridgeStub stub;
+  private final ManagedChannel channel;
+  private final CallCredentials callCredentials;
   private final ConcurrentMap<String, CqlKeyspaceDescribe> keyspaces = new ConcurrentHashMap<>();
   private final CopyOnWriteArrayList<SchemaListener> listeners = new CopyOnWriteArrayList<>();
-
   private volatile Observer observer;
 
-  private SchemaCache(StargateBridgeStub stub) {
-    this.stub = stub;
+  private SchemaCache(ManagedChannel channel, String token) {
+    this.channel = channel;
+    this.callCredentials = new StargateBearerToken(token);
   }
 
   public CqlKeyspaceDescribe getKeyspace(String keyspaceName) {
@@ -76,6 +81,8 @@ public class SchemaCache {
     // We don't need to cancel the previous observer: we get here either because it
     // failed/completed, or at init time where it's null.
     observer = new Observer();
+    StargateBridgeStub stub =
+        StargateBridgeGrpc.newStub(channel).withCallCredentials(callCredentials);
     SchemaCacheGrpc.registerChangeObserver(stub, observer);
 
     return SchemaCacheGrpc.getAllKeyspaces(stub)
