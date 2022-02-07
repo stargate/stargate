@@ -221,13 +221,13 @@ have done a recent build, for example:
 Then you can run the individual test using the `-Dit.test` option, for example:
 
 ```sh
-mvn -pl testing -Pit-cassandra-3.11 verify -Dit.test=RestApiv2RowsTest
+mvn -pl testing -Pit-cassandra-3.11 verify -Dit.test=RestApiv2Test
 ```
 
 You can even run a single case (method):
 
 ```sh
-mvn -pl testing -Pit-cassandra-3.11 verify -Dit.test=RestApiv2RowsTest#getRowsWithQuery
+mvn -pl testing -Pit-cassandra-3.11 verify -Dit.test=RestApiv2Test#testMixedCaseTable
 ```
 
 ### Debugging Integration Tests
