@@ -18,6 +18,7 @@ package io.stargate.sgv2.restsvc.resources.schemas;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.proto.StargateBridgeGrpc;
+import io.stargate.sgv2.common.grpc.GrpcClient;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2Keyspace;
 import io.swagger.annotations.Api;
@@ -92,13 +93,12 @@ public interface Sgv2KeyspacesResourceApi {
       })
   @Path("/{keyspaceName}")
   Response getOneKeyspace(
-      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      @Context GrpcClient grpcClient,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
-          final boolean raw,
-      @Context HttpServletRequest request);
+          final boolean raw);
 
   @Timed
   @POST
@@ -119,7 +119,7 @@ public interface Sgv2KeyspacesResourceApi {
             response = RestServiceError.class)
       })
   Response createKeyspace(
-      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      @Context GrpcClient grpcClient,
       @ApiParam(
               value =
                   "A map representing a keyspace with SimpleStrategy or NetworkTopologyStrategy with default replicas of 1 and 3 respectively \n"

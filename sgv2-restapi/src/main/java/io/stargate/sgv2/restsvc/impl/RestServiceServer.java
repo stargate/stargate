@@ -26,11 +26,15 @@ import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.stargate.core.grpc.BridgeConfig;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
 import io.stargate.metrics.jersey.MetricsBinder;
 import io.stargate.proto.StargateBridgeGrpc;
+import io.stargate.sgv2.common.grpc.GrpcClient;
+import io.stargate.sgv2.common.grpc.GrpcClientFactory;
+import io.stargate.sgv2.restsvc.resources.CreateGrpcClientFilter;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcStubFilter;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
 import io.stargate.sgv2.restsvc.resources.MetricsResource;
@@ -102,7 +106,14 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   public void run(final RestServiceServerConfiguration appConfig, final Environment environment)
       throws IOException {
 
-    environment.jersey().register(new CreateGrpcStubFilter(buildChannel(appConfig.stargate.grpc)));
+    ManagedChannel grpcChannel = buildChannel(appConfig.stargate.grpc);
+
+    // TODO remove this and associated types + rename CreateGrpcStub if we use GrpcClient everywhere
+    environment.jersey().register(new CreateGrpcStubFilter(grpcChannel));
+
+    GrpcClientFactory grpcClientFactory =
+        GrpcClientFactory.newInstance(grpcChannel, BridgeConfig.ADMIN_TOKEN);
+    environment.jersey().register(new CreateGrpcClientFilter(grpcClientFactory));
 
     environment
         .jersey()
@@ -114,6 +125,9 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
                 bind(metricsScraper).to(MetricsScraper.class);
                 bindFactory(GrpcStubFactory.class)
                     .to(StargateBridgeGrpc.StargateBridgeBlockingStub.class)
+                    .in(RequestScoped.class);
+                bindFactory(GrpcClientJerseyFactory.class)
+                    .to(GrpcClient.class)
                     .in(RequestScoped.class);
               }
             });
