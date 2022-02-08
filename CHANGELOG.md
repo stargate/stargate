@@ -79,6 +79,34 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
 
+## [v1.0.49](https://github.com/stargate/stargate/tree/v1.0.49) (2022-02-07)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.48...v1.0.49)
+
+**Fixed bugs:**
+
+- Documents checked for valid JSON schema also on update and patch [\#1604](https://github.com/stargate/stargate/issues/1604)
+
+**Closed issues:**
+
+- Split REST/Schema tests out of \(too\) big `RestApiv2Test` class [\#1600](https://github.com/stargate/stargate/issues/1600)
+- More gRPC `ValueCodec` implementations should verify validity of data decoded \(ByteBuffer-\>proto Value\) [\#1592](https://github.com/stargate/stargate/issues/1592)
+
+**Merged pull requests:**
+
+- DEV\_GUIDE: Fix outdated test class names [\#1620](https://github.com/stargate/stargate/pull/1620) ([li-boxuan](https://github.com/li-boxuan))
+- optimizing reuse of resources in IT [\#1618](https://github.com/stargate/stargate/pull/1618) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- gRPC: Fix conversion of UDT field types [\#1614](https://github.com/stargate/stargate/pull/1614) ([olim7t](https://github.com/olim7t))
+- relates to \#1604: fix update of sub-document with JSON schema existing [\#1609](https://github.com/stargate/stargate/pull/1609) ([ivansenic](https://github.com/ivansenic))
+- refactor patching of the documents [\#1605](https://github.com/stargate/stargate/pull/1605) ([ivansenic](https://github.com/ivansenic))
+- Fix root cause of \#1577 \(along with simple tests\) [\#1597](https://github.com/stargate/stargate/pull/1597) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- add new request failure codes [\#1596](https://github.com/stargate/stargate/pull/1596) ([ivansenic](https://github.com/ivansenic))
+- Add validation for \#1592; also add a test for UUID case \(failing\) [\#1593](https://github.com/stargate/stargate/pull/1593) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- update testcontainer, check the @Testcontainers\(disabledWithoutDocker… [\#1588](https://github.com/stargate/stargate/pull/1588) ([ivansenic](https://github.com/ivansenic))
+- Improve code to help troubleshoot \#1577, by more validation of UUID codec [\#1586](https://github.com/stargate/stargate/pull/1586) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- use doFinally in the `DseConnection\#executeRequest` to reset warnings [\#1585](https://github.com/stargate/stargate/pull/1585) ([ivansenic](https://github.com/ivansenic))
+- updated delete document paths to use new write service [\#1572](https://github.com/stargate/stargate/pull/1572) ([ivansenic](https://github.com/ivansenic))
+
 ## [v1.0.48](https://github.com/stargate/stargate/tree/v1.0.48) (2022-01-21)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.47...v1.0.48)
