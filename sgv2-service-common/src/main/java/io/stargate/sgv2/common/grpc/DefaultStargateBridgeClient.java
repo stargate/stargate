@@ -149,7 +149,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
 
   private String stripTenantPrefix(String fullKeyspaceName) {
     if (fullKeyspaceName.startsWith(tenantPrefix)) {
-      return tenantPrefix;
+      return fullKeyspaceName.substring(tenantPrefix.length());
     }
     return fullKeyspaceName;
   }

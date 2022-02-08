@@ -16,27 +16,27 @@
 package io.stargate.sgv2.restsvc.impl;
 
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
-import io.stargate.sgv2.restsvc.resources.CreateGrpcClientFilter;
+import io.stargate.sgv2.restsvc.resources.CreateStargateBridgeClientFilter;
 import javax.inject.Inject;
 import javax.ws.rs.container.ContainerRequestContext;
 import org.glassfish.hk2.api.Factory;
 
 /**
- * Provides the stub that we created in {@link CreateGrpcClientFilter} to the Jersey context, so
- * that it can be injected into resource methods with {@code @Context}.
+ * Provides the stub that we created in {@link CreateStargateBridgeClientFilter} to the Jersey
+ * context, so that it can be injected into resource methods with {@code @Context}.
  */
-public class GrpcClientJerseyFactory implements Factory<StargateBridgeClient> {
+public class StargateBridgeClientJerseyFactory implements Factory<StargateBridgeClient> {
 
   private final ContainerRequestContext context;
 
   @Inject
-  public GrpcClientJerseyFactory(ContainerRequestContext context) {
+  public StargateBridgeClientJerseyFactory(ContainerRequestContext context) {
     this.context = context;
   }
 
   @Override
   public StargateBridgeClient provide() {
-    return (StargateBridgeClient) context.getProperty(CreateGrpcClientFilter.GRPC_CLIENT_KEY);
+    return (StargateBridgeClient) context.getProperty(CreateStargateBridgeClientFilter.CLIENT_KEY);
   }
 
   @Override
