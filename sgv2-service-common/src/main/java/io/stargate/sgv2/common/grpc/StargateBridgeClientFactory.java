@@ -18,23 +18,13 @@ package io.stargate.sgv2.common.grpc;
 import io.grpc.Channel;
 import java.util.Optional;
 
-class DefaultGrpcClientFactory implements GrpcClientFactory {
+public interface StargateBridgeClientFactory {
 
-  private final Channel channel;
-  private final DefaultGrpcSchema schema;
-
-  DefaultGrpcClientFactory(Channel channel, String adminAuthToken) {
-    this.channel = channel;
-    this.schema = new DefaultGrpcSchema(channel, adminAuthToken);
+  static StargateBridgeClientFactory newInstance(Channel channel, String adminToken) {
+    return new DefaultStargateBridgeClientFactory(channel, adminToken);
   }
 
-  @Override
-  public GrpcClient newClient(String authToken, Optional<String> tenantId) {
-    return new DefaultGrpcClient(channel, schema, authToken, tenantId);
-  }
+  StargateBridgeClient newClient(String authToken, Optional<String> tenantId);
 
-  @Override
-  public GrpcSchema getSchema() {
-    return schema;
-  }
+  StargateBridgeSchema getSchema();
 }

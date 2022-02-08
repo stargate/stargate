@@ -32,8 +32,8 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
 import io.stargate.metrics.jersey.MetricsBinder;
 import io.stargate.proto.StargateBridgeGrpc;
-import io.stargate.sgv2.common.grpc.GrpcClient;
-import io.stargate.sgv2.common.grpc.GrpcClientFactory;
+import io.stargate.sgv2.common.grpc.StargateBridgeClient;
+import io.stargate.sgv2.common.grpc.StargateBridgeClientFactory;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcClientFilter;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcStubFilter;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
@@ -111,9 +111,9 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     // TODO remove this and associated types + rename CreateGrpcStub if we use GrpcClient everywhere
     environment.jersey().register(new CreateGrpcStubFilter(grpcChannel));
 
-    GrpcClientFactory grpcClientFactory =
-        GrpcClientFactory.newInstance(grpcChannel, BridgeConfig.ADMIN_TOKEN);
-    environment.jersey().register(new CreateGrpcClientFilter(grpcClientFactory));
+    StargateBridgeClientFactory stargateBridgeClientFactory =
+        StargateBridgeClientFactory.newInstance(grpcChannel, BridgeConfig.ADMIN_TOKEN);
+    environment.jersey().register(new CreateGrpcClientFilter(stargateBridgeClientFactory));
 
     environment
         .jersey()
@@ -127,7 +127,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
                     .to(StargateBridgeGrpc.StargateBridgeBlockingStub.class)
                     .in(RequestScoped.class);
                 bindFactory(GrpcClientJerseyFactory.class)
-                    .to(GrpcClient.class)
+                    .to(StargateBridgeClient.class)
                     .in(RequestScoped.class);
               }
             });

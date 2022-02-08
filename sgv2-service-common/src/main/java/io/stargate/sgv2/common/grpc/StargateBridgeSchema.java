@@ -15,16 +15,15 @@
  */
 package io.stargate.sgv2.common.grpc;
 
-import io.grpc.Channel;
-import java.util.Optional;
+import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.sgv2.common.futures.Futures;
+import java.util.concurrent.CompletionStage;
 
-public interface GrpcClientFactory {
+public interface StargateBridgeSchema {
 
-  static GrpcClientFactory newInstance(Channel channel, String adminToken) {
-    return new DefaultGrpcClientFactory(channel, adminToken);
+  CompletionStage<CqlKeyspaceDescribe> getKeyspaceAsync(String keyspaceName);
+
+  default CqlKeyspaceDescribe getKeyspace(String keyspaceName) {
+    return Futures.getUninterruptibly(getKeyspaceAsync(keyspaceName));
   }
-
-  GrpcClient newClient(String authToken, Optional<String> tenantId);
-
-  GrpcSchema getSchema();
 }

@@ -15,8 +15,8 @@
  */
 package io.stargate.sgv2.restsvc.resources;
 
-import io.stargate.sgv2.common.grpc.GrpcClient;
-import io.stargate.sgv2.common.grpc.GrpcClientFactory;
+import io.stargate.sgv2.common.grpc.StargateBridgeClient;
+import io.stargate.sgv2.common.grpc.StargateBridgeClientFactory;
 import io.stargate.sgv2.restsvc.impl.GrpcClientJerseyFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import java.util.Optional;
@@ -39,14 +39,14 @@ import javax.ws.rs.ext.Provider;
 @CreateGrpcStub
 public class CreateGrpcClientFilter implements ContainerRequestFilter {
 
-  public static final String GRPC_CLIENT_KEY = GrpcClient.class.getName();
+  public static final String GRPC_CLIENT_KEY = StargateBridgeClient.class.getName();
   private static final String HOST_HEADER_NAME = "Host";
   private static final String HOST_HEADER_NAME_LOWER = "host";
 
-  private final GrpcClientFactory grpcClientFactory;
+  private final StargateBridgeClientFactory stargateBridgeClientFactory;
 
-  public CreateGrpcClientFilter(GrpcClientFactory grpcClientFactory) {
-    this.grpcClientFactory = grpcClientFactory;
+  public CreateGrpcClientFilter(StargateBridgeClientFactory stargateBridgeClientFactory) {
+    this.stargateBridgeClientFactory = stargateBridgeClientFactory;
   }
 
   @Override
@@ -62,7 +62,8 @@ public class CreateGrpcClientFilter implements ContainerRequestFilter {
               .build());
     } else {
       context.setProperty(
-          GRPC_CLIENT_KEY, grpcClientFactory.newClient(token, getTenantId(context.getHeaders())));
+          GRPC_CLIENT_KEY,
+          stargateBridgeClientFactory.newClient(token, getTenantId(context.getHeaders())));
     }
   }
 

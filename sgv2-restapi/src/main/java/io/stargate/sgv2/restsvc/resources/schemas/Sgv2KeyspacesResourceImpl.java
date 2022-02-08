@@ -23,7 +23,7 @@ import io.stargate.proto.Schema;
 import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.common.cql.builder.Replication;
-import io.stargate.sgv2.common.grpc.GrpcClient;
+import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.restsvc.models.Sgv2Keyspace;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcStub;
@@ -81,9 +81,11 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
 
   @Override
   public Response getOneKeyspace(
-      final GrpcClient grpcClient, final String keyspaceName, final boolean raw) {
+      final StargateBridgeClient stargateBridgeClient,
+      final String keyspaceName,
+      final boolean raw) {
 
-    Schema.CqlKeyspaceDescribe keyspaceDescribe = grpcClient.getKeyspace(keyspaceName);
+    Schema.CqlKeyspaceDescribe keyspaceDescribe = stargateBridgeClient.getKeyspace(keyspaceName);
     if (keyspaceDescribe == null) {
       throw new WebApplicationException("unable to describe keyspace", Status.NOT_FOUND);
     }
@@ -95,7 +97,9 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
 
   @Override
   public Response createKeyspace(
-      final GrpcClient grpcClient, final JsonNode payload, final HttpServletRequest request) {
+      final StargateBridgeClient stargateBridgeClient,
+      final JsonNode payload,
+      final HttpServletRequest request) {
     SchemaBuilderHelper.KeyspaceCreateDefinition ksCreateDef;
     try {
       ksCreateDef = schemaBuilder.readKeyspaceCreateDefinition(payload);
@@ -123,7 +127,7 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
     }
 
     QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
-    QueryOuterClass.Response grpcResponse = grpcClient.executeQuery(query);
+    QueryOuterClass.Response grpcResponse = stargateBridgeClient.executeQuery(query);
 
     // No real contents; can ignore ResultSet it seems and only worry about exceptions
 

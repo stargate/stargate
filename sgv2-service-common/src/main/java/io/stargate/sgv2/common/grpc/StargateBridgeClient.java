@@ -20,7 +20,7 @@ import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 
-public interface GrpcClient {
+public interface StargateBridgeClient {
 
   Response executeQuery(Query request);
 

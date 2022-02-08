@@ -36,9 +36,9 @@ import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-class DefaultGrpcSchema implements GrpcSchema {
+class DefaultStargateBridgeSchema implements StargateBridgeSchema {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DefaultGrpcSchema.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DefaultStargateBridgeSchema.class);
 
   private static final int KEYSPACE_CACHE_SIZE = 1000;
   private static final Duration KEYSPACE_CACHE_TTL = Duration.ofMinutes(5);
@@ -54,7 +54,7 @@ class DefaultGrpcSchema implements GrpcSchema {
   // exist. Schema change notifications invalidate the entry to force a refresh.
   private final Cache<String, CompletionStage<CqlKeyspaceDescribe>> keyspaceCache;
 
-  DefaultGrpcSchema(Channel channel, String adminAuthToken) {
+  DefaultStargateBridgeSchema(Channel channel, String adminAuthToken) {
     this.channel = channel;
     this.adminCallCredentials = new StargateBearerToken(adminAuthToken);
     this.keyspaceCache =

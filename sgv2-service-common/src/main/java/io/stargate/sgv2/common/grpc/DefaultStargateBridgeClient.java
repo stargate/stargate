@@ -33,19 +33,22 @@ import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.codec.binary.Hex;
 
-class DefaultGrpcClient implements GrpcClient {
+class DefaultStargateBridgeClient implements StargateBridgeClient {
 
   private static final int TIMEOUT_SECONDS = 5;
   private static final Metadata.Key<String> HOST_KEY =
       Metadata.Key.of("Host", Metadata.ASCII_STRING_MARSHALLER);
 
   private final Channel channel;
-  private final DefaultGrpcSchema schema;
+  private final DefaultStargateBridgeSchema schema;
   private final CallOptions callOptions;
   private final String tenantPrefix;
 
-  DefaultGrpcClient(
-      Channel channel, DefaultGrpcSchema schema, String authToken, Optional<String> tenantId) {
+  DefaultStargateBridgeClient(
+      Channel channel,
+      DefaultStargateBridgeSchema schema,
+      String authToken,
+      Optional<String> tenantId) {
     this.schema = schema;
     this.channel = tenantId.map(i -> addMetadata(channel, i)).orElse(channel);
     this.callOptions =
