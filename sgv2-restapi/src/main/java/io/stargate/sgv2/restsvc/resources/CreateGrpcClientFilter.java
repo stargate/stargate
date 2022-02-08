@@ -15,11 +15,12 @@
  */
 package io.stargate.sgv2.restsvc.resources;
 
-import io.grpc.Metadata;
 import io.stargate.sgv2.common.grpc.GrpcClient;
 import io.stargate.sgv2.common.grpc.GrpcClientFactory;
 import io.stargate.sgv2.restsvc.impl.GrpcClientJerseyFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
+import java.util.Optional;
+import java.util.UUID;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.core.MultivaluedMap;
@@ -39,6 +40,8 @@ import javax.ws.rs.ext.Provider;
 public class CreateGrpcClientFilter implements ContainerRequestFilter {
 
   public static final String GRPC_CLIENT_KEY = GrpcClient.class.getName();
+  private static final String HOST_HEADER_NAME = "Host";
+  private static final String HOST_HEADER_NAME_LOWER = "host";
 
   private final GrpcClientFactory grpcClientFactory;
 
@@ -59,12 +62,28 @@ public class CreateGrpcClientFilter implements ContainerRequestFilter {
               .build());
     } else {
       context.setProperty(
-          GRPC_CLIENT_KEY, grpcClientFactory.newClient(token, buildMetadata(context.getHeaders())));
+          GRPC_CLIENT_KEY, grpcClientFactory.newClient(token, getTenantId(context.getHeaders())));
     }
   }
 
-  private Metadata buildMetadata(MultivaluedMap<String, String> httpHeaders) {
-    // TODO extract and propagate tenant id
-    return null;
+  private Optional<String> getTenantId(MultivaluedMap<String, String> headers) {
+    String host = headers.getFirst(HOST_HEADER_NAME);
+    if (host == null) {
+      host = headers.getFirst(HOST_HEADER_NAME_LOWER);
+    }
+    return extractTenantId(host);
+  }
+
+  // Assumes the tenant ID is a UUID prefix of the host name
+  private static Optional<String> extractTenantId(String host) {
+    if (host == null || host.length() < 36) {
+      return Optional.empty();
+    }
+    try {
+      UUID uuid = UUID.fromString(host.substring(0, 36));
+      return Optional.of(uuid.toString());
+    } catch (IllegalArgumentException __) {
+      return Optional.empty();
+    }
   }
 }

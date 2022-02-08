@@ -25,30 +25,34 @@ import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
+import io.stargate.proto.Schema.CqlKeyspace;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.StargateBridgeGrpc;
+import java.nio.charset.StandardCharsets;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import org.apache.commons.codec.binary.Hex;
 
 class DefaultGrpcClient implements GrpcClient {
 
   private static final int TIMEOUT_SECONDS = 5;
+  private static final Metadata.Key<String> HOST_KEY =
+      Metadata.Key.of("Host", Metadata.ASCII_STRING_MARSHALLER);
 
   private final Channel channel;
   private final DefaultGrpcSchema schema;
   private final CallOptions callOptions;
+  private final String tenantPrefix;
 
   DefaultGrpcClient(
-      Channel channel, DefaultGrpcSchema schema, String authToken, Metadata metadata) {
+      Channel channel, DefaultGrpcSchema schema, String authToken, Optional<String> tenantId) {
     this.schema = schema;
-    this.channel =
-        metadata == null
-            ? channel
-            : ClientInterceptors.intercept(
-                channel, MetadataUtils.newAttachHeadersInterceptor(metadata));
+    this.channel = tenantId.map(i -> addMetadata(channel, i)).orElse(channel);
     this.callOptions =
         CallOptions.DEFAULT
             .withDeadlineAfter(TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .withCallCredentials(new StargateBearerToken(authToken));
+    this.tenantPrefix = tenantId.map(this::encodeKeyspacePrefix).orElse("");
   }
 
   @Override
@@ -59,7 +63,7 @@ class DefaultGrpcClient implements GrpcClient {
     if (response.hasSchemaChange()) {
       // Ensure we're not holding a stale copy of the impacted keyspace by the time we return
       // control to the caller
-      String keyspaceName = decorateKeyspaceName(response.getSchemaChange().getKeyspace());
+      String keyspaceName = addTenantPrefix(response.getSchemaChange().getKeyspace());
       schema.removeKeyspace(keyspaceName);
     }
     return response;
@@ -74,11 +78,39 @@ class DefaultGrpcClient implements GrpcClient {
   @Override
   public CqlKeyspaceDescribe getKeyspace(String keyspaceName) {
     // TODO authorize?
-    return schema.getKeyspace(decorateKeyspaceName(keyspaceName));
+    return stripTenantPrefix(schema.getKeyspace(addTenantPrefix(keyspaceName)));
   }
 
-  private String decorateKeyspaceName(String keyspaceName) {
-    // TODO implement (extract tenant name from metadata)
-    return keyspaceName;
+  private Channel addMetadata(Channel channel, String tenantId) {
+    Metadata metadata = new Metadata();
+    metadata.put(HOST_KEY, tenantId);
+    return ClientInterceptors.intercept(
+        channel, MetadataUtils.newAttachHeadersInterceptor(metadata));
+  }
+
+  private String encodeKeyspacePrefix(String tenantId) {
+    return Hex.encodeHexString(tenantId.getBytes(StandardCharsets.UTF_8)) + "_";
+  }
+
+  private String addTenantPrefix(String keyspaceName) {
+    return tenantPrefix + keyspaceName;
+  }
+
+  private CqlKeyspaceDescribe stripTenantPrefix(CqlKeyspaceDescribe describe) {
+    if (describe == null || tenantPrefix.isEmpty()) {
+      return describe;
+    }
+    CqlKeyspace keyspace = describe.getCqlKeyspace();
+    return CqlKeyspaceDescribe.newBuilder(describe)
+        .setCqlKeyspace(
+            CqlKeyspace.newBuilder(keyspace).setName(stripTenantPrefix(keyspace.getName())).build())
+        .build();
+  }
+
+  private String stripTenantPrefix(String fullKeyspaceName) {
+    if (fullKeyspaceName.startsWith(tenantPrefix)) {
+      return tenantPrefix;
+    }
+    return fullKeyspaceName;
   }
 }

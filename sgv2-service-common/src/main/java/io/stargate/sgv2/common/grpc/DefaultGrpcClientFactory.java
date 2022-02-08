@@ -16,7 +16,7 @@
 package io.stargate.sgv2.common.grpc;
 
 import io.grpc.Channel;
-import io.grpc.Metadata;
+import java.util.Optional;
 
 class DefaultGrpcClientFactory implements GrpcClientFactory {
 
@@ -29,8 +29,8 @@ class DefaultGrpcClientFactory implements GrpcClientFactory {
   }
 
   @Override
-  public GrpcClient newClient(String authToken, Metadata metadata) {
-    return new DefaultGrpcClient(channel, schema, authToken, metadata);
+  public GrpcClient newClient(String authToken, Optional<String> tenantId) {
+    return new DefaultGrpcClient(channel, schema, authToken, tenantId);
   }
 
   @Override
