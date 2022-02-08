@@ -15,6 +15,7 @@
  */
 package io.stargate.sgv2.common.grpc;
 
+import com.google.protobuf.BytesValue;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
 import io.grpc.ClientInterceptors;
@@ -24,11 +25,16 @@ import io.grpc.stub.MetadataUtils;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
+import io.stargate.proto.QueryOuterClass.QueryParameters;
 import io.stargate.proto.QueryOuterClass.Response;
+import io.stargate.proto.QueryOuterClass.ResultSet;
+import io.stargate.proto.QueryOuterClass.Row;
 import io.stargate.proto.Schema.CqlKeyspace;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.StargateBridgeGrpc;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 import org.apache.commons.codec.binary.Hex;
@@ -38,6 +44,8 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
   private static final int TIMEOUT_SECONDS = 5;
   private static final Metadata.Key<String> HOST_KEY =
       Metadata.Key.of("Host", Metadata.ASCII_STRING_MARSHALLER);
+  private static final Query SELECT_KEYSPACE_NAMES =
+      Query.newBuilder().setCql("SELECT keyspace_name FROM system_schema.keyspaces").build();
 
   private final Channel channel;
   private final DefaultStargateBridgeSchema schema;
@@ -82,6 +90,35 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
   public CqlKeyspaceDescribe getKeyspace(String keyspaceName) {
     // TODO authorize?
     return stripTenantPrefix(schema.getKeyspace(addTenantPrefix(keyspaceName)));
+  }
+
+  @Override
+  public List<CqlKeyspaceDescribe> getAllKeyspaces() {
+    List<String> keyspaceNames = getKeyspaceNames(new ArrayList<>(), null);
+    List<CqlKeyspaceDescribe> keyspaces = new ArrayList<>(keyspaceNames.size());
+    for (String keyspaceName : keyspaceNames) {
+      CqlKeyspaceDescribe keyspace = getKeyspace(keyspaceName);
+      if (keyspace != null) {
+        keyspaces.add(keyspace);
+      }
+    }
+    return keyspaces;
+  }
+
+  private List<String> getKeyspaceNames(List<String> accumulator, BytesValue pagingState) {
+    Query query =
+        (pagingState == null)
+            ? SELECT_KEYSPACE_NAMES
+            : Query.newBuilder(SELECT_KEYSPACE_NAMES)
+                .setParameters(QueryParameters.newBuilder().setPagingState(pagingState).build())
+                .build();
+    ResultSet resultSet = executeQuery(query).getResultSet();
+    for (Row row : resultSet.getRowsList()) {
+      accumulator.add(row.getValues(0).getString());
+    }
+    return (resultSet.hasPagingState())
+        ? getKeyspaceNames(accumulator, resultSet.getPagingState())
+        : accumulator;
   }
 
   private Channel addMetadata(Channel channel, String tenantId) {

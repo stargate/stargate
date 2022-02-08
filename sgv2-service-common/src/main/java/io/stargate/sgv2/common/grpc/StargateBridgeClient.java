@@ -19,6 +19,7 @@ import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import java.util.List;
 
 public interface StargateBridgeClient {
 
@@ -27,4 +28,6 @@ public interface StargateBridgeClient {
   Response executeBatch(Batch request);
 
   CqlKeyspaceDescribe getKeyspace(String keyspaceName);
+
+  List<CqlKeyspaceDescribe> getAllKeyspaces();
 }

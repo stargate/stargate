@@ -17,7 +17,6 @@ package io.stargate.sgv2.restsvc.resources.schemas;
 
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.databind.JsonNode;
-import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2Keyspace;
@@ -69,7 +68,7 @@ public interface Sgv2KeyspacesResourceApi {
             response = RestServiceError.class)
       })
   Response getAllKeyspaces(
-      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      @Context StargateBridgeClient stargateBridgeClient,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
       @Context HttpServletRequest request);
@@ -155,7 +154,7 @@ public interface Sgv2KeyspacesResourceApi {
       })
   @Path("/{keyspaceName}")
   Response deleteKeyspace(
-      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      @Context StargateBridgeClient stargateBridgeClient,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
