@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.stargate</groupId>
   <artifactId>stargate</artifactId>
-  <version>1.0.49-SNAPSHOT</version>
+  <version>1.0.50-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>${project.groupId}:${project.artifactId}</name>
   <description>Core modules for Stargate</description>
