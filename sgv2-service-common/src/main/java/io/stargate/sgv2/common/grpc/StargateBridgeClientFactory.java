@@ -17,11 +17,13 @@ package io.stargate.sgv2.common.grpc;
 
 import io.grpc.Channel;
 import java.util.Optional;
+import java.util.concurrent.ScheduledExecutorService;
 
 public interface StargateBridgeClientFactory {
 
-  static StargateBridgeClientFactory newInstance(Channel channel, String adminToken) {
-    return new DefaultStargateBridgeClientFactory(channel, adminToken);
+  static StargateBridgeClientFactory newInstance(
+      Channel channel, String adminToken, ScheduledExecutorService executor) {
+    return new DefaultStargateBridgeClientFactory(channel, adminToken, executor);
   }
 
   StargateBridgeClient newClient(String authToken, Optional<String> tenantId);
