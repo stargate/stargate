@@ -145,7 +145,7 @@ public class RestApiServer extends Application<RestApiServerConfiguration> {
     //     when we have SGv2 -- leaving just the Documents API until it too gets extracted.
     if (true) {
       logger.info(
-          "Will not register StargateV1 REST API endpoints for Stargate v2: should have the new implementation");
+          "Will not register StargateV1 REST API endpoints for StargateV2: should have new endpoints from 'svg2-restapi'");
     } else {
       // Rest API V1 endpoints (legacy):
       environment.jersey().register(ColumnResource.class);
