@@ -19,7 +19,7 @@ services:
       - DATACENTER_NAME=datacenter1
       - ENABLE_AUTH=true
       - DEVELOPER_MODE=true
-      - BRIDGE_TOKEN=sample-token-value
+      - BRIDGE_TOKEN=${BRIDGE_TOKEN}
   restapi:
     image: stargateio/restapi:${SGTAG}
     depends_on:
@@ -34,6 +34,6 @@ services:
       - STARGATE_GRPC_HOST=coordinator
       - STARGATE_GRPC_PORT=8090
       - STARGATE_REST_PORT=8082
-      - BRIDGE_TOKEN=sample-token-value
+      - BRIDGE_TOKEN=${BRIDGE_TOKEN}
 networks:
   stargate:
