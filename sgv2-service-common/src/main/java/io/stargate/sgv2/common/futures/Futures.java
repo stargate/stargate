@@ -15,11 +15,8 @@
  */
 package io.stargate.sgv2.common.futures;
 
-import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
-import java.util.stream.Collectors;
 
 public class Futures {
 
@@ -55,15 +52,5 @@ public class Futures {
         Thread.currentThread().interrupt();
       }
     }
-  }
-
-  /** Returns a future of all the results, or a failed future if any of the inputs fails. */
-  public static <T> CompletionStage<List<T>> sequence(List<CompletionStage<T>> futures) {
-    return CompletableFuture.allOf(futures.toArray(new CompletableFuture<?>[0]))
-        .thenApply(
-            v ->
-                futures.stream()
-                    .map(f -> f.toCompletableFuture().join())
-                    .collect(Collectors.toList()));
   }
 }

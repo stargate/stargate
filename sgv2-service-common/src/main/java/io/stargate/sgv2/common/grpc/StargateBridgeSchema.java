@@ -13,21 +13,17 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.sgv2.common.schema;
+package io.stargate.sgv2.common.grpc;
 
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.sgv2.common.futures.Futures;
+import java.util.concurrent.CompletionStage;
 
-/**
- * Allows clients to register with {@link SchemaCache} to get notified when keyspaces change.
- *
- * <p>Note no guarantee is made as to which threads will invoke those methods; implementations
- * should use proper synchronization if needed, and not block.
- */
-public interface SchemaListener {
+public interface StargateBridgeSchema {
 
-  void onCreateKeyspace(CqlKeyspaceDescribe newKeyspace);
+  CompletionStage<CqlKeyspaceDescribe> getKeyspaceAsync(String keyspaceName);
 
-  void onUpdateKeyspace(CqlKeyspaceDescribe oldKeyspace, CqlKeyspaceDescribe newKeyspace);
-
-  void onDropKeyspace(CqlKeyspaceDescribe oldKeyspace);
+  default CqlKeyspaceDescribe getKeyspace(String keyspaceName) {
+    return Futures.getUninterruptibly(getKeyspaceAsync(keyspaceName));
+  }
 }
