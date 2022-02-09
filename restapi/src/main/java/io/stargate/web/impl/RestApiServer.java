@@ -65,9 +65,12 @@ import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.server.ServerProperties;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkUtil;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** DropWizard {@code Application} that will serve both REST (v1, v2) and Document API endpoints. */
 public class RestApiServer extends Application<RestApiServerConfiguration> {
+  private final Logger logger = LoggerFactory.getLogger(getClass());
 
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
@@ -138,19 +141,26 @@ public class RestApiServer extends Application<RestApiServerConfiguration> {
     // General healthcheck endpoint
     environment.jersey().register(HealthResource.class);
 
-    // Rest API V1 endpoints (legacy):
-    environment.jersey().register(ColumnResource.class);
-    environment.jersey().register(KeyspaceResource.class);
-    environment.jersey().register(RowResource.class);
-    environment.jersey().register(TableResource.class);
+    // 09-Feb-2021, tatu: as per [#1625] the old SGv1 REST API is to be disabled
+    //     when we have SGv2 -- leaving just the Documents API until it too gets extracted.
+    if (true) {
+      logger.info(
+          "Will not register StargateV1 REST API endpoints for StargateV2: should have new endpoints from 'svg2-restapi'");
+    } else {
+      // Rest API V1 endpoints (legacy):
+      environment.jersey().register(ColumnResource.class);
+      environment.jersey().register(KeyspaceResource.class);
+      environment.jersey().register(RowResource.class);
+      environment.jersey().register(TableResource.class);
 
-    // Rest API V2 endpoints
-    environment.jersey().register(ColumnsResource.class);
-    environment.jersey().register(IndexesResource.class);
-    environment.jersey().register(KeyspacesResource.class);
-    environment.jersey().register(RowsResource.class);
-    environment.jersey().register(TablesResource.class);
-    environment.jersey().register(UserDefinedTypesResource.class);
+      // Rest API V2 endpoints
+      environment.jersey().register(ColumnsResource.class);
+      environment.jersey().register(IndexesResource.class);
+      environment.jersey().register(KeyspacesResource.class);
+      environment.jersey().register(RowsResource.class);
+      environment.jersey().register(TablesResource.class);
+      environment.jersey().register(UserDefinedTypesResource.class);
+    }
 
     // Documents API
     environment
