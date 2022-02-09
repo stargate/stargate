@@ -181,7 +181,11 @@ class DefaultStargateBridgeSchema implements StargateBridgeSchema {
 
     @Override
     public void onError(Throwable t) {
-      LOG.warn("Unexpected error in notification stream", t);
+      if (t instanceof StatusRuntimeException) {
+        LOG.warn("Unexpected gRPC error in notification stream: {}", t.getMessage());
+      } else {
+        LOG.warn("Unexpected error in notification stream", t);
+      }
       scheduleReconnect();
     }
 
