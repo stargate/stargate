@@ -20,6 +20,19 @@ import io.dropwizard.jetty.HttpConnectorFactory;
 import io.dropwizard.server.ServerFactory;
 import io.dropwizard.server.SimpleServerFactory;
 
+/**
+ * Configuration class for StargateV1 Docs API.
+ *
+ * <p>The only interesting thing is to apply Docs API port override via System properties:
+ *
+ * <pre>
+ *  -Ddw.docsApiPortOverride=8099
+ * </pre>
+ *
+ * (although technically it is also possible to add root-level value in {@code
+ * src/main/resources/config.yaml} that could simply use the regular YAML overide of
+ * "server.connector.port: 8099" instead)
+ */
 public class RestApiServerConfiguration extends Configuration {
   private int docsApiPortOverride = -1;
 
