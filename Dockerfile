@@ -54,10 +54,6 @@ ENV STARGATE_GRPC_HOST=localhost
 ENV STARGATE_GRPC_PORT=8090
 ENV STARGATE_REST_PORT=8082
 
-COPY ./sgv2-restapi/target/sgv2*.jar /
-ENTRYPOINT ["/bin/sh", "-c", \
-            "exec java $JAVA_OPTS \
-            -Ddw.stargate.grpc.host=$STARGATE_GRPC_HOST \
-            -Ddw.stargate.grpc.port=$STARGATE_GRPC_PORT \
-            -Ddw.server.connector.port=$STARGATE_REST_PORT \
-            -jar sgv2-rest-service*.jar"]
+COPY stargate-lib/rest/sgv2*.jar stargate-lib/rest/
+COPY ./starctl-service-rest /starctl-service-rest
+ENTRYPOINT ["./starctl-service-rest"]
