@@ -42,10 +42,10 @@ fi
 
 eval declare -a JAVA_OPTS=("$JAVA_OPTS")
 
-if [ ! "x$STARGATE_BRIDGE_TOKEN" == "x" ]; then
-  JAVA_OPTS+=(-Dstargate.bridge.admin_token="$STARGATE_BRIDGE_TOKEN")
+if [ ! "x$BRIDGE_TOKEN" == "x" ]; then
+  JAVA_OPTS+=(-Dstargate.bridge.admin_token="$BRIDGE_TOKEN")
 else
-  echo "STARGATE_BRIDGE_TOKEN not found"
+  echo "BRIDGE_TOKEN not found"
   exit 2
 fi
 

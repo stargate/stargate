@@ -14,13 +14,13 @@ for sig in INT QUIT HUP TERM; do
 done
 trap cleanup EXIT
 
-if [ -z $STARGATE_BRIDGE_TOKEN ]; then
-  export STARGATE_BRIDGE_TOKEN=mockAdminToken
+if [ -z $BRIDGE_TOKEN ]; then
+  export BRIDGE_TOKEN=mockAdminToken
 fi
 
 # start REST API service
 ./starctl-service-rest &
 
 # pass along same arguments to script to start coordinator
-./starctl "$@" --bridge-token="$STARGATE_BRIDGE_TOKEN"
+./starctl "$@" --bridge-token="$BRIDGE_TOKEN"
 
