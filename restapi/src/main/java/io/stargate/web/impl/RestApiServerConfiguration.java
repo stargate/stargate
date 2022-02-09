@@ -45,7 +45,7 @@ public class RestApiServerConfiguration extends Configuration {
     connF.setPort(port);
   }
 
-  public int gocsApiPortOverride() {
+  public int getDocsApiPortOverride() {
     return docsApiPortOverride;
   }
 }
