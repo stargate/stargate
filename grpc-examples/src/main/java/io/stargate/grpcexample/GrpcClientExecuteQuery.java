@@ -87,7 +87,7 @@ public class GrpcClientExecuteQuery {
   }
 
   private void executeStreamingBatchInsertQueries() throws InterruptedException {
-    CountDownLatch responseRetrieved = new CountDownLatch(1);
+    CountDownLatch responseRetrieved = new CountDownLatch(2);
     StreamObserver<QueryOuterClass.StreamingResponse> responseStreamObserver =
         new StreamObserver<QueryOuterClass.StreamingResponse>() {
           @Override
@@ -121,12 +121,20 @@ public class GrpcClientExecuteQuery {
                     .setCql("INSERT INTO ks.test (k, v) VALUES ('streaming_batch_b', 2)")
                     .build())
             .build());
+
+    queryStreamObserver.onNext(
+        QueryOuterClass.Batch.newBuilder()
+            .addQueries(
+                QueryOuterClass.BatchQuery.newBuilder()
+                    .setCql("INSERT INTO ks.test (k, v) VALUES ('streaming_batch_c', 1)")
+                    .build())
+            .build());
     queryStreamObserver.onCompleted();
     responseRetrieved.await();
   }
 
   private void executeStreamingInsertQuery() throws InterruptedException {
-    CountDownLatch responseRetrieved = new CountDownLatch(1);
+    CountDownLatch responseRetrieved = new CountDownLatch(2);
     StreamObserver<QueryOuterClass.StreamingResponse> responseStreamObserver =
         new StreamObserver<QueryOuterClass.StreamingResponse>() {
           @Override
@@ -152,6 +160,11 @@ public class GrpcClientExecuteQuery {
     queryStreamObserver.onNext(
         QueryOuterClass.Query.newBuilder()
             .setCql("INSERT INTO ks.test (k, v) VALUES ('streaming_query', 100)")
+            .build());
+
+    queryStreamObserver.onNext(
+        QueryOuterClass.Query.newBuilder()
+            .setCql("INSERT INTO ks.test (k, v) VALUES ('streaming_query2', 100)")
             .build());
     queryStreamObserver.onCompleted();
     responseRetrieved.await();
