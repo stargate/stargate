@@ -17,13 +17,12 @@ package io.stargate.sgv2.restsvc.resources.schemas;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import io.stargate.proto.QueryOuterClass;
-import io.stargate.proto.StargateBridgeGrpc;
-import io.stargate.sgv2.common.cql.builder.BuiltCondition;
-import io.stargate.sgv2.common.cql.builder.Predicate;
+import io.stargate.proto.QueryOuterClass.Query;
+import io.stargate.proto.Schema;
+import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.common.cql.builder.Replication;
+import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.restsvc.models.Sgv2Keyspace;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcStub;
@@ -53,67 +52,38 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
 
   @Override
   public Response getAllKeyspaces(
-      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      final StargateBridgeClient stargateBridgeClient,
       final boolean raw,
       final HttpServletRequest request) {
 
-    String cql =
-        new QueryBuilder()
-            .select()
-            .column("keyspace_name")
-            .column("replication")
-            .from("system_schema", "keyspaces")
-            .build();
+    List<Sgv2Keyspace> keyspaces =
+        stargateBridgeClient.getAllKeyspaces().stream()
+            .map(Sgv2KeyspacesResourceImpl::keyspaceFrom)
+            .collect(Collectors.toList());
 
-    QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
-    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
-
-    final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
-
-    // two-part conversion: first from proto to JsonNode for easier traversability,
-    // then from that to actual response we need:
-    ArrayNode ksRows = convertRowsToArrayNode(rs);
-    List<Sgv2Keyspace> keyspaces = keyspacesFrom(ksRows);
-
-    final Object payload = raw ? keyspaces : new Sgv2RESTResponse(keyspaces);
+    final Object payload = raw ? keyspaces : new Sgv2RESTResponse<>(keyspaces);
     return Response.status(Status.OK).entity(payload).build();
   }
 
   @Override
   public Response getOneKeyspace(
-      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      final StargateBridgeClient stargateBridgeClient,
       final String keyspaceName,
-      final boolean raw,
-      final HttpServletRequest request) {
-    String cql =
-        new QueryBuilder()
-            .select()
-            .column("keyspace_name")
-            .column("replication")
-            .from("system_schema", "keyspaces")
-            .where(BuiltCondition.of("keyspace_name", Predicate.EQ, keyspaceName))
-            .build();
+      final boolean raw) {
 
-    QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
-
-    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
-
-    final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
-    if (rs.getRowsCount() == 0) {
+    CqlKeyspaceDescribe keyspaceDescribe = stargateBridgeClient.getKeyspace(keyspaceName);
+    if (keyspaceDescribe == null) {
       throw new WebApplicationException("unable to describe keyspace", Status.NOT_FOUND);
     }
-    // two-part conversion: first from proto to JsonNode for easier traversability,
-    // then from that to actual response we need:
-    ArrayNode ksRows = convertRowsToArrayNode(rs);
-    Sgv2Keyspace keyspace = keyspaceFrom(ksRows.get(0));
+    Sgv2Keyspace keyspace = keyspaceFrom(keyspaceDescribe);
 
-    final Object payload = raw ? keyspace : new Sgv2RESTResponse(keyspace);
+    final Object payload = raw ? keyspace : new Sgv2RESTResponse<>(keyspace);
     return Response.status(Status.OK).entity(payload).build();
   }
 
   @Override
   public Response createKeyspace(
-      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      final StargateBridgeClient stargateBridgeClient,
       final JsonNode payload,
       final HttpServletRequest request) {
     SchemaBuilderHelper.KeyspaceCreateDefinition ksCreateDef;
@@ -142,8 +112,8 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
               .build();
     }
 
-    QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
-    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+    Query query = Query.newBuilder().setCql(cql).build();
+    stargateBridgeClient.executeQuery(query);
 
     // No real contents; can ignore ResultSet it seems and only worry about exceptions
 
@@ -153,12 +123,12 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
 
   @Override
   public Response deleteKeyspace(
-      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      final StargateBridgeClient stargateBridgeClient,
       final String keyspaceName,
       final HttpServletRequest request) {
     String cql = new QueryBuilder().drop().keyspace(keyspaceName).ifExists().build();
-    QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
-    /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
+    Query query = Query.newBuilder().setCql(cql).build();
+    /*QueryOuterClass.Response grpcResponse =*/ stargateBridgeClient.executeQuery(query);
     return Response.status(Status.NO_CONTENT).build();
   }
 
@@ -198,6 +168,13 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
       ks.addDatacenter(dcName, entry.getValue().asInt(0));
     }
      */
+    return ks;
+  }
+
+  private static Sgv2Keyspace keyspaceFrom(CqlKeyspaceDescribe describe) {
+    Schema.CqlKeyspace keyspace = describe.getCqlKeyspace();
+    Sgv2Keyspace ks = new Sgv2Keyspace(keyspace.getName());
+    // TODO parse and convert "replication" option
     return ks;
   }
 }

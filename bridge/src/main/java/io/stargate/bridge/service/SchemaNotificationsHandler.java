@@ -16,20 +16,18 @@
 package io.stargate.bridge.service;
 
 import com.google.protobuf.StringValue;
-import io.grpc.StatusException;
 import io.grpc.stub.ServerCallStreamObserver;
 import io.grpc.stub.StreamObserver;
 import io.stargate.db.EventListener;
 import io.stargate.db.Persistence;
-import io.stargate.db.schema.Keyspace;
-import io.stargate.grpc.service.GrpcService;
 import io.stargate.proto.QueryOuterClass.SchemaChange;
 import io.stargate.proto.QueryOuterClass.SchemaChange.Target;
 import io.stargate.proto.QueryOuterClass.SchemaChange.Type;
-import io.stargate.proto.Schema;
 import io.stargate.proto.Schema.SchemaNotification;
+import io.stargate.proto.Schema.SchemaNotification.Ready;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,6 +37,7 @@ class SchemaNotificationsHandler implements EventListener {
 
   private final Persistence persistence;
   private final ServerCallStreamObserver<SchemaNotification> responseObserver;
+  private final AtomicBoolean ready = new AtomicBoolean();
   private boolean isFailed;
 
   SchemaNotificationsHandler(
@@ -53,6 +52,7 @@ class SchemaNotificationsHandler implements EventListener {
       responseObserver.setOnCloseHandler(() -> persistence.unregisterEventListener(this));
     }
     persistence.registerEventListener(this);
+    markReady();
   }
 
   private void onSchemaChange(
@@ -66,6 +66,8 @@ class SchemaNotificationsHandler implements EventListener {
         return;
       }
       try {
+        markReady();
+
         SchemaChange.Builder change =
             SchemaChange.newBuilder()
                 .setChangeType(type)
@@ -76,12 +78,7 @@ class SchemaNotificationsHandler implements EventListener {
         }
         change.addAllArgumentTypes(argumentTypes);
 
-        SchemaNotification.Builder notification = SchemaNotification.newBuilder().setChange(change);
-        Schema.CqlKeyspaceDescribe keyspaceDescription = describeKeyspace(keyspaceName);
-        if (keyspaceDescription != null) {
-          notification.setKeyspace(keyspaceDescription);
-        }
-        responseObserver.onNext(notification.build());
+        responseObserver.onNext(SchemaNotification.newBuilder().setChange(change).build());
       } catch (Throwable t) {
         try {
           // responseObserver.onCloseHandler runs asynchronously, so more events can arrive before
@@ -98,11 +95,15 @@ class SchemaNotificationsHandler implements EventListener {
     }
   }
 
-  private Schema.CqlKeyspaceDescribe describeKeyspace(String keyspaceName) throws StatusException {
-    String decoratedKeyspace =
-        persistence.decorateKeyspaceName(keyspaceName, GrpcService.HEADERS_KEY.get());
-    Keyspace keyspace = persistence.schema().keyspace(decoratedKeyspace);
-    return keyspace == null ? null : SchemaHandler.buildKeyspaceDescription(keyspace);
+  // Send the Ready message right after we get control back from registering the observer, or right
+  // before the first real notification, whichever happens first.
+  private void markReady() {
+    if (ready.compareAndSet(false, true)) {
+      synchronized (responseObserver) {
+        responseObserver.onNext(
+            SchemaNotification.newBuilder().setReady(Ready.newBuilder().build()).build());
+      }
+    }
   }
 
   @Override
