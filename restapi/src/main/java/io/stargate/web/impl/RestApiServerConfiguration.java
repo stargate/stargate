@@ -16,5 +16,23 @@
 package io.stargate.web.impl;
 
 import io.dropwizard.Configuration;
+import io.dropwizard.jetty.HttpConnectorFactory;
+import io.dropwizard.server.ServerFactory;
+import io.dropwizard.server.SimpleServerFactory;
 
-public class RestApiServerConfiguration extends Configuration {}
+public class RestApiServerConfiguration extends Configuration {
+  private int docsApiPortOverride = -1;
+
+  public void docsApiPortOverride(int port) {
+    docsApiPortOverride = port;
+    ServerFactory serverF = this.getServerFactory();
+    // It's actually "RestApiServerFactory" but that extends SimpleServerFactory so:
+    HttpConnectorFactory connF =
+        (HttpConnectorFactory) ((SimpleServerFactory) serverF).getConnector();
+    connF.setPort(port);
+  }
+
+  public int gocsApiPortOverride() {
+    return docsApiPortOverride;
+  }
+}
