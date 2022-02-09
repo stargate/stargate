@@ -159,6 +159,10 @@ if [[ ${#STARGATE_ARGS[@]} -eq 0 ]]; then
     if [[ ! -z "$DISABLE_BUNDLES_WATCH" ]]; then
         STARGATE_ARGS+=("--disable-bundles-watch")
     fi
+
+    if [[ ! -z "$BRIDGE_TOKEN" ]]; then
+        STARGATE_ARGS+=("--bridge-token" "$BRIDGE_TOKEN")
+    fi
 fi
 
 declare -a CMD=(java -server)
