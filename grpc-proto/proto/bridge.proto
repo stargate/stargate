@@ -39,5 +39,8 @@ service StargateBridge {
 
   // Requests notification of schema changes.
   rpc GetSchemaNotifications(GetSchemaNotificationsParams) returns (stream SchemaNotification) {}
+
+  // Checks whether the client is authorized to describe one or more schema elements.
+  rpc AuthorizeSchemaReads(AuthorizeSchemaReadsRequest) returns (AuthorizeSchemaReadsResponse) {}
 }
 

@@ -107,3 +107,39 @@ message SchemaNotification {
     SchemaChange change = 2;
   }
 }
+
+// A request to authorize a series of schema reads.
+message AuthorizeSchemaReadsRequest {
+  repeated SchemaRead schema_reads = 1;
+}
+
+message SchemaRead {
+  enum SourceApi {
+    GRAPHQL = 0;
+    REST = 1;
+  }
+  enum ElementType {
+    KEYSPACE = 0;
+    TABLE = 1;
+    FUNCTION = 2;
+    TYPE = 3;
+    TRIGGER = 4;
+    AGGREGATE = 5;
+    VIEW = 6;
+    INDEX = 7;
+  }
+
+  string keyspace_name = 1;
+  // The name of the element in the keyspace
+  google.protobuf.StringValue element_name = 2;
+  // The type of element (note that if element_name if absent, KEYSPACE is implied).
+  ElementType element_type = 3;
+  // The Stargate API that initiated the request
+  SourceApi source_api = 4;
+}
+
+// The response to an AuthorizeSchemaReadsRequest.
+// The elements are in the same order as those of the request.
+message AuthorizeSchemaReadsResponse {
+  repeated bool authorized = 1;
+}

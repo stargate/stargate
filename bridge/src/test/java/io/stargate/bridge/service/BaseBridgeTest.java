@@ -24,6 +24,7 @@ import io.grpc.Server;
 import io.grpc.ServerInterceptor;
 import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.proto.StargateBridgeGrpc;
@@ -46,6 +47,7 @@ public class BaseBridgeTest {
   private ManagedChannel clientChannel;
 
   protected @Mock Persistence persistence;
+  protected @Mock AuthorizationService authorizationService;
 
   protected Connection connection = spy(mock(Connection.class));
 
@@ -86,7 +88,7 @@ public class BaseBridgeTest {
         InProcessServerBuilder.forName(SERVER_NAME)
             .directExecutor()
             .intercept(interceptor)
-            .addService(new BridgeService(persistence, executor, 2))
+            .addService(new BridgeService(persistence, authorizationService, executor, 2))
             .build();
     try {
       server.start();

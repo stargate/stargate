@@ -20,6 +20,7 @@ import io.grpc.internal.GrpcUtil;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
 import io.micrometer.core.instrument.binder.grpc.MetricCollectingServerInterceptor;
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.bridge.service.BridgeService;
 import io.stargate.bridge.service.interceptors.BridgeNewConnectionInterceptor;
 import io.stargate.core.metrics.api.Metrics;
@@ -49,6 +50,7 @@ public class BridgeImpl {
       Persistence persistence,
       Metrics metrics,
       AuthenticationService authenticationService,
+      AuthorizationService authorizationService,
       String adminToken) {
 
     String listenAddress;
@@ -76,7 +78,7 @@ public class BridgeImpl {
             .intercept(
                 new BridgeNewConnectionInterceptor(persistence, authenticationService, adminToken))
             .intercept(new MetricCollectingServerInterceptor(metrics.getMeterRegistry()))
-            .addService(new BridgeService(persistence, executor))
+            .addService(new BridgeService(persistence, authorizationService, executor))
             .build();
   }
 

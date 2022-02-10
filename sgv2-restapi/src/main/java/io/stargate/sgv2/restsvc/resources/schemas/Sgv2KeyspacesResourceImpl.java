@@ -23,6 +23,7 @@ import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.common.cql.builder.Replication;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
+import io.stargate.sgv2.common.grpc.UnauthorizedKeyspaceException;
 import io.stargate.sgv2.restsvc.models.Sgv2Keyspace;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcStub;
@@ -71,7 +72,12 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
       final String keyspaceName,
       final boolean raw) {
 
-    CqlKeyspaceDescribe keyspaceDescribe = stargateBridgeClient.getKeyspace(keyspaceName);
+    CqlKeyspaceDescribe keyspaceDescribe;
+    try {
+      keyspaceDescribe = stargateBridgeClient.getKeyspace(keyspaceName);
+    } catch (UnauthorizedKeyspaceException e) {
+      throw new WebApplicationException("not authorized to describe keyspace", Status.UNAUTHORIZED);
+    }
     if (keyspaceDescribe == null) {
       throw new WebApplicationException("unable to describe keyspace", Status.NOT_FOUND);
     }
