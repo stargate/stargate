@@ -42,5 +42,8 @@ service StargateBridge {
 
   // Checks whether the client is authorized to describe one or more schema elements.
   rpc AuthorizeSchemaReads(AuthorizeSchemaReadsRequest) returns (AuthorizeSchemaReadsResponse) {}
+  
+  // Queries the documents API with optional filters
+  rpc QueryDocumentCollection(QueryDocumentParams) returns (DocumentsResponse) {}
 }
 
