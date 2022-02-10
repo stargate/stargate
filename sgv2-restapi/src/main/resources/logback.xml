@@ -11,4 +11,5 @@
   </root>
   <logger name="org.apache.cassandra" level="${stargate.logging.level.cassandra:-INFO}"/>
   <logger name="io.stargate.web" level="${stargate.logging.level.web:-INFO}"/>
+  <logger name="io.stargate.sgv2" level="${stargate.logging.level.web:-INFO}"/>
 </configuration>

@@ -112,7 +112,10 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     environment.jersey().register(new CreateGrpcStubFilter(grpcChannel));
 
     StargateBridgeClientFactory stargateBridgeClientFactory =
-        StargateBridgeClientFactory.newInstance(grpcChannel, BridgeConfig.ADMIN_TOKEN);
+        StargateBridgeClientFactory.newInstance(
+            grpcChannel,
+            BridgeConfig.ADMIN_TOKEN,
+            environment.lifecycle().scheduledExecutorService("bridge-factory").threads(1).build());
     environment
         .jersey()
         .register(new CreateStargateBridgeClientFilter(stargateBridgeClientFactory));
