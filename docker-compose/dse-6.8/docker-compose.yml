@@ -75,7 +75,7 @@ services:
     mem_limit: 2G
     environment:
       - STARGATE_GRPC_HOST=coordinator
-      - STARGATE_GRPC_PORT=8090
+      - STARGATE_GRPC_PORT=8091
       - STARGATE_REST_PORT=8082
       - BRIDGE_TOKEN=${BRIDGE_TOKEN}
 networks:
