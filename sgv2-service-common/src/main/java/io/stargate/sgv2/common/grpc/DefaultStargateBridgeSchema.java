@@ -32,6 +32,7 @@ import io.stargate.proto.StargateBridgeGrpc.StargateBridgeStub;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -45,6 +46,7 @@ class DefaultStargateBridgeSchema implements StargateBridgeSchema {
   private static final int DESCRIBE_KEYSPACE_TIMEOUT_SECONDS = 5;
   private static final GetSchemaNotificationsParams GET_SCHEMA_NOTIFICATIONS_PARAMS =
       GetSchemaNotificationsParams.newBuilder().build();
+  private static final long MAX_RECONNECT_DELAY_MS = TimeUnit.SECONDS.toMillis(5);
 
   private final Channel channel;
   private final StargateBearerToken adminCallCredentials;
@@ -53,8 +55,11 @@ class DefaultStargateBridgeSchema implements StargateBridgeSchema {
   // to ask for it will trigger the query. `CompletionStage<null>` means the keyspace does not
   // exist. Schema change notifications invalidate the entry to force a refresh.
   private final Cache<String, CompletionStage<CqlKeyspaceDescribe>> keyspaceCache;
+  private final ScheduledExecutorService executor;
+  private volatile long reconnectDelayMs = 0;
 
-  DefaultStargateBridgeSchema(Channel channel, String adminAuthToken) {
+  DefaultStargateBridgeSchema(
+      Channel channel, String adminAuthToken, ScheduledExecutorService executor) {
     this.channel = channel;
     this.adminCallCredentials = new StargateBearerToken(adminAuthToken);
     this.keyspaceCache =
@@ -62,6 +67,8 @@ class DefaultStargateBridgeSchema implements StargateBridgeSchema {
             .maximumSize(KEYSPACE_CACHE_SIZE)
             .expireAfterAccess(KEYSPACE_CACHE_TTL)
             .build();
+    this.executor = executor;
+
     registerChangeObserver();
   }
 
@@ -158,6 +165,8 @@ class DefaultStargateBridgeSchema implements StargateBridgeSchema {
       if (notification.hasReady()) {
         // In case we missed notifications while the stream was initializing:
         keyspaceCache.invalidateAll();
+        // Reset for next time we get disconnected:
+        reconnectDelayMs = 0;
       } else {
         SchemaChange change = notification.getChange();
         LOG.debug(
@@ -172,16 +181,35 @@ class DefaultStargateBridgeSchema implements StargateBridgeSchema {
 
     @Override
     public void onError(Throwable t) {
-      LOG.warn("Unexpected error in notification stream, trying to reconnect", t);
-      registerChangeObserver();
+      if (t instanceof StatusRuntimeException) {
+        LOG.warn("Unexpected gRPC error in notification stream: {}", t.getMessage());
+      } else {
+        LOG.warn("Unexpected error in notification stream", t);
+      }
+      scheduleReconnect();
     }
 
     @Override
     public void onCompleted() {
       // This should never happen since the server implementation never completes.
       // Handle gracefully nonetheless.
-      LOG.warn("Unexpected onCompleted, trying to reconnect");
-      registerChangeObserver();
+      LOG.warn("Unexpected onCompleted");
+      scheduleReconnect();
     }
+  }
+
+  private void scheduleReconnect() {
+    executor.schedule(this::registerChangeObserver, getAndIncreaseDelayMs(), TimeUnit.MILLISECONDS);
+  }
+
+  private long getAndIncreaseDelayMs() {
+    long current = reconnectDelayMs;
+    if (current == 0) {
+      reconnectDelayMs = 100;
+    } else if (current < MAX_RECONNECT_DELAY_MS) {
+      reconnectDelayMs = Math.min(current * 2, MAX_RECONNECT_DELAY_MS);
+    }
+    LOG.debug("Scheduling reconnection in {} ms", current);
+    return current;
   }
 }

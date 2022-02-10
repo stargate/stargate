@@ -17,15 +17,17 @@ package io.stargate.sgv2.common.grpc;
 
 import io.grpc.Channel;
 import java.util.Optional;
+import java.util.concurrent.ScheduledExecutorService;
 
 class DefaultStargateBridgeClientFactory implements StargateBridgeClientFactory {
 
   private final Channel channel;
   private final DefaultStargateBridgeSchema schema;
 
-  DefaultStargateBridgeClientFactory(Channel channel, String adminAuthToken) {
+  DefaultStargateBridgeClientFactory(
+      Channel channel, String adminAuthToken, ScheduledExecutorService executor) {
     this.channel = channel;
-    this.schema = new DefaultStargateBridgeSchema(channel, adminAuthToken);
+    this.schema = new DefaultStargateBridgeSchema(channel, adminAuthToken, executor);
   }
 
   @Override
