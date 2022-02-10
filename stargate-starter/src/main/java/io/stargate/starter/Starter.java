@@ -237,13 +237,21 @@ public class Starter {
       name = {"--disable-mbean-registration", "Whether the mbean registration should be disabled"})
   protected boolean disableMBeanRegistration = false;
 
-  @Order(value = 21)
+  @Order(value = 22)
   @Option(
       name = {
         "--disable-bundles-watch",
         "Whether watching the bundle directory for new jars to load should be disabled"
       })
   protected boolean disableBundlesWatch = false;
+
+  @Order(value = 23)
+  @Option(
+      name = {
+        "--bridge-token",
+        "Token that API services will use to authenticate to the bridge (required) "
+      })
+  protected String bridgeToken;
 
   @Order(value = 1000)
   @Option(
@@ -285,7 +293,8 @@ public class Starter {
       boolean dse,
       boolean isSimpleSnitch,
       int cqlPort,
-      int jmxPort) {
+      int jmxPort,
+      String bridgeToken) {
     this.clusterName = clusterName;
     this.version = version;
     this.listenHostStr = listenHostStr;
@@ -300,6 +309,7 @@ public class Starter {
     // bind to listen address only to allow multiple starters to start on the same host
     this.bindToListenAddressOnly = true;
     this.jmxPort = jmxPort;
+    this.bridgeToken = bridgeToken;
     this.disableDynamicSnitch = true;
     this.disableMBeanRegistration = true;
   }
@@ -311,6 +321,10 @@ public class Starter {
 
     if (clusterName == null || clusterName.trim().isEmpty()) {
       throw new IllegalArgumentException("--cluster-name must be specified");
+    }
+
+    if (bridgeToken == null || bridgeToken.trim().isEmpty()) {
+      throw new IllegalArgumentException("--bridge-token must be specified");
     }
 
     if (!InetAddressValidator.getInstance().isValid(listenHostStr)) {
@@ -377,6 +391,7 @@ public class Starter {
     System.setProperty(
         "org.apache.cassandra.disable_mbean_registration",
         String.valueOf(disableMBeanRegistration));
+    System.setProperty("stargate.bridge.admin_token", bridgeToken);
 
     if (bindToListenAddressOnly) {
       // Restrict the listen address for Jersey endpoints

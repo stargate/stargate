@@ -386,8 +386,6 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
 
       cmd.addArgument("-Dstargate.enable_user_defined_functions=true");
 
-      cmd.addArgument("-Dstargate.bridge.admin_token=" + bridgeToken);
-
       for (Entry<String, String> e : params.systemProperties().entrySet()) {
         cmd.addArgument("-D" + e.getKey() + "=" + e.getValue());
       }
@@ -425,6 +423,8 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
       cmd.addArgument(String.valueOf(cqlPort));
       cmd.addArgument("--jmx-port");
       cmd.addArgument(String.valueOf(jmxPort));
+      cmd.addArgument("--bridge-token");
+      cmd.addArgument(bridgeToken);
 
       addStdOutListener(
           (node, line) -> {

@@ -18,7 +18,7 @@ set -euo pipefail
 #
 
 # generate for local platform, don't push
-DOCKER_FLAGS=
+DOCKER_FLAGS="--load"
 
 # extract Stargate version from project pom file
 SGTAG="v$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)"

@@ -215,23 +215,16 @@
           </execution>
         </executions>
       </plugin>
-<!-- 19-Oct-2021, tatu: no need to copy over, probably not needed?
+
+      <!-- Override default jar location -->
       <plugin>
         <artifactId>maven-jar-plugin</artifactId>
         <configuration>
-          <archive>
-            <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
-            <manifestEntries>
-              <x-Stargate-Health-Checkers>sgv2-restapi</x-Stargate-Health-Checkers>
-            </manifestEntries>
-          </archive>
-          <outputDirectory>${project.basedir}/../stargate-lib</outputDirectory>
+          <outputDirectory>${project.basedir}/../stargate-lib/rest</outputDirectory>
         </configuration>
       </plugin>
--->
 
-      <!-- Need to create "Fat Jar" for everything DropWizard needs (similar to OSGi bundles)
-        -->
+      <!-- Need to create "Fat Jar" for everything DropWizard needs (similar to OSGi bundles)-->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>
@@ -262,6 +255,7 @@
                   <mainClass>io.stargate.sgv2.restsvc.impl.RestServiceStarter</mainClass>
                 </transformer>
               </transformers>
+              <outputDirectory>${project.build.directory}</outputDirectory>
             </configuration>
           </execution>
         </executions>
