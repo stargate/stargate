@@ -16,6 +16,7 @@
 package io.stargate.bridge.service;
 
 import io.grpc.stub.StreamObserver;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
 import io.stargate.grpc.service.GrpcService;
 import io.stargate.grpc.service.SingleBatchHandler;
@@ -32,17 +33,25 @@ import java.util.concurrent.ScheduledExecutorService;
 public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
 
   private final Persistence persistence;
+  private final AuthorizationService authorizationService;
 
   private final ScheduledExecutorService executor;
   private final int schemaAgreementRetries;
 
-  public BridgeService(Persistence persistence, ScheduledExecutorService executor) {
-    this(persistence, executor, Persistence.SCHEMA_AGREEMENT_WAIT_RETRIES);
+  public BridgeService(
+      Persistence persistence,
+      AuthorizationService authorizationService,
+      ScheduledExecutorService executor) {
+    this(persistence, authorizationService, executor, Persistence.SCHEMA_AGREEMENT_WAIT_RETRIES);
   }
 
   BridgeService(
-      Persistence persistence, ScheduledExecutorService executor, int schemaAgreementRetries) {
+      Persistence persistence,
+      AuthorizationService authorizationService,
+      ScheduledExecutorService executor,
+      int schemaAgreementRetries) {
     this.persistence = persistence;
+    this.authorizationService = authorizationService;
     this.executor = executor;
     this.schemaAgreementRetries = schemaAgreementRetries;
   }
@@ -93,5 +102,14 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
       Schema.GetSchemaNotificationsParams request,
       StreamObserver<Schema.SchemaNotification> responseObserver) {
     new SchemaNotificationsHandler(persistence, responseObserver).handle();
+  }
+
+  @Override
+  public void authorizeSchemaReads(
+      Schema.AuthorizeSchemaReadsRequest request,
+      StreamObserver<Schema.AuthorizeSchemaReadsResponse> responseObserver) {
+    new AuthorizationHandler(
+            request, GrpcService.CONNECTION_KEY.get(), authorizationService, responseObserver)
+        .handle();
   }
 }

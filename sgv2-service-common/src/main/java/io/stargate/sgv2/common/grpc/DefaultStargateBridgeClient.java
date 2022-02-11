@@ -29,14 +29,17 @@ import io.stargate.proto.QueryOuterClass.QueryParameters;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.ResultSet;
 import io.stargate.proto.QueryOuterClass.Row;
+import io.stargate.proto.Schema.AuthorizeSchemaReadsRequest;
 import io.stargate.proto.Schema.CqlKeyspace;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.proto.Schema.SchemaRead;
 import io.stargate.proto.StargateBridgeGrpc;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 import org.apache.commons.codec.binary.Hex;
 
 class DefaultStargateBridgeClient implements StargateBridgeClient {
@@ -87,22 +90,45 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
   }
 
   @Override
-  public CqlKeyspaceDescribe getKeyspace(String keyspaceName) {
-    // TODO authorize?
+  public CqlKeyspaceDescribe getKeyspace(String keyspaceName) throws UnauthorizedKeyspaceException {
+    if (!authorizeSchemaRead(SchemaReads.keyspace(keyspaceName, SchemaRead.SourceApi.REST))) {
+      throw new UnauthorizedKeyspaceException(keyspaceName);
+    }
+    return getAuthorizedKeyspace(keyspaceName);
+  }
+
+  private CqlKeyspaceDescribe getAuthorizedKeyspace(String keyspaceName) {
     return stripTenantPrefix(schema.getKeyspace(addTenantPrefix(keyspaceName)));
   }
 
   @Override
   public List<CqlKeyspaceDescribe> getAllKeyspaces() {
-    List<String> keyspaceNames = getKeyspaceNames(new ArrayList<>(), null);
-    List<CqlKeyspaceDescribe> keyspaces = new ArrayList<>(keyspaceNames.size());
-    for (String keyspaceName : keyspaceNames) {
-      CqlKeyspaceDescribe keyspace = getKeyspace(keyspaceName);
-      if (keyspace != null) {
-        keyspaces.add(keyspace);
+    List<String> names = getKeyspaceNames(new ArrayList<>(), null);
+    List<Boolean> authorizations =
+        authorizeSchemaReads(
+            names.stream()
+                .map(n -> SchemaReads.keyspace(n, SchemaRead.SourceApi.REST))
+                .collect(Collectors.toList()));
+    List<CqlKeyspaceDescribe> keyspaces = new ArrayList<>(names.size());
+    int i = 0;
+    for (String name : names) {
+      CqlKeyspaceDescribe ks;
+      // Null check because it could have been deleted since we listed the names
+      if (authorizations.get(i) && (ks = getAuthorizedKeyspace(name)) != null) {
+        keyspaces.add(ks);
       }
     }
     return keyspaces;
+  }
+
+  @Override
+  public List<Boolean> authorizeSchemaReads(List<SchemaRead> schemaReads) {
+    return ClientCalls.blockingUnaryCall(
+            channel,
+            StargateBridgeGrpc.getAuthorizeSchemaReadsMethod(),
+            callOptions,
+            AuthorizeSchemaReadsRequest.newBuilder().addAllSchemaReads(schemaReads).build())
+        .getAuthorizedList();
   }
 
   private List<String> getKeyspaceNames(List<String> accumulator, BytesValue pagingState) {

@@ -16,6 +16,7 @@
 package io.stargate.bridge;
 
 import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthorizationService;
 import io.stargate.bridge.impl.BridgeImpl;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.grpc.BridgeConfig;
@@ -34,6 +35,8 @@ public class BridgeActivator extends BaseActivator {
           AuthenticationService.class,
           "AuthIdentifier",
           System.getProperty("stargate.auth_id", "AuthTableBasedService"));
+  private final ServicePointer<AuthorizationService> authorization =
+      ServicePointer.create(AuthorizationService.class);
   private final ServicePointer<Persistence> persistence =
       ServicePointer.create(Persistence.class, "Identifier", DbActivator.PERSISTENCE_IDENTIFIER);
 
@@ -49,7 +52,11 @@ public class BridgeActivator extends BaseActivator {
     }
     bridge =
         new BridgeImpl(
-            persistence.get(), metrics.get(), authentication.get(), BridgeConfig.ADMIN_TOKEN);
+            persistence.get(),
+            metrics.get(),
+            authentication.get(),
+            authorization.get(),
+            BridgeConfig.ADMIN_TOKEN);
     bridge.start();
 
     return null;
@@ -66,6 +73,6 @@ public class BridgeActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Arrays.asList(metrics, persistence, authentication);
+    return Arrays.asList(metrics, persistence, authentication, authorization);
   }
 }

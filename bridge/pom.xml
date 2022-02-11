@@ -73,6 +73,7 @@
                             org.osgi.framework,
                             io.stargate.core.*,
                             io.stargate.auth,
+                            io.stargate.auth.*,
                             io.stargate.db,
                             io.stargate.db.*,
                             org.apache.cassandra.stargate,

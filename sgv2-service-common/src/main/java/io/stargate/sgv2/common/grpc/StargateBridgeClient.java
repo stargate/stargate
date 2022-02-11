@@ -19,15 +19,62 @@ import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.proto.Schema.SchemaRead;
+import java.util.Collections;
 import java.util.List;
 
+/**
+ * The client that allows Stargate services to communicate with the "bridge" to the persistence
+ * backend.
+ */
 public interface StargateBridgeClient {
 
+  /**
+   * Executes a CQL query.
+   *
+   * <p>Authorization is automatically handled by the persistence backend.
+   */
   Response executeQuery(Query request);
 
+  /**
+   * Executes a CQL batch.
+   *
+   * <p>Authorization is automatically handled by the persistence backend.
+   */
   Response executeBatch(Batch request);
 
-  CqlKeyspaceDescribe getKeyspace(String keyspaceName);
+  /**
+   * Gets the metadata describing the given keyspace.
+   *
+   * @throws UnauthorizedKeyspaceException if the client is not allowed to access this keyspace.
+   *     However, this check is shallow: if the caller surfaces keyspace elements (tables, UDTs...)
+   *     to the end user, it must authorize them individually with {@link
+   *     #authorizeSchemaReads(List)}.
+   */
+  CqlKeyspaceDescribe getKeyspace(String keyspaceName) throws UnauthorizedKeyspaceException;
 
+  /**
+   * Gets the metadata describing all the keyspaces that are visible to this client.
+   *
+   * <p>This method automatically filters out unauthorized keyspaces. However, this check is
+   * shallow: if the caller surfaces keyspace elements (tables, UDTs...) to the end user, it must
+   * authorize them individually with {@link #authorizeSchemaReads(List)}.
+   */
   List<CqlKeyspaceDescribe> getAllKeyspaces();
+
+  /**
+   * Checks whether this client is authorized to describe a set of schema elements.
+   *
+   * @see SchemaReads
+   */
+  List<Boolean> authorizeSchemaReads(List<SchemaRead> schemaReads);
+
+  /**
+   * Convenience method to call {@link #authorizeSchemaReads(List)} with a single element.
+   *
+   * @see SchemaReads
+   */
+  default boolean authorizeSchemaRead(SchemaRead schemaRead) {
+    return authorizeSchemaReads(Collections.singletonList(schemaRead)).get(0);
+  }
 }
