@@ -130,9 +130,9 @@ message SchemaRead {
   }
 
   string keyspace_name = 1;
-  // The name of the element in the keyspace
+  // The name of the element in the keyspace (empty if element_type = KEYSPACE)
   google.protobuf.StringValue element_name = 2;
-  // The type of element (note that if element_name if absent, KEYSPACE is implied).
+  // The type of element
   ElementType element_type = 3;
   // The Stargate API that initiated the request
   SourceApi source_api = 4;

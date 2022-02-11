@@ -45,7 +45,7 @@ class AuthorizationHandler {
     this.responseObserver = responseObserver;
   }
 
-  public void handle() {
+  void handle() {
     AuthorizeSchemaReadsResponse.Builder response = AuthorizeSchemaReadsResponse.newBuilder();
     AuthenticationSubject subject = getSubject();
     request
