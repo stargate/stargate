@@ -49,16 +49,16 @@ else
   exit 2
 fi
 
-if [ ! "x$STARGATE_GRPC_HOST" == "x" ]; then
-  JAVA_OPTS+=(-Ddw.stargate.grpc.host="$STARGATE_GRPC_HOST")
+if [ ! "x$STARGATE_BRIDGE_HOST" == "x" ]; then
+  JAVA_OPTS+=(-Ddw.stargate.bridge.host="$STARGATE_BRIDGE_HOST")
 else
-  JAVA_OPTS+=(-Ddw.stargate.grpc.host=localhost)
+  JAVA_OPTS+=(-Ddw.stargate.bridge.host=localhost)
 fi
 
-if [ ! "x$STARGATE_GRPC_PORT" == "x" ]; then
-  JAVA_OPTS+=(-Ddw.stargate.grpc.port="$STARGATE_GRPC_PORT")
+if [ ! "x$STARGATE_BRIDGE_PORT" == "x" ]; then
+  JAVA_OPTS+=(-Ddw.stargate.bridge.port="$STARGATE_BRIDGE_PORT")
 else
-  JAVA_OPTS+=(-Ddw.stargate.grpc.port=8091)
+  JAVA_OPTS+=(-Ddw.stargate.bridge.port=8091)
 fi
 
 if [ ! "x$STARGATE_REST_PORT" == "x" ]; then

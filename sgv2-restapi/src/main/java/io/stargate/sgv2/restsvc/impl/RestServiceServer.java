@@ -106,7 +106,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   public void run(final RestServiceServerConfiguration appConfig, final Environment environment)
       throws IOException {
 
-    ManagedChannel grpcChannel = buildChannel(appConfig.stargate.grpc);
+    ManagedChannel grpcChannel = buildChannel(appConfig.stargate.bridge);
 
     // TODO remove this and associated types + rename CreateGrpcStub if we use GrpcClient everywhere
     environment.jersey().register(new CreateGrpcStubFilter(grpcChannel));
