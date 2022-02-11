@@ -20,7 +20,7 @@ public class BaseRestApiTest extends BaseIntegrationTest {
     builder.serviceStartedMessage("Started RestServiceServer");
     builder.serviceLibDirProperty("stargate.rest.libdir");
     builder.serviceJarBase("sgv2-rest-service");
-    builder.bridgeHostPropertyName("dw.stargate.grpc.host");
-    builder.bridgePortPropertyName("dw.stargate.grpc.port");
+    builder.bridgeHostPropertyName("dw.stargate.bridge.host");
+    builder.bridgePortPropertyName("dw.stargate.bridge.port");
   }
 }

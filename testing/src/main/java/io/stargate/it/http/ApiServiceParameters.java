@@ -72,11 +72,11 @@ public interface ApiServiceParameters {
   String serviceJarBase();
 
   @Value.Parameter
-  // example: "dw.stargate.grpc.host"
+  // example: "dw.stargate.bridge.host"
   String bridgeHostPropertyName();
 
   @Value.Parameter
-  // example: "dw.stargate.grpc.port"
+  // example: "dw.stargate.bridge.port"
   String bridgePortPropertyName();
 
   @Value.Default
