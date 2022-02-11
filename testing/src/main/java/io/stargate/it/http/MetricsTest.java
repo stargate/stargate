@@ -69,7 +69,7 @@ public class MetricsTest extends BaseIntegrationTest {
   @Test
   public void docsApiHttpRequestMetrics() throws IOException {
     // call the rest api path with target header
-    String path = String.format("%s:8082/v2/namespaces/some", host);
+    String path = String.format("%s:%d/v2/namespaces/some", host, DEFAULT_DOCS_API_PORT);
     OkHttpClient client = new OkHttpClient().newBuilder().build();
     Request request =
         new Request.Builder()

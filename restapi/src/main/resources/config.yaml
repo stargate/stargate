@@ -3,7 +3,9 @@ server:
   applicationContextPath: /
   connector:
     type: http
-    port: 8082
+    # 11-Feb-2022, tatu: For Stargate V1, REST+Docs were on port 8082, but for Stargate V2
+    #    will separate the two and the "new" REST API inherits 8082, Docs moves to 8083
+    port: 8083
   requestLog:
     type: external
 logging:

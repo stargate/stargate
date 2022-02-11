@@ -63,7 +63,7 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
       StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceIdentifier)
       throws IOException {
     host = "http://" + cluster.seedAddress();
-    hostWithPort = host + ":8082";
+    hostWithPort = host + ":" + DEFAULT_DOCS_API_PORT;
     keyspace = keyspaceIdentifier.toString();
     collectionPath =
         hostWithPort + "/v2/namespaces/" + keyspace + "/collections/" + TARGET_COLLECTION;

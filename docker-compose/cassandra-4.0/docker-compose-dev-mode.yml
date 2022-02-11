@@ -9,6 +9,7 @@ services:
       - 9042:9042
       - 8080:8080
       - 8081:8081
+      - 8083:8083
       - 8084:8084
     mem_limit: 2G
     environment:
@@ -28,7 +29,6 @@ services:
       - stargate
     ports:
       - 8082:8082
-      - 8088:8088
     mem_limit: 2G
     environment:
       - STARGATE_BRIDGE_HOST=coordinator
