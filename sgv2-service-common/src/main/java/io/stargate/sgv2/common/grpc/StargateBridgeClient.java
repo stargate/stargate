@@ -19,9 +19,11 @@ import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.proto.Schema.CqlTable;
 import io.stargate.proto.Schema.SchemaRead;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The client that allows Stargate services to communicate with the "bridge" to the persistence
@@ -51,7 +53,8 @@ public interface StargateBridgeClient {
    *     to the end user, it must authorize them individually with {@link
    *     #authorizeSchemaReads(List)}.
    */
-  CqlKeyspaceDescribe getKeyspace(String keyspaceName) throws UnauthorizedKeyspaceException;
+  Optional<CqlKeyspaceDescribe> getKeyspace(String keyspaceName)
+      throws UnauthorizedKeyspaceException;
 
   /**
    * Gets the metadata describing all the keyspaces that are visible to this client.
@@ -61,6 +64,18 @@ public interface StargateBridgeClient {
    * authorize them individually with {@link #authorizeSchemaReads(List)}.
    */
   List<CqlKeyspaceDescribe> getAllKeyspaces();
+
+  /** Gets the metadata describing the given table. */
+  Optional<CqlTable> getTable(String keyspaceName, String tableName)
+      throws UnauthorizedTableException;
+
+  /**
+   * Gets the metadata describing all the tables that are visible to this client in the given
+   * keyspace.
+   *
+   * <p>This method automatically filters out unauthorized tables.
+   */
+  List<CqlTable> getTables(String keyspaceName);
 
   /**
    * Checks whether this client is authorized to describe a set of schema elements.

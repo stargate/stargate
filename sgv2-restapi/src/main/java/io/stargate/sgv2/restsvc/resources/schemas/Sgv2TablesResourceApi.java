@@ -1,7 +1,7 @@
 package io.stargate.sgv2.restsvc.resources.schemas;
 
 import com.codahale.metrics.annotation.Timed;
-import io.stargate.proto.StargateBridgeGrpc;
+import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.models.Sgv2Table;
 import io.stargate.sgv2.restsvc.models.Sgv2TableAddRequest;
@@ -56,7 +56,7 @@ public interface Sgv2TablesResourceApi {
             response = RestServiceError.class)
       })
   Response getAllTables(
-      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      @Context StargateBridgeClient bridge,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -82,7 +82,7 @@ public interface Sgv2TablesResourceApi {
       })
   @Path("/{tableName}")
   Response getOneTable(
-      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      @Context StargateBridgeClient bridge,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -112,7 +112,7 @@ public interface Sgv2TablesResourceApi {
             response = RestServiceError.class)
       })
   Response createTable(
-      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      @Context StargateBridgeClient bridge,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -139,7 +139,7 @@ public interface Sgv2TablesResourceApi {
       })
   @Path("/{tableName}")
   Response updateTable(
-      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      @Context StargateBridgeClient bridge,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -166,7 +166,7 @@ public interface Sgv2TablesResourceApi {
       })
   @Path("/{tableName}")
   Response deleteTable(
-      @Context StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      @Context StargateBridgeClient bridge,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,

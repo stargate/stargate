@@ -15,22 +15,8 @@
  */
 package io.stargate.sgv2.common.grpc;
 
-import io.grpc.Channel;
-import io.stargate.proto.Schema.SchemaRead;
-import java.util.Optional;
-import java.util.concurrent.ScheduledExecutorService;
-
-public interface StargateBridgeClientFactory {
-
-  static StargateBridgeClientFactory newInstance(
-      Channel channel,
-      String adminToken,
-      SchemaRead.SourceApi sourceApi,
-      ScheduledExecutorService executor) {
-    return new DefaultStargateBridgeClientFactory(channel, adminToken, sourceApi, executor);
+public abstract class BridgeAuthorizationException extends RuntimeException {
+  protected BridgeAuthorizationException(String message) {
+    super(message);
   }
-
-  StargateBridgeClient newClient(String authToken, Optional<String> tenantId);
-
-  StargateBridgeSchema getSchema();
 }

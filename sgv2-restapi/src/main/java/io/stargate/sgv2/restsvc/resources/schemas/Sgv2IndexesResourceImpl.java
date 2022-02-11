@@ -16,13 +16,11 @@
 package io.stargate.sgv2.restsvc.resources.schemas;
 
 import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.Schema;
-import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
-import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
+import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.restsvc.models.Sgv2IndexAddRequest;
-import io.stargate.sgv2.restsvc.resources.CreateGrpcStub;
+import io.stargate.sgv2.restsvc.resources.CreateStargateBridgeClient;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
 import java.util.Collections;
 import java.util.Map;
@@ -38,12 +36,12 @@ import javax.ws.rs.core.Response.Status;
 @Path("/v2/schemas/keyspaces/{keyspaceName}/tables/{tableName}/indexes")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
-@CreateGrpcStub
+@CreateStargateBridgeClient
 public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2IndexesResourceApi {
 
   @Override
   public Response getAllIndexesForTable(
-      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      StargateBridgeClient bridge,
       String keyspaceName,
       String tableName,
       HttpServletRequest request) {
@@ -54,7 +52,8 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
       throw new WebApplicationException("tableName must be provided", Status.BAD_REQUEST);
     }
 
-    BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
+    // check that we're authorized for the table
+    bridge.getTable(keyspaceName, tableName);
 
     String cql =
         new QueryBuilder()
@@ -63,12 +62,12 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
             .where("keyspace_name", Predicate.EQ, keyspaceName)
             .where("table_name", Predicate.EQ, tableName)
             .build();
-    return fetchRows(blockingStub, -1, null, true, cql, null);
+    return fetchRows(bridge, -1, null, true, cql, null);
   }
 
   @Override
   public Response addIndex(
-      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      StargateBridgeClient bridge,
       final String keyspaceName,
       final String tableName,
       final Sgv2IndexAddRequest indexAdd,
@@ -85,12 +84,18 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
       throw new WebApplicationException("columnName must be provided", Status.BAD_REQUEST);
     }
 
-    Schema.CqlTable table =
-        BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
-    if (table.getColumnsList().stream().noneMatch(c -> columnName.equals(c.getName()))) {
-      throw new WebApplicationException(
-          String.format("Column '%s' not found in table.", columnName), Status.NOT_FOUND);
-    }
+    bridge
+        .getTable(keyspaceName, tableName)
+        .flatMap(
+            table ->
+                table.getColumnsList().stream()
+                    .filter(c -> columnName.equals(c.getName()))
+                    .findAny())
+        .orElseThrow(
+            () ->
+                new WebApplicationException(
+                    String.format("Column '%s' not found in table.", columnName),
+                    Status.NOT_FOUND));
 
     String cql =
         new QueryBuilder()
@@ -102,7 +107,7 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
             .indexingType(indexAdd.getKind())
             .custom(indexAdd.getType(), indexAdd.getOptions())
             .build();
-    blockingStub.executeQuery(Query.newBuilder().setCql(cql).build());
+    bridge.executeQuery(Query.newBuilder().setCql(cql).build());
 
     Map<String, Object> responsePayload = Collections.singletonMap("success", true);
     return Response.status(Status.CREATED).entity(responsePayload).build();
@@ -110,7 +115,7 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
 
   @Override
   public Response dropIndex(
-      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      StargateBridgeClient bridge,
       String keyspaceName,
       String tableName,
       String indexName,
@@ -126,17 +131,21 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
       throw new WebApplicationException("columnName must be provided", Status.BAD_REQUEST);
     }
 
-    Schema.CqlTable table =
-        BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
-    if (!ifExists
-        && table.getIndexesList().stream().noneMatch(i -> indexName.equals(i.getName()))) {
-      throw new WebApplicationException(
-          String.format("Index '%s' not found.", indexName), Status.NOT_FOUND);
-    }
+    bridge
+        .getTable(keyspaceName, tableName)
+        .flatMap(
+            table ->
+                table.getIndexesList().stream()
+                    .filter(i -> indexName.equals(i.getName()))
+                    .findAny())
+        .orElseThrow(
+            () ->
+                new WebApplicationException(
+                    String.format("Index '%s' not found.", indexName), Status.NOT_FOUND));
 
     String cql =
         new QueryBuilder().drop().index(keyspaceName, indexName).ifExists(ifExists).build();
-    blockingStub.executeQuery(Query.newBuilder().setCql(cql).build());
+    bridge.executeQuery(Query.newBuilder().setCql(cql).build());
 
     return Response.status(Status.NO_CONTENT).build();
   }

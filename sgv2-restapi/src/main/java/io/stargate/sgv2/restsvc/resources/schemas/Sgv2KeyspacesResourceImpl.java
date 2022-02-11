@@ -23,16 +23,14 @@ import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.common.cql.builder.Replication;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
-import io.stargate.sgv2.common.grpc.UnauthorizedKeyspaceException;
 import io.stargate.sgv2.restsvc.models.Sgv2Keyspace;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
-import io.stargate.sgv2.restsvc.resources.CreateGrpcStub;
+import io.stargate.sgv2.restsvc.resources.CreateStargateBridgeClient;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Path;
@@ -45,7 +43,7 @@ import javax.ws.rs.core.Response.Status;
 @Path("/v2/schemas/keyspaces")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
-@CreateGrpcStub
+@CreateStargateBridgeClient
 public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2KeyspacesResourceApi {
   private static final JsonMapper JSON_MAPPER = new JsonMapper();
 
@@ -53,12 +51,10 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
 
   @Override
   public Response getAllKeyspaces(
-      final StargateBridgeClient stargateBridgeClient,
-      final boolean raw,
-      final HttpServletRequest request) {
+      final StargateBridgeClient bridge, final boolean raw, final HttpServletRequest request) {
 
     List<Sgv2Keyspace> keyspaces =
-        stargateBridgeClient.getAllKeyspaces().stream()
+        bridge.getAllKeyspaces().stream()
             .map(Sgv2KeyspacesResourceImpl::keyspaceFrom)
             .collect(Collectors.toList());
 
@@ -68,30 +64,23 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
 
   @Override
   public Response getOneKeyspace(
-      final StargateBridgeClient stargateBridgeClient,
-      final String keyspaceName,
-      final boolean raw) {
+      final StargateBridgeClient bridge, final String keyspaceName, final boolean raw) {
+    return bridge
+        .getKeyspace(keyspaceName)
+        .map(
+            describe -> {
+              Sgv2Keyspace keyspace = keyspaceFrom(describe);
 
-    CqlKeyspaceDescribe keyspaceDescribe;
-    try {
-      keyspaceDescribe = stargateBridgeClient.getKeyspace(keyspaceName);
-    } catch (UnauthorizedKeyspaceException e) {
-      throw new WebApplicationException("not authorized to describe keyspace", Status.UNAUTHORIZED);
-    }
-    if (keyspaceDescribe == null) {
-      throw new WebApplicationException("unable to describe keyspace", Status.NOT_FOUND);
-    }
-    Sgv2Keyspace keyspace = keyspaceFrom(keyspaceDescribe);
-
-    final Object payload = raw ? keyspace : new Sgv2RESTResponse<>(keyspace);
-    return Response.status(Status.OK).entity(payload).build();
+              final Object payload = raw ? keyspace : new Sgv2RESTResponse<>(keyspace);
+              return Response.status(Status.OK).entity(payload).build();
+            })
+        .orElseThrow(
+            () -> new WebApplicationException("unable to describe keyspace", Status.NOT_FOUND));
   }
 
   @Override
   public Response createKeyspace(
-      final StargateBridgeClient stargateBridgeClient,
-      final JsonNode payload,
-      final HttpServletRequest request) {
+      final StargateBridgeClient bridge, final JsonNode payload, final HttpServletRequest request) {
     SchemaBuilderHelper.KeyspaceCreateDefinition ksCreateDef;
     try {
       ksCreateDef = schemaBuilder.readKeyspaceCreateDefinition(payload);
@@ -119,7 +108,7 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
     }
 
     Query query = Query.newBuilder().setCql(cql).build();
-    stargateBridgeClient.executeQuery(query);
+    bridge.executeQuery(query);
 
     // No real contents; can ignore ResultSet it seems and only worry about exceptions
 
@@ -129,12 +118,12 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
 
   @Override
   public Response deleteKeyspace(
-      final StargateBridgeClient stargateBridgeClient,
+      final StargateBridgeClient bridge,
       final String keyspaceName,
       final HttpServletRequest request) {
     String cql = new QueryBuilder().drop().keyspace(keyspaceName).ifExists().build();
     Query query = Query.newBuilder().setCql(cql).build();
-    /*QueryOuterClass.Response grpcResponse =*/ stargateBridgeClient.executeQuery(query);
+    /*QueryOuterClass.Response grpcResponse =*/ bridge.executeQuery(query);
     return Response.status(Status.NO_CONTENT).build();
   }
 
@@ -143,39 +132,6 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
   // Helper methods for structural conversions
   /////////////////////////////////////////////////////////////////////////
    */
-
-  private static List<Sgv2Keyspace> keyspacesFrom(JsonNode ksRootNode) {
-    List<Sgv2Keyspace> result =
-        StreamSupport.stream(ksRootNode.spliterator(), false)
-            .map(x -> keyspaceFrom(x))
-            .collect(Collectors.toList());
-    return result;
-  }
-
-  private static Sgv2Keyspace keyspaceFrom(JsonNode ksNode) {
-    final String ksName = ksNode.path("keyspace_name").asText();
-    final Sgv2Keyspace ks = new Sgv2Keyspace(ksName);
-
-    // 09-Nov-2021, tatu: Below is what should work correctly, as per documentation,
-    //   but that does NOT indeed work, nor produce output as documented by Swagger.
-    //   Stargate V1 has same issues (see https://github.com/stargate/stargate/issues/1396)
-    //   so for now will simply be compatible with V1, but not correct.
-
-    /*
-    Iterator<Map.Entry<String, JsonNode>> it = ksNode.path("replication").fields();
-    while (it.hasNext()) {
-      Map.Entry<String, JsonNode> entry = it.next();
-      final String dcName = entry.getKey();
-      // Datacenters are exposed as Map/Object entries from key to replica count,
-      // plus at least one meta-entry ("class") for replication strategy
-      if ("class".equals(dcName)) {
-        continue;
-      }
-      ks.addDatacenter(dcName, entry.getValue().asInt(0));
-    }
-     */
-    return ks;
-  }
 
   private static Sgv2Keyspace keyspaceFrom(CqlKeyspaceDescribe describe) {
     Schema.CqlKeyspace keyspace = describe.getCqlKeyspace();
