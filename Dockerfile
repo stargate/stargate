@@ -50,8 +50,8 @@ FROM openjdk:11-jre-slim as restapi
 # REST
 EXPOSE 8082
 
-ENV STARGATE_GRPC_HOST=localhost
-ENV STARGATE_GRPC_PORT=8091
+ENV STARGATE_BRIDGE_HOST=localhost
+ENV STARGATE_BRIDGE_PORT=8091
 ENV STARGATE_REST_PORT=8082
 
 COPY stargate-lib/rest/sgv2*.jar stargate-lib/rest/
