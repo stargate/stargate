@@ -64,7 +64,7 @@ fi
 if [ ! "x$STARGATE_REST_PORT" == "x" ]; then
   JAVA_OPTS+=(-Ddw.server.connector.port="$STARGATE_REST_PORT")
 else
-  JAVA_OPTS+=(-Ddw.server.connector.port=8088)
+  JAVA_OPTS+=(-Ddw.server.connector.port=8082)
 fi
 
 echo "Starting REST API Service"

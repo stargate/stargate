@@ -173,7 +173,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   }
 
   private ManagedChannel buildChannel(RestServiceServerConfiguration.EndpointConfig grpcEndpoint) {
-    logger.info("gRPC endpoint for RestService v2 is to use: {}", grpcEndpoint);
+    logger.info("Bridge endpoint for RestService v2 is to use: {}", grpcEndpoint);
     ManagedChannelBuilder<?> builder =
         ManagedChannelBuilder.forAddress(grpcEndpoint.host, grpcEndpoint.port).directExecutor();
     if (grpcEndpoint.useTls) {
