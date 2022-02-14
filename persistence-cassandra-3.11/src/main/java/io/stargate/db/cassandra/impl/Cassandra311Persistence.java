@@ -205,11 +205,12 @@ public class Cassandra311Persistence
     }
 
     String hostId = System.getProperty("stargate.host_id");
-    if (hostId != null) {
+    if (hostId != null && !hostId.isEmpty()) {
       try {
         SystemKeyspace.setLocalHostId(UUID.fromString(hostId));
       } catch (IllegalArgumentException e) {
-        throw new IllegalArgumentException("Invalid host ID", e);
+        throw new IllegalArgumentException(
+            String.format("Invalid host ID '%s': not a valid UUID", hostId), e);
       }
     }
 

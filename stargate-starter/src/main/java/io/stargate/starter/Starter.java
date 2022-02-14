@@ -248,7 +248,7 @@ public class Starter {
   @Order(value = 22)
   @Option(
       name = {"--host-id"},
-      description = "The host ID to use for this node")
+      description = "The host ID to use for this node. Must be a valid UUID.")
   protected String hostId;
 
   @Order(value = 1000)
@@ -383,7 +383,7 @@ public class Starter {
     System.setProperty(
         "org.apache.cassandra.disable_mbean_registration",
         String.valueOf(disableMBeanRegistration));
-    if (hostId != null) {
+    if (hostId != null && !hostId.isEmpty()) {
       System.setProperty("stargate.host_id", hostId);
     }
 

@@ -201,11 +201,12 @@ public class DsePersistence
     DatabaseDescriptor.daemonInitialization(true, config);
 
     String hostId = System.getProperty("stargate.host_id");
-    if (hostId != null) {
+    if (hostId != null && !hostId.isEmpty()) {
       try {
         Nodes.local().update(l -> l.setHostId(UUID.fromString(hostId)), true);
       } catch (IllegalArgumentException e) {
-        throw new IllegalArgumentException("Invalid host ID", e);
+        throw new IllegalArgumentException(
+            String.format("Invalid host ID '%s': not a valid UUID", hostId), e);
       }
     }
 
