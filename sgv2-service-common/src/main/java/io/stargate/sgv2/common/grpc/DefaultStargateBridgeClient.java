@@ -50,7 +50,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
   private static final int TIMEOUT_SECONDS = 5;
   private static final Metadata.Key<String> HOST_KEY =
       Metadata.Key.of("Host", Metadata.ASCII_STRING_MARSHALLER);
-  private static final Query SELECT_KEYSPACE_NAMES =
+  static final Query SELECT_KEYSPACE_NAMES =
       Query.newBuilder().setCql("SELECT keyspace_name FROM system_schema.keyspaces").build();
 
   private final Channel channel;
@@ -105,7 +105,8 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
   }
 
   private Optional<CqlKeyspaceDescribe> getAuthorizedKeyspace(String keyspaceName) {
-    return Optional.of(stripTenantPrefix(schema.getKeyspace(addTenantPrefix(keyspaceName))));
+    return Optional.ofNullable(
+        stripTenantPrefix(schema.getKeyspace(addTenantPrefix(keyspaceName))));
   }
 
   @Override
