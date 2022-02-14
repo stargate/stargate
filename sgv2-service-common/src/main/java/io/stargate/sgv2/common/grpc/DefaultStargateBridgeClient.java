@@ -122,6 +122,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
       if (authorizations.get(i)) {
         getAuthorizedKeyspace(name).ifPresent(keyspaces::add);
       }
+      i++;
     }
     return keyspaces;
   }
@@ -157,6 +158,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
                 if (authorizations.get(i)) {
                   authorizedTables.add(table);
                 }
+                i++;
               }
               return authorizedTables;
             })

@@ -86,16 +86,16 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
 
     bridge
         .getTable(keyspaceName, tableName)
-        .flatMap(
+        .map(
             table ->
                 table.getColumnsList().stream()
                     .filter(c -> columnName.equals(c.getName()))
-                    .findAny())
-        .orElseThrow(
-            () ->
-                new WebApplicationException(
-                    String.format("Column '%s' not found in table.", columnName),
-                    Status.NOT_FOUND));
+                    .findAny()
+                    .orElseThrow(
+                        () ->
+                            new WebApplicationException(
+                                String.format("Column '%s' not found in table.", columnName),
+                                Status.NOT_FOUND)));
 
     String cql =
         new QueryBuilder()
@@ -133,15 +133,16 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
 
     bridge
         .getTable(keyspaceName, tableName)
-        .flatMap(
+        .map(
             table ->
                 table.getIndexesList().stream()
                     .filter(i -> indexName.equals(i.getName()))
-                    .findAny())
-        .orElseThrow(
-            () ->
-                new WebApplicationException(
-                    String.format("Index '%s' not found.", indexName), Status.NOT_FOUND));
+                    .findAny()
+                    .orElseThrow(
+                        () ->
+                            new WebApplicationException(
+                                String.format("Index '%s' not found.", indexName),
+                                Status.NOT_FOUND)));
 
     String cql =
         new QueryBuilder().drop().index(keyspaceName, indexName).ifExists(ifExists).build();
