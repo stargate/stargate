@@ -34,6 +34,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -48,6 +49,7 @@ import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.db.Keyspace;
+import org.apache.cassandra.db.SystemKeyspace;
 import org.apache.cassandra.db.marshal.UserType;
 import org.apache.cassandra.exceptions.AuthenticationException;
 import org.apache.cassandra.gms.ApplicationState;
@@ -180,6 +182,11 @@ public class Cassandra40Persistence
       daemon.init(null);
     } catch (IOException e) {
       throw new RuntimeException("Unable to start Cassandra persistence layer", e);
+    }
+
+    String hostId = System.getProperty("stargate.host_id");
+    if (hostId != null) {
+      SystemKeyspace.setLocalHostId(UUID.fromString(hostId));
     }
 
     executor =
