@@ -50,7 +50,7 @@ public abstract class ResourceBase {
       Function<Schema.CqlTable, Response> function) {
     return bridge
         .getTable(keyspaceName, tableName)
-        .map(function::apply)
+        .map(function)
         .orElseThrow(
             () ->
                 new WebApplicationException(
