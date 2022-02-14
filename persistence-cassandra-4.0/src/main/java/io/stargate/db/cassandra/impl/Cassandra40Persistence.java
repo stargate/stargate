@@ -186,7 +186,11 @@ public class Cassandra40Persistence
 
     String hostId = System.getProperty("stargate.host_id");
     if (hostId != null) {
-      SystemKeyspace.setLocalHostId(UUID.fromString(hostId));
+      try {
+        SystemKeyspace.setLocalHostId(UUID.fromString(hostId));
+      } catch (IllegalArgumentException e) {
+        throw new IllegalArgumentException("Invalid host ID", e);
+      }
     }
 
     executor =

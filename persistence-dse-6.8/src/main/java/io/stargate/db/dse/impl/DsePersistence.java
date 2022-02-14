@@ -202,7 +202,11 @@ public class DsePersistence
 
     String hostId = System.getProperty("stargate.host_id");
     if (hostId != null) {
-      Nodes.local().update(l -> l.setHostId(UUID.fromString(hostId)), true);
+      try {
+        Nodes.local().update(l -> l.setHostId(UUID.fromString(hostId)), true);
+      } catch (IllegalArgumentException e) {
+        throw new IllegalArgumentException("Invalid host ID", e);
+      }
     }
 
     cassandraDaemon = new CassandraDaemon(true);
