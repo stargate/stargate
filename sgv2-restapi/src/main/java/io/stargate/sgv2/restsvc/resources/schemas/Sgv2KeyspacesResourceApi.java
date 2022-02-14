@@ -68,7 +68,7 @@ public interface Sgv2KeyspacesResourceApi {
             response = RestServiceError.class)
       })
   Response getAllKeyspaces(
-      @Context StargateBridgeClient stargateBridgeClient,
+      @Context StargateBridgeClient bridge,
       @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
           final boolean raw,
       @Context HttpServletRequest request);
@@ -92,7 +92,7 @@ public interface Sgv2KeyspacesResourceApi {
       })
   @Path("/{keyspaceName}")
   Response getOneKeyspace(
-      @Context StargateBridgeClient stargateBridgeClient,
+      @Context StargateBridgeClient bridge,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -118,7 +118,7 @@ public interface Sgv2KeyspacesResourceApi {
             response = RestServiceError.class)
       })
   Response createKeyspace(
-      @Context StargateBridgeClient stargateBridgeClient,
+      @Context StargateBridgeClient bridge,
       @ApiParam(
               value =
                   "A map representing a keyspace with SimpleStrategy or NetworkTopologyStrategy with default replicas of 1 and 3 respectively \n"
@@ -154,7 +154,7 @@ public interface Sgv2KeyspacesResourceApi {
       })
   @Path("/{keyspaceName}")
   Response deleteKeyspace(
-      @Context StargateBridgeClient stargateBridgeClient,
+      @Context StargateBridgeClient bridge,
       @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,

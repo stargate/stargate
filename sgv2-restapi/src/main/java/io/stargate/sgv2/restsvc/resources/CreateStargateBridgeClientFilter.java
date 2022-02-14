@@ -30,13 +30,13 @@ import javax.ws.rs.ext.Provider;
 /**
  * Validates that the auth token is present and pre-builds the gRPC client before each request.
  *
- * <p>Note that the resource class or method must be annotated with {@link CreateGrpcStub} in order
- * for this filter to run.
+ * <p>Note that the resource class or method must be annotated with {@link
+ * CreateStargateBridgeClient} in order for this filter to run.
  *
  * @see StargateBridgeClientJerseyFactory
  */
 @Provider
-@CreateGrpcStub
+@CreateStargateBridgeClient
 public class CreateStargateBridgeClientFilter implements ContainerRequestFilter {
 
   public static final String CLIENT_KEY = StargateBridgeClient.class.getName();

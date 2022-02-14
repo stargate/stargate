@@ -13,17 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.sgv2.common.grpc;
+package io.stargate.sgv2.restsvc.resources;
 
-public class UnauthorizedKeyspaceException extends BridgeAuthorizationException {
-  private final String keyspaceName;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import javax.ws.rs.NameBinding;
 
-  public UnauthorizedKeyspaceException(String keyspaceName) {
-    super("Unauthorized keyspace: " + keyspaceName);
-    this.keyspaceName = keyspaceName;
-  }
-
-  public String getKeyspaceName() {
-    return keyspaceName;
-  }
-}
+/** Annotates resources that we want filtered with {@link CreateStargateBridgeClientFilter}. */
+@NameBinding
+@Retention(RetentionPolicy.RUNTIME)
+public @interface CreateStargateBridgeClient {}

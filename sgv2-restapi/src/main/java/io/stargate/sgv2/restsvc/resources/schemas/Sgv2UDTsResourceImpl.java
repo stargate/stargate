@@ -6,16 +6,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.grpc.StatusRuntimeException;
 import io.stargate.proto.QueryOuterClass;
-import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
+import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.models.Sgv2UDT;
 import io.stargate.sgv2.restsvc.models.Sgv2UDTAddRequest;
 import io.stargate.sgv2.restsvc.models.Sgv2UDTUpdateRequest;
-import io.stargate.sgv2.restsvc.resources.CreateGrpcStub;
+import io.stargate.sgv2.restsvc.resources.CreateStargateBridgeClient;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -34,11 +34,11 @@ import javax.ws.rs.core.Response;
 @Consumes(APPLICATION_JSON)
 @Path("/v2/schemas/keyspaces/{keyspaceName}/types")
 @Singleton
-@CreateGrpcStub
+@CreateStargateBridgeClient
 public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResourceApi {
   @Override
   public Response findAll(
-      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      final StargateBridgeClient bridge,
       final String keyspaceName,
       final boolean raw,
       final HttpServletRequest request) {
@@ -55,7 +55,7 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
             .build();
 
     QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
-    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+    QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
 
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
 
@@ -69,7 +69,7 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
 
   @Override
   public Response findById(
-      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      final StargateBridgeClient bridge,
       final String keyspaceName,
       final String typeName,
       final boolean raw,
@@ -89,7 +89,7 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
             .build();
 
     QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
-    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+    QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
 
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
 
@@ -118,7 +118,7 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
 
   @Override
   public Response createType(
-      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      final StargateBridgeClient bridge,
       final String keyspaceName,
       final Sgv2UDTAddRequest udtAdd,
       final HttpServletRequest request) {
@@ -134,7 +134,7 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
             .column(columns2columns(udtAdd.getFields()))
             .build();
     try {
-      blockingStub.executeQuery(
+      bridge.executeQuery(
           QueryOuterClass.Query.newBuilder()
               .setParameters(parametersForLocalQuorum())
               .setCql(cql)
@@ -161,7 +161,7 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
 
   @Override
   public Response delete(
-      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      final StargateBridgeClient bridge,
       final String keyspaceName,
       final String typeName,
       final HttpServletRequest request) {
@@ -177,13 +177,13 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
             // .ifExists()
             .build();
     QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
-    /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
+    /*QueryOuterClass.Response grpcResponse =*/ bridge.executeQuery(query);
     return Response.status(Response.Status.NO_CONTENT).build();
   }
 
   @Override
   public Response update(
-      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      final StargateBridgeClient bridge,
       final String keyspaceName,
       final Sgv2UDTUpdateRequest udtUpdate,
       final HttpServletRequest request) {
@@ -206,7 +206,7 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
       final String cql =
           new QueryBuilder().alter().type(keyspaceName, typeName).addColumn(columns).build();
       QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
-      /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
+      /*QueryOuterClass.Response grpcResponse =*/ bridge.executeQuery(query);
     }
 
     if (renameFields != null && !renameFields.isEmpty()) {
@@ -224,7 +224,7 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
               .renameColumn(columnRenames)
               .build();
       QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
-      /*QueryOuterClass.Response grpcResponse =*/ blockingStub.executeQuery(query);
+      /*QueryOuterClass.Response grpcResponse =*/ bridge.executeQuery(query);
     }
 
     return Response.status(Response.Status.OK).build();

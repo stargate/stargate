@@ -8,12 +8,10 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
 import com.google.protobuf.Int32Value;
-import io.grpc.StatusRuntimeException;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
-import io.stargate.proto.StargateBridgeGrpc;
+import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
-import io.stargate.sgv2.restsvc.grpc.BridgeSchemaClient;
 import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
@@ -46,29 +44,18 @@ public abstract class ResourceBase {
    * or, create and return an appropriate error Response if access fails.
    */
   protected Response callWithTable(
-      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      StargateBridgeClient bridge,
       String keyspaceName,
       String tableName,
       Function<Schema.CqlTable, Response> function) {
-    final Schema.CqlTable tableDef;
-    try {
-      tableDef = BridgeSchemaClient.create(blockingStub).findTable(keyspaceName, tableName);
-    } catch (StatusRuntimeException grpcE) {
-      switch (grpcE.getStatus().getCode()) {
-        case NOT_FOUND:
-          final String msg = grpcE.getMessage();
-          if (msg.contains("Keyspace not found")) {
-            throw new WebApplicationException(
-                String.format("Keyspace '%s' not found", keyspaceName),
-                Response.Status.BAD_REQUEST);
-          }
-          throw new WebApplicationException(
-              String.format("Table '%s' not found (in keyspace %s)", tableName, keyspaceName),
-              Response.Status.BAD_REQUEST);
-      }
-      throw grpcE;
-    }
-    return function.apply(tableDef);
+    return bridge
+        .getTable(keyspaceName, tableName)
+        .map(function)
+        .orElseThrow(
+            () ->
+                new WebApplicationException(
+                    String.format("Table '%s' not found (in keyspace %s)", tableName, keyspaceName),
+                    Response.Status.BAD_REQUEST));
   }
 
   // // // Helper methods for JSON decoding
@@ -114,7 +101,7 @@ public abstract class ResourceBase {
   }
 
   protected Response fetchRows(
-      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      StargateBridgeClient bridge,
       int pageSizeParam,
       String pageStateParam,
       boolean raw,
@@ -137,7 +124,7 @@ public abstract class ResourceBase {
       b = b.setValues(values);
     }
     final QueryOuterClass.Query query = b.build();
-    QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+    QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
 
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
     final int count = rs.getRowsCount();

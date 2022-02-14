@@ -2,14 +2,14 @@ package io.stargate.sgv2.restsvc.resources.schemas;
 
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
-import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
+import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoTypeTranslator;
 import io.stargate.sgv2.restsvc.models.Sgv2ColumnDefinition;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
-import io.stargate.sgv2.restsvc.resources.CreateGrpcStub;
+import io.stargate.sgv2.restsvc.resources.CreateStargateBridgeClient;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -25,18 +25,18 @@ import javax.ws.rs.core.Response;
 @Path("/v2/schemas/keyspaces/{keyspaceName}/tables/{tableName}/columns")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
-@CreateGrpcStub
+@CreateStargateBridgeClient
 public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2ColumnsResourceApi {
   @Override
   public Response getAllColumns(
-      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      StargateBridgeClient bridge,
       String keyspaceName,
       String tableName,
       boolean raw,
       HttpServletRequest request) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     return callWithTable(
-        blockingStub,
+        bridge,
         keyspaceName,
         tableName,
         (tableDef) -> {
@@ -48,7 +48,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
 
   @Override
   public Response createColumn(
-      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      StargateBridgeClient bridge,
       String keyspaceName,
       String tableName,
       Sgv2ColumnDefinition columnDefinition,
@@ -59,7 +59,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
       throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
     }
     return callWithTable(
-        blockingStub,
+        bridge,
         keyspaceName,
         tableName,
         (tableDef) -> {
@@ -77,7 +77,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
                   .table(keyspaceName, tableName)
                   .addColumn(columnDef)
                   .build();
-          blockingStub.executeQuery(
+          bridge.executeQuery(
               QueryOuterClass.Query.newBuilder()
                   .setParameters(parametersForLocalQuorum())
                   .setCql(cql)
@@ -91,7 +91,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
 
   @Override
   public Response getOneColumn(
-      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      StargateBridgeClient bridge,
       String keyspaceName,
       String tableName,
       String columnName,
@@ -102,7 +102,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
       throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
     }
     return callWithTable(
-        blockingStub,
+        bridge,
         keyspaceName,
         tableName,
         (tableDef) -> {
@@ -119,7 +119,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
 
   @Override
   public Response updateColumn(
-      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      StargateBridgeClient bridge,
       String keyspaceName,
       String tableName,
       String columnName,
@@ -130,7 +130,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
       throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
     }
     return callWithTable(
-        blockingStub,
+        bridge,
         keyspaceName,
         tableName,
         (tableDef) -> {
@@ -151,7 +151,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
                     .table(keyspaceName, tableName)
                     .renameColumn(columnName, newName)
                     .build();
-            blockingStub.executeQuery(
+            bridge.executeQuery(
                 QueryOuterClass.Query.newBuilder()
                     .setParameters(parametersForLocalQuorum())
                     .setCql(cql)
@@ -165,7 +165,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
 
   @Override
   public Response deleteColumn(
-      StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      StargateBridgeClient bridge,
       String keyspaceName,
       String tableName,
       String columnName,
@@ -175,7 +175,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
       throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
     }
     return callWithTable(
-        blockingStub,
+        bridge,
         keyspaceName,
         tableName,
         (tableDef) -> {
@@ -191,7 +191,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
                   .table(keyspaceName, tableName)
                   .dropColumn(columnName)
                   .build();
-          blockingStub.executeQuery(
+          bridge.executeQuery(
               QueryOuterClass.Query.newBuilder()
                   .setParameters(parametersForLocalQuorum())
                   .setCql(cql)

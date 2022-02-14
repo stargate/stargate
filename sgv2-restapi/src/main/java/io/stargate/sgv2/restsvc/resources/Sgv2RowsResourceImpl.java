@@ -3,13 +3,13 @@ package io.stargate.sgv2.restsvc.resources;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
-import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.common.cql.builder.Value;
 import io.stargate.sgv2.common.cql.builder.ValueModifier;
+import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import java.util.ArrayList;
@@ -37,7 +37,7 @@ import javax.ws.rs.core.Response.Status;
 @Path("/v2/keyspaces/{keyspaceName}/{tableName}")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
-@CreateGrpcStub
+@CreateStargateBridgeClient
 public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResourceApi {
   /*
   /////////////////////////////////////////////////////////////////////////
@@ -47,7 +47,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   @Override
   public Response getRowWithWhere(
-      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      final StargateBridgeClient bridge,
       final String keyspaceName,
       final String tableName,
       final String where,
@@ -72,7 +72,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     }
 
     return callWithTable(
-        blockingStub,
+        bridge,
         keyspaceName,
         tableName,
         (tableDef) -> {
@@ -107,13 +107,13 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
                     .orderBy(sortOrder)
                     .build();
           }
-          return fetchRows(blockingStub, pageSizeParam, pageStateParam, raw, cql, valuesBuilder);
+          return fetchRows(bridge, pageSizeParam, pageStateParam, raw, cql, valuesBuilder);
         });
   }
 
   @Override
   public Response getRows(
-      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      final StargateBridgeClient bridge,
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
@@ -134,7 +134,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     }
 
     return callWithTable(
-        blockingStub,
+        bridge,
         keyspaceName,
         tableName,
         (tableDef) -> {
@@ -151,13 +151,13 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
                   tableDef,
                   valuesBuilder,
                   toProtoConverter);
-          return fetchRows(blockingStub, pageSizeParam, pageStateParam, raw, cql, valuesBuilder);
+          return fetchRows(bridge, pageSizeParam, pageStateParam, raw, cql, valuesBuilder);
         });
   }
 
   @Override
   public javax.ws.rs.core.Response getAllRows(
-      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      final StargateBridgeClient bridge,
       final String keyspaceName,
       final String tableName,
       final String fields,
@@ -192,12 +192,12 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
               .orderBy(sortOrder)
               .build();
     }
-    return fetchRows(blockingStub, pageSizeParam, pageStateParam, raw, cql, null);
+    return fetchRows(bridge, pageSizeParam, pageStateParam, raw, cql, null);
   }
 
   @Override
   public Response createRow(
-      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      final StargateBridgeClient bridge,
       final String keyspaceName,
       final String tableName,
       final String payloadAsString,
@@ -212,7 +212,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     }
 
     return callWithTable(
-        blockingStub,
+        bridge,
         keyspaceName,
         tableName,
         (tableDef) -> {
@@ -234,7 +234,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
                   .setValues(valuesBuilder.build())
                   .build();
 
-          QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+          QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
           // apparently no useful data in ResultSet, we should simply return payload we got:
           return Response.status(Status.CREATED).entity(payloadAsString).build();
         });
@@ -242,26 +242,26 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
   @Override
   public Response updateRows(
-      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      final StargateBridgeClient bridge,
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
       final boolean raw,
       final String payload,
       final HttpServletRequest request) {
-    return modifyRow(blockingStub, keyspaceName, tableName, path, raw, payload, request);
+    return modifyRow(bridge, keyspaceName, tableName, path, raw, payload, request);
   }
 
   @Override
   public Response deleteRows(
-      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      final StargateBridgeClient bridge,
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
       HttpServletRequest request) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     return callWithTable(
-        blockingStub,
+        bridge,
         keyspaceName,
         tableName,
         (tableDef) -> {
@@ -280,26 +280,26 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
                   .build();
 
           /*QueryOuterClass.Response grpcResponse =*/
-          blockingStub.executeQuery(query);
+          bridge.executeQuery(query);
           return Response.status(Status.NO_CONTENT).build();
         });
   }
 
   @Override
   public Response patchRows(
-      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      final StargateBridgeClient bridge,
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
       final boolean raw,
       final String payload,
       final HttpServletRequest request) {
-    return modifyRow(blockingStub, keyspaceName, tableName, path, raw, payload, request);
+    return modifyRow(bridge, keyspaceName, tableName, path, raw, payload, request);
   }
 
   /** Implementation of POST/PATCH (update/patch rows) endpoints */
   private Response modifyRow(
-      final StargateBridgeGrpc.StargateBridgeBlockingStub blockingStub,
+      final StargateBridgeClient bridge,
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
@@ -315,7 +315,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
           "Invalid JSON payload: " + e.getMessage(), Status.BAD_REQUEST);
     }
     return callWithTable(
-        blockingStub,
+        bridge,
         keyspaceName,
         tableName,
         (tableDef) -> {
@@ -343,7 +343,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
                   .setValues(valuesBuilder.build())
                   .build();
 
-          QueryOuterClass.Response grpcResponse = blockingStub.executeQuery(query);
+          QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
           // apparently no useful data in ResultSet, we should simply return payload we got:
           final Object responsePayload = raw ? payloadMap : new Sgv2RESTResponse(payloadMap);
           return Response.status(Status.OK).entity(responsePayload).build();

@@ -145,7 +145,7 @@ class DefaultStargateBridgeSchema implements StargateBridgeSchema {
     @Override
     public void onError(Throwable t) {
       if (t instanceof StatusRuntimeException
-          && ((StatusRuntimeException) t).getStatus() == Status.NOT_FOUND) {
+          && ((StatusRuntimeException) t).getStatus().getCode() == Status.Code.NOT_FOUND) {
         LOG.debug("Loaded (empty) entry for {}", keyspaceName);
         result.complete(null);
       } else {

@@ -31,10 +31,9 @@ import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
 import io.stargate.metrics.jersey.MetricsBinder;
-import io.stargate.proto.StargateBridgeGrpc;
+import io.stargate.proto.Schema.SchemaRead;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.common.grpc.StargateBridgeClientFactory;
-import io.stargate.sgv2.restsvc.resources.CreateGrpcStubFilter;
 import io.stargate.sgv2.restsvc.resources.CreateStargateBridgeClientFilter;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
 import io.stargate.sgv2.restsvc.resources.MetricsResource;
@@ -108,13 +107,11 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
 
     ManagedChannel grpcChannel = buildChannel(appConfig.stargate.bridge);
 
-    // TODO remove this and associated types + rename CreateGrpcStub if we use GrpcClient everywhere
-    environment.jersey().register(new CreateGrpcStubFilter(grpcChannel));
-
     StargateBridgeClientFactory stargateBridgeClientFactory =
         StargateBridgeClientFactory.newInstance(
             grpcChannel,
             BridgeConfig.ADMIN_TOKEN,
+            SchemaRead.SourceApi.REST,
             environment.lifecycle().scheduledExecutorService("bridge-factory").threads(1).build());
     environment
         .jersey()
@@ -128,9 +125,6 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
               protected void configure() {
                 bind(configureObjectMapper(environment.getObjectMapper())).to(ObjectMapper.class);
                 bind(metricsScraper).to(MetricsScraper.class);
-                bindFactory(GrpcStubFactory.class)
-                    .to(StargateBridgeGrpc.StargateBridgeBlockingStub.class)
-                    .in(RequestScoped.class);
                 bindFactory(StargateBridgeClientJerseyFactory.class)
                     .to(StargateBridgeClient.class)
                     .in(RequestScoped.class);
@@ -141,6 +135,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
 
     environment.jersey().register(new JerseyViolationExceptionMapper());
     environment.jersey().register(new GrpcExceptionMapper());
+    environment.jersey().register(new BridgeAuthorizationExceptionMapper());
     environment.jersey().register(new DefaultExceptionMapper());
 
     // General healthcheck etc endpoints
