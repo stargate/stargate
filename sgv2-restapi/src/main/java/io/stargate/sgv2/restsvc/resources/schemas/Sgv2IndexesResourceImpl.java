@@ -16,6 +16,7 @@
 package io.stargate.sgv2.restsvc.resources.schemas;
 
 import io.stargate.proto.QueryOuterClass.Query;
+import io.stargate.proto.Schema.CqlTable;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
@@ -84,18 +85,16 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
       throw new WebApplicationException("columnName must be provided", Status.BAD_REQUEST);
     }
 
-    bridge
-        .getTable(keyspaceName, tableName)
-        .map(
-            table ->
-                table.getColumnsList().stream()
-                    .filter(c -> columnName.equals(c.getName()))
-                    .findAny()
-                    .orElseThrow(
-                        () ->
-                            new WebApplicationException(
-                                String.format("Column '%s' not found in table.", columnName),
-                                Status.NOT_FOUND)));
+    bridge.getTable(keyspaceName, tableName)
+        .orElseThrow(() -> new WebApplicationException("Table not found", Status.NOT_FOUND))
+        .getColumnsList().stream()
+        .filter(c -> columnName.equals(c.getName()))
+        .findAny()
+        .orElseThrow(
+            () ->
+                new WebApplicationException(
+                    String.format("Column '%s' not found in table.", columnName),
+                    Status.NOT_FOUND));
 
     String cql =
         new QueryBuilder()
@@ -131,18 +130,15 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
       throw new WebApplicationException("columnName must be provided", Status.BAD_REQUEST);
     }
 
-    bridge
-        .getTable(keyspaceName, tableName)
-        .map(
-            table ->
-                table.getIndexesList().stream()
-                    .filter(i -> indexName.equals(i.getName()))
-                    .findAny()
-                    .orElseThrow(
-                        () ->
-                            new WebApplicationException(
-                                String.format("Index '%s' not found.", indexName),
-                                Status.NOT_FOUND)));
+    CqlTable table =
+        bridge
+            .getTable(keyspaceName, tableName)
+            .orElseThrow(() -> new WebApplicationException("Table not found", Status.NOT_FOUND));
+    if (!ifExists
+        && table.getIndexesList().stream().noneMatch(i -> indexName.equals(i.getName()))) {
+      throw new WebApplicationException(
+          String.format("Index '%s' not found.", indexName), Status.NOT_FOUND);
+    }
 
     String cql =
         new QueryBuilder().drop().index(keyspaceName, indexName).ifExists(ifExists).build();
