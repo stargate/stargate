@@ -14,11 +14,11 @@ and uses standard DropWizard configuration approach.
 
 Project produces a single runnable uber/fat jar like:
 
-    sgv2-restapi/target/sgv2-rest-service-1.0.45-SNAPSHOT.jar
+    sgv2-restapi/target/sgv2-rest-service-2.0.0-ALPHA-3-SNAPSHOT.jar
 
 which can be run with something like:
 
-    java -jar sgv2-rest-service-1.0.45-SNAPSHOT.jar
+    java -jar sgv2-rest-service-2.0.0-ALPHA-3-SNAPSHOT.jar
 
 and assumes existence of an already running Stargate V1 instance (to use its gRPC API).
 Jar contains everything needed for running including DropWizard platform
@@ -37,8 +37,8 @@ While the first two are usually packaged into the uber-jar, system properties ar
 
 ```
 java -Ddw.server.connector.port=8085 \
-   -Ddw.stargate.grpc.host=127.0.0.2 -Ddw.stargate.grpc.port=8091 \
-   -jar sgv2-rest-service-1.0.45-SNAPSHOT.jar
+   -Ddw.stargate.bridge.host=127.0.0.2 -Ddw.stargate.bridge.port=8091 \
+   -jar sgv2-rest-service-2.0.0-ALPHA-3-SNAPSHOT.jar
 ```
 
 Also note that file `sgv2-restapi/src/main/resources/config.yaml` contains
@@ -60,16 +60,15 @@ DropWizard 2.0.x)
 
 Note: need to prefix properties with `dw.` when passing in command-line; included below.
 
-* `dw.server.connector.port`: Main HTTP port service listens to; defaults to `8088` in `config.yaml`
+* `dw.server.connector.port`: Main HTTP port service listens to; defaults to `8082` in `config.yaml`
 
 For example:
 
 ```
 java -Ddw.server.connector.port=8082 \
-   -jar sgv2-rest-service-v2.0.0-ALPHA-2.jar
+   -jar sgv2-rest-service-v2.0.0-ALPHA-3.jar
 
 ```
-
 
 ## Configuration options: Stargate-specific
 
@@ -77,6 +76,5 @@ Options available can be seen from `io.stargate.sgv2.restsvc.impl.RestServiceSer
 
 Note: need to prefix properties with `dw.` when passing in command-line; included below.
 
-* `dw.stargate.grpc.host` (default: `localhost`): Host where gRPC service to use runs on
-* `dw.stargate.grpc.port` (default: `8091`): Port number of gRPC service to use runs on
-
+* `dw.stargate.bridge.host` (default: `localhost`): Host where gRPC service to use runs on
+* `dw.stargate.bridge.port` (default: `8091`): Port number of gRPC service to use runs on

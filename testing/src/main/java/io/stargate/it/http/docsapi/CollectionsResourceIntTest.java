@@ -46,7 +46,7 @@ public class CollectionsResourceIntTest extends BaseIntegrationTest {
   public static void setup(ClusterConnectionInfo backend, StargateConnectionInfo stargate)
       throws IOException {
     host = "http://" + stargate.seedAddress();
-    hostWithPort = host + ":8082";
+    hostWithPort = host + ":" + DEFAULT_DOCS_API_PORT;
     isDse = backend.isDse();
 
     initAuth();

@@ -14,9 +14,9 @@ public class BaseRestApiTest extends BaseIntegrationTest {
    */
   public static void buildApiServiceParameters(ApiServiceParameters.Builder builder) {
     builder.serviceName("rest-api");
-    builder.servicePort(8088);
+    builder.servicePort(8082);
     builder.servicePortPropertyName("dw.server.connector.port");
-    builder.metricsPort(8088);
+    builder.metricsPort(8082);
     builder.serviceStartedMessage("Started RestServiceServer");
     builder.serviceLibDirProperty("stargate.rest.libdir");
     builder.serviceJarBase("sgv2-rest-service");

@@ -49,14 +49,14 @@ public interface ApiServiceParameters {
   String serviceName();
 
   @Value.Parameter
-  // Example: 8088
+  // Example: 8082
   int servicePort();
 
   @Value.Parameter
   String servicePortPropertyName();
 
   @Value.Parameter
-  // Example: 8088
+  // Example: 8084
   int metricsPort();
 
   @Value.Parameter
