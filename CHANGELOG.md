@@ -1,5 +1,46 @@
 # Changelog
 
+## [v2.0.0-ALPHA-3](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-3) (2022-02-14)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-2...v2.0.0-ALPHA-3)
+
+**Closed issues:**
+
+- Change Documents API port in StargateV2 to default to 8083 [\#1632](https://github.com/stargate/stargate/issues/1632)
+- SGv2: disable old REST API [\#1625](https://github.com/stargate/stargate/issues/1625)
+- Use streaming schema updates for Stargate V2 REST API [\#1553](https://github.com/stargate/stargate/issues/1553)
+
+**Merged pull requests:**
+
+- Port remaining resources to use StargateBridgeClient [\#1634](https://github.com/stargate/stargate/pull/1634) ([olim7t](https://github.com/olim7t))
+- Fix \#1632: change Documents API default port to 8083 for StargateV2 [\#1633](https://github.com/stargate/stargate/pull/1633) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Change "stargate.grpc.\*" config/system properties \(and related\) to "stargate.bridge.\*" [\#1631](https://github.com/stargate/stargate/pull/1631) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add schema read authorizations to the bridge [\#1630](https://github.com/stargate/stargate/pull/1630) ([olim7t](https://github.com/olim7t))
+- Update startup scripts and docker images to incorporate bridge token [\#1629](https://github.com/stargate/stargate/pull/1629) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Add delay when reconnecting to schema notifications [\#1628](https://github.com/stargate/stargate/pull/1628) ([olim7t](https://github.com/olim7t))
+- Add configuration property for Docs API port [\#1627](https://github.com/stargate/stargate/pull/1627) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#1625: comment out SGv1 REST API endpoints for SGv2 [\#1626](https://github.com/stargate/stargate/pull/1626) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2 release [\#1624](https://github.com/stargate/stargate/pull/1624) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Extract new StargateBridgeClient abstraction [\#1623](https://github.com/stargate/stargate/pull/1623) ([olim7t](https://github.com/olim7t))
+- Bumping version for next release [\#1622](https://github.com/stargate/stargate/pull/1622) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.0.0-ALPHA-2](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-2) (2022-02-07)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.49...v2.0.0-ALPHA-2)
+
+**Merged pull requests:**
+
+- Use infinite deadline for schema operations [\#1619](https://github.com/stargate/stargate/pull/1619) ([olim7t](https://github.com/olim7t))
+- Refactor RestApiExtension to support integration testing of other API services [\#1616](https://github.com/stargate/stargate/pull/1616) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- fixed merge error that changed expected result string [\#1615](https://github.com/stargate/stargate/pull/1615) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- gRPC: Fix conversion of UDT field types [\#1613](https://github.com/stargate/stargate/pull/1613) ([olim7t](https://github.com/olim7t))
+- Misc cleanup based on ErrorProne warnings [\#1611](https://github.com/stargate/stargate/pull/1611) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Improve Docker-compose scripts [\#1602](https://github.com/stargate/stargate/pull/1602) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Add a test case to reproduce \#1577 fail on v2.0.0 [\#1591](https://github.com/stargate/stargate/pull/1591) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add tag/publish options to docker build script for v2 [\#1590](https://github.com/stargate/stargate/pull/1590) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Bumping version for next release [\#1582](https://github.com/stargate/stargate/pull/1582) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Extract gRPC bridge as a separate bundle [\#1579](https://github.com/stargate/stargate/pull/1579) ([olim7t](https://github.com/olim7t))
+
 ## [v2.0.0-ALPHA-1](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-1) (2022-01-24)
 
 _Note: this is a manually generated changelog for initial v2 Alpha release due to large number of changes on `v2.0.0` branch since its creation. This is approximately the same as the commit list for the `v2.0.0` branch on [GitHub](https://github.com/stargate/stargate/commits/v2.0.0) through 2022-01-24 (minus commits not tied to a PR)._
@@ -78,6 +119,7 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Rest integration test - initial work (#1359)
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
+
 
 ## [v1.0.49](https://github.com/stargate/stargate/tree/v1.0.49) (2022-02-07)
 
