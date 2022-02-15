@@ -24,7 +24,7 @@ import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
-import io.grpc.ManagedChannelBuilder;
+import io.grpc.ManagedChannel;
 import io.stargate.core.grpc.BridgeConfig;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
@@ -60,14 +60,10 @@ import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.process.internal.RequestScoped;
 import org.glassfish.jersey.server.ServerProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /** DropWizard {@code Application} that will serve Stargate v2 REST service endpoints. */
 public class RestServiceServer extends Application<RestServiceServerConfiguration> {
   public static final String REST_SVC_MODULE_NAME = "sgv2-rest-service";
-
-  private final Logger logger = LoggerFactory.getLogger(getClass());
 
   private final Metrics metrics;
   private final MetricsScraper metricsScraper;
@@ -109,7 +105,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
       throws IOException {
 
     StargateBridgeClientFactory clientFactory =
-        buildClientFactory(appConfig.stargate.bridge, environment);
+        buildClientFactory(appConfig.stargate.bridge.buildChannel(), environment);
     environment.jersey().register(buildClientFilter(clientFactory));
 
     environment
@@ -163,19 +159,9 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   }
 
   private StargateBridgeClientFactory buildClientFactory(
-      RestServiceServerConfiguration.EndpointConfig bridgeConfig, Environment environment) {
-
-    logger.info("Bridge endpoint for RestService v2 is to use: {}", bridgeConfig);
-    ManagedChannelBuilder<?> channel =
-        ManagedChannelBuilder.forAddress(bridgeConfig.host, bridgeConfig.port).directExecutor();
-    if (bridgeConfig.useTls) {
-      channel = channel.useTransportSecurity();
-    } else {
-      channel = channel.usePlaintext();
-    }
-
+      ManagedChannel channel, Environment environment) {
     return StargateBridgeClientFactory.newInstance(
-        channel.build(),
+        channel,
         BridgeConfig.ADMIN_TOKEN,
         SchemaRead.SourceApi.REST,
         environment.lifecycle().scheduledExecutorService("bridge-factory").threads(1).build());
