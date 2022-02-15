@@ -1,24 +1,18 @@
-package io.stargate.it.http;
+package io.stargate.it.http.restapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
-import io.stargate.it.http.models.Credentials;
-import io.stargate.it.storage.StargateConnectionInfo;
+import io.stargate.it.http.RestUtils;
 import io.stargate.web.restapi.models.ColumnDefinition;
-import io.stargate.web.restapi.models.GetResponseWrapper;
 import io.stargate.web.restapi.models.PrimaryKey;
 import io.stargate.web.restapi.models.TableAdd;
 import io.stargate.web.restapi.models.TableResponse;
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -26,13 +20,10 @@ import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
@@ -42,43 +33,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @NotThreadSafe
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec()
-public class RestApiv2MVTest extends BaseIntegrationTest {
-  private String keyspaceName;
-  private String tableName;
-  private static String authToken;
-  private String host;
-  private String restUrlBase;
-
-  static class ListOfMapsGetResponseWrapper extends GetResponseWrapper<List<Map<String, Object>>> {
-    public ListOfMapsGetResponseWrapper() {
-      super(-1, null, null);
-    }
-  }
-
-  private static final ObjectMapper objectMapper = new ObjectMapper();
-
-  @BeforeEach
-  void setup(TestInfo testInfo, StargateConnectionInfo cluster) throws IOException {
-    host = "http://" + cluster.seedAddress();
-    restUrlBase = host + ":8082";
-
-    String body =
-        RestUtils.post(
-            "",
-            String.format("%s:8081/v1/auth/token/generate", host),
-            objectMapper.writeValueAsString(new Credentials("cassandra", "cassandra")),
-            HttpStatus.SC_CREATED);
-
-    AuthTokenResponse authTokenResponse = objectMapper.readValue(body, AuthTokenResponse.class);
-    authToken = authTokenResponse.getAuthToken();
-    assertThat(authToken).isNotNull();
-
-    Optional<String> name = testInfo.getTestMethod().map(Method::getName);
-    assertThat(name).isPresent();
-    String testName = name.get();
-    keyspaceName = "ks_" + testName + "_" + System.currentTimeMillis();
-    tableName = "tbl_" + testName + "_" + System.currentTimeMillis();
-  }
+public class RestApiv2MVTest extends RestApiTestBase {
 
   /*
   /************************************************************************
@@ -126,7 +81,7 @@ public class RestApiv2MVTest extends BaseIntegrationTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v2/keyspaces/%s/%s/rows", host, keyspaceName, materializedViewName),
+                "%s/v2/keyspaces/%s/%s/rows", restUrlBase, keyspaceName, materializedViewName),
             HttpStatus.SC_OK);
 
     ListOfMapsGetResponseWrapper getResponseWrapper =
@@ -148,21 +103,6 @@ public class RestApiv2MVTest extends BaseIntegrationTest {
   /* Helper methods for setting up tests
   /************************************************************************
    */
-
-  private void createTestKeyspace(String keyspaceName) {
-    String createKeyspaceRequest =
-        String.format("{\"name\": \"%s\", \"replicas\": 1}", keyspaceName);
-
-    try {
-      RestUtils.post(
-          authToken,
-          String.format("%s/v2/schemas/keyspaces", restUrlBase),
-          createKeyspaceRequest,
-          HttpStatus.SC_CREATED);
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
-  }
 
   private void createTestTable(
       String tableName, List<String> columns, List<String> partitionKey, List<String> clusteringKey)
