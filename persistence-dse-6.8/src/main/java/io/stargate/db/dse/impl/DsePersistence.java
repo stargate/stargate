@@ -3,6 +3,7 @@ package io.stargate.db.dse.impl;
 import static io.stargate.db.dse.impl.Conversion.toPreparedMetadata;
 import static io.stargate.db.dse.impl.Conversion.toResultMetadata;
 
+import com.datastax.bdp.db.nodes.Nodes;
 import com.datastax.bdp.db.util.ProductType;
 import com.datastax.bdp.db.util.ProductVersion;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
@@ -43,6 +44,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -197,6 +199,17 @@ public class DsePersistence
     }
 
     DatabaseDescriptor.daemonInitialization(true, config);
+
+    String hostId = System.getProperty("stargate.host_id");
+    if (hostId != null && !hostId.isEmpty()) {
+      try {
+        Nodes.local().update(l -> l.setHostId(UUID.fromString(hostId)), true);
+      } catch (IllegalArgumentException e) {
+        throw new IllegalArgumentException(
+            String.format("Invalid host ID '%s': not a valid UUID", hostId), e);
+      }
+    }
+
     cassandraDaemon = new CassandraDaemon(true);
 
     // CassandraDaemon.activate() creates a thread that swallows exceptions that occur during
