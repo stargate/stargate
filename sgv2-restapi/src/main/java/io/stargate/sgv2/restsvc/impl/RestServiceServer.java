@@ -24,7 +24,6 @@ import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
-import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.stargate.core.grpc.BridgeConfig;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
@@ -34,7 +33,9 @@ import io.stargate.metrics.jersey.MetricsBinder;
 import io.stargate.proto.Schema.SchemaRead;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.common.grpc.StargateBridgeClientFactory;
-import io.stargate.sgv2.restsvc.resources.CreateStargateBridgeClientFilter;
+import io.stargate.sgv2.common.http.CreateStargateBridgeClientFilter;
+import io.stargate.sgv2.common.http.StargateBridgeClientJerseyFactory;
+import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
 import io.stargate.sgv2.restsvc.resources.MetricsResource;
 import io.stargate.sgv2.restsvc.resources.Sgv2RowsResourceImpl;
@@ -53,6 +54,8 @@ import java.io.IOException;
 import java.util.EnumSet;
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.process.internal.RequestScoped;
@@ -105,17 +108,9 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   public void run(final RestServiceServerConfiguration appConfig, final Environment environment)
       throws IOException {
 
-    ManagedChannel grpcChannel = buildChannel(appConfig.stargate.bridge);
-
-    StargateBridgeClientFactory stargateBridgeClientFactory =
-        StargateBridgeClientFactory.newInstance(
-            grpcChannel,
-            BridgeConfig.ADMIN_TOKEN,
-            SchemaRead.SourceApi.REST,
-            environment.lifecycle().scheduledExecutorService("bridge-factory").threads(1).build());
-    environment
-        .jersey()
-        .register(new CreateStargateBridgeClientFilter(stargateBridgeClientFactory));
+    StargateBridgeClientFactory clientFactory =
+        buildClientFactory(appConfig.stargate.bridge, environment);
+    environment.jersey().register(buildClientFilter(clientFactory));
 
     environment
         .jersey()
@@ -167,16 +162,35 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     environment.jersey().property(ServerProperties.RESPONSE_SET_STATUS_OVER_SEND_ERROR, true);
   }
 
-  private ManagedChannel buildChannel(RestServiceServerConfiguration.EndpointConfig grpcEndpoint) {
-    logger.info("Bridge endpoint for RestService v2 is to use: {}", grpcEndpoint);
-    ManagedChannelBuilder<?> builder =
-        ManagedChannelBuilder.forAddress(grpcEndpoint.host, grpcEndpoint.port).directExecutor();
-    if (grpcEndpoint.useTls) {
-      builder = builder.useTransportSecurity();
+  private StargateBridgeClientFactory buildClientFactory(
+      RestServiceServerConfiguration.EndpointConfig bridgeConfig, Environment environment) {
+
+    logger.info("Bridge endpoint for RestService v2 is to use: {}", bridgeConfig);
+    ManagedChannelBuilder<?> channel =
+        ManagedChannelBuilder.forAddress(bridgeConfig.host, bridgeConfig.port).directExecutor();
+    if (bridgeConfig.useTls) {
+      channel = channel.useTransportSecurity();
     } else {
-      builder = builder.usePlaintext();
+      channel = channel.usePlaintext();
     }
-    return builder.build();
+
+    return StargateBridgeClientFactory.newInstance(
+        channel.build(),
+        BridgeConfig.ADMIN_TOKEN,
+        SchemaRead.SourceApi.REST,
+        environment.lifecycle().scheduledExecutorService("bridge-factory").threads(1).build());
+  }
+
+  private CreateStargateBridgeClientFilter buildClientFilter(
+      StargateBridgeClientFactory stargateBridgeClientFactory) {
+    return new CreateStargateBridgeClientFilter(stargateBridgeClientFactory) {
+      @Override
+      protected Response buildError(Response.Status status, String message, MediaType mediaType) {
+        return Response.status(status)
+            .entity(new RestServiceError(message, status.getStatusCode()))
+            .build();
+      }
+    };
   }
 
   public static ObjectMapper configureObjectMapper(ObjectMapper objectMapper) {

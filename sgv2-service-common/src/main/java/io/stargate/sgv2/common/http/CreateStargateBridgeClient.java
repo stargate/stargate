@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.sgv2.restsvc.resources;
+package io.stargate.sgv2.common.http;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;

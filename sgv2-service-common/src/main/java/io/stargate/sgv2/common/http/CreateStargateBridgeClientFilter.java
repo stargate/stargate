@@ -13,18 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.sgv2.restsvc.resources;
+package io.stargate.sgv2.common.http;
 
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.common.grpc.StargateBridgeClientFactory;
-import io.stargate.sgv2.restsvc.impl.StargateBridgeClientJerseyFactory;
-import io.stargate.sgv2.restsvc.models.RestServiceError;
 import java.util.Optional;
 import java.util.UUID;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.ext.Provider;
 
 /**
@@ -37,7 +37,7 @@ import javax.ws.rs.ext.Provider;
  */
 @Provider
 @CreateStargateBridgeClient
-public class CreateStargateBridgeClientFilter implements ContainerRequestFilter {
+public abstract class CreateStargateBridgeClientFilter implements ContainerRequestFilter {
 
   public static final String CLIENT_KEY = StargateBridgeClient.class.getName();
   private static final String HOST_HEADER_NAME = "Host";
@@ -49,17 +49,15 @@ public class CreateStargateBridgeClientFilter implements ContainerRequestFilter 
     this.stargateBridgeClientFactory = stargateBridgeClientFactory;
   }
 
+  /** Wraps the given error message in the format appropriate to the service. */
+  protected abstract Response buildError(Status status, String message, MediaType mediaType);
+
   @Override
   public void filter(ContainerRequestContext context) {
     String token = context.getHeaderString("X-Cassandra-Token");
     if (token == null || token.isEmpty()) {
       context.abortWith(
-          Response.status(Response.Status.UNAUTHORIZED)
-              .entity(
-                  new RestServiceError(
-                      "Missing or invalid Auth Token",
-                      Response.Status.UNAUTHORIZED.getStatusCode()))
-              .build());
+          buildError(Status.UNAUTHORIZED, "Missing or invalid Auth Token", context.getMediaType()));
     } else {
       context.setProperty(
           CLIENT_KEY,
