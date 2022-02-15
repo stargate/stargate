@@ -34,11 +34,9 @@ public class RestApiv2SAITest extends RestApiTestBase {
   @Test
   public void indexCreateCustom(CqlSession session) throws IOException {
     // TODO remove this when we figure out how to enable SAI indexes in Cassandra 4
-    assumeThat(isCassandra4())
-        .as(
-            "Disabled because it is currently not possible to enable SAI indexes "
-                + "on a Cassandra 4 backend")
-        .isFalse();
+    assumeThat(backendSupportsSAI())
+        .as("Disabled because it is currently not possible to enable SAI indexes on this backend")
+        .isTrue();
 
     createTestKeyspace(keyspaceName);
     tableName = "tbl_createtable_" + System.currentTimeMillis();
