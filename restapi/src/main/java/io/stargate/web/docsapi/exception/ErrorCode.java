@@ -135,7 +135,7 @@ public enum ErrorCode {
 
   DOCS_API_WRITE_BATCH_DUPLICATE_ID(
       Response.Status.BAD_REQUEST,
-      "A same document ID is found in more than one documents when doing batched document write."),
+      "A same document ID is found in more than one document when doing batched document write."),
 
   DOCS_API_WRITE_BATCH_INVALID_ID_PATH(
       Response.Status.BAD_REQUEST, "ID path is invalid for document during batch write."),

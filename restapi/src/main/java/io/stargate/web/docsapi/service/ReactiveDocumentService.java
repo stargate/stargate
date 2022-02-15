@@ -57,7 +57,7 @@ import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import io.stargate.web.docsapi.service.write.DocumentWriteService;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -216,40 +216,67 @@ public class ReactiveDocumentService {
 
                 // add to map and make sure we did not have already the same ID
                 if (documentRowsMap.put(documentId, rows) != null) {
-                  // TODO maybe more friendly message
-                  throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_WRITE_BATCH_DUPLICATE_ID);
+                  String msg =
+                      String.format(
+                          "Found duplicate ID %s in more than one document when doing batched document write.",
+                          documentId);
+                  throw new ErrorCodeRuntimeException(
+                      ErrorCode.DOCS_API_WRITE_BATCH_DUPLICATE_ID, msg);
                 }
               }
 
               // generate the Single for each document write
-              List<Single<ResultSet>> writeAll =
+              // the pair contains document id and boolean that denotes if write was successful
+              List<Single<Pair<String, Boolean>>> writeAll =
                   documentRowsMap.entrySet().stream()
                       .map(
                           entry -> {
-                            if (useUpdate) {
-                              return writeService.updateDocument(
-                                  db.getQueryExecutor().getDataStore(),
-                                  namespace,
-                                  collection,
-                                  entry.getKey(),
-                                  entry.getValue(),
-                                  db.treatBooleansAsNumeric(),
-                                  context);
-                            } else {
-                              return writeService.writeDocument(
-                                  db.getQueryExecutor().getDataStore(),
-                                  namespace,
-                                  collection,
-                                  entry.getKey(),
-                                  entry.getValue(),
-                                  db.treatBooleansAsNumeric(),
-                                  context);
-                            }
+                            String documentId = entry.getKey();
+                            List<JsonShreddedRow> documentRows = entry.getValue();
+
+                            // use write when possible to avoid the extra delete query
+                            return Single.defer(
+                                    () -> {
+                                      if (useUpdate) {
+                                        return writeService.updateDocument(
+                                            db.getQueryExecutor().getDataStore(),
+                                            namespace,
+                                            collection,
+                                            documentId,
+                                            documentRows,
+                                            db.treatBooleansAsNumeric(),
+                                            context);
+                                      } else {
+                                        return writeService.writeDocument(
+                                            db.getQueryExecutor().getDataStore(),
+                                            namespace,
+                                            collection,
+                                            documentId,
+                                            documentRows,
+                                            db.treatBooleansAsNumeric(),
+                                            context);
+                                      }
+                                    })
+
+                                // if successful return pair with true
+                                .map(result -> Pair.with(documentId, true))
+
+                                // on any error mark this document id as failed
+                                .onErrorReturn(t -> Pair.with(documentId, false));
                           })
                       .collect(Collectors.toList());
 
               // this runs all the writes in parallel
-              return Single.zip(writeAll, results -> new ArrayList<>(documentRowsMap.keySet()));
+              return Single.zip(
+                  writeAll,
+                  results -> {
+                    // return only the documents that were successfully written
+                    return Arrays.stream(results)
+                        .map(Pair.class::cast)
+                        .filter(p -> Boolean.TRUE.equals(p.getValue1()))
+                        .map(p -> (String) p.getValue0())
+                        .collect(Collectors.toList());
+                  });
             })
         .map(keys -> new MultiDocsResponse(keys, context.toProfile()));
   }
@@ -848,7 +875,7 @@ public class ReactiveDocumentService {
           authorizeWrite(db, namespace, collection, Scope.MODIFY, Scope.DELETE);
 
           // based on type switch the result
-          Maybe<JsonNode> result = null;
+          Maybe<JsonNode> result;
           switch (function) {
             case ARRAY_PUSH:
               JsonNode payload = objectMapper.valueToTree(funcPayload.getValue());
@@ -1191,7 +1218,7 @@ public class ReactiveDocumentService {
   }
 
   // reads JSON payload
-  private JsonNode readPayload(String payload) throws JsonProcessingException {
+  private JsonNode readPayload(String payload) {
     try {
       return objectMapper.readTree(payload);
     } catch (JsonProcessingException e) {
