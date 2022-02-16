@@ -262,7 +262,13 @@ public class ReactiveDocumentService {
                                 .map(result -> Pair.with(documentId, true))
 
                                 // on any error mark this document id as failed
-                                .onErrorReturn(t -> Pair.with(documentId, false));
+                                .onErrorReturn(
+                                    t -> {
+                                      logger.error(
+                                          "Write failed for one of the documents included in the batch document write.",
+                                          t);
+                                      return Pair.with(documentId, false);
+                                    });
                           })
                       .collect(Collectors.toList());
 

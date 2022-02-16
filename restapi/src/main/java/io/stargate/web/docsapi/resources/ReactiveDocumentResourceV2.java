@@ -171,7 +171,7 @@ public class ReactiveDocumentResourceV2 {
   @ApiOperation(
       value = "Write multiple documents in one request",
       notes =
-          "Auto-generates an ID for the newly created document if an `idPath` is not provided as a query parameter. When an `idPath` is provided, this operation is idempotent.",
+          "Auto-generates an ID for the newly created document if an `idPath` is not provided as a query parameter. When an `idPath` is provided, this operation is idempotent. Note that this batch operation is not atomic and is not ordered. Any exception that happens during the write of one of the documents, does not influence the insertion of other documents. It's responsibility of the caller to examine the returned JSON and understand what documents were successfully written.",
       code = 202)
   @ApiResponses(
       value = {
