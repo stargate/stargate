@@ -16,12 +16,9 @@
 package io.stargate.it.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
-import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -714,63 +711,6 @@ public class RestApiv2RowsTest extends BaseRestApiTest {
 
     assertNotNull(rows);
     assertThat(rows.size()).isEqualTo(4);
-    assertThat(new LinkedHashSet<>(rows)).isEqualTo(new LinkedHashSet<>(expRows));
-  }
-
-  @Test
-  public void getAllRowsFromMaterializedView(CqlSession session) throws IOException {
-    assumeThat(isCassandra4())
-        .as("Disabled because MVs are not enabled by default on a Cassandra 4 backend")
-        .isFalse();
-
-    createTestKeyspace(keyspaceName);
-    tableName = "tbl_mvread_" + System.currentTimeMillis();
-    createTestTable(
-        tableName,
-        Arrays.asList("id text", "firstName text", "lastName text"),
-        Collections.singletonList("id"),
-        null);
-
-    List<Map<String, String>> expRows =
-        insertTestTableRows(
-            Arrays.asList(
-                Arrays.asList("id 1", "firstName John", "lastName Doe"),
-                Arrays.asList("id 2", "firstName Sarah", "lastName Smith"),
-                Arrays.asList("id 3", "firstName Jane")));
-
-    String materializedViewName = "mv_test_" + System.currentTimeMillis();
-
-    ResultSet resultSet =
-        session.execute(
-            String.format(
-                "CREATE MATERIALIZED VIEW \"%s\".%s "
-                    + "AS SELECT id, \"firstName\", \"lastName\" "
-                    + "FROM \"%s\".%s "
-                    + "WHERE id IS NOT NULL "
-                    + "AND \"firstName\" IS NOT NULL "
-                    + "AND \"lastName\" IS NOT NULL "
-                    + "PRIMARY KEY (id, \"lastName\")",
-                keyspaceName, materializedViewName, keyspaceName, tableName));
-    assertThat(resultSet.wasApplied()).isTrue();
-
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s/v2/keyspaces/%s/%s/rows", restUrlBase, keyspaceName, materializedViewName),
-            HttpStatus.SC_OK);
-
-    ListOfMapsGetResponseWrapper getResponseWrapper =
-        LIST_OF_MAPS_GETRESPONSE_READER.readValue(body);
-    assertThat(getResponseWrapper.getCount()).isEqualTo(2);
-
-    // Alas, due to "id" as partition key, ordering is arbitrary; so need to
-    // convert from List to something like Set
-    List<Map<String, Object>> rows = getResponseWrapper.getData();
-
-    expRows.remove(2); // the MV should only return the rows with a lastName
-
-    assertThat(rows.size()).isEqualTo(2);
     assertThat(new LinkedHashSet<>(rows)).isEqualTo(new LinkedHashSet<>(expRows));
   }
 

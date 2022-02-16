@@ -245,12 +245,16 @@ public class Starter {
       })
   protected boolean disableBundlesWatch = false;
 
-  @Order(value = 23)
+  @Order(value = 22)
   @Option(
-      name = {
-        "--bridge-token",
-        "Token that API services will use to authenticate to the bridge (required) "
-      })
+      name = {"--host-id"},
+      description = "The host ID to use for this node. Must be a valid UUID.")
+  protected String hostId;
+
+  @Order(value = 24)
+  @Option(
+      name = "--bridge-token",
+      description = "Token that API services will use to authenticate to the bridge (required) ")
   protected String bridgeToken;
 
   @Order(value = 1000)
@@ -391,6 +395,9 @@ public class Starter {
     System.setProperty(
         "org.apache.cassandra.disable_mbean_registration",
         String.valueOf(disableMBeanRegistration));
+    if (hostId != null && !hostId.isEmpty()) {
+      System.setProperty("stargate.host_id", hostId);
+    }
     System.setProperty("stargate.bridge.admin_token", bridgeToken);
 
     if (bindToListenAddressOnly) {
