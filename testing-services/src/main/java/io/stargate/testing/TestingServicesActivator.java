@@ -19,7 +19,9 @@ import io.stargate.auth.AuthorizationProcessor;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.db.metrics.api.ClientInfoMetricsTagProvider;
+import io.stargate.grpc.metrics.api.GrpcMetricsTagProvider;
 import io.stargate.testing.auth.LoggingAuthorizationProcessorImpl;
+import io.stargate.testing.metrics.AuthorityGrpcMetricsTagProvider;
 import io.stargate.testing.metrics.FixedClientInfoTagProvider;
 import io.stargate.testing.metrics.TagMeHttpMetricsTagProvider;
 import java.util.ArrayList;
@@ -34,6 +36,9 @@ public class TestingServicesActivator extends BaseActivator {
 
   public static final String HTTP_TAG_PROVIDER_PROPERTY = "stargate.metrics.http_tag_provider.id";
   public static final String TAG_ME_HTTP_TAG_PROVIDER = "TagMeProvider";
+
+  public static final String GRPC_TAG_PROVIDER_PROPERTY = "stargate.metrics.grpc_tag_provider.id";
+  public static final String AUTHORITY_GRPC_TAG_PROVIDER = "AuthorityGrpcProvider";
 
   public static final String CLIENT_INFO_TAG_PROVIDER_PROPERTY =
       "stargate.metrics.client_info_tag_provider.id";
@@ -66,6 +71,12 @@ public class TestingServicesActivator extends BaseActivator {
       FixedClientInfoTagProvider tagProvider = new FixedClientInfoTagProvider();
 
       services.add(new ServiceAndProperties(tagProvider, ClientInfoMetricsTagProvider.class));
+    }
+
+    if (AUTHORITY_GRPC_TAG_PROVIDER.equals(System.getProperty(GRPC_TAG_PROVIDER_PROPERTY))) {
+      AuthorityGrpcMetricsTagProvider tagProvider = new AuthorityGrpcMetricsTagProvider();
+
+      services.add(new ServiceAndProperties(tagProvider, GrpcMetricsTagProvider.class));
     }
 
     return services;
