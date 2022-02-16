@@ -15,7 +15,7 @@
  *
  */
 
-package java.io.stargate.sgv2.docssvc.impl;
+package io.stargate.sgv2.docssvc.impl;
 
 import io.dropwizard.jersey.validation.ConstraintMessage;
 import io.dropwizard.jersey.validation.JerseyViolationException;

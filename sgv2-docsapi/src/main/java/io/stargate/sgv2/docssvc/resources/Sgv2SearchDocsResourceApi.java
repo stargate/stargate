@@ -1,4 +1,4 @@
-package java.io.stargate.sgv2.docssvc.resources;
+package io.stargate.sgv2.docssvc.resources;
 
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.proto.StargateBridgeGrpc;

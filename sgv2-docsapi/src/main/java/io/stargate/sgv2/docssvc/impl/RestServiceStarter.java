@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package java.io.stargate.sgv2.docssvc.impl;
+package io.stargate.sgv2.docssvc.impl;
 
 import com.github.rvesse.airline.SingleCommand;
 import com.github.rvesse.airline.annotations.Command;

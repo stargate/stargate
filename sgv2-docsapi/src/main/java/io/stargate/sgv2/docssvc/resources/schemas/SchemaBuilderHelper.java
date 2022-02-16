@@ -1,4 +1,4 @@
-package java.io.stargate.sgv2.docssvc.resources.schemas;
+package io.stargate.sgv2.docssvc.resources.schemas;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;

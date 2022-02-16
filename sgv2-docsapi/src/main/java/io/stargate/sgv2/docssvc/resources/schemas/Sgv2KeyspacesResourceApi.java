@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package java.io.stargate.sgv2.docssvc.resources.schemas;
+package io.stargate.sgv2.docssvc.resources.schemas;
 
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.databind.JsonNode;

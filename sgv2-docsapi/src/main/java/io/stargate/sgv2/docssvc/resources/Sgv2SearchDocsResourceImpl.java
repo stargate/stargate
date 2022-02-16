@@ -1,4 +1,4 @@
-package java.io.stargate.sgv2.docssvc.resources;
+package io.stargate.sgv2.docssvc.resources;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.proto.QueryOuterClass;

@@ -1,4 +1,4 @@
-package java.io.stargate.sgv2.docssvc.resources;
+package io.stargate.sgv2.docssvc.resources;
 
 import io.dropwizard.util.Strings;
 import org.slf4j.Logger;

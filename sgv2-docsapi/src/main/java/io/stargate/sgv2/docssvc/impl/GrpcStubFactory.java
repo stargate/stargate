@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package java.io.stargate.sgv2.docssvc.impl;
+package io.stargate.sgv2.docssvc.impl;
 
 import io.stargate.proto.StargateBridgeGrpc.StargateBridgeBlockingStub;
 import io.stargate.sgv2.restsvc.resources.CreateGrpcStubFilter;

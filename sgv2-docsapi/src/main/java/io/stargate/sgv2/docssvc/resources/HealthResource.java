@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package java.io.stargate.sgv2.docssvc.resources;
+package io.stargate.sgv2.docssvc.resources;
 
 import javax.inject.Singleton;
 import javax.ws.rs.GET;
