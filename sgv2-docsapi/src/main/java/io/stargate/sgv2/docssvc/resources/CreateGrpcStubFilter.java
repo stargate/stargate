@@ -18,14 +18,13 @@ package io.stargate.sgv2.docssvc.resources;
 import io.grpc.ManagedChannel;
 import io.stargate.grpc.StargateBearerToken;
 import io.stargate.proto.StargateBridgeGrpc;
-import io.stargate.sgv2.restsvc.impl.GrpcStubFactory;
-import io.stargate.sgv2.restsvc.models.RestServiceError;
-
+import io.stargate.sgv2.docssvc.impl.GrpcStubFactory;
+import io.stargate.sgv2.docssvc.models.RestServiceError;
+import java.util.concurrent.TimeUnit;
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerRequestFilter;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.Provider;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Validates that the auth token is present and pre-builds the gRPC stub before each request.

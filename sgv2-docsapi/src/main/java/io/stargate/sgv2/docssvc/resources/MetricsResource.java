@@ -16,7 +16,6 @@
 package io.stargate.sgv2.docssvc.resources;
 
 import io.stargate.core.metrics.api.MetricsScraper;
-
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.GET;

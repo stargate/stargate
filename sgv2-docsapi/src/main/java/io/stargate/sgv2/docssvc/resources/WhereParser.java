@@ -11,8 +11,7 @@ import io.stargate.proto.Schema;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.Value;
-import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
-
+import io.stargate.sgv2.docssvc.grpc.ToProtoConverter;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;

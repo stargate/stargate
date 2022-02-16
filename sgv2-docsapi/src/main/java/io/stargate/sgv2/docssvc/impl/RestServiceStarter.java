@@ -24,7 +24,6 @@ import com.github.rvesse.airline.parser.errors.ParseException;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.NoopHttpMetricsTagProvider;
 import io.stargate.core.metrics.impl.MetricsImpl;
-
 import java.io.IOError;
 import java.io.IOException;
 import java.lang.annotation.Retention;

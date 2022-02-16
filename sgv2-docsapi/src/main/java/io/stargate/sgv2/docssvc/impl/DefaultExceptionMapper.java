@@ -15,16 +15,15 @@
  */
 package io.stargate.sgv2.docssvc.impl;
 
-import io.stargate.sgv2.restsvc.models.RestServiceError;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
+import io.stargate.sgv2.docssvc.models.RestServiceError;
+import java.util.concurrent.ThreadLocalRandom;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 import javax.ws.rs.ext.Provider;
-import java.util.concurrent.ThreadLocalRandom;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Provider
 public class DefaultExceptionMapper implements ExceptionMapper<Throwable> {

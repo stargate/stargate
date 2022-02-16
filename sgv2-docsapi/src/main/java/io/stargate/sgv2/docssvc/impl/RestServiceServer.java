@@ -41,17 +41,16 @@ import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.config.DefaultJaxrsScanner;
 import io.swagger.jaxrs.listing.ApiListingResource;
 import io.swagger.jaxrs.listing.SwaggerSerializers;
+import java.io.IOException;
+import java.util.EnumSet;
+import javax.servlet.DispatcherType;
+import javax.servlet.FilterRegistration;
 import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.process.internal.RequestScoped;
 import org.glassfish.jersey.server.ServerProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.servlet.DispatcherType;
-import javax.servlet.FilterRegistration;
-import java.io.IOException;
-import java.util.EnumSet;
 
 /** DropWizard {@code Application} that will serve Stargate v2 REST service endpoints. */
 public class RestServiceServer extends Application<RestServiceServerConfiguration> {
@@ -125,7 +124,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     environment.jersey().register(MetricsResource.class);
 
     // Main data endpoints
-    environment.jersey().register(Sgv2RowsResourceImpl.class);
+    environment.jersey().register(Sgv2SearchDocsResourceImpl.class);
 
     // Swagger endpoints
     environment.jersey().register(SwaggerSerializers.class);

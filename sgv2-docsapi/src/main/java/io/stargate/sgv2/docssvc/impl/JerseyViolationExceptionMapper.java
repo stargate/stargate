@@ -19,15 +19,14 @@ package io.stargate.sgv2.docssvc.impl;
 
 import io.dropwizard.jersey.validation.ConstraintMessage;
 import io.dropwizard.jersey.validation.JerseyViolationException;
-import io.stargate.sgv2.restsvc.models.RestServiceError;
-import org.glassfish.jersey.server.model.Invocable;
-
+import io.stargate.sgv2.docssvc.models.RestServiceError;
+import java.util.Set;
+import java.util.stream.Collectors;
 import javax.validation.ConstraintViolation;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
-import java.util.Set;
-import java.util.stream.Collectors;
+import org.glassfish.jersey.server.model.Invocable;
 
 /**
  * Maps {@link JerseyViolationException}s to the response with the {@link RestServiceError} entity.

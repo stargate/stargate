@@ -19,13 +19,12 @@ import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.dropwizard.jetty.ContextRoutingHandler;
 import io.dropwizard.server.SimpleServerFactory;
 import io.dropwizard.setup.Environment;
+import java.util.Collections;
+import java.util.Map;
 import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.thread.ThreadPool;
-
-import java.util.Collections;
-import java.util.Map;
 
 /**
  * @see "META-INF/services/io.dropwizard.server.ServerFactory"

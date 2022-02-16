@@ -2,9 +2,8 @@ package io.stargate.sgv2.docssvc.resources;
 
 import com.codahale.metrics.annotation.Timed;
 import io.stargate.proto.StargateBridgeGrpc;
-import io.stargate.sgv2.restsvc.models.RestServiceError;
-import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
-import io.stargate.sgv2.restsvc.models.Sgv2RowsResponse;
+import io.stargate.sgv2.docssvc.models.DocumentResponseWrapper;
+import io.stargate.sgv2.docssvc.models.RestServiceError;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiImplicitParam;
 import io.swagger.annotations.ApiImplicitParams;
@@ -12,22 +11,13 @@ import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
-
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.PATCH;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Definition of REST API endpoint methods including both JAX-RS and Swagger annotations. No
@@ -53,11 +43,11 @@ public interface Sgv2SearchDocsResourceApi {
   @ApiOperation(
       value = "Search a collection",
       notes = "Search a collection using a json query as defined in the `where` query parameter",
-      response = Sgv2RowsResponse.class,
+      response = DocumentResponseWrapper.class,
       responseContainer = "List")
   @ApiResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = Sgv2RowsResponse.class),
+        @ApiResponse(code = 200, message = "OK", response = DocumentResponseWrapper.class),
         @ApiResponse(code = 400, message = "Bad Request", response = RestServiceError.class),
         @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
         @ApiResponse(

@@ -16,11 +16,10 @@
 package io.stargate.sgv2.docssvc.impl;
 
 import io.stargate.proto.StargateBridgeGrpc.StargateBridgeBlockingStub;
-import io.stargate.sgv2.restsvc.resources.CreateGrpcStubFilter;
-import org.glassfish.hk2.api.Factory;
-
+import io.stargate.sgv2.docssvc.resources.CreateGrpcStubFilter;
 import javax.inject.Inject;
 import javax.ws.rs.container.ContainerRequestContext;
+import org.glassfish.hk2.api.Factory;
 
 /**
  * Provides the stub that we created in {@link CreateGrpcStubFilter} to the Jersey context, so that

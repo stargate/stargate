@@ -29,63 +29,64 @@ import io.swagger.annotations.ApiModelProperty;
  */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class DocumentResponseWrapper<T> {
-    @JsonProperty("documentId")
-    String documentId;
+  @JsonProperty("documentId")
+  String documentId;
 
-    @JsonProperty("pageState")
-    String pageState;
+  @JsonProperty("pageState")
+  String pageState;
 
-    @JsonProperty("data")
-    T data;
+  @JsonProperty("data")
+  T data;
 
-//    @JsonProperty("profile")
-//    ExecutionProfile profile;
+  //    @JsonProperty("profile")
+  //    ExecutionProfile profile;
 
-    @ApiModelProperty(value = "The id of the document")
-    public String getDocumentId() {
-        return documentId;
-    }
+  @ApiModelProperty(value = "The id of the document")
+  public String getDocumentId() {
+    return documentId;
+  }
 
-    public DocumentResponseWrapper setDocumentId(String documentId) {
-        this.documentId = documentId;
-        return this;
-    }
+  public DocumentResponseWrapper setDocumentId(String documentId) {
+    this.documentId = documentId;
+    return this;
+  }
 
-    @ApiModelProperty(
-            value = "A string representing the paging state to be used on future paging requests.")
-    public String getPageState() {
-        return pageState;
-    }
+  @ApiModelProperty(
+      value = "A string representing the paging state to be used on future paging requests.")
+  public String getPageState() {
+    return pageState;
+  }
 
-    public DocumentResponseWrapper setPageState(String pageState) {
-        this.pageState = pageState;
-        return this;
-    }
+  public DocumentResponseWrapper setPageState(String pageState) {
+    this.pageState = pageState;
+    return this;
+  }
 
-    @ApiModelProperty(value = "The data returned by the request")
-    public T getData() {
-        return data;
-    }
+  @ApiModelProperty(value = "The data returned by the request")
+  public T getData() {
+    return data;
+  }
 
-    public DocumentResponseWrapper setData(T data) {
-        this.data = data;
-        return this;
-    }
+  public DocumentResponseWrapper setData(T data) {
+    this.data = data;
+    return this;
+  }
 
-//    @ApiModelProperty("Profiling information related to the execution of the request (optional)")
-//    public ExecutionProfile getProfile() {
-//        return profile;
-//    }
+  //    @ApiModelProperty("Profiling information related to the execution of the request
+  // (optional)")
+  //    public ExecutionProfile getProfile() {
+  //        return profile;
+  //    }
 
-    @JsonCreator
-    public DocumentResponseWrapper(
-            @JsonProperty("documentId") final String documentId,
-            @JsonProperty("pageState") final String pageState,
-            @JsonProperty("data") final T data) {
-            //@JsonProperty("profile") ExecutionProfile profile) {
-        this.documentId = documentId;
-        this.pageState = pageState;
-        this.data = data;
-//        this.profile = profile;
-    }
+  @JsonCreator
+  public DocumentResponseWrapper(
+      @JsonProperty("documentId") final String documentId,
+      @JsonProperty("pageState") final String pageState,
+      @JsonProperty("data") final T data) {
+    // @JsonProperty("profile") ExecutionProfile profile) {
+    this.documentId = documentId;
+    this.pageState = pageState;
+    this.data = data;
+    //        this.profile = profile;
+  }
 }

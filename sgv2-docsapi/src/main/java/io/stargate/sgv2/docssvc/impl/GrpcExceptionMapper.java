@@ -17,8 +17,7 @@ package io.stargate.sgv2.docssvc.impl;
 
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import io.stargate.sgv2.restsvc.models.RestServiceError;
-
+import io.stargate.sgv2.docssvc.models.RestServiceError;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
 

@@ -15,9 +15,9 @@
  */
 package io.stargate.sgv2.docssvc.resources;
 
-import javax.ws.rs.NameBinding;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
+import javax.ws.rs.NameBinding;
 
 /** Annotates resources that we want filtered with {@link CreateGrpcStubFilter}. */
 @NameBinding
