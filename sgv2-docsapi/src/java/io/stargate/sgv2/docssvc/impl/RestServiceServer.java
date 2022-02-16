@@ -31,16 +31,11 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
 import io.stargate.metrics.jersey.MetricsBinder;
 import io.stargate.proto.StargateBridgeGrpc;
-import io.stargate.sgv2.restsvc.resources.CreateGrpcStubFilter;
-import io.stargate.sgv2.restsvc.resources.HealthResource;
-import io.stargate.sgv2.restsvc.resources.MetricsResource;
-import io.stargate.sgv2.restsvc.resources.Sgv2RowsResourceImpl;
-import io.stargate.sgv2.restsvc.resources.SwaggerUIResource;
-import io.stargate.sgv2.restsvc.resources.schemas.Sgv2ColumnsResourceImpl;
-import io.stargate.sgv2.restsvc.resources.schemas.Sgv2IndexesResourceImpl;
-import io.stargate.sgv2.restsvc.resources.schemas.Sgv2KeyspacesResourceImpl;
-import io.stargate.sgv2.restsvc.resources.schemas.Sgv2TablesResourceImpl;
-import io.stargate.sgv2.restsvc.resources.schemas.Sgv2UDTsResourceImpl;
+import io.stargate.sgv2.docssvc.resources.CreateGrpcStubFilter;
+import io.stargate.sgv2.docssvc.resources.HealthResource;
+import io.stargate.sgv2.docssvc.resources.MetricsResource;
+import io.stargate.sgv2.docssvc.resources.Sgv2SearchDocsResourceImpl;
+import io.stargate.sgv2.docssvc.resources.SwaggerUIResource;
 import io.swagger.config.ScannerFactory;
 import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.config.DefaultJaxrsScanner;
@@ -131,13 +126,6 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
 
     // Main data endpoints
     environment.jersey().register(Sgv2RowsResourceImpl.class);
-
-    // Schema endpoints
-    environment.jersey().register(Sgv2ColumnsResourceImpl.class);
-    environment.jersey().register(Sgv2KeyspacesResourceImpl.class);
-    environment.jersey().register(Sgv2TablesResourceImpl.class);
-    environment.jersey().register(Sgv2IndexesResourceImpl.class);
-    environment.jersey().register(Sgv2UDTsResourceImpl.class);
 
     // Swagger endpoints
     environment.jersey().register(SwaggerSerializers.class);
