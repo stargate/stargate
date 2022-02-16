@@ -89,24 +89,11 @@ message DescribeTableQuery {
 }
 
 // DOCS API
-
 message QueryDocumentParams {
-  string keyspace_name = 1;
-  string table_name = 2;
-  int32 page_size = 3;
+  Query query = 1;
+  int32 page_size = 2;
+  bool exponential_size = 3;
   bytes page_state = 4;
-  repeated QueryFilter filters = 5;
-}
-
-message QueryFilter {
-  string doc_field = 1;
-  string operation = 2;
-  oneof doc_value {
-    string text_value = 3;
-    sint64 int_value = 4;
-    double double_value = 5;
-    bool boolean_value = 6;
-  }
 }
 
 message DocumentsResponse {
