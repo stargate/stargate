@@ -16,6 +16,10 @@
 package io.stargate.sgv2.restsvc.impl;
 
 import io.dropwizard.Configuration;
+import io.grpc.ManagedChannel;
+import io.grpc.ManagedChannelBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RestServiceServerConfiguration extends Configuration {
   public StargateConfig stargate = new StargateConfig();
@@ -26,6 +30,8 @@ public class RestServiceServerConfiguration extends Configuration {
   }
 
   static class EndpointConfig {
+    private static final Logger LOG = LoggerFactory.getLogger(EndpointConfig.class);
+
     public String host = "localhost";
     public int port = -1;
 
@@ -38,6 +44,18 @@ public class RestServiceServerConfiguration extends Configuration {
       this.host = host;
       this.port = port;
       this.useTls = useTls;
+    }
+
+    public ManagedChannel buildChannel() {
+      LOG.info("Bridge endpoint for RestService v2 is to use: {}", this);
+      ManagedChannelBuilder<?> builder =
+          ManagedChannelBuilder.forAddress(host, port).directExecutor();
+      if (useTls) {
+        builder = builder.useTransportSecurity();
+      } else {
+        builder = builder.usePlaintext();
+      }
+      return builder.build();
     }
 
     @Override

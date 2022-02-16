@@ -13,10 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.sgv2.restsvc.impl;
+package io.stargate.sgv2.common.http;
 
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
-import io.stargate.sgv2.restsvc.resources.CreateStargateBridgeClientFilter;
 import javax.inject.Inject;
 import javax.ws.rs.container.ContainerRequestContext;
 import org.glassfish.hk2.api.Factory;
