@@ -13,8 +13,9 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.sgv2.restsvc.resources;
+package io.stargate.sgv2.common.http;
 
+import java.lang.annotation.Inherited;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import javax.ws.rs.NameBinding;
@@ -22,4 +23,5 @@ import javax.ws.rs.NameBinding;
 /** Annotates resources that we want filtered with {@link CreateStargateBridgeClientFilter}. */
 @NameBinding
 @Retention(RetentionPolicy.RUNTIME)
+@Inherited
 public @interface CreateStargateBridgeClient {}
