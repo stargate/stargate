@@ -2,8 +2,6 @@ package io.stargate.web.docsapi.dao;
 
 import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
 import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -31,7 +29,6 @@ import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.json.DeadLeaf;
 import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.util.ImmutableKeyspaceAndTable;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -58,11 +55,6 @@ public class DocumentDB {
   private final QueryExecutor executor;
   private final DocsApiConfiguration config;
   private final List<String> allColumnNames;
-  private final LoadingCache<ImmutableKeyspaceAndTable, Query> insertQueryForTable =
-      Caffeine.newBuilder()
-          .maximumSize(10_000)
-          .expireAfterWrite(Duration.ofMinutes(5))
-          .build(this::getInsertQueryForTable);
 
   public DocumentDB(
       DataStore dataStore,
@@ -365,10 +357,6 @@ public class DocumentDB {
     dataStore.queryBuilder().drop().table(keyspaceName, tableName).build().execute().get();
   }
 
-  public void executeBatch(Collection<BoundQuery> queries, ExecutionContext context) {
-    executeBatchAsync(queries, context).join();
-  }
-
   public CompletableFuture<ResultSet> executeBatchAsync(
       Collection<BoundQuery> queries, ExecutionContext context) {
     queries.forEach(context::traceDeferredDml);
@@ -378,21 +366,6 @@ public class DocumentDB {
     } else {
       return dataStore.unloggedBatch(queries, ConsistencyLevel.LOCAL_QUORUM);
     }
-  }
-
-  public BoundQuery getInsertStatement(
-      String keyspaceName, String tableName, long microsTimestamp, Object[] columnValues) {
-    Object[] boundParams = new Object[columnValues.length + 1];
-    boundParams[boundParams.length - 1] = microsTimestamp;
-    for (int i = 0; i < columnValues.length; i++) {
-      boundParams[i] = columnValues[i];
-    }
-
-    ImmutableKeyspaceAndTable info =
-        ImmutableKeyspaceAndTable.builder().keyspace(keyspaceName).table(tableName).build();
-    // Hits a cache if the insert has been called for this table in the last 5 minutes
-    Query insertQuery = insertQueryForTable.get(info);
-    return insertQuery.bind(boundParams);
   }
 
   /** Deletes from @param tableName all rows that are prefixed by @param pathPrefixToDelete */
@@ -491,39 +464,6 @@ public class DocumentDB {
                     .build())
             .join();
     return prepared.bind(microsTimestamp);
-  }
-
-  /**
-   * Performs a delete of all the rows that are prefixed by the @param path, and then does an insert
-   * using the @param vars provided, all in one batch.
-   */
-  public void deleteManyThenInsertBatch(
-      String keyspace,
-      String table,
-      List<String> keys,
-      List<Object[]> vars,
-      List<String> pathToDelete,
-      long microsSinceEpoch,
-      ExecutionContext context)
-      throws UnauthorizedException {
-
-    getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.DELETE, SourceAPI.REST);
-
-    getAuthorizationService()
-        .authorizeDataWrite(authenticationSubject, keyspace, table, Scope.MODIFY, SourceAPI.REST);
-    List<BoundQuery> queries = new ArrayList<>(keys.size() + vars.size());
-    keys.forEach(
-        key ->
-            queries.add(
-                getPrefixDeleteStatement(
-                    keyspace, table, key, microsSinceEpoch - 1, pathToDelete)));
-
-    for (Object[] values : vars) {
-      queries.add(getInsertStatement(keyspace, table, microsSinceEpoch, values));
-    }
-
-    executeBatch(queries, context);
   }
 
   public boolean authorizeDeleteDeadLeaves(String keyspaceName, String tableName) {

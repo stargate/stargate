@@ -23,6 +23,7 @@ import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 import static org.mockito.Mockito.when;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
+import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -49,6 +50,79 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class DocsApiUtilsTest {
+
+  @Nested
+  class PathToJsonPointer {
+
+    @Test
+    public void single() {
+      String input = "path";
+
+      Optional<JsonPointer> result = DocsApiUtils.pathToJsonPointer(input);
+
+      assertThat(result)
+          .hasValueSatisfying(
+              jsonPointer -> {
+                assertThat(jsonPointer.matchesProperty("path")).isTrue();
+              });
+    }
+
+    @Test
+    public void multi() {
+      String input = "path.to.field";
+
+      Optional<JsonPointer> result = DocsApiUtils.pathToJsonPointer(input);
+
+      assertThat(result)
+          .hasValueSatisfying(
+              jsonPointer -> {
+                assertThat(
+                        jsonPointer
+                            .matchProperty("path")
+                            .matchProperty("to")
+                            .matchesProperty("field"))
+                    .isTrue();
+              });
+    }
+
+    @Test
+    public void arrayElement() {
+      String input = "path.[115].field";
+
+      Optional<JsonPointer> result = DocsApiUtils.pathToJsonPointer(input);
+
+      assertThat(result)
+          .hasValueSatisfying(
+              jsonPointer -> {
+                assertThat(
+                        jsonPointer
+                            .matchProperty("path")
+                            .matchElement(115)
+                            .matchesProperty("field"))
+                    .isTrue();
+              });
+    }
+
+    @Test
+    public void arrayElementLiteral() {
+      String input = "path.[0]";
+
+      Optional<JsonPointer> result = DocsApiUtils.pathToJsonPointer(input);
+
+      assertThat(result)
+          .hasValueSatisfying(
+              jsonPointer -> {
+                assertThat(jsonPointer.matchProperty("path").matchesElement(0)).isTrue();
+              });
+    }
+
+    @Test
+    public void nullInput() {
+      Optional<JsonPointer> result = DocsApiUtils.pathToJsonPointer(null);
+
+      assertThat(result).isEmpty();
+    }
+  }
 
   @Nested
   class ConvertArrayPath {

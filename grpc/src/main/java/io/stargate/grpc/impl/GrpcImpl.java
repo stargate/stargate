@@ -18,10 +18,11 @@ package io.stargate.grpc.impl;
 import io.grpc.Server;
 import io.grpc.internal.GrpcUtil;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
-import io.micrometer.core.instrument.binder.grpc.MetricCollectingServerInterceptor;
+import io.micrometer.core.instrument.binder.grpc.TaggingMetricCollectingServerInterceptor;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
+import io.stargate.grpc.metrics.api.GrpcMetricsTagProvider;
 import io.stargate.grpc.service.GrpcService;
 import io.stargate.grpc.service.interceptors.NewConnectionInterceptor;
 import java.io.IOException;
@@ -45,7 +46,10 @@ public class GrpcImpl {
   private final ScheduledExecutorService executor;
 
   public GrpcImpl(
-      Persistence persistence, Metrics metrics, AuthenticationService authenticationService) {
+      Persistence persistence,
+      Metrics metrics,
+      AuthenticationService authenticationService,
+      GrpcMetricsTagProvider grpcMetricsTagProvider) {
 
     String listenAddress = null;
 
@@ -70,7 +74,9 @@ public class GrpcImpl {
             // thread pool for handling gRPC callbacks in `GrpcService`.
             .directExecutor()
             .intercept(new NewConnectionInterceptor(persistence, authenticationService))
-            .intercept(new MetricCollectingServerInterceptor(metrics.getMeterRegistry()))
+            .intercept(
+                new TaggingMetricCollectingServerInterceptor(
+                    metrics.getMeterRegistry(), grpcMetricsTagProvider))
             .addService(new GrpcService(persistence, executor))
             .build();
   }
