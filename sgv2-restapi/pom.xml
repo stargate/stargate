@@ -16,7 +16,6 @@
   <dependencyManagement>
     <dependencies>
       <!-- To get a consistent set of Jackson components, use BOM:
-
         -->
       <dependency>
         <groupId>com.fasterxml.jackson</groupId>
