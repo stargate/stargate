@@ -223,7 +223,9 @@ class DefaultStargateBridgeSchema implements StargateBridgeSchema {
       }
     } catch (RejectedExecutionException e) {
       // The code above can occasionally race, avoid printing a full stack trace
-      LOG.warn("Reconnection task was rejected, this is normal if the server is shutting down");
+      LOG.warn(
+          "Reconnection task was rejected, this is normal if the server is shutting down ({})",
+          e.getMessage());
     }
   }
 
