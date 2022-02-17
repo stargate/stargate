@@ -31,7 +31,7 @@ import org.eclipse.jetty.util.thread.ThreadPool;
  * @see "config.yaml"
  */
 @JsonTypeName("sgv2-docsapi-service")
-public class RestServiceServerFactory extends SimpleServerFactory {
+public class DocsApiServiceServerFactory extends SimpleServerFactory {
 
   @Override
   public Server build(Environment environment) {

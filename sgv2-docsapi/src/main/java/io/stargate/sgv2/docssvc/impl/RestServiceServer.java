@@ -97,7 +97,9 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   public void run(final RestServiceServerConfiguration appConfig, final Environment environment)
       throws IOException {
 
-    environment.jersey().register(new CreateGrpcStubFilter(buildChannel(appConfig.stargate.grpc)));
+    environment
+        .jersey()
+        .register(new CreateGrpcStubFilter(buildChannel(appConfig.stargate.bridge)));
 
     environment
         .jersey()
