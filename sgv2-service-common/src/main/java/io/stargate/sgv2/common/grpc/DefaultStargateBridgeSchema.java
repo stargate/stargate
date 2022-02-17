@@ -17,6 +17,8 @@ package io.stargate.sgv2.common.grpc;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.RemovalCause;
+import com.github.benmanes.caffeine.cache.RemovalListener;
 import io.grpc.Channel;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -32,6 +34,8 @@ import io.stargate.proto.StargateBridgeGrpc.StargateBridgeStub;
 import java.time.Duration;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import org.slf4j.Logger;
@@ -57,6 +61,8 @@ class DefaultStargateBridgeSchema implements StargateBridgeSchema {
   private final Cache<String, CompletionStage<CqlKeyspaceDescribe>> keyspaceCache;
   private final ScheduledExecutorService executor;
   private volatile long reconnectDelayMs = 0;
+  private final CopyOnWriteArrayList<KeyspaceInvalidationListener> listeners =
+      new CopyOnWriteArrayList<>();
 
   DefaultStargateBridgeSchema(
       Channel channel, String adminAuthToken, ScheduledExecutorService executor) {
@@ -66,6 +72,7 @@ class DefaultStargateBridgeSchema implements StargateBridgeSchema {
         Caffeine.newBuilder()
             .maximumSize(KEYSPACE_CACHE_SIZE)
             .expireAfterAccess(KEYSPACE_CACHE_TTL)
+            .removalListener(new ListenerNotifier())
             .build();
     this.executor = executor;
 
@@ -98,6 +105,16 @@ class DefaultStargateBridgeSchema implements StargateBridgeSchema {
             removeKeyspace(keyspaceName);
           }
         });
+  }
+
+  @Override
+  public void register(KeyspaceInvalidationListener listener) {
+    listeners.add(listener);
+  }
+
+  @Override
+  public void unregister(KeyspaceInvalidationListener listener) {
+    listeners.remove(listener);
   }
 
   private void executeGrpcQuery(
@@ -199,7 +216,15 @@ class DefaultStargateBridgeSchema implements StargateBridgeSchema {
   }
 
   private void scheduleReconnect() {
-    executor.schedule(this::registerChangeObserver, getAndIncreaseDelayMs(), TimeUnit.MILLISECONDS);
+    try {
+      if (!executor.isShutdown()) {
+        executor.schedule(
+            this::registerChangeObserver, getAndIncreaseDelayMs(), TimeUnit.MILLISECONDS);
+      }
+    } catch (RejectedExecutionException e) {
+      // The code above can occasionally race, avoid printing a full stack trace
+      LOG.warn("Reconnection task was rejected, this is normal if the server is shutting down");
+    }
   }
 
   private long getAndIncreaseDelayMs() {
@@ -211,5 +236,20 @@ class DefaultStargateBridgeSchema implements StargateBridgeSchema {
     }
     LOG.debug("Scheduling reconnection in {} ms", current);
     return current;
+  }
+
+  private class ListenerNotifier
+      implements RemovalListener<String, CompletionStage<CqlKeyspaceDescribe>> {
+    @Override
+    public void onRemoval(
+        String keyspaceName, CompletionStage<CqlKeyspaceDescribe> future, RemovalCause cause) {
+      for (KeyspaceInvalidationListener listener : listeners) {
+        try {
+          listener.onKeyspaceInvalidated(keyspaceName);
+        } catch (Throwable t) {
+          LOG.warn("Unexpected exception from listener", t);
+        }
+      }
+    }
   }
 }

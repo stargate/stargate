@@ -15,19 +15,20 @@
  */
 package io.stargate.sgv2.common.grpc;
 
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
-import io.stargate.sgv2.common.futures.Futures;
-import java.util.concurrent.CompletionStage;
+/**
+ * Allows external components to get notified when {@link StargateBridgeSchema} invalidates a
+ * keyspace from its internal cache.
+ *
+ * <p>This is a signal that if the external component is holding on to a copy of the keyspace
+ * metadata, it should fetch it again.
+ *
+ * @see StargateBridgeSchema#register(KeyspaceInvalidationListener)
+ */
+public interface KeyspaceInvalidationListener {
 
-public interface StargateBridgeSchema {
-
-  CompletionStage<CqlKeyspaceDescribe> getKeyspaceAsync(String keyspaceName);
-
-  default CqlKeyspaceDescribe getKeyspace(String keyspaceName) {
-    return Futures.getUninterruptibly(getKeyspaceAsync(keyspaceName));
-  }
-
-  void register(KeyspaceInvalidationListener listener);
-
-  void unregister(KeyspaceInvalidationListener listener);
+  /**
+   * @param keyspaceName note that in a multi-tenant environment, this is the full "decorated"
+   *     keyspace name.
+   */
+  void onKeyspaceInvalidated(String keyspaceName);
 }
