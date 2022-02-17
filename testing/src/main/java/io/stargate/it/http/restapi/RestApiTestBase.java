@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.it.BaseIntegrationTest;
+import io.stargate.it.http.BaseRestApiTest;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
@@ -26,7 +26,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
 
 /** Intermediate IT base class for use by REST API integration tests. */
-abstract class RestApiTestBase extends BaseIntegrationTest {
+abstract class RestApiTestBase extends BaseRestApiTest {
+  // ^^^ 16-Feb-2022, tatu: This odd hierarchy is due to discrepancy between SGv1/SGv2
+  //   and needs to be solved soon.
   protected String keyspaceName;
   protected String tableName;
   protected static String authToken;
