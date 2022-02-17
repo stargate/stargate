@@ -30,7 +30,6 @@ import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.json.DeadLeaf;
 import io.stargate.web.docsapi.service.json.ImmutableDeadLeaf;
-import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -81,27 +80,6 @@ public class DocumentDBTest {
             any(AuthenticationSubject.class), anyString(), anyString(), eq(SourceAPI.REST));
     documentDB =
         new DocumentDB(ds, AuthenticationSubject.of("foo", "bar"), authorizationService, config);
-  }
-
-  @Test
-  public void getInsertStatement() {
-    Object[] values =
-        new Object[DocsApiConstants.ALL_COLUMNS_NAMES.apply(config.getMaxDepth()).length];
-    int idx = 0;
-    values[idx++] = "key";
-    for (int i = 0; i < config.getMaxDepth(); i++) {
-      values[idx++] = "value" + i;
-    }
-    values[idx++] = "leaf";
-    values[idx++] = "text";
-    values[idx++] = 1.2d; // dbl_value
-    values[idx++] = true; // bool_value
-    assertThat(idx).isEqualTo(values.length);
-
-    BoundQuery query = documentDB.getInsertStatement("keyspace", "table", 1, values);
-    assertThat(query.queryString())
-        .isEqualTo(
-            "INSERT INTO \"keyspace\".\"table\" (key, p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15, p16, p17, p18, p19, p20, p21, p22, p23, p24, p25, p26, p27, p28, p29, p30, p31, p32, p33, p34, p35, p36, p37, p38, p39, p40, p41, p42, p43, p44, p45, p46, p47, p48, p49, p50, p51, p52, p53, p54, p55, p56, p57, p58, p59, p60, p61, p62, p63, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?");
   }
 
   @Test

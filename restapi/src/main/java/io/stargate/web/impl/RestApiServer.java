@@ -32,7 +32,6 @@ import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.metrics.jersey.MetricsBinder;
 import io.stargate.web.docsapi.dao.DocumentDBFactory;
 import io.stargate.web.docsapi.resources.CollectionsResource;
-import io.stargate.web.docsapi.resources.DocumentResourceV2;
 import io.stargate.web.docsapi.resources.JsonSchemaResource;
 import io.stargate.web.docsapi.resources.NamespacesResource;
 import io.stargate.web.docsapi.resources.ReactiveDocumentResourceV2;
@@ -174,7 +173,6 @@ public class RestApiServer extends Application<RestApiServerConfiguration> {
             });
     environment.jersey().register(new DocsApiComponentsBinder());
     environment.jersey().register(ReactiveDocumentResourceV2.class);
-    environment.jersey().register(DocumentResourceV2.class);
     environment.jersey().register(JsonSchemaResource.class);
     environment.jersey().register(CollectionsResource.class);
     environment.jersey().register(NamespacesResource.class);
