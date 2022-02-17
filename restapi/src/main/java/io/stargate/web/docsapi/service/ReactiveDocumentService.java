@@ -20,6 +20,7 @@ package io.stargate.web.docsapi.service;
 import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.Literal;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
+import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -44,6 +45,7 @@ import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.models.BuiltInApiFunction;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
+import io.stargate.web.docsapi.models.MultiDocsResponse;
 import io.stargate.web.docsapi.models.dto.ExecuteBuiltInFunction;
 import io.stargate.web.docsapi.rx.RxUtils;
 import io.stargate.web.docsapi.service.json.DeadLeafCollector;
@@ -55,13 +57,16 @@ import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import io.stargate.web.docsapi.service.write.DocumentWriteService;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.javatuples.Pair;
@@ -152,6 +157,134 @@ public class ReactiveDocumentService {
                   context);
             })
         .map(any -> new DocumentResponseWrapper<>(documentId, null, null, context.toProfile()));
+  }
+
+  /**
+   * Writes many documents in the given namespace and collection. If #idPath is not provided, IDs
+   * for each document will be randomly generated.
+   *
+   * @param db {@link DocumentDB} to write in
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param payload Documents represented as JSON array
+   * @param idPath Optional path to the id of the document in each doc.
+   * @param context Execution content
+   * @return Document response wrapper containing the generated ID.
+   */
+  public Single<MultiDocsResponse> writeDocuments(
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String payload,
+      String idPath,
+      ExecutionContext context) {
+
+    return Single.defer(
+            () -> {
+              // note that if idPath is present, this means we must use the update method
+              // because it could overwrite the existing doc
+              boolean useUpdate = null != idPath;
+
+              // authentication for writing before anything
+              // we need the DELETE scope if we are updating
+              authorizeWrite(db, namespace, collection, Scope.MODIFY);
+              if (useUpdate) {
+                authorizeWrite(db, namespace, collection, Scope.DELETE);
+              }
+
+              // read the root
+              JsonNode root = readPayload(payload);
+
+              // if not array, fail immediately
+              if (!root.isArray()) {
+                throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_WRITE_BATCH_NOT_ARRAY);
+              }
+
+              // keep order with LinkedHashMap
+              LinkedHashMap<String, List<JsonShreddedRow>> documentRowsMap = new LinkedHashMap<>();
+              Optional<JsonPointer> idPointer = DocsApiUtils.pathToJsonPointer(idPath);
+              for (JsonNode documentNode : root) {
+                // validate that the document fits the schema
+                checkSchemaOnWrite(db, namespace, collection, documentNode);
+
+                // get document id
+                String documentId = documentIdResolver().apply(idPointer, documentNode);
+
+                // shred rows
+                List<JsonShreddedRow> rows =
+                    jsonDocumentShredder.shred(documentNode, Collections.emptyList());
+
+                // add to map and make sure we did not have already the same ID
+                if (documentRowsMap.put(documentId, rows) != null) {
+                  String msg =
+                      String.format(
+                          "Found duplicate ID %s in more than one document when doing batched document write.",
+                          documentId);
+                  throw new ErrorCodeRuntimeException(
+                      ErrorCode.DOCS_API_WRITE_BATCH_DUPLICATE_ID, msg);
+                }
+              }
+
+              // generate the Single for each document write
+              // the pair contains document id and boolean that denotes if write was successful
+              List<Single<Pair<String, Boolean>>> writeAll =
+                  documentRowsMap.entrySet().stream()
+                      .map(
+                          entry -> {
+                            String documentId = entry.getKey();
+                            List<JsonShreddedRow> documentRows = entry.getValue();
+
+                            // use write when possible to avoid the extra delete query
+                            return Single.defer(
+                                    () -> {
+                                      if (useUpdate) {
+                                        return writeService.updateDocument(
+                                            db.getQueryExecutor().getDataStore(),
+                                            namespace,
+                                            collection,
+                                            documentId,
+                                            documentRows,
+                                            db.treatBooleansAsNumeric(),
+                                            context);
+                                      } else {
+                                        return writeService.writeDocument(
+                                            db.getQueryExecutor().getDataStore(),
+                                            namespace,
+                                            collection,
+                                            documentId,
+                                            documentRows,
+                                            db.treatBooleansAsNumeric(),
+                                            context);
+                                      }
+                                    })
+
+                                // if successful return pair with true
+                                .map(result -> Pair.with(documentId, true))
+
+                                // on any error mark this document id as failed
+                                .onErrorReturn(
+                                    t -> {
+                                      logger.error(
+                                          "Write failed for one of the documents included in the batch document write.",
+                                          t);
+                                      return Pair.with(documentId, false);
+                                    });
+                          })
+                      .collect(Collectors.toList());
+
+              // this runs all the writes in parallel
+              return Single.zip(
+                  writeAll,
+                  results -> {
+                    // return only the documents that were successfully written
+                    return Arrays.stream(results)
+                        .map(Pair.class::cast)
+                        .filter(p -> Boolean.TRUE.equals(p.getValue1()))
+                        .map(p -> (String) p.getValue0())
+                        .collect(Collectors.toList());
+                  });
+            })
+        .map(keys -> new MultiDocsResponse(keys, context.toProfile()));
   }
 
   /**
@@ -748,7 +881,7 @@ public class ReactiveDocumentService {
           authorizeWrite(db, namespace, collection, Scope.MODIFY, Scope.DELETE);
 
           // based on type switch the result
-          Maybe<JsonNode> result = null;
+          Maybe<JsonNode> result;
           switch (function) {
             case ARRAY_PUSH:
               JsonNode payload = objectMapper.valueToTree(funcPayload.getValue());
@@ -1031,6 +1164,28 @@ public class ReactiveDocumentService {
   /// Write helpers ///
   /////////////////////
 
+  // function that resolves a document id, based on the JsonPointer
+  // returns random ID if pointer is not provided
+  private BiFunction<Optional<JsonPointer>, JsonNode, String> documentIdResolver() {
+    return (idPointer, jsonNode) ->
+        idPointer
+            .map(
+                p -> {
+                  JsonNode node = jsonNode.at(p);
+                  if (!node.isTextual()) {
+                    String nodeDes = node.isMissingNode() ? "missing node" : node.toString();
+                    String format =
+                        String.format(
+                            "JSON document %s requires a String value at the path %s in order to resolve document ID, found %s. Batch write failed.",
+                            jsonNode, p, nodeDes);
+                    throw new ErrorCodeRuntimeException(
+                        ErrorCode.DOCS_API_WRITE_BATCH_INVALID_ID_PATH, format);
+                  }
+                  return node.textValue();
+                })
+            .orElseGet(() -> UUID.randomUUID().toString());
+  }
+
   // checks that node is in alignment with schema if exists
   private void checkSchemaOnWrite(
       DocumentDB db, String namespace, String collection, JsonNode root) {
@@ -1069,7 +1224,7 @@ public class ReactiveDocumentService {
   }
 
   // reads JSON payload
-  private JsonNode readPayload(String payload) throws JsonProcessingException {
+  private JsonNode readPayload(String payload) {
     try {
       return objectMapper.readTree(payload);
     } catch (JsonProcessingException e) {

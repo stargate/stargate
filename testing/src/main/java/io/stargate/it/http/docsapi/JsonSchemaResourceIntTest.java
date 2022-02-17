@@ -134,13 +134,18 @@ public class JsonSchemaResourceIntTest extends BaseIntegrationTest {
       assertThat(OBJECT_MAPPER.readTree(r).requiredAt("/schema"))
           .isEqualTo(OBJECT_MAPPER.readTree(body));
 
-      // test valid doc insert and update
+      // test valid doc insert, update and batch
       String validDoc = "{\"id\":1, \"name\":\"a\", \"price\":1}";
       RestUtils.post(authToken, getCollectionPath(keyspace) + "/" + collectionName, validDoc, 201);
       RestUtils.put(
           authToken, getCollectionPath(keyspace) + "/" + collectionName + "/1", validDoc, 200);
+      RestUtils.post(
+          authToken,
+          getCollectionPath(keyspace) + "/" + collectionName + "/batch",
+          String.format("[%s,%s]", validDoc, validDoc),
+          202);
 
-      // test invalid doc insert and update
+      // test invalid doc insert, update and batch
       String invalidDoc = "{\"id\":1, \"price\":1}";
       String insertResult =
           RestUtils.post(
@@ -151,9 +156,16 @@ public class JsonSchemaResourceIntTest extends BaseIntegrationTest {
               getCollectionPath(keyspace) + "/" + collectionName + "/1",
               invalidDoc,
               400);
+      String batchResult =
+          RestUtils.post(
+              authToken,
+              getCollectionPath(keyspace) + "/" + collectionName + "/batch",
+              String.format("[%s,%s]", validDoc, invalidDoc),
+              400);
 
       assertThat(insertResult)
           .isEqualTo(updateResult)
+          .isEqualTo(batchResult)
           .isEqualTo(
               "{\"description\":\"Invalid JSON: [object has missing required properties ([\\\"name\\\"])]\",\"code\":400}");
     }
