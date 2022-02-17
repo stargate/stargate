@@ -21,13 +21,26 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.DbActivator;
 import io.stargate.db.Persistence;
 import io.stargate.grpc.impl.GrpcImpl;
-import java.util.Arrays;
+import io.stargate.grpc.metrics.api.GrpcMetricsTagProvider;
+import io.stargate.grpc.metrics.api.NoopGrpcMetricsTagProvider;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
-import org.jetbrains.annotations.Nullable;
+import java.util.Optional;
 
 public class GrpcActivator extends BaseActivator {
+
+  /**
+   * Id if the {@link io.stargate.grpc.metrics.api.GrpcMetricsTagProvider}. If not set, this
+   * activator will register a default impl.
+   */
+  private static final String GRPC_TAG_PROVIDER_ID =
+      System.getProperty("stargate.metrics.grpc_tag_provider.id");
+
   private GrpcImpl grpc;
   private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
+  private final ServicePointer<GrpcMetricsTagProvider> grpcTagProvider =
+      ServicePointer.create(GrpcMetricsTagProvider.class);
   private final ServicePointer<AuthenticationService> authentication =
       ServicePointer.create(
           AuthenticationService.class,
@@ -40,16 +53,21 @@ public class GrpcActivator extends BaseActivator {
     super("gRPC", true);
   }
 
-  @Nullable
   @Override
-  protected ServiceAndProperties createService() {
+  protected List<ServiceAndProperties> createServices() {
     if (grpc != null) { // Already started
       return null;
     }
-    grpc = new GrpcImpl(persistence.get(), metrics.get(), authentication.get());
+
+    GrpcMetricsTagProvider grpcMetricsTagProvider =
+        Optional.ofNullable(grpcTagProvider.get()).orElseGet(NoopGrpcMetricsTagProvider::new);
+
+    grpc =
+        new GrpcImpl(
+            persistence.get(), metrics.get(), authentication.get(), grpcMetricsTagProvider);
     grpc.start();
 
-    return null;
+    return Collections.emptyList();
   }
 
   @Override
@@ -63,6 +81,16 @@ public class GrpcActivator extends BaseActivator {
 
   @Override
   protected List<ServicePointer<?>> dependencies() {
-    return Arrays.asList(metrics, persistence, authentication);
+    ArrayList<ServicePointer<?>> dependencies = new ArrayList<>();
+    dependencies.add(metrics);
+    dependencies.add(persistence);
+    dependencies.add(authentication);
+
+    // depend on the gRPC tag provider only if it's set
+    if (null != GRPC_TAG_PROVIDER_ID) {
+      dependencies.add(grpcTagProvider);
+    }
+
+    return dependencies;
   }
 }

@@ -4,6 +4,7 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.functions.Function;
 import io.stargate.auth.UnauthorizedException;
@@ -15,6 +16,7 @@ import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.models.BuiltInApiFunction;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
+import io.stargate.web.docsapi.models.MultiDocsResponse;
 import io.stargate.web.docsapi.models.dto.ExecuteBuiltInFunction;
 import io.stargate.web.docsapi.resources.async.AsyncObserver;
 import io.stargate.web.docsapi.resources.error.ErrorHandler;
@@ -137,7 +139,7 @@ public class ReactiveDocumentResourceV2 {
     Single.fromCallable(
             () -> createOrValidateDbFromToken(authToken, request, namespace, collection))
 
-        // then generate id and create execution context
+        // then create execution context
         .flatMap(
             db -> {
               ExecutionContext context = ExecutionContext.create(profile);
@@ -155,6 +157,75 @@ public class ReactiveDocumentResourceV2 {
                                 namespace, collection, result.getDocumentId());
                         String response = objectMapper.writeValueAsString(result);
                         return Response.created(URI.create(url)).entity(response).build();
+                      });
+            })
+
+        // then subscribe
+        .safeSubscribe(
+            AsyncObserver.forResponseWithHandler(
+                asyncResponse, ErrorHandler.EXCEPTION_TO_RESPONSE));
+  }
+
+  @POST
+  @ManagedAsync
+  @ApiOperation(
+      value = "Write multiple documents in one request",
+      notes =
+          "Auto-generates an ID for the newly created document if an `idPath` is not provided as a query parameter. When an `idPath` is provided, this operation is idempotent. Note that this batch operation is not atomic and is not ordered. Any exception that happens during the write of one of the documents, does not influence the insertion of other documents. It's responsibility of the caller to examine the returned JSON and understand what documents were successfully written.",
+      code = 202)
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 202, message = "Accepted", response = MultiDocsResponse.class),
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
+      })
+  @Path("collections/{collection-id}/batch")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  public void writeManyDocs(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "A JSON array where each element is a document to write", required = true)
+          @NonNull
+          String payload,
+      @ApiParam(
+              value =
+                  "The path where an ID could be found in each document. If defined, the value at this path will be used as the ID for each document. Otherwise, a random UUID will be given for each document.",
+              required = false)
+          @QueryParam("id-path")
+          String idPath,
+      @QueryParam("profile") Boolean profile,
+      @Context HttpServletRequest request,
+      @Suspended AsyncResponse asyncResponse) {
+    // create table if needed, if not validate it's a doc table
+    Single.fromCallable(
+            () -> createOrValidateDbFromToken(authToken, request, namespace, collection))
+
+        // then create execution context
+        .flatMap(
+            db -> {
+              ExecutionContext context = ExecutionContext.create(profile);
+
+              // and call the document service to fire batch write
+              return reactiveDocumentService
+                  .writeDocuments(db, namespace, collection, payload, idPath, context)
+
+                  // map to response
+                  .map(
+                      result -> {
+                        String response = objectMapper.writeValueAsString(result);
+                        return Response.accepted(response).build();
                       });
             })
 

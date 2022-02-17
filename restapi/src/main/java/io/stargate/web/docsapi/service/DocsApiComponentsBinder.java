@@ -18,7 +18,6 @@ public class DocsApiComponentsBinder extends AbstractBinder {
     bindAsContract(JsonDocumentShredder.class).in(Singleton.class);
     bindAsContract(DocsShredder.class).in(Singleton.class);
     bindAsContract(DocsSchemaChecker.class).in(Singleton.class);
-    bindAsContract(DocumentService.class).in(Singleton.class);
     bindAsContract(CollectionService.class).in(Singleton.class);
     bindAsContract(JsonSchemaHandler.class).in(Singleton.class);
     bindAsContract(ExpressionParser.class).in(Singleton.class);

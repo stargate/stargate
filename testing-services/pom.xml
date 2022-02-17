@@ -28,6 +28,12 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
+    <dependency>
+      <groupId>io.stargate.grpc</groupId>
+      <artifactId>grpc</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
@@ -51,7 +57,9 @@
               io.stargate.core.*,
               io.stargate.db,
               io.stargate.db.*,
+              io.stargate.grpc.metrics.*,
               io.micrometer.core.*,
+              io.grpc.*,
             ]]></Import-Package>
             <Export-Package>!*</Export-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
