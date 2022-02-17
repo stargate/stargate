@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.http.BaseRestApiTest;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.models.Credentials;
