@@ -73,10 +73,10 @@ public class GrpcImpl {
             // `Persistence` operations are done asynchronously so there isn't a need for a separate
             // thread pool for handling gRPC callbacks in `GrpcService`.
             .directExecutor()
-            .intercept(new NewConnectionInterceptor(persistence, authenticationService))
             .intercept(
                 new TaggingMetricCollectingServerInterceptor(
                     metrics.getMeterRegistry(), grpcMetricsTagProvider))
+            .intercept(new NewConnectionInterceptor(persistence, authenticationService))
             .addService(new GrpcService(persistence, executor))
             .build();
   }
