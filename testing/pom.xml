@@ -87,6 +87,28 @@
       <version>3.11</version>
     </dependency>
 
+    <!-- DynamoDB dependencies -->
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>aws-java-sdk-dynamodb</artifactId>
+      <version>1.11.477</version>
+    </dependency>
+    <dependency>
+      <groupId>com.amazonaws</groupId>
+      <artifactId>DynamoDBLocal</artifactId>
+      <version>1.11.477</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.eclipse.jetty</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+
     <!-- Other dependencies, note that these are not in the test scope -->
     <dependency>
       <groupId>io.grpc</groupId>
@@ -242,8 +264,29 @@
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
+          <argLine>-Dsqlite4java.library.path=${basedir}/target/dependencies</argLine>
           <skipTests>true</skipTests>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>2.10</version>
+        <executions>
+          <execution>
+            <id>copy-dependencies</id>
+            <phase>process-test-resources</phase>
+            <goals>
+              <goal>copy-dependencies</goal>
+            </goals>
+            <configuration>
+              <outputDirectory>${project.build.directory}/dependencies</outputDirectory>
+              <overWriteReleases>false</overWriteReleases>
+              <overWriteSnapshots>false</overWriteSnapshots>
+              <overWriteIfNewer>true</overWriteIfNewer>
+            </configuration>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>
@@ -264,6 +307,7 @@
           <systemPropertyVariables>
             <stargate.libdir>${basedir}/../stargate-lib</stargate.libdir>
             <stargate.rest.libdir>${basedir}/../stargate-lib/rest</stargate.rest.libdir>
+            <stargate.dynamo.libdir>${basedir}/../stargate-lib/dynamo</stargate.dynamo.libdir>
             <jacoco-agent.destfile>${project.build.directory}/jacoco-it.exec</jacoco-agent.destfile>
             <jacoco-agent.args>${failsafe.jacoco.args}</jacoco-agent.args>
           </systemPropertyVariables>
@@ -323,20 +367,20 @@
         <artifactId>maven-dependency-plugin</artifactId>
         <executions>
           <!-- Unpack all classes for all stargate dependencies, otherwise jacoco ignores classes it cant find in this module -->
-          <execution>
-            <id>unpack</id>
-            <phase>package</phase>
-            <goals>
-              <goal>unpack-dependencies</goal>
-            </goals>
-            <configuration>
-              <includes>**/io/stargate/**/*.class</includes>
-              <excludes>**/*.properties</excludes>
-              <outputDirectory>${project.build.directory}/classes</outputDirectory>
-              <overWriteReleases>false</overWriteReleases>
-              <overWriteSnapshots>true</overWriteSnapshots>
-            </configuration>
-          </execution>
+<!--          <execution>-->
+<!--            <id>unpack</id>-->
+<!--            <phase>package</phase>-->
+<!--            <goals>-->
+<!--              <goal>unpack-dependencies</goal>-->
+<!--            </goals>-->
+<!--            <configuration>-->
+<!--              <includes>**/io/stargate/**/*.class</includes>-->
+<!--              <excludes>*:dll*</excludes>-->
+<!--              <outputDirectory>${project.build.directory}/classes</outputDirectory>-->
+<!--              <overWriteReleases>false</overWriteReleases>-->
+<!--              <overWriteSnapshots>true</overWriteSnapshots>-->
+<!--            </configuration>-->
+<!--          </execution>-->
           <!-- Add the testing-services bundle for integration tests -->
           <execution>
             <id>copy-testing-services</id>

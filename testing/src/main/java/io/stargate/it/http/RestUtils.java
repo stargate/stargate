@@ -50,14 +50,14 @@ public class RestUtils {
         .build();
   }
 
-  public static String get(String authToken, String path, int expectedStatusCode)
+  public static String get(
+      String authHeaderName, String authToken, String path, int expectedStatusCode)
       throws IOException {
     OkHttpClient client = client();
 
     Request request;
     if (authToken != null) {
-      request =
-          new Request.Builder().url(path).get().addHeader("X-Cassandra-Token", authToken).build();
+      request = new Request.Builder().url(path).get().addHeader(authHeaderName, authToken).build();
     } else {
       request = new Request.Builder().url(path).get().build();
     }
@@ -79,6 +79,11 @@ public class RestUtils {
     assertThat(body).isNotNull();
 
     return body.string();
+  }
+
+  public static String get(String authToken, String path, int expectedStatusCode)
+      throws IOException {
+    return get("X-Cassandra-Token", authToken, path, expectedStatusCode);
   }
 
   public static String postWithHeader(

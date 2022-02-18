@@ -28,6 +28,12 @@ jobs:
           - module: core
             args: ""
             name: core
+#          - module: testing
+#            args: "-Dit.test=\"**/http/dynamo/*\""
+#            name: dynamo
+#          - module: testing
+#            args: "-Dit.test=\"**/http/*\""
+#            name: rest
     steps:
       - uses: actions/setup-python@v2
         with:
@@ -37,11 +43,12 @@ jobs:
       - run: |
           echo '127.0.1.11 internal-stargate.local' | sudo tee -a /etc/hosts
           echo '127.0.1.12 internal-stargate.local' | sudo tee -a /etc/hosts
+          echo '127.0.2.1 internal-stargate.local' | sudo tee -a /etc/hosts
       - uses: actions/setup-java@v1
         with:
           java-version: 8
       - run: mvn clean install -DskipTests=true
-      - run: mvn verify --projects ${{ matrix.module }} -Pdefault -Pit-cassandra-3.11 ${{ matrix.args }}
+      - run: mvn verify --projects ${{ matrix.module }} -Pit-cassandra-3.11 ${{ matrix.args }}
       - uses: actions/upload-artifact@v2
         with:
           name: jacoco-reports
