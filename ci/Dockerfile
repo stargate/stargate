@@ -48,6 +48,6 @@ RUN git clone --branch master --single-branch https://github.com/riptano/ccm.git
 # Create clusters to pre-download necessary artifacts
 RUN ccm create -v 4.0.1 stargate_40 && ccm remove stargate_40
 RUN ccm create -v 3.11.11 stargate_311 && ccm remove stargate_311
-RUN ccm create -v 6.8.16 --dse stargate_dse68 && ccm remove stargate_dse68
+RUN ccm create -v 6.8.20 --dse stargate_dse68 && ccm remove stargate_dse68
 
 CMD ["/bin/bash"]
