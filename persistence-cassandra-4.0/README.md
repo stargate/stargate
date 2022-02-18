@@ -8,6 +8,7 @@ The current Cassandra version this module depends on is `4.0.3`.
 In order to update to a newer patch version, please follow the guidelines below:
 
 * Update the `cassandra.version` property in the [pom.xml](pom.xml).
+* Update the `ccm.version` property (`it-cassandra-4.0` profile section) in [testing/pom.xml](testing/pom.xml)
 * Check the transitive dependencies of the `org.apache.cassandra:cassandra-all` for the new version.
 Make sure that the version of the `com.datastax.cassandra:cassandra-driver-core` that `cassandra-all` depends on, is same as in the `cassandra.bundled-driver.version` property in the [pom.xml](pom.xml).
 This dependency is set as optional in the `cassandra-all`, but we need it to correctly handle UDFs.
@@ -19,4 +20,4 @@ Note that this will have no effect until the docker image is rebuilt and pushed 
 
 It's always good to validate your work against the pull requests that bumped the version in the past:
 
-* `4.0.1 -> 4.0.3` [stargate/stargate#1647](https://github.com/stargate/stargate/pull/1647)
+* `4.0.1` -> `4.0.3` [stargate/stargate#1647](https://github.com/stargate/stargate/pull/1647)
