@@ -33,6 +33,7 @@ import io.stargate.proto.Schema;
 import io.stargate.proto.Schema.AuthorizeSchemaReadsRequest;
 import io.stargate.proto.Schema.CqlKeyspace;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.proto.Schema.DocumentsResponse;
 import io.stargate.proto.Schema.SchemaRead;
 import io.stargate.proto.Schema.SchemaRead.SourceApi;
 import io.stargate.proto.StargateBridgeGrpc;
@@ -174,6 +175,14 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
             callOptions,
             AuthorizeSchemaReadsRequest.newBuilder().addAllSchemaReads(schemaReads).build())
         .getAuthorizedList();
+  }
+
+  @Override
+  public DocumentsResponse queryDocumentCollection(Schema.QueryDocumentParams request) {
+    // TODO this can likely be changed to some sort of async call
+    return ClientCalls.blockingUnaryCall(
+            channel, StargateBridgeGrpc.getQueryDocumentCollectionMethod(), callOptions, request)
+        .getDefaultInstanceForType();
   }
 
   private List<String> getKeyspaceNames(List<String> accumulator, BytesValue pagingState) {

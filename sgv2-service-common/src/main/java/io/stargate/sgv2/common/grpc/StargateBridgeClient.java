@@ -20,6 +20,8 @@ import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.CqlTable;
+import io.stargate.proto.Schema.DocumentsResponse;
+import io.stargate.proto.Schema.QueryDocumentParams;
 import io.stargate.proto.Schema.SchemaRead;
 import java.util.Collections;
 import java.util.List;
@@ -92,4 +94,7 @@ public interface StargateBridgeClient {
   default boolean authorizeSchemaRead(SchemaRead schemaRead) {
     return authorizeSchemaReads(Collections.singletonList(schemaRead)).get(0);
   }
+
+  /** Executes a Document Collection search query. */
+  DocumentsResponse queryDocumentCollection(QueryDocumentParams request);
 }
