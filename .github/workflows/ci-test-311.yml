@@ -1,0 +1,48 @@
+name: Cassandra 3.11 Test
+
+on:
+  pull_request:
+    paths-ignore:
+      - '*.md'
+  push:
+    branches:
+      - master
+      - v2.0.0
+      - feature/dynamodb-api
+    paths-ignore:
+      - '*.md'
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - module: persistence-cassandra-3.11
+            args: ""
+            name: persistence-cassandra-3.11
+          - module: sgv2-service-common
+            args: ""
+            name: sgv2-service-common
+          - module: core
+            args: ""
+            name: core
+    steps:
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.x'
+      - run: pip install ccm
+      - uses: actions/checkout@v2
+      - run: |
+          echo '127.0.1.11 internal-stargate.local' | sudo tee -a /etc/hosts
+          echo '127.0.1.12 internal-stargate.local' | sudo tee -a /etc/hosts
+      - uses: actions/setup-java@v1
+        with:
+          java-version: 8
+      - run: mvn clean install -DskipTests=true
+      - run: mvn verify --projects ${{ matrix.module }} -Pdefault -Pit-cassandra-3.11 ${{ matrix.args }}
+      - uses: actions/upload-artifact@v2
+        with:
+          name: jacoco-reports
+          path: target/jacoco-combined.exec
