@@ -31,7 +31,11 @@ public interface BuiltCondition {
   Term<?> value();
 
   static BuiltCondition of(String columnName, Predicate predicate, Object value) {
-    return of(LHS.column(columnName), predicate, Term.of(value));
+    return of(columnName, predicate, Term.of(value));
+  }
+
+  static BuiltCondition of(String columnName, Predicate predicate, Term<?> value) {
+    return of(LHS.column(columnName), predicate, value);
   }
 
   static BuiltCondition ofMarker(String columnName, Predicate predicate) {
@@ -120,7 +124,7 @@ public interface BuiltCondition {
       private final String columnName;
       private final Term<?> keyValue;
 
-      private MapElement(String columnName, Term<?> keyValue) {
+      MapElement(String columnName, Term<?> keyValue) {
         this.columnName = columnName;
         this.keyValue = keyValue;
       }

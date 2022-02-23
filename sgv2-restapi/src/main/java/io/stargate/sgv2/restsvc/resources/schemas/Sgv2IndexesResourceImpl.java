@@ -56,14 +56,15 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
     // check that we're authorized for the table
     bridge.getTable(keyspaceName, tableName);
 
-    String cql =
+    Query query =
         new QueryBuilder()
             .select()
             .from("system_schema", "indexes")
             .where("keyspace_name", Predicate.EQ, keyspaceName)
             .where("table_name", Predicate.EQ, tableName)
+            .parameters(parametersBuilderForLocalQuorum().build())
             .build();
-    return fetchRows(bridge, -1, null, true, cql, null);
+    return fetchRows(bridge, query, true);
   }
 
   @Override
@@ -96,7 +97,7 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
                     String.format("Column '%s' not found in table.", columnName),
                     Status.NOT_FOUND));
 
-    String cql =
+    Query query =
         new QueryBuilder()
             .create()
             .index(indexAdd.getName())
@@ -106,7 +107,7 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
             .indexingType(indexAdd.getKind())
             .custom(indexAdd.getType(), indexAdd.getOptions())
             .build();
-    bridge.executeQuery(Query.newBuilder().setCql(cql).build());
+    bridge.executeQuery(query);
 
     Map<String, Object> responsePayload = Collections.singletonMap("success", true);
     return Response.status(Status.CREATED).entity(responsePayload).build();
@@ -140,9 +141,9 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
           String.format("Index '%s' not found.", indexName), Status.NOT_FOUND);
     }
 
-    String cql =
+    Query query =
         new QueryBuilder().drop().index(keyspaceName, indexName).ifExists(ifExists).build();
-    bridge.executeQuery(Query.newBuilder().setCql(cql).build());
+    bridge.executeQuery(query);
 
     return Response.status(Status.NO_CONTENT).build();
   }

@@ -29,7 +29,11 @@ public interface ValueModifier {
   Term<?> value();
 
   static ValueModifier set(String columnName, Object value) {
-    return of(Target.column(columnName), Operation.SET, Term.of(value));
+    return set(columnName, Term.of(value));
+  }
+
+  static ValueModifier set(String columnName, Term<?> value) {
+    return of(Target.column(columnName), Operation.SET, value);
   }
 
   static ValueModifier marker(String columnName) {

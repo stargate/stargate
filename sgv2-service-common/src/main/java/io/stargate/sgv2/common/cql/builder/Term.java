@@ -24,8 +24,4 @@ public interface Term<T> {
   static <T> Term<T> of(T value) {
     return new Literal<>(value);
   }
-
-  boolean isMarker();
-
-  T get();
 }

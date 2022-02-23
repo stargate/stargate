@@ -71,17 +71,14 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
                   .kind(kind)
                   .type(columnDefinition.getTypeDefinition())
                   .build();
-          String cql =
+          QueryOuterClass.Query query =
               new QueryBuilder()
                   .alter()
                   .table(keyspaceName, tableName)
                   .addColumn(columnDef)
+                  .parameters(parametersForLocalQuorum())
                   .build();
-          bridge.executeQuery(
-              QueryOuterClass.Query.newBuilder()
-                  .setParameters(parametersForLocalQuorum())
-                  .setCql(cql)
-                  .build());
+          bridge.executeQuery(query);
 
           return Response.status(Response.Status.CREATED)
               .entity(Collections.singletonMap("name", columnName))
@@ -145,17 +142,14 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
           }
           // Avoid call if there is no need to rename
           if (!columnName.equals(newName)) {
-            String cql =
+            QueryOuterClass.Query query =
                 new QueryBuilder()
                     .alter()
                     .table(keyspaceName, tableName)
                     .renameColumn(columnName, newName)
+                    .parameters(parametersForLocalQuorum())
                     .build();
-            bridge.executeQuery(
-                QueryOuterClass.Query.newBuilder()
-                    .setParameters(parametersForLocalQuorum())
-                    .setCql(cql)
-                    .build());
+            bridge.executeQuery(query);
           }
           return Response.status(Response.Status.OK)
               .entity(Collections.singletonMap("name", newName))
@@ -185,17 +179,14 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
                 String.format("column '%s' not found in table '%s'", columnName, tableName),
                 Response.Status.BAD_REQUEST);
           }
-          String cql =
+          QueryOuterClass.Query query =
               new QueryBuilder()
                   .alter()
                   .table(keyspaceName, tableName)
                   .dropColumn(columnName)
+                  .parameters(parametersForLocalQuorum())
                   .build();
-          bridge.executeQuery(
-              QueryOuterClass.Query.newBuilder()
-                  .setParameters(parametersForLocalQuorum())
-                  .setCql(cql)
-                  .build());
+          bridge.executeQuery(query);
           return Response.status(Response.Status.NO_CONTENT).build();
         });
   }

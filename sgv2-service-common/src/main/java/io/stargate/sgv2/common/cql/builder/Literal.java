@@ -23,12 +23,6 @@ class Literal<T> implements Term<T> {
     this.value = value;
   }
 
-  @Override
-  public boolean isMarker() {
-    return false;
-  }
-
-  @Override
   public T get() {
     return value;
   }

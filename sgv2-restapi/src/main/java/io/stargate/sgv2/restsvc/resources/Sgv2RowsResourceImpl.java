@@ -79,36 +79,36 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         (tableDef) -> {
           final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
 
-          final QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
           final List<BuiltCondition> whereConditions;
           try {
-            whereConditions =
-                new WhereParser(tableDef, toProtoConverter).parseWhere(where, valuesBuilder);
+            whereConditions = new WhereParser(tableDef, toProtoConverter).parseWhere(where);
           } catch (IllegalArgumentException e) {
             throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
           }
 
-          final String cql;
+          final QueryOuterClass.Query query;
           if (columns.isEmpty()) {
-            cql =
+            query =
                 new QueryBuilder()
                     .select()
                     .star()
                     .from(keyspaceName, tableName)
                     .where(whereConditions)
                     .orderBy(sortOrder)
+                    .parameters(parameters(pageSizeParam, pageStateParam).build())
                     .build();
           } else {
-            cql =
+            query =
                 new QueryBuilder()
                     .select()
                     .column(columns)
                     .from(keyspaceName, tableName)
                     .where(whereConditions)
                     .orderBy(sortOrder)
+                    .parameters(parameters(pageSizeParam, pageStateParam).build())
                     .build();
           }
-          return fetchRows(bridge, pageSizeParam, pageStateParam, raw, cql, valuesBuilder);
+          return fetchRows(bridge, query, raw);
         });
   }
 
@@ -140,9 +140,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         tableName,
         (tableDef) -> {
           final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
-          QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
-
-          final String cql =
+          final QueryOuterClass.Query query =
               buildGetRowsByPKCQL(
                   keyspaceName,
                   tableName,
@@ -150,9 +148,10 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
                   columns,
                   sortOrder,
                   tableDef,
-                  valuesBuilder,
+                  pageSizeParam,
+                  pageStateParam,
                   toProtoConverter);
-          return fetchRows(bridge, pageSizeParam, pageStateParam, raw, cql, valuesBuilder);
+          return fetchRows(bridge, query, raw);
         });
   }
 
@@ -175,25 +174,27 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     } catch (IllegalArgumentException e) {
       throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
     }
-    final String cql;
+    final QueryOuterClass.Query query;
     if (columns.isEmpty()) {
-      cql =
+      query =
           new QueryBuilder()
               .select()
               .star()
               .from(keyspaceName, tableName)
               .orderBy(sortOrder)
+              .parameters(parameters(pageSizeParam, pageStateParam).build())
               .build();
     } else {
-      cql =
+      query =
           new QueryBuilder()
               .select()
               .column(columns)
               .from(keyspaceName, tableName)
               .orderBy(sortOrder)
+              .parameters(parameters(pageSizeParam, pageStateParam).build())
               .build();
     }
-    return fetchRows(bridge, pageSizeParam, pageStateParam, raw, cql, null);
+    return fetchRows(bridge, query, raw);
   }
 
   @Override
@@ -218,22 +219,13 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         tableName,
         (tableDef) -> {
           final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
-          QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
 
-          final String cql;
+          final QueryOuterClass.Query query;
           try {
-            cql =
-                buildAddRowCQL(
-                    keyspaceName, tableName, payloadMap, valuesBuilder, toProtoConverter);
+            query = buildAddRowCQL(keyspaceName, tableName, payloadMap, toProtoConverter);
           } catch (IllegalArgumentException e) {
             throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
           }
-          final QueryOuterClass.Query query =
-              QueryOuterClass.Query.newBuilder()
-                  .setParameters(parametersForLocalQuorum())
-                  .setCql(cql)
-                  .setValues(valuesBuilder.build())
-                  .build();
 
           QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
           // apparently no useful data in ResultSet, we should simply return payload we got:
@@ -267,18 +259,9 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         tableName,
         (tableDef) -> {
           final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
-          QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
-
-          final String cql =
-              buildDeleteRowsByPKCQL(
-                  keyspaceName, tableName, path, tableDef, valuesBuilder, toProtoConverter);
 
           final QueryOuterClass.Query query =
-              QueryOuterClass.Query.newBuilder()
-                  .setParameters(parametersForLocalQuorum())
-                  .setCql(cql)
-                  .setValues(valuesBuilder.build())
-                  .build();
+              buildDeleteRowsByPKCQL(keyspaceName, tableName, path, tableDef, toProtoConverter);
 
           /*QueryOuterClass.Response grpcResponse =*/
           bridge.executeQuery(query);
@@ -321,28 +304,15 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         tableName,
         (tableDef) -> {
           final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
-          QueryOuterClass.Values.Builder valuesBuilder = QueryOuterClass.Values.newBuilder();
 
-          final String cql;
+          final QueryOuterClass.Query query;
           try {
-            cql =
+            query =
                 buildUpdateRowCQL(
-                    keyspaceName,
-                    tableName,
-                    path,
-                    tableDef,
-                    payloadMap,
-                    valuesBuilder,
-                    toProtoConverter);
+                    keyspaceName, tableName, path, tableDef, payloadMap, toProtoConverter);
           } catch (IllegalArgumentException e) {
             throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
           }
-          final QueryOuterClass.Query query =
-              QueryOuterClass.Query.newBuilder()
-                  .setParameters(parametersForLocalQuorum())
-                  .setCql(cql)
-                  .setValues(valuesBuilder.build())
-                  .build();
 
           QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
           // apparently no useful data in ResultSet, we should simply return payload we got:
@@ -357,14 +327,15 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
   /////////////////////////////////////////////////////////////////////////
    */
 
-  protected String buildGetRowsByPKCQL(
+  protected QueryOuterClass.Query buildGetRowsByPKCQL(
       String keyspaceName,
       String tableName,
       List<PathSegment> pkValues,
       List<Column> columns,
       Map<String, Column.Order> sortOrder,
       Schema.CqlTable tableDef,
-      QueryOuterClass.Values.Builder valuesBuilder,
+      int pageSizeParam,
+      String pageStateParam,
       ToProtoConverter toProtoConverter) {
     final int keysIncluded = pkValues.size();
     final List<QueryOuterClass.ColumnSpec> primaryKeys =
@@ -374,8 +345,8 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final String keyValue = pkValues.get(i).getPath();
       QueryOuterClass.ColumnSpec column = primaryKeys.get(i);
       final String fieldName = column.getName();
-      whereConditions.add(BuiltCondition.ofMarker(fieldName, Predicate.EQ));
-      valuesBuilder.addValues(toProtoConverter.protoValueFromStringified(fieldName, keyValue));
+      QueryOuterClass.Value value = toProtoConverter.protoValueFromStringified(fieldName, keyValue);
+      whereConditions.add(BuiltCondition.of(fieldName, Predicate.EQ, value));
     }
 
     if (columns.isEmpty()) {
@@ -385,6 +356,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
           .from(keyspaceName, tableName)
           .where(whereConditions)
           .orderBy(sortOrder)
+          .parameters(parameters(pageSizeParam, pageStateParam).build())
           .build();
     }
     return new QueryBuilder()
@@ -393,15 +365,15 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         .from(keyspaceName, tableName)
         .where(whereConditions)
         .orderBy(sortOrder)
+        .parameters(parameters(pageSizeParam, pageStateParam).build())
         .build();
   }
 
-  private String buildDeleteRowsByPKCQL(
+  private QueryOuterClass.Query buildDeleteRowsByPKCQL(
       String keyspaceName,
       String tableName,
       List<PathSegment> pkValues,
       Schema.CqlTable tableDef,
-      QueryOuterClass.Values.Builder valuesBuilder,
       ToProtoConverter toProtoConverter) {
     final int keysIncluded = pkValues.size();
     final List<QueryOuterClass.ColumnSpec> primaryKeys =
@@ -412,11 +384,16 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final String keyValue = pkValues.get(i).getPath();
       QueryOuterClass.ColumnSpec column = primaryKeys.get(i);
       final String fieldName = column.getName();
-      whereConditions.add(BuiltCondition.ofMarker(fieldName, Predicate.EQ));
-      valuesBuilder.addValues(toProtoConverter.protoValueFromStringified(fieldName, keyValue));
+      QueryOuterClass.Value value = toProtoConverter.protoValueFromStringified(fieldName, keyValue);
+      whereConditions.add(BuiltCondition.of(fieldName, Predicate.EQ, value));
     }
 
-    return new QueryBuilder().delete().from(keyspaceName, tableName).where(whereConditions).build();
+    return new QueryBuilder()
+        .delete()
+        .from(keyspaceName, tableName)
+        .where(whereConditions)
+        .parameters(parametersForLocalQuorum())
+        .build();
   }
 
   private List<QueryOuterClass.ColumnSpec> getAndValidatePrimaryKeys(
@@ -441,32 +418,32 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     return primaryKeys;
   }
 
-  protected String buildAddRowCQL(
+  protected QueryOuterClass.Query buildAddRowCQL(
       String keyspaceName,
       String tableName,
       Map<String, Object> payloadMap,
-      QueryOuterClass.Values.Builder valuesBuilder,
       ToProtoConverter toProtoConverter) {
     List<ValueModifier> valueModifiers = new ArrayList<>(payloadMap.size());
     for (Map.Entry<String, Object> entry : payloadMap.entrySet()) {
       final String columnName = entry.getKey();
-      valueModifiers.add(ValueModifier.marker(columnName));
-      valuesBuilder.addValues(
-          toProtoConverter.protoValueFromLooselyTyped(columnName, entry.getValue()));
+      QueryOuterClass.Value value =
+          toProtoConverter.protoValueFromLooselyTyped(columnName, entry.getValue());
+      valueModifiers.add(ValueModifier.set(columnName, value));
     }
-    return new QueryBuilder().insertInto(keyspaceName, tableName).value(valueModifiers).build();
+    return new QueryBuilder()
+        .insertInto(keyspaceName, tableName)
+        .value(valueModifiers)
+        .parameters(parametersForLocalQuorum())
+        .build();
   }
 
-  protected String buildUpdateRowCQL(
+  protected QueryOuterClass.Query buildUpdateRowCQL(
       String keyspaceName,
       String tableName,
       List<PathSegment> pkValues,
       Schema.CqlTable tableDef,
       Map<String, Object> payloadMap,
-      QueryOuterClass.Values.Builder valuesBuilder,
       ToProtoConverter toProtoConverter) {
-
-    // Need to process values in order they are included in query...
 
     Set<String> counters = findCounterNames(tableDef);
 
@@ -474,17 +451,17 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     List<ValueModifier> valueModifiers = new ArrayList<>(payloadMap.size());
     for (Map.Entry<String, Object> entry : payloadMap.entrySet()) {
       final String columnName = entry.getKey();
+      QueryOuterClass.Value value =
+          toProtoConverter.protoValueFromLooselyTyped(columnName, entry.getValue());
       // Special handling for counter updates, cannot Set
       ValueModifier mod =
           counters.contains(columnName)
               ? ValueModifier.of(
                   ValueModifier.Target.column(columnName),
                   ValueModifier.Operation.INCREMENT,
-                  Term.marker())
-              : ValueModifier.marker(columnName);
+                  Term.of(value))
+              : ValueModifier.set(columnName, value);
       valueModifiers.add(mod);
-      valuesBuilder.addValues(
-          toProtoConverter.protoValueFromLooselyTyped(columnName, entry.getValue()));
     }
 
     // Second, where clause from primary key
@@ -496,14 +473,16 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final String keyValue = pkValues.get(i).getPath();
       QueryOuterClass.ColumnSpec column = primaryKeys.get(i);
       final String columnName = column.getName();
-      whereConditions.add(BuiltCondition.ofMarker(columnName, Predicate.EQ));
-      valuesBuilder.addValues(toProtoConverter.protoValueFromStringified(columnName, keyValue));
+      QueryOuterClass.Value value =
+          toProtoConverter.protoValueFromStringified(columnName, keyValue);
+      whereConditions.add(BuiltCondition.of(columnName, Predicate.EQ, value));
     }
 
     return new QueryBuilder()
         .update(keyspaceName, tableName)
         .value(valueModifiers)
         .where(whereConditions)
+        .parameters(parametersForLocalQuorum())
         .build();
   }
 
