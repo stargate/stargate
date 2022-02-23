@@ -240,7 +240,7 @@
                             com.datastax.oss.driver.api.*,
                             com.datastax.oss.driver.shaded.guava.common.*,
                         ]]></Import-Package>
-            <Export-Package>io.stargate.web.docsapi.service</Export-Package>
+            <Export-Package>!*</Export-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
           </instructions>
           <buildDirectory>${project.basedir}/../stargate-lib</buildDirectory>

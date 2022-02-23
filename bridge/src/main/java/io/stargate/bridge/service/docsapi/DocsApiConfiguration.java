@@ -1,4 +1,4 @@
-package io.stargate.sgv2.docssvc.services;
+package io.stargate.bridge.service.docsapi;
 
 /** The configuration for the document API. */
 public interface DocsApiConfiguration {

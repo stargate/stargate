@@ -16,17 +16,16 @@
 package io.stargate.bridge.service;
 
 import io.grpc.stub.StreamObserver;
+import io.stargate.bridge.service.docsapi.QueryExecutor;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
-import io.stargate.web.docsapi.service.ExecutionContext;
-import io.stargate.web.docsapi.service.QueryExecutor;
-import java.util.ArrayList;
 
 class DocsCollectionSearchHandler {
 
   private final Schema.QueryDocumentParams request;
   private final Connection connection;
+  private final BridgeService bridgeService;
   private final QueryExecutor docsQueryExecutor;
   private final StreamObserver<Schema.DocumentsResponse> responseObserver;
 
@@ -34,10 +33,12 @@ class DocsCollectionSearchHandler {
       Schema.QueryDocumentParams request,
       Connection connection,
       QueryExecutor docsQueryExecutor,
+      BridgeService bridgeService,
       StreamObserver<Schema.DocumentsResponse> responseObserver) {
     this.request = request;
     this.connection = connection;
     this.docsQueryExecutor = docsQueryExecutor;
+    this.bridgeService = bridgeService;
     this.responseObserver = responseObserver;
   }
 
@@ -45,11 +46,10 @@ class DocsCollectionSearchHandler {
     Schema.DocumentsResponse.Builder response = Schema.DocumentsResponse.newBuilder();
     QueryOuterClass.Query q = request.getQuery();
     docsQueryExecutor.queryDocs(
-        new ArrayList<>(),
+        q.getCql(),
         request.getPageSize(),
         request.getExponentialSize(),
-        request.getPageState().asReadOnlyByteBuffer(),
-        ExecutionContext.NOOP_CONTEXT);
+        request.getPageState().asReadOnlyByteBuffer());
     responseObserver.onNext(response.build());
     responseObserver.onCompleted();
   }

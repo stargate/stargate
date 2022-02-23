@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.sgv2.docssvc.services;
+package io.stargate.bridge.service.docsapi;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import io.stargate.db.PagingPosition.ResumeMode;

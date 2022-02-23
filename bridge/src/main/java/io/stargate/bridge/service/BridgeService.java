@@ -17,6 +17,8 @@ package io.stargate.bridge.service;
 
 import io.grpc.stub.StreamObserver;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.bridge.service.docsapi.DocsApiConfiguration;
+import io.stargate.bridge.service.docsapi.QueryExecutor;
 import io.stargate.db.Persistence;
 import io.stargate.grpc.service.GrpcService;
 import io.stargate.grpc.service.SingleBatchHandler;
@@ -28,14 +30,14 @@ import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.Schema;
 import io.stargate.proto.StargateBridgeGrpc;
-import io.stargate.web.docsapi.service.QueryExecutor;
 import java.util.concurrent.ScheduledExecutorService;
 
 public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
 
   private final Persistence persistence;
   private final AuthorizationService authorizationService;
-  private final QueryExecutor docsQueryExecutor = null;
+  private final QueryExecutor docsQueryExecutor =
+      new QueryExecutor(this, DocsApiConfiguration.DEFAULT);
 
   private final ScheduledExecutorService executor;
   private final int schemaAgreementRetries;
@@ -120,7 +122,7 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
       Schema.QueryDocumentParams request,
       StreamObserver<Schema.DocumentsResponse> responseObserver) {
     new DocsCollectionSearchHandler(
-            request, GrpcService.CONNECTION_KEY.get(), docsQueryExecutor, responseObserver)
+            request, GrpcService.CONNECTION_KEY.get(), docsQueryExecutor, this, responseObserver)
         .handle();
   }
 }

@@ -14,10 +14,8 @@
  *  limitations under the License.
  */
 
-package io.stargate.sgv2.docssvc.services.query;
+package io.stargate.bridge.service.docsapi;
 
-import io.stargate.db.schema.Column;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
@@ -85,35 +83,35 @@ public interface DocsApiConstants {
    * Gets all the types of the columns, given a depth and whether you are treating booleans as
    * numeric
    */
-  BiFunction<Integer, Boolean, Column.ColumnType[]> ALL_COLUMNS_TYPES =
-      (depth, numericBools) -> {
-        Stream<Column.ColumnType> keyCol = Stream.of(Column.Type.Text);
-        Stream<Column.ColumnType> pColumns =
-            IntStream.range(0, depth).mapToObj(i -> Column.Type.Text);
-        Stream<Column.ColumnType> fixedColumns =
-            Stream.of(
-                Column.Type.Text,
-                Column.Type.Text,
-                Column.Type.Double,
-                numericBools ? Column.Type.Tinyint : Column.Type.Boolean);
-        Stream<Column.ColumnType> firstConcat = Stream.concat(keyCol, pColumns);
-        return Stream.concat(firstConcat, fixedColumns).toArray(Column.ColumnType[]::new);
-      };
+  //  BiFunction<Integer, Boolean, Column.ColumnType[]> ALL_COLUMNS_TYPES =
+  //      (depth, numericBools) -> {
+  //        Stream<Column.ColumnType> keyCol = Stream.of(Column.Type.Text);
+  //        Stream<Column.ColumnType> pColumns =
+  //            IntStream.range(0, depth).mapToObj(i -> Column.Type.Text);
+  //        Stream<Column.ColumnType> fixedColumns =
+  //            Stream.of(
+  //                Column.Type.Text,
+  //                Column.Type.Text,
+  //                Column.Type.Double,
+  //                numericBools ? Column.Type.Tinyint : Column.Type.Boolean);
+  //        Stream<Column.ColumnType> firstConcat = Stream.concat(keyCol, pColumns);
+  //        return Stream.concat(firstConcat, fixedColumns).toArray(Column.ColumnType[]::new);
+  //      };
 
   /** Gets all the types of the path columns */
-  Function<Integer, Column.ColumnType[]> ALL_PATH_COLUMNS_TYPES =
-      depth ->
-          IntStream.range(0, depth)
-              .mapToObj(i -> Column.Type.Text)
-              .toArray(Column.ColumnType[]::new);
-
-  /** Gets all columns */
-  BiFunction<Integer, Boolean, Column[]> ALL_COLUMNS =
-      (depth, numericBools) -> {
-        String[] colNames = ALL_COLUMNS_NAMES.apply(depth);
-        Column.ColumnType[] colTypes = ALL_COLUMNS_TYPES.apply(depth, numericBools);
-        return IntStream.range(0, depth + 5)
-            .mapToObj(i -> Column.create(colNames[i], colTypes[i]))
-            .toArray(Column[]::new);
-      };
+  //  Function<Integer, Column.ColumnType[]> ALL_PATH_COLUMNS_TYPES =
+  //      depth ->
+  //          IntStream.range(0, depth)
+  //              .mapToObj(i -> Column.Type.Text)
+  //              .toArray(Column.ColumnType[]::new);
+  //
+  //  /** Gets all columns */
+  //  BiFunction<Integer, Boolean, Column[]> ALL_COLUMNS =
+  //      (depth, numericBools) -> {
+  //        String[] colNames = ALL_COLUMNS_NAMES.apply(depth);
+  //        Column.ColumnType[] colTypes = ALL_COLUMNS_TYPES.apply(depth, numericBools);
+  //        return IntStream.range(0, depth + 5)
+  //            .mapToObj(i -> Column.create(colNames[i], colTypes[i]))
+  //            .toArray(Column[]::new);
+  //      };
 }

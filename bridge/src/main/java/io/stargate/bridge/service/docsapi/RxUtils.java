@@ -15,7 +15,7 @@
  *
  */
 
-package io.stargate.sgv2.docssvc.rx;
+package io.stargate.bridge.service.docsapi;
 
 import io.reactivex.rxjava3.core.Single;
 import java.util.concurrent.CompletableFuture;
