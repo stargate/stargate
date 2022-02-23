@@ -28,17 +28,17 @@ public interface BuiltCondition {
 
   Predicate predicate();
 
-  Value<?> value();
+  Term<?> value();
 
   static BuiltCondition of(String columnName, Predicate predicate, Object value) {
-    return of(LHS.column(columnName), predicate, Value.of(value));
+    return of(LHS.column(columnName), predicate, Term.of(value));
   }
 
   static BuiltCondition ofMarker(String columnName, Predicate predicate) {
-    return of(LHS.column(columnName), predicate, Value.marker());
+    return of(LHS.column(columnName), predicate, Term.marker());
   }
 
-  static BuiltCondition of(LHS lhs, Predicate predicate, Value<?> value) {
+  static BuiltCondition of(LHS lhs, Predicate predicate, Term<?> value) {
     return ImmutableBuiltCondition.builder().lhs(lhs).predicate(predicate).value(value).build();
   }
 
@@ -60,11 +60,11 @@ public interface BuiltCondition {
     }
 
     public static LHS mapAccess(String columnName, Object key) {
-      return new MapElement(columnName, Value.of(key));
+      return new MapElement(columnName, Term.of(key));
     }
 
     public static LHS mapAccess(String columnName) {
-      return new MapElement(columnName, Value.marker());
+      return new MapElement(columnName, Term.marker());
     }
 
     public static LHS columnTuple(String... columnNames) {
@@ -81,7 +81,7 @@ public interface BuiltCondition {
 
     abstract String columnName();
 
-    Optional<Value<?>> value() {
+    Optional<Term<?>> value() {
       return Optional.empty();
     }
 
@@ -118,9 +118,9 @@ public interface BuiltCondition {
 
     static final class MapElement extends LHS {
       private final String columnName;
-      private final Value<?> keyValue;
+      private final Term<?> keyValue;
 
-      private MapElement(String columnName, Value<?> keyValue) {
+      private MapElement(String columnName, Term<?> keyValue) {
         this.columnName = columnName;
         this.keyValue = keyValue;
       }
@@ -130,12 +130,12 @@ public interface BuiltCondition {
         return columnName;
       }
 
-      Value<?> keyValue() {
+      Term<?> keyValue() {
         return keyValue;
       }
 
       @Override
-      Optional<Value<?>> value() {
+      Optional<Term<?>> value() {
         return Optional.of(keyValue);
       }
 

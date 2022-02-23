@@ -285,7 +285,7 @@ public class QueryBuilderTest {
                   ValueModifier.of(
                       ValueModifier.Target.column("c"),
                       ValueModifier.Operation.PREPEND,
-                      Value.marker()))
+                      Term.marker()))
               .where("k", Predicate.EQ)
               .ifs("v", Predicate.GT)
               .ifExists()

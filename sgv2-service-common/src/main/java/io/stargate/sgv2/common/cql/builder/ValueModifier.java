@@ -26,17 +26,17 @@ public interface ValueModifier {
 
   Operation operation();
 
-  Value<?> value();
+  Term<?> value();
 
   static ValueModifier set(String columnName, Object value) {
-    return of(Target.column(columnName), Operation.SET, Value.of(value));
+    return of(Target.column(columnName), Operation.SET, Term.of(value));
   }
 
   static ValueModifier marker(String columnName) {
-    return of(Target.column(columnName), Operation.SET, Value.marker());
+    return of(Target.column(columnName), Operation.SET, Term.marker());
   }
 
-  static ValueModifier of(Target target, Operation operation, Value<?> value) {
+  static ValueModifier of(Target target, Operation operation, Term<?> value) {
     return ImmutableValueModifier.builder()
         .target(target)
         .operation(operation)
@@ -63,7 +63,7 @@ public interface ValueModifier {
 
     /** only set for map value access */
     @Nullable
-    Value<?> mapKey();
+    Term<?> mapKey();
 
     static Target column(String columnName) {
       return ImmutableTarget.builder().columnName(columnName).build();
@@ -73,7 +73,7 @@ public interface ValueModifier {
       return ImmutableTarget.builder().columnName(columnName).fieldName(fieldName).build();
     }
 
-    static Target mapValue(String columnName, Value<?> mapKey) {
+    static Target mapValue(String columnName, Term<?> mapKey) {
       return ImmutableTarget.builder().columnName(columnName).mapKey(mapKey).build();
     }
   }

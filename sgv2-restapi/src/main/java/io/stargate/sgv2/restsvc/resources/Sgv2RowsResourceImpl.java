@@ -7,7 +7,7 @@ import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
-import io.stargate.sgv2.common.cql.builder.Value;
+import io.stargate.sgv2.common.cql.builder.Term;
 import io.stargate.sgv2.common.cql.builder.ValueModifier;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.common.http.CreateStargateBridgeClient;
@@ -480,7 +480,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
               ? ValueModifier.of(
                   ValueModifier.Target.column(columnName),
                   ValueModifier.Operation.INCREMENT,
-                  Value.marker())
+                  Term.marker())
               : ValueModifier.marker(columnName);
       valueModifiers.add(mod);
       valuesBuilder.addValues(

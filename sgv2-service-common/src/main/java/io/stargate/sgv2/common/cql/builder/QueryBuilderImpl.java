@@ -117,8 +117,8 @@ public class QueryBuilderImpl {
   /** The IFs conditions for a conditional UPDATE or DELETE. */
   private final List<BuiltCondition> ifs = new ArrayList<>();
 
-  private Value<Integer> limit;
-  private Value<Integer> perPartitionLimit;
+  private Term<Integer> limit;
+  private Term<Integer> perPartitionLimit;
   private final List<String> groupBys = new ArrayList<>();
   private final Map<String, Column.Order> orders = new LinkedHashMap<>();
 
@@ -131,8 +131,8 @@ public class QueryBuilderImpl {
   private String indexCreateColumn;
   private String customIndexClass;
   private Map<String, String> customIndexOptions;
-  private Value<Integer> ttl;
-  private Value<Long> timestamp;
+  private Term<Integer> ttl;
+  private Term<Long> timestamp;
   private boolean allowFiltering;
 
   @DSLAction
@@ -604,25 +604,25 @@ public class QueryBuilderImpl {
 
   @DSLAction
   public void limit() {
-    this.limit = Value.marker();
+    this.limit = Term.marker();
   }
 
   @DSLAction
   public void limit(Integer limit) {
     if (limit != null) {
-      this.limit = Value.of(limit);
+      this.limit = Term.of(limit);
     }
   }
 
   @DSLAction
   public void perPartitionLimit() {
-    this.perPartitionLimit = Value.marker();
+    this.perPartitionLimit = Term.marker();
   }
 
   @DSLAction
   public void perPartitionLimit(Integer limit) {
     if (limit != null) {
-      this.perPartitionLimit = Value.of(limit);
+      this.perPartitionLimit = Term.of(limit);
     }
   }
 
@@ -659,25 +659,25 @@ public class QueryBuilderImpl {
 
   @DSLAction
   public void ttl() {
-    this.ttl = Value.marker();
+    this.ttl = Term.marker();
   }
 
   @DSLAction
   public void ttl(Integer ttl) {
     if (ttl != null) {
-      this.ttl = Value.of(ttl);
+      this.ttl = Term.of(ttl);
     }
   }
 
   @DSLAction
   public void timestamp() {
-    this.timestamp = Value.marker();
+    this.timestamp = Term.marker();
   }
 
   @DSLAction
   public void timestamp(Long timestamp) {
     if (timestamp != null) {
-      this.timestamp = Value.of(timestamp);
+      this.timestamp = Term.of(timestamp);
     }
   }
 
@@ -1104,11 +1104,11 @@ public class QueryBuilderImpl {
     return query.toString();
   }
 
-  static String formatValue(Value<?> value) {
+  static String formatValue(Term<?> value) {
     if (value instanceof Marker) {
       return "?";
-    } else if (value instanceof ConcreteValue) {
-      Object v = ((ConcreteValue<?>) value).get();
+    } else if (value instanceof Literal) {
+      Object v = ((Literal<?>) value).get();
       if (v instanceof CharSequence) {
         return CqlStrings.quote(v.toString());
       } else {
@@ -1136,7 +1136,7 @@ public class QueryBuilderImpl {
 
     String columnName = modifier.target().columnName();
     String fieldName = modifier.target().fieldName();
-    Value<?> mapKey = modifier.target().mapKey();
+    Term<?> mapKey = modifier.target().mapKey();
 
     String targetString;
     if (fieldName != null) {

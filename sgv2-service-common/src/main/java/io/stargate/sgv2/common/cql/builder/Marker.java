@@ -15,7 +15,7 @@
  */
 package io.stargate.sgv2.common.cql.builder;
 
-class Marker<T> implements Value<T> {
+class Marker<T> implements Term<T> {
 
   @Override
   public boolean isMarker() {

@@ -10,7 +10,7 @@ import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Predicate;
-import io.stargate.sgv2.common.cql.builder.Value;
+import io.stargate.sgv2.common.cql.builder.Term;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -221,7 +221,7 @@ public class WhereParser {
         BuiltCondition.of(
             BuiltCondition.LHS.mapAccess(fieldName, rawKey),
             FilterOp.$CONTAINSENTRY.predicate,
-            Value.marker()));
+            Term.marker()));
     valuesBuilder.addValues(opContentValue);
   }
 
