@@ -156,20 +156,11 @@ public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
         .atMost(5, TimeUnit.SECONDS)
         .untilAsserted(
             () -> {
-              assertThat(responses)
-                  .hasSize(queries)
-                  .withFailMessage(
-                      "Expecting %d query responses, got %d.", queries, responses.size());
+              assertThat(responses).hasSize(queries);
 
               assertThat(responses)
                   .extracting(StreamingResponse::getStatus)
-                  .allSatisfy(
-                      status ->
-                          assertThat(status.getCode())
-                              .isZero()
-                              .withFailMessage(
-                                  "Expecting status with code zero, got code %d in status %s",
-                                  status.getCode(), status.toString()));
+                  .allSatisfy(status -> assertThat(status.getCode()).isZero());
             });
   }
 
