@@ -44,7 +44,7 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
       final HttpServletRequest request) {
     requireNonEmptyKeyspace(keyspaceName);
 
-    String cql =
+    QueryOuterClass.Query query =
         new QueryBuilder()
             .select()
             .column("type_name")
@@ -54,7 +54,6 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
             .where("keyspace_name", Predicate.EQ, keyspaceName)
             .build();
 
-    QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
     QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
 
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
@@ -77,7 +76,7 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
     requireNonEmptyKeyspace(keyspaceName);
     requireNonEmptyTypename(typeName);
 
-    String cql =
+    QueryOuterClass.Query query =
         new QueryBuilder()
             .select()
             .column("type_name")
@@ -88,7 +87,6 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
             .where("type_name", Predicate.EQ, typeName)
             .build();
 
-    QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
     QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
 
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
@@ -126,19 +124,16 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
     final String typeName = udtAdd.getName();
     requireNonEmptyTypename(typeName);
 
-    final String cql =
+    QueryOuterClass.Query query =
         new QueryBuilder()
             .create()
             .type(keyspaceName, typeName)
             .ifNotExists(udtAdd.getIfNotExists())
             .column(columns2columns(udtAdd.getFields()))
+            .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
             .build();
     try {
-      bridge.executeQuery(
-          QueryOuterClass.Query.newBuilder()
-              .setParameters(parametersForLocalQuorum())
-              .setCql(cql)
-              .build());
+      bridge.executeQuery(query);
     } catch (StatusRuntimeException grpcE) {
       // For most failures pass and let default handler deal; but for specific case of
       // trying to create existing UDT without "if-not-exists", try to dig actual fail
@@ -168,7 +163,7 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
     requireNonEmptyKeyspace(keyspaceName);
     requireNonEmptyTypename(typeName);
 
-    String cql =
+    QueryOuterClass.Query query =
         new QueryBuilder()
             .drop()
             .type(keyspaceName, typeName)
@@ -176,7 +171,6 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
             //    seems inconsistent; would be good for idempotency
             // .ifExists()
             .build();
-    QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
     /*QueryOuterClass.Response grpcResponse =*/ bridge.executeQuery(query);
     return Response.status(Response.Status.NO_CONTENT).build();
   }
@@ -203,9 +197,8 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
 
     if (addFields != null && !addFields.isEmpty()) {
       List<Column> columns = columns2columns(addFields);
-      final String cql =
+      QueryOuterClass.Query query =
           new QueryBuilder().alter().type(keyspaceName, typeName).addColumn(columns).build();
-      QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
       /*QueryOuterClass.Response grpcResponse =*/ bridge.executeQuery(query);
     }
 
@@ -217,13 +210,12 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
                       Sgv2UDTUpdateRequest.FieldRename::getFrom,
                       Sgv2UDTUpdateRequest.FieldRename::getTo));
 
-      final String cql =
+      QueryOuterClass.Query query =
           new QueryBuilder()
               .alter()
               .type(keyspaceName, typeName)
               .renameColumn(columnRenames)
               .build();
-      QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
       /*QueryOuterClass.Response grpcResponse =*/ bridge.executeQuery(query);
     }
 

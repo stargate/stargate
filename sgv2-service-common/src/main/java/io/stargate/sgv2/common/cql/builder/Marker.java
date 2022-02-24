@@ -15,15 +15,25 @@
  */
 package io.stargate.sgv2.common.cql.builder;
 
-class Marker<T> implements Value<T> {
+import io.stargate.sgv2.common.cql.CqlStrings;
 
-  @Override
-  public boolean isMarker() {
-    return true;
+class Marker<T> implements Term<T> {
+
+  private final String name;
+
+  Marker(String name) {
+    this.name = name;
   }
 
-  @Override
-  public T get() {
-    throw new UnsupportedOperationException("Cannot get the value of a marker");
+  Marker() {
+    this(null);
+  }
+
+  boolean isAnonymous() {
+    return name == null;
+  }
+
+  String asCql() {
+    return name == null ? "?" : ":" + CqlStrings.doubleQuote(name);
   }
 }

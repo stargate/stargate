@@ -88,9 +88,9 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
       throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
     }
     final String keyspaceName = ksCreateDef.name;
-    String cql;
+    Query query;
     if (ksCreateDef.datacenters == null) {
-      cql =
+      query =
           new QueryBuilder()
               .create()
               .keyspace(keyspaceName)
@@ -98,7 +98,7 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
               .withReplication(Replication.simpleStrategy(ksCreateDef.replicas))
               .build();
     } else {
-      cql =
+      query =
           new QueryBuilder()
               .create()
               .keyspace(keyspaceName)
@@ -107,7 +107,6 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
               .build();
     }
 
-    Query query = Query.newBuilder().setCql(cql).build();
     bridge.executeQuery(query);
 
     // No real contents; can ignore ResultSet it seems and only worry about exceptions
@@ -121,8 +120,7 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
       final StargateBridgeClient bridge,
       final String keyspaceName,
       final HttpServletRequest request) {
-    String cql = new QueryBuilder().drop().keyspace(keyspaceName).ifExists().build();
-    Query query = Query.newBuilder().setCql(cql).build();
+    Query query = new QueryBuilder().drop().keyspace(keyspaceName).ifExists().build();
     /*QueryOuterClass.Response grpcResponse =*/ bridge.executeQuery(query);
     return Response.status(Status.NO_CONTENT).build();
   }
