@@ -141,7 +141,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         (tableDef) -> {
           final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
           final QueryOuterClass.Query query =
-              buildGetRowsByPKCQL(
+              buildGetRowsByPKQuery(
                   keyspaceName,
                   tableName,
                   path,
@@ -222,7 +222,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
           final QueryOuterClass.Query query;
           try {
-            query = buildAddRowCQL(keyspaceName, tableName, payloadMap, toProtoConverter);
+            query = buildAddRowQuery(keyspaceName, tableName, payloadMap, toProtoConverter);
           } catch (IllegalArgumentException e) {
             throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
           }
@@ -261,7 +261,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
           final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
 
           final QueryOuterClass.Query query =
-              buildDeleteRowsByPKCQL(keyspaceName, tableName, path, tableDef, toProtoConverter);
+              buildDeleteRowsByPKCQuery(keyspaceName, tableName, path, tableDef, toProtoConverter);
 
           /*QueryOuterClass.Response grpcResponse =*/
           bridge.executeQuery(query);
@@ -308,7 +308,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
           final QueryOuterClass.Query query;
           try {
             query =
-                buildUpdateRowCQL(
+                buildUpdateRowQuery(
                     keyspaceName, tableName, path, tableDef, payloadMap, toProtoConverter);
           } catch (IllegalArgumentException e) {
             throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
@@ -327,7 +327,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
   /////////////////////////////////////////////////////////////////////////
    */
 
-  protected QueryOuterClass.Query buildGetRowsByPKCQL(
+  protected QueryOuterClass.Query buildGetRowsByPKQuery(
       String keyspaceName,
       String tableName,
       List<PathSegment> pkValues,
@@ -369,7 +369,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         .build();
   }
 
-  private QueryOuterClass.Query buildDeleteRowsByPKCQL(
+  private QueryOuterClass.Query buildDeleteRowsByPKCQuery(
       String keyspaceName,
       String tableName,
       List<PathSegment> pkValues,
@@ -418,7 +418,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     return primaryKeys;
   }
 
-  protected QueryOuterClass.Query buildAddRowCQL(
+  protected QueryOuterClass.Query buildAddRowQuery(
       String keyspaceName,
       String tableName,
       Map<String, Object> payloadMap,
@@ -437,7 +437,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         .build();
   }
 
-  protected QueryOuterClass.Query buildUpdateRowCQL(
+  protected QueryOuterClass.Query buildUpdateRowQuery(
       String keyspaceName,
       String tableName,
       List<PathSegment> pkValues,
