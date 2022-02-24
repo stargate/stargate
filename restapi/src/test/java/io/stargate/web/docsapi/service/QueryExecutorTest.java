@@ -694,7 +694,7 @@ class QueryExecutorTest extends AbstractDataStoreTest {
   }
 
   @Test
-  void testExhaustedQueryReExecution() {
+  void testExhaustedQueryReExecution() throws Exception {
     int pageSize = 1000;
     QueryAssert q1 =
         withQuery(table, "SELECT * FROM %s WHERE p0 > ?", "x")
@@ -711,18 +711,17 @@ class QueryExecutorTest extends AbstractDataStoreTest {
     List<BoundQuery> queries =
         ImmutableList.<BoundQuery>builder().add(query.bind("x")).add(query.bind("y")).build();
 
-    TestSubscriber<RawDocument> test =
-        executor.queryDocs(queries, pageSize, false, null, context).test();
-    test.assertNoErrors();
-    List<RawDocument> docs = test.values();
+    Flowable<RawDocument> result = executor.queryDocs(queries, pageSize, false, null, context);
+
+    List<RawDocument> docs = values(result);
     assertThat(docs).extracting(RawDocument::id).containsExactly("a", "b");
     q1.assertExecuteCount().isEqualTo(1);
     q2.assertExecuteCount().isEqualTo(1);
 
-    test =
-        executor.queryDocs(queries, pageSize, false, docs.get(0).makePagingState(), context).test();
-    test.assertNoErrors();
-    docs = test.values();
+    Flowable<RawDocument> result2 =
+        executor.queryDocs(queries, pageSize, false, docs.get(0).makePagingState(), context);
+
+    docs = values(result2);
     assertThat(docs).extracting(RawDocument::id).containsExactly("b");
 
     // Note: we exhausted the first query, so there was no need to re-execute it

@@ -150,10 +150,14 @@ public class StargateQueryHandler implements QueryHandler {
       String s, ClientState clientState, Map<String, ByteBuffer> map)
       throws RequestValidationException {
     ResultMessage.Prepared prepare = QueryProcessor.instance.prepare(s, clientState, map);
-    Prepared prepared = QueryProcessor.instance.getPrepared(prepare.statementId);
-    boolean idempotent = IdempotencyAnalyzer.isIdempotent(prepared.statement);
-    boolean useKeyspace = prepared.statement instanceof UseStatement;
-    return new PreparedWithInfo(idempotent, useKeyspace, prepare);
+    CQLStatement statement =
+        Optional.ofNullable(QueryProcessor.instance.getPrepared(prepare.statementId))
+            .map(p -> p.statement)
+            .orElseGet(() -> QueryProcessor.getStatement(s, clientState));
+    boolean idempotent = IdempotencyAnalyzer.isIdempotent(statement);
+    boolean useKeyspace = statement instanceof UseStatement;
+    return new PreparedWithInfo(
+        idempotent, useKeyspace, statement.getPartitionKeyBindVariableIndexes(), prepare);
   }
 
   @Override
