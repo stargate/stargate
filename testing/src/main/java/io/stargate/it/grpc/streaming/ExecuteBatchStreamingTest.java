@@ -153,8 +153,9 @@ public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
               .build());
     }
 
-    // TODO: how to indicate how many responses were received before timeout?
-    Awaitility.await().atMost(30, TimeUnit.SECONDS).until(() -> responses.size() == 2 * ROUNDS);
+    Awaitility.await()
+        .atMost(30, TimeUnit.SECONDS)
+        .untilAsserted(() -> assertThat(responses).hasSize(2 * ROUNDS));
     requestObserver.onCompleted();
   }
 
