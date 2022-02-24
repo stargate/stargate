@@ -120,6 +120,8 @@ public abstract class MessageHandler<MessageT extends GeneratedMessageV3, Prepar
     }
     PersistenceException pe = cause.get();
     switch (pe.code()) {
+      case UNPREPARED:
+        return RetryDecision.RETRY;
       case READ_TIMEOUT:
         return retryPolicy.onReadTimeout((ReadTimeoutException) pe, retryCount);
       case WRITE_TIMEOUT:
