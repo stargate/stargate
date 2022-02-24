@@ -154,7 +154,8 @@ public class StargateQueryHandler implements QueryHandler {
     boolean idempotent = IdempotencyAnalyzer.isIdempotent(prepared.statement);
     boolean useKeyspace = prepared.statement instanceof UseStatement;
 
-    // 23-Feb-2022, tatu: One way to work around [https://issues.apache.org/jira/browse/CASSANDRA-17401]
+    // 23-Feb-2022, tatu: One way to work around
+    // [https://issues.apache.org/jira/browse/CASSANDRA-17401]
     //   although since it's also called from "Conversion" would be nice to encapsulate
     /*
     CQLStatement statement;
