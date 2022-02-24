@@ -41,9 +41,7 @@ import org.apache.cassandra.config.CFMetaData;
 import org.apache.cassandra.config.Schema;
 import org.apache.cassandra.cql3.ColumnSpecification;
 import org.apache.cassandra.cql3.QueryOptions;
-import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.statements.BatchStatement;
-import org.apache.cassandra.cql3.statements.ParsedStatement;
 import org.apache.cassandra.db.Clustering;
 import org.apache.cassandra.db.LivenessInfo;
 import org.apache.cassandra.db.marshal.AbstractType;
@@ -546,13 +544,12 @@ public class Conversion {
       case PREPARED:
         ResultMessage.Prepared prepared = (ResultMessage.Prepared) resultMessage;
         PreparedWithInfo preparedWithInfo = (PreparedWithInfo) prepared;
-        ParsedStatement.Prepared preparedStatement =
-            QueryProcessor.instance.getPrepared(prepared.statementId);
         return new Result.Prepared(
             Conversion.toExternal(prepared.statementId),
             null,
             toResultMetadata(prepared.resultMetadata, null),
-            toPreparedMetadata(prepared.metadata.names, preparedStatement.partitionKeyBindIndexes),
+            toPreparedMetadata(
+                prepared.metadata.names, preparedWithInfo.getPartitionKeyBindVariableIndexes()),
             preparedWithInfo.isIdempotent(),
             preparedWithInfo.isUseKeyspace());
     }
