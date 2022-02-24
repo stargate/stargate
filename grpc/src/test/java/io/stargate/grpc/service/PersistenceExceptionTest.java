@@ -40,7 +40,6 @@ import org.apache.cassandra.stargate.exceptions.InvalidRequestException;
 import org.apache.cassandra.stargate.exceptions.IsBootstrappingException;
 import org.apache.cassandra.stargate.exceptions.OverloadedException;
 import org.apache.cassandra.stargate.exceptions.PersistenceException;
-import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 import org.apache.cassandra.stargate.exceptions.ReadFailureException;
 import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
 import org.apache.cassandra.stargate.exceptions.RequestFailureReason;
@@ -53,15 +52,12 @@ import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
 import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ServerError;
-import org.apache.cassandra.stargate.utils.MD5Digest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public class PersistenceExceptionTest extends BaseGrpcServiceTest {
-
-  private static final MD5Digest UNPREPARED_ID = MD5Digest.compute(new byte[] {0});
 
   @Test
   public void unavailable() {
@@ -279,10 +275,6 @@ public class PersistenceExceptionTest extends BaseGrpcServiceTest {
             new ProtocolException("Some protocol problem"),
             Status.INTERNAL,
             "Some protocol problem"),
-        Arguments.of(
-            new PreparedQueryNotFoundException(UNPREPARED_ID),
-            Status.INTERNAL,
-            String.format("Prepared query with ID %s not found", UNPREPARED_ID)),
         Arguments.of(
             new InvalidRequestException("Some request problem"),
             Status.INVALID_ARGUMENT,
