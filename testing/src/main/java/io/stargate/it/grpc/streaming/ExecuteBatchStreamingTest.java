@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import org.apache.commons.lang3.RandomUtils;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -114,6 +115,55 @@ public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
                     rowOf(Values.of("a"), Values.of(1)),
                     rowOf(Values.of("b"), Values.of(2)),
                     rowOf(Values.of("c"), Values.of(3)))));
+  }
+
+  @Test
+  public void manyStreamingBatch(@TestKeyspace CqlIdentifier keyspace) {
+    List<StreamingResponse> responses = new CopyOnWriteArrayList<>();
+
+    StargateStub stub = asyncStubWithCallCredentials();
+    StreamObserver<StreamingResponse> responseStreamObserver =
+        new StreamObserver<StreamingResponse>() {
+          @Override
+          public void onNext(StreamingResponse value) {
+            responses.add(value);
+          }
+
+          @Override
+          public void onError(Throwable t) {}
+
+          @Override
+          public void onCompleted() {}
+        };
+
+    StreamObserver<Batch> requestObserver = stub.executeBatchStream(responseStreamObserver);
+
+    int queries = RandomUtils.nextInt(10, 50);
+    for (int i = 0; i < queries; i++) {
+      Batch batch =
+          Batch.newBuilder()
+              .addQueries(
+                  cqlBatchQuery(
+                      "INSERT INTO test (k, v) VALUES (?, ?)", Values.of("m"), Values.of(i)))
+              .setParameters(batchParameters(keyspace))
+              .build();
+      requestObserver.onNext(batch);
+    }
+    requestObserver.onCompleted();
+
+    // make sure all queries where executed, and we got not errors back
+    Awaitility.await()
+        .atMost(5, TimeUnit.SECONDS)
+        .untilAsserted(
+            () -> {
+              assertThat(responses)
+                  .hasSize(queries)
+                  .withFailMessage(
+                      "Expecting %d query responses, got %d.", queries, responses.size());
+              assertThat(responses)
+                  .allSatisfy(r -> assertThat(r.getStatus()).isNull())
+                  .withFailMessage("Expecting all responses not to have error status.");
+            });
   }
 
   @Test
