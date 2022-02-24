@@ -153,6 +153,20 @@ public class StargateQueryHandler implements QueryHandler {
     Prepared prepared = QueryProcessor.instance.getPrepared(prepare.statementId);
     boolean idempotent = IdempotencyAnalyzer.isIdempotent(prepared.statement);
     boolean useKeyspace = prepared.statement instanceof UseStatement;
+
+    // 23-Feb-2022, tatu: One way to work around [https://issues.apache.org/jira/browse/CASSANDRA-17401]
+    //   although since it's also called from "Conversion" would be nice to encapsulate
+    /*
+    CQLStatement statement;
+    if (prepared == null) { // Prepared cache evicted the entry, re-parse the statement (slow path)
+      statement = QueryProcessor.getStatement(s, clientState);
+    } else {
+      statement = prepared.statement;
+    }
+    boolean idempotent = IdempotencyAnalyzer.isIdempotent(statement);
+    boolean useKeyspace = statement instanceof UseStatement;
+     */
+
     return new PreparedWithInfo(idempotent, useKeyspace, prepare);
   }
 

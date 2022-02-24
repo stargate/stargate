@@ -51,6 +51,33 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k, v))",
     })
 public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
+  private static class StreamObserverWithList implements StreamObserver<StreamingResponse> {
+    private final List<StreamingResponse> responses;
+    private final AtomicReference<Throwable> errorHolder;
+
+    public StreamObserverWithList(List<StreamingResponse> responses) {
+      this(responses, new AtomicReference<>());
+    }
+
+    public StreamObserverWithList(
+        List<StreamingResponse> responses, AtomicReference<Throwable> errorHolder) {
+      this.responses = responses;
+      this.errorHolder = errorHolder;
+    }
+
+    @Override
+    public void onNext(StreamingResponse value) {
+      responses.add(value);
+    }
+
+    @Override
+    public void onError(Throwable t) {
+      errorHolder.set(t);
+    }
+
+    @Override
+    public void onCompleted() {}
+  };
 
   @AfterEach
   public void cleanup(CqlSession session) {
@@ -62,21 +89,8 @@ public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
     List<StreamingResponse> responses = new CopyOnWriteArrayList<>();
 
     StargateStub stub = asyncStubWithCallCredentials();
-    StreamObserver<StreamingResponse> responseStreamObserver =
-        new StreamObserver<StreamingResponse>() {
-          @Override
-          public void onNext(StreamingResponse value) {
-            responses.add(value);
-          }
-
-          @Override
-          public void onError(Throwable t) {}
-
-          @Override
-          public void onCompleted() {}
-        };
-
-    StreamObserver<Batch> requestObserver = stub.executeBatchStream(responseStreamObserver);
+    StreamObserver<Batch> requestObserver =
+        stub.executeBatchStream(new StreamObserverWithList(responses));
 
     requestObserver.onNext(
         Batch.newBuilder()
@@ -116,6 +130,35 @@ public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
                     rowOf(Values.of("c"), Values.of(3)))));
   }
 
+  // From [https://github.com/stargate/stargate/pull/1647] to reproduce
+  // issue [https://issues.apache.org/jira/browse/CASSANDRA-17401]
+
+  @Test
+  public void repeatedStreamingBatch(@TestKeyspace CqlIdentifier keyspace) {
+    List<StreamingResponse> responses = new CopyOnWriteArrayList<>();
+
+    StargateStub stub = asyncStubWithCallCredentials();
+    StreamObserver<Batch> requestObserver =
+        stub.executeBatchStream(new StreamObserverWithList(responses));
+    final int ROUNDS = 1000;
+
+    for (int i = 0; i < ROUNDS; i++) {
+      requestObserver.onNext(
+          Batch.newBuilder()
+              .addQueries(cqlBatchQuery("INSERT INTO test (k, v) VALUES ('a', 1)"))
+              .addQueries(
+                  cqlBatchQuery(
+                      "INSERT INTO test (k, v) VALUES (?, ?)", Values.of("b"), Values.of(2)))
+              .setParameters(batchParameters(keyspace))
+              .build());
+    }
+
+    // TODO: how to indicate how many responses were received before timeout?
+    Awaitility.await().atMost(30, TimeUnit.SECONDS)
+            .until(() -> responses.size() == 2 * ROUNDS);
+    requestObserver.onCompleted();
+  }
+
   @Test
   public void streamingQueryWithError(@TestKeyspace CqlIdentifier keyspace)
       throws InvalidProtocolBufferException {
@@ -123,24 +166,9 @@ public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
     AtomicReference<Throwable> error = new AtomicReference<>();
 
     StargateStub stub = asyncStubWithCallCredentials();
-    StreamObserver<StreamingResponse> responseStreamObserver =
-        new StreamObserver<StreamingResponse>() {
-          @Override
-          public void onNext(StreamingResponse value) {
-            responses.add(value);
-          }
-
-          @Override
-          public void onError(Throwable t) {
-            error.set(t);
-          }
-
-          @Override
-          public void onCompleted() {}
-        };
 
     StreamObserver<QueryOuterClass.Batch> requestObserver =
-        stub.executeBatchStream(responseStreamObserver);
+        stub.executeBatchStream(new StreamObserverWithList(responses, error));
 
     requestObserver.onNext(
         Batch.newBuilder()
@@ -168,23 +196,8 @@ public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
     AtomicReference<Throwable> error = new AtomicReference<>();
 
     StargateStub stub = asyncStubWithCallCredentials();
-    StreamObserver<StreamingResponse> responseStreamObserver =
-        new StreamObserver<StreamingResponse>() {
-          @Override
-          public void onNext(StreamingResponse value) {
-            responses.add(value);
-          }
-
-          @Override
-          public void onError(Throwable t) {
-            error.set(t);
-          }
-
-          @Override
-          public void onCompleted() {}
-        };
-
-    StreamObserver<Batch> requestObserver = stub.executeBatchStream(responseStreamObserver);
+    StreamObserver<Batch> requestObserver =
+        stub.executeBatchStream(new StreamObserverWithList(responses, error));
 
     requestObserver.onNext(
         Batch.newBuilder()
