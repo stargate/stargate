@@ -155,7 +155,7 @@ public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
 
     Awaitility.await()
         .atMost(30, TimeUnit.SECONDS)
-        .untilAsserted(() -> assertThat(responses).hasSize(2 * ROUNDS));
+        .untilAsserted(() -> assertThat(responses.size()).isEqualTo(2 * ROUNDS));
     requestObserver.onCompleted();
   }
 
