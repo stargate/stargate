@@ -95,7 +95,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
                     .from(keyspaceName, tableName)
                     .where(whereConditions)
                     .orderBy(sortOrder)
-                    .parameters(parameters(pageSizeParam, pageStateParam).build())
+                    .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
                     .build();
           } else {
             query =
@@ -105,7 +105,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
                     .from(keyspaceName, tableName)
                     .where(whereConditions)
                     .orderBy(sortOrder)
-                    .parameters(parameters(pageSizeParam, pageStateParam).build())
+                    .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
                     .build();
           }
           return fetchRows(bridge, query, raw);
@@ -182,7 +182,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
               .star()
               .from(keyspaceName, tableName)
               .orderBy(sortOrder)
-              .parameters(parameters(pageSizeParam, pageStateParam).build())
+              .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
               .build();
     } else {
       query =
@@ -191,7 +191,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
               .column(columns)
               .from(keyspaceName, tableName)
               .orderBy(sortOrder)
-              .parameters(parameters(pageSizeParam, pageStateParam).build())
+              .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
               .build();
     }
     return fetchRows(bridge, query, raw);
@@ -356,7 +356,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
           .from(keyspaceName, tableName)
           .where(whereConditions)
           .orderBy(sortOrder)
-          .parameters(parameters(pageSizeParam, pageStateParam).build())
+          .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
           .build();
     }
     return new QueryBuilder()
@@ -365,7 +365,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         .from(keyspaceName, tableName)
         .where(whereConditions)
         .orderBy(sortOrder)
-        .parameters(parameters(pageSizeParam, pageStateParam).build())
+        .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
         .build();
   }
 
@@ -392,7 +392,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         .delete()
         .from(keyspaceName, tableName)
         .where(whereConditions)
-        .parameters(parametersForLocalQuorum())
+        .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
         .build();
   }
 
@@ -433,7 +433,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     return new QueryBuilder()
         .insertInto(keyspaceName, tableName)
         .value(valueModifiers)
-        .parameters(parametersForLocalQuorum())
+        .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
         .build();
   }
 
@@ -482,7 +482,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         .update(keyspaceName, tableName)
         .value(valueModifiers)
         .where(whereConditions)
-        .parameters(parametersForLocalQuorum())
+        .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
         .build();
   }
 

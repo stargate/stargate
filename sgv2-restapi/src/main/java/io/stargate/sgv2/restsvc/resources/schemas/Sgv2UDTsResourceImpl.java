@@ -130,7 +130,7 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
             .type(keyspaceName, typeName)
             .ifNotExists(udtAdd.getIfNotExists())
             .column(columns2columns(udtAdd.getFields()))
-            .parameters(parametersForLocalQuorum())
+            .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
             .build();
     try {
       bridge.executeQuery(query);

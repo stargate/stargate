@@ -112,7 +112,7 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
             .table(keyspaceName, tableAdd.getName())
             .ifNotExists(tableAdd.getIfNotExists())
             .column(columns)
-            .parameters(parametersForLocalQuorum())
+            .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
             .build();
 
     bridge.executeQuery(query);
@@ -153,7 +153,7 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
                   .alter()
                   .table(keyspaceName, tableName)
                   .withDefaultTTL(options.getDefaultTimeToLive())
-                  .parameters(parametersForLocalQuorum())
+                  .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
                   .build();
           bridge.executeQuery(query);
           return Response.status(Status.OK)

@@ -62,7 +62,7 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
             .from("system_schema", "indexes")
             .where("keyspace_name", Predicate.EQ, keyspaceName)
             .where("table_name", Predicate.EQ, tableName)
-            .parameters(parametersBuilderForLocalQuorum().build())
+            .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
             .build();
     return fetchRows(bridge, query, true);
   }

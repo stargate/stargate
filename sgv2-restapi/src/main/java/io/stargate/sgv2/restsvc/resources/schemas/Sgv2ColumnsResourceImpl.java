@@ -76,7 +76,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
                   .alter()
                   .table(keyspaceName, tableName)
                   .addColumn(columnDef)
-                  .parameters(parametersForLocalQuorum())
+                  .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
                   .build();
           bridge.executeQuery(query);
 
@@ -147,7 +147,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
                     .alter()
                     .table(keyspaceName, tableName)
                     .renameColumn(columnName, newName)
-                    .parameters(parametersForLocalQuorum())
+                    .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
                     .build();
             bridge.executeQuery(query);
           }
@@ -184,7 +184,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
                   .alter()
                   .table(keyspaceName, tableName)
                   .dropColumn(columnName)
-                  .parameters(parametersForLocalQuorum())
+                  .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
                   .build();
           bridge.executeQuery(query);
           return Response.status(Response.Status.NO_CONTENT).build();
