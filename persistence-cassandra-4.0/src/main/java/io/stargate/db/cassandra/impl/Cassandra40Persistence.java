@@ -271,6 +271,7 @@ public class Cassandra40Persistence
                 (T) supplier.get().setWarnings(ClientWarn.instance.getWarnings());
             future.complete(resultWithWarnings);
           } catch (Throwable t) {
+            logger.error("Exception occurred in persistence.", t);
             JVMStabilityInspector.inspectThrowable(t);
             PersistenceException pe =
                 (t instanceof PersistenceException)
