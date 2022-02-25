@@ -38,6 +38,7 @@ import io.stargate.graphql.web.resources.FilesResource;
 import io.stargate.graphql.web.resources.GraphqlCache;
 import io.stargate.graphql.web.resources.PlaygroundResource;
 import io.stargate.metrics.jersey.MetricsBinder;
+import java.util.Arrays;
 import java.util.EnumSet;
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
@@ -49,6 +50,9 @@ import org.osgi.framework.Bundle;
 import org.osgi.framework.FrameworkUtil;
 
 public class DropwizardServer extends Application<Configuration> {
+
+  public static final String[] NON_API_URI_REGEX =
+      new String[] {"^/playground$", "^/graphql-schema$"};
 
   private final Persistence persistence;
   private final AuthenticationService authenticationService;
@@ -155,7 +159,11 @@ public class DropwizardServer extends Application<Configuration> {
     enableCors(environment);
 
     MetricsBinder metricsBinder =
-        new MetricsBinder(metrics, httpMetricsTagProvider, GraphqlActivator.MODULE_NAME);
+        new MetricsBinder(
+            metrics,
+            httpMetricsTagProvider,
+            GraphqlActivator.MODULE_NAME,
+            Arrays.asList(NON_API_URI_REGEX));
     metricsBinder.register(environment.jersey());
 
     environment

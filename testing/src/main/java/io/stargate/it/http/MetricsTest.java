@@ -136,6 +136,68 @@ public class MetricsTest extends BaseIntegrationTest {
   }
 
   @Test
+  public void restNonApiHttpRequestMetrics() throws IOException {
+    // call the rest api path with target header
+    String path = String.format("%s:8082", host);
+    OkHttpClient client = new OkHttpClient().newBuilder().build();
+    Request request = new Request.Builder().url(path).get().build();
+
+    int status = execute(client, request);
+
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(
+            () -> {
+              String result =
+                  RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+
+              // metered http request lines
+              List<String> meterLines =
+                  Arrays.stream(result.split(System.getProperty("line.separator")))
+                      .filter(line -> line.startsWith("http_server_requests_seconds"))
+                      .collect(Collectors.toList());
+
+              assertThat(meterLines)
+                  .anySatisfy(
+                      metric ->
+                          assertThat(metric)
+                              .contains("method=\"GET\"")
+                              .contains("module=\"restapi-other\"")
+                              .contains("uri=\"root\"")
+                              .contains(String.format("status=\"%d\"", status))
+                              .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY)
+                              .contains("quantile=\"0.95\"")
+                              .doesNotContain("error"))
+                  .anySatisfy(
+                      metric ->
+                          assertThat(metric)
+                              .contains("method=\"GET\"")
+                              .contains("module=\"restapi-other\"")
+                              .contains("uri=\"root\"")
+                              .contains(String.format("status=\"%d\"", status))
+                              .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY)
+                              .contains("quantile=\"0.99\""))
+                  .doesNotContain("error");
+
+              // counted http request lines
+              List<String> counterLines =
+                  Arrays.stream(result.split(System.getProperty("line.separator")))
+                      .filter(line -> line.startsWith("http_server_requests_counter"))
+                      .collect(Collectors.toList());
+
+              assertThat(counterLines)
+                  .anySatisfy(
+                      metric ->
+                          assertThat(metric)
+                              .contains("error=\"false\"")
+                              .contains("module=\"restapi-other\"")
+                              .doesNotContain("method=\"GET\"")
+                              .doesNotContain("uri=\"root\"")
+                              .doesNotContain(String.format("status=\"%d\"", status)));
+            });
+  }
+
+  @Test
   public void docsApiHttpRequestMetrics() throws IOException {
     // call the rest api path with target header
     String path = String.format("%s:8082/v2/namespaces/some", host);
@@ -266,6 +328,66 @@ public class MetricsTest extends BaseIntegrationTest {
                               .doesNotContain(String.format("status=\"%d\"", status))
                               .doesNotContain(
                                   TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\""));
+            });
+  }
+
+  @Test
+  public void graphqlNonApiHttpRequestMetrics() throws IOException {
+    // call the rest api path with target header
+    String path = String.format("%s:8080/playground", host);
+    OkHttpClient client = new OkHttpClient().newBuilder().build();
+    Request request = new Request.Builder().url(path).get().build();
+
+    int status = execute(client, request);
+
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .untilAsserted(
+            () -> {
+              String result =
+                  RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+
+              List<String> meteredLines =
+                  Arrays.stream(result.split(System.getProperty("line.separator")))
+                      .filter(line -> line.startsWith("http_server_requests_seconds"))
+                      .collect(Collectors.toList());
+
+              assertThat(meteredLines)
+                  .anySatisfy(
+                      metric ->
+                          assertThat(metric)
+                              .contains("method=\"GET\"")
+                              .contains("module=\"graphqlapi-other\"")
+                              .contains("uri=\"/playground\"")
+                              .contains(String.format("status=\"%d\"", status))
+                              .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY)
+                              .contains("quantile=\"0.95\"")
+                              .doesNotContain("error"))
+                  .anySatisfy(
+                      metric ->
+                          assertThat(metric)
+                              .contains("method=\"GET\"")
+                              .contains("module=\"graphqlapi-other\"")
+                              .contains("uri=\"/playground\"")
+                              .contains(String.format("status=\"%d\"", status))
+                              .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY)
+                              .contains("quantile=\"0.99\"")
+                              .doesNotContain("error"));
+
+              List<String> countedLines =
+                  Arrays.stream(result.split(System.getProperty("line.separator")))
+                      .filter(line -> line.startsWith("http_server_requests_counter"))
+                      .collect(Collectors.toList());
+
+              assertThat(countedLines)
+                  .anySatisfy(
+                      metric ->
+                          assertThat(metric)
+                              .contains("error=\"false\"")
+                              .contains("module=\"graphqlapi-other\"")
+                              .doesNotContain("method=\"GET\"")
+                              .doesNotContain("uri=\"/playground\"")
+                              .doesNotContain(String.format("status=\"%d\"", status)));
             });
   }
 
