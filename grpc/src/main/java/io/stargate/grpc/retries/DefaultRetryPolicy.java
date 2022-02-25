@@ -19,6 +19,7 @@ import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting
 import edu.umd.cs.findbugs.annotations.NonNull;
 import net.jcip.annotations.ThreadSafe;
 import org.apache.cassandra.stargate.db.WriteType;
+import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
 import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
 import org.slf4j.Logger;
@@ -29,7 +30,8 @@ import org.slf4j.LoggerFactory;
  *
  * <p>This is a very conservative implementation: it triggers a maximum of one retry per request,
  * and only in cases that have a high chance of success (see the method javadocs for detailed
- * explanations of each case).
+ * explanations of each case). The exception is the {@link
+ * RetryPolicy#onUnprepared(PreparedQueryNotFoundException, int)}, which allows limitless retries.
  */
 @ThreadSafe
 public class DefaultRetryPolicy implements RetryPolicy {
@@ -45,6 +47,10 @@ public class DefaultRetryPolicy implements RetryPolicy {
   public static final String RETRYING_ON_WRITE_TIMEOUT =
       "Retrying on write timeout (consistency: {}, write type: {}, "
           + "required acknowledgments: {}, received acknowledgments: {}, retries: {})";
+
+  @VisibleForTesting
+  public static final String RETRYING_ON_UNPREPARED =
+      "Retrying on unprepared (MD5 digest: {}, retries: {})";
 
   /**
    * {@inheritDoc}
@@ -104,5 +110,19 @@ public class DefaultRetryPolicy implements RetryPolicy {
           retryCount);
     }
     return decision;
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * <p>No limits on the retries when UNPREPARED occurs.
+   */
+  @Override
+  public RetryDecision onUnprepared(PreparedQueryNotFoundException pe, int retryCount) {
+    if (LOG.isTraceEnabled()) {
+      LOG.trace(RETRYING_ON_UNPREPARED, pe.id.toString(), retryCount);
+    }
+
+    return RetryDecision.RETRY;
   }
 }

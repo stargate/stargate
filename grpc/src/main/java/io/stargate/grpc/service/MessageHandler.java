@@ -44,6 +44,7 @@ import java.util.concurrent.CompletionStage;
 import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.exceptions.PersistenceException;
+import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
 import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
 
@@ -121,7 +122,7 @@ public abstract class MessageHandler<MessageT extends GeneratedMessageV3, Prepar
     PersistenceException pe = cause.get();
     switch (pe.code()) {
       case UNPREPARED:
-        return RetryDecision.RETRY;
+        return retryPolicy.onUnprepared((PreparedQueryNotFoundException) pe, retryCount);
       case READ_TIMEOUT:
         return retryPolicy.onReadTimeout((ReadTimeoutException) pe, retryCount);
       case WRITE_TIMEOUT:
