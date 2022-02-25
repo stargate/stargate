@@ -63,7 +63,7 @@ public class RestApiTableTokenAuthTest extends BaseIntegrationTest {
   @BeforeEach
   public void setup(StargateConnectionInfo cluster) {
     String host = "http://" + cluster.seedAddress();
-    authUrlBase = host + ":8081"; // TODO: make auth port configurable
+    authUrlBase = host + ":" + 8081; // TODO: make auth port configurable?
     restUrlBase = host + ":" + 8082;
   }
 
