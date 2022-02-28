@@ -1,7 +1,6 @@
 package io.stargate.it.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assumptions.assumeThat;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
@@ -21,7 +20,6 @@ import java.io.IOException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -1037,56 +1035,6 @@ public class RestApiv2SchemaTest extends BaseRestApiTest {
             HttpStatus.SC_CREATED);
     successResponse = objectMapper.readValue(body, SuccessResponse.class);
     assertThat(successResponse.getSuccess()).isTrue();
-  }
-
-  @Test
-  public void indexCreateCustom(CqlSession session) throws IOException {
-    // TODO remove this when we figure out how to enable SAI indexes in Cassandra 4
-    assumeThat(isCassandra4())
-        .as(
-            "Disabled because it is currently not possible to enable SAI indexes "
-                + "on a Cassandra 4 backend")
-        .isFalse();
-
-    createTestKeyspace(keyspaceName);
-    tableName = "tbl_createtable_" + System.currentTimeMillis();
-    createTestTable(
-        tableName,
-        Arrays.asList("id text", "firstName text", "lastName text", "email list<text>"),
-        Collections.singletonList("id"),
-        null);
-
-    IndexAdd indexAdd = new IndexAdd();
-    String indexType = "org.apache.cassandra.index.sasi.SASIIndex";
-    indexAdd.setColumn("lastName");
-    indexAdd.setName("test_custom_idx");
-    indexAdd.setType(indexType);
-    indexAdd.setIfNotExists(false);
-    indexAdd.setKind(null);
-
-    Map<String, String> options = new HashMap<>();
-    options.put("mode", "CONTAINS");
-    indexAdd.setOptions(options);
-
-    String body =
-        RestUtils.post(
-            authToken,
-            String.format(
-                "%s/v2/schemas/keyspaces/%s/tables/%s/indexes",
-                restUrlBase, keyspaceName, tableName),
-            objectMapper.writeValueAsString(indexAdd),
-            HttpStatus.SC_CREATED);
-    SuccessResponse successResponse = objectMapper.readValue(body, SuccessResponse.class);
-    assertThat(successResponse.getSuccess()).isTrue();
-
-    Collection<Row> rows = session.execute("SELECT * FROM system_schema.indexes;").all();
-    Optional<Row> row =
-        rows.stream().filter(i -> "test_custom_idx".equals(i.getString("index_name"))).findFirst();
-    Map<String, String> optionsReturned = row.get().getMap("options", String.class, String.class);
-
-    assertThat(optionsReturned.get("class_name")).isEqualTo(indexType);
-    assertThat(optionsReturned.get("target")).isEqualTo("\"lastName\"");
-    assertThat(optionsReturned.get("mode")).isEqualTo("CONTAINS");
   }
 
   @Test

@@ -26,4 +26,8 @@ public interface StargateBridgeSchema {
   default CqlKeyspaceDescribe getKeyspace(String keyspaceName) {
     return Futures.getUninterruptibly(getKeyspaceAsync(keyspaceName));
   }
+
+  void register(KeyspaceInvalidationListener listener);
+
+  void unregister(KeyspaceInvalidationListener listener);
 }

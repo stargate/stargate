@@ -35,6 +35,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
+/**
+ * Leftover test class from Stargate V1 which contains tests against modules that have not yet been
+ * extracted out of the Coordinator monolith.
+ */
 @NotThreadSafe
 @StargateSpec()
 @ExtendWith(ApiServiceExtension.class)
@@ -143,6 +147,72 @@ public class RestApiMetricsTest extends BaseRestApiTest {
                       // .doesNotContain(
                       //    TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
                       );
+            });
+  }
+
+  // from [#1660] (PR [#1662]) ("non-api endpoint metrics to be reported with different")
+  @Test
+  public void restNonApiHttpRequestMetrics() throws IOException {
+    // call the rest api path with target header
+    String path = String.format("%s", metricsUrlBase);
+    OkHttpClient client = new OkHttpClient().newBuilder().build();
+    Request request = new Request.Builder().url(path).get().build();
+
+    int status = execute(client, request);
+
+    await()
+        .atMost(Duration.ofSeconds(5))
+        .pollInterval(Duration.ofSeconds(1))
+        .untilAsserted(
+            () -> {
+              String result =
+                  RestUtils.get("", String.format("%s/metrics", metricsUrlBase), HttpStatus.SC_OK);
+
+              // metered http request lines
+              List<String> meterLines =
+                  Arrays.stream(result.split(System.getProperty("line.separator")))
+                      .filter(line -> line.startsWith("http_server_requests_seconds"))
+                      .collect(Collectors.toList());
+
+              assertThat(meterLines)
+                  .anySatisfy(
+                      metric ->
+                          assertThat(metric)
+                              .contains("method=\"GET\"")
+                              .contains("module=\"sgv2-rest-service-other\"")
+                              .contains("uri=\"root\"")
+                              .contains(String.format("status=\"%d\"", status))
+                              // 13-Jan-2022, tatu: As mentioned above, no tags yet
+                              // .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY)
+                              .contains("quantile=\"0.95\"")
+                              .doesNotContain("error"))
+                  .anySatisfy(
+                      metric ->
+                          assertThat(metric)
+                              .contains("method=\"GET\"")
+                              .contains("module=\"sgv2-rest-service-other\"")
+                              .contains("uri=\"root\"")
+                              .contains(String.format("status=\"%d\"", status))
+                              // 13-Jan-2022, tatu: As mentioned above, no tags yet
+                              // .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY)
+                              .contains("quantile=\"0.99\""))
+                  .doesNotContain("error");
+
+              // counted http request lines
+              List<String> counterLines =
+                  Arrays.stream(result.split(System.getProperty("line.separator")))
+                      .filter(line -> line.startsWith("http_server_requests_counter"))
+                      .collect(Collectors.toList());
+
+              assertThat(counterLines)
+                  .anySatisfy(
+                      metric ->
+                          assertThat(metric)
+                              .contains("error=\"false\"")
+                              .contains("module=\"sgv2-rest-service-other\"")
+                              .doesNotContain("method=\"GET\"")
+                              .doesNotContain("uri=\"root\"")
+                              .doesNotContain(String.format("status=\"%d\"", status)));
             });
   }
 

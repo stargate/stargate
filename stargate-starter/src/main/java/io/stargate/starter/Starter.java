@@ -226,31 +226,32 @@ public class Starter {
 
   @Order(value = 20)
   @Option(
-      name = {
-        "--disable-dynamic-snitch",
-        "Whether the dynamic snitch should wrap the actual snitch."
-      })
+      name = "--disable-dynamic-snitch",
+      description = "Whether the dynamic snitch should wrap the actual snitch.")
   protected boolean disableDynamicSnitch = false;
 
   @Order(value = 21)
   @Option(
-      name = {"--disable-mbean-registration", "Whether the mbean registration should be disabled"})
+      name = "--disable-mbean-registration",
+      description = "Whether the mbean registration should be disabled")
   protected boolean disableMBeanRegistration = false;
 
   @Order(value = 22)
   @Option(
-      name = {
-        "--disable-bundles-watch",
-        "Whether watching the bundle directory for new jars to load should be disabled"
-      })
+      name = "--disable-bundles-watch",
+      description = "Whether watching the bundle directory for new jars to load should be disabled")
   protected boolean disableBundlesWatch = false;
 
   @Order(value = 23)
   @Option(
-      name = {
-        "--bridge-token",
-        "Token that API services will use to authenticate to the bridge (required) "
-      })
+      name = "--host-id",
+      description = "The host ID to use for this node. Must be a valid UUID.")
+  protected String hostId;
+
+  @Order(value = 24)
+  @Option(
+      name = "--bridge-token",
+      description = "Token that API services will use to authenticate to the bridge (required) ")
   protected String bridgeToken;
 
   @Order(value = 1000)
@@ -391,6 +392,9 @@ public class Starter {
     System.setProperty(
         "org.apache.cassandra.disable_mbean_registration",
         String.valueOf(disableMBeanRegistration));
+    if (hostId != null && !hostId.isEmpty()) {
+      System.setProperty("stargate.host_id", hostId);
+    }
     System.setProperty("stargate.bridge.admin_token", bridgeToken);
 
     if (bindToListenAddressOnly) {

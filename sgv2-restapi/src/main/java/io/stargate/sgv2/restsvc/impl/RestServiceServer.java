@@ -25,7 +25,6 @@ import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
 import io.grpc.ManagedChannel;
-import io.grpc.ManagedChannelBuilder;
 import io.stargate.core.grpc.BridgeConfig;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
@@ -34,7 +33,9 @@ import io.stargate.metrics.jersey.MetricsBinder;
 import io.stargate.proto.Schema.SchemaRead;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.common.grpc.StargateBridgeClientFactory;
-import io.stargate.sgv2.restsvc.resources.CreateStargateBridgeClientFilter;
+import io.stargate.sgv2.common.http.CreateStargateBridgeClientFilter;
+import io.stargate.sgv2.common.http.StargateBridgeClientJerseyFactory;
+import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
 import io.stargate.sgv2.restsvc.resources.MetricsResource;
 import io.stargate.sgv2.restsvc.resources.Sgv2RowsResourceImpl;
@@ -50,21 +51,22 @@ import io.swagger.jaxrs.config.DefaultJaxrsScanner;
 import io.swagger.jaxrs.listing.ApiListingResource;
 import io.swagger.jaxrs.listing.SwaggerSerializers;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.EnumSet;
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.process.internal.RequestScoped;
 import org.glassfish.jersey.server.ServerProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /** DropWizard {@code Application} that will serve Stargate v2 REST service endpoints. */
 public class RestServiceServer extends Application<RestServiceServerConfiguration> {
   public static final String REST_SVC_MODULE_NAME = "sgv2-rest-service";
 
-  private final Logger logger = LoggerFactory.getLogger(getClass());
+  public static final String[] NON_API_URI_REGEX = new String[] {"^/$", "^/health$", "^/swagger.*"};
 
   private final Metrics metrics;
   private final MetricsScraper metricsScraper;
@@ -105,17 +107,9 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   public void run(final RestServiceServerConfiguration appConfig, final Environment environment)
       throws IOException {
 
-    ManagedChannel grpcChannel = buildChannel(appConfig.stargate.bridge);
-
-    StargateBridgeClientFactory stargateBridgeClientFactory =
-        StargateBridgeClientFactory.newInstance(
-            grpcChannel,
-            BridgeConfig.ADMIN_TOKEN,
-            SchemaRead.SourceApi.REST,
-            environment.lifecycle().scheduledExecutorService("bridge-factory").threads(1).build());
-    environment
-        .jersey()
-        .register(new CreateStargateBridgeClientFilter(stargateBridgeClientFactory));
+    StargateBridgeClientFactory clientFactory =
+        buildClientFactory(appConfig.stargate.bridge.buildChannel(), environment);
+    environment.jersey().register(buildClientFilter(clientFactory));
 
     environment
         .jersey()
@@ -160,23 +154,36 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     enableCors(environment);
 
     final MetricsBinder metricsBinder =
-        new MetricsBinder(metrics, httpMetricsTagProvider, REST_SVC_MODULE_NAME);
+        new MetricsBinder(
+            metrics,
+            httpMetricsTagProvider,
+            REST_SVC_MODULE_NAME,
+            Arrays.asList(NON_API_URI_REGEX));
     metricsBinder.register(environment.jersey());
 
     // no html content
     environment.jersey().property(ServerProperties.RESPONSE_SET_STATUS_OVER_SEND_ERROR, true);
   }
 
-  private ManagedChannel buildChannel(RestServiceServerConfiguration.EndpointConfig grpcEndpoint) {
-    logger.info("Bridge endpoint for RestService v2 is to use: {}", grpcEndpoint);
-    ManagedChannelBuilder<?> builder =
-        ManagedChannelBuilder.forAddress(grpcEndpoint.host, grpcEndpoint.port).directExecutor();
-    if (grpcEndpoint.useTls) {
-      builder = builder.useTransportSecurity();
-    } else {
-      builder = builder.usePlaintext();
-    }
-    return builder.build();
+  private StargateBridgeClientFactory buildClientFactory(
+      ManagedChannel channel, Environment environment) {
+    return StargateBridgeClientFactory.newInstance(
+        channel,
+        BridgeConfig.ADMIN_TOKEN,
+        SchemaRead.SourceApi.REST,
+        environment.lifecycle().scheduledExecutorService("bridge-factory").threads(1).build());
+  }
+
+  private CreateStargateBridgeClientFilter buildClientFilter(
+      StargateBridgeClientFactory stargateBridgeClientFactory) {
+    return new CreateStargateBridgeClientFilter(stargateBridgeClientFactory) {
+      @Override
+      protected Response buildError(Response.Status status, String message, MediaType mediaType) {
+        return Response.status(status)
+            .entity(new RestServiceError(message, status.getStatusCode()))
+            .build();
+      }
+    };
   }
 
   public static ObjectMapper configureObjectMapper(ObjectMapper objectMapper) {

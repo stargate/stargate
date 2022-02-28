@@ -165,7 +165,9 @@ public class StargateQueryHandler implements QueryHandler {
   public Prepared prepare(String s, QueryState queryState, Map<String, ByteBuffer> customPayload)
       throws RequestValidationException {
     Prepared prepare = QueryProcessor.instance.prepare(s, queryState, customPayload);
-    ParsedStatement.Prepared prepared = QueryProcessor.instance.getPrepared(prepare.statementId);
+    ParsedStatement.Prepared prepared =
+        Optional.ofNullable(QueryProcessor.instance.getPrepared(prepare.statementId))
+            .orElseGet(() -> QueryProcessor.getStatement(s, queryState.getClientState()));
     boolean idempotent = IdempotencyAnalyzer.isIdempotent(prepared.statement);
     boolean useKeyspace = prepared.statement instanceof UseStatement;
     return new PreparedWithInfo(idempotent, useKeyspace, prepare, prepared);

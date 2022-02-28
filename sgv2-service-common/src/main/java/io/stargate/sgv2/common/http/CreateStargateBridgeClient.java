@@ -1,5 +1,5 @@
 /*
- * Copyright DataStax, Inc. and/or The Stargate Authors
+ * Copyright The Stargate Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,19 +13,15 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.sgv2.common.cql.builder;
+package io.stargate.sgv2.common.http;
 
-public interface Value<T> {
+import java.lang.annotation.Inherited;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import javax.ws.rs.NameBinding;
 
-  static <T> Value<T> marker() {
-    return new Marker<>();
-  }
-
-  static <T> Value<T> of(T value) {
-    return new ConcreteValue<>(value);
-  }
-
-  boolean isMarker();
-
-  T get();
-}
+/** Annotates resources that we want filtered with {@link CreateStargateBridgeClientFilter}. */
+@NameBinding
+@Retention(RetentionPolicy.RUNTIME)
+@Inherited
+public @interface CreateStargateBridgeClient {}

@@ -10,16 +10,22 @@
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
+ *  See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
-package io.stargate.sgv2.restsvc.resources;
 
-import java.lang.annotation.Retention;
-import java.lang.annotation.RetentionPolicy;
-import javax.ws.rs.NameBinding;
+package io.stargate.grpc.metrics.api;
 
-/** Annotates resources that we want filtered with {@link CreateStargateBridgeClientFilter}. */
-@NameBinding
-@Retention(RetentionPolicy.RUNTIME)
-public @interface CreateStargateBridgeClient {}
+import io.grpc.ServerCall;
+import io.micrometer.core.instrument.Tags;
+
+/** No-op implementation of the {@link GrpcMetricsTagProvider}, returns empty tags for any call. */
+public class NoopGrpcMetricsTagProvider implements GrpcMetricsTagProvider {
+
+  /** {@inheritDoc} */
+  @Override
+  public Tags getCallTags(ServerCall<?, ?> call) {
+    return Tags.empty();
+  }
+}

@@ -6,10 +6,10 @@ import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
+import io.stargate.sgv2.common.http.CreateStargateBridgeClient;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoTypeTranslator;
 import io.stargate.sgv2.restsvc.models.Sgv2ColumnDefinition;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
-import io.stargate.sgv2.restsvc.resources.CreateStargateBridgeClient;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -71,17 +71,14 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
                   .kind(kind)
                   .type(columnDefinition.getTypeDefinition())
                   .build();
-          String cql =
+          QueryOuterClass.Query query =
               new QueryBuilder()
                   .alter()
                   .table(keyspaceName, tableName)
                   .addColumn(columnDef)
+                  .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
                   .build();
-          bridge.executeQuery(
-              QueryOuterClass.Query.newBuilder()
-                  .setParameters(parametersForLocalQuorum())
-                  .setCql(cql)
-                  .build());
+          bridge.executeQuery(query);
 
           return Response.status(Response.Status.CREATED)
               .entity(Collections.singletonMap("name", columnName))
@@ -145,17 +142,14 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
           }
           // Avoid call if there is no need to rename
           if (!columnName.equals(newName)) {
-            String cql =
+            QueryOuterClass.Query query =
                 new QueryBuilder()
                     .alter()
                     .table(keyspaceName, tableName)
                     .renameColumn(columnName, newName)
+                    .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
                     .build();
-            bridge.executeQuery(
-                QueryOuterClass.Query.newBuilder()
-                    .setParameters(parametersForLocalQuorum())
-                    .setCql(cql)
-                    .build());
+            bridge.executeQuery(query);
           }
           return Response.status(Response.Status.OK)
               .entity(Collections.singletonMap("name", newName))
@@ -185,17 +179,14 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
                 String.format("column '%s' not found in table '%s'", columnName, tableName),
                 Response.Status.BAD_REQUEST);
           }
-          String cql =
+          QueryOuterClass.Query query =
               new QueryBuilder()
                   .alter()
                   .table(keyspaceName, tableName)
                   .dropColumn(columnName)
+                  .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
                   .build();
-          bridge.executeQuery(
-              QueryOuterClass.Query.newBuilder()
-                  .setParameters(parametersForLocalQuorum())
-                  .setCql(cql)
-                  .build());
+          bridge.executeQuery(query);
           return Response.status(Response.Status.NO_CONTENT).build();
         });
   }

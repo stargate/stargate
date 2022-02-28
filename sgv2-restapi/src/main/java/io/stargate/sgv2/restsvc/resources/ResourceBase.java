@@ -36,6 +36,8 @@ public abstract class ResourceBase {
 
   protected static final BridgeProtoValueConverters PROTO_CONVERTERS =
       BridgeProtoValueConverters.instance();
+  protected static final QueryOuterClass.QueryParameters PARAMETERS_FOR_LOCAL_QUORUM =
+      parametersBuilderForLocalQuorum().build();
 
   // // // Helper methods for Schema access
 
@@ -70,15 +72,28 @@ public abstract class ResourceBase {
 
   // // // Helper methods for Bridge/gRPC query construction
 
-  protected static QueryOuterClass.QueryParameters parametersForLocalQuorum() {
-    return parametersBuilderForLocalQuorum().build();
-  }
-
-  protected static QueryOuterClass.QueryParameters.Builder parametersBuilderForLocalQuorum() {
+  private static QueryOuterClass.QueryParameters.Builder parametersBuilderForLocalQuorum() {
     return QueryOuterClass.QueryParameters.newBuilder()
         .setConsistency(
             QueryOuterClass.ConsistencyValue.newBuilder()
-                .setValue(QueryOuterClass.Consistency.LOCAL_QUORUM));
+                .setValue(QueryOuterClass.Consistency.LOCAL_QUORUM))
+        .setPageSize(Int32Value.of(DEFAULT_PAGE_SIZE));
+  }
+
+  protected QueryOuterClass.QueryParameters parametersForPageSizeAndState(
+      int pageSizeParam, String pageStateParam) {
+    if (isStringEmpty(pageStateParam) && pageSizeParam <= 0) {
+      return PARAMETERS_FOR_LOCAL_QUORUM;
+    }
+    QueryOuterClass.QueryParameters.Builder paramsB = parametersBuilderForLocalQuorum();
+    if (!isStringEmpty(pageStateParam)) {
+      paramsB =
+          paramsB.setPagingState(BytesValue.of(ByteString.copyFrom(decodeBase64(pageStateParam))));
+    }
+    if (pageSizeParam > 0) {
+      paramsB = paramsB.setPageSize(Int32Value.of(pageSizeParam));
+    }
+    return paramsB.build();
   }
 
   // // // Helper methods for Bridge/gRPC type manipulation
@@ -101,29 +116,7 @@ public abstract class ResourceBase {
   }
 
   protected Response fetchRows(
-      StargateBridgeClient bridge,
-      int pageSizeParam,
-      String pageStateParam,
-      boolean raw,
-      String cql,
-      QueryOuterClass.Values.Builder values) {
-    QueryOuterClass.QueryParameters.Builder paramsB = parametersBuilderForLocalQuorum();
-    if (!isStringEmpty(pageStateParam)) {
-      paramsB =
-          paramsB.setPagingState(BytesValue.of(ByteString.copyFrom(decodeBase64(pageStateParam))));
-    }
-    int pageSize = DEFAULT_PAGE_SIZE;
-    if (pageSizeParam > 0) {
-      pageSize = pageSizeParam;
-    }
-    paramsB = paramsB.setPageSize(Int32Value.of(pageSize));
-
-    QueryOuterClass.Query.Builder b =
-        QueryOuterClass.Query.newBuilder().setParameters(paramsB).setCql(cql);
-    if (values != null) {
-      b = b.setValues(values);
-    }
-    final QueryOuterClass.Query query = b.build();
+      StargateBridgeClient bridge, QueryOuterClass.Query query, boolean raw) {
     QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
 
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();

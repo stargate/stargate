@@ -57,6 +57,10 @@ public class BaseIntegrationTest {
         && Version.parse(backend.clusterVersion()).nextStable().compareTo(Version.V4_0_0) >= 0;
   }
 
+  public boolean backendSupportsSAI() {
+    return backend.supportsSAI();
+  }
+
   public static Instant now() {
     // Avoid using Instants with nanosecond precision as nanos may be lost on the server side
     return Instant.ofEpochMilli(System.currentTimeMillis());

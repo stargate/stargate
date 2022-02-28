@@ -15,21 +15,13 @@
  */
 package io.stargate.sgv2.common.cql.builder;
 
-class ConcreteValue<T> implements Value<T> {
+public interface Term<T> {
 
-  private final T value;
-
-  public ConcreteValue(T value) {
-    this.value = value;
+  static <T> Term<T> marker() {
+    return new Marker<>();
   }
 
-  @Override
-  public boolean isMarker() {
-    return false;
-  }
-
-  @Override
-  public T get() {
-    return value;
+  static <T> Term<T> of(T value) {
+    return new Literal<>(value);
   }
 }
