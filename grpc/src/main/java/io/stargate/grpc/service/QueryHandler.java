@@ -130,7 +130,7 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
   private Parameters makeParameters(QueryParameters parameters, Optional<ClientInfo> clientInfo) {
     ImmutableParameters.Builder builder = ImmutableParameters.builder();
 
-    logger.debug("makeParameters() with clientInfo: {}", clientInfo.get());
+    logger.debug("makeParameters() with clientInfo: {}", clientInfo.isPresent());
 
     builder.consistencyLevel(
         parameters.hasConsistency()
