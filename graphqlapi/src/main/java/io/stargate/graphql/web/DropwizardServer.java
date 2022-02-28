@@ -51,8 +51,7 @@ import org.osgi.framework.FrameworkUtil;
 
 public class DropwizardServer extends Application<Configuration> {
 
-  public static final String[] NON_API_URI_REGEX =
-      new String[] {"^/playground$", "^/graphql-schema$"};
+  public static final String[] NON_API_URI_REGEX = new String[] {"^/(playground|graphql-schema)$"};
 
   private final Persistence persistence;
   private final AuthenticationService authenticationService;

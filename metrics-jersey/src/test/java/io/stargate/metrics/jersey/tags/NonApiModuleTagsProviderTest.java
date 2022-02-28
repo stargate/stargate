@@ -65,7 +65,8 @@ class NonApiModuleTagsProviderTest {
       when(metrics.tagsForModule("testing-other")).thenReturn(tags);
 
       provider =
-          new NonApiModuleTagsProvider(metrics, "testing", Collections.singleton("^/playground$"));
+          new NonApiModuleTagsProvider(
+              metrics, "testing", Collections.singleton("^/(playground|swagger)$"));
       Iterable<Tag> result = provider.httpRequestTags(requestEvent);
 
       assertThat(result).containsAll(tags);
