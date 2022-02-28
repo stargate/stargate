@@ -187,6 +187,8 @@ public class StargateQueryHandler implements QueryHandler {
   protected void authorizeByToken(Map<String, ByteBuffer> customPayload, CQLStatement statement) {
     AuthenticationSubject authenticationSubject = loadAuthenticationSubject(customPayload);
 
+    logger.debug("authorizeByToken() with authentication subject {}", authenticationSubject);
+
     if (!getAuthorizationService().isPresent()) {
       throw new RuntimeException(
           "Failed to find an io.stargate.auth.AuthorizationService to authorize request");

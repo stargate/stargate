@@ -36,8 +36,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ScheduledExecutorService;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
+
+  static final Logger logger = LoggerFactory.getLogger(QueryHandler.class.getName());
 
   private final String decoratedKeyspace;
   private final SchemaAgreementHelper schemaAgreementHelper;
@@ -125,6 +129,8 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
 
   private Parameters makeParameters(QueryParameters parameters, Optional<ClientInfo> clientInfo) {
     ImmutableParameters.Builder builder = ImmutableParameters.builder();
+
+    logger.debug("makeParameters() with clientInfo: {}", clientInfo.get());
 
     builder.consistencyLevel(
         parameters.hasConsistency()
