@@ -30,6 +30,7 @@ import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.metrics.jersey.config.MetricsListenerConfig;
 import io.stargate.metrics.jersey.listener.CounterApplicationEventListener;
+import java.util.Collections;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -63,7 +64,12 @@ class MetricsBinderTest {
   public void init() {
     binder =
         new MetricsBinder(
-            metrics, httpMetricsTagProvider, MODULE, meterListenerConfig, counterListenerConfig);
+            metrics,
+            httpMetricsTagProvider,
+            MODULE,
+            Collections.emptyList(),
+            meterListenerConfig,
+            counterListenerConfig);
   }
 
   @Nested
@@ -82,6 +88,7 @@ class MetricsBinderTest {
       verify(jerseyEnvironment, times(2)).register(registerComponentCaptor.capture());
       verify(metrics, times(2)).getMeterRegistry();
       verify(metrics, times(2)).tagsForModule(MODULE);
+      verify(metrics, times(2)).tagsForModule(MODULE + "-other");
       verifyNoMoreInteractions(metrics, httpMetricsTagProvider);
       assertThat(registerComponentCaptor.getAllValues())
           .hasSize(2)
