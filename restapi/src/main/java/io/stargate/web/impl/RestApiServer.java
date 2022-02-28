@@ -56,6 +56,7 @@ import io.swagger.jaxrs.config.DefaultJaxrsScanner;
 import io.swagger.jaxrs.listing.ApiListingResource;
 import io.swagger.jaxrs.listing.SwaggerSerializers;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.EnumSet;
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
@@ -70,6 +71,8 @@ import org.slf4j.LoggerFactory;
 /** DropWizard {@code Application} that will serve both REST (v1, v2) and Document API endpoints. */
 public class RestApiServer extends Application<RestApiServerConfiguration> {
   private final Logger logger = LoggerFactory.getLogger(getClass());
+
+  public static final String[] NON_API_URI_REGEX = new String[] {"^/$", "^/health$", "^/swagger.*"};
 
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
@@ -194,7 +197,11 @@ public class RestApiServer extends Application<RestApiServerConfiguration> {
     enableCors(environment);
 
     MetricsBinder metricsBinder =
-        new MetricsBinder(metrics, httpMetricsTagProvider, RestApiActivator.MODULE_NAME);
+        new MetricsBinder(
+            metrics,
+            httpMetricsTagProvider,
+            RestApiActivator.MODULE_NAME,
+            Arrays.asList(NON_API_URI_REGEX));
     metricsBinder.register(environment.jersey());
 
     // no html content

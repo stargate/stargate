@@ -51,6 +51,7 @@ import io.swagger.jaxrs.config.DefaultJaxrsScanner;
 import io.swagger.jaxrs.listing.ApiListingResource;
 import io.swagger.jaxrs.listing.SwaggerSerializers;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.EnumSet;
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
@@ -64,6 +65,8 @@ import org.glassfish.jersey.server.ServerProperties;
 /** DropWizard {@code Application} that will serve Stargate v2 REST service endpoints. */
 public class RestServiceServer extends Application<RestServiceServerConfiguration> {
   public static final String REST_SVC_MODULE_NAME = "sgv2-rest-service";
+
+  public static final String[] NON_API_URI_REGEX = new String[] {"^/$", "^/health$", "^/swagger.*"};
 
   private final Metrics metrics;
   private final MetricsScraper metricsScraper;
@@ -151,7 +154,11 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     enableCors(environment);
 
     final MetricsBinder metricsBinder =
-        new MetricsBinder(metrics, httpMetricsTagProvider, REST_SVC_MODULE_NAME);
+        new MetricsBinder(
+            metrics,
+            httpMetricsTagProvider,
+            REST_SVC_MODULE_NAME,
+            Arrays.asList(NON_API_URI_REGEX));
     metricsBinder.register(environment.jersey());
 
     // no html content
