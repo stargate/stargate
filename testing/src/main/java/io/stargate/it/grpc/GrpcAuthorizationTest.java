@@ -21,13 +21,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @CqlSessionSpec(
     initQueries = {
       "CREATE ROLE IF NOT EXISTS 'read_only_user' WITH PASSWORD = 'read_only_user' AND LOGIN = TRUE",
-      "CREATE KEYSPACE IF NOT EXISTS table_token_test WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':'1'}",
-      "CREATE TABLE IF NOT EXISTS table_token_test.tbl_test (key text PRIMARY KEY, value text);",
-      "INSERT INTO table_token_test.tbl_test (key, value) VALUES ('a', 'alpha')",
-      "GRANT SELECT ON KEYSPACE table_token_test TO read_only_user",
+      "CREATE KEYSPACE IF NOT EXISTS grpc_table_token_test WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':'1'}",
+      "CREATE TABLE IF NOT EXISTS grpc_table_token_test.tbl_test (key text PRIMARY KEY, value text);",
+      "INSERT INTO grpc_table_token_test.tbl_test (key, value) VALUES ('a', 'alpha')",
+      "GRANT SELECT ON KEYSPACE grpc_table_token_test TO read_only_user",
     })
 public class GrpcAuthorizationTest extends GrpcIntegrationTest {
-  private final String keyspaceName = "table_token_test";
+  private final String keyspaceName = "grpc_table_token_test";
   private final String tableName = "tbl_test";
   private final String readOnlyUsername = "read_only_user";
   private final String readOnlyPassword = "read_only_user";
@@ -49,7 +49,7 @@ public class GrpcAuthorizationTest extends GrpcIntegrationTest {
   }
 
   @Test
-  public void createKeyspaceV2CheckAuthorization() throws IOException {
+  public void createKeyspaceCheckAuthorization() throws IOException {
     final String keyspace = "ks_grpcAuthnzTest_CreateKS";
     final String createKeyspaceCQL =
         String.format(
@@ -71,13 +71,13 @@ public class GrpcAuthorizationTest extends GrpcIntegrationTest {
     final String readOnlyToken = generateReadOnlyToken();
     assertThatThrownBy(
             () -> {
-              stubWithCallCredentials("not-a-token-that-exists")
+              stubWithCallCredentials(readOnlyToken)
                   .executeQuery(
                       QueryOuterClass.Query.newBuilder().setCql(createKeyspaceCQL).build());
             })
         .isInstanceOf(StatusRuntimeException.class)
-        .hasMessageContaining("UNAUTHENTICATED")
-        .hasMessageContaining("Invalid token");
+        .hasMessageContaining("PERMISSION_DENIED")
+        .hasMessageContaining("has no CREATE permission");
 
     // But succeed for Admin user
     final String adminToken = generateAdminToken();
