@@ -32,6 +32,8 @@ public class GrpcAuthorizationTest extends GrpcIntegrationTest {
   private final String tableName = "tbl_test";
   private final String readOnlyUsername = "read_only_user";
   private final String readOnlyPassword = "read_only_user";
+  private final String noAccessUsername = "not_even_reads_user";
+  private final String noAccessPassword = "tiger";
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -130,7 +132,31 @@ public class GrpcAuthorizationTest extends GrpcIntegrationTest {
 
   @Test
   public void selectFromTableCheckAuthorization() throws IOException {
-    // To be completed
+    final String readRowCQL = String.format("SELECT * FROM %s.%s", keyspaceName, tableName);
+
+    // First, read by authorized read-only user; should find 1 row
+    final String adminToken = generateReadOnlyToken();
+    QueryOuterClass.Response response =
+        stubWithCallCredentials(adminToken)
+            .executeQuery(QueryOuterClass.Query.newBuilder().setCql(readRowCQL).build());
+    assertThat(response).isNotNull();
+    assertThat(response.getResultSet()).isNotNull();
+    assertThat(response.getResultSet().getRowsCount()).isEqualTo(1);
+
+    // And then attempt by another user with no read access
+    final String readOnlyToken = generateNoAccessToken();
+    assertThatThrownBy(
+            () -> {
+              stubWithCallCredentials(readOnlyToken)
+                  .executeQuery(QueryOuterClass.Query.newBuilder().setCql(readRowCQL).build());
+            })
+        .isInstanceOf(StatusRuntimeException.class)
+        .hasMessageContaining("PERMISSION_DENIED")
+        .hasMessageContaining("has no SELECT permission");
+  }
+
+  private String generateNoAccessToken() throws IOException {
+    return generateAuthToken(authUrlBase, noAccessUsername, noAccessPassword);
   }
 
   private String generateReadOnlyToken() throws IOException {
