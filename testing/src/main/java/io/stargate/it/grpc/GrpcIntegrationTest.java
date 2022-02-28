@@ -19,7 +19,6 @@ import static io.stargate.proto.ReactorStargateGrpc.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
-import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.StringValue;
 import io.grpc.ManagedChannel;
@@ -68,18 +67,8 @@ public class GrpcIntegrationTest extends BaseIntegrationTest {
     asyncStub = StargateGrpc.newStub(managedChannel);
     reactorStub = ReactorStargateGrpc.newReactorStub(managedChannel);
 
-    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
-
-    String body =
-        RestUtils.post(
-            "",
-            String.format("http://%s:8081/v1/auth/token/generate", seedAddress),
-            objectMapper.writeValueAsString(new Credentials("cassandra", "cassandra")),
-            HttpStatus.SC_CREATED);
-
-    AuthTokenResponse authTokenResponse = objectMapper.readValue(body, AuthTokenResponse.class);
-    authToken = authTokenResponse.getAuthToken();
-    assertThat(authToken).isNotNull();
+    authToken =
+        generateAuthToken(String.format("http://%s:8081", seedAddress), "cassandra", "cassandra");
   }
 
   @AfterAll
@@ -162,5 +151,21 @@ public class GrpcIntegrationTest extends BaseIntegrationTest {
 
   protected static Row rowOf(Value... values) {
     return Row.newBuilder().addAllValues(Arrays.asList(values)).build();
+  }
+
+  protected static String generateAuthToken(String authUrlBase, String username, String password)
+      throws IOException {
+    String body =
+        RestUtils.post(
+            "",
+            String.format("%s/v1/auth/token/generate", authUrlBase),
+            objectMapper.writeValueAsString(new Credentials(username, password)),
+            HttpStatus.SC_CREATED);
+
+    AuthTokenResponse authTokenResponse = objectMapper.readValue(body, AuthTokenResponse.class);
+    String authToken = authTokenResponse.getAuthToken();
+    assertThat(authToken).isNotNull();
+
+    return authToken;
   }
 }

@@ -15,13 +15,15 @@
  */
 package io.stargate.it.grpc;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.grpc.StatusRuntimeException;
+import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Query;
 import org.junit.jupiter.api.Test;
 
-public class AuthenticationTest extends GrpcIntegrationTest {
+public class GrpcAuthenticationTest extends GrpcIntegrationTest {
   @Test
   public void emptyCredentials() {
     assertThatThrownBy(
@@ -43,5 +45,15 @@ public class AuthenticationTest extends GrpcIntegrationTest {
         .isInstanceOf(StatusRuntimeException.class)
         .hasMessageContaining("UNAUTHENTICATED")
         .hasMessageContaining("Invalid token");
+  }
+
+  @Test
+  public void validAdminCredentials() {
+    QueryOuterClass.Response response =
+        stubWithCallCredentials(authToken)
+            .executeQuery(Query.newBuilder().setCql("SELECT * FROM system.local").build());
+    assertThat(response).isNotNull();
+    QueryOuterClass.ResultSet rs = response.getResultSet();
+    assertThat(rs.getRowsCount()).isGreaterThan(0);
   }
 }
