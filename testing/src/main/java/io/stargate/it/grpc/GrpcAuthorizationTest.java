@@ -21,8 +21,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @CqlSessionSpec(
     initQueries = {
       "CREATE ROLE IF NOT EXISTS 'read_only_user' WITH PASSWORD = 'read_only_user' AND LOGIN = TRUE",
+      "CREATE ROLE IF NOT EXISTS 'not_even_reads_user' WITH PASSWORD = 'tiger' AND LOGIN = TRUE",
       "CREATE KEYSPACE IF NOT EXISTS grpc_table_token_test WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':'1'}",
-      "CREATE TABLE IF NOT EXISTS grpc_table_token_test.tbl_test (key text PRIMARY KEY, value text);",
+      "CREATE TABLE IF NOT EXISTS grpc_table_token_test.tbl_test (key text PRIMARY KEY, value text)",
       "INSERT INTO grpc_table_token_test.tbl_test (key, value) VALUES ('a', 'alpha')",
       "GRANT SELECT ON KEYSPACE grpc_table_token_test TO read_only_user",
     })
@@ -87,6 +88,49 @@ public class GrpcAuthorizationTest extends GrpcIntegrationTest {
     assertThat(response).isNotNull();
     // not 100% sure if anything is expected; seems like an empty ResultSet
     assertThat(response.getResultSet()).isNotNull();
+  }
+
+  @Test
+  public void createTableCheckAuthorization() throws IOException {
+    final String createTableCQL =
+        String.format(
+            "CREATE TABLE grpc_table_token_test.%s (key text PRIMARY KEY, value text)",
+            "test_table_to_create");
+
+    // First: fail if not authenticated (null token)
+    assertThatThrownBy(
+            () -> {
+              stubWithCallCredentials("not-a-token-that-exists")
+                  .executeQuery(QueryOuterClass.Query.newBuilder().setCql(createTableCQL).build());
+            })
+        .isInstanceOf(StatusRuntimeException.class)
+        .hasMessageContaining("UNAUTHENTICATED")
+        .hasMessageContaining("Invalid token");
+
+    // Second: also fail if authenticated but not authorized
+    final String readOnlyToken = generateReadOnlyToken();
+    assertThatThrownBy(
+            () -> {
+              stubWithCallCredentials(readOnlyToken)
+                  .executeQuery(QueryOuterClass.Query.newBuilder().setCql(createTableCQL).build());
+            })
+        .isInstanceOf(StatusRuntimeException.class)
+        .hasMessageContaining("PERMISSION_DENIED")
+        .hasMessageContaining("has no CREATE permission");
+
+    // But succeed for Admin user
+    final String adminToken = generateAdminToken();
+    QueryOuterClass.Response response =
+        stubWithCallCredentials(adminToken)
+            .executeQuery(QueryOuterClass.Query.newBuilder().setCql(createTableCQL).build());
+    assertThat(response).isNotNull();
+    // not 100% sure if anything is expected; seems like an empty ResultSet
+    assertThat(response.getResultSet()).isNotNull();
+  }
+
+  @Test
+  public void selectFromTableCheckAuthorization() throws IOException {
+    // To be completed
   }
 
   private String generateReadOnlyToken() throws IOException {
