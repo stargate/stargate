@@ -775,6 +775,17 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
   }
 
   @Test
+  public void testJsonEmptyKey() throws IOException {
+    String json = "{\"\": \"value\", \"nested\": {\"\": \"value\"}}";
+
+    String resp = RestUtils.post(authToken, collectionPath, json, 400);
+
+    assertThat(resp)
+        .isEqualTo(
+            "{\"description\":\"JSON objects containing empty field names are not supported at the moment.\",\"code\":400}");
+  }
+
+  @Test
   public void testWriteManyDocs() throws IOException {
     // Create documents using multiExample that creates random ID's
     URL url = Resources.getResource("multiExample.json");
