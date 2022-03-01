@@ -53,7 +53,7 @@
   <root level="${stargate.logging.level.root:-INFO}">
     <appender-ref ref="SYSTEMLOG" />
     <appender-ref ref="STDOUT" />
-    <appender-ref ref="ASYNCDEBUGLOG" /> <!-- Comment this line to disable debug.log -->
+    <!--<appender-ref ref="ASYNCDEBUGLOG" />  Comment this line to disable debug.log -->
   </root>
 
   <logger name="org.apache.cassandra" level="${stargate.logging.level.cassandra:-INFO}"/>
@@ -61,4 +61,6 @@
   <logger name="io.stargate.web" level="${stargate.logging.level.web:-INFO}"/>
   <logger name="io.stargate.db" level="${stargate.logging.level.persistence:-INFO}"/>
   <logger name="io.stargate.auth" level="${stargate.logging.level.auth:-INFO}"/>
+  <logger name="io.stargate.bridge" level="-DEBUG"/>
+  <logger name="io.stargate.grpc" level="-DEBUG"/>
 </configuration>
