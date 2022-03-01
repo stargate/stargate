@@ -25,14 +25,19 @@ import io.stargate.config.store.api.ConfigStore;
 import io.stargate.config.store.api.ConfigWithOverrides;
 import io.stargate.config.store.api.MissingModuleSettingsException;
 import io.stargate.config.store.yaml.metrics.CacheMetricsRegistry;
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.time.Duration;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.CompletionException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ConfigStoreYaml implements ConfigStore {
+  private static final Logger logger = LoggerFactory.getLogger(ConfigStoreActivator.class);
+
   private static final ObjectMapper mapper = new YAMLMapper();
   private final Path configFilePath;
 
@@ -56,7 +61,18 @@ public class ConfigStoreYaml implements ConfigStore {
   }
 
   static Map<String, Map<String, Object>> loadConfig(Path configFilePath) throws IOException {
-    return (Map<String, Map<String, Object>>) mapper.readValue(configFilePath.toFile(), Map.class);
+    final File f = configFilePath.toFile();
+    if (!f.exists()) {
+      throw new IOException(
+          String.format(
+              "Can not load YAML config file '%s' (Path '%s'): does not exist", f, configFilePath));
+    }
+    if (!f.canRead()) {
+      throw new IOException(
+          String.format(
+              "Can not load YAML config file '%s' (Path '%s'): not readable", f, configFilePath));
+    }
+    return (Map<String, Map<String, Object>>) mapper.readValue(f, Map.class);
   }
 
   @Override
@@ -64,20 +80,22 @@ public class ConfigStoreYaml implements ConfigStore {
       throws MissingModuleSettingsException {
     try {
       Map<String, Map<String, Object>> result = configFileCache.get(configFilePath);
-      if (!result.containsKey(moduleName)) {
+      Map<String, Object> config = result.get(moduleName);
+      if (config == null) {
         throw new MissingModuleSettingsException(
             String.format(
-                "The loaded configuration map: %s, does not contain settings from a given module: %s",
-                result, moduleName));
+                "The loaded configuration map (from '%s'): %s, does not contain settings from a given module: %s",
+                configFilePath, result, moduleName));
       }
-      return new ConfigWithOverrides(
-          Collections.unmodifiableMap(result.get(moduleName)), moduleName);
+      logger.info(
+          "Successfully loaded YAML config file (with %d entries) for module '{}' (from '{}')",
+          config.size(), moduleName, configFilePath);
+      return new ConfigWithOverrides(Collections.unmodifiableMap(config), moduleName);
     } catch (CompletionException e) {
       throw new CompletionException(
-          "Problem when processing yaml file (from: "
-              + configFilePath
-              + "): "
-              + e.getLocalizedMessage(),
+          String.format(
+              "Problem when trying to load YAML config file for module '%s' (from: '%s'): %s",
+              moduleName, configFilePath, e.getMessage()),
           e);
     }
   }
