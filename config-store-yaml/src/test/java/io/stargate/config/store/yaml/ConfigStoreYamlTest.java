@@ -78,7 +78,9 @@ class ConfigStoreYamlTest {
     // when, then
     assertThatThrownBy(() -> configStoreYaml.getConfigForModule("non_existing_module"))
         .isInstanceOf(CompletionException.class)
-        .hasMessageContaining("Problem when processing yaml file (from: non-existing)");
+        .hasMessageContaining("Problem when trying to load YAML config file")
+        .hasMessageContaining("for module 'non_existing_module'")
+        .hasMessageContaining("(from: 'non-existing')");
   }
 
   @Test
