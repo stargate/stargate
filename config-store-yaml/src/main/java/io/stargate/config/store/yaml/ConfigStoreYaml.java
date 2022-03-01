@@ -72,7 +72,14 @@ public class ConfigStoreYaml implements ConfigStore {
           String.format(
               "Can not load YAML config file '%s' (Path '%s'): not readable", f, configFilePath));
     }
-    return (Map<String, Map<String, Object>>) mapper.readValue(f, Map.class);
+    Map<String, Map<String, Object>> config =
+        (Map<String, Map<String, Object>>) mapper.readValue(f, Map.class);
+    logger.info(
+        "Loaded YAML config file '{}' with {} entries (Path '{}')",
+        f,
+        config.size(),
+        configFilePath);
+    return config;
   }
 
   @Override
@@ -87,8 +94,8 @@ public class ConfigStoreYaml implements ConfigStore {
                 "The loaded configuration map (from '%s'): %s, does not contain settings from a given module: %s",
                 configFilePath, result, moduleName));
       }
-      logger.info(
-          "Successfully loaded YAML config file (with %d entries) for module '{}' (from '{}')",
+      logger.debug(
+          "Successfully got configuration (with %d entries) for module '{}' (loaded from '{}')",
           config.size(), moduleName, configFilePath);
       return new ConfigWithOverrides(Collections.unmodifiableMap(config), moduleName);
     } catch (CompletionException e) {
