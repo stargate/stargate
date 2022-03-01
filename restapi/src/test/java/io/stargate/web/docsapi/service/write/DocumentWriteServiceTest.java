@@ -143,7 +143,7 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
 
       Single<ResultSet> result =
           service.writeDocument(
-              datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, false, context);
+              datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, null, false, context);
 
       result.test().await().assertValueCount(1).assertComplete();
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -239,7 +239,7 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
 
       Single<ResultSet> result =
           service.updateDocument(
-              datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, false, context);
+              datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, null, false, context);
 
       result.test().await().assertValueCount(1).assertComplete();
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -347,6 +347,7 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
               documentId,
               subDocumentPath,
               rows,
+              null,
               false,
               context);
 
@@ -412,6 +413,7 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
                       documentId,
                       subDocumentPath,
                       rows,
+                      null,
                       false,
                       context));
 
@@ -440,6 +442,7 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
                       documentId,
                       subDocumentPath,
                       rows,
+                      null,
                       false,
                       context));
 
@@ -551,7 +554,7 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
 
       Single<ResultSet> result =
           service.patchDocument(
-              datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, false, context);
+              datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, null, false, context);
 
       result.test().await().assertValueCount(1).assertComplete();
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -709,7 +712,15 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
 
       Single<ResultSet> result =
           service.patchDocument(
-              datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, subPath, rows, false, context);
+              datastore,
+              KEYSPACE_NAME,
+              COLLECTION_NAME,
+              documentId,
+              subPath,
+              rows,
+              null,
+              false,
+              context);
 
       result.test().await().assertValueCount(1).assertComplete();
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -791,6 +802,7 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
                       documentId,
                       subDocumentPath,
                       rows,
+                      null,
                       false,
                       context));
 
@@ -815,7 +827,14 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
           catchThrowable(
               () ->
                   service.patchDocument(
-                      datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, false, context));
+                      datastore,
+                      KEYSPACE_NAME,
+                      COLLECTION_NAME,
+                      documentId,
+                      rows,
+                      null,
+                      false,
+                      context));
 
       assertThat(throwable)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -832,7 +851,14 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
           catchThrowable(
               () ->
                   service.patchDocument(
-                      datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, false, context));
+                      datastore,
+                      KEYSPACE_NAME,
+                      COLLECTION_NAME,
+                      documentId,
+                      rows,
+                      null,
+                      false,
+                      context));
 
       assertThat(throwable)
           .isInstanceOf(ErrorCodeRuntimeException.class)

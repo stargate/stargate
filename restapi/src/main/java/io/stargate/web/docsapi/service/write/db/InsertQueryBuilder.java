@@ -56,13 +56,23 @@ public class InsertQueryBuilder {
    * @return BuiltQuery
    */
   public BuiltQuery<? extends BoundQuery> buildQuery(
-      Supplier<QueryBuilder> queryBuilder, String keyspace, String table) {
-    return queryBuilder
-        .get()
-        .insertInto(keyspace, table)
-        .value(insertValueModifiers)
-        .timestamp()
-        .build();
+      Supplier<QueryBuilder> queryBuilder, String keyspace, String table, Integer ttl) {
+    if (ttl != null) {
+      return queryBuilder
+          .get()
+          .insertInto(keyspace, table)
+          .value(insertValueModifiers)
+          .ttl(ttl)
+          .timestamp()
+          .build();
+    } else {
+      return queryBuilder
+          .get()
+          .insertInto(keyspace, table)
+          .value(insertValueModifiers)
+          .timestamp()
+          .build();
+    }
   }
 
   /**

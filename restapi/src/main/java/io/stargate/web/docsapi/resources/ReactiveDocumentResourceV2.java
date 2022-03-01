@@ -128,6 +128,12 @@ public class ReactiveDocumentResourceV2 {
           @NotBlank(message = "payload must not be empty")
           String payload,
       @ApiParam(
+              value = "Include this to put a time-to-live on the document in the data store",
+              required = false)
+          @QueryParam("ttl")
+          @Min(value = 1, message = "TTL value must be a positive integer.")
+          Integer ttl,
+      @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false",
               required = false)
@@ -146,7 +152,7 @@ public class ReactiveDocumentResourceV2 {
 
               // and call the document service to fire write
               return reactiveDocumentService
-                  .writeDocument(db, namespace, collection, payload, context)
+                  .writeDocument(db, namespace, collection, payload, ttl, context)
 
                   // map to response
                   .map(
@@ -205,6 +211,12 @@ public class ReactiveDocumentResourceV2 {
               required = false)
           @QueryParam("id-path")
           String idPath,
+      @ApiParam(
+              value = "Include this to put a time-to-live on the document in the data store",
+              required = false)
+          @QueryParam("ttl")
+          @Min(value = 1, message = "TTL value must be a positive integer.")
+          Integer ttl,
       @QueryParam("profile") Boolean profile,
       @Context HttpServletRequest request,
       @Suspended AsyncResponse asyncResponse) {
@@ -219,7 +231,7 @@ public class ReactiveDocumentResourceV2 {
 
               // and call the document service to fire batch write
               return reactiveDocumentService
-                  .writeDocuments(db, namespace, collection, payload, idPath, context)
+                  .writeDocuments(db, namespace, collection, payload, idPath, ttl, context)
 
                   // map to response
                   .map(
@@ -268,6 +280,12 @@ public class ReactiveDocumentResourceV2 {
           @NotBlank(message = "payload must not be empty")
           String payload,
       @ApiParam(
+              value = "Include this to put a time-to-live on the document in the data store",
+              required = false)
+          @QueryParam("ttl")
+          @Min(value = 1, message = "TTL value must be a positive integer.")
+          Integer ttl,
+      @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false")
           @QueryParam("profile")
@@ -277,7 +295,16 @@ public class ReactiveDocumentResourceV2 {
     // just delegate to put with empty path
     List<PathSegment> path = Collections.emptyList();
     putDocPath(
-        authToken, namespace, collection, id, path, payload, profile, request, asyncResponse);
+        authToken,
+        namespace,
+        collection,
+        id,
+        path,
+        payload,
+        ttl != null ? ttl.toString() : null,
+        profile,
+        request,
+        asyncResponse);
   }
 
   @PUT
@@ -320,6 +347,12 @@ public class ReactiveDocumentResourceV2 {
           @NotBlank(message = "payload must not be empty")
           String payload,
       @ApiParam(
+              value =
+                  "Include this to put a time-to-live on the document in the data store; use 'auto' on a sub-document to make the TTL match that of the parent document.",
+              required = false)
+          @QueryParam("ttl")
+          String ttl,
+      @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false")
           @QueryParam("profile")
@@ -339,7 +372,7 @@ public class ReactiveDocumentResourceV2 {
 
               // and call the document service to fire write
               return reactiveDocumentService
-                  .updateDocument(db, namespace, collection, id, subPath, payload, context)
+                  .updateDocument(db, namespace, collection, id, subPath, payload, ttl, context)
 
                   // map to response
                   .map(
@@ -392,6 +425,12 @@ public class ReactiveDocumentResourceV2 {
           @NotBlank(message = "payload must not be empty")
           String payload,
       @ApiParam(
+              value = "Include this to put a time-to-live on the document in the data store",
+              required = false)
+          @QueryParam("ttl")
+          @Min(value = 1, message = "TTL value must be a positive integer.")
+          Integer ttl,
+      @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false")
           @QueryParam("profile")
@@ -401,7 +440,16 @@ public class ReactiveDocumentResourceV2 {
     // just delegate to patchPath with empty path
     List<PathSegment> path = Collections.emptyList();
     patchDocPath(
-        authToken, namespace, collection, id, path, payload, profile, request, asyncResponse);
+        authToken,
+        namespace,
+        collection,
+        id,
+        path,
+        payload,
+        ttl != null ? ttl.toString() : null,
+        profile,
+        request,
+        asyncResponse);
   }
 
   @PATCH
@@ -444,6 +492,12 @@ public class ReactiveDocumentResourceV2 {
           @NotBlank(message = "payload must not be empty")
           String payload,
       @ApiParam(
+              value =
+                  "Include this to put a time-to-live on the document in the data store; use 'auto' to make the TTL match that of the parent document.",
+              required = false)
+          @QueryParam("ttl")
+          String ttl,
+      @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false")
           @QueryParam("profile")
@@ -463,7 +517,7 @@ public class ReactiveDocumentResourceV2 {
 
               // and call the document service to fire write
               return reactiveDocumentService
-                  .patchDocument(db, namespace, collection, id, subPath, payload, context)
+                  .patchDocument(db, namespace, collection, id, subPath, payload, ttl, context)
 
                   // map to response
                   .map(

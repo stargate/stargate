@@ -110,6 +110,39 @@ public class ReactiveDocumentService {
     this.configuration = configuration;
   }
 
+  private Integer determineTtl(
+      String ttlRaw,
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String documentId,
+      List<String> subPath)
+      throws UnauthorizedException {
+    // ttlRaw is either an integer, a String equaling 'auto', or null
+    if (ttlRaw == null) {
+      return null;
+    }
+    try {
+      Integer ttlValue = Integer.parseInt(ttlRaw);
+      if (subPath.isEmpty()) {
+        return ttlValue;
+      } else {
+        throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_INVALID_TTL_NUMBER);
+      }
+    } catch (NumberFormatException e) {
+      if (!subPath.isEmpty()) {
+        if (!ttlRaw.equalsIgnoreCase("auto")) {
+          throw new ErrorCodeRuntimeException(
+              ErrorCode.DOCS_API_INVALID_TTL_AUTO, "TTL value must be an integer, or 'auto'");
+        }
+        authorizeRead(db, namespace, collection);
+        return db.getTtlForDocument(namespace, collection, documentId);
+      } else {
+        throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_INVALID_TTL_AUTO);
+      }
+    }
+  }
+
   /**
    * Writes a document in the given namespace and collection using the randomly generated ID.
    *
@@ -125,6 +158,7 @@ public class ReactiveDocumentService {
       String namespace,
       String collection,
       String payload,
+      Integer ttl,
       ExecutionContext context) {
     // generate the document id
     String documentId = UUID.randomUUID().toString();
@@ -153,6 +187,7 @@ public class ReactiveDocumentService {
                   collection,
                   documentId,
                   rows,
+                  ttl,
                   db.treatBooleansAsNumeric(),
                   context);
             })
@@ -177,6 +212,7 @@ public class ReactiveDocumentService {
       String collection,
       String payload,
       String idPath,
+      Integer ttl,
       ExecutionContext context) {
 
     return Single.defer(
@@ -244,6 +280,7 @@ public class ReactiveDocumentService {
                                             collection,
                                             documentId,
                                             documentRows,
+                                            ttl,
                                             db.treatBooleansAsNumeric(),
                                             context);
                                       } else {
@@ -253,6 +290,7 @@ public class ReactiveDocumentService {
                                             collection,
                                             documentId,
                                             documentRows,
+                                            ttl,
                                             db.treatBooleansAsNumeric(),
                                             context);
                                       }
@@ -296,6 +334,7 @@ public class ReactiveDocumentService {
    * @param collection Collection name
    * @param documentId The ID of the document to update
    * @param payload Document represented as JSON string
+   * @param ttl The time-to-live of the document (seconds), or 'auto'
    * @param context Execution content
    * @return Document response wrapper containing the generated ID.
    */
@@ -305,9 +344,11 @@ public class ReactiveDocumentService {
       String collection,
       String documentId,
       String payload,
-      ExecutionContext context) {
+      String ttl,
+      ExecutionContext context)
+      throws UnauthorizedException {
     List<String> subPath = Collections.emptyList();
-    return updateDocument(db, namespace, collection, documentId, subPath, payload, context);
+    return updateDocument(db, namespace, collection, documentId, subPath, payload, ttl, context);
   }
 
   /**
@@ -320,6 +361,7 @@ public class ReactiveDocumentService {
    * @param documentId The ID of the document to update
    * @param subPath Sub-path of the document to update. If empty will update the whole doc.
    * @param payload Document represented as JSON string
+   * @param ttl the time-to-live of the document (seconds), or 'auto'
    * @param context Execution content
    * @return Document response wrapper containing the generated ID.
    */
@@ -330,7 +372,10 @@ public class ReactiveDocumentService {
       String documentId,
       List<String> subPath,
       String payload,
-      ExecutionContext context) {
+      String ttl,
+      ExecutionContext context)
+      throws UnauthorizedException {
+    Integer ttlValue = determineTtl(ttl, db, namespace, collection, documentId, subPath);
 
     return Single.defer(
             () -> {
@@ -357,6 +402,7 @@ public class ReactiveDocumentService {
                   documentId,
                   subPathProcessed,
                   rows,
+                  ttlValue,
                   db.treatBooleansAsNumeric(),
                   context);
             })
@@ -372,6 +418,7 @@ public class ReactiveDocumentService {
    * @param collection Collection name
    * @param documentId The ID of the document to patch
    * @param payload Document represented as JSON string
+   * @param ttl the time-to-live of the document (seconds), or 'auto'
    * @param context Execution content
    * @return Document response wrapper containing the generated ID.
    */
@@ -381,9 +428,11 @@ public class ReactiveDocumentService {
       String collection,
       String documentId,
       String payload,
-      ExecutionContext context) {
+      String ttl,
+      ExecutionContext context)
+      throws UnauthorizedException {
     List<String> subPath = Collections.emptyList();
-    return patchDocument(db, namespace, collection, documentId, subPath, payload, context);
+    return patchDocument(db, namespace, collection, documentId, subPath, payload, ttl, context);
   }
 
   /**
@@ -397,6 +446,7 @@ public class ReactiveDocumentService {
    * @param documentId The ID of the document to patch
    * @param subPath Sub-path of the document to patch. If empty will patch the whole doc.
    * @param payload Document represented as JSON string
+   * @param ttl the time-to-live of the document (in seconds), or 'auto'
    * @param context Execution content
    * @return Document response wrapper containing the generated ID.
    */
@@ -407,7 +457,10 @@ public class ReactiveDocumentService {
       String documentId,
       List<String> subPath,
       String payload,
-      ExecutionContext context) {
+      String ttl,
+      ExecutionContext context)
+      throws UnauthorizedException {
+    Integer ttlValue = determineTtl(ttl, db, namespace, collection, documentId, subPath);
 
     return Single.defer(
             () -> {
@@ -442,6 +495,7 @@ public class ReactiveDocumentService {
                   documentId,
                   subPathProcessed,
                   rows,
+                  ttlValue,
                   db.treatBooleansAsNumeric(),
                   context);
             })
@@ -1036,9 +1090,11 @@ public class ReactiveDocumentService {
       String keyspace,
       String collection,
       String id,
+      String ttl,
       JsonNode jsonArray,
       List<String> processedPath,
-      ExecutionContext context) {
+      ExecutionContext context)
+      throws UnauthorizedException {
     List<JsonShreddedRow> rows = jsonDocumentShredder.shred(jsonArray, processedPath);
     return writeService.updateDocument(
         db.getQueryExecutor().getDataStore(),
@@ -1047,6 +1103,7 @@ public class ReactiveDocumentService {
         id,
         processedPath,
         rows,
+        determineTtl(ttl, db, keyspace, collection, id, processedPath),
         db.treatBooleansAsNumeric(),
         context);
   }
@@ -1062,7 +1119,8 @@ public class ReactiveDocumentService {
     return getArrayAfterPush(db, keyspace, collection, id, pathString, valueToPush, context)
         .flatMapSingle(
             jsonArray ->
-                writeNewArrayState(db, keyspace, collection, id, jsonArray, pathString, context)
+                writeNewArrayState(
+                        db, keyspace, collection, id, "auto", jsonArray, pathString, context)
                     .map(any -> jsonArray));
   }
 
@@ -1081,6 +1139,7 @@ public class ReactiveDocumentService {
                         keyspace,
                         collection,
                         id,
+                        "auto",
                         arrayAndValue.getValue0(),
                         pathString,
                         context)

@@ -31,6 +31,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 import net.jcip.annotations.NotThreadSafe;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
@@ -38,6 +39,7 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -340,6 +342,65 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
     assertThat(resp)
         .isEqualTo(
             "{\"description\":\"Request invalid: payload must not be empty.\",\"code\":422}");
+  }
+
+  @Test
+  public void testTtlPut() throws IOException {
+    JsonNode obj1 = OBJECT_MAPPER.readTree("{ \"delete this\": \"in ten seconds\" }");
+    JsonNode obj2 = OBJECT_MAPPER.readTree("{ \"do not delete\": \"this\" }");
+    RestUtils.put(authToken, collectionPath + "/1?ttl=1", obj1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/2", obj2.toString(), 200);
+
+    Awaitility.await()
+        .atLeast(0, TimeUnit.MILLISECONDS)
+        .untilAsserted(
+            () -> {
+              // After the TTL is up, obj1 should be gone and obj2 should have no key 'a'
+              RestUtils.get(authToken, collectionPath + "/1?raw=true", 404);
+              String resp = RestUtils.get(authToken, collectionPath + "/2?raw=true", 200);
+              assertThat(OBJECT_MAPPER.readTree(resp))
+                  .isEqualTo(OBJECT_MAPPER.readTree("{ \"do not delete\": \"this\" }"));
+            });
+  }
+
+  @Test
+  public void testInvalidTtl() throws IOException {
+    JsonNode obj1 = OBJECT_MAPPER.readTree("{ \"delete this\": \"in 5 seconds\" }");
+    JsonNode obj2 = OBJECT_MAPPER.readTree("{ \"match the parent\": \"this\", \"a\": \"b\" }");
+    RestUtils.put(authToken, collectionPath + "/1?ttl=-1", obj1.toString(), 400);
+    RestUtils.put(authToken, collectionPath + "/1/b?ttl=otto", obj2.toString(), 400);
+    RestUtils.put(authToken, collectionPath + "/1/b?ttl=10", obj2.toString(), 400);
+    RestUtils.put(authToken, collectionPath + "/1?ttl=auto", obj2.toString(), 404);
+  }
+
+  @Test
+  public void testPatchWithAutoTtl() throws IOException {
+    JsonNode obj1 = OBJECT_MAPPER.readTree("{ \"delete this\": \"in 5 seconds\" }");
+    JsonNode obj2 = OBJECT_MAPPER.readTree("{ \"match the parent\": \"this\", \"a\": \"b\" }");
+    RestUtils.put(authToken, collectionPath + "/1?ttl=5", obj1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/1/b?ttl=auto", obj2.toString(), 200);
+
+    Awaitility.await()
+        .atLeast(4000, TimeUnit.MILLISECONDS)
+        .untilAsserted(
+            () -> {
+              // After the TTL is up, obj1 should be gone, with no remnants
+              RestUtils.get(authToken, collectionPath + "/1?raw=true", 404);
+            });
+  }
+
+  @Test
+  public void testPatchWithAutoTtlNullParent() throws IOException, InterruptedException {
+    JsonNode obj1 = OBJECT_MAPPER.readTree("{ \"delete this\": \"in 5 seconds\" }");
+    JsonNode obj2 = OBJECT_MAPPER.readTree("{ \"match the parent\": \"this\", \"a\": \"b\" }");
+    // No ttl on the parent
+    RestUtils.put(authToken, collectionPath + "/1", obj1.toString(), 200);
+    RestUtils.put(authToken, collectionPath + "/1/b?ttl=auto", obj2.toString(), 200);
+
+    TimeUnit.SECONDS.sleep(5);
+
+    String res = RestUtils.get(authToken, collectionPath + "/1/b?raw=true", 200);
+    assertThat(OBJECT_MAPPER.readTree(res)).isEqualTo(obj2);
   }
 
   @Test
@@ -802,6 +863,29 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
       assertThat(respBody.at("/id")).isNotNull();
       assertThat(respBody.at("/b")).isNotNull();
     }
+  }
+
+  @Test
+  public void testWriteManyDocsWithTtl() throws IOException {
+    // Create documents using multiExample that creates random ID's
+    URL url = Resources.getResource("multiExample.json");
+    String body = Resources.toString(url, StandardCharsets.UTF_8);
+    String resp = RestUtils.post(authToken, collectionPath + "/batch?ttl=1", body, 202);
+    JsonNode respBody = OBJECT_MAPPER.readTree(resp);
+    ArrayNode documentIds = (ArrayNode) respBody.requiredAt("/documentIds");
+    assertThat(documentIds.size()).isEqualTo(27);
+
+    Awaitility.await()
+        .atLeast(0, TimeUnit.MILLISECONDS)
+        .untilAsserted(
+            () -> {
+              Iterator<JsonNode> iter = documentIds.iterator();
+              // After the TTL is up, all the docs should be gone
+              while (iter.hasNext()) {
+                String docId = iter.next().textValue();
+                RestUtils.get(authToken, collectionPath + "/" + docId, 404);
+              }
+            });
   }
 
   @Test
