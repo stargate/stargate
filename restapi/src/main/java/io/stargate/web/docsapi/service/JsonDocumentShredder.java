@@ -165,6 +165,13 @@ public class JsonDocumentShredder {
             field -> {
               String fieldName = field.getKey();
 
+              if (fieldName.isEmpty()) {
+                String msg =
+                    "JSON objects containing empty field names are not supported at the moment.";
+                throw new ErrorCodeRuntimeException(
+                    ErrorCode.DOCS_API_GENERAL_INVALID_FIELD_NAME, msg);
+              }
+
               // check for valid field name
               if (DocsApiUtils.containsIllegalSequences(fieldName)) {
                 String msg =
