@@ -10,7 +10,7 @@ import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.Schema;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Predicate;
-import io.stargate.sgv2.common.cql.builder.Value;
+import io.stargate.sgv2.common.cql.builder.Term;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -40,8 +40,7 @@ public class WhereParser {
     this.converter = converter;
   }
 
-  public List<BuiltCondition> parseWhere(
-      String whereParam, QueryOuterClass.Values.Builder valuesBuilder) {
+  public List<BuiltCondition> parseWhere(String whereParam) {
     JsonNode jsonTree;
     try {
       jsonTree = MAPPER.readTree(whereParam);
@@ -78,22 +77,22 @@ public class WhereParser {
 
         switch (operation) {
           case $IN:
-            addInOperation(conditions, fieldName, valueNode, valuesBuilder);
+            addInOperation(conditions, fieldName, valueNode);
             break;
           case $EXISTS:
-            addExistsOperation(conditions, fieldName, valueNode, valuesBuilder);
+            addExistsOperation(conditions, fieldName, valueNode);
             break;
           case $CONTAINS:
-            addContainsOperation(conditions, fieldName, valueNode, valuesBuilder);
+            addContainsOperation(conditions, fieldName, valueNode);
             break;
           case $CONTAINSKEY:
-            addContainsKeyOperation(conditions, fieldName, valueNode, valuesBuilder);
+            addContainsKeyOperation(conditions, fieldName, valueNode);
             break;
           case $CONTAINSENTRY:
-            addContainsEntryOperation(conditions, fieldName, valueNode, valuesBuilder);
+            addContainsEntryOperation(conditions, fieldName, valueNode);
             break;
           default: // GT, GTE, LT, LTE, EQ, NE
-            addSimpleOperation(conditions, fieldName, operation, valueNode, valuesBuilder);
+            addSimpleOperation(conditions, fieldName, operation, valueNode);
         }
       }
     }
@@ -106,46 +105,31 @@ public class WhereParser {
   }
 
   private void addSimpleOperation(
-      List<BuiltCondition> conditions,
-      String fieldName,
-      FilterOp filterOp,
-      JsonNode valueNode,
-      QueryOuterClass.Values.Builder valuesBuilder) {
+      List<BuiltCondition> conditions, String fieldName, FilterOp filterOp, JsonNode valueNode) {
     if (valueNode.isTextual()) {
-      addSingleSimpleOperation(
-          conditions, fieldName, filterOp, valueNode.textValue(), valuesBuilder);
+      addSingleSimpleOperation(conditions, fieldName, filterOp, valueNode.textValue());
     } else if (valueNode.isArray()) {
       for (JsonNode element : valueNode) {
-        addSingleSimpleOperation(
-            conditions, fieldName, filterOp, nodeToRawObject(element), valuesBuilder);
+        addSingleSimpleOperation(conditions, fieldName, filterOp, nodeToRawObject(element));
       }
     } else {
-      addSingleSimpleOperation(
-          conditions, fieldName, filterOp, nodeToRawObject(valueNode), valuesBuilder);
+      addSingleSimpleOperation(conditions, fieldName, filterOp, nodeToRawObject(valueNode));
     }
   }
 
   private void addSingleSimpleOperation(
-      List<BuiltCondition> conditions,
-      String fieldName,
-      FilterOp filterOp,
-      Object rawValue,
-      QueryOuterClass.Values.Builder valuesBuilder) {
+      List<BuiltCondition> conditions, String fieldName, FilterOp filterOp, Object rawValue) {
     final QueryOuterClass.Value opValue;
     if (rawValue instanceof String) {
       opValue = converter.protoValueFromStringified(fieldName, (String) rawValue);
     } else {
       opValue = converter.protoValueFromStrictlyTyped(fieldName, rawValue);
     }
-    conditions.add(BuiltCondition.ofMarker(fieldName, filterOp.predicate));
-    valuesBuilder.addValues(opValue);
+    conditions.add(BuiltCondition.of(fieldName, filterOp.predicate, opValue));
   }
 
   private void addContainsOperation(
-      List<BuiltCondition> conditions,
-      String fieldName,
-      JsonNode valueNode,
-      QueryOuterClass.Values.Builder valuesBuilder) {
+      List<BuiltCondition> conditions, String fieldName, JsonNode valueNode) {
     // First convert from JsonNode into "natural" Java Object (scalar, List, Map etc)
     final Object rawValue = nodeToRawObject(valueNode);
     // And then try to decode into "Content" value of Container type
@@ -159,15 +143,11 @@ public class WhereParser {
               "Field '%s' not of container type (list, map, set); has to be for operation %s",
               fieldName, FilterOp.$CONTAINS.rawValue));
     }
-    conditions.add(BuiltCondition.ofMarker(fieldName, FilterOp.$CONTAINS.predicate));
-    valuesBuilder.addValues(opValue);
+    conditions.add(BuiltCondition.of(fieldName, FilterOp.$CONTAINS.predicate, opValue));
   }
 
   private void addContainsKeyOperation(
-      List<BuiltCondition> conditions,
-      String fieldName,
-      JsonNode valueNode,
-      QueryOuterClass.Values.Builder valuesBuilder) {
+      List<BuiltCondition> conditions, String fieldName, JsonNode valueNode) {
     // First convert from JsonNode into "natural" Java Object (scalar, List, Map etc)
     final Object rawValue = nodeToRawObject(valueNode);
     // And then try to decode into "Key" value of Map type
@@ -181,15 +161,11 @@ public class WhereParser {
               "Field '%s' not of map type; has to be for operation %s",
               fieldName, FilterOp.$CONTAINSKEY.rawValue));
     }
-    conditions.add(BuiltCondition.ofMarker(fieldName, FilterOp.$CONTAINSKEY.predicate));
-    valuesBuilder.addValues(opValue);
+    conditions.add(BuiltCondition.of(fieldName, FilterOp.$CONTAINSKEY.predicate, opValue));
   }
 
   private void addContainsEntryOperation(
-      List<BuiltCondition> conditions,
-      String fieldName,
-      JsonNode entryNode,
-      QueryOuterClass.Values.Builder valuesBuilder) {
+      List<BuiltCondition> conditions, String fieldName, JsonNode entryNode) {
     // First: we need a JSON Object with "key" and "value"
     JsonNode keyNode = entryNode.get("key");
     JsonNode valueNode = entryNode.get("value");
@@ -221,15 +197,11 @@ public class WhereParser {
         BuiltCondition.of(
             BuiltCondition.LHS.mapAccess(fieldName, rawKey),
             FilterOp.$CONTAINSENTRY.predicate,
-            Value.marker()));
-    valuesBuilder.addValues(opContentValue);
+            Term.of(opContentValue)));
   }
 
   private void addInOperation(
-      List<BuiltCondition> conditions,
-      String fieldName,
-      JsonNode valueNode,
-      QueryOuterClass.Values.Builder valuesBuilder) {
+      List<BuiltCondition> conditions, String fieldName, JsonNode valueNode) {
     if (!valueNode.isArray() || valueNode.isEmpty()) {
       throw new IllegalArgumentException(
           String.format(
@@ -241,15 +213,11 @@ public class WhereParser {
       final Object rawElement = nodeToRawObject(element);
       inValues.add(converter.protoValueFromStrictlyTyped(fieldName, rawElement));
     }
-    conditions.add(BuiltCondition.ofMarker(fieldName, Predicate.IN));
-    valuesBuilder.addValues(Values.of(inValues));
+    conditions.add(BuiltCondition.of(fieldName, Predicate.IN, Values.of(inValues)));
   }
 
   private void addExistsOperation(
-      List<BuiltCondition> conditions,
-      String fieldName,
-      JsonNode valueNode,
-      QueryOuterClass.Values.Builder valuesBuilder) {
+      List<BuiltCondition> conditions, String fieldName, JsonNode valueNode) {
     if (!valueNode.isBoolean() || !valueNode.booleanValue()) {
       throw new IllegalArgumentException(
           String.format("`%s` only supports the value `true`.", FilterOp.$EXISTS.rawValue));
@@ -259,7 +227,7 @@ public class WhereParser {
     // 05-Jan-2022, tatu: As per [https://github.com/stargate/stargate/discussions/1519]
     //   behavior with REST API (vs Documents API) is problematic. We implement it the same way
     //   for StargateV2 as for V1, for compatibility reasons.
-    addSingleSimpleOperation(conditions, fieldName, FilterOp.$EXISTS, Boolean.TRUE, valuesBuilder);
+    addSingleSimpleOperation(conditions, fieldName, FilterOp.$EXISTS, Boolean.TRUE);
   }
 
   private Object nodeToRawObject(JsonNode valueNode) {

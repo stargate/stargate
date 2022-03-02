@@ -161,6 +161,17 @@ class JsonDocumentShredderTest {
     }
 
     @Test
+    public void emptyFieldName() {
+      ObjectNode payload = objectMapper.createObjectNode().put("", "text");
+
+      Throwable result = catchThrowable(() -> shredder.shred(payload, Collections.emptyList()));
+
+      assertThat(result)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_GENERAL_INVALID_FIELD_NAME);
+    }
+
+    @Test
     public void emptyObject() {
       ObjectNode payload = objectMapper.createObjectNode();
 

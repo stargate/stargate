@@ -42,6 +42,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 public class RestApiTableTokenAuthTest extends BaseRestApiTest {
 
   private static final ObjectMapper objectMapper = new ObjectMapper();
+
+  static { // should we really do this? Can easily hide real problems:
+    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
+  }
+
   private final String keyspaceName = "table_token_test";
   private final String tableName = "tbl_test";
   private final String readOnlyUsername = "read_only_user";
@@ -60,16 +65,13 @@ public class RestApiTableTokenAuthTest extends BaseRestApiTest {
   public void setup(StargateConnectionInfo cluster, ApiServiceConnectionInfo restApi) {
     authUrlBase = "http://" + cluster.seedAddress() + ":8081"; // TODO: make auth port configurable
     restUrlBase = "http://" + restApi.host() + ":" + restApi.port();
-    objectMapper.configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false);
   }
 
   @Test
   public void getRowsV2() throws IOException {
-    String authToken = generateToken(readOnlyUsername, readOnlyPassword);
-
     String body =
         RestUtils.get(
-            authToken,
+            generateReadOnlyToken(),
             String.format("%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, "a"),
             HttpStatus.SC_OK);
 
@@ -91,9 +93,9 @@ public class RestApiTableTokenAuthTest extends BaseRestApiTest {
 
     String createKeyspaceRequest = String.format("{\"name\": \"%s\", \"replicas\": 1}", keyspace);
 
-    String authToken = generateToken("cassandra", "cassandra");
+    String adminToken = generateAdminToken();
     RestUtils.post(
-        authToken,
+        adminToken,
         String.format("%s/v2/schemas/keyspaces", restUrlBase),
         createKeyspaceRequest,
         HttpStatus.SC_CREATED);
@@ -113,16 +115,43 @@ public class RestApiTableTokenAuthTest extends BaseRestApiTest {
     tableAdd.setPrimaryKey(primaryKey);
 
     RestUtils.post(
-        authToken,
+        adminToken,
         String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspace),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
 
-    authToken = generateToken(readOnlyUsername, readOnlyPassword);
     RestUtils.get(
-        authToken,
+        generateReadOnlyToken(),
         String.format("%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspace, table, "a"),
         HttpStatus.SC_UNAUTHORIZED);
+  }
+
+  @Test
+  public void createKeyspaceV2CheckAuthnz() throws IOException {
+    final String keyspace = "ks_tableTokenTest_CreateKSNoAuthn";
+    final String createKeyspaceRequest =
+        String.format("{\"name\": \"%s\", \"replicas\": 1}", keyspace);
+
+    // First: fail if not authenticated (null token)
+    RestUtils.post(
+        null,
+        String.format("%s/v2/schemas/keyspaces", restUrlBase),
+        createKeyspaceRequest,
+        HttpStatus.SC_UNAUTHORIZED);
+
+    // Second: also fail if authenticated but not authorized
+    RestUtils.post(
+        generateReadOnlyToken(),
+        String.format("%s/v2/schemas/keyspaces", restUrlBase),
+        createKeyspaceRequest,
+        HttpStatus.SC_UNAUTHORIZED);
+
+    // But succeed with proper Authnz
+    RestUtils.post(
+        generateAdminToken(),
+        String.format("%s/v2/schemas/keyspaces", restUrlBase),
+        createKeyspaceRequest,
+        HttpStatus.SC_CREATED);
   }
 
   @Test
@@ -141,9 +170,8 @@ public class RestApiTableTokenAuthTest extends BaseRestApiTest {
     primaryKey.setPartitionKey(Collections.singletonList("k"));
     tableAdd.setPrimaryKey(primaryKey);
 
-    String authToken = generateToken(readOnlyUsername, readOnlyPassword);
     RestUtils.post(
-        authToken,
+        generateReadOnlyToken(),
         String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_UNAUTHORIZED);
@@ -165,9 +193,8 @@ public class RestApiTableTokenAuthTest extends BaseRestApiTest {
     primaryKey.setPartitionKey(Collections.singletonList("k"));
     tableAdd.setPrimaryKey(primaryKey);
 
-    String authToken = generateToken("cassandra", "cassandra");
     RestUtils.post(
-        authToken,
+        generateAdminToken(),
         String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
         objectMapper.writeValueAsString(tableAdd),
         HttpStatus.SC_CREATED);
@@ -179,12 +206,19 @@ public class RestApiTableTokenAuthTest extends BaseRestApiTest {
     row.put("key", "b");
     row.put("value", "bravo");
 
-    String authToken = generateToken(readOnlyUsername, readOnlyPassword);
     RestUtils.post(
-        authToken,
+        generateReadOnlyToken(),
         String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_UNAUTHORIZED);
+  }
+
+  private String generateReadOnlyToken() throws IOException {
+    return generateToken(readOnlyUsername, readOnlyPassword);
+  }
+
+  private String generateAdminToken() throws IOException {
+    return generateToken("cassandra", "cassandra");
   }
 
   private String generateToken(String username, String password) throws IOException {

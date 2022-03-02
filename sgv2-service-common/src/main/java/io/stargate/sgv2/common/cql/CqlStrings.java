@@ -64,6 +64,14 @@ public class CqlStrings {
   }
 
   /**
+   * Quote the given string; double quotes are escaped. If the given string is null, this method
+   * returns a quoted empty string ({@code ""}).
+   */
+  public static String doubleQuote(String value) {
+    return quote(value, '\"');
+  }
+
+  /**
    * Quotes text and escapes any existing quotes in the text. {@code String.replace()} is a bit too
    * inefficient (see JAVA-67, JAVA-1262).
    *

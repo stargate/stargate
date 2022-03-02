@@ -15,17 +15,15 @@
  */
 package io.stargate.sgv2.common.cql.builder;
 
-public interface Value<T> {
+class Literal<T> implements Term<T> {
 
-  static <T> Value<T> marker() {
-    return new Marker<>();
+  private final T value;
+
+  public Literal(T value) {
+    this.value = value;
   }
 
-  static <T> Value<T> of(T value) {
-    return new ConcreteValue<>(value);
+  public T get() {
+    return value;
   }
-
-  boolean isMarker();
-
-  T get();
 }

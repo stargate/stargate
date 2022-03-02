@@ -40,7 +40,8 @@ public class QueryBuilderTest {
               .create()
               .keyspace("ks")
               .withReplication(Replication.simpleStrategy(1))
-              .build(),
+              .build()
+              .getCql(),
           "CREATE KEYSPACE ks "
               + "WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': 1 }"),
       arguments(
@@ -48,7 +49,8 @@ public class QueryBuilderTest {
               .create()
               .keyspace("Ks")
               .withReplication(Replication.simpleStrategy(1))
-              .build(),
+              .build()
+              .getCql(),
           "CREATE KEYSPACE \"Ks\" "
               + "WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': 1 }"),
       arguments(
@@ -57,7 +59,8 @@ public class QueryBuilderTest {
               .keyspace("ks")
               .ifNotExists()
               .withReplication(Replication.simpleStrategy(1))
-              .build(),
+              .build()
+              .getCql(),
           "CREATE KEYSPACE IF NOT EXISTS ks "
               + "WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': 1 }"),
       arguments(
@@ -73,7 +76,8 @@ public class QueryBuilderTest {
                           put("dc2", 4);
                         }
                       }))
-              .build(),
+              .build()
+              .getCql(),
           "CREATE KEYSPACE IF NOT EXISTS ks "
               + "WITH replication = { 'class': 'NetworkTopologyStrategy', 'dc1': 3, 'dc2': 4 }"),
       arguments(
@@ -81,7 +85,8 @@ public class QueryBuilderTest {
               .alter()
               .keyspace("ks")
               .withReplication(Replication.simpleStrategy(1))
-              .build(),
+              .build()
+              .getCql(),
           "ALTER KEYSPACE ks "
               + "WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': 1 }"),
       arguments(
@@ -90,34 +95,38 @@ public class QueryBuilderTest {
               .keyspace("ks")
               .withReplication(Replication.simpleStrategy(1))
               .andDurableWrites(false)
-              .build(),
+              .build()
+              .getCql(),
           "ALTER KEYSPACE ks "
               + "WITH replication = { 'class': 'SimpleStrategy', 'replication_factor': 1 } "
               + "AND durable_writes = false"),
-      arguments(new QueryBuilder().drop().keyspace("ks").build(), "DROP KEYSPACE ks"),
+      arguments(new QueryBuilder().drop().keyspace("ks").build().getCql(), "DROP KEYSPACE ks"),
       arguments(
-          new QueryBuilder().drop().keyspace("ks").ifExists().build(),
+          new QueryBuilder().drop().keyspace("ks").ifExists().build().getCql(),
           "DROP KEYSPACE IF EXISTS ks"),
       arguments(
           new QueryBuilder()
               .create()
               .table("ks", "tbl")
               .column("k", "int", Column.Kind.PARTITION_KEY)
-              .build(),
+              .build()
+              .getCql(),
           "CREATE TABLE ks.tbl (k int, PRIMARY KEY ((k)))"),
       arguments(
           new QueryBuilder()
               .create()
               .table("Ks", "Tbl")
               .column("k", "int", Column.Kind.PARTITION_KEY)
-              .build(),
+              .build()
+              .getCql(),
           "CREATE TABLE \"Ks\".\"Tbl\" (k int, PRIMARY KEY ((k)))"),
       arguments(
           new QueryBuilder()
               .create()
               .table("tbl")
               .column("k", "int", Column.Kind.PARTITION_KEY)
-              .build(),
+              .build()
+              .getCql(),
           "CREATE TABLE tbl (k int, PRIMARY KEY ((k)))"),
       arguments(
           new QueryBuilder()
@@ -125,7 +134,8 @@ public class QueryBuilderTest {
               .table("ks", "tbl")
               .ifNotExists()
               .column("k", "int", Column.Kind.PARTITION_KEY)
-              .build(),
+              .build()
+              .getCql(),
           "CREATE TABLE IF NOT EXISTS ks.tbl (k int, PRIMARY KEY ((k)))"),
       arguments(
           new QueryBuilder()
@@ -136,7 +146,8 @@ public class QueryBuilderTest {
               .column("cc", "text", Column.Kind.CLUSTERING, Column.Order.DESC)
               .column("v", "int")
               .column("s", "int", Column.Kind.STATIC)
-              .build(),
+              .build()
+              .getCql(),
           "CREATE TABLE IF NOT EXISTS ks.tbl "
               + "(k int, cc text, v int, s int STATIC, PRIMARY KEY ((k), cc)) "
               + "WITH CLUSTERING ORDER BY (cc DESC)"),
@@ -147,7 +158,8 @@ public class QueryBuilderTest {
               .column("k", "int", Column.Kind.PARTITION_KEY)
               .withComment("'test' comment")
               .withDefaultTTL(3600)
-              .build(),
+              .build()
+              .getCql(),
           "CREATE TABLE ks.tbl (k int, PRIMARY KEY ((k))) "
               + "WITH comment = '''test'' comment' "
               + "AND default_time_to_live = 3600"),
@@ -157,10 +169,17 @@ public class QueryBuilderTest {
               .table("ks", "tbl")
               .addColumn("c", "int")
               .addColumn("d", "int")
-              .build(),
+              .build()
+              .getCql(),
           "ALTER TABLE ks.tbl ADD (c int, d int)"),
       arguments(
-          new QueryBuilder().alter().table("ks", "tbl").dropColumn("c").dropColumn("d").build(),
+          new QueryBuilder()
+              .alter()
+              .table("ks", "tbl")
+              .dropColumn("c")
+              .dropColumn("d")
+              .build()
+              .getCql(),
           "ALTER TABLE ks.tbl DROP (c, d)"),
       arguments(
           new QueryBuilder()
@@ -168,18 +187,20 @@ public class QueryBuilderTest {
               .table("ks", "tbl")
               .renameColumn("c", "c2")
               .renameColumn("d", "d2")
-              .build(),
+              .build()
+              .getCql(),
           "ALTER TABLE ks.tbl RENAME c TO c2 AND d TO d2"),
-      arguments(new QueryBuilder().drop().table("ks", "tbl").build(), "DROP TABLE ks.tbl"),
+      arguments(new QueryBuilder().drop().table("ks", "tbl").build().getCql(), "DROP TABLE ks.tbl"),
       arguments(
-          new QueryBuilder().drop().table("ks", "tbl").ifExists().build(),
+          new QueryBuilder().drop().table("ks", "tbl").ifExists().build().getCql(),
           "DROP TABLE IF EXISTS ks.tbl"),
-      arguments(new QueryBuilder().truncate().table("ks", "tbl").build(), "TRUNCATE ks.tbl"),
       arguments(
-          new QueryBuilder().create().index().on("ks", "tbl").column("c").build(),
+          new QueryBuilder().truncate().table("ks", "tbl").build().getCql(), "TRUNCATE ks.tbl"),
+      arguments(
+          new QueryBuilder().create().index().on("ks", "tbl").column("c").build().getCql(),
           "CREATE INDEX ON ks.tbl (c)"),
       arguments(
-          new QueryBuilder().create().index("idx").on("ks", "tbl").column("c").build(),
+          new QueryBuilder().create().index("idx").on("ks", "tbl").column("c").build().getCql(),
           "CREATE INDEX idx ON ks.tbl (c)"),
       arguments(
           new QueryBuilder()
@@ -188,19 +209,48 @@ public class QueryBuilderTest {
               .ifNotExists()
               .on("ks", "tbl")
               .column("c")
-              .build(),
+              .build()
+              .getCql(),
           "CREATE INDEX IF NOT EXISTS idx ON ks.tbl (c)"),
       arguments(
-          new QueryBuilder().create().index().on("ks", "tbl").column("c").indexEntries().build(),
+          new QueryBuilder()
+              .create()
+              .index()
+              .on("ks", "tbl")
+              .column("c")
+              .indexEntries()
+              .build()
+              .getCql(),
           "CREATE INDEX ON ks.tbl (ENTRIES(c))"),
       arguments(
-          new QueryBuilder().create().index().on("ks", "tbl").column("c").indexFull().build(),
+          new QueryBuilder()
+              .create()
+              .index()
+              .on("ks", "tbl")
+              .column("c")
+              .indexFull()
+              .build()
+              .getCql(),
           "CREATE INDEX ON ks.tbl (FULL(c))"),
       arguments(
-          new QueryBuilder().create().index().on("ks", "tbl").column("c").indexKeys().build(),
+          new QueryBuilder()
+              .create()
+              .index()
+              .on("ks", "tbl")
+              .column("c")
+              .indexKeys()
+              .build()
+              .getCql(),
           "CREATE INDEX ON ks.tbl (KEYS(c))"),
       arguments(
-          new QueryBuilder().create().index().on("ks", "tbl").column("c").indexValues().build(),
+          new QueryBuilder()
+              .create()
+              .index()
+              .on("ks", "tbl")
+              .column("c")
+              .indexValues()
+              .build()
+              .getCql(),
           "CREATE INDEX ON ks.tbl (VALUES(c))"),
       arguments(
           new QueryBuilder()
@@ -209,11 +259,13 @@ public class QueryBuilderTest {
               .on("ks", "tbl")
               .column("c")
               .custom("IndexClass")
-              .build(),
+              .build()
+              .getCql(),
           "CREATE CUSTOM INDEX ON ks.tbl (c) USING 'IndexClass'"),
       arguments(
-          new QueryBuilder().drop().index("idx").ifExists().build(), "DROP INDEX IF EXISTS idx"),
-      arguments(new QueryBuilder().drop().index("ks", "idx").build(), "DROP INDEX ks.idx"),
+          new QueryBuilder().drop().index("idx").ifExists().build().getCql(),
+          "DROP INDEX IF EXISTS idx"),
+      arguments(new QueryBuilder().drop().index("ks", "idx").build().getCql(), "DROP INDEX ks.idx"),
       arguments(
           new QueryBuilder()
               .create()
@@ -223,7 +275,8 @@ public class QueryBuilderTest {
               .column("b")
               .column("c")
               .from("ks", "tbl")
-              .build(),
+              .build()
+              .getCql(),
           "CREATE MATERIALIZED VIEW ks.v "
               + "AS SELECT a, b, c "
               + "FROM ks.tbl "
@@ -232,13 +285,19 @@ public class QueryBuilderTest {
               + "AND c IS NOT NULL "
               + "PRIMARY KEY ((a))"),
       arguments(
-          new QueryBuilder().drop().materializedView("ks", "tbl").build(),
+          new QueryBuilder().drop().materializedView("ks", "tbl").build().getCql(),
           "DROP MATERIALIZED VIEW ks.tbl"),
       arguments(
-          new QueryBuilder().drop().materializedView("ks", "tbl").ifExists().build(),
+          new QueryBuilder().drop().materializedView("ks", "tbl").ifExists().build().getCql(),
           "DROP MATERIALIZED VIEW IF EXISTS ks.tbl"),
       arguments(
-          new QueryBuilder().create().type("ks", "t").column("a", "int").column("b", "int").build(),
+          new QueryBuilder()
+              .create()
+              .type("ks", "t")
+              .column("a", "int")
+              .column("b", "int")
+              .build()
+              .getCql(),
           "CREATE TYPE ks.t(a int, b int)"),
       arguments(
           new QueryBuilder()
@@ -246,25 +305,29 @@ public class QueryBuilderTest {
               .type("ks", "t")
               .renameColumn("a", "a2")
               .renameColumn("b", "b2")
-              .build(),
+              .build()
+              .getCql(),
           "ALTER TYPE ks.t RENAME a TO a2 AND b TO b2"),
-      arguments(new QueryBuilder().drop().type("ks", "t").build(), "DROP TYPE ks.t"),
+      arguments(new QueryBuilder().drop().type("ks", "t").build().getCql(), "DROP TYPE ks.t"),
       arguments(
-          new QueryBuilder().drop().type("ks", "t").ifExists().build(), "DROP TYPE IF EXISTS ks.t"),
+          new QueryBuilder().drop().type("ks", "t").ifExists().build().getCql(),
+          "DROP TYPE IF EXISTS ks.t"),
       arguments(
           new QueryBuilder()
               .alter()
               .type("ks", "t")
               .addColumn("c", "int")
               .addColumn("d", "int")
-              .build(),
+              .build()
+              .getCql(),
           "ALTER TYPE ks.t ADD c int, d int"),
       arguments(
           new QueryBuilder()
               .insertInto("ks", "tbl")
               .value("a", 1)
               .value(ValueModifier.marker("b"))
-              .build(),
+              .build()
+              .getCql(),
           "INSERT INTO ks.tbl (a, b) VALUES (1, ?)"),
       arguments(
           new QueryBuilder()
@@ -274,7 +337,8 @@ public class QueryBuilderTest {
               .ifNotExists()
               .ttl()
               .timestamp(1L)
-              .build(),
+              .build()
+              .getCql(),
           "INSERT INTO ks.tbl (a, b) VALUES ('text', ?) IF NOT EXISTS USING TTL ? AND TIMESTAMP 1"),
       arguments(
           new QueryBuilder()
@@ -285,11 +349,12 @@ public class QueryBuilderTest {
                   ValueModifier.of(
                       ValueModifier.Target.column("c"),
                       ValueModifier.Operation.PREPEND,
-                      Value.marker()))
+                      Term.marker()))
               .where("k", Predicate.EQ)
               .ifs("v", Predicate.GT)
               .ifExists()
-              .build(),
+              .build()
+              .getCql(),
           "UPDATE ks.tbl SET a = ?, "
               + "b = 'test', "
               + "c = ? + c "
@@ -303,14 +368,16 @@ public class QueryBuilderTest {
               .from("ks", "tbl")
               .where("k", Predicate.EQ)
               .ifs("v", Predicate.IN)
-              .build(),
+              .build()
+              .getCql(),
           "DELETE a, b, c FROM ks.tbl WHERE k = ? IF v IN ?"),
-      arguments(new QueryBuilder().select().from("ks", "tbl").build(), "SELECT * FROM ks.tbl"),
       arguments(
-          new QueryBuilder().select().column("a", "b", "c").from("ks", "tbl").build(),
+          new QueryBuilder().select().from("ks", "tbl").build().getCql(), "SELECT * FROM ks.tbl"),
+      arguments(
+          new QueryBuilder().select().column("a", "b", "c").from("ks", "tbl").build().getCql(),
           "SELECT a, b, c FROM ks.tbl"),
       arguments(
-          new QueryBuilder().select().count("a").from("ks", "tbl").build(),
+          new QueryBuilder().select().count("a").from("ks", "tbl").build().getCql(),
           "SELECT COUNT(a) FROM ks.tbl"),
       arguments(
           new QueryBuilder()
@@ -319,7 +386,8 @@ public class QueryBuilderTest {
               .from("ks", "tbl")
               .where("k", Predicate.EQ)
               .where("cc", Predicate.GT)
-              .build(),
+              .build()
+              .getCql(),
           "SELECT a, b, c FROM ks.tbl WHERE k = ? AND cc > ?"),
       arguments(
           new QueryBuilder()
@@ -332,7 +400,8 @@ public class QueryBuilderTest {
               .groupBy("cc2")
               .orderBy("cc1", Column.Order.ASC)
               .orderBy("cc2", Column.Order.DESC)
-              .build(),
+              .build()
+              .getCql(),
           "SELECT * FROM ks.tbl WHERE k > ? GROUP BY k, cc1, cc2 ORDER BY cc1 ASC, cc2 DESC"),
     };
   }

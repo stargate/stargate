@@ -106,19 +106,16 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
       columns.add(column.build());
     }
 
-    String cql =
+    QueryOuterClass.Query query =
         new QueryBuilder()
             .create()
             .table(keyspaceName, tableAdd.getName())
             .ifNotExists(tableAdd.getIfNotExists())
             .column(columns)
+            .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
             .build();
 
-    bridge.executeQuery(
-        QueryOuterClass.Query.newBuilder()
-            .setParameters(parametersForLocalQuorum())
-            .setCql(cql)
-            .build());
+    bridge.executeQuery(query);
 
     return Response.status(Status.CREATED)
         .entity(Collections.singletonMap("name", tableName))
@@ -151,17 +148,14 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
             throw new WebApplicationException(
                 "No update provided for defaultTTL", Status.BAD_REQUEST);
           }
-          String cql =
+          QueryOuterClass.Query query =
               new QueryBuilder()
                   .alter()
                   .table(keyspaceName, tableName)
                   .withDefaultTTL(options.getDefaultTimeToLive())
+                  .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
                   .build();
-          bridge.executeQuery(
-              QueryOuterClass.Query.newBuilder()
-                  .setParameters(parametersForLocalQuorum())
-                  .setCql(cql)
-                  .build());
+          bridge.executeQuery(query);
           return Response.status(Status.OK)
               .entity(Collections.singletonMap("name", tableName))
               .build();
@@ -175,8 +169,8 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
       final String tableName,
       final HttpServletRequest request) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    String cql = new QueryBuilder().drop().table(keyspaceName, tableName).ifExists().build();
-    QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
+    QueryOuterClass.Query query =
+        new QueryBuilder().drop().table(keyspaceName, tableName).ifExists().build();
     /*QueryOuterClass.Response grpcResponse =*/ bridge.executeQuery(query);
     return Response.status(Status.NO_CONTENT).build();
   }
