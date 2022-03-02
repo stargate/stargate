@@ -87,4 +87,24 @@ public class BridgeIntegrationTest extends BaseIntegrationTest {
   protected StargateBridgeBlockingStub stubWithCallCredentials() {
     return stub.withCallCredentials(new StargateBearerToken(authToken));
   }
+
+  protected StargateBridgeBlockingStub stubWithCallCredentials(String token) {
+    return stub.withCallCredentials(new StargateBearerToken(token));
+  }
+
+  protected static String generateAuthToken(String authUrlBase, String username, String password)
+      throws IOException {
+    String body =
+        RestUtils.post(
+            "",
+            String.format("%s/v1/auth/token/generate", authUrlBase),
+            objectMapper.writeValueAsString(new Credentials(username, password)),
+            HttpStatus.SC_CREATED);
+
+    AuthTokenResponse authTokenResponse = objectMapper.readValue(body, AuthTokenResponse.class);
+    String authToken = authTokenResponse.getAuthToken();
+    assertThat(authToken).isNotNull();
+
+    return authToken;
+  }
 }
