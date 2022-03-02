@@ -95,8 +95,10 @@ public class ConfigStoreYaml implements ConfigStore {
                 configFilePath, result, moduleName));
       }
       logger.debug(
-          "Successfully got configuration (with %d entries) for module '{}' (loaded from '{}')",
-          config.size(), moduleName, configFilePath);
+          "Successfully got configuration (with {} entries) for module '{}' (loaded from '{}')",
+          config.size(),
+          moduleName,
+          configFilePath);
       return new ConfigWithOverrides(Collections.unmodifiableMap(config), moduleName);
     } catch (CompletionException e) {
       throw new CompletionException(
