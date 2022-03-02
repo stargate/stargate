@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.47-SNAPSHOT</version>
+    <version>1.0.50-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.grpc</groupId>
   <artifactId>grpc</artifactId>
@@ -130,7 +130,10 @@
                             !io.micrometer.core.instrument.binder.grpc,
                             io.micrometer.core.instrument
                         ]]></Import-Package>
-            <Export-Package>!*</Export-Package>
+            <Export-Package><![CDATA[
+                            io.grpc.*,
+                            io.stargate.grpc.metrics.*,
+                            ]]></Export-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
             <Embed-Transitive>true</Embed-Transitive>
           </instructions>

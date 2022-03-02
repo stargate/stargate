@@ -17,6 +17,7 @@
 
 package io.stargate.web.docsapi.service.util;
 
+import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.TypedValue;
@@ -40,11 +41,26 @@ public final class DocsApiUtils {
   public static final Pattern PERIOD_PATTERN = Pattern.compile("(?<!\\\\)\\.");
   public static final Pattern COMMA_PATTERN = Pattern.compile("(?<!\\\\),");
   private static final Pattern ARRAY_PATH_PATTERN = Pattern.compile("\\[.*\\]");
+  private static final Pattern ARRAY_INDEX_PATTERN = Pattern.compile("\\[(\\d+)\\]");
   public static final Pattern ESCAPED_PATTERN = Pattern.compile("(\\\\,|\\\\\\.|\\\\\\*)");
   public static final Pattern ESCAPED_PATTERN_INTERNAL_CAPTURE = Pattern.compile("\\\\(\\.|\\*|,)");
   public static final Pattern BRACKET_SEPARATOR_PATTERN = Pattern.compile("\\]\\[");
 
   private DocsApiUtils() {}
+
+  public static Optional<JsonPointer> pathToJsonPointer(String path) {
+    if (null == path) {
+      return Optional.empty();
+    }
+
+    String separator = String.valueOf(JsonPointer.SEPARATOR);
+    String adaptedPath =
+        path.replaceAll(DocsApiUtils.PERIOD_PATTERN.pattern(), separator)
+            .replaceAll(ARRAY_INDEX_PATTERN.pattern(), "$1");
+
+    JsonPointer pointer = JsonPointer.compile(separator + adaptedPath);
+    return Optional.of(pointer);
+  }
 
   /**
    * Converts given path to an array one if needed:
@@ -114,7 +130,7 @@ public final class DocsApiUtils {
    */
   public static Optional<Integer> extractArrayPathIndex(String path, int maxArrayLength) {
     // check if we have array path
-    if (ARRAY_PATH_PATTERN.matcher(path).matches()) {
+    if (isArrayPath(path)) {
       String innerPath = path.substring(1, path.length() - 1);
       // if it's wildcard keep as it is
       if (!Objects.equals(innerPath, DocsApiConstants.GLOB_VALUE)) {
@@ -135,6 +151,16 @@ public final class DocsApiUtils {
       }
     }
     return Optional.empty();
+  }
+
+  /**
+   * Returns true if this path is denoting an array element index.
+   *
+   * @param path single filter or field path
+   * @return if it's array path
+   */
+  public static boolean isArrayPath(String path) {
+    return ARRAY_PATH_PATTERN.matcher(path).matches();
   }
 
   /**

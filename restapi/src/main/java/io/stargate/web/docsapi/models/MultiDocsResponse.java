@@ -14,7 +14,7 @@ public class MultiDocsResponse {
   @JsonProperty("profile")
   ExecutionProfile profile;
 
-  @ApiModelProperty(value = "The ids of the documents created, in order of creation")
+  @ApiModelProperty(value = "The ids of the documents successfully created, in order of creation")
   public List<String> getDocumentIds() {
     return documentIds;
   }

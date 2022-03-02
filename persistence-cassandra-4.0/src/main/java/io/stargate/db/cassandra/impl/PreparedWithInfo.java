@@ -20,11 +20,17 @@ import org.apache.cassandra.transport.messages.ResultMessage;
 public class PreparedWithInfo extends ResultMessage.Prepared {
   private final boolean idempotent;
   private final boolean useKeyspace;
+  private final short[] partitionKeyBindVariableIndexes;
 
-  public PreparedWithInfo(boolean idempotent, boolean useKeyspace, Prepared prepare) {
+  public PreparedWithInfo(
+      boolean idempotent,
+      boolean useKeyspace,
+      short[] partitionKeyBindVariableIndexes,
+      Prepared prepare) {
     super(prepare.statementId, prepare.resultMetadataId, prepare.metadata, prepare.resultMetadata);
     this.idempotent = idempotent;
     this.useKeyspace = useKeyspace;
+    this.partitionKeyBindVariableIndexes = partitionKeyBindVariableIndexes;
   }
 
   public boolean isIdempotent() {
@@ -33,5 +39,9 @@ public class PreparedWithInfo extends ResultMessage.Prepared {
 
   public boolean isUseKeyspace() {
     return useKeyspace;
+  }
+
+  public short[] getPartitionKeyBindVariableIndexes() {
+    return partitionKeyBindVariableIndexes;
   }
 }

@@ -4,6 +4,7 @@ import static io.stargate.web.docsapi.resources.RequestToHeadersMapper.getAllHea
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import edu.umd.cs.findbugs.annotations.NonNull;
 import io.reactivex.rxjava3.core.Single;
 import io.reactivex.rxjava3.functions.Function;
 import io.stargate.auth.UnauthorizedException;
@@ -15,6 +16,7 @@ import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.models.BuiltInApiFunction;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
+import io.stargate.web.docsapi.models.MultiDocsResponse;
 import io.stargate.web.docsapi.models.dto.ExecuteBuiltInFunction;
 import io.stargate.web.docsapi.resources.async.AsyncObserver;
 import io.stargate.web.docsapi.resources.error.ErrorHandler;
@@ -31,6 +33,7 @@ import io.swagger.annotations.ApiResponses;
 import io.swagger.annotations.ResponseHeader;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -44,8 +47,10 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.HeaderParam;
+import javax.ws.rs.PATCH;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -55,11 +60,9 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
 import org.glassfish.jersey.server.ManagedAsync;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -110,8 +113,6 @@ public class ReactiveDocumentResourceV2 {
   @Consumes({MediaType.APPLICATION_JSON})
   @Produces(MediaType.APPLICATION_JSON)
   public void postDoc(
-      @Context HttpHeaders headers,
-      @Context UriInfo ui,
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -138,7 +139,7 @@ public class ReactiveDocumentResourceV2 {
     Single.fromCallable(
             () -> createOrValidateDbFromToken(authToken, request, namespace, collection))
 
-        // then generate id and create execution context
+        // then create execution context
         .flatMap(
             db -> {
               ExecutionContext context = ExecutionContext.create(profile);
@@ -165,6 +166,75 @@ public class ReactiveDocumentResourceV2 {
                 asyncResponse, ErrorHandler.EXCEPTION_TO_RESPONSE));
   }
 
+  @POST
+  @ManagedAsync
+  @ApiOperation(
+      value = "Write multiple documents in one request",
+      notes =
+          "Auto-generates an ID for the newly created document if an `idPath` is not provided as a query parameter. When an `idPath` is provided, this operation is idempotent. Note that this batch operation is not atomic and is not ordered. Any exception that happens during the write of one of the documents, does not influence the insertion of other documents. It's responsibility of the caller to examine the returned JSON and understand what documents were successfully written.",
+      code = 202)
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 202, message = "Accepted", response = MultiDocsResponse.class),
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
+      })
+  @Path("collections/{collection-id}/batch")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  public void writeManyDocs(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "A JSON array where each element is a document to write", required = true)
+          @NonNull
+          String payload,
+      @ApiParam(
+              value =
+                  "The path where an ID could be found in each document. If defined, the value at this path will be used as the ID for each document. Otherwise, a random UUID will be given for each document.",
+              required = false)
+          @QueryParam("id-path")
+          String idPath,
+      @QueryParam("profile") Boolean profile,
+      @Context HttpServletRequest request,
+      @Suspended AsyncResponse asyncResponse) {
+    // create table if needed, if not validate it's a doc table
+    Single.fromCallable(
+            () -> createOrValidateDbFromToken(authToken, request, namespace, collection))
+
+        // then create execution context
+        .flatMap(
+            db -> {
+              ExecutionContext context = ExecutionContext.create(profile);
+
+              // and call the document service to fire batch write
+              return reactiveDocumentService
+                  .writeDocuments(db, namespace, collection, payload, idPath, context)
+
+                  // map to response
+                  .map(
+                      result -> {
+                        String response = objectMapper.writeValueAsString(result);
+                        return Response.accepted(response).build();
+                      });
+            })
+
+        // then subscribe
+        .safeSubscribe(
+            AsyncObserver.forResponseWithHandler(
+                asyncResponse, ErrorHandler.EXCEPTION_TO_RESPONSE));
+  }
+
   @PUT
   @ManagedAsync
   @ApiOperation(value = "Create or update a document with the provided document-id")
@@ -181,8 +251,6 @@ public class ReactiveDocumentResourceV2 {
   @Consumes({MediaType.APPLICATION_JSON})
   @Produces(MediaType.APPLICATION_JSON)
   public void putDoc(
-      @Context HttpHeaders headers,
-      @Context UriInfo ui,
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -206,6 +274,58 @@ public class ReactiveDocumentResourceV2 {
           Boolean profile,
       @Context HttpServletRequest request,
       @Suspended AsyncResponse asyncResponse) {
+    // just delegate to put with empty path
+    List<PathSegment> path = Collections.emptyList();
+    putDocPath(
+        authToken, namespace, collection, id, path, payload, profile, request, asyncResponse);
+  }
+
+  @PUT
+  @ManagedAsync
+  @ApiOperation(
+      value = "Replace data at a path in a document",
+      notes =
+          "Removes whatever was previously present at the path. Note that operation is not allowed if a JSON schema exist for a target collection.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK", response = WriteDocResponse.class),
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 422, message = "Unprocessable entity", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
+      })
+  @Path("collections/{collection-id}/{document-id}/{document-path: .*}")
+  @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_FORM_URLENCODED})
+  @Produces(MediaType.APPLICATION_JSON)
+  public void putDocPath(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
+          String id,
+      @ApiParam(value = "the path in the JSON that you want to retrieve", required = true)
+          @PathParam("document-path")
+          List<PathSegment> path,
+      @ApiParam(value = "The JSON document", required = true)
+          @NotNull(message = "payload not provided")
+          @NotBlank(message = "payload must not be empty")
+          String payload,
+      @ApiParam(
+              value = "Whether to include profiling information in the response (advanced)",
+              defaultValue = "false")
+          @QueryParam("profile")
+          Boolean profile,
+      @Context HttpServletRequest request,
+      @Suspended AsyncResponse asyncResponse) {
     // create table if needed, if not validate it's a doc table
     Single.fromCallable(
             () -> createOrValidateDbFromToken(authToken, request, namespace, collection))
@@ -214,10 +334,136 @@ public class ReactiveDocumentResourceV2 {
         .flatMap(
             db -> {
               ExecutionContext context = ExecutionContext.create(profile);
+              List<String> subPath =
+                  path.stream().map(PathSegment::getPath).collect(Collectors.toList());
 
               // and call the document service to fire write
               return reactiveDocumentService
-                  .updateDocument(db, namespace, collection, id, payload, context)
+                  .updateDocument(db, namespace, collection, id, subPath, payload, context)
+
+                  // map to response
+                  .map(
+                      result -> {
+                        String response = objectMapper.writeValueAsString(result);
+                        return Response.ok().entity(response).build();
+                      });
+            })
+
+        // then subscribe
+        .safeSubscribe(
+            AsyncObserver.forResponseWithHandler(
+                asyncResponse, ErrorHandler.EXCEPTION_TO_RESPONSE));
+  }
+
+  @PATCH
+  @ManagedAsync
+  @ApiOperation(
+      value = "Update data at the root of a document",
+      notes =
+          "Merges data at the root with requested data. Note that operation is not allowed if a JSON schema exist for a target collection.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK", response = WriteDocResponse.class),
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 422, message = "Unprocessable entity", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
+      })
+  @Path("collections/{collection-id}/{document-id}")
+  @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_FORM_URLENCODED})
+  @Produces(MediaType.APPLICATION_JSON)
+  public void patchDoc(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
+          String id,
+      @ApiParam(value = "The JSON document", required = true)
+          @NotNull(message = "payload not provided")
+          @NotBlank(message = "payload must not be empty")
+          String payload,
+      @ApiParam(
+              value = "Whether to include profiling information in the response (advanced)",
+              defaultValue = "false")
+          @QueryParam("profile")
+          Boolean profile,
+      @Context HttpServletRequest request,
+      @Suspended AsyncResponse asyncResponse) {
+    // just delegate to patchPath with empty path
+    List<PathSegment> path = Collections.emptyList();
+    patchDocPath(
+        authToken, namespace, collection, id, path, payload, profile, request, asyncResponse);
+  }
+
+  @PATCH
+  @ManagedAsync
+  @ApiOperation(
+      value = "Update data at a path in a document",
+      notes =
+          "Merges data at the path with requested data, assumes that the data at the path is already an object. Note that operation is not allowed if a JSON schema exist for a target collection.")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 200, message = "OK", response = WriteDocResponse.class),
+        @ApiResponse(code = 400, message = "Bad request", response = ApiError.class),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 422, message = "Unprocessable entity", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
+      })
+  @Path("collections/{collection-id}/{document-id}/{document-path: .*}")
+  @Consumes({MediaType.APPLICATION_JSON, MediaType.APPLICATION_FORM_URLENCODED})
+  @Produces(MediaType.APPLICATION_JSON)
+  public void patchDocPath(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "the name of the document", required = true) @PathParam("document-id")
+          String id,
+      @ApiParam(value = "the path in the JSON that you want to retrieve", required = true)
+          @PathParam("document-path")
+          List<PathSegment> path,
+      @ApiParam(value = "The JSON document", required = true)
+          @NotNull(message = "payload not provided")
+          @NotBlank(message = "payload must not be empty")
+          String payload,
+      @ApiParam(
+              value = "Whether to include profiling information in the response (advanced)",
+              defaultValue = "false")
+          @QueryParam("profile")
+          Boolean profile,
+      @Context HttpServletRequest request,
+      @Suspended AsyncResponse asyncResponse) {
+    // create table if needed, if not validate it's a doc table
+    Single.fromCallable(
+            () -> createOrValidateDbFromToken(authToken, request, namespace, collection))
+
+        // then generate id and create execution context
+        .flatMap(
+            db -> {
+              ExecutionContext context = ExecutionContext.create(profile);
+              List<String> subPath =
+                  path.stream().map(PathSegment::getPath).collect(Collectors.toList());
+
+              // and call the document service to fire write
+              return reactiveDocumentService
+                  .patchDocument(db, namespace, collection, id, subPath, payload, context)
 
                   // map to response
                   .map(
@@ -252,8 +498,6 @@ public class ReactiveDocumentResourceV2 {
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   public void getDocumentPath(
-      @Context HttpHeaders headers,
-      @Context UriInfo ui,
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -293,8 +537,6 @@ public class ReactiveDocumentResourceV2 {
       @Context HttpServletRequest request,
       @Suspended AsyncResponse asyncResponse) {
     getDocumentPath(
-        headers,
-        ui,
         authToken,
         namespace,
         collection,
@@ -331,8 +573,6 @@ public class ReactiveDocumentResourceV2 {
   @Consumes(MediaType.APPLICATION_JSON)
   @Produces(MediaType.APPLICATION_JSON)
   public void getDocumentPath(
-      @Context HttpHeaders headers,
-      @Context UriInfo ui,
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -438,7 +678,6 @@ public class ReactiveDocumentResourceV2 {
   @Path("collections/{collection-id: [a-zA-Z_0-9]+}")
   @Produces(MediaType.APPLICATION_JSON)
   public void searchDoc(
-      @Context HttpHeaders headers,
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -518,8 +757,6 @@ public class ReactiveDocumentResourceV2 {
   @Consumes({MediaType.APPLICATION_JSON})
   @Produces(MediaType.APPLICATION_JSON)
   public void executeBuiltInFunction(
-      @Context HttpHeaders headers,
-      @Context UriInfo ui,
       @ApiParam(
               value =
                   "The token returned from the authorization endpoint. Use this token in each request.",
@@ -563,11 +800,106 @@ public class ReactiveDocumentResourceV2 {
         .flatMap(
             db -> {
               ExecutionContext context = ExecutionContext.create(profile);
+              List<String> pathStrings =
+                  path.stream().map(PathSegment::getPath).collect(Collectors.toList());
+
               return reactiveDocumentService
-                  .executeBuiltInFunction(db, namespace, collection, id, payload, path, context)
+                  .executeBuiltInFunction(
+                      db, namespace, collection, id, payload, pathStrings, context)
                   .map(rawDocumentHandler(raw))
                   .defaultIfEmpty(Response.status(Response.Status.NOT_FOUND).build());
             })
+        .safeSubscribe(
+            AsyncObserver.forResponseWithHandler(
+                asyncResponse, ErrorHandler.EXCEPTION_TO_RESPONSE));
+  }
+
+  @DELETE
+  @ManagedAsync
+  @ApiOperation(value = "Delete a document", notes = "Delete a document")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 204, message = "No Content"),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
+      })
+  @Path("collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  public void deleteDoc(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "the id of the document", required = true) @PathParam("document-id")
+          String id,
+      @QueryParam("profile") Boolean profile,
+      @Context HttpServletRequest request,
+      @Suspended AsyncResponse asyncResponse) {
+    List<PathSegment> path = Collections.emptyList();
+    deleteDocPath(authToken, namespace, collection, id, path, profile, request, asyncResponse);
+  }
+
+  @DELETE
+  @ManagedAsync
+  @ApiOperation(value = "Delete a path in a document", notes = "Delete a path in a document")
+  @ApiResponses(
+      value = {
+        @ApiResponse(code = 204, message = "No Content"),
+        @ApiResponse(code = 401, message = "Unauthorized", response = ApiError.class),
+        @ApiResponse(code = 403, message = "Forbidden", response = ApiError.class),
+        @ApiResponse(code = 500, message = "Internal Server Error", response = ApiError.class)
+      })
+  @Path("collections/{collection-id: [a-zA-Z_0-9]+}/{document-id}/{document-path: .*}")
+  @Consumes(MediaType.APPLICATION_JSON)
+  @Produces(MediaType.APPLICATION_JSON)
+  public void deleteDocPath(
+      @ApiParam(
+              value =
+                  "The token returned from the authorization endpoint. Use this token in each request.",
+              required = true)
+          @HeaderParam("X-Cassandra-Token")
+          String authToken,
+      @ApiParam(value = "the namespace that the collection is in", required = true)
+          @PathParam("namespace-id")
+          String namespace,
+      @ApiParam(value = "the name of the collection", required = true) @PathParam("collection-id")
+          String collection,
+      @ApiParam(value = "the id of the document", required = true) @PathParam("document-id")
+          String id,
+      @ApiParam(value = "the path in the JSON that you want to delete", required = true)
+          @PathParam("document-path")
+          List<PathSegment> path,
+      @QueryParam("profile") Boolean profile,
+      @Context HttpServletRequest request,
+      @Suspended AsyncResponse asyncResponse) {
+    // get valid db from token
+    Single.fromCallable(() -> getValidDbFromToken(authToken, request, namespace, collection))
+
+        // then create execution context
+        .flatMap(
+            db -> {
+              ExecutionContext context = ExecutionContext.create(profile);
+              List<String> subPath =
+                  path.stream().map(PathSegment::getPath).collect(Collectors.toList());
+
+              // and call the document service to fire delete
+              return reactiveDocumentService
+                  .deleteDocument(db, namespace, collection, id, subPath, context)
+
+                  // map to noContent response
+                  .map(result -> Response.noContent().build());
+            })
+
+        // then subscribe
         .safeSubscribe(
             AsyncObserver.forResponseWithHandler(
                 asyncResponse, ErrorHandler.EXCEPTION_TO_RESPONSE));

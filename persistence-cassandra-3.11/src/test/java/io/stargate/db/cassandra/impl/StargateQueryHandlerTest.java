@@ -35,8 +35,6 @@ import org.apache.cassandra.cql3.statements.AlterRoleStatement;
 import org.apache.cassandra.cql3.statements.AlterTableStatement;
 import org.apache.cassandra.cql3.statements.AlterTypeStatement;
 import org.apache.cassandra.cql3.statements.AlterViewStatement;
-import org.apache.cassandra.cql3.statements.BatchStatement;
-import org.apache.cassandra.cql3.statements.BatchStatement.Parsed;
 import org.apache.cassandra.cql3.statements.CreateAggregateStatement;
 import org.apache.cassandra.cql3.statements.CreateFunctionStatement;
 import org.apache.cassandra.cql3.statements.CreateIndexStatement;
@@ -910,30 +908,30 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
   @Test
   void authorizeByTokenBatchStatement() throws UnauthorizedException {
-    BatchStatement.Parsed rawStatement =
-        (Parsed)
-            QueryProcessor.parseStatement(
-                "BEGIN BATCH\n"
-                    + "\n"
-                    + "  INSERT INTO ks1.tbl1 (\n"
-                    + "    key, value\n"
-                    + "  ) VALUES (\n"
-                    + "    'foo', 'bar'\n"
-                    + "  );\n"
-                    + "\n"
-                    + "  INSERT INTO ks1.tbl1 (\n"
-                    + "    key, value\n"
-                    + "  ) VALUES (\n"
-                    + "    'fizz', 'buzz'\n"
-                    + "  );\n"
-                    + "\n"
-                    + "  UPDATE ks1.tbl1\n"
-                    + "  SET value = 'baz'\n"
-                    + "  WHERE key = 'foo';\n"
-                    + "\n"
-                    + "APPLY BATCH;");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
+    ParsedStatement.Prepared prepared =
+        QueryProcessor.getStatement(
+            "BEGIN BATCH\n"
+                + "\n"
+                + "  INSERT INTO ks1.tbl1 (\n"
+                + "    key, value\n"
+                + "  ) VALUES (\n"
+                + "    'foo', 'bar'\n"
+                + "  );\n"
+                + "\n"
+                + "  INSERT INTO ks1.tbl1 (\n"
+                + "    key, value\n"
+                + "  ) VALUES (\n"
+                + "    'fizz', 'buzz'\n"
+                + "  );\n"
+                + "\n"
+                + "  UPDATE ks1.tbl1\n"
+                + "  SET value = 'baz'\n"
+                + "  WHERE key = 'foo';\n"
+                + "\n"
+                + "APPLY BATCH;",
+            ClientState.forInternalCalls());
+    CQLStatement statement = prepared.statement;
 
     queryHandler.authorizeByToken(createToken(), statement);
     verify(authorizationService, times(3))

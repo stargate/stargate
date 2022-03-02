@@ -82,6 +82,9 @@ public enum ErrorCode {
       Response.Status.BAD_REQUEST,
       "A patch operation must be done with a JSON object, not an array."),
 
+  DOCS_API_PATCH_EMPTY_NOT_ACCEPTED(
+      Response.Status.BAD_REQUEST, "A patch operation must be done with a non-empty JSON object."),
+
   DOCS_API_PUT_PAYLOAD_INVALID(
       Response.Status.BAD_REQUEST, "A put operation failed due to the invalid payload."),
 
@@ -119,12 +122,30 @@ public enum ErrorCode {
       Response.Status.BAD_REQUEST,
       "When a collection has a JSON schema, partial updates of documents are disallowed for performance reasons."),
 
+  DOCS_API_JSON_SCHEMA_PROCESSING_FAILED(
+      Response.Status.INTERNAL_SERVER_ERROR,
+      "Processing a JSON schema validation failed for a given document."),
+
   DOCS_API_INVALID_JSON_VALUE(
       Response.Status.BAD_REQUEST, "The provided JSON does not match the collection's schema."),
+
+  DOCS_API_WRITE_BATCH_NOT_ARRAY(
+      Response.Status.BAD_REQUEST,
+      "The payload for the batched document write must be a JSON array."),
+
+  DOCS_API_WRITE_BATCH_DUPLICATE_ID(
+      Response.Status.BAD_REQUEST,
+      "A same document ID is found in more than one document when doing batched document write."),
+
   DOCS_API_WRITE_BATCH_INVALID_ID_PATH(
       Response.Status.BAD_REQUEST, "ID path is invalid for document during batch write."),
+
   DOCS_API_WRITE_BATCH_FAILED(
-      Response.Status.INTERNAL_SERVER_ERROR, "Write failed during batched document write.");
+      Response.Status.INTERNAL_SERVER_ERROR, "Write failed during batched document write."),
+
+  DOCS_API_UPDATE_PATH_NOT_MATCHING(
+      Response.Status.INTERNAL_SERVER_ERROR,
+      "Updating a document failed as internally shredded rows did not match the update path.");
 
   /** Status of the response. */
   private final Response.Status responseStatus;

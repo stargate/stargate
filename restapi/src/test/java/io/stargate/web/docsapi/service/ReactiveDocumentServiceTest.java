@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -31,6 +32,7 @@ import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
@@ -39,6 +41,7 @@ import static org.mockito.Mockito.when;
 import com.bpodgursky.jbool_expressions.Literal;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Maybe;
@@ -59,6 +62,8 @@ import io.stargate.web.docsapi.dao.Paginator;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
+import io.stargate.web.docsapi.models.MultiDocsResponse;
+import io.stargate.web.docsapi.models.dto.ExecuteBuiltInFunction;
 import io.stargate.web.docsapi.service.json.DeadLeafCollector;
 import io.stargate.web.docsapi.service.json.ImmutableDeadLeafCollector;
 import io.stargate.web.docsapi.service.query.DocumentSearchService;
@@ -66,6 +71,7 @@ import io.stargate.web.docsapi.service.query.ExpressionParser;
 import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
 import io.stargate.web.docsapi.service.write.DocumentWriteService;
+import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.Duration;
 import java.util.Arrays;
@@ -82,7 +88,10 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -101,8 +110,6 @@ class ReactiveDocumentServiceTest {
   @Mock DocumentWriteService writeService;
 
   @Mock JsonConverter jsonConverter;
-
-  @Mock DocsShredder docsShredder;
 
   @Mock JsonDocumentShredder jsonDocumentShredder;
 
@@ -143,11 +150,11 @@ class ReactiveDocumentServiceTest {
             writeService,
             jsonConverter,
             jsonSchemaHandler,
-            docsShredder,
             jsonDocumentShredder,
             objectMapper,
             timeSource,
             config);
+    lenient().when(config.getMaxArrayLength()).thenReturn(99999);
     lenient()
         .when(documentDB.deleteDeadLeaves(any(), any(), any(), anyLong(), anyMap(), any()))
         .thenReturn(CompletableFuture.completedFuture(deleteResultSet));
@@ -355,6 +362,321 @@ class ReactiveDocumentServiceTest {
   }
 
   @Nested
+  class WriteDocuments {
+
+    @Mock List<JsonShreddedRow> rows1;
+
+    @Mock List<JsonShreddedRow> rows2;
+
+    @Test
+    public void happyPath() throws Exception {
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String doc1Payload = "{\"id\": \"1\"}";
+      String doc2Payload = "{\"id\": \"2\"}";
+      String payload = String.format("[%s,%s]", doc1Payload, doc2Payload);
+
+      when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
+      when(jsonDocumentShredder.shred(objectMapper.readTree(doc1Payload), Collections.emptyList()))
+          .thenReturn(rows1);
+      when(jsonDocumentShredder.shred(objectMapper.readTree(doc2Payload), Collections.emptyList()))
+          .thenReturn(rows2);
+      when(writeService.writeDocument(
+              eq(dataStore),
+              eq(namespace),
+              eq(collection),
+              anyString(),
+              any(),
+              eq(true),
+              eq(context)))
+          .thenReturn(Single.just(ResultSet.empty()));
+
+      Single<MultiDocsResponse> result =
+          reactiveDocumentService.writeDocuments(
+              documentDB, namespace, collection, payload, null, context);
+
+      MutableObject<String> documentId1 = new MutableObject<>();
+      MutableObject<String> documentId2 = new MutableObject<>();
+      result
+          .test()
+          .await()
+          .assertValue(
+              v -> {
+                List<String> documentIds = v.getDocumentIds();
+                assertThat(documentIds).hasSize(2).allSatisfy(id -> assertThat(id).isNotEmpty());
+                assertThat(v.getProfile()).isEqualTo(context.toProfile());
+                documentId1.setValue(documentIds.get(0));
+                documentId2.setValue(documentIds.get(1));
+                return true;
+              });
+
+      verify(writeService)
+          .writeDocument(
+              dataStore, namespace, collection, documentId1.getValue(), rows1, true, context);
+      verify(writeService)
+          .writeDocument(
+              dataStore, namespace, collection, documentId2.getValue(), rows2, true, context);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(jsonSchemaHandler, times(2)).getCachedJsonSchema(documentDB, namespace, collection);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void happyPathWithIdExtraction() throws Exception {
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String doc1Payload = "{\"id\": \"1\"}";
+      String doc2Payload = "{\"id\": \"2\"}";
+      String payload = String.format("[%s,%s]", doc1Payload, doc2Payload);
+
+      when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
+      when(jsonDocumentShredder.shred(objectMapper.readTree(doc1Payload), Collections.emptyList()))
+          .thenReturn(rows1);
+      when(jsonDocumentShredder.shred(objectMapper.readTree(doc2Payload), Collections.emptyList()))
+          .thenReturn(rows2);
+      when(writeService.updateDocument(
+              eq(dataStore),
+              eq(namespace),
+              eq(collection),
+              anyString(),
+              any(),
+              eq(true),
+              eq(context)))
+          .thenReturn(Single.just(ResultSet.empty()));
+
+      Single<MultiDocsResponse> result =
+          reactiveDocumentService.writeDocuments(
+              documentDB, namespace, collection, payload, "id", context);
+
+      result
+          .test()
+          .await()
+          .assertValue(
+              v -> {
+                List<String> documentIds = v.getDocumentIds();
+                assertThat(documentIds).hasSize(2).containsExactly("1", "2");
+                assertThat(v.getProfile()).isEqualTo(context.toProfile());
+                return true;
+              });
+
+      verify(writeService)
+          .updateDocument(dataStore, namespace, collection, "1", rows1, true, context);
+      verify(writeService)
+          .updateDocument(dataStore, namespace, collection, "2", rows2, true, context);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonSchemaHandler, times(2)).getCachedJsonSchema(documentDB, namespace, collection);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void oneDocumentWriteFailed() throws Exception {
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String doc1Payload = "{\"id\": \"1\"}";
+      String doc2Payload = "{\"id\": \"2\"}";
+      String payload = String.format("[%s,%s]", doc1Payload, doc2Payload);
+
+      when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
+      when(jsonDocumentShredder.shred(objectMapper.readTree(doc1Payload), Collections.emptyList()))
+          .thenReturn(rows1);
+      when(jsonDocumentShredder.shred(objectMapper.readTree(doc2Payload), Collections.emptyList()))
+          .thenReturn(rows2);
+      when(writeService.updateDocument(
+              eq(dataStore),
+              eq(namespace),
+              eq(collection),
+              anyString(),
+              eq(rows1),
+              eq(true),
+              eq(context)))
+          .thenReturn(Single.error(new IOException()));
+      when(writeService.updateDocument(
+              eq(dataStore),
+              eq(namespace),
+              eq(collection),
+              anyString(),
+              eq(rows2),
+              eq(true),
+              eq(context)))
+          .thenReturn(Single.just(ResultSet.empty()));
+
+      Single<MultiDocsResponse> result =
+          reactiveDocumentService.writeDocuments(
+              documentDB, namespace, collection, payload, "id", context);
+
+      result
+          .test()
+          .await()
+          .assertValue(
+              v -> {
+                List<String> documentIds = v.getDocumentIds();
+                assertThat(documentIds).hasSize(1).containsExactly("2");
+                assertThat(v.getProfile()).isEqualTo(context.toProfile());
+                return true;
+              });
+
+      verify(writeService)
+          .updateDocument(dataStore, namespace, collection, "1", rows1, true, context);
+      verify(writeService)
+          .updateDocument(dataStore, namespace, collection, "2", rows2, true, context);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonSchemaHandler, times(2)).getCachedJsonSchema(documentDB, namespace, collection);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void schemaCheckFailed() throws Exception {
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String doc1Payload = "{\"id\": \"1\"}";
+      String doc2Payload = "{\"id\": \"2\"}";
+      String payload = String.format("[%s,%s]", doc1Payload, doc2Payload);
+      ObjectNode schema = objectMapper.createObjectNode();
+
+      ErrorCodeRuntimeException exception =
+          new ErrorCodeRuntimeException(ErrorCode.DOCS_API_INVALID_JSON_VALUE);
+      when(jsonSchemaHandler.getCachedJsonSchema(documentDB, namespace, collection))
+          .thenReturn(schema);
+      doNothing().when(jsonSchemaHandler).validate(schema, objectMapper.readTree(doc1Payload));
+      doThrow(exception)
+          .when(jsonSchemaHandler)
+          .validate(schema, objectMapper.readTree(doc2Payload));
+
+      Single<MultiDocsResponse> result =
+          reactiveDocumentService.writeDocuments(
+              documentDB, namespace, collection, payload, "id", context);
+
+      result
+          .test()
+          .await()
+          .assertError(
+              e -> {
+                assertThat(e).isEqualTo(exception);
+                return true;
+              });
+
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonSchemaHandler, times(2)).getCachedJsonSchema(documentDB, namespace, collection);
+      verify(jsonSchemaHandler).validate(schema, objectMapper.readTree(doc1Payload));
+      verify(jsonSchemaHandler).validate(schema, objectMapper.readTree(doc2Payload));
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void duplicateIds() throws Exception {
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String doc1Payload = "{\"id\": \"1\"}";
+      String doc2Payload = "{\"id\": \"1\"}";
+      String payload = String.format("[%s,%s]", doc1Payload, doc2Payload);
+
+      when(jsonDocumentShredder.shred(objectMapper.readTree(doc1Payload), Collections.emptyList()))
+          .thenReturn(rows1);
+      when(jsonDocumentShredder.shred(objectMapper.readTree(doc2Payload), Collections.emptyList()))
+          .thenReturn(rows2);
+
+      Single<MultiDocsResponse> result =
+          reactiveDocumentService.writeDocuments(
+              documentDB, namespace, collection, payload, "id", context);
+
+      result
+          .test()
+          .await()
+          .assertError(
+              e -> {
+                assertThat(e)
+                    .isInstanceOf(ErrorCodeRuntimeException.class)
+                    .hasFieldOrPropertyWithValue(
+                        "errorCode", ErrorCode.DOCS_API_WRITE_BATCH_DUPLICATE_ID);
+                return true;
+              });
+
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonSchemaHandler, times(2)).getCachedJsonSchema(documentDB, namespace, collection);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void notArrayPayload() throws Exception {
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = String.format("{}");
+
+      Single<MultiDocsResponse> result =
+          reactiveDocumentService.writeDocuments(
+              documentDB, namespace, collection, payload, "id", context);
+
+      result
+          .test()
+          .await()
+          .assertError(
+              e -> {
+                assertThat(e)
+                    .isInstanceOf(ErrorCodeRuntimeException.class)
+                    .hasFieldOrPropertyWithValue(
+                        "errorCode", ErrorCode.DOCS_API_WRITE_BATCH_NOT_ARRAY);
+                return true;
+              });
+
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void unauthorized() throws Exception {
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String doc1Payload = "{\"id\": \"1\"}";
+      String doc2Payload = "{\"id\": \"1\"}";
+      String payload = String.format("[%s,%s]", doc1Payload, doc2Payload);
+
+      doThrow(UnauthorizedException.class)
+          .when(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+
+      Single<MultiDocsResponse> result =
+          reactiveDocumentService.writeDocuments(
+              documentDB, namespace, collection, payload, "id", context);
+
+      result
+          .test()
+          .await()
+          .assertError(
+              e -> {
+                assertThat(e).isInstanceOf(UnauthorizedException.class);
+                return true;
+              });
+
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+  }
+
+  @Nested
   class UpdateDocument {
 
     @Mock List<JsonShreddedRow> rows;
@@ -371,7 +693,14 @@ class ReactiveDocumentServiceTest {
       when(jsonDocumentShredder.shred(objectMapper.readTree(payload), Collections.emptyList()))
           .thenReturn(rows);
       when(writeService.updateDocument(
-              dataStore, namespace, collection, documentId, rows, true, context))
+              dataStore,
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              rows,
+              true,
+              context))
           .thenReturn(Single.just(ResultSet.empty()));
 
       Single<DocumentResponseWrapper<Void>> result =
@@ -391,7 +720,58 @@ class ReactiveDocumentServiceTest {
               });
 
       verify(writeService)
-          .updateDocument(dataStore, namespace, collection, documentId, rows, true, context);
+          .updateDocument(
+              dataStore,
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              rows,
+              true,
+              context);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void happyPathWithSubPath() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      String path = RandomStringUtils.randomAlphanumeric(16);
+      List<String> subPath = Collections.singletonList(path);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+
+      when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
+      when(jsonDocumentShredder.shred(objectMapper.readTree(payload), subPath)).thenReturn(rows);
+      when(writeService.updateDocument(
+              dataStore, namespace, collection, documentId, subPath, rows, true, context))
+          .thenReturn(Single.just(ResultSet.empty()));
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.updateDocument(
+              documentDB, namespace, collection, documentId, subPath, payload, context);
+
+      result
+          .test()
+          .await()
+          .assertValue(
+              v -> {
+                assertThat(v.getDocumentId()).isEqualTo(documentId);
+                assertThat(v.getData()).isNull();
+                assertThat(v.getPageState()).isNull();
+                assertThat(v.getProfile()).isEqualTo(context.toProfile());
+                return true;
+              });
+
+      verify(writeService)
+          .updateDocument(
+              dataStore, namespace, collection, documentId, subPath, rows, true, context);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
       verify(authService)
@@ -415,7 +795,14 @@ class ReactiveDocumentServiceTest {
           .thenReturn(schema);
       when(jsonDocumentShredder.shred(document, Collections.emptyList())).thenReturn(rows);
       when(writeService.updateDocument(
-              dataStore, namespace, collection, documentId, rows, false, context))
+              dataStore,
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              rows,
+              false,
+              context))
           .thenReturn(Single.just(ResultSet.empty()));
 
       Single<DocumentResponseWrapper<Void>> result =
@@ -435,13 +822,59 @@ class ReactiveDocumentServiceTest {
               });
 
       verify(writeService)
-          .updateDocument(dataStore, namespace, collection, documentId, rows, false, context);
+          .updateDocument(
+              dataStore,
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              rows,
+              false,
+              context);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
       verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
       verify(jsonSchemaHandler).validate(schema, document);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void subDocumentWithSchemaCheck() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      String path = RandomStringUtils.randomAlphanumeric(16);
+      List<String> subPath = Collections.singletonList(path);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+      JsonNode schema = objectMapper.createObjectNode();
+
+      when(jsonSchemaHandler.getCachedJsonSchema(documentDB, namespace, collection))
+          .thenReturn(schema);
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.updateDocument(
+              documentDB, namespace, collection, documentId, subPath, payload, context);
+
+      result
+          .test()
+          .await()
+          .assertError(
+              e -> {
+                assertThat(e)
+                    .isInstanceOf(ErrorCodeRuntimeException.class)
+                    .hasFieldOrPropertyWithValue(
+                        "errorCode", ErrorCode.DOCS_API_JSON_SCHEMA_INVALID_PARTIAL_UPDATE);
+                return true;
+              });
+
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
       verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
     }
 
@@ -521,6 +954,277 @@ class ReactiveDocumentServiceTest {
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.updateDocument(
+              documentDB, namespace, collection, documentId, payload, context);
+
+      result
+          .test()
+          .await()
+          .assertError(
+              e -> {
+                assertThat(e).isInstanceOf(UnauthorizedException.class);
+                return true;
+              });
+
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+  }
+
+  @Nested
+  class PatchDocument {
+
+    @Mock List<JsonShreddedRow> rows;
+
+    @Test
+    public void happyPath() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{\"key\":\"value\"}";
+
+      when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
+      when(jsonDocumentShredder.shred(objectMapper.readTree(payload), Collections.emptyList()))
+          .thenReturn(rows);
+      when(writeService.patchDocument(
+              dataStore,
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              rows,
+              true,
+              context))
+          .thenReturn(Single.just(ResultSet.empty()));
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.patchDocument(
+              documentDB, namespace, collection, documentId, payload, context);
+
+      result
+          .test()
+          .await()
+          .assertValue(
+              v -> {
+                assertThat(v.getDocumentId()).isEqualTo(documentId);
+                assertThat(v.getData()).isNull();
+                assertThat(v.getPageState()).isNull();
+                assertThat(v.getProfile()).isEqualTo(context.toProfile());
+                return true;
+              });
+
+      verify(writeService)
+          .patchDocument(
+              dataStore,
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              rows,
+              true,
+              context);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void happyPathWithSubPath() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      String path = RandomStringUtils.randomAlphanumeric(16);
+      List<String> subPath = Collections.singletonList(path);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{\"key\":\"value\"}";
+
+      when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
+      when(jsonDocumentShredder.shred(objectMapper.readTree(payload), subPath)).thenReturn(rows);
+      when(writeService.patchDocument(
+              dataStore, namespace, collection, documentId, subPath, rows, true, context))
+          .thenReturn(Single.just(ResultSet.empty()));
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.patchDocument(
+              documentDB, namespace, collection, documentId, subPath, payload, context);
+
+      result
+          .test()
+          .await()
+          .assertValue(
+              v -> {
+                assertThat(v.getDocumentId()).isEqualTo(documentId);
+                assertThat(v.getData()).isNull();
+                assertThat(v.getPageState()).isNull();
+                assertThat(v.getProfile()).isEqualTo(context.toProfile());
+                return true;
+              });
+
+      verify(writeService)
+          .patchDocument(
+              dataStore, namespace, collection, documentId, subPath, rows, true, context);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void withSchemaCheck() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+      JsonNode schema = objectMapper.createObjectNode();
+
+      when(jsonSchemaHandler.getCachedJsonSchema(documentDB, namespace, collection))
+          .thenReturn(schema);
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.patchDocument(
+              documentDB, namespace, collection, documentId, payload, context);
+
+      result
+          .test()
+          .await()
+          .assertError(
+              e -> {
+                assertThat(e)
+                    .isInstanceOf(ErrorCodeRuntimeException.class)
+                    .hasFieldOrPropertyWithValue(
+                        "errorCode", ErrorCode.DOCS_API_JSON_SCHEMA_INVALID_PARTIAL_UPDATE);
+                return true;
+              });
+
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void arrayNotAllowed() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "[1]";
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.patchDocument(
+              documentDB, namespace, collection, documentId, payload, context);
+
+      result
+          .test()
+          .await()
+          .assertError(
+              e -> {
+                assertThat(e)
+                    .isInstanceOf(ErrorCodeRuntimeException.class)
+                    .hasFieldOrPropertyWithValue(
+                        "errorCode", ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED);
+                return true;
+              });
+
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void emptyObjectNotAllowed() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.patchDocument(
+              documentDB, namespace, collection, documentId, payload, context);
+
+      result
+          .test()
+          .await()
+          .assertError(
+              e -> {
+                assertThat(e)
+                    .isInstanceOf(ErrorCodeRuntimeException.class)
+                    .hasFieldOrPropertyWithValue(
+                        "errorCode", ErrorCode.DOCS_API_PATCH_EMPTY_NOT_ACCEPTED);
+                return true;
+              });
+
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void malformedJson() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{\"key\":}";
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.patchDocument(
+              documentDB, namespace, collection, documentId, payload, context);
+
+      result
+          .test()
+          .await()
+          .assertError(
+              e -> {
+                assertThat(e)
+                    .isInstanceOf(ErrorCodeRuntimeException.class)
+                    .hasFieldOrPropertyWithValue(
+                        "errorCode", ErrorCode.DOCS_API_INVALID_JSON_VALUE);
+                return true;
+              });
+
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void unauthorized() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+
+      doNothing()
+          .when(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      doThrow(UnauthorizedException.class)
+          .when(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.patchDocument(
               documentDB, namespace, collection, documentId, payload, context);
 
       result
@@ -1424,6 +2128,411 @@ class ReactiveDocumentServiceTest {
                 return true;
               });
       verifyNoInteractions(authService, searchService);
+    }
+  }
+
+  @Nested
+  class DoExecuteBuiltInFunction {
+
+    @Mock List<JsonShreddedRow> shreddedRows;
+
+    @Captor ArgumentCaptor<JsonNode> addedNode;
+
+    @Test
+    public void pushHappyPath() throws Exception {
+      ExecutionContext context = ExecutionContext.create(true);
+      String docId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      String value = RandomStringUtils.randomAlphanumeric(16);
+      List<String> path = Collections.singletonList("path");
+      ExecuteBuiltInFunction function = new ExecuteBuiltInFunction("$push", value);
+
+      ObjectNode documentNode = objectMapper.createObjectNode();
+      documentNode.set("path", objectMapper.createArrayNode());
+      List<Row> rows = Collections.singletonList(row);
+      when(rawDocument.rows()).thenReturn(rows);
+      doReturn(documentNode)
+          .when(jsonConverter)
+          .convertToJsonDoc(any(), any(), anyBoolean(), anyBoolean());
+      when(searchService.getDocument(queryExecutor, namespace, collection, docId, path, context))
+          .thenReturn(Flowable.just(rawDocument));
+      when(writeService.updateDocument(
+              dataStore, namespace, collection, docId, path, shreddedRows, false, context))
+          .thenReturn(Single.just(ResultSet.empty()));
+      when(jsonDocumentShredder.shred(Mockito.<JsonNode>any(), anyList())).thenReturn(shreddedRows);
+
+      Maybe<DocumentResponseWrapper<? extends JsonNode>> result =
+          reactiveDocumentService.executeBuiltInFunction(
+              documentDB, namespace, collection, docId, function, path, context);
+
+      result
+          .test()
+          .await()
+          .assertValue(
+              v -> {
+                assertThat(v.getData())
+                    .isInstanceOf(ArrayNode.class)
+                    .hasSize(1)
+                    .allSatisfy(
+                        inner -> {
+                          assertThat(inner.isTextual()).isTrue();
+                          assertThat(inner.textValue()).isEqualTo(value);
+                        });
+                return true;
+              })
+          .assertComplete();
+
+      verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonDocumentShredder).shred(addedNode.capture(), eq(path));
+      assertThat(addedNode.getAllValues())
+          .allSatisfy(
+              node -> {
+                assertThat(node)
+                    .isInstanceOf(ArrayNode.class)
+                    .hasSize(1)
+                    .allSatisfy(
+                        inner -> {
+                          assertThat(inner.isTextual()).isTrue();
+                          assertThat(inner.textValue()).isEqualTo(value);
+                        });
+              });
+    }
+
+    @Test
+    public void pushNotArray() throws Exception {
+      ExecutionContext context = ExecutionContext.create(true);
+      String docId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      String value = RandomStringUtils.randomAlphanumeric(16);
+      List<String> path = Collections.singletonList("path");
+      ExecuteBuiltInFunction function = new ExecuteBuiltInFunction("$push", value);
+
+      ObjectNode documentNode = objectMapper.createObjectNode();
+      documentNode.set("path", objectMapper.createObjectNode());
+      List<Row> rows = Collections.singletonList(row);
+      when(rawDocument.rows()).thenReturn(rows);
+      doReturn(documentNode)
+          .when(jsonConverter)
+          .convertToJsonDoc(any(), any(), anyBoolean(), anyBoolean());
+      when(searchService.getDocument(queryExecutor, namespace, collection, docId, path, context))
+          .thenReturn(Flowable.just(rawDocument));
+
+      Maybe<DocumentResponseWrapper<? extends JsonNode>> result =
+          reactiveDocumentService.executeBuiltInFunction(
+              documentDB, namespace, collection, docId, function, path, context);
+
+      result
+          .test()
+          .await()
+          .assertError(
+              e -> {
+                assertThat(e)
+                    .isInstanceOf(ErrorCodeRuntimeException.class)
+                    .hasFieldOrPropertyWithValue(
+                        "errorCode", ErrorCode.DOCS_API_SEARCH_ARRAY_PATH_INVALID);
+                return true;
+              });
+
+      verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonDocumentShredder, never()).shred(Mockito.<JsonNode>any(), anyList());
+      verify(writeService, never())
+          .updateDocument(any(), any(), any(), any(), anyList(), anyBoolean(), any());
+    }
+
+    @Test
+    public void pushMissingNode() throws Exception {
+      ExecutionContext context = ExecutionContext.create(true);
+      String docId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      String value = RandomStringUtils.randomAlphanumeric(16);
+      List<String> path = Collections.singletonList("path");
+      ExecuteBuiltInFunction function = new ExecuteBuiltInFunction("$push", value);
+
+      ObjectNode documentNode = objectMapper.createObjectNode();
+      List<Row> rows = Collections.singletonList(row);
+      when(rawDocument.rows()).thenReturn(rows);
+      doReturn(documentNode)
+          .when(jsonConverter)
+          .convertToJsonDoc(any(), any(), anyBoolean(), anyBoolean());
+      when(searchService.getDocument(queryExecutor, namespace, collection, docId, path, context))
+          .thenReturn(Flowable.just(rawDocument));
+
+      Maybe<DocumentResponseWrapper<? extends JsonNode>> result =
+          reactiveDocumentService.executeBuiltInFunction(
+              documentDB, namespace, collection, docId, function, path, context);
+
+      result.test().await().assertComplete();
+
+      verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonDocumentShredder, never()).shred(Mockito.<JsonNode>any(), anyList());
+      verify(writeService, never())
+          .updateDocument(any(), any(), any(), any(), anyList(), anyBoolean(), any());
+    }
+
+    @Test
+    public void popHappyPath() throws Exception {
+      ExecutionContext context = ExecutionContext.create(true);
+      String docId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      String value = RandomStringUtils.randomAlphanumeric(16);
+      List<String> path = Collections.singletonList("path");
+      ExecuteBuiltInFunction function = new ExecuteBuiltInFunction("$pop", null);
+
+      ObjectNode documentNode = objectMapper.createObjectNode();
+      ArrayNode arrayNode = objectMapper.createArrayNode().add(value);
+      documentNode.set("path", arrayNode);
+      List<Row> rows = Collections.singletonList(row);
+      when(rawDocument.rows()).thenReturn(rows);
+      doReturn(documentNode)
+          .when(jsonConverter)
+          .convertToJsonDoc(any(), any(), anyBoolean(), anyBoolean());
+      when(searchService.getDocument(queryExecutor, namespace, collection, docId, path, context))
+          .thenReturn(Flowable.just(rawDocument));
+      when(writeService.updateDocument(
+              dataStore, namespace, collection, docId, path, shreddedRows, false, context))
+          .thenReturn(Single.just(ResultSet.empty()));
+      when(jsonDocumentShredder.shred(Mockito.<JsonNode>any(), anyList())).thenReturn(shreddedRows);
+
+      Maybe<DocumentResponseWrapper<? extends JsonNode>> result =
+          reactiveDocumentService.executeBuiltInFunction(
+              documentDB, namespace, collection, docId, function, path, context);
+
+      result
+          .test()
+          .await()
+          .assertValue(
+              v -> {
+                assertThat(v.getData().isTextual()).isTrue();
+                assertThat(v.getData().textValue()).isEqualTo(value);
+                return true;
+              })
+          .assertComplete();
+
+      verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonDocumentShredder).shred(addedNode.capture(), eq(path));
+      assertThat(addedNode.getAllValues())
+          .allSatisfy(
+              node -> {
+                assertThat(node).isInstanceOf(ArrayNode.class).hasSize(0);
+              });
+    }
+
+    @Test
+    public void popNotArray() throws Exception {
+      ExecutionContext context = ExecutionContext.create(true);
+      String docId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      List<String> path = Collections.singletonList("path");
+      ExecuteBuiltInFunction function = new ExecuteBuiltInFunction("$pop", null);
+
+      ObjectNode documentNode = objectMapper.createObjectNode();
+      documentNode.set("path", objectMapper.createObjectNode());
+      List<Row> rows = Collections.singletonList(row);
+      when(rawDocument.rows()).thenReturn(rows);
+      doReturn(documentNode)
+          .when(jsonConverter)
+          .convertToJsonDoc(any(), any(), anyBoolean(), anyBoolean());
+      when(searchService.getDocument(queryExecutor, namespace, collection, docId, path, context))
+          .thenReturn(Flowable.just(rawDocument));
+
+      Maybe<DocumentResponseWrapper<? extends JsonNode>> result =
+          reactiveDocumentService.executeBuiltInFunction(
+              documentDB, namespace, collection, docId, function, path, context);
+
+      result
+          .test()
+          .await()
+          .assertError(
+              e -> {
+                assertThat(e)
+                    .isInstanceOf(ErrorCodeRuntimeException.class)
+                    .hasFieldOrPropertyWithValue(
+                        "errorCode", ErrorCode.DOCS_API_SEARCH_ARRAY_PATH_INVALID);
+                return true;
+              });
+
+      verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonDocumentShredder, never()).shred(Mockito.<JsonNode>any(), anyList());
+      verify(writeService, never())
+          .updateDocument(any(), any(), any(), any(), anyList(), anyBoolean(), any());
+    }
+
+    @Test
+    public void popMissingNode() throws Exception {
+      ExecutionContext context = ExecutionContext.create(true);
+      String docId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      List<String> path = Collections.singletonList("path");
+      ExecuteBuiltInFunction function = new ExecuteBuiltInFunction("$pop", null);
+
+      ObjectNode documentNode = objectMapper.createObjectNode();
+      List<Row> rows = Collections.singletonList(row);
+      when(rawDocument.rows()).thenReturn(rows);
+      doReturn(documentNode)
+          .when(jsonConverter)
+          .convertToJsonDoc(any(), any(), anyBoolean(), anyBoolean());
+      when(searchService.getDocument(queryExecutor, namespace, collection, docId, path, context))
+          .thenReturn(Flowable.just(rawDocument));
+
+      Maybe<DocumentResponseWrapper<? extends JsonNode>> result =
+          reactiveDocumentService.executeBuiltInFunction(
+              documentDB, namespace, collection, docId, function, path, context);
+
+      result.test().await().assertComplete();
+
+      verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonDocumentShredder, never()).shred(Mockito.<JsonNode>any(), anyList());
+      verify(writeService, never())
+          .updateDocument(any(), any(), any(), any(), anyList(), anyBoolean(), any());
+    }
+
+    @Test
+    public void unknownFunction() throws Exception {
+      ExecutionContext context = ExecutionContext.create(true);
+      String docId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      List<String> path = Collections.singletonList("path");
+      ExecuteBuiltInFunction function = new ExecuteBuiltInFunction("$my-function", null);
+
+      Maybe<DocumentResponseWrapper<? extends JsonNode>> result =
+          reactiveDocumentService.executeBuiltInFunction(
+              documentDB, namespace, collection, docId, function, path, context);
+
+      result
+          .test()
+          .await()
+          .assertError(
+              e -> {
+                assertThat(e)
+                    .isInstanceOf(ErrorCodeRuntimeException.class)
+                    .hasFieldOrPropertyWithValue(
+                        "errorCode", ErrorCode.DOCS_API_INVALID_BUILTIN_FUNCTION);
+                return true;
+              });
+
+      verifyNoInteractions(writeService, searchService);
+    }
+  }
+
+  @Nested
+  class DeleteDocument {
+
+    @Test
+    public void happyPath() throws Exception {
+      ExecutionContext context = ExecutionContext.create(true);
+      String docId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+
+      when(writeService.deleteDocument(
+              dataStore, namespace, collection, docId, Collections.emptyList(), context))
+          .thenReturn(Single.just(ResultSet.empty()));
+
+      Single<Boolean> result =
+          reactiveDocumentService.deleteDocument(documentDB, namespace, collection, docId, context);
+
+      result.test().await().assertValue(success -> success).assertComplete();
+
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(writeService)
+          .deleteDocument(
+              dataStore, namespace, collection, docId, Collections.emptyList(), context);
+      verifyNoMoreInteractions(authService, writeService, searchService, jsonDocumentShredder);
+    }
+
+    @Test
+    public void happyPathSubDocument() throws Exception {
+      ExecutionContext context = ExecutionContext.create(true);
+      String docId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      List<String> subPath = Arrays.asList("transactions", "[0]");
+
+      when(writeService.deleteDocument(
+              dataStore,
+              namespace,
+              collection,
+              docId,
+              Arrays.asList("transactions", "[000000]"),
+              context))
+          .thenReturn(Single.just(ResultSet.empty()));
+
+      Single<Boolean> result =
+          reactiveDocumentService.deleteDocument(
+              documentDB, namespace, collection, docId, subPath, context);
+
+      result.test().await().assertValue(success -> success).assertComplete();
+
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(writeService)
+          .deleteDocument(
+              dataStore,
+              namespace,
+              collection,
+              docId,
+              Arrays.asList("transactions", "[000000]"),
+              context);
+      verifyNoMoreInteractions(authService, writeService, searchService, jsonDocumentShredder);
+    }
+
+    @Test
+    public void unauthorized() throws Exception {
+      ExecutionContext context = ExecutionContext.create(true);
+      String docId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+
+      doThrow(UnauthorizedException.class)
+          .when(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+
+      Single<Boolean> result =
+          reactiveDocumentService.deleteDocument(documentDB, namespace, collection, docId, context);
+
+      result
+          .test()
+          .await()
+          .assertError(
+              e -> {
+                assertThat(e).isInstanceOf(UnauthorizedException.class);
+                return true;
+              });
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verifyNoMoreInteractions(authService, writeService, searchService, jsonDocumentShredder);
     }
   }
 }

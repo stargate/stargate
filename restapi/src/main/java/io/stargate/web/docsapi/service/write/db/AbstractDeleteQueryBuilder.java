@@ -23,30 +23,40 @@ import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.BuiltQuery;
 import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.web.docsapi.service.query.DocsApiConstants;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-public class DeleteQueryBuilder {
+/** Shared base class for all document query builder. */
+public abstract class AbstractDeleteQueryBuilder {
 
-  /** Constructs the query builder for deleting all document rows for a single document. */
-  public DeleteQueryBuilder() {}
+  /** @return Consumer for altering the where conditions. */
+  protected abstract Consumer<QueryBuilder.QueryBuilder__40> whereConsumer();
 
   /**
-   * Builds the query for deleting all rows for a document.
+   * Builds the query for this query builder.
    *
    * @param queryBuilder Query builder
    * @param keyspace keyspace
    * @param table table
    * @return BuiltQuery
    */
-  public BuiltQuery<? extends BoundQuery> buildQuery(
+  public final BuiltQuery<? extends BoundQuery> buildQuery(
       Supplier<QueryBuilder> queryBuilder, String keyspace, String table) {
-    return queryBuilder
-        .get()
-        .delete()
-        .from(keyspace, table)
-        .timestamp()
-        .where(DocsApiConstants.KEY_COLUMN_NAME, Predicate.EQ)
-        .build();
+    QueryBuilder.QueryBuilder__40 where =
+        queryBuilder
+            .get()
+            .delete()
+            .from(keyspace, table)
+            .timestamp()
+            .where(DocsApiConstants.KEY_COLUMN_NAME, Predicate.EQ);
+
+    whereConsumer().accept(where);
+    return where.build();
+  }
+
+  /** @return Returns the order of binding for the document id and timestamp. */
+  protected Object[] getBindValues(String documentId, long timestamp) {
+    return new Object[] {timestamp, documentId};
   }
 
   /**
@@ -58,8 +68,9 @@ public class DeleteQueryBuilder {
    * @param <E> generics param
    * @return Bound query.
    */
-  public <E extends Query<? extends BoundQuery>> BoundQuery bind(
+  public final <E extends Query<? extends BoundQuery>> BoundQuery bind(
       E builtQuery, String documentId, long timestamp) {
-    return builtQuery.bind(timestamp, documentId);
+    Object[] values = getBindValues(documentId, timestamp);
+    return builtQuery.bind(values);
   }
 }

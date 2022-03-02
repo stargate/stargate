@@ -32,9 +32,11 @@ import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-class DeleteQueryBuilderTest extends AbstractDataStoreTest {
+class DeleteDocumentQueryBuilderTest extends AbstractDataStoreTest {
 
-  private static final DocsApiTestSchemaProvider SCHEMA_PROVIDER = new DocsApiTestSchemaProvider(0);
+  private static final int MAX_DEPTH = 4;
+  private static final DocsApiTestSchemaProvider SCHEMA_PROVIDER =
+      new DocsApiTestSchemaProvider(MAX_DEPTH);
   private static final String KEYSPACE_NAME = SCHEMA_PROVIDER.getKeyspace().name();
   private static final String COLLECTION_NAME = SCHEMA_PROVIDER.getTable().name();
 
@@ -48,7 +50,7 @@ class DeleteQueryBuilderTest extends AbstractDataStoreTest {
 
     @Test
     public void happyPath() {
-      DeleteQueryBuilder queryBuilder = new DeleteQueryBuilder();
+      DeleteDocumentQueryBuilder queryBuilder = new DeleteDocumentQueryBuilder();
 
       BuiltQuery<? extends BoundQuery> query =
           queryBuilder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
@@ -66,7 +68,7 @@ class DeleteQueryBuilderTest extends AbstractDataStoreTest {
     @Test
     public void happyPath() {
       DataStore datastore = datastore();
-      DeleteQueryBuilder queryBuilder = new DeleteQueryBuilder();
+      DeleteDocumentQueryBuilder queryBuilder = new DeleteDocumentQueryBuilder();
       BuiltQuery<? extends BoundQuery> query =
           queryBuilder.buildQuery(datastore::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 

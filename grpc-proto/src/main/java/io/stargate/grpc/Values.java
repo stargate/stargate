@@ -178,7 +178,9 @@ public class Values {
     int intValue = (int) value.getInt();
     if (intValue != value.getInt()) {
       throw new IllegalArgumentException(
-          String.format("Valid range for int is %d to %d", Integer.MIN_VALUE, Integer.MAX_VALUE));
+          String.format(
+              "Valid range for int is %d to %d, got %d",
+              Integer.MIN_VALUE, Integer.MAX_VALUE, value.getInt()));
     }
     return intValue;
   }
@@ -195,7 +197,9 @@ public class Values {
     short shortValue = (short) value.getInt();
     if (shortValue != value.getInt()) {
       throw new IllegalArgumentException(
-          String.format("Valid range for smallint is %d to %d", Short.MIN_VALUE, Short.MAX_VALUE));
+          String.format(
+              "Valid range for smallint is %d to %d, got %d",
+              Short.MIN_VALUE, Short.MAX_VALUE, value.getInt()));
     }
     return shortValue;
   }
@@ -206,7 +210,9 @@ public class Values {
     byte byteValue = (byte) value.getInt();
     if (byteValue != value.getInt()) {
       throw new IllegalArgumentException(
-          String.format("Valid range for tinyint is %d to %d", Byte.MIN_VALUE, Byte.MAX_VALUE));
+          String.format(
+              "Valid range for tinyint is %d to %d, got %d",
+              Byte.MIN_VALUE, Byte.MAX_VALUE, value.getInt()));
     }
     return byteValue;
   }
@@ -245,13 +251,15 @@ public class Values {
 
   public static UUID uuid(Value value) {
     checkInnerCase(value, InnerCase.UUID);
+    ByteString inBytes = value.getUuid().getValue();
 
-    if (value.getUuid().getValue().size() != 16) {
-      throw new IllegalArgumentException("Expected 16 bytes for a uuid values");
+    if (inBytes.size() != 16) {
+      throw new IllegalArgumentException(
+          "Expected 16 bytes for a uuid values, got " + inBytes.size());
     }
-    ByteBuffer bytes = ByteBuffer.allocate(16);
-    value.getUuid().getValue().copyTo(bytes);
-    return new UUID(bytes.getLong(0), bytes.getLong(8));
+    ByteBuffer outBytes = ByteBuffer.allocate(16);
+    inBytes.copyTo(outBytes);
+    return new UUID(outBytes.getLong(0), outBytes.getLong(8));
   }
 
   public static InetAddress inet(Value value) {
@@ -260,7 +268,7 @@ public class Values {
     int size = value.getInet().getValue().size();
     if (size != 4 && size != 16) {
       throw new IllegalArgumentException(
-          "Expected 4 bytes (IPv4) or 16 (IPv6) bytes for a inet values");
+          "Expected 4 bytes (IPv4) or 16 (IPv6) bytes for a inet values, got " + size);
     }
     try {
       return InetAddress.getByAddress(value.getInet().getValue().toByteArray());

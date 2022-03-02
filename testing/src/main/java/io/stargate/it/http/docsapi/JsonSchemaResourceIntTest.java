@@ -134,18 +134,75 @@ public class JsonSchemaResourceIntTest extends BaseIntegrationTest {
       assertThat(OBJECT_MAPPER.readTree(r).requiredAt("/schema"))
           .isEqualTo(OBJECT_MAPPER.readTree(body));
 
-      // test valid and invalid doc insert as well
+      // test valid doc insert, update and batch
       String validDoc = "{\"id\":1, \"name\":\"a\", \"price\":1}";
       RestUtils.post(authToken, getCollectionPath(keyspace) + "/" + collectionName, validDoc, 201);
+      RestUtils.put(
+          authToken, getCollectionPath(keyspace) + "/" + collectionName + "/1", validDoc, 200);
+      RestUtils.post(
+          authToken,
+          getCollectionPath(keyspace) + "/" + collectionName + "/batch",
+          String.format("[%s,%s]", validDoc, validDoc),
+          202);
 
+      // test invalid doc insert, update and batch
       String invalidDoc = "{\"id\":1, \"price\":1}";
       String insertResult =
           RestUtils.post(
               authToken, getCollectionPath(keyspace) + "/" + collectionName, invalidDoc, 400);
+      String updateResult =
+          RestUtils.put(
+              authToken,
+              getCollectionPath(keyspace) + "/" + collectionName + "/1",
+              invalidDoc,
+              400);
+      String batchResult =
+          RestUtils.post(
+              authToken,
+              getCollectionPath(keyspace) + "/" + collectionName + "/batch",
+              String.format("[%s,%s]", validDoc, invalidDoc),
+              400);
 
       assertThat(insertResult)
+          .isEqualTo(updateResult)
+          .isEqualTo(batchResult)
           .isEqualTo(
               "{\"description\":\"Invalid JSON: [object has missing required properties ([\\\"name\\\"])]\",\"code\":400}");
+    }
+
+    @Test
+    public void partialUpdatesNotAllowed(@TestKeyspace CqlIdentifier keyspace) throws IOException {
+      String collectionName = RandomStringUtils.randomAlphanumeric(10);
+      RestUtils.post(
+          authToken,
+          getCollectionPath(keyspace),
+          String.format("{\"name\":\"%s\"}", collectionName),
+          201);
+
+      URL schema = this.getClass().getClassLoader().getResource("schema.json");
+      String body = Resources.toString(schema, StandardCharsets.UTF_8);
+      RestUtils.put(authToken, getSchemaPath(keyspace, collectionName), body, 200);
+
+      String doc = "{\"id\":1, \"name\":\"a\", \"price\":1}";
+
+      // partial updates not allowed
+      String updateResult =
+          RestUtils.put(
+              authToken, getCollectionPath(keyspace) + "/" + collectionName + "/1/path", doc, 400);
+
+      String patchRootResult =
+          RestUtils.patch(
+              authToken, getCollectionPath(keyspace) + "/" + collectionName + "/1", doc, 400);
+
+      String patchPathResult =
+          RestUtils.patch(
+              authToken, getCollectionPath(keyspace) + "/" + collectionName + "/1/path", doc, 400);
+
+      assertThat(updateResult)
+          .isEqualTo(patchRootResult)
+          .isEqualTo(patchPathResult)
+          .isEqualTo(
+              "{\"description\":\"When a collection has a JSON schema, partial updates of documents are disallowed for performance reasons.\",\"code\":400}");
     }
 
     @Test

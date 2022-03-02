@@ -67,13 +67,13 @@ Docker: Start a Cassandra 3.11 instance:
 docker run --name local-cassandra \
 --net=host \
 -e CASSANDRA_CLUSTER_NAME=stargate \
--d cassandra:3.11.11
+-d cassandra:3.11.12
 ```
 
 Cassandra Cluster Manager: Start a Cassandra 3.11 instance ([link to ccm](https://github.com/riptano/ccm))
 
 ```sh
-ccm create stargate -v 3.11.11 -n 1 -s -b
+ccm create stargate -v 3.11.12 -n 1 -s -b
 ```
 
 ### Start commands
@@ -142,7 +142,7 @@ Connect to CQL as normal on port 9042:
 ```sh
 $ cqlsh 127.0.0.2 9042
 Connected to stargate at 127.0.0.2:9042.
-[cqlsh 5.0.1 | Cassandra 3.11.11 | CQL spec 3.4.4 | Native protocol v4]
+[cqlsh 5.0.1 | Cassandra 3.11.12 | CQL spec 3.4.4 | Native protocol v4]
 Use HELP for help.
 ```
 
@@ -221,13 +221,13 @@ have done a recent build, for example:
 Then you can run the individual test using the `-Dit.test` option, for example:
 
 ```sh
-mvn -pl testing -Pit-cassandra-3.11 verify -Dit.test=RestApiv2Test
+mvn -pl testing -Pit-cassandra-3.11 verify -Dit.test=RestApiv2SchemaTest
 ```
 
 You can even run a single case (method):
 
 ```sh
-mvn -pl testing -Pit-cassandra-3.11 verify -Dit.test=RestApiv2Test#testMixedCaseTable
+mvn -pl testing -Pit-cassandra-3.11 verify -Dit.test="RestApiv2SchemaTest#tableWithMixedCaseNames"
 ```
 
 ### Debugging Integration Tests
@@ -269,7 +269,7 @@ execution environment (`PATH`).
 When tests are started manually via an IDE or JUnit Console Launcher, you can specify the type and version
 of the storage backend using the following Java system properties:
 
-* `-Dccm.version=<version>` - the version of the storage cluster (e.g. `3.11.11`)
+* `-Dccm.version=<version>` - the version of the storage cluster (e.g. `3.11.12`)
 * `-Dccm.dse=<true|false>` - specifies whether the storage cluster is DSE or OSS Cassandra.
   If `false` this option can be omitted.
 
@@ -292,7 +292,7 @@ There are two custom JUnit 5 extensions used when running integration tests.
   When this extension is active, it will automatically inject test method parameters of type
   `StargateConnectionInfo` and `StargateEnvironmentInfo`.
 
-Integration tests that do not need Stargate nodes (e.g. `CassandraPersistenceIT`) can use only
+Integration tests that do not need Stargate nodes (e.g. `Cassandra40PersistenceIT`) can use only
 the `ExternalStorage` extension by having the `@ExtendWith(ExternalStorage.class)` annotation
 either directly on the test class or on one of its super-classes.
 

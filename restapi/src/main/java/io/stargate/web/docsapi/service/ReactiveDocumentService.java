@@ -20,6 +20,7 @@ package io.stargate.web.docsapi.service;
 import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.Literal;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
+import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -36,6 +37,7 @@ import io.stargate.auth.Scope;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.core.util.TimeSource;
+import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
 import io.stargate.web.docsapi.dao.DocumentDB;
 import io.stargate.web.docsapi.dao.Paginator;
@@ -43,6 +45,7 @@ import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
 import io.stargate.web.docsapi.models.BuiltInApiFunction;
 import io.stargate.web.docsapi.models.DocumentResponseWrapper;
+import io.stargate.web.docsapi.models.MultiDocsResponse;
 import io.stargate.web.docsapi.models.dto.ExecuteBuiltInFunction;
 import io.stargate.web.docsapi.rx.RxUtils;
 import io.stargate.web.docsapi.service.json.DeadLeafCollector;
@@ -54,18 +57,19 @@ import io.stargate.web.docsapi.service.query.FilterExpression;
 import io.stargate.web.docsapi.service.query.FilterPath;
 import io.stargate.web.docsapi.service.util.DocsApiUtils;
 import io.stargate.web.docsapi.service.write.DocumentWriteService;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
-import javax.ws.rs.core.PathSegment;
 import org.javatuples.Pair;
-import org.jsfr.json.JsonSurferJackson;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,7 +82,6 @@ public class ReactiveDocumentService {
   @Inject DocumentWriteService writeService;
   @Inject JsonConverter jsonConverter;
   @Inject JsonSchemaHandler jsonSchemaHandler;
-  @Inject DocsShredder docsShredder;
   @Inject JsonDocumentShredder jsonDocumentShredder;
   @Inject ObjectMapper objectMapper;
   @Inject TimeSource timeSource;
@@ -92,7 +95,6 @@ public class ReactiveDocumentService {
       DocumentWriteService writeService,
       JsonConverter jsonConverter,
       JsonSchemaHandler jsonSchemaHandler,
-      DocsShredder docsShredder,
       JsonDocumentShredder jsonDocumentShredder,
       ObjectMapper objectMapper,
       TimeSource timeSource,
@@ -102,7 +104,6 @@ public class ReactiveDocumentService {
     this.writeService = writeService;
     this.jsonConverter = jsonConverter;
     this.jsonSchemaHandler = jsonSchemaHandler;
-    this.docsShredder = docsShredder;
     this.jsonDocumentShredder = jsonDocumentShredder;
     this.objectMapper = objectMapper;
     this.timeSource = timeSource;
@@ -139,7 +140,7 @@ public class ReactiveDocumentService {
               JsonNode root = readPayload(payload);
 
               // check the schema
-              checkSchemaFullDocument(db, namespace, collection, root);
+              checkSchemaOnWrite(db, namespace, collection, root);
 
               // shred rows
               List<JsonShreddedRow> rows =
@@ -156,6 +157,134 @@ public class ReactiveDocumentService {
                   context);
             })
         .map(any -> new DocumentResponseWrapper<>(documentId, null, null, context.toProfile()));
+  }
+
+  /**
+   * Writes many documents in the given namespace and collection. If #idPath is not provided, IDs
+   * for each document will be randomly generated.
+   *
+   * @param db {@link DocumentDB} to write in
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param payload Documents represented as JSON array
+   * @param idPath Optional path to the id of the document in each doc.
+   * @param context Execution content
+   * @return Document response wrapper containing the generated ID.
+   */
+  public Single<MultiDocsResponse> writeDocuments(
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String payload,
+      String idPath,
+      ExecutionContext context) {
+
+    return Single.defer(
+            () -> {
+              // note that if idPath is present, this means we must use the update method
+              // because it could overwrite the existing doc
+              boolean useUpdate = null != idPath;
+
+              // authentication for writing before anything
+              // we need the DELETE scope if we are updating
+              authorizeWrite(db, namespace, collection, Scope.MODIFY);
+              if (useUpdate) {
+                authorizeWrite(db, namespace, collection, Scope.DELETE);
+              }
+
+              // read the root
+              JsonNode root = readPayload(payload);
+
+              // if not array, fail immediately
+              if (!root.isArray()) {
+                throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_WRITE_BATCH_NOT_ARRAY);
+              }
+
+              // keep order with LinkedHashMap
+              LinkedHashMap<String, List<JsonShreddedRow>> documentRowsMap = new LinkedHashMap<>();
+              Optional<JsonPointer> idPointer = DocsApiUtils.pathToJsonPointer(idPath);
+              for (JsonNode documentNode : root) {
+                // validate that the document fits the schema
+                checkSchemaOnWrite(db, namespace, collection, documentNode);
+
+                // get document id
+                String documentId = documentIdResolver().apply(idPointer, documentNode);
+
+                // shred rows
+                List<JsonShreddedRow> rows =
+                    jsonDocumentShredder.shred(documentNode, Collections.emptyList());
+
+                // add to map and make sure we did not have already the same ID
+                if (documentRowsMap.put(documentId, rows) != null) {
+                  String msg =
+                      String.format(
+                          "Found duplicate ID %s in more than one document when doing batched document write.",
+                          documentId);
+                  throw new ErrorCodeRuntimeException(
+                      ErrorCode.DOCS_API_WRITE_BATCH_DUPLICATE_ID, msg);
+                }
+              }
+
+              // generate the Single for each document write
+              // the pair contains document id and boolean that denotes if write was successful
+              List<Single<Pair<String, Boolean>>> writeAll =
+                  documentRowsMap.entrySet().stream()
+                      .map(
+                          entry -> {
+                            String documentId = entry.getKey();
+                            List<JsonShreddedRow> documentRows = entry.getValue();
+
+                            // use write when possible to avoid the extra delete query
+                            return Single.defer(
+                                    () -> {
+                                      if (useUpdate) {
+                                        return writeService.updateDocument(
+                                            db.getQueryExecutor().getDataStore(),
+                                            namespace,
+                                            collection,
+                                            documentId,
+                                            documentRows,
+                                            db.treatBooleansAsNumeric(),
+                                            context);
+                                      } else {
+                                        return writeService.writeDocument(
+                                            db.getQueryExecutor().getDataStore(),
+                                            namespace,
+                                            collection,
+                                            documentId,
+                                            documentRows,
+                                            db.treatBooleansAsNumeric(),
+                                            context);
+                                      }
+                                    })
+
+                                // if successful return pair with true
+                                .map(result -> Pair.with(documentId, true))
+
+                                // on any error mark this document id as failed
+                                .onErrorReturn(
+                                    t -> {
+                                      logger.error(
+                                          "Write failed for one of the documents included in the batch document write.",
+                                          t);
+                                      return Pair.with(documentId, false);
+                                    });
+                          })
+                      .collect(Collectors.toList());
+
+              // this runs all the writes in parallel
+              return Single.zip(
+                  writeAll,
+                  results -> {
+                    // return only the documents that were successfully written
+                    return Arrays.stream(results)
+                        .map(Pair.class::cast)
+                        .filter(p -> Boolean.TRUE.equals(p.getValue1()))
+                        .map(p -> (String) p.getValue0())
+                        .collect(Collectors.toList());
+                  });
+            })
+        .map(keys -> new MultiDocsResponse(keys, context.toProfile()));
   }
 
   /**
@@ -177,21 +306,48 @@ public class ReactiveDocumentService {
       String documentId,
       String payload,
       ExecutionContext context) {
+    List<String> subPath = Collections.emptyList();
+    return updateDocument(db, namespace, collection, documentId, subPath, payload, context);
+  }
+
+  /**
+   * Updates a document with given ID in the given namespace and collection at the specified
+   * sub-path. Any previously existing sub-document at the given path will be overwritten.
+   *
+   * @param db {@link DocumentDB} to write in
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to update
+   * @param subPath Sub-path of the document to update. If empty will update the whole doc.
+   * @param payload Document represented as JSON string
+   * @param context Execution content
+   * @return Document response wrapper containing the generated ID.
+   */
+  public Single<DocumentResponseWrapper<Void>> updateDocument(
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String documentId,
+      List<String> subPath,
+      String payload,
+      ExecutionContext context) {
 
     return Single.defer(
             () -> {
               // authentication for writing before anything
               authorizeWrite(db, namespace, collection, Scope.MODIFY, Scope.DELETE);
 
+              // pre-process to support array elements
+              List<String> subPathProcessed = processSubDocumentPath(subPath);
+
               // read the root
               JsonNode root = readPayload(payload);
 
               // check the schema
-              checkSchemaFullDocument(db, namespace, collection, root);
+              checkSchemaOnUpdate(db, namespace, collection, root, !subPath.isEmpty());
 
               // shred rows
-              List<JsonShreddedRow> rows =
-                  jsonDocumentShredder.shred(root, Collections.emptyList());
+              List<JsonShreddedRow> rows = jsonDocumentShredder.shred(root, subPathProcessed);
 
               // call write document
               return writeService.updateDocument(
@@ -199,11 +355,157 @@ public class ReactiveDocumentService {
                   namespace,
                   collection,
                   documentId,
+                  subPathProcessed,
                   rows,
                   db.treatBooleansAsNumeric(),
                   context);
             })
         .map(any -> new DocumentResponseWrapper<>(documentId, null, null, context.toProfile()));
+  }
+
+  /**
+   * Patches a document with given ID in the given namespace and collection. Any previously existing
+   * patched keys at the given path will be overwritten, as well as any existing array.
+   *
+   * @param db {@link DocumentDB} to write in
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to patch
+   * @param payload Document represented as JSON string
+   * @param context Execution content
+   * @return Document response wrapper containing the generated ID.
+   */
+  public Single<DocumentResponseWrapper<Void>> patchDocument(
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String documentId,
+      String payload,
+      ExecutionContext context) {
+    List<String> subPath = Collections.emptyList();
+    return patchDocument(db, namespace, collection, documentId, subPath, payload, context);
+  }
+
+  /**
+   * Patches a document with given ID in the given namespace and collection at the specified
+   * sub-path. Any previously existing patched keys at the given path will be overwritten, as well
+   * as any existing array.
+   *
+   * @param db {@link DocumentDB} to write in
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to patch
+   * @param subPath Sub-path of the document to patch. If empty will patch the whole doc.
+   * @param payload Document represented as JSON string
+   * @param context Execution content
+   * @return Document response wrapper containing the generated ID.
+   */
+  public Single<DocumentResponseWrapper<Void>> patchDocument(
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String documentId,
+      List<String> subPath,
+      String payload,
+      ExecutionContext context) {
+
+    return Single.defer(
+            () -> {
+              // authentication for writing before anything
+              authorizeWrite(db, namespace, collection, Scope.MODIFY, Scope.DELETE);
+
+              // pre-process to support array elements
+              List<String> subPathProcessed = processSubDocumentPath(subPath);
+
+              // read the root
+              JsonNode root = readPayload(payload);
+
+              // check the schema
+              checkSchemaOnPatch(db, namespace, collection);
+
+              // explicitly forbid arrays and empty objects
+              if (root.isArray()) {
+                throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED);
+              }
+              if (root.isObject() && root.isEmpty()) {
+                throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_PATCH_EMPTY_NOT_ACCEPTED);
+              }
+
+              // shred rows
+              List<JsonShreddedRow> rows = jsonDocumentShredder.shred(root, subPathProcessed);
+
+              // call write document
+              return writeService.patchDocument(
+                  db.getQueryExecutor().getDataStore(),
+                  namespace,
+                  collection,
+                  documentId,
+                  subPathProcessed,
+                  rows,
+                  db.treatBooleansAsNumeric(),
+                  context);
+            })
+        .map(any -> new DocumentResponseWrapper<>(documentId, null, null, context.toProfile()));
+  }
+
+  /**
+   * Deletes a document with given ID in the given namespace and collection.
+   *
+   * @param db {@link DocumentDB} to write in
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to delete
+   * @param context Execution content @@return Flag representing if the operation was success.
+   */
+  public Single<Boolean> deleteDocument(
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String documentId,
+      ExecutionContext context) {
+    List<String> subPath = Collections.emptyList();
+    return deleteDocument(db, namespace, collection, documentId, subPath, context);
+  }
+
+  /**
+   * Deletes a document with given ID in the given namespace and collection at the specified
+   * sub-path. Any previously existing sub-document at the given path will be removed.
+   *
+   * @param db {@link DocumentDB} to write in
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to delete
+   * @param subPath Sub-path of the document to delete. If empty will delete the whole doc.
+   * @param context Execution content
+   * @return Flag representing if the operation was success.
+   */
+  public Single<Boolean> deleteDocument(
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String documentId,
+      List<String> subPath,
+      ExecutionContext context) {
+
+    return Single.defer(
+            () -> {
+              // authentication for writing before anything
+              authorizeWrite(db, namespace, collection, Scope.DELETE);
+
+              // pre-process to support array elements
+              List<String> subPathProcessed = processSubDocumentPath(subPath);
+
+              // call write document
+              return writeService.deleteDocument(
+                  db.getQueryExecutor().getDataStore(),
+                  namespace,
+                  collection,
+                  documentId,
+                  subPathProcessed,
+                  context);
+            })
+        // TODO should we extract applied here and return that
+        .map(any -> true);
   }
 
   /**
@@ -552,7 +854,7 @@ public class ReactiveDocumentService {
    * from the end of an array, respectively.
    *
    * @param db @link DocumentDB} to execute the function in
-   * @param keyspace the keyspace to execute the function against
+   * @param namespace the keyspace to execute the function against
    * @param collection the collection to execute the function against
    * @param id the document ID to execute the function against
    * @param funcPayload information about the function to execute
@@ -562,29 +864,39 @@ public class ReactiveDocumentService {
    */
   public Maybe<DocumentResponseWrapper<? extends JsonNode>> executeBuiltInFunction(
       DocumentDB db,
-      String keyspace,
+      String namespace,
       String collection,
       String id,
       ExecuteBuiltInFunction funcPayload,
-      List<PathSegment> path,
+      List<String> path,
       ExecutionContext context) {
     return Maybe.defer(
         () -> {
-          List<String> pathString =
-              path.stream().map(seg -> seg.getPath()).collect(Collectors.toList());
-          Maybe<JsonNode> result = null;
+          // process path
+          List<String> processedPath = processSubDocumentPath(path);
+
+          // note that currently all built in-functions require auth for modify and delete
+          // please adapt if needed in future
           BuiltInApiFunction function = BuiltInApiFunction.fromName(funcPayload.getOperation());
-          if (function == BuiltInApiFunction.ARRAY_PUSH) {
-            result =
-                handlePush(
-                    db, keyspace, collection, id, funcPayload.getValue(), pathString, context);
-          } else if (function == BuiltInApiFunction.ARRAY_POP) {
-            result = handlePop(db, keyspace, collection, id, pathString, context);
+          authorizeWrite(db, namespace, collection, Scope.MODIFY, Scope.DELETE);
+
+          // based on type switch the result
+          Maybe<JsonNode> result;
+          switch (function) {
+            case ARRAY_PUSH:
+              JsonNode payload = objectMapper.valueToTree(funcPayload.getValue());
+              result = handlePush(db, namespace, collection, id, payload, processedPath, context);
+              break;
+
+            case ARRAY_POP:
+              result = handlePop(db, namespace, collection, id, processedPath, context);
+              break;
+
+            default:
+              throw new IllegalStateException(
+                  "Invalid operation found at execution time: " + function.name);
           }
-          if (result == null) {
-            throw new IllegalStateException(
-                "Invalid operation found at execution time: " + function.name);
-          }
+
           return result.map(
               json -> new DocumentResponseWrapper<>(id, null, json, context.toProfile()));
         });
@@ -661,13 +973,6 @@ public class ReactiveDocumentService {
    * what the array will look like after the append. Note that this doesn't write the array back to
    * the data store.
    *
-   * @param db
-   * @param namespace
-   * @param collection
-   * @param documentId
-   * @param processedPath
-   * @param value
-   * @param context
    * @return a JSON representation of the array after pushing the new value
    */
   private Maybe<JsonNode> getArrayAfterPush(
@@ -676,7 +981,7 @@ public class ReactiveDocumentService {
       String collection,
       String documentId,
       List<String> processedPath,
-      Object value,
+      JsonNode value,
       ExecutionContext context) {
     return getDocument(db, namespace, collection, documentId, processedPath, null, context)
         .map(
@@ -688,7 +993,7 @@ public class ReactiveDocumentService {
                     "The path provided to push to has no array");
               }
               ArrayNode arrayData = (ArrayNode) data;
-              arrayData.insertPOJO(arrayData.size(), value);
+              arrayData.insert(arrayData.size(), value);
               return arrayData;
             });
   }
@@ -698,12 +1003,6 @@ public class ReactiveDocumentService {
    * value, and returns both what the array will look like after the pop and the value that was
    * popped. Note that this doesn't write the array back to the data store.
    *
-   * @param db
-   * @param namespace
-   * @param collection
-   * @param documentId
-   * @param processedPath
-   * @param context
    * @return a Pair containing the JSON representation of the array after popping the value and the
    *     value itself
    */
@@ -732,38 +1031,24 @@ public class ReactiveDocumentService {
             });
   }
 
-  private void writeNewArrayState(
+  private Single<ResultSet> writeNewArrayState(
       DocumentDB db,
       String keyspace,
       String collection,
       String id,
       JsonNode jsonArray,
-      List<String> pathString,
-      ExecutionContext context)
-      throws UnauthorizedException {
-    List<String> processedPath = processSubDocumentPath(pathString);
-
-    // TODO use here the new shredder and move to the new writer once we implement the write with
-    // sub-path
-
-    List<Object[]> bindParams =
-        docsShredder.shredPayload(
-                JsonSurferJackson.INSTANCE,
-                processedPath,
-                id,
-                jsonArray.toString(),
-                false,
-                db.treatBooleansAsNumeric(),
-                true)
-            .left;
-    db.deleteThenInsertBatch(
+      List<String> processedPath,
+      ExecutionContext context) {
+    List<JsonShreddedRow> rows = jsonDocumentShredder.shred(jsonArray, processedPath);
+    return writeService.updateDocument(
+        db.getQueryExecutor().getDataStore(),
         keyspace,
         collection,
         id,
-        bindParams,
         processedPath,
-        timeSource.currentTimeMicros(),
-        context.nested("ASYNC INSERT"));
+        rows,
+        db.treatBooleansAsNumeric(),
+        context);
   }
 
   private Maybe<JsonNode> handlePush(
@@ -771,15 +1056,14 @@ public class ReactiveDocumentService {
       String keyspace,
       String collection,
       String id,
-      Object valueToPush,
+      JsonNode valueToPush,
       List<String> pathString,
       ExecutionContext context) {
     return getArrayAfterPush(db, keyspace, collection, id, pathString, valueToPush, context)
-        .map(
-            jsonArray -> {
-              writeNewArrayState(db, keyspace, collection, id, jsonArray, pathString, context);
-              return jsonArray;
-            });
+        .flatMapSingle(
+            jsonArray ->
+                writeNewArrayState(db, keyspace, collection, id, jsonArray, pathString, context)
+                    .map(any -> jsonArray));
   }
 
   private Maybe<JsonNode> handlePop(
@@ -790,12 +1074,17 @@ public class ReactiveDocumentService {
       List<String> pathString,
       ExecutionContext context) {
     return getArrayAndValueAfterPop(db, keyspace, collection, id, pathString, context)
-        .map(
-            arrayAndValue -> {
-              writeNewArrayState(
-                  db, keyspace, collection, id, arrayAndValue.getValue0(), pathString, context);
-              return arrayAndValue.getValue1();
-            });
+        .flatMapSingle(
+            arrayAndValue ->
+                writeNewArrayState(
+                        db,
+                        keyspace,
+                        collection,
+                        id,
+                        arrayAndValue.getValue0(),
+                        pathString,
+                        context)
+                    .map(any -> arrayAndValue.getValue1()));
   }
 
   /////////////////////
@@ -875,22 +1164,67 @@ public class ReactiveDocumentService {
   /// Write helpers ///
   /////////////////////
 
+  // function that resolves a document id, based on the JsonPointer
+  // returns random ID if pointer is not provided
+  private BiFunction<Optional<JsonPointer>, JsonNode, String> documentIdResolver() {
+    return (idPointer, jsonNode) ->
+        idPointer
+            .map(
+                p -> {
+                  JsonNode node = jsonNode.at(p);
+                  if (!node.isTextual()) {
+                    String nodeDes = node.isMissingNode() ? "missing node" : node.toString();
+                    String format =
+                        String.format(
+                            "JSON document %s requires a String value at the path %s in order to resolve document ID, found %s. Batch write failed.",
+                            jsonNode, p, nodeDes);
+                    throw new ErrorCodeRuntimeException(
+                        ErrorCode.DOCS_API_WRITE_BATCH_INVALID_ID_PATH, format);
+                  }
+                  return node.textValue();
+                })
+            .orElseGet(() -> UUID.randomUUID().toString());
+  }
+
   // checks that node is in alignment with schema if exists
-  private void checkSchemaFullDocument(
+  private void checkSchemaOnWrite(
       DocumentDB db, String namespace, String collection, JsonNode root) {
     JsonNode schema = jsonSchemaHandler.getCachedJsonSchema(db, namespace, collection);
-    if (null != schema) {
-      try {
-        jsonSchemaHandler.validate(schema, root);
-      } catch (ProcessingException e) {
-        // TODO validate unchecked better?
-        throw new RuntimeException(e);
+    if (schema != null) {
+      validateSchema(schema, root);
+    }
+  }
+
+  // update is not allowed if schema exists and targets sub document
+  public void checkSchemaOnUpdate(
+      DocumentDB db, String namespace, String collection, JsonNode root, boolean subDocument) {
+    JsonNode schema = jsonSchemaHandler.getCachedJsonSchema(db, namespace, collection);
+    if (schema != null) {
+      if (subDocument) {
+        throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_JSON_SCHEMA_INVALID_PARTIAL_UPDATE);
       }
+      validateSchema(schema, root);
+    }
+  }
+
+  // patch is not allowed if schema exists
+  public void checkSchemaOnPatch(DocumentDB db, String namespace, String collection) {
+    JsonNode schema = jsonSchemaHandler.getCachedJsonSchema(db, namespace, collection);
+    if (schema != null) {
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_JSON_SCHEMA_INVALID_PARTIAL_UPDATE);
+    }
+  }
+
+  private void validateSchema(JsonNode schema, JsonNode root) {
+    try {
+      jsonSchemaHandler.validate(schema, root);
+    } catch (ProcessingException e) {
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_JSON_SCHEMA_PROCESSING_FAILED, e);
     }
   }
 
   // reads JSON payload
-  private JsonNode readPayload(String payload) throws JsonProcessingException {
+  private JsonNode readPayload(String payload) {
     try {
       return objectMapper.readTree(payload);
     } catch (JsonProcessingException e) {

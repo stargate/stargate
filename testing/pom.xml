@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.47-SNAPSHOT</version>
+    <version>1.0.50-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.it</groupId>
   <artifactId>testing</artifactId>
@@ -196,7 +196,12 @@
     <dependency>
       <groupId>org.testcontainers</groupId>
       <artifactId>testcontainers</artifactId>
-      <version>1.15.2</version>
+      <version>1.16.2</version>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>1.16.2</version>
     </dependency>
     <dependency>
       <groupId>com.jayway.jsonpath</groupId>
@@ -399,7 +404,7 @@
                 </goals>
                 <configuration>
                   <systemPropertyVariables>
-                    <ccm.version>4.0.1</ccm.version>
+                    <ccm.version>4.0.3</ccm.version>
                     <stargate.test.nodes>1</stargate.test.nodes>
                   </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>
@@ -431,7 +436,7 @@
                 <configuration>
                   <systemPropertyVariables>
                     <ccm.dse>true</ccm.dse>
-                    <ccm.version>6.8.16</ccm.version>
+                    <ccm.version>6.8.20</ccm.version>
                     <stargate.test.nodes>1</stargate.test.nodes>
                   </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>

@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
+import com.google.protobuf.BytesValue;
 import com.google.protobuf.Int32Value;
 import com.google.protobuf.InvalidProtocolBufferException;
 import io.grpc.StatusRuntimeException;
@@ -31,9 +32,11 @@ import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.ResultSet;
 import io.stargate.proto.QueryOuterClass.SchemaChange;
+import io.stargate.proto.QueryOuterClass.TypeSpec;
 import io.stargate.proto.StargateGrpc.StargateBlockingStub;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -42,12 +45,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @CqlSessionSpec(
     initQueries = {
       "CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k, v))",
+      "CREATE TABLE IF NOT EXISTS test_uuid (id uuid, value int, PRIMARY KEY(id, value))",
+      "CREATE TYPE IF NOT EXISTS address(street text, phone_numbers frozen<map<text,text>>)",
+      "CREATE TABLE IF NOT EXISTS user(id int PRIMARY KEY, name text, address address)",
     })
 public class ExecuteQueryTest extends GrpcIntegrationTest {
 
   @AfterEach
   public void cleanup(CqlSession session) {
     session.execute("TRUNCATE TABLE test");
+    session.execute("TRUNCATE TABLE test_uuid");
   }
 
   @Test
@@ -185,6 +192,59 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
   }
 
   @Test
+  public void simpleQueryWithPagingUuidKey(@TestKeyspace CqlIdentifier keyspace) {
+    StargateBlockingStub stub = stubWithCallCredentials();
+    final UUID uuid = UUID.randomUUID();
+    final String uuidStr = uuid.toString();
+
+    for (int i = 0; i < 5; i++) {
+      stub.executeQuery(
+          cqlQuery(
+              String.format("INSERT INTO test_uuid (id, value) VALUES (%s, %d)", uuidStr, i),
+              queryParameters(keyspace)));
+    }
+
+    Response response =
+        stub.executeQuery(
+            cqlQuery(
+                "select id,value from test_uuid",
+                queryParameters(keyspace)
+                    .setPageSize(Int32Value.newBuilder().setValue(2).build())));
+
+    assertThat(response.hasResultSet()).isTrue();
+    ResultSet rs = response.getResultSet();
+    assertThat(rs.getRowsCount()).isEqualTo(2);
+    BytesValue pagingState = rs.getPagingState();
+    assertThat(pagingState).isNotNull();
+
+    assertThat(rs.getRows(0)).isEqualTo(rowOf(Values.of(uuid), Values.of(Integer.valueOf(0))));
+    assertThat(rs.getRows(1)).isEqualTo(rowOf(Values.of(uuid), Values.of(Integer.valueOf(1))));
+
+    // And then actual paging:
+    response =
+        stub.executeQuery(
+            cqlQuery(
+                "select id,value from test_uuid",
+                queryParameters(keyspace)
+                    .setPageSize(Int32Value.newBuilder().setValue(4).build())
+                    .setPagingState(pagingState)));
+    assertThat(response.hasResultSet()).isTrue();
+    rs = response.getResultSet();
+    assertThat(rs.getRowsCount()).isEqualTo(3);
+    assertThat(rs.getRows(0)).isEqualTo(rowOf(Values.of(uuid), Values.of(Integer.valueOf(2))));
+    assertThat(rs.getRows(1)).isEqualTo(rowOf(Values.of(uuid), Values.of(Integer.valueOf(3))));
+    assertThat(rs.getRows(2)).isEqualTo(rowOf(Values.of(uuid), Values.of(Integer.valueOf(4))));
+
+    // but should now get empty paging state
+    pagingState = rs.getPagingState();
+    assertThat(pagingState).isNotNull();
+    assertThat(pagingState.getValue().size()).isEqualTo(0);
+
+    // which means we should NOT try to ask for more rows
+    // (would give "io.grpc.StatusRuntimeException: INTERNAL: Invalid value for the paging state")
+  }
+
+  @Test
   public void useKeyspace(@TestKeyspace CqlIdentifier keyspace) {
     StargateBlockingStub stub = stubWithCallCredentials();
     assertThatThrownBy(
@@ -244,5 +304,26 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
         stub.executeQuery(
             cqlQuery("INSERT INTO drop_table_test(pk) VALUES('1')", queryParameters(keyspace)));
     assertThat(response).isNotNull();
+  }
+
+  @Test
+  public void resultSetContainsUdt(@TestKeyspace CqlIdentifier keyspace) {
+    StargateBlockingStub stub = stubWithCallCredentials();
+
+    // Note: the table is empty but we're only interested in the metadata
+    Response response =
+        stub.executeQuery(
+            cqlQuery("SELECT address FROM user WHERE id=1", queryParameters(keyspace)));
+
+    TypeSpec addressType = response.getResultSet().getColumns(0).getType();
+    assertThat(addressType.getSpecCase()).isEqualTo(TypeSpec.SpecCase.UDT);
+    TypeSpec phoneNumbersType = addressType.getUdt().getFieldsMap().get("phone_numbers");
+    assertThat(phoneNumbersType.getSpecCase()).isEqualTo(TypeSpec.SpecCase.MAP);
+    assertThat(phoneNumbersType.getMap())
+        .satisfies(
+            map -> {
+              assertThat(map.getKey().getBasic()).isEqualTo(TypeSpec.Basic.VARCHAR);
+              assertThat(map.getValue().getBasic()).isEqualTo(TypeSpec.Basic.VARCHAR);
+            });
   }
 }

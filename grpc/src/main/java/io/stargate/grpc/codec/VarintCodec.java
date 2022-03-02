@@ -36,11 +36,12 @@ public class VarintCodec implements ValueCodec {
   @Override
   public Value decode(@NonNull ByteBuffer bytes, @NonNull ColumnType type) {
     if (bytes.remaining() == 0) {
-      return null;
+      throw new IllegalArgumentException(
+          "Invalid varint value, expecting non-empty Bytes but got 0");
     }
 
     return Value.newBuilder()
-        .setVarint(Varint.newBuilder().setValue(ByteString.copyFrom(bytes)).build())
+        .setVarint(Varint.newBuilder().setValue(ByteString.copyFrom(bytes.duplicate())).build())
         .build();
   }
 }

@@ -13,3 +13,4 @@ Fixes #<issue number>
 - [ ] Changes manually tested
 - [ ] Automated Tests added/updated
 - [ ] Documentation added/updated
+- [ ] CLA Signed: [DataStax CLA](https://cla.datastax.com/)
