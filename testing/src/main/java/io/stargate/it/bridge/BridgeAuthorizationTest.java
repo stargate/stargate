@@ -22,13 +22,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
     initQueries = {
       "CREATE ROLE IF NOT EXISTS 'read_only_user' WITH PASSWORD = 'read_only_user' AND LOGIN = TRUE",
       "CREATE ROLE IF NOT EXISTS 'not_even_reads_user' WITH PASSWORD = 'tiger' AND LOGIN = TRUE",
-      "CREATE KEYSPACE IF NOT EXISTS grpc_table_token_test WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':'1'}",
-      "CREATE TABLE IF NOT EXISTS grpc_table_token_test.tbl_test (key text PRIMARY KEY, value text)",
-      "INSERT INTO grpc_table_token_test.tbl_test (key, value) VALUES ('a', 'alpha')",
-      "GRANT SELECT ON KEYSPACE grpc_table_token_test TO read_only_user",
+      "CREATE KEYSPACE IF NOT EXISTS bridge_table_token_test WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':'1'}",
+      "CREATE TABLE IF NOT EXISTS bridge_table_token_test.tbl_test (key text PRIMARY KEY, value text)",
+      "INSERT INTO bridge_table_token_test.tbl_test (key, value) VALUES ('a', 'alpha')",
+      "GRANT SELECT ON KEYSPACE bridge_table_token_test TO read_only_user",
     })
 public class BridgeAuthorizationTest extends BridgeIntegrationTest {
-  private final String keyspaceName = "grpc_table_token_test";
+  private final String keyspaceName = "bridge_table_token_test";
   private final String tableName = "tbl_test";
   private final String readOnlyUsername = "read_only_user";
   private final String readOnlyPassword = "read_only_user";
@@ -96,7 +96,7 @@ public class BridgeAuthorizationTest extends BridgeIntegrationTest {
   public void createTableCheckAuthorization() throws IOException {
     final String createTableCQL =
         String.format(
-            "CREATE TABLE grpc_table_token_test.%s (key text PRIMARY KEY, value text)",
+            "CREATE TABLE bridge_table_token_test.%s (key text PRIMARY KEY, value text)",
             "test_table_to_create");
 
     // First: fail if not authenticated (null token)
