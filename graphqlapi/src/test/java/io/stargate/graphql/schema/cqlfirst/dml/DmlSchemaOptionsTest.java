@@ -1,26 +1,26 @@
 package io.stargate.graphql.schema.cqlfirst.dml;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import graphql.schema.GraphQLEnumValueDefinition;
 import java.util.List;
 import java.util.stream.Stream;
 import org.assertj.core.util.Lists;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public class DmlSchemaOptionsTest {
+
   @ParameterizedTest
   @MethodSource
   public void testConsistencyLevelParsing(String csvLevels, List<String> expectedValues) {
     List<GraphQLEnumValueDefinition> values =
         DmlSchemaBuilder.getConsistencyEnum(csvLevels, "Name").getValues();
-    // Are all values expected?
-    for (GraphQLEnumValueDefinition v : values) {
-      Assertions.assertTrue(expectedValues.contains(v.getName()));
-    }
-    // Are ALL expected values there, no more no less.
-    Assertions.assertEquals(values.size(), expectedValues.size());
+
+    assertThat(values)
+        .extracting(GraphQLEnumValueDefinition::getName)
+        .hasSameElementsAs(expectedValues);
   }
 
   static Stream<Arguments> testConsistencyLevelParsing() {
