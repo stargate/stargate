@@ -53,7 +53,7 @@ public class BridgeAuthorizationTest extends BridgeIntegrationTest {
 
   @Test
   public void createKeyspaceCheckAuthorization() throws IOException {
-    final String keyspace = "ks_grpcAuthnzTest_CreateKS";
+    final String keyspace = "ks_bridgeAuthnzTest_CreateKS";
     final String createKeyspaceCQL =
         String.format(
             "CREATE KEYSPACE %s WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':'1'}",
