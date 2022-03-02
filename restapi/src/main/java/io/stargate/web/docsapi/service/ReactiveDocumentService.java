@@ -122,6 +122,14 @@ public class ReactiveDocumentService {
     if (ttlRaw == null) {
       return null;
     }
+    if (ttlRaw.equalsIgnoreCase("auto")) {
+      if (!subPath.isEmpty()) {
+        authorizeRead(db, namespace, collection);
+        return db.getTtlForDocument(namespace, collection, documentId);
+      } else {
+        throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_INVALID_TTL_AUTO);
+      }
+    }
     try {
       Integer ttlValue = Integer.parseInt(ttlRaw);
       if (subPath.isEmpty()) {
@@ -130,16 +138,8 @@ public class ReactiveDocumentService {
         throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_INVALID_TTL_NUMBER);
       }
     } catch (NumberFormatException e) {
-      if (!subPath.isEmpty()) {
-        if (!ttlRaw.equalsIgnoreCase("auto")) {
-          throw new ErrorCodeRuntimeException(
-              ErrorCode.DOCS_API_INVALID_TTL_AUTO, "TTL value must be an integer, or 'auto'");
-        }
-        authorizeRead(db, namespace, collection);
-        return db.getTtlForDocument(namespace, collection, documentId);
-      } else {
-        throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_INVALID_TTL_AUTO);
-      }
+      throw new ErrorCodeRuntimeException(
+          ErrorCode.DOCS_API_INVALID_TTL_AUTO, "TTL must be either a number or 'auto'");
     }
   }
 
