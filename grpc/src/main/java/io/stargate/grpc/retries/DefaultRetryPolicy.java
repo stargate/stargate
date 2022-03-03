@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
  * <p>This is a very conservative implementation: it triggers a maximum of one retry per request,
  * and only in cases that have a high chance of success (see the method javadocs for detailed
  * explanations of each case). The exception is the {@link
- * RetryPolicy#onUnprepared(PreparedQueryNotFoundException, int)}, which allows limitless retries.
+ * RetryPolicy#onUnprepared(PreparedQueryNotFoundException, int)}, which allows 2 retries.
  */
 @ThreadSafe
 public class DefaultRetryPolicy implements RetryPolicy {
@@ -115,14 +115,16 @@ public class DefaultRetryPolicy implements RetryPolicy {
   /**
    * {@inheritDoc}
    *
-   * <p>No limits on the retries when UNPREPARED occurs.
+   * <p>Two retries max when UNPREPARED occurs.
    */
   @Override
   public RetryDecision onUnprepared(PreparedQueryNotFoundException pe, int retryCount) {
-    if (LOG.isTraceEnabled()) {
+    RetryDecision decision = retryCount < 2 ? RetryDecision.RETRY : RetryDecision.RETHROW;
+
+    if (decision == RetryDecision.RETRY && LOG.isTraceEnabled()) {
       LOG.trace(RETRYING_ON_UNPREPARED, pe.id.toString(), retryCount);
     }
 
-    return RetryDecision.RETRY;
+    return decision;
   }
 }

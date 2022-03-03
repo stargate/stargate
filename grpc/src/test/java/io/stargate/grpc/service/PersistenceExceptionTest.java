@@ -259,13 +259,16 @@ public class PersistenceExceptionTest extends BaseGrpcServiceTest {
   }
 
   @Test
-  public void unprepared() {
-    // no limits for retries, so test one retry and one success after that does not end up in
-    // exception
+  public void unpreparedRetrySuccess() {
+    // 2 retries, so test both retry and one success after
     when(persistence.newConnection()).thenReturn(connection);
     when(connection.prepare(anyString(), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(Utils.makePrepared()));
     when(connection.execute(any(Statement.class), any(Parameters.class), anyLong()))
+        .then(
+            invocation -> {
+              throw new PreparedQueryNotFoundException(UNPREPARED_ID);
+            })
         .then(
             invocation -> {
               throw new PreparedQueryNotFoundException(UNPREPARED_ID);
@@ -305,6 +308,10 @@ public class PersistenceExceptionTest extends BaseGrpcServiceTest {
             new ProtocolException("Some protocol problem"),
             Status.INTERNAL,
             "Some protocol problem"),
+        Arguments.of(
+            new PreparedQueryNotFoundException(UNPREPARED_ID),
+            Status.INTERNAL,
+            String.format("Prepared query with ID %s not found", UNPREPARED_ID)),
         Arguments.of(
             new InvalidRequestException("Some request problem"),
             Status.INVALID_ARGUMENT,
