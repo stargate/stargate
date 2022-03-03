@@ -12,6 +12,7 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.stargate.db.Parameters;
+import io.stargate.db.Result;
 import io.stargate.db.Statement;
 import io.stargate.grpc.Utils;
 import io.stargate.proto.QueryOuterClass;
@@ -40,6 +41,7 @@ import org.apache.cassandra.stargate.exceptions.InvalidRequestException;
 import org.apache.cassandra.stargate.exceptions.IsBootstrappingException;
 import org.apache.cassandra.stargate.exceptions.OverloadedException;
 import org.apache.cassandra.stargate.exceptions.PersistenceException;
+import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 import org.apache.cassandra.stargate.exceptions.ReadFailureException;
 import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
 import org.apache.cassandra.stargate.exceptions.RequestFailureReason;
@@ -52,12 +54,15 @@ import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
 import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ServerError;
+import org.apache.cassandra.stargate.utils.MD5Digest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 public class PersistenceExceptionTest extends BaseGrpcServiceTest {
+
+  private static final MD5Digest UNPREPARED_ID = MD5Digest.compute(new byte[] {0});
 
   @Test
   public void unavailable() {
@@ -253,6 +258,34 @@ public class PersistenceExceptionTest extends BaseGrpcServiceTest {
             "CAS operation result is unknown - proposal accepted by 2 but not a quorum.");
   }
 
+  @Test
+  public void unpreparedRetrySuccess() {
+    // 2 retries, so test both retry and one success after
+    when(persistence.newConnection()).thenReturn(connection);
+    when(connection.prepare(anyString(), any(Parameters.class)))
+        .thenReturn(CompletableFuture.completedFuture(Utils.makePrepared()));
+    when(connection.execute(any(Statement.class), any(Parameters.class), anyLong()))
+        .then(
+            invocation -> {
+              throw new PreparedQueryNotFoundException(UNPREPARED_ID);
+            })
+        .then(
+            invocation -> {
+              throw new PreparedQueryNotFoundException(UNPREPARED_ID);
+            })
+        .then(
+            invocation -> {
+              Result result = new Result.Void();
+              return CompletableFuture.completedFuture(result);
+            });
+    startServer(persistence);
+
+    StargateBlockingStub stub = makeBlockingStub();
+    QueryOuterClass.Response response = executeQuery(stub, "DOESN'T MATTER");
+
+    assertThat(response).isNotNull();
+  }
+
   @ParameterizedTest
   @MethodSource("persistenceExceptionValues")
   public void persistenceException(
@@ -275,6 +308,10 @@ public class PersistenceExceptionTest extends BaseGrpcServiceTest {
             new ProtocolException("Some protocol problem"),
             Status.INTERNAL,
             "Some protocol problem"),
+        Arguments.of(
+            new PreparedQueryNotFoundException(UNPREPARED_ID),
+            Status.INTERNAL,
+            String.format("Prepared query with ID %s not found", UNPREPARED_ID)),
         Arguments.of(
             new InvalidRequestException("Some request problem"),
             Status.INVALID_ARGUMENT,

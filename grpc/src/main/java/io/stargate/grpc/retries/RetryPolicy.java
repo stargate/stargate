@@ -16,6 +16,7 @@
 package io.stargate.grpc.retries;
 
 import edu.umd.cs.findbugs.annotations.NonNull;
+import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
 import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
 
@@ -50,4 +51,15 @@ public interface RetryPolicy {
    */
   RetryDecision onWriteTimeout(
       @NonNull WriteTimeoutException writeTimeoutException, int retryCount);
+
+  /**
+   * Whether to retry when the server replied with a {@code UNPREPARED} error; this indicates a
+   * <b>server-side</b> prepared query cache evicted a prepared statement during a query.
+   *
+   * @param preparedQueryNotFoundException the exception used to determine if the query should be
+   *     retried.
+   * @param retryCount how many times the retry policy has been invoked already for this request
+   */
+  RetryDecision onUnprepared(
+      PreparedQueryNotFoundException preparedQueryNotFoundException, int retryCount);
 }
