@@ -52,6 +52,14 @@
       <groupId>io.dropwizard</groupId>
       <artifactId>dropwizard-core</artifactId>
     </dependency>
+    <!-- Since restapi serializes Java 8 date/time values, we must use
+         JSR-310 module. Version provided by parent.
+      -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
+
     <dependency>
       <groupId>com.github.java-json-tools</groupId>
       <artifactId>json-schema-validator</artifactId>

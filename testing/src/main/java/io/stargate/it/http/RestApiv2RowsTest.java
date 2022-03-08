@@ -597,6 +597,7 @@ public class RestApiv2RowsTest extends BaseIntegrationTest {
     assertThat(data.size()).isEqualTo(1);
     assertThat(data.get(0).get("id")).isEqualTo("1");
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
+    assertThat(data.get(0).get("created")).isEqualTo(timestamp);
   }
 
   @Test
