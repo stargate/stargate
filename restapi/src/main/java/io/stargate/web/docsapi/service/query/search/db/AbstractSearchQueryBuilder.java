@@ -22,8 +22,11 @@ import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.BuiltQuery;
 import io.stargate.db.query.builder.QueryBuilder;
+import io.stargate.db.query.builder.QueryBuilderImpl;
 import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 
@@ -40,27 +43,26 @@ public abstract class AbstractSearchQueryBuilder {
   protected abstract boolean allowFiltering();
 
   /**
-   * Builds the query without limit.
+   * Builds the query without limit (no functions).
    *
    * @param queryBuilder Method for query builder.
    * @param keyspace keyspace
    * @param table table
-   * @param columns columns to query, must now be empty
+   * @param columns columns to query, must not be empty
    * @return Completable future that returns prepared query
    */
   public BuiltQuery<? extends BoundQuery> buildQuery(
       Supplier<QueryBuilder> queryBuilder, String keyspace, String table, String... columns) {
-    return buildQuery(queryBuilder, keyspace, table, null, columns);
+    return buildQuery(queryBuilder, keyspace, table, null, Collections.emptyList(), columns);
   }
 
   /**
-   * Builds the query with limit.
+   * Builds the query with limit (no functions).
    *
    * @param queryBuilder Method for query builder.
    * @param keyspace keyspace
    * @param table table
-   * @param limit limit
-   * @param columns columns to query, must now be empty
+   * @param columns columns to query, must not be empty
    * @return Completable future that returns prepared query
    */
   public BuiltQuery<? extends BoundQuery> buildQuery(
@@ -69,14 +71,47 @@ public abstract class AbstractSearchQueryBuilder {
       String table,
       Integer limit,
       String... columns) {
-    QueryBuilder.QueryBuilder__21 builder =
-        queryBuilder
-            .get()
-            .select()
-            .column(columns)
-            .writeTimeColumn(DocsApiConstants.LEAF_COLUMN_NAME)
-            .from(keyspace, table)
-            .where(getPredicates());
+    return buildQuery(queryBuilder, keyspace, table, limit, Collections.emptyList(), columns);
+  }
+
+  protected BuiltQuery<? extends BoundQuery> buildQuery(
+      Supplier<QueryBuilder> queryBuilder,
+      String keyspace,
+      String table,
+      List<QueryBuilderImpl.FunctionCall> functions) {
+    return buildQuery(queryBuilder, keyspace, table, null, functions);
+  }
+
+  private BuiltQuery<? extends BoundQuery> buildQuery(
+      Supplier<QueryBuilder> queryBuilder,
+      String keyspace,
+      String table,
+      Integer limit,
+      List<QueryBuilderImpl.FunctionCall> functions,
+      String... columns) {
+    QueryBuilder.QueryBuilder__21 builder = null;
+    if (columns.length > 0) {
+      QueryBuilder.QueryBuilder__20 columnsBuilder = queryBuilder.get().select().column(columns);
+      if (!functions.isEmpty()) {
+        builder =
+            columnsBuilder
+                .function(functions)
+                .writeTimeColumn(DocsApiConstants.LEAF_COLUMN_NAME)
+                .from(keyspace, table)
+                .where(getPredicates());
+      }
+    } else if (!functions.isEmpty()) {
+      builder =
+          queryBuilder
+              .get()
+              .select()
+              .function(functions)
+              .writeTimeColumn(DocsApiConstants.LEAF_COLUMN_NAME)
+              .from(keyspace, table)
+              .where(getPredicates());
+    } else {
+      throw new IllegalArgumentException("Either columns or functions must be supplied!");
+    }
 
     // then all bind able predicates
     for (Map.Entry<String, Predicate> entry : getBindPredicates().entrySet()) {

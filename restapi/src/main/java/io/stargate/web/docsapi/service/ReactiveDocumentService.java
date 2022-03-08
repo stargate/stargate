@@ -51,6 +51,7 @@ import io.stargate.web.docsapi.rx.RxUtils;
 import io.stargate.web.docsapi.service.json.DeadLeafCollector;
 import io.stargate.web.docsapi.service.json.DeadLeafCollectorImpl;
 import io.stargate.web.docsapi.service.json.ImmutableDeadLeafCollector;
+import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.query.DocumentSearchService;
 import io.stargate.web.docsapi.service.query.ExpressionParser;
 import io.stargate.web.docsapi.service.query.FilterExpression;
@@ -63,6 +64,7 @@ import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -111,15 +113,30 @@ public class ReactiveDocumentService {
   }
 
   private Single<Integer> determineTtl(
-      Boolean ttlAuto, DocumentDB db, String namespace, String collection, String documentId) {
-    return Single.fromCallable(
-        () -> {
-          if (ttlAuto == null || !ttlAuto) {
-            return 0;
-          }
-          authorizeRead(db, namespace, collection);
-          return db.getTtlForDocument(namespace, collection, documentId);
-        });
+      Boolean ttlAuto, DocumentDB db, String namespace, String collection, String documentId)
+      throws UnauthorizedException {
+    if (ttlAuto == null || !ttlAuto) {
+      return null;
+    }
+    authorizeRead(db, namespace, collection);
+    return searchService
+        .getDocumentTtlInfo(db.getQueryExecutor(), namespace, collection, documentId)
+        .singleElement()
+        .map(
+            document -> {
+              Integer ttl =
+                  document.rows().stream()
+                      .map(
+                          row ->
+                              row.getInt(
+                                  String.format("ttl(%s)", DocsApiConstants.LEAF_COLUMN_NAME)))
+                      .filter(Objects::nonNull)
+                      .mapToInt(Integer::valueOf)
+                      .max()
+                      .getAsInt();
+              return ttl;
+            })
+        .defaultIfEmpty(0);
   }
 
   /**
@@ -351,7 +368,8 @@ public class ReactiveDocumentService {
       List<String> subPath,
       String payload,
       Boolean ttlAuto,
-      ExecutionContext context) {
+      ExecutionContext context)
+      throws UnauthorizedException {
     return determineTtl(ttlAuto, db, namespace, collection, documentId)
         .flatMap(
             ttl ->
@@ -465,7 +483,8 @@ public class ReactiveDocumentService {
       List<String> subPath,
       String payload,
       Boolean ttlAuto,
-      ExecutionContext context) {
+      ExecutionContext context)
+      throws UnauthorizedException {
     return determineTtl(ttlAuto, db, namespace, collection, documentId)
         .flatMap(
             ttl ->
@@ -1128,7 +1147,8 @@ public class ReactiveDocumentService {
       String id,
       JsonNode jsonArray,
       List<String> processedPath,
-      ExecutionContext context) {
+      ExecutionContext context)
+      throws UnauthorizedException {
     List<JsonShreddedRow> rows = jsonDocumentShredder.shred(jsonArray, processedPath);
     return determineTtl(true, db, keyspace, collection, id)
         .flatMap(

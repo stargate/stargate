@@ -2,7 +2,6 @@ package io.stargate.web.docsapi.dao;
 
 import com.datastax.oss.driver.api.core.servererrors.AlreadyExistsException;
 import com.datastax.oss.driver.shaded.guava.common.base.Splitter;
-import com.google.common.collect.ImmutableList;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -10,13 +9,11 @@ import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.db.datastore.DataStore;
 import io.stargate.db.datastore.ResultSet;
-import io.stargate.db.datastore.Row;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.QueryBuilder;
-import io.stargate.db.query.builder.QueryBuilderImpl;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Type;
@@ -35,8 +32,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.NoSuchElementException;
-import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
@@ -121,32 +116,6 @@ public class DocumentDB {
 
   public Set<Keyspace> getKeyspaces() {
     return dataStore.schema().keyspaces();
-  }
-
-  public Integer getTtlForDocument(String namespace, String collection, String docId) {
-    List<Row> result =
-        this.dataStore
-            .queryBuilder()
-            .select()
-            .function(
-                ImmutableList.of(
-                    QueryBuilderImpl.FunctionCall.ttl(DocsApiConstants.LEAF_COLUMN_NAME)))
-            .from(namespace, collection)
-            .where(BuiltCondition.of(DocsApiConstants.KEY_COLUMN_NAME, Predicate.EQ, docId))
-            .build()
-            .execute()
-            .join()
-            .rows();
-    try {
-      return result.stream()
-          .map(row -> row.getInt(String.format("ttl(%s)", DocsApiConstants.LEAF_COLUMN_NAME)))
-          .filter(Objects::nonNull)
-          .mapToInt(Integer::valueOf)
-          .max()
-          .getAsInt();
-    } catch (NoSuchElementException e) {
-      return null;
-    }
   }
 
   public void writeJsonSchemaToCollection(String namespace, String collection, String schemaData) {
