@@ -89,29 +89,15 @@ public abstract class AbstractSearchQueryBuilder {
       Integer limit,
       List<QueryBuilderImpl.FunctionCall> functions,
       String... columns) {
-    QueryBuilder.QueryBuilder__21 builder = null;
-    if (columns.length > 0) {
-      QueryBuilder.QueryBuilder__20 columnsBuilder = queryBuilder.get().select().column(columns);
-      if (!functions.isEmpty()) {
-        builder =
-            columnsBuilder
-                .function(functions)
-                .writeTimeColumn(DocsApiConstants.LEAF_COLUMN_NAME)
-                .from(keyspace, table)
-                .where(getPredicates());
-      }
-    } else if (!functions.isEmpty()) {
-      builder =
-          queryBuilder
-              .get()
-              .select()
-              .function(functions)
-              .writeTimeColumn(DocsApiConstants.LEAF_COLUMN_NAME)
-              .from(keyspace, table)
-              .where(getPredicates());
-    } else {
-      throw new IllegalArgumentException("Either columns or functions must be supplied!");
-    }
+    QueryBuilder.QueryBuilder__21 builder =
+        queryBuilder
+            .get()
+            .select()
+            .column(columns)
+            .function(functions)
+            .writeTimeColumn(DocsApiConstants.LEAF_COLUMN_NAME)
+            .from(keyspace, table)
+            .where(getPredicates());
 
     // then all bind able predicates
     for (Map.Entry<String, Predicate> entry : getBindPredicates().entrySet()) {

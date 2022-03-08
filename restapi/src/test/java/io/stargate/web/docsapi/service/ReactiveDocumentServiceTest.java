@@ -2169,6 +2169,8 @@ class ReactiveDocumentServiceTest {
           .convertToJsonDoc(any(), any(), anyBoolean(), anyBoolean());
       when(searchService.getDocument(queryExecutor, namespace, collection, docId, path, context))
           .thenReturn(Flowable.just(rawDocument));
+      when(searchService.getDocumentTtlInfo(queryExecutor, namespace, collection, docId))
+          .thenReturn(Flowable.just(rawDocument));
       when(writeService.updateDocument(
               dataStore, namespace, collection, docId, path, shreddedRows, 0, false, context))
           .thenReturn(Single.just(ResultSet.empty()));
@@ -2316,6 +2318,8 @@ class ReactiveDocumentServiceTest {
           .when(jsonConverter)
           .convertToJsonDoc(any(), any(), anyBoolean(), anyBoolean());
       when(searchService.getDocument(queryExecutor, namespace, collection, docId, path, context))
+          .thenReturn(Flowable.just(rawDocument));
+      when(searchService.getDocumentTtlInfo(queryExecutor, namespace, collection, docId))
           .thenReturn(Flowable.just(rawDocument));
       when(writeService.updateDocument(
               dataStore, namespace, collection, docId, path, shreddedRows, 0, false, context))

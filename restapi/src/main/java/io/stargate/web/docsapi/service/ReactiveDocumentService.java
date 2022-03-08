@@ -116,7 +116,7 @@ public class ReactiveDocumentService {
       Boolean ttlAuto, DocumentDB db, String namespace, String collection, String documentId)
       throws UnauthorizedException {
     if (ttlAuto == null || !ttlAuto) {
-      return null;
+      return Single.just(0);
     }
     authorizeRead(db, namespace, collection);
     return searchService
@@ -134,7 +134,7 @@ public class ReactiveDocumentService {
                       .mapToInt(Integer::valueOf)
                       .max()
                       .getAsInt();
-              return ttl;
+              return ttl == null ? 0 : ttl;
             })
         .defaultIfEmpty(0);
   }
