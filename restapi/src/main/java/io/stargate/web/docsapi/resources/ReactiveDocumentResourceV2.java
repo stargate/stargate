@@ -292,19 +292,31 @@ public class ReactiveDocumentResourceV2 {
           Boolean profile,
       @Context HttpServletRequest request,
       @Suspended AsyncResponse asyncResponse) {
-    // just delegate to put with empty path
-    List<PathSegment> path = Collections.emptyList();
-    putDocPath(
-        authToken,
-        namespace,
-        collection,
-        id,
-        path,
-        payload,
-        ttl != null ? ttl.toString() : null,
-        profile,
-        request,
-        asyncResponse);
+    // create table if needed, if not validate it's a doc table
+    Single.fromCallable(
+            () -> createOrValidateDbFromToken(authToken, request, namespace, collection))
+
+        // then generate id and create execution context
+        .flatMap(
+            db -> {
+              ExecutionContext context = ExecutionContext.create(profile);
+
+              // and call the document service to fire write
+              return reactiveDocumentService
+                  .updateDocument(db, namespace, collection, id, payload, ttl, context)
+
+                  // map to response
+                  .map(
+                      result -> {
+                        String response = objectMapper.writeValueAsString(result);
+                        return Response.ok().entity(response).build();
+                      });
+            })
+
+        // then subscribe
+        .safeSubscribe(
+            AsyncObserver.forResponseWithHandler(
+                asyncResponse, ErrorHandler.EXCEPTION_TO_RESPONSE));
   }
 
   @PUT
@@ -347,11 +359,10 @@ public class ReactiveDocumentResourceV2 {
           @NotBlank(message = "payload must not be empty")
           String payload,
       @ApiParam(
-              value =
-                  "Include this to put a time-to-live on the document in the data store; use 'auto' on a sub-document to make the TTL match that of the parent document.",
+              value = "Include this to make the TTL match that of the parent document.",
               required = false)
-          @QueryParam("ttl")
-          String ttl,
+          @QueryParam("ttl-auto")
+          Boolean ttlAuto,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false")
@@ -372,7 +383,8 @@ public class ReactiveDocumentResourceV2 {
 
               // and call the document service to fire write
               return reactiveDocumentService
-                  .updateDocument(db, namespace, collection, id, subPath, payload, ttl, context)
+                  .updateSubDocument(
+                      db, namespace, collection, id, subPath, payload, ttlAuto, context)
 
                   // map to response
                   .map(
@@ -425,11 +437,10 @@ public class ReactiveDocumentResourceV2 {
           @NotBlank(message = "payload must not be empty")
           String payload,
       @ApiParam(
-              value = "Include this to put a time-to-live on the document in the data store",
+              value = "Include this to match this data's TTL to the document's TTL",
               required = false)
-          @QueryParam("ttl")
-          @Min(value = 1, message = "TTL value must be a positive integer.")
-          Integer ttl,
+          @QueryParam("ttl-auto")
+          boolean ttlAuto,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false")
@@ -446,7 +457,7 @@ public class ReactiveDocumentResourceV2 {
         id,
         path,
         payload,
-        ttl != null ? ttl.toString() : null,
+        ttlAuto,
         profile,
         request,
         asyncResponse);
@@ -492,11 +503,10 @@ public class ReactiveDocumentResourceV2 {
           @NotBlank(message = "payload must not be empty")
           String payload,
       @ApiParam(
-              value =
-                  "Include this to put a time-to-live on the document in the data store; use 'auto' to make the TTL match that of the parent document.",
+              value = "Include this to match this data's TTL to the document's TTL",
               required = false)
-          @QueryParam("ttl")
-          String ttl,
+          @QueryParam("ttl-auto")
+          boolean ttlAuto,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false")
@@ -517,7 +527,8 @@ public class ReactiveDocumentResourceV2 {
 
               // and call the document service to fire write
               return reactiveDocumentService
-                  .patchDocument(db, namespace, collection, id, subPath, payload, ttl, context)
+                  .patchSubDocument(
+                      db, namespace, collection, id, subPath, payload, ttlAuto, context)
 
                   // map to response
                   .map(

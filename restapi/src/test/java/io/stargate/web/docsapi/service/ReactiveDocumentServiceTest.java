@@ -762,7 +762,7 @@ class ReactiveDocumentServiceTest {
           .thenReturn(Single.just(ResultSet.empty()));
 
       Single<DocumentResponseWrapper<Void>> result =
-          reactiveDocumentService.updateDocument(
+          reactiveDocumentService.updateSubDocument(
               documentDB, namespace, collection, documentId, subPath, payload, null, context);
 
       result
@@ -865,7 +865,7 @@ class ReactiveDocumentServiceTest {
           .thenReturn(schema);
 
       Single<DocumentResponseWrapper<Void>> result =
-          reactiveDocumentService.updateDocument(
+          reactiveDocumentService.updateSubDocument(
               documentDB, namespace, collection, documentId, subPath, payload, null, context);
 
       result
@@ -1063,7 +1063,7 @@ class ReactiveDocumentServiceTest {
           .thenReturn(Single.just(ResultSet.empty()));
 
       Single<DocumentResponseWrapper<Void>> result =
-          reactiveDocumentService.patchDocument(
+          reactiveDocumentService.patchSubDocument(
               documentDB, namespace, collection, documentId, subPath, payload, null, context);
 
       result

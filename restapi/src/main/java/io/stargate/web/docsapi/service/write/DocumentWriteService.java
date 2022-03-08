@@ -81,6 +81,7 @@ public class DocumentWriteService {
    * @param collection Collection the document belongs to.
    * @param documentId Document ID.
    * @param rows Rows of this document.
+   * @param ttl the time-to-live of the rows (seconds)
    * @param numericBooleans If numeric boolean should be stored.
    * @param context Execution content for profiling.
    * @return Single containing the {@link ResultSet} of the batch execution.
@@ -137,6 +138,7 @@ public class DocumentWriteService {
    * @param documentId Document ID.
    * @param rows Rows of this document.
    * @param numericBooleans If numeric boolean should be stored.
+   * @param ttl the time-to-live of the rows (seconds)
    * @param context Execution content for profiling.
    * @return Single containing the {@link ResultSet} of the batch execution.
    */
@@ -172,6 +174,7 @@ public class DocumentWriteService {
    * @param documentId Document ID.
    * @param subDocumentPath The sub-document path to delete.
    * @param rows Rows of this document.
+   * @param ttl the time-to-live of the rows (seconds)
    * @param numericBooleans If numeric boolean should be stored.
    * @param context Execution content for profiling.
    * @return Single containing the {@link ResultSet} of the batch execution.
