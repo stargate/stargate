@@ -114,10 +114,10 @@ public class ReactiveDocumentService {
       Boolean ttlAuto, DocumentDB db, String namespace, String collection, String documentId) {
     return Single.fromCallable(
         () -> {
-          authorizeRead(db, namespace, collection);
           if (ttlAuto == null || !ttlAuto) {
-            return null;
+            return 0;
           }
+          authorizeRead(db, namespace, collection);
           return db.getTtlForDocument(namespace, collection, documentId);
         });
   }
@@ -129,6 +129,7 @@ public class ReactiveDocumentService {
    * @param namespace Namespace
    * @param collection Collection name
    * @param payload Document represented as JSON string
+   * @param ttl the time-to-live for the document (seconds)
    * @param context Execution content
    * @return Document response wrapper containing the generated ID.
    */

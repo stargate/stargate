@@ -758,7 +758,7 @@ class ReactiveDocumentServiceTest {
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
       when(jsonDocumentShredder.shred(objectMapper.readTree(payload), subPath)).thenReturn(rows);
       when(writeService.updateDocument(
-              dataStore, namespace, collection, documentId, subPath, rows, null, true, context))
+              dataStore, namespace, collection, documentId, subPath, rows, 0, true, context))
           .thenReturn(Single.just(ResultSet.empty()));
 
       Single<DocumentResponseWrapper<Void>> result =
@@ -779,7 +779,7 @@ class ReactiveDocumentServiceTest {
 
       verify(writeService)
           .updateDocument(
-              dataStore, namespace, collection, documentId, subPath, rows, null, true, context);
+              dataStore, namespace, collection, documentId, subPath, rows, 0, true, context);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
       verify(authService)
@@ -1059,7 +1059,7 @@ class ReactiveDocumentServiceTest {
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
       when(jsonDocumentShredder.shred(objectMapper.readTree(payload), subPath)).thenReturn(rows);
       when(writeService.patchDocument(
-              dataStore, namespace, collection, documentId, subPath, rows, null, true, context))
+              dataStore, namespace, collection, documentId, subPath, rows, 0, true, context))
           .thenReturn(Single.just(ResultSet.empty()));
 
       Single<DocumentResponseWrapper<Void>> result =
@@ -1080,7 +1080,7 @@ class ReactiveDocumentServiceTest {
 
       verify(writeService)
           .patchDocument(
-              dataStore, namespace, collection, documentId, subPath, rows, null, true, context);
+              dataStore, namespace, collection, documentId, subPath, rows, 0, true, context);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
       verify(authService)
@@ -1103,7 +1103,7 @@ class ReactiveDocumentServiceTest {
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.patchDocument(
-              documentDB, namespace, collection, documentId, payload, null, context);
+              documentDB, namespace, collection, documentId, payload, 0, context);
 
       result
           .test()
