@@ -29,6 +29,7 @@ import io.stargate.db.SimpleStatement;
 import io.stargate.db.Statement;
 import io.stargate.db.datastore.common.AbstractCassandraPersistence;
 import io.stargate.db.dse.impl.idempotency.IdempotencyAnalyzer;
+import io.stargate.db.dse.impl.interceptors.AdvanceWorkloadProcessor;
 import io.stargate.db.dse.impl.interceptors.DefaultQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.ProxyProtocolQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
@@ -141,6 +142,7 @@ public class DsePersistence
   // C* listener that ensures that our Stargate schema remains up-to-date with the internal C* one.
   private SchemaChangeListener schemaChangeListener;
   private AtomicReference<AuthorizationService> authorizationService;
+  private AtomicReference<AdvanceWorkloadProcessor> advanceWorkloadProcessor;
 
   public DsePersistence() {
     super("DataStax Enterprise");
@@ -235,8 +237,7 @@ public class DsePersistence
         ApplicationState.X10, StorageService.instance.valueFactory.dsefsState("stargate"));
 
     waitForSchema(STARTUP_DELAY_MS);
-
-    interceptor = new DefaultQueryInterceptor();
+    interceptor = new DefaultQueryInterceptor(this.advanceWorkloadProcessor);
     if (USE_PROXY_PROTOCOL) interceptor = new ProxyProtocolQueryInterceptor(interceptor);
 
     interceptor.initialize();
@@ -435,6 +436,10 @@ public class DsePersistence
 
   public void setAuthorizationService(AtomicReference<AuthorizationService> authorizationService) {
     this.authorizationService = authorizationService;
+  }
+
+  public void setAdvanceWorkloadProcessor(AtomicReference<AdvanceWorkloadProcessor> advanceWorkloadProcessor) {
+    this.advanceWorkloadProcessor = advanceWorkloadProcessor;
   }
 
   private class DseConnection extends AbstractConnection {

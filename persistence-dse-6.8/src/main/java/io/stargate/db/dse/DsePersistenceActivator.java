@@ -22,6 +22,8 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
+
+import io.stargate.db.dse.impl.interceptors.AdvanceWorkloadProcessor;
 import org.apache.cassandra.auth.IAuthorizer;
 import org.apache.cassandra.auth.PasswordAuthenticator;
 import org.apache.cassandra.config.Config;
@@ -44,6 +46,9 @@ public class DsePersistenceActivator extends BaseActivator {
   private static final String AUTHZ_PROCESSOR_ID =
       System.getProperty("stargate.authorization.processor.id");
 
+  private static final String ADVANCED_WORKLOAD =
+          System.getProperty("AdvancedWorkload");
+
   private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
   private final LazyServicePointer<AuthorizationService> authorizationService =
       LazyServicePointer.create(
@@ -52,6 +57,13 @@ public class DsePersistenceActivator extends BaseActivator {
           System.getProperty("stargate.auth_id", "AuthTableBasedService"));
   private final ServicePointer<AuthorizationProcessor> authorizationProcessor =
       ServicePointer.create(AuthorizationProcessor.class, "AuthProcessorId", AUTHZ_PROCESSOR_ID);
+
+  private final LazyServicePointer<AdvanceWorkloadProcessor> advanceWorkLoadProcessor =
+          LazyServicePointer.create(
+                  AdvanceWorkloadProcessor.class,
+                  "AdvancedIdentifier",
+                  ADVANCED_WORKLOAD);
+
 
   private DsePersistence dseDB;
   private File baseDir;
@@ -183,6 +195,7 @@ public class DsePersistenceActivator extends BaseActivator {
       baseDir = getBaseDir();
 
       dseDB.setAuthorizationService(authorizationService.get());
+      dseDB.setAdvanceWorkloadProcessor(advanceWorkLoadProcessor.get());
       dseDB.initialize(makeConfig(baseDir));
 
       IAuthorizer authorizer = DatabaseDescriptor.getAuthorizer().implementation();

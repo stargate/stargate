@@ -147,6 +147,11 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
   }
 
   @Override
+  public Single<ResultMessage> interceptQuery(String query, QueryState state, QueryOptions options, Map<String, ByteBuffer> customPayload, long queryStartNanoTime) {
+    return wrapped.get() != null ? wrapped.get().interceptQuery(query, state, options, customPayload, queryStartNanoTime) : null;
+  }
+
+  @Override
   public Single<ResultMessage> interceptQuery(
       CQLStatement statement,
       QueryState state,

@@ -109,6 +109,16 @@ public class StargateQueryHandler implements QueryHandler {
       Map<String, ByteBuffer> customPayload,
       long queryStartNanoTime) {
 
+    //custom interceptor
+    for (QueryInterceptor interceptor : interceptors) {
+      Single<ResultMessage> result =
+              interceptor.interceptQuery(
+                      query, queryState, options, customPayload, queryStartNanoTime);
+      if (result != null) {
+        return result;
+      }
+    }
+
     QueryState state = queryState.cloneWithKeyspaceIfSet(options.getKeyspace());
     CQLStatement statement;
     try {

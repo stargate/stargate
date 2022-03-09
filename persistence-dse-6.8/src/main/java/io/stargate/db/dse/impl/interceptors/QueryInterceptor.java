@@ -17,6 +17,13 @@ public interface QueryInterceptor {
   void initialize();
 
   Single<ResultMessage> interceptQuery(
+          String query,
+          QueryState state,
+          QueryOptions options,
+          Map<String, ByteBuffer> customPayload,
+          long queryStartNanoTime);
+
+  Single<ResultMessage> interceptQuery(
       CQLStatement statement,
       QueryState state,
       QueryOptions options,
