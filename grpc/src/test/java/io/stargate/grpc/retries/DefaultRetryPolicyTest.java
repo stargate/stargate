@@ -24,42 +24,75 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.db.WriteType;
+import org.apache.cassandra.stargate.exceptions.PreparedQueryNotFoundException;
 import org.apache.cassandra.stargate.exceptions.ReadTimeoutException;
 import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
 import org.assertj.core.api.Assert;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 class DefaultRetryPolicyTest {
 
   private static final RetryPolicy retryPolicy = new DefaultRetryPolicy();
 
-  @Test
-  public void shouldProcessReadTimeouts() {
-    assertOnReadTimeout(QUORUM, 2, 2, false, 0).isEqualTo(RETRY);
-    assertOnReadTimeout(QUORUM, 2, 2, false, 1).isEqualTo(RETHROW);
-    assertOnReadTimeout(QUORUM, 2, 2, true, 0).isEqualTo(RETHROW);
-    assertOnReadTimeout(QUORUM, 2, 1, true, 0).isEqualTo(RETHROW);
-    assertOnReadTimeout(QUORUM, 2, 1, false, 0).isEqualTo(RETHROW);
+  @Nested
+  class OnReadTimeout {
+
+    @Test
+    public void shouldProcessReadTimeouts() {
+      assertOnReadTimeout(QUORUM, 2, 2, false, 0).isEqualTo(RETRY);
+      assertOnReadTimeout(QUORUM, 2, 2, false, 1).isEqualTo(RETHROW);
+      assertOnReadTimeout(QUORUM, 2, 2, true, 0).isEqualTo(RETHROW);
+      assertOnReadTimeout(QUORUM, 2, 1, true, 0).isEqualTo(RETHROW);
+      assertOnReadTimeout(QUORUM, 2, 1, false, 0).isEqualTo(RETHROW);
+    }
+
+    protected Assert<?, RetryDecision> assertOnReadTimeout(
+        ConsistencyLevel cl, int blockFor, int received, boolean dataPresent, int retryCount) {
+      return assertThat(
+          retryPolicy.onReadTimeout(
+              new ReadTimeoutException(cl, received, blockFor, dataPresent), retryCount));
+    }
   }
 
-  @Test
-  public void shouldProcessWriteTimeouts() {
-    assertOnWriteTimeout(QUORUM, BATCH_LOG, 2, 0, 0).isEqualTo(RETRY);
-    assertOnWriteTimeout(QUORUM, BATCH_LOG, 2, 0, 1).isEqualTo(RETHROW);
-    assertOnWriteTimeout(QUORUM, SIMPLE, 2, 0, 0).isEqualTo(RETHROW);
+  @Nested
+  class OnWriteTimeout {
+
+    @Test
+    public void shouldProcessWriteTimeouts() {
+      assertOnWriteTimeout(QUORUM, BATCH_LOG, 2, 0, 0).isEqualTo(RETRY);
+      assertOnWriteTimeout(QUORUM, BATCH_LOG, 2, 0, 1).isEqualTo(RETHROW);
+      assertOnWriteTimeout(QUORUM, SIMPLE, 2, 0, 0).isEqualTo(RETHROW);
+    }
+
+    protected Assert<?, RetryDecision> assertOnWriteTimeout(
+        ConsistencyLevel cl, WriteType writeType, int blockFor, int received, int retryCount) {
+      return assertThat(
+          retryPolicy.onWriteTimeout(
+              new WriteTimeoutException(writeType, cl, blockFor, received), retryCount));
+    }
   }
 
-  protected Assert<?, RetryDecision> assertOnReadTimeout(
-      ConsistencyLevel cl, int blockFor, int received, boolean dataPresent, int retryCount) {
-    return assertThat(
-        retryPolicy.onReadTimeout(
-            new ReadTimeoutException(cl, received, blockFor, dataPresent), retryCount));
-  }
+  @Nested
+  class onUnprepared {
 
-  protected Assert<?, RetryDecision> assertOnWriteTimeout(
-      ConsistencyLevel cl, WriteType writeType, int blockFor, int received, int retryCount) {
-    return assertThat(
-        retryPolicy.onWriteTimeout(
-            new WriteTimeoutException(writeType, cl, blockFor, received), retryCount));
+    @Test
+    public void retry() {
+      PreparedQueryNotFoundException ex = new PreparedQueryNotFoundException(null);
+
+      RetryDecision decisionFirst = retryPolicy.onUnprepared(ex, 0);
+      RetryDecision decisionSecond = retryPolicy.onUnprepared(ex, 1);
+
+      assertThat(decisionFirst).isEqualTo(decisionSecond).isEqualTo(RETRY);
+    }
+
+    @Test
+    public void rethrow() {
+      PreparedQueryNotFoundException ex = new PreparedQueryNotFoundException(null);
+
+      RetryDecision decision = retryPolicy.onUnprepared(ex, 2);
+
+      assertThat(decision).isEqualTo(RETHROW);
+    }
   }
 }
