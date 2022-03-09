@@ -368,8 +368,6 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
     JsonNode obj1 = OBJECT_MAPPER.readTree("{ \"delete this\": \"in 5 seconds\" }");
     JsonNode obj2 = OBJECT_MAPPER.readTree("{ \"match the parent\": \"this\", \"a\": \"b\" }");
     RestUtils.put(authToken, collectionPath + "/1?ttl=-1", obj1.toString(), 400);
-    RestUtils.put(authToken, collectionPath + "/1/b?ttl=otto", obj2.toString(), 400);
-    RestUtils.put(authToken, collectionPath + "/1/b?ttl=10", obj2.toString(), 400);
     RestUtils.put(authToken, collectionPath + "/1?ttl=auto", obj2.toString(), 404);
   }
 
