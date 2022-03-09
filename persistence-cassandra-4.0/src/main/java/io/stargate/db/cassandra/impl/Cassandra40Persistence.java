@@ -513,7 +513,7 @@ public class Cassandra40Persistence
       // (and CASSANDRA-17248) which can cause multiple prepares of the same query to evict each
       // other from the prepared cache. A few Stargate APIs eagerly prepare queries which
       // increases this chance and to avoid this we serialize prepares for similar queries.
-      Lock lock = PREPARE_LOCKS.get(parameters.defaultKeyspace().map(k -> query + k).orElse(query));
+      Lock lock = PREPARE_LOCKS.get(query);
       try {
         lock.lock();
         return executeRequestOnExecutor(
