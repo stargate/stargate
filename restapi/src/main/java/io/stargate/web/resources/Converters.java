@@ -75,7 +75,7 @@ public class Converters {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   static {
-    // For Java 8 date/time types we need, as per [stargate#1680]:
+    // For Java 8 date/time types we need:
     OBJECT_MAPPER.registerModule(new JavaTimeModule());
     // and by default date/time values written as numbers but we prefer ISO-8601:
     OBJECT_MAPPER.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
