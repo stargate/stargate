@@ -322,56 +322,6 @@ public class QueryBuilderTest {
               .getCql(),
           "ALTER TYPE ks.t ADD c int, d int"),
       arguments(
-          new QueryBuilder()
-              .insertInto("ks", "tbl")
-              .value("a", 1)
-              .value(ValueModifier.marker("b"))
-              .build()
-              .getCql(),
-          "INSERT INTO ks.tbl (a, b) VALUES (1, ?)"),
-      arguments(
-          new QueryBuilder()
-              .insertInto("ks", "tbl")
-              .value("a", "text")
-              .value(ValueModifier.marker("b"))
-              .ifNotExists()
-              .ttl()
-              .timestamp(1L)
-              .build()
-              .getCql(),
-          "INSERT INTO ks.tbl (a, b) VALUES ('text', ?) IF NOT EXISTS USING TTL ? AND TIMESTAMP 1"),
-      arguments(
-          new QueryBuilder()
-              .update("ks", "tbl")
-              .value("a")
-              .value("b", "test")
-              .value(
-                  ValueModifier.of(
-                      ValueModifier.Target.column("c"),
-                      ValueModifier.Operation.PREPEND,
-                      Term.marker()))
-              .where("k", Predicate.EQ)
-              .ifs("v", Predicate.GT)
-              .ifExists()
-              .build()
-              .getCql(),
-          "UPDATE ks.tbl SET a = ?, "
-              + "b = 'test', "
-              + "c = ? + c "
-              + "WHERE k = ? "
-              + "IF EXISTS "
-              + "AND v > ?"),
-      arguments(
-          new QueryBuilder()
-              .delete()
-              .column("a", "b", "c")
-              .from("ks", "tbl")
-              .where("k", Predicate.EQ)
-              .ifs("v", Predicate.IN)
-              .build()
-              .getCql(),
-          "DELETE a, b, c FROM ks.tbl WHERE k = ? IF v IN ?"),
-      arguments(
           new QueryBuilder().select().from("ks", "tbl").build().getCql(), "SELECT * FROM ks.tbl"),
       arguments(
           new QueryBuilder().select().column("a", "b", "c").from("ks", "tbl").build().getCql(),
@@ -379,30 +329,6 @@ public class QueryBuilderTest {
       arguments(
           new QueryBuilder().select().count("a").from("ks", "tbl").build().getCql(),
           "SELECT COUNT(a) FROM ks.tbl"),
-      arguments(
-          new QueryBuilder()
-              .select()
-              .column("a", "b", "c")
-              .from("ks", "tbl")
-              .where("k", Predicate.EQ)
-              .where("cc", Predicate.GT)
-              .build()
-              .getCql(),
-          "SELECT a, b, c FROM ks.tbl WHERE k = ? AND cc > ?"),
-      arguments(
-          new QueryBuilder()
-              .select()
-              .star()
-              .from("ks", "tbl")
-              .where("k", Predicate.GT)
-              .groupBy("k")
-              .groupBy("cc1")
-              .groupBy("cc2")
-              .orderBy("cc1", Column.Order.ASC)
-              .orderBy("cc2", Column.Order.DESC)
-              .build()
-              .getCql(),
-          "SELECT * FROM ks.tbl WHERE k > ? GROUP BY k, cc1, cc2 ORDER BY cc1 ASC, cc2 DESC"),
     };
   }
 }
