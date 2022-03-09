@@ -15,13 +15,8 @@
  */
 package io.stargate.sgv2.common.cql.builder;
 
-public interface Term<T> {
-
-  static <T> Term<T> marker() {
-    return new Marker<>();
-  }
-
-  static <T> Term<T> of(T value) {
-    return new Literal<>(value);
+public interface Term {
+  static Term of(Object value) {
+    return new Literal(value);
   }
 }

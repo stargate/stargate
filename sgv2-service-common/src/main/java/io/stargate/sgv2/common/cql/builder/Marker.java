@@ -15,25 +15,9 @@
  */
 package io.stargate.sgv2.common.cql.builder;
 
-import io.stargate.sgv2.common.cql.CqlStrings;
-
-class Marker<T> implements Term<T> {
-
-  private final String name;
-
-  Marker(String name) {
-    this.name = name;
-  }
-
-  Marker() {
-    this(null);
-  }
-
-  boolean isAnonymous() {
-    return name == null;
-  }
+class Marker implements Term {
 
   String asCql() {
-    return name == null ? "?" : ":" + CqlStrings.doubleQuote(name);
+    return "?";
   }
 }
