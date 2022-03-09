@@ -15,15 +15,15 @@
  */
 package io.stargate.sgv2.common.cql.builder;
 
-class Literal<T> implements Term<T> {
+class Literal implements Term {
 
-  private final T value;
+  private final Object value;
 
-  public Literal(T value) {
+  public Literal(Object value) {
     this.value = value;
   }
 
-  public T get() {
+  public Object get() {
     return value;
   }
 }
