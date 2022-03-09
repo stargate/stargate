@@ -74,7 +74,7 @@ public abstract class AbstractSearchQueryBuilder {
     return buildQuery(queryBuilder, keyspace, table, limit, Collections.emptyList(), columns);
   }
 
-  protected BuiltQuery<? extends BoundQuery> buildQuery(
+  public BuiltQuery<? extends BoundQuery> buildQuery(
       Supplier<QueryBuilder> queryBuilder,
       String keyspace,
       String table,
@@ -82,7 +82,7 @@ public abstract class AbstractSearchQueryBuilder {
     return buildQuery(queryBuilder, keyspace, table, null, functions);
   }
 
-  private BuiltQuery<? extends BoundQuery> buildQuery(
+  public BuiltQuery<? extends BoundQuery> buildQuery(
       Supplier<QueryBuilder> queryBuilder,
       String keyspace,
       String table,

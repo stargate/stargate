@@ -52,7 +52,8 @@ public class DocumentTtlQueryBuilder extends AbstractSearchQueryBuilder {
       Supplier<QueryBuilder> queryBuilder, String keyspace, String table, String... columns) {
     List<QueryBuilderImpl.FunctionCall> ttlFunction =
         ImmutableList.of(QueryBuilderImpl.FunctionCall.ttl(DocsApiConstants.LEAF_COLUMN_NAME));
-    return buildQuery(queryBuilder, keyspace, table, ttlFunction);
+    return buildQuery(
+        queryBuilder, keyspace, table, null, ttlFunction, DocsApiConstants.KEY_COLUMN_NAME);
   }
 
   /** {@inheritDoc} */
