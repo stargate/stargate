@@ -6,6 +6,7 @@ import static io.stargate.db.dse.impl.Conversion.toResultMetadata;
 import com.datastax.bdp.db.nodes.Nodes;
 import com.datastax.bdp.db.util.ProductType;
 import com.datastax.bdp.db.util.ProductVersion;
+import com.datastax.bdp.graph.DseGraphQueryOperationFactory;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
@@ -29,7 +30,6 @@ import io.stargate.db.SimpleStatement;
 import io.stargate.db.Statement;
 import io.stargate.db.datastore.common.AbstractCassandraPersistence;
 import io.stargate.db.dse.impl.idempotency.IdempotencyAnalyzer;
-import io.stargate.db.dse.impl.interceptors.AdvanceWorkloadProcessor;
 import io.stargate.db.dse.impl.interceptors.DefaultQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.ProxyProtocolQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
@@ -142,7 +142,7 @@ public class DsePersistence
   // C* listener that ensures that our Stargate schema remains up-to-date with the internal C* one.
   private SchemaChangeListener schemaChangeListener;
   private AtomicReference<AuthorizationService> authorizationService;
-  private AtomicReference<AdvanceWorkloadProcessor> advanceWorkloadProcessor;
+  private AtomicReference<DseGraphQueryOperationFactory> advanceWorkloadProcessor;
 
   public DsePersistence() {
     super("DataStax Enterprise");
@@ -438,7 +438,8 @@ public class DsePersistence
     this.authorizationService = authorizationService;
   }
 
-  public void setAdvanceWorkloadProcessor(AtomicReference<AdvanceWorkloadProcessor> advanceWorkloadProcessor) {
+  public void setAdvanceWorkloadProcessor(
+      AtomicReference<DseGraphQueryOperationFactory> advanceWorkloadProcessor) {
     this.advanceWorkloadProcessor = advanceWorkloadProcessor;
   }
 

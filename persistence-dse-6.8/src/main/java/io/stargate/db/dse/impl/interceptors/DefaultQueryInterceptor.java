@@ -3,6 +3,7 @@ package io.stargate.db.dse.impl.interceptors;
 import static io.stargate.db.dse.impl.StargateSystemKeyspace.SYSTEM_KEYSPACE_NAME;
 import static io.stargate.db.dse.impl.StargateSystemKeyspace.isSystemLocalOrPeers;
 
+import com.datastax.bdp.graph.DseGraphQueryOperationFactory;
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import io.reactivex.Single;
 import io.stargate.db.EventListener;
@@ -50,13 +51,15 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
 
   private final List<EventListener> listeners = new CopyOnWriteArrayList<>();
   private final Set<InetAddress> liveStargateNodes = Sets.newConcurrentHashSet();
-  private AtomicReference<AdvanceWorkloadProcessor> advanceWorkloadProcessor;
+  private AtomicReference<DseGraphQueryOperationFactory> advanceWorkloadProcessor;
 
-  public DefaultQueryInterceptor(AtomicReference<AdvanceWorkloadProcessor> advanceWorkloadProcessor){
+  public DefaultQueryInterceptor(
+      AtomicReference<DseGraphQueryOperationFactory> advanceWorkloadProcessor) {
     this.advanceWorkloadProcessor = advanceWorkloadProcessor;
   }
 
-  public void setCustomAdvanceWorkload(AtomicReference<AdvanceWorkloadProcessor> advanceWorkloadProcessor){
+  public void setCustomAdvanceWorkload(
+      AtomicReference<DseGraphQueryOperationFactory> advanceWorkloadProcessor) {
     this.advanceWorkloadProcessor = advanceWorkloadProcessor;
   }
 
@@ -73,14 +76,20 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
   }
 
   @Override
-  public Single<ResultMessage> interceptQuery(String query, QueryState state, QueryOptions options, Map<String, ByteBuffer> customPayload, long queryStartNanoTime) {
+  public Single<ResultMessage> interceptQuery(
+      String query,
+      QueryState state,
+      QueryOptions options,
+      Map<String, ByteBuffer> customPayload,
+      long queryStartNanoTime) {
     if (customPayload != null && customPayload.containsKey("graph-language")) {
-      if(advanceWorkloadProcessor.get() != null) {
-        return advanceWorkloadProcessor.get()
-                .process(query, state, options, customPayload, queryStartNanoTime);
-      }else{
+      if (advanceWorkloadProcessor.get() != null) {
+        return advanceWorkloadProcessor
+            .get()
+            .process(query, state, options, customPayload, queryStartNanoTime);
+      } else {
         throw new RuntimeException(
-                "Failed to find an Advanced Workload Service to execute request");
+            "Failed to find an Advanced Workload Service to execute request");
       }
     }
     return null;

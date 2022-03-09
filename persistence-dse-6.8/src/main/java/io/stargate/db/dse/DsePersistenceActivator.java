@@ -1,5 +1,6 @@
 package io.stargate.db.dse;
 
+import com.datastax.bdp.graph.DseGraphQueryOperationFactory;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import io.stargate.auth.AuthorizationProcessor;
@@ -22,8 +23,6 @@ import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Hashtable;
 import java.util.List;
-
-import io.stargate.db.dse.impl.interceptors.AdvanceWorkloadProcessor;
 import org.apache.cassandra.auth.IAuthorizer;
 import org.apache.cassandra.auth.PasswordAuthenticator;
 import org.apache.cassandra.config.Config;
@@ -46,8 +45,7 @@ public class DsePersistenceActivator extends BaseActivator {
   private static final String AUTHZ_PROCESSOR_ID =
       System.getProperty("stargate.authorization.processor.id");
 
-  private static final String ADVANCED_WORKLOAD =
-          System.getProperty("AdvancedWorkload");
+  private static final String ADVANCED_WORKLOAD = System.getProperty("AdvancedWorkload");
 
   private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
   private final LazyServicePointer<AuthorizationService> authorizationService =
@@ -58,12 +56,9 @@ public class DsePersistenceActivator extends BaseActivator {
   private final ServicePointer<AuthorizationProcessor> authorizationProcessor =
       ServicePointer.create(AuthorizationProcessor.class, "AuthProcessorId", AUTHZ_PROCESSOR_ID);
 
-  private final LazyServicePointer<AdvanceWorkloadProcessor> advanceWorkLoadProcessor =
-          LazyServicePointer.create(
-                  AdvanceWorkloadProcessor.class,
-                  "AdvancedIdentifier",
-                  ADVANCED_WORKLOAD);
-
+  private final LazyServicePointer<DseGraphQueryOperationFactory> advanceWorkLoadProcessor =
+      LazyServicePointer.create(
+          DseGraphQueryOperationFactory.class, "AdvancedIdentifier", ADVANCED_WORKLOAD);
 
   private DsePersistence dseDB;
   private File baseDir;
@@ -234,6 +229,9 @@ public class DsePersistenceActivator extends BaseActivator {
 
   @Override
   protected List<LazyServicePointer<?>> lazyDependencies() {
-    return Collections.singletonList(authorizationService);
+    ImmutableList.Builder<LazyServicePointer<?>> dependencies = ImmutableList.builder();
+    dependencies.add(authorizationService);
+    dependencies.add(advanceWorkLoadProcessor);
+    return dependencies.build();
   }
 }

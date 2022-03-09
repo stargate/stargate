@@ -109,11 +109,10 @@ public class StargateQueryHandler implements QueryHandler {
       Map<String, ByteBuffer> customPayload,
       long queryStartNanoTime) {
 
-    //custom interceptor
+    // custom interceptor
     for (QueryInterceptor interceptor : interceptors) {
       Single<ResultMessage> result =
-              interceptor.interceptQuery(
-                      query, queryState, options, customPayload, queryStartNanoTime);
+          interceptor.interceptQuery(query, queryState, options, customPayload, queryStartNanoTime);
       if (result != null) {
         return result;
       }
