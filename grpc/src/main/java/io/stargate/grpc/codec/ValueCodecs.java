@@ -35,6 +35,7 @@ public class ValueCodecs {
               .put(Type.Date, new DateCodec())
               .put(Type.Decimal, new DecimalCodec())
               .put(Type.Double, new DoubleCodec())
+              .put(Type.Duration, new DurationCodec())
               .put(Type.Float, new FloatCodec())
               .put(Type.Int, new IntCodec())
               .put(Type.Inet, new InetCodec())

@@ -100,6 +100,10 @@ public class Values {
     return Value.newBuilder().setTime(value.toNanoOfDay()).build();
   }
 
+  public static Value of(CqlDuration duration) {
+    return Value.newBuilder().setDuration(ByteString.copyFrom(duration.encode())).build();
+  }
+
   public static Value of(BigInteger value) {
     return Value.newBuilder()
         .setVarint(
@@ -302,6 +306,12 @@ public class Values {
     checkInnerCase(value, InnerCase.TIME);
 
     return LocalTime.ofNanoOfDay(value.getTime());
+  }
+
+  public static CqlDuration duration(Value value) {
+    checkInnerCase(value, InnerCase.DURATION);
+
+    return CqlDuration.decode(value.getDuration().toByteArray());
   }
 
   private static void checkInnerCase(Value value, InnerCase expected) {
