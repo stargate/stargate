@@ -129,27 +129,24 @@ public class NewConnectionInterceptor implements ServerInterceptor {
   }
 
   protected Connection newConnection(RequestInfo info) throws UnauthorizedException {
-    Connection connection;
-    String token = info.token();
     AuthenticationSubject authenticationSubject =
-        authenticationService.validateToken(token, info.headers());
+        authenticationService.validateToken(info.token(), info.headers());
+
     AuthenticatedUser user = authenticationSubject.asUser();
-    if (!user.isFromExternalAuth()) {
-      SocketAddress remoteAddress = info.remoteAddress();
-      // This is best effort attempt to set the remote address, if the remote address is not the
-      // correct type then use a dummy value. Note: `remoteAddress` is almost always a
-      // `InetSocketAddress`.
-      InetSocketAddress inetSocketAddress =
-          remoteAddress instanceof InetSocketAddress
-              ? (InetSocketAddress) remoteAddress
-              : DUMMY_ADDRESS;
-      connection = persistence.newConnection(new ClientInfo(inetSocketAddress, null));
-    } else {
-      connection = persistence.newConnection();
-    }
+
+    SocketAddress remoteAddress = info.remoteAddress();
+    // This is best effort attempt to set the remote address, if the remote address is not the
+    // correct type then use a dummy value. Note: `remoteAddress` is almost always a
+    // `InetSocketAddress`.
+    InetSocketAddress inetSocketAddress =
+        remoteAddress instanceof InetSocketAddress
+            ? (InetSocketAddress) remoteAddress
+            : DUMMY_ADDRESS;
+    ClientInfo clientInfo = new ClientInfo(inetSocketAddress, null);
+    Connection connection = persistence.newConnection(clientInfo);
     connection.login(user);
     if (user.token() != null) {
-      connection.clientInfo().ifPresent(c -> c.setAuthenticatedUser(user));
+      clientInfo.setAuthenticatedUser(user);
     }
     connection.setCustomProperties(info.headers());
     return connection;

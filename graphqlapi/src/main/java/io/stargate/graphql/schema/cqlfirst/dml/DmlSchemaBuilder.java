@@ -28,6 +28,7 @@ import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.Supp
 import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.TINYINT_FUNCTION;
 import static io.stargate.graphql.schema.cqlfirst.dml.fetchers.aggregations.SupportedGraphqlFunction.VARINT_FUNCTION;
 
+import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.google.errorprone.annotations.FormatMethod;
 import com.google.errorprone.annotations.FormatString;
@@ -36,6 +37,7 @@ import graphql.introspection.Introspection;
 import graphql.schema.GraphQLArgument;
 import graphql.schema.GraphQLDirective;
 import graphql.schema.GraphQLEnumType;
+import graphql.schema.GraphQLEnumType.Builder;
 import graphql.schema.GraphQLFieldDefinition;
 import graphql.schema.GraphQLInputObjectField;
 import graphql.schema.GraphQLInputObjectType;
@@ -64,16 +66,22 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class DmlSchemaBuilder {
 
   private static final Logger LOG = LoggerFactory.getLogger(DmlSchemaBuilder.class);
+  private static final String STARGATE_MUTATION_CONSISTENCY_LEVELS =
+      "stargate.graphql.mutation_consistency_levels";
+  private static final String STARGATE_QUERY_CONSISTENCY_LEVELS =
+      "stargate.graphql.query_consistency_levels";
 
   private final Map<Table, GraphQLOutputType> entityResultMap = new HashMap<>();
   private final List<String> warnings = new ArrayList<>();
@@ -82,6 +90,7 @@ public class DmlSchemaBuilder {
   private final FieldFilterInputTypeCache fieldFilterInputTypes;
   private final NameMapping nameMapping;
   private final Keyspace keyspace;
+  private static final GraphQLInputType MUTATION_OPTIONS = initializeMutationOptions();
 
   /** Describes the different kind of types generated from a table */
   private enum DmlType {
@@ -310,6 +319,7 @@ public class DmlSchemaBuilder {
   }
 
   private GraphQLFieldDefinition buildUpdate(Table table) {
+
     return GraphQLFieldDefinition.newFieldDefinition()
         .name("update" + nameMapping.getGraphqlName(table))
         .description(
@@ -330,6 +340,41 @@ public class DmlSchemaBuilder {
         .argument(GraphQLArgument.newArgument().name("options").type(MUTATION_OPTIONS))
         .type(new GraphQLTypeReference(nameMapping.getGraphqlName(table) + "MutationResult"))
         .dataFetcher(new UpdateMutationFetcher(table, nameMapping))
+        .build();
+  }
+
+  private static GraphQLInputType initializeMutationOptions() {
+    String consistencyLevelsStr =
+        System.getProperty(STARGATE_MUTATION_CONSISTENCY_LEVELS, "LOCAL_ONE,LOCAL_QUORUM,ALL");
+
+    GraphQLEnumType consistencyEnumBuilder =
+        getConsistencyEnum(consistencyLevelsStr, "MutationConsistency");
+
+    return GraphQLInputObjectType.newInputObject()
+        .name("MutationOptions")
+        .description("The execution options for the mutation.")
+        .field(
+            GraphQLInputObjectField.newInputObjectField()
+                .name("consistency")
+                .type(consistencyEnumBuilder)
+                .defaultValue(CassandraFetcher.DEFAULT_CONSISTENCY.toString())
+                .build())
+        .field(
+            GraphQLInputObjectField.newInputObjectField()
+                .name("serialConsistency")
+                .type(
+                    GraphQLEnumType.newEnum()
+                        .name("SerialConsistency")
+                        .value("SERIAL")
+                        .value("LOCAL_SERIAL")
+                        .build())
+                .defaultValue(CassandraFetcher.DEFAULT_SERIAL_CONSISTENCY.toString())
+                .build())
+        .field(
+            GraphQLInputObjectField.newInputObjectField()
+                .name("ttl")
+                .type(Scalars.GraphQLInt)
+                .build())
         .build();
   }
 
@@ -447,22 +492,21 @@ public class DmlSchemaBuilder {
         .build();
   }
 
-  private GraphQLType buildQueryOptionsInputType() {
+  private GraphQLInputObjectType buildQueryOptionsInputType() {
+    String consistencyLevelsStr =
+        System.getProperty(
+            STARGATE_QUERY_CONSISTENCY_LEVELS, "LOCAL_ONE,LOCAL_QUORUM,ALL,SERIAL,LOCAL_SERIAL");
+
+    GraphQLEnumType consistencyEnumBuilder =
+        getConsistencyEnum(consistencyLevelsStr, "QueryConsistency");
+
     return GraphQLInputObjectType.newInputObject()
         .name("QueryOptions")
         .description("The execution options for the query.")
         .field(
             GraphQLInputObjectField.newInputObjectField()
                 .name("consistency")
-                .type(
-                    GraphQLEnumType.newEnum()
-                        .name("QueryConsistency")
-                        .value("LOCAL_ONE")
-                        .value("LOCAL_QUORUM")
-                        .value("ALL")
-                        .value("SERIAL")
-                        .value("LOCAL_SERIAL")
-                        .build())
+                .type(consistencyEnumBuilder)
                 .defaultValue(CassandraFetcher.DEFAULT_CONSISTENCY.toString())
                 .build())
         .field(
@@ -482,6 +526,34 @@ public class DmlSchemaBuilder {
                 .type(Scalars.GraphQLString)
                 .build())
         .build();
+  }
+
+  @VisibleForTesting
+  protected static GraphQLEnumType getConsistencyEnum(
+      String consistencyLevelsStr, String enumName) {
+    String[] consistencyLevels = consistencyLevelsStr.split(",");
+
+    Builder consistencyEnumBuilder = GraphQLEnumType.newEnum().name(enumName);
+    boolean defaultAdded = false;
+
+    for (String level : consistencyLevels) {
+      try {
+        level = level.toUpperCase(Locale.ENGLISH);
+        ConsistencyLevel.valueOf(level);
+        consistencyEnumBuilder.value(level);
+      } catch (IllegalArgumentException e) {
+        LOG.warn("Invalid consistency level {} specified, skipping", level);
+      }
+      if (level.equals(CassandraFetcher.DEFAULT_CONSISTENCY.toString())) {
+        defaultAdded = true;
+      }
+    }
+    // Always add the default consistency level regardless of system params
+    // else the default won't work
+    if (!defaultAdded) {
+      consistencyEnumBuilder.value(CassandraFetcher.DEFAULT_CONSISTENCY.toString());
+    }
+    return consistencyEnumBuilder.build();
   }
 
   private GraphQLType buildOrderType(Table table) {
@@ -640,40 +712,6 @@ public class DmlSchemaBuilder {
       LOG.warn(message, e);
     }
   }
-
-  private static final GraphQLInputType MUTATION_OPTIONS =
-      GraphQLInputObjectType.newInputObject()
-          .name("MutationOptions")
-          .description("The execution options for the mutation.")
-          .field(
-              GraphQLInputObjectField.newInputObjectField()
-                  .name("consistency")
-                  .type(
-                      GraphQLEnumType.newEnum()
-                          .name("MutationConsistency")
-                          .value("LOCAL_ONE")
-                          .value("LOCAL_QUORUM")
-                          .value("ALL")
-                          .build())
-                  .defaultValue(CassandraFetcher.DEFAULT_CONSISTENCY.toString())
-                  .build())
-          .field(
-              GraphQLInputObjectField.newInputObjectField()
-                  .name("serialConsistency")
-                  .type(
-                      GraphQLEnumType.newEnum()
-                          .name("SerialConsistency")
-                          .value("SERIAL")
-                          .value("LOCAL_SERIAL")
-                          .build())
-                  .defaultValue(CassandraFetcher.DEFAULT_SERIAL_CONSISTENCY.toString())
-                  .build())
-          .field(
-              GraphQLInputObjectField.newInputObjectField()
-                  .name("ttl")
-                  .type(Scalars.GraphQLInt)
-                  .build())
-          .build();
 
   private String getTypeDescription(Table table, DmlType dmlType) {
     StringBuilder builder = new StringBuilder();

@@ -44,7 +44,7 @@ import java.util.stream.Stream;
  * <p>The generated CQL string is wrapped into a {@link Query} that can be passed directly to {@link
  * StargateBridgeClient#executeQuery(Query)}. In addition, any time a {@link Value} is passed to the
  * builder (via such methods as {@link #where(Column, Predicate, Object)}, {@link #value(Column,
- * Object)}, etc.), it is automatically replaced with a named bind marker, and stored in {@link
+ * Object)}, etc.), it is automatically replaced with a bind marker, and stored in {@link
  * Query#getValues()}.
  */
 @GenerateEmbeddedDSL(
@@ -132,11 +132,14 @@ public class QueryBuilderImpl {
   /** The IFs conditions for a conditional UPDATE or DELETE. */
   private final List<BuiltCondition> ifs = new ArrayList<>();
 
-  private Term<Integer> limit;
-  private Term<Integer> perPartitionLimit;
+  private Term limit;
+  private Term perPartitionLimit;
   private final List<String> groupBys = new ArrayList<>();
   private final Map<String, Column.Order> orders = new LinkedHashMap<>();
-  private final Map<String, Value> boundValues = new HashMap<>();
+  // The bind markers and their values, added while the client is calling the API methods
+  private final Map<Marker, Value> markers = new HashMap<>();
+  // The bind values in their final order in the query
+  private final List<Value> boundValues = new ArrayList<>();
 
   private Replication replication;
   private boolean ifNotExists;
@@ -147,11 +150,10 @@ public class QueryBuilderImpl {
   private String indexCreateColumn;
   private String customIndexClass;
   private Map<String, String> customIndexOptions;
-  private Term<Integer> ttl;
-  private Term<Long> timestamp;
+  private Term ttl;
+  private Term timestamp;
   private boolean allowFiltering;
   private QueryParameters parameters;
-  private boolean hasAnonymousMarkers;
 
   @DSLAction
   public void create() {
@@ -450,24 +452,15 @@ public class QueryBuilderImpl {
 
   @DSLAction
   public void value(String column, Object value) {
-    addModifier(ValueModifier.set(column, termFor(column, value)));
+    addModifier(ValueModifier.set(column, termFor(value)));
   }
 
   public void value(Column column, Object value) {
     value(column.name(), value);
   }
 
-  @DSLAction
-  public void value(String column) {
-    addModifier(ValueModifier.marker(column));
-  }
-
-  public void value(Column column) {
-    value(column.name());
-  }
-
   public void value(ValueModifier modifier) {
-    Term<?> newValue = bindGrpcValues(modifier.target().columnName(), modifier.value());
+    Term newValue = bindGrpcValues(modifier.value());
     ValueModifier.Target newTarget = bindGrpcValues(modifier.target());
     if (newValue != modifier.value() || newTarget != modifier.target()) {
       modifier = ValueModifier.of(newTarget, modifier.operation(), newValue);
@@ -493,15 +486,7 @@ public class QueryBuilderImpl {
   }
 
   public void where(String columnName, Predicate predicate, Object value) {
-    where(BuiltCondition.of(columnName, predicate, termFor(columnName, value)));
-  }
-
-  public void where(Column column, Predicate predicate) {
-    where(column.name(), predicate);
-  }
-
-  public void where(String columnName, Predicate predicate) {
-    addWhere(BuiltCondition.ofMarker(columnName, predicate));
+    where(BuiltCondition.of(columnName, predicate, termFor(value)));
   }
 
   public void where(BuiltCondition where) {
@@ -520,11 +505,7 @@ public class QueryBuilderImpl {
   }
 
   public void ifs(String columnName, Predicate predicate, Object value) {
-    addIf(BuiltCondition.of(columnName, predicate, termFor(columnName, value)));
-  }
-
-  public void ifs(String columnName, Predicate predicate) {
-    addIf(BuiltCondition.ofMarker(columnName, predicate));
+    addIf(BuiltCondition.of(columnName, predicate, termFor(value)));
   }
 
   public void ifs(BuiltCondition condition) {
@@ -638,11 +619,6 @@ public class QueryBuilderImpl {
   }
 
   @DSLAction
-  public void limit() {
-    this.limit = Term.marker();
-  }
-
-  @DSLAction
   public void limit(Integer limit) {
     if (limit != null) {
       this.limit = Term.of(limit);
@@ -655,13 +631,8 @@ public class QueryBuilderImpl {
       if (limit.getInnerCase() != Value.InnerCase.INT) {
         throw new IllegalArgumentException("Expected an int value");
       }
-      this.limit = termFor("limit", limit);
+      this.limit = termFor(limit);
     }
-  }
-
-  @DSLAction
-  public void perPartitionLimit() {
-    this.perPartitionLimit = Term.marker();
   }
 
   @DSLAction
@@ -677,7 +648,7 @@ public class QueryBuilderImpl {
       if (limit.getInnerCase() != Value.InnerCase.INT) {
         throw new IllegalArgumentException("Expected an int value");
       }
-      this.perPartitionLimit = termFor("perPartitionLimit", limit);
+      this.perPartitionLimit = termFor(limit);
     }
   }
 
@@ -713,11 +684,6 @@ public class QueryBuilderImpl {
   }
 
   @DSLAction
-  public void ttl() {
-    this.ttl = Term.marker();
-  }
-
-  @DSLAction
   public void ttl(Integer ttl) {
     if (ttl != null) {
       this.ttl = Term.of(ttl);
@@ -730,13 +696,8 @@ public class QueryBuilderImpl {
       if (ttl.getInnerCase() != Value.InnerCase.INT) {
         throw new IllegalArgumentException("Expected an int value");
       }
-      this.ttl = termFor("ttl", ttl);
+      this.ttl = termFor(ttl);
     }
-  }
-
-  @DSLAction
-  public void timestamp() {
-    this.timestamp = Term.marker();
   }
 
   @DSLAction
@@ -752,7 +713,7 @@ public class QueryBuilderImpl {
       if (timestamp.getInnerCase() != Value.InnerCase.INT) {
         throw new IllegalArgumentException("Expected an int value");
       }
-      this.timestamp = termFor("timestamp", timestamp);
+      this.timestamp = termFor(timestamp);
     }
   }
 
@@ -765,12 +726,7 @@ public class QueryBuilderImpl {
   public Query build() {
     Query.Builder query = Query.newBuilder().setCql(buildCql());
     if (!boundValues.isEmpty()) {
-      Values.Builder values = Values.newBuilder();
-      for (Map.Entry<String, Value> entry : boundValues.entrySet()) {
-        values.addValueNames(entry.getKey());
-        values.addValues(entry.getValue());
-      }
-      query.setValues(values);
+      query.setValues(Values.newBuilder().addAllValues(boundValues).build());
     }
     if (parameters != null) {
       query.setParameters(parameters);
@@ -1200,11 +1156,22 @@ public class QueryBuilderImpl {
     return query.toString();
   }
 
-  static String formatValue(Term<?> value) {
+  private String formatValue(Term value) {
+    return formatValue(value, markers, boundValues);
+  }
+
+  static String formatValue(Term value, Map<Marker, Value> markers, List<Value> boundValues) {
     if (value instanceof Marker) {
-      return ((Marker<?>) value).asCql();
+      Marker marker = (Marker) value;
+
+      // Track the exact order in which values are to be bound to the query
+      Value boundValue = markers.get(marker);
+      assert boundValue != null;
+      boundValues.add(boundValue);
+
+      return marker.asCql();
     } else if (value instanceof Literal) {
-      Object v = ((Literal<?>) value).get();
+      Object v = ((Literal) value).get();
       if (v instanceof Value) {
         // This can only happen if we forgot to call termFor() somewhere
         throw new IllegalStateException("gRPC value should have been converted to a marker");
@@ -1214,6 +1181,8 @@ public class QueryBuilderImpl {
         // This works for simple values. We assume that this will be good enough for our needs.
         return v.toString();
       }
+    } else if (value == null) {
+      throw new AssertionError("Unexpected null value");
     } else {
       throw new AssertionError("Unexpected value type " + value.getClass().getName());
     }
@@ -1235,7 +1204,7 @@ public class QueryBuilderImpl {
 
     String columnName = modifier.target().columnName();
     String fieldName = modifier.target().fieldName();
-    Term<?> mapKey = modifier.target().mapKey();
+    Term mapKey = modifier.target().mapKey();
 
     String targetString;
     if (fieldName != null) {
@@ -1304,7 +1273,7 @@ public class QueryBuilderImpl {
     }
     for (BuiltCondition condition : conditions) {
       builder.append(prefix);
-      condition.lhs().appendToBuilder(builder);
+      condition.lhs().appendToBuilder(builder, markers, boundValues);
       builder
           .append(" ")
           .append(condition.predicate().toString())
@@ -1365,7 +1334,7 @@ public class QueryBuilderImpl {
     }
 
     if (limit != null) {
-      builder.append(" LIMIT ").append(formatValue(perPartitionLimit));
+      builder.append(" LIMIT ").append(formatValue(limit));
     }
 
     if (allowFiltering) {
@@ -1375,44 +1344,18 @@ public class QueryBuilderImpl {
     return builder.toString();
   }
 
-  @SuppressWarnings("unchecked")
-  private <T> Term<T> termFor(String name, Object value) {
+  private Term termFor(Object value) {
     if (value instanceof Marker) {
-      // We don't expose a public way to create named markers. If we change that, we'll need to
-      // adjust the code below, and also ensure that client-provided named markers do not clash with
-      // our generated ones.
-      assert ((Marker<?>) value).isAnonymous();
-
-      hasAnonymousMarkers = true;
-      checkNoMixedMarkers();
-      return ((Marker<T>) value);
-    } else if (value instanceof Value) {
-      String markerName = addBoundValue(name, ((Value) value));
-      checkNoMixedMarkers();
-      return new Marker<>(markerName);
-    } else {
-      return ((Term<T>) Term.of(value));
-    }
-  }
-
-  private void checkNoMixedMarkers() {
-    if (hasAnonymousMarkers && !boundValues.isEmpty()) {
       throw new IllegalArgumentException(
-          String.format(
-              "Can't use anonymous and named markers in the same query (arguments of type "
-                  + "`%s` are automatically converted to named markers)",
-              Value.class.getName()));
+          "Using Marker instances as values is not supported. Pass a QueryOuterClass.Value "
+              + "instead, and it will be converted to a marker internally. ");
+    } else if (value instanceof Value) {
+      Marker marker = new Marker();
+      markers.put(marker, ((Value) value));
+      return marker;
+    } else {
+      return Term.of(value);
     }
-  }
-
-  private String addBoundValue(String name, Value value) {
-    String marker = name;
-    int i = 2;
-    while (boundValues.containsKey(marker)) {
-      marker = name + i++;
-    }
-    boundValues.put(marker, value);
-    return marker;
   }
 
   /**
@@ -1420,53 +1363,51 @@ public class QueryBuilderImpl {
    * value is automatically bound and a bind marker is returned. If not, the instance is returned
    * unchanged.
    */
-  private Term<?> bindGrpcValues(String name, Term<?> t) {
+  private Term bindGrpcValues(Term t) {
     if (!(t instanceof Literal)) {
       return t;
     }
-    Object o = ((Literal<?>) t).get();
+    Object o = ((Literal) t).get();
     if (!(o instanceof Value)) {
       return t;
     }
-    return termFor(name, o);
+    return termFor(o);
   }
 
-  /** @see #bindGrpcValues(String, Term) */
+  /** @see #bindGrpcValues(Term) */
   private ValueModifier.Target bindGrpcValues(ValueModifier.Target t) {
-    Term<?> mapKey = t.mapKey();
+    Term mapKey = t.mapKey();
     if (mapKey == null) {
       return t;
     }
     if (!(mapKey instanceof Literal)) {
       return t;
     }
-    Object o = ((Literal<?>) mapKey).get();
+    Object o = ((Literal) mapKey).get();
     if (!(o instanceof Value)) {
       return t;
     }
-    return ValueModifier.Target.mapValue(t.columnName(), termFor(t.columnName(), o));
+    return ValueModifier.Target.mapValue(t.columnName(), termFor(o));
   }
 
-  /** @see #bindGrpcValues(String, Term) */
+  /** @see #bindGrpcValues(Term) */
   private BuiltCondition.LHS bindGrpcValues(BuiltCondition.LHS lhs) {
     return lhs.value()
         .filter(v -> v instanceof Literal)
         .map(
             v -> {
-              Term<?> newValue = termFor(lhs.columnName(), ((Literal<?>) v).get());
+              Term newValue = termFor(((Literal) v).get());
               return (BuiltCondition.LHS)
                   new BuiltCondition.LHS.MapElement(lhs.columnName(), newValue);
             })
         .orElse(lhs);
   }
 
-  /** @see #bindGrpcValues(String, Term) */
+  /** @see #bindGrpcValues(Term) */
   private BuiltCondition bindGrpcValues(BuiltCondition where) {
     BuiltCondition.LHS newLhs = bindGrpcValues(where.lhs());
 
-    // Will need to compute a different name if LHS.tuple() or token() are implemented
-    assert where.lhs().columnName() != null;
-    Term<?> newValue = bindGrpcValues(where.lhs().columnName(), where.value());
+    Term newValue = bindGrpcValues(where.value());
 
     if (newValue != where.value() || newLhs != where.lhs()) {
       where = BuiltCondition.of(newLhs, where.predicate(), newValue);

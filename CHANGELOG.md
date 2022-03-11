@@ -1,5 +1,58 @@
 # Changelog
 
+
+
+## [v1.0.50](https://github.com/stargate/stargate/tree/v1.0.50) (2022-03-03)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-3...v1.0.50)
+
+**Implemented enhancements:**
+
+- Support more consistency levels in mutation options [\#729](https://github.com/stargate/stargate/issues/729)
+
+**Fixed bugs:**
+
+- Add workaround for `QueryProcessor` race condition \[CASSANDRA-17401\] [\#1655](https://github.com/stargate/stargate/issues/1655)
+- `@IfBundleAvailable` does not support nested tests classes [\#1649](https://github.com/stargate/stargate/issues/1649)
+- Documents not checked for valid JSON schema on batch write [\#1610](https://github.com/stargate/stargate/issues/1610)
+- DocsApi allows for creating json with value and empty key [\#1220](https://github.com/stargate/stargate/issues/1220)
+
+**Closed issues:**
+
+- What fields should my JWT define? [\#1674](https://github.com/stargate/stargate/issues/1674)
+- gRPC module missing basic authorization tests [\#1665](https://github.com/stargate/stargate/issues/1665)
+- Metrics for non-API endpoints should be reported as different module [\#1660](https://github.com/stargate/stargate/issues/1660)
+- gRPC to correctly hande retries in case of the `PreparedQueryNotFoundException` [\#1659](https://github.com/stargate/stargate/issues/1659)
+- Update C\*3, C\*4 and DSE dependencies by Stargate [\#1644](https://github.com/stargate/stargate/issues/1644)
+- Refactor Rest API Integration tests that test Materialized Views into separate class [\#1639](https://github.com/stargate/stargate/issues/1639)
+- Cannot launch tests in Intellij [\#1621](https://github.com/stargate/stargate/issues/1621)
+- No operation available for full or partial text search  [\#1195](https://github.com/stargate/stargate/issues/1195)
+
+**Merged pull requests:**
+
+- Populate client info on all queries [\#1671](https://github.com/stargate/stargate/pull/1671) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Add basic gRPC/authorization tests [\#1666](https://github.com/stargate/stargate/pull/1666) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- closes \#1220: json with empty field names not supported [\#1663](https://github.com/stargate/stargate/pull/1663) ([ivansenic](https://github.com/ivansenic))
+- closes \#1660: non-api endpoint metrics to be reported with different … [\#1662](https://github.com/stargate/stargate/pull/1662) ([ivansenic](https://github.com/ivansenic))
+- closes \#1659: proper handling of retries for unprepared errors in grpc [\#1661](https://github.com/stargate/stargate/pull/1661) ([ivansenic](https://github.com/ivansenic))
+- Add a test to verify keyspace creation authnz checks; clean up test a bit [\#1658](https://github.com/stargate/stargate/pull/1658) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- updating stargate-jars.zip to match expected structure [\#1653](https://github.com/stargate/stargate/pull/1653) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Third part of \#1644 fix: upgrade `dse-core` 6.8.16 -\> 6.8.20 [\#1652](https://github.com/stargate/stargate/pull/1652) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- closes \#1649: fixed BundleAvailableCondition to support nested classes [\#1650](https://github.com/stargate/stargate/pull/1650) ([ivansenic](https://github.com/ivansenic))
+- Second part of \#1644 fix: C\*4 from 4.0.1 to 4.0.3 upgrade [\#1647](https://github.com/stargate/stargate/pull/1647) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- First part of \#1644: C\*3 from 3.11.11-\>3.11.12 [\#1646](https://github.com/stargate/stargate/pull/1646) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Trivial fix to avoid duplicate "Order" values; make sure name/desc separate [\#1643](https://github.com/stargate/stargate/pull/1643) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- ability to add extra tags for each gRPC call [\#1642](https://github.com/stargate/stargate/pull/1642) ([ivansenic](https://github.com/ivansenic))
+- Extract bridge HTTP helpers to sgv2-service-common [\#1641](https://github.com/stargate/stargate/pull/1641) ([olim7t](https://github.com/olim7t))
+- Fix \#1639: refactor Materialized View REST API ITs into separate test class [\#1640](https://github.com/stargate/stargate/pull/1640) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- workflow to complete v2 release tasks  [\#1637](https://github.com/stargate/stargate/pull/1637) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Create docker-login.yml [\#1636](https://github.com/stargate/stargate/pull/1636) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Add host ID property, flag, and env var [\#1635](https://github.com/stargate/stargate/pull/1635) ([mpenick](https://github.com/mpenick))
+- refactor batch write of documents [\#1617](https://github.com/stargate/stargate/pull/1617) ([ivansenic](https://github.com/ivansenic))
+- Add an example for streaming gRPC bi-streaming queries [\#1603](https://github.com/stargate/stargate/pull/1603) ([tomekl007](https://github.com/tomekl007))
+- Allows runtime override of query and mutation consistency levels. [\#1543](https://github.com/stargate/stargate/pull/1543) ([tub](https://github.com/tub))
+
+
 ## [v2.0.0-ALPHA-3](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-3) (2022-02-14)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-2...v2.0.0-ALPHA-3)
@@ -120,6 +173,54 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
 
+## [v1.0.50](https://github.com/stargate/stargate/tree/v1.0.50) (2022-03-03)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.49...v1.0.50)
+
+**Implemented enhancements:**
+
+- Support more consistency levels in mutation options [\#729](https://github.com/stargate/stargate/issues/729)
+
+**Fixed bugs:**
+
+- Add workaround for `QueryProcessor` race condition \[CASSANDRA-17401\] [\#1655](https://github.com/stargate/stargate/issues/1655)
+- `@IfBundleAvailable` does not support nested tests classes [\#1649](https://github.com/stargate/stargate/issues/1649)
+- Documents not checked for valid JSON schema on batch write [\#1610](https://github.com/stargate/stargate/issues/1610)
+- DocsApi allows for creating json with value and empty key [\#1220](https://github.com/stargate/stargate/issues/1220)
+
+**Closed issues:**
+
+- What fields should my JWT define? [\#1674](https://github.com/stargate/stargate/issues/1674)
+- gRPC module missing basic authorization tests [\#1665](https://github.com/stargate/stargate/issues/1665)
+- Metrics for non-API endpoints should be reported as different module [\#1660](https://github.com/stargate/stargate/issues/1660)
+- gRPC to correctly hande retries in case of the `PreparedQueryNotFoundException` [\#1659](https://github.com/stargate/stargate/issues/1659)
+- Update C\*3, C\*4 and DSE dependencies by Stargate [\#1644](https://github.com/stargate/stargate/issues/1644)
+- Refactor Rest API Integration tests that test Materialized Views into separate class [\#1639](https://github.com/stargate/stargate/issues/1639)
+- Cannot launch tests in Intellij [\#1621](https://github.com/stargate/stargate/issues/1621)
+- No operation available for full or partial text search  [\#1195](https://github.com/stargate/stargate/issues/1195)
+
+**Merged pull requests:**
+
+- Populate client info on all queries [\#1671](https://github.com/stargate/stargate/pull/1671) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Add basic gRPC/authorization tests [\#1666](https://github.com/stargate/stargate/pull/1666) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- closes \#1220: json with empty field names not supported [\#1663](https://github.com/stargate/stargate/pull/1663) ([ivansenic](https://github.com/ivansenic))
+- closes \#1660: non-api endpoint metrics to be reported with different … [\#1662](https://github.com/stargate/stargate/pull/1662) ([ivansenic](https://github.com/ivansenic))
+- closes \#1659: proper handling of retries for unprepared errors in grpc [\#1661](https://github.com/stargate/stargate/pull/1661) ([ivansenic](https://github.com/ivansenic))
+- Add a test to verify keyspace creation authnz checks; clean up test a bit [\#1658](https://github.com/stargate/stargate/pull/1658) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Specialize v2 QueryBuilder to generate gRPC Query [\#1657](https://github.com/stargate/stargate/pull/1657) ([olim7t](https://github.com/olim7t))
+- updating stargate-jars.zip to match expected structure [\#1653](https://github.com/stargate/stargate/pull/1653) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Third part of \#1644 fix: upgrade `dse-core` 6.8.16 -\> 6.8.20 [\#1652](https://github.com/stargate/stargate/pull/1652) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- closes \#1649: fixed BundleAvailableCondition to support nested classes [\#1650](https://github.com/stargate/stargate/pull/1650) ([ivansenic](https://github.com/ivansenic))
+- Second part of \#1644 fix: C\*4 from 4.0.1 to 4.0.3 upgrade [\#1647](https://github.com/stargate/stargate/pull/1647) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- First part of \#1644: C\*3 from 3.11.11-\>3.11.12 [\#1646](https://github.com/stargate/stargate/pull/1646) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Trivial fix to avoid duplicate "Order" values; make sure name/desc separate [\#1643](https://github.com/stargate/stargate/pull/1643) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- ability to add extra tags for each gRPC call [\#1642](https://github.com/stargate/stargate/pull/1642) ([ivansenic](https://github.com/ivansenic))
+- Fix \#1639: refactor Materialized View REST API ITs into separate test class [\#1640](https://github.com/stargate/stargate/pull/1640) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- workflow to complete v2 release tasks  [\#1637](https://github.com/stargate/stargate/pull/1637) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Create docker-login.yml [\#1636](https://github.com/stargate/stargate/pull/1636) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Add host ID property, flag, and env var [\#1635](https://github.com/stargate/stargate/pull/1635) ([mpenick](https://github.com/mpenick))
+- refactor batch write of documents [\#1617](https://github.com/stargate/stargate/pull/1617) ([ivansenic](https://github.com/ivansenic))
+- Add an example for streaming gRPC bi-streaming queries [\#1603](https://github.com/stargate/stargate/pull/1603) ([tomekl007](https://github.com/tomekl007))
 
 ## [v1.0.49](https://github.com/stargate/stargate/tree/v1.0.49) (2022-02-07)
 
@@ -2029,4 +2130,3 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 
 
 
-\* *This Changelog was automatically generated by [github_changelog_generator](https://github.com/github-changelog-generator/github-changelog-generator)*
