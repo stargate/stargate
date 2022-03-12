@@ -17,10 +17,6 @@ package io.stargate.grpc;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.ImmutableList;
-import com.google.common.io.ByteArrayDataOutput;
-import com.google.common.io.ByteStreams;
-import java.io.DataInput;
-import java.io.IOException;
 import java.time.Duration;
 import java.time.Period;
 import java.time.temporal.ChronoUnit;
@@ -277,23 +273,6 @@ public final class CqlDuration implements TemporalAmount {
     return dividend % divisor;
   }
 
-  public static CqlDuration decode(byte[] bytes) {
-    if (bytes == null || bytes.length == 0) {
-      return null;
-    } else {
-      DataInput in = ByteStreams.newDataInput(bytes);
-      try {
-        int months = (int) VIntCoding.readVInt(in);
-        int days = (int) VIntCoding.readVInt(in);
-        long nanoseconds = VIntCoding.readVInt(in);
-        return CqlDuration.newInstance(months, days, nanoseconds);
-      } catch (IOException e) {
-        // cannot happen
-        throw new AssertionError();
-      }
-    }
-  }
-
   /**
    * Returns the number of months in this duration.
    *
@@ -367,23 +346,6 @@ public final class CqlDuration implements TemporalAmount {
   @Override
   public List<TemporalUnit> getUnits() {
     return TEMPORAL_UNITS;
-  }
-
-  public byte[] encode() {
-    int size =
-        VIntCoding.computeVIntSize(months)
-            + VIntCoding.computeVIntSize(days)
-            + VIntCoding.computeVIntSize(nanoseconds);
-    ByteArrayDataOutput out = ByteStreams.newDataOutput(size);
-    try {
-      VIntCoding.writeVInt(months, out);
-      VIntCoding.writeVInt(days, out);
-      VIntCoding.writeVInt(nanoseconds, out);
-    } catch (IOException e) {
-      // cannot happen
-      throw new AssertionError();
-    }
-    return out.toByteArray();
   }
 
   @Override

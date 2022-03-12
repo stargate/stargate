@@ -15,12 +15,17 @@
  */
 package io.stargate.grpc.codec;
 
-import com.google.protobuf.ByteString;
+import com.google.common.io.ByteArrayDataOutput;
+import com.google.common.io.ByteStreams;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.db.schema.Column.ColumnType;
+import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.proto.QueryOuterClass.Value.InnerCase;
+import java.io.DataInput;
+import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 public class DurationCodec implements ValueCodec {
   @Override
@@ -28,7 +33,21 @@ public class DurationCodec implements ValueCodec {
     if (value.getInnerCase() != InnerCase.DURATION) {
       throw new IllegalArgumentException("Expected varint type");
     }
-    return ByteBuffer.wrap(value.getDuration().toByteArray());
+    QueryOuterClass.Duration duration = value.getDuration();
+    int size =
+        VIntCoding.computeVIntSize(duration.getMonths())
+            + VIntCoding.computeVIntSize(duration.getDays())
+            + VIntCoding.computeVIntSize(duration.getNanos());
+    ByteArrayDataOutput out = ByteStreams.newDataOutput(size);
+    try {
+      VIntCoding.writeVInt(duration.getMonths(), out);
+      VIntCoding.writeVInt(duration.getDays(), out);
+      VIntCoding.writeVInt(duration.getNanos(), out);
+    } catch (IOException e) {
+      // cannot happen
+      throw new AssertionError();
+    }
+    return ByteBuffer.wrap(out.toByteArray());
   }
 
   @Override
@@ -37,7 +56,35 @@ public class DurationCodec implements ValueCodec {
       throw new IllegalArgumentException(
           "Invalid duration value, expecting non-empty Bytes but got 0");
     }
+    DataInput in = ByteStreams.newDataInput(getArray(bytes));
+    try {
+      int months = (int) VIntCoding.readVInt(in);
+      int days = (int) VIntCoding.readVInt(in);
+      long nanos = VIntCoding.readVInt(in);
+      return Value.newBuilder()
+          .setDuration(
+              QueryOuterClass.Duration.newBuilder().setMonths(months).setDays(days).setNanos(nanos))
+          .build();
+    } catch (IOException e) {
+      // cannot happen
+      throw new AssertionError();
+    }
+  }
 
-    return Value.newBuilder().setDuration(ByteString.copyFrom(bytes.duplicate())).build();
+  private static byte[] getArray(ByteBuffer bytes) {
+    int length = bytes.remaining();
+
+    if (bytes.hasArray()) {
+      int boff = bytes.arrayOffset() + bytes.position();
+      if (boff == 0 && length == bytes.array().length) {
+        return bytes.array();
+      } else {
+        return Arrays.copyOfRange(bytes.array(), boff, boff + length);
+      }
+    }
+    // else, DirectByteBuffer.get() is the fastest route
+    byte[] array = new byte[length];
+    bytes.duplicate().get(array);
+    return array;
   }
 }

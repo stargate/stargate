@@ -101,7 +101,13 @@ public class Values {
   }
 
   public static Value of(CqlDuration duration) {
-    return Value.newBuilder().setDuration(ByteString.copyFrom(duration.encode())).build();
+    return Value.newBuilder()
+        .setDuration(
+            QueryOuterClass.Duration.newBuilder()
+                .setMonths(duration.getMonths())
+                .setDays(duration.getDays())
+                .setNanos(duration.getNanoseconds()))
+        .build();
   }
 
   public static Value of(BigInteger value) {
@@ -311,7 +317,8 @@ public class Values {
   public static CqlDuration duration(Value value) {
     checkInnerCase(value, InnerCase.DURATION);
 
-    return CqlDuration.decode(value.getDuration().toByteArray());
+    QueryOuterClass.Duration duration = value.getDuration();
+    return CqlDuration.newInstance(duration.getMonths(), duration.getDays(), duration.getNanos());
   }
 
   private static void checkInnerCase(Value value, InnerCase expected) {

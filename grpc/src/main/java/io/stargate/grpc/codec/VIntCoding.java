@@ -42,7 +42,7 @@
 // THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 // (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 // OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-package io.stargate.grpc;
+package io.stargate.grpc.codec;
 
 import java.io.DataInput;
 import java.io.DataOutput;
@@ -110,9 +110,6 @@ class VIntCoding {
     return Integer.numberOfLeadingZeros(~firstByte) - 24;
   }
 
-  private static final ThreadLocal<byte[]> encodingBuffer =
-      ThreadLocal.withInitial(() -> new byte[9]);
-
   private static void writeUnsignedVInt(long value, DataOutput output) throws IOException {
     int size = VIntCoding.computeUnsignedVIntSize(value);
     if (size == 1) {
@@ -124,7 +121,7 @@ class VIntCoding {
   }
 
   private static byte[] encodeVInt(long value, int size) {
-    byte encodingSpace[] = encodingBuffer.get();
+    byte[] encodingSpace = new byte[9];
     int extraBytes = size - 1;
 
     for (int i = extraBytes; i >= 0; --i) {

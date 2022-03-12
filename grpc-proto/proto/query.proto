@@ -78,6 +78,12 @@ message Decimal {
   bytes value = 3;
 }
 
+message Duration {
+  sint32 months = 1;
+  sint32 days = 2;
+  sint64 nanos = 3;
+}
+
 // A CQL value. This is used both in requests to bind parameterized query strings, and in responses
 // to represent the result data.
 message Value {
@@ -129,9 +135,7 @@ message Value {
     uint64 time = 12;
 
     // CQL types: duration
-    // The duration value's fields (months, days and nanos), encoded in Cassandra's [varint] format
-    // and concatenated together.
-    bytes duration = 17;
+    Duration duration = 17;
 
     // CQL types: list, set, map, tuple
     Collection collection = 13;
