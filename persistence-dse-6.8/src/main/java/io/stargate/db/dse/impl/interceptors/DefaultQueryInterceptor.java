@@ -3,7 +3,6 @@ package io.stargate.db.dse.impl.interceptors;
 import static io.stargate.db.dse.impl.StargateSystemKeyspace.SYSTEM_KEYSPACE_NAME;
 import static io.stargate.db.dse.impl.StargateSystemKeyspace.isSystemLocalOrPeers;
 
-import com.datastax.bdp.graph.DseGraphQueryOperationFactory;
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import io.reactivex.Single;
 import io.stargate.db.EventListener;
@@ -19,7 +18,6 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.ColumnIdentifier;
@@ -51,17 +49,6 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
 
   private final List<EventListener> listeners = new CopyOnWriteArrayList<>();
   private final Set<InetAddress> liveStargateNodes = Sets.newConcurrentHashSet();
-  private AtomicReference<DseGraphQueryOperationFactory> advanceWorkloadProcessor;
-
-  public DefaultQueryInterceptor(
-      AtomicReference<DseGraphQueryOperationFactory> advanceWorkloadProcessor) {
-    this.advanceWorkloadProcessor = advanceWorkloadProcessor;
-  }
-
-  public void setCustomAdvanceWorkload(
-      AtomicReference<DseGraphQueryOperationFactory> advanceWorkloadProcessor) {
-    this.advanceWorkloadProcessor = advanceWorkloadProcessor;
-  }
 
   // We also want to delay delivering a NEW_NODE notification until the new node has set its RPC
   // ready state. This tracks the endpoints which have joined, but not yet signalled they're ready
@@ -73,26 +60,6 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     StargateSystemKeyspace.initialize();
     Gossiper.instance.register(this);
     StargateSystemKeyspace.instance.persistLocalMetadata();
-  }
-
-  @Override
-  public Single<ResultMessage> interceptQuery(
-      String query,
-      QueryState state,
-      QueryOptions options,
-      Map<String, ByteBuffer> customPayload,
-      long queryStartNanoTime) {
-    if (customPayload != null && customPayload.containsKey("graph-language")) {
-      if (advanceWorkloadProcessor.get() != null) {
-        return advanceWorkloadProcessor
-            .get()
-            .process(query, state, options, customPayload, queryStartNanoTime);
-      } else {
-        throw new RuntimeException(
-            "Failed to find an Advanced Workload Service to execute request");
-      }
-    }
-    return null;
   }
 
   @Override

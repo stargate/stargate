@@ -1,6 +1,5 @@
 package io.stargate.db.dse;
 
-import com.datastax.bdp.graph.DseGraphQueryOperationFactory;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import io.stargate.auth.AuthorizationProcessor;
@@ -45,7 +44,7 @@ public class DsePersistenceActivator extends BaseActivator {
   private static final String AUTHZ_PROCESSOR_ID =
       System.getProperty("stargate.authorization.processor.id");
 
-  private static final String ADVANCED_WORKLOAD = System.getProperty("AdvancedWorkload");
+  private static final String ADVANCED_WORKLOAD = "AdvancedWorkload";
 
   private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
   private final LazyServicePointer<AuthorizationService> authorizationService =
@@ -56,9 +55,9 @@ public class DsePersistenceActivator extends BaseActivator {
   private final ServicePointer<AuthorizationProcessor> authorizationProcessor =
       ServicePointer.create(AuthorizationProcessor.class, "AuthProcessorId", AUTHZ_PROCESSOR_ID);
 
-  private final LazyServicePointer<DseGraphQueryOperationFactory> advanceWorkLoadProcessor =
+  private final LazyServicePointer<Persistence.Connection> advanceWorkLoadProcessor =
       LazyServicePointer.create(
-          DseGraphQueryOperationFactory.class, "AdvancedIdentifier", ADVANCED_WORKLOAD);
+          Persistence.Connection.class, "AdvancedWorkloadConnection", ADVANCED_WORKLOAD);
 
   private DsePersistence dseDB;
   private File baseDir;

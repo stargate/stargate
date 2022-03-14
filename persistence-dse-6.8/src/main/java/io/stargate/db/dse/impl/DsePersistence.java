@@ -6,7 +6,6 @@ import static io.stargate.db.dse.impl.Conversion.toResultMetadata;
 import com.datastax.bdp.db.nodes.Nodes;
 import com.datastax.bdp.db.util.ProductType;
 import com.datastax.bdp.db.util.ProductVersion;
-import com.datastax.bdp.graph.DseGraphQueryOperationFactory;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
@@ -38,14 +37,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -142,7 +134,7 @@ public class DsePersistence
   // C* listener that ensures that our Stargate schema remains up-to-date with the internal C* one.
   private SchemaChangeListener schemaChangeListener;
   private AtomicReference<AuthorizationService> authorizationService;
-  private AtomicReference<DseGraphQueryOperationFactory> advanceWorkloadProcessor;
+  private AtomicReference<Persistence.Connection> advanceWorkloadProcessor;
 
   public DsePersistence() {
     super("DataStax Enterprise");
@@ -237,7 +229,7 @@ public class DsePersistence
         ApplicationState.X10, StorageService.instance.valueFactory.dsefsState("stargate"));
 
     waitForSchema(STARTUP_DELAY_MS);
-    interceptor = new DefaultQueryInterceptor(this.advanceWorkloadProcessor);
+    interceptor = new DefaultQueryInterceptor();
     if (USE_PROXY_PROTOCOL) interceptor = new ProxyProtocolQueryInterceptor(interceptor);
 
     interceptor.initialize();
@@ -439,7 +431,7 @@ public class DsePersistence
   }
 
   public void setAdvanceWorkloadProcessor(
-      AtomicReference<DseGraphQueryOperationFactory> advanceWorkloadProcessor) {
+      AtomicReference<Persistence.Connection> advanceWorkloadProcessor) {
     this.advanceWorkloadProcessor = advanceWorkloadProcessor;
   }
 
@@ -609,6 +601,15 @@ public class DsePersistence
     @Override
     public CompletableFuture<Result> execute(
         Statement statement, Parameters parameters, long queryStartNanoTime) {
+      Map<String, ByteBuffer> customPayload = parameters.customPayload().orElse(new HashMap<>());
+      if (customPayload.containsKey("graph-language")) {
+        if (advanceWorkloadProcessor.get() != null) {
+          return advanceWorkloadProcessor.get().execute(statement, parameters, queryStartNanoTime);
+        } else {
+          throw new RuntimeException(
+              "Failed to find an Advanced Workload Service to execute request");
+        }
+      }
       return executeRequest(
           parameters,
           queryStartNanoTime,
