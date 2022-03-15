@@ -89,8 +89,7 @@ public abstract class MutationFetcher extends DmlFetcher<CompletionStage<Map<Str
     int selections = environment.getOperationDefinition().getSelectionSet().getSelections().size();
     StargateGraphqlContext.BatchContext batchContext = context.getBatchContext();
 
-    if (environment.getArgument("options") != null
-        && !batchContext.setParameters(buildParameters(environment))) {
+    if (query.hasParameters() && !batchContext.setParameters(query.getParameters())) {
       buildException =
           new GraphQLException("options can only de defined once in an @atomic mutation selection");
     }

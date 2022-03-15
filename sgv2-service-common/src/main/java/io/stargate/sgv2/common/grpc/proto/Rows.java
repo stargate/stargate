@@ -22,6 +22,7 @@ import io.stargate.bridge.proto.QueryOuterClass.Value;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;
+import java.util.UUID;
 import java.util.function.Function;
 
 public class Rows {
@@ -58,6 +59,18 @@ public class Rows {
     return getBasic(row, name, columns, Values::varint);
   }
 
+  public static UUID getUuid(Row row, String name, List<ColumnSpec> columns) {
+    return getBasic(row, name, columns, Values::uuid);
+  }
+
+  public static String getString(Row row, String name, List<ColumnSpec> columns) {
+    return getBasic(row, name, columns, Values::string);
+  }
+
+  public static Boolean getBoolean(Row row, String name, List<ColumnSpec> columns) {
+    return getBasic(row, name, columns, Values::bool);
+  }
+
   /** @return the index, or <0 if the column does not exist. */
   public static int firstIndexOf(String name, List<ColumnSpec> columns) {
     for (int i = 0; i < columns.size(); i++) {
@@ -71,12 +84,16 @@ public class Rows {
 
   private static <V> V getBasic(
       Row row, String name, List<ColumnSpec> columns, Function<Value, V> getter) {
+    Value value = getValue(row, name, columns);
+    return getter.apply(value);
+  }
+
+  public static Value getValue(Row row, String name, List<ColumnSpec> columns) {
     int i = firstIndexOf(name, columns);
     if (i < 0) {
       throw new IllegalArgumentException(String.format("Column '%s' does not exist", name));
     }
-    Value value = row.getValues(i);
-    return getter.apply(value);
+    return row.getValues(i);
   }
 
   private Rows() {

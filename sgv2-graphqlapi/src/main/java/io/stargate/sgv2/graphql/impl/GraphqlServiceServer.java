@@ -31,8 +31,10 @@ import io.stargate.sgv2.common.http.CreateStargateBridgeClientFilter;
 import io.stargate.sgv2.common.http.StargateBridgeClientJerseyFactory;
 import io.stargate.sgv2.graphql.resources.HealthResource;
 import io.stargate.sgv2.graphql.resources.MetricsResource;
+import io.stargate.sgv2.graphql.web.resources.AdminResource;
 import io.stargate.sgv2.graphql.web.resources.DdlResource;
 import io.stargate.sgv2.graphql.web.resources.DmlResource;
+import io.stargate.sgv2.graphql.web.resources.FilesResource;
 import io.stargate.sgv2.graphql.web.resources.GraphqlCache;
 import io.stargate.sgv2.graphql.web.resources.PlaygroundResource;
 import java.util.Collections;
@@ -97,6 +99,8 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
         });
     environment.jersey().register(DdlResource.class);
     environment.jersey().register(DmlResource.class);
+    environment.jersey().register(AdminResource.class);
+    environment.jersey().register(FilesResource.class);
 
     if (!disablePlayground) {
       environment.jersey().register(PlaygroundResource.class);

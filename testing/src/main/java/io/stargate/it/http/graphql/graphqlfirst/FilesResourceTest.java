@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.http.ApiServiceConnectionInfo;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.util.UUID;
@@ -43,14 +44,22 @@ public class FilesResourceTest extends GraphqlFirstTestBase {
   private static GraphqlFirstClient UNAUTHORIZED_CLIENT;
 
   @BeforeAll
-  public static void setup(StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceId) {
-    String host = cluster.seedAddress();
-    CLIENT = new GraphqlFirstClient(host, RestUtils.getAuthToken(host));
+  public static void setup(
+      StargateConnectionInfo stargateBackend,
+      ApiServiceConnectionInfo stargateGraphqlApi,
+      @TestKeyspace CqlIdentifier keyspaceId) {
+    CLIENT =
+        new GraphqlFirstClient(
+            stargateGraphqlApi.host(),
+            stargateGraphqlApi.port(),
+            RestUtils.getAuthToken(stargateBackend.seedAddress()));
 
     DEPLOYED_SCHEMA_VERSION = CLIENT.deploySchema(keyspaceId.asInternal(), SCHEMA_CONTENTS);
     assertThat(DEPLOYED_SCHEMA_VERSION).isNotEqualTo(WRONG_SCHEMA_VERSION);
 
-    UNAUTHORIZED_CLIENT = new GraphqlFirstClient(host, "invalid auth token");
+    UNAUTHORIZED_CLIENT =
+        new GraphqlFirstClient(
+            stargateGraphqlApi.host(), stargateGraphqlApi.port(), "invalid auth token");
   }
 
   @Test

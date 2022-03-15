@@ -22,6 +22,7 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.http.ApiServiceConnectionInfo;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.util.List;
@@ -41,10 +42,15 @@ public class AtomicTest extends GraphqlFirstTestBase {
 
   @BeforeAll
   public static void setup(
-      StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
+      StargateConnectionInfo stargateBackend,
+      ApiServiceConnectionInfo stargateGraphqlApi,
+      @TestKeyspace CqlIdentifier keyspaceId,
+      CqlSession session) {
     CLIENT =
         new GraphqlFirstClient(
-            cluster.seedAddress(), RestUtils.getAuthToken(cluster.seedAddress()));
+            stargateGraphqlApi.host(),
+            stargateGraphqlApi.port(),
+            RestUtils.getAuthToken(stargateBackend.seedAddress()));
     KEYSPACE = keyspaceId.asInternal();
     SESSION = session;
     CLIENT.deploySchema(
@@ -53,9 +59,6 @@ public class AtomicTest extends GraphqlFirstTestBase {
             + "  k: Int @cql_column(partitionKey: true)\n"
             + "  cc: Int @cql_column(clusteringOrder: ASC)\n"
             + "  v: Int\n"
-            // Add another column but we'll remove it immediately below. This is the trick to have
-            // the ability to make requests fail.
-            + "  v2: Int\n"
             + "}\n"
             + "type InsertFooResponse @cql_payload {\n"
             + "  foo: Foo\n"
@@ -72,7 +75,6 @@ public class AtomicTest extends GraphqlFirstTestBase {
             + "  insertFoos(foos: [FooInput]): [InsertFooResponse]\n"
             + "  insertFoosIfNotExists(foos: [FooInput]): [InsertFooResponse]\n"
             + "}\n");
-    SESSION.execute("ALTER TABLE \"Foo\" DROP v2");
   }
 
   @BeforeEach
@@ -308,41 +310,6 @@ public class AtomicTest extends GraphqlFirstTestBase {
     assertThat(JsonPath.<List<String>>read(error2, "$.path")).containsOnly("insert2");
     assertThat(JsonPath.<String>read(error2, "$.message"))
         .contains("all the selections in an @atomic mutation must use the same consistency levels");
-
-    Map<String, Object> error3 = errors.get(2);
-    assertThat(JsonPath.<List<String>>read(error3, "$.path")).containsOnly("insert3");
-    assertThat(JsonPath.<String>read(error3, "$.message"))
-        .contains(
-            "@atomic mutation aborted because one of the operations failed (see other errors for details)");
-  }
-
-  @Test
-  @DisplayName("Should fail all operations if one operation fails before execution")
-  public void failOnOperationError() {
-    // Given
-    String query =
-        "mutation @atomic {\n"
-            + "  insert1: insertFoo(foo: { k: 1, cc: 1, v: 1 }) { applied }\n"
-            // Fails because we dropped column v2 after deploying:
-            + "  insert2: insertFoo(foo: { k: 1, cc: 2, v2: 2 }) { applied }\n"
-            + "  insert3: insertFoo(foo: { k: 1, cc: 3, v: 3 }) { applied }\n"
-            + "}\n";
-
-    // When
-    List<Map<String, Object>> errors = CLIENT.getKeyspaceErrors(KEYSPACE, query);
-
-    // Then
-    assertThat(errors).hasSize(3);
-
-    Map<String, Object> error1 = errors.get(0);
-    assertThat(JsonPath.<List<String>>read(error1, "$.path")).containsOnly("insert1");
-    assertThat(JsonPath.<String>read(error1, "$.message"))
-        .contains(
-            "@atomic mutation aborted because one of the operations failed (see other errors for details)");
-    Map<String, Object> error2 = errors.get(1);
-
-    assertThat(JsonPath.<List<String>>read(error2, "$.path")).containsOnly("insert2");
-    assertThat(JsonPath.<String>read(error2, "$.message")).contains("Cannot find column v2");
 
     Map<String, Object> error3 = errors.get(2);
     assertThat(JsonPath.<List<String>>read(error3, "$.path")).containsOnly("insert3");

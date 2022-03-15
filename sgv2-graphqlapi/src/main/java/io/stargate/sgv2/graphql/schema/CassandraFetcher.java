@@ -24,7 +24,6 @@ import io.stargate.bridge.proto.QueryOuterClass.ConsistencyValue;
 import io.stargate.bridge.proto.QueryOuterClass.QueryParameters;
 import io.stargate.bridge.proto.QueryOuterClass.ResultSet;
 import io.stargate.bridge.proto.QueryOuterClass.Row;
-import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
 import io.stargate.sgv2.common.grpc.proto.Rows;
 import io.stargate.sgv2.graphql.web.resources.StargateGraphqlContext;
 import java.util.List;
@@ -70,10 +69,6 @@ public abstract class CassandraFetcher<ResultT> implements DataFetcher<ResultT> 
     if (i < 0) {
       return false;
     }
-    ColumnSpec column = columns.get(i);
-    if (column.getType().getBasic() != TypeSpec.Basic.BOOLEAN) {
-      return false;
-    }
-    return row.getValues(i).getBoolean();
+    return Rows.getBoolean(row, "[applied]", columns);
   }
 }
