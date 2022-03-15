@@ -134,7 +134,7 @@ public class DsePersistence
   // C* listener that ensures that our Stargate schema remains up-to-date with the internal C* one.
   private SchemaChangeListener schemaChangeListener;
   private AtomicReference<AuthorizationService> authorizationService;
-  private AtomicReference<Persistence.Connection> advanceWorkloadProcessor;
+  private AtomicReference<Persistence> advanceWorkloadProcessor;
 
   public DsePersistence() {
     super("DataStax Enterprise");
@@ -430,8 +430,7 @@ public class DsePersistence
     this.authorizationService = authorizationService;
   }
 
-  public void setAdvanceWorkloadProcessor(
-      AtomicReference<Persistence.Connection> advanceWorkloadProcessor) {
+  public void setAdvanceWorkloadProcessor(AtomicReference<Persistence> advanceWorkloadProcessor) {
     this.advanceWorkloadProcessor = advanceWorkloadProcessor;
   }
 
@@ -439,9 +438,13 @@ public class DsePersistence
 
     private final StargateClientState clientState;
     private final ServerConnection fakeServerConnection;
+    private Persistence.Connection advanceWorkloadConnection;
 
     private DseConnection(@Nonnull ClientInfo clientInfo) {
       this(clientInfo, StargateClientState.forExternalCalls(clientInfo));
+      if (advanceWorkloadProcessor.get() != null) {
+        this.advanceWorkloadConnection = advanceWorkloadProcessor.get().newConnection(clientInfo);
+      }
     }
 
     private DseConnection() {
@@ -603,8 +606,8 @@ public class DsePersistence
         Statement statement, Parameters parameters, long queryStartNanoTime) {
       Map<String, ByteBuffer> customPayload = parameters.customPayload().orElse(new HashMap<>());
       if (customPayload.containsKey("graph-language")) {
-        if (advanceWorkloadProcessor.get() != null) {
-          return advanceWorkloadProcessor.get().execute(statement, parameters, queryStartNanoTime);
+        if (advanceWorkloadConnection != null) {
+          return advanceWorkloadConnection.execute(statement, parameters, queryStartNanoTime);
         } else {
           throw new RuntimeException(
               "Failed to find an Advanced Workload Service to execute request");

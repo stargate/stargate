@@ -55,9 +55,8 @@ public class DsePersistenceActivator extends BaseActivator {
   private final ServicePointer<AuthorizationProcessor> authorizationProcessor =
       ServicePointer.create(AuthorizationProcessor.class, "AuthProcessorId", AUTHZ_PROCESSOR_ID);
 
-  private final LazyServicePointer<Persistence.Connection> advanceWorkLoadProcessor =
-      LazyServicePointer.create(
-          Persistence.Connection.class, "AdvancedWorkloadConnection", ADVANCED_WORKLOAD);
+  private final LazyServicePointer<Persistence> advanceWorkLoadProcessor =
+      LazyServicePointer.create(Persistence.class, "AdvancedWorkload", ADVANCED_WORKLOAD);
 
   private DsePersistence dseDB;
   private File baseDir;
