@@ -113,30 +113,35 @@ public class ReactiveDocumentService {
   }
 
   private Single<Integer> determineTtl(
-      Boolean ttlAuto, DocumentDB db, String namespace, String collection, String documentId)
-      throws UnauthorizedException {
-    if (ttlAuto == null || !ttlAuto) {
-      return Single.just(0);
-    }
-    authorizeRead(db, namespace, collection);
-    return searchService
-        .getDocumentTtlInfo(db.getQueryExecutor(), namespace, collection, documentId)
-        .singleElement()
-        .map(
-            document -> {
-              Integer ttl =
-                  document.rows().stream()
-                      .map(
-                          row ->
-                              row.getInt(
-                                  String.format("ttl(%s)", DocsApiConstants.LEAF_COLUMN_NAME)))
-                      .filter(Objects::nonNull)
-                      .mapToInt(Integer::valueOf)
-                      .max()
-                      .getAsInt();
-              return ttl == null ? 0 : ttl;
-            })
-        .defaultIfEmpty(0);
+      DocumentDB db,
+      String namespace,
+      String collection,
+      String documentId,
+      ExecutionContext context) {
+
+    return Single.defer(
+        () -> {
+          authorizeRead(db, namespace, collection);
+          return searchService
+              .getDocumentTtlInfo(db.getQueryExecutor(), namespace, collection, documentId, context)
+              .singleElement()
+              .map(
+                  document -> {
+                    Integer ttl =
+                        document.rows().stream()
+                            .map(
+                                row ->
+                                    row.getInt(
+                                        String.format(
+                                            "ttl(%s)", DocsApiConstants.LEAF_COLUMN_NAME)))
+                            .filter(Objects::nonNull)
+                            .mapToInt(Integer::valueOf)
+                            .max()
+                            .getAsInt();
+                    return ttl == null ? 0 : ttl;
+                  })
+              .defaultIfEmpty(0);
+        });
   }
 
   /**
@@ -368,13 +373,17 @@ public class ReactiveDocumentService {
       List<String> subPath,
       String payload,
       Boolean ttlAuto,
-      ExecutionContext context)
-      throws UnauthorizedException {
-    return determineTtl(ttlAuto, db, namespace, collection, documentId)
-        .flatMap(
-            ttl ->
-                updateDocumentInternal(
-                    db, namespace, collection, documentId, subPath, payload, ttl, context));
+      ExecutionContext context) {
+    if (ttlAuto != null && ttlAuto) {
+      return determineTtl(db, namespace, collection, documentId, context)
+          .flatMap(
+              ttl ->
+                  updateDocumentInternal(
+                      db, namespace, collection, documentId, subPath, payload, ttl, context));
+    } else {
+      return updateDocumentInternal(
+          db, namespace, collection, documentId, subPath, payload, null, context);
+    }
   }
 
   /**
@@ -483,13 +492,17 @@ public class ReactiveDocumentService {
       List<String> subPath,
       String payload,
       Boolean ttlAuto,
-      ExecutionContext context)
-      throws UnauthorizedException {
-    return determineTtl(ttlAuto, db, namespace, collection, documentId)
-        .flatMap(
-            ttl ->
-                patchDocumentInternal(
-                    db, namespace, collection, documentId, subPath, payload, ttl, context));
+      ExecutionContext context) {
+    if (ttlAuto != null && ttlAuto) {
+      return determineTtl(db, namespace, collection, documentId, context)
+          .flatMap(
+              ttl ->
+                  patchDocumentInternal(
+                      db, namespace, collection, documentId, subPath, payload, ttl, context));
+    } else {
+      return patchDocumentInternal(
+          db, namespace, collection, documentId, subPath, payload, null, context);
+    }
   }
 
   /**
@@ -1147,10 +1160,9 @@ public class ReactiveDocumentService {
       String id,
       JsonNode jsonArray,
       List<String> processedPath,
-      ExecutionContext context)
-      throws UnauthorizedException {
+      ExecutionContext context) {
     List<JsonShreddedRow> rows = jsonDocumentShredder.shred(jsonArray, processedPath);
-    return determineTtl(true, db, keyspace, collection, id)
+    return determineTtl(db, keyspace, collection, id, context)
         .flatMap(
             ttl ->
                 writeService.updateDocument(

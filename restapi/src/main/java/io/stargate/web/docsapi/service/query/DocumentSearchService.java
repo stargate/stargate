@@ -182,8 +182,13 @@ public class DocumentSearchService {
   }
 
   public Flowable<RawDocument> getDocumentTtlInfo(
-      QueryExecutor queryExecutor, String keyspace, String collection, String documentId) {
-    return documentTtl(queryExecutor, configuration, keyspace, collection, documentId).take(1);
+      QueryExecutor queryExecutor,
+      String keyspace,
+      String collection,
+      String documentId,
+      ExecutionContext context) {
+    return documentTtl(queryExecutor, configuration, keyspace, collection, documentId, context)
+        .take(1);
   }
 
   private Flowable<RawDocument> fullSearch(
@@ -226,7 +231,8 @@ public class DocumentSearchService {
       DocsApiConfiguration configuration,
       String keyspace,
       String collection,
-      String documentId) {
+      String documentId,
+      ExecutionContext context) {
     // prepare first
     return RxUtils.singleFromFuture(
             () -> {
@@ -241,13 +247,9 @@ public class DocumentSearchService {
         .cache()
         .flatMapPublisher(
             prepared -> {
-              BoundQuery boundQuery = prepared.bind();
+              BoundQuery boundQuery = prepared.bind(documentId);
               return queryExecutor.queryDocs(
-                  boundQuery,
-                  configuration.getMaxStoragePageSize(),
-                  false,
-                  null,
-                  ExecutionContext.NOOP_CONTEXT);
+                  boundQuery, configuration.getMaxStoragePageSize(), false, null, context);
             });
   }
 

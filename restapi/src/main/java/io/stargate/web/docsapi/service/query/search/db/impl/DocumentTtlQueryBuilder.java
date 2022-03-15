@@ -28,6 +28,7 @@ import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.query.search.db.AbstractSearchQueryBuilder;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
@@ -59,12 +60,13 @@ public class DocumentTtlQueryBuilder extends AbstractSearchQueryBuilder {
   /** {@inheritDoc} */
   @Override
   public Collection<BuiltCondition> getPredicates() {
-    return ImmutableList.of(
-        BuiltCondition.of(DocsApiConstants.KEY_COLUMN_NAME, Predicate.EQ, this.documentId));
+    return Collections.emptyList();
   }
 
   @Override
   protected Map<String, Predicate> getBindPredicates() {
-    return Collections.emptyMap();
+    Map<String, Predicate> bindPredicates = new HashMap<>(1);
+    bindPredicates.put(DocsApiConstants.KEY_COLUMN_NAME, Predicate.EQ);
+    return bindPredicates;
   }
 }
