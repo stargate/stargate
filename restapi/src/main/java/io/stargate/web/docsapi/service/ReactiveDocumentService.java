@@ -382,7 +382,7 @@ public class ReactiveDocumentService {
                       db, namespace, collection, documentId, subPath, payload, ttl, context));
     } else {
       return updateDocumentInternal(
-          db, namespace, collection, documentId, subPath, payload, null, context);
+          db, namespace, collection, documentId, subPath, payload, 0, context);
     }
   }
 
@@ -501,7 +501,7 @@ public class ReactiveDocumentService {
                       db, namespace, collection, documentId, subPath, payload, ttl, context));
     } else {
       return patchDocumentInternal(
-          db, namespace, collection, documentId, subPath, payload, null, context);
+          db, namespace, collection, documentId, subPath, payload, 0, context);
     }
   }
 

@@ -50,8 +50,8 @@ class DocumentTtlQueryBuilderTest extends AbstractDataStoreTest {
 
       String expected =
           String.format(
-              "SELECT key, TTL(leaf), WRITETIME(leaf) FROM %s.%s WHERE key = '%s'",
-              KEYSPACE_NAME, COLLECTION_NAME, documentId);
+              "SELECT key, TTL(leaf), WRITETIME(leaf) FROM %s.%s WHERE key = ?",
+              KEYSPACE_NAME, COLLECTION_NAME);
       assertThat(query.toString()).isEqualTo(expected);
     }
 
@@ -65,8 +65,8 @@ class DocumentTtlQueryBuilderTest extends AbstractDataStoreTest {
 
       String expected =
           String.format(
-              "SELECT key, TTL(leaf), WRITETIME(leaf) FROM %s.%s WHERE key = '%s'",
-              KEYSPACE_NAME, COLLECTION_NAME, documentId);
+              "SELECT key, TTL(leaf), WRITETIME(leaf) FROM %s.%s WHERE key = ?",
+              KEYSPACE_NAME, COLLECTION_NAME);
       assertThat(query.toString()).isEqualTo(expected);
     }
   }
