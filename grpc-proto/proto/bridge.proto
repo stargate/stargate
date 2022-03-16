@@ -40,6 +40,9 @@ service StargateBridge {
   // Requests notification of schema changes.
   rpc GetSchemaNotifications(GetSchemaNotificationsParams) returns (stream SchemaNotification) {}
 
+  // Generates a paging state using the required parameters
+  rpc MakePagingState(MakePagingStateParams) returns (PagingState) {}
+
   // Checks whether the client is authorized to describe one or more schema elements.
   rpc AuthorizeSchemaReads(AuthorizeSchemaReadsRequest) returns (AuthorizeSchemaReadsResponse) {}
 }
