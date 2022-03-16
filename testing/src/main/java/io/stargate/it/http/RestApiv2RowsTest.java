@@ -602,28 +602,27 @@ public class RestApiv2RowsTest extends BaseIntegrationTest {
   }
 
   @Test
-  public void getRowsWithDurationValue() throws IOException
-  {
+  public void getRowsWithDurationValue() throws IOException {
     createTestKeyspace(keyspaceName);
     createTestTable(
-            tableName,
-            Arrays.asList("id text", "firstName text", "time duration"),
-            Collections.singletonList("id"),
-            Collections.singletonList("firstName"));
+        tableName,
+        Arrays.asList("id text", "firstName text", "time duration"),
+        Collections.singletonList("id"),
+        Collections.singletonList("firstName"));
 
     CqlDuration expDuration = CqlDuration.from("2w");
     insertTestTableRows(
-            Arrays.asList(
-                    Arrays.asList("id 1", "firstName John", "time 2d"),
-                    Arrays.asList("id 2", "firstName Sarah", "time "+expDuration),
-                    Arrays.asList("id 3", "firstName Jane", "time 30h20m")));
+        Arrays.asList(
+            Arrays.asList("id 1", "firstName John", "time 2d"),
+            Arrays.asList("id 2", "firstName Sarah", "time " + expDuration),
+            Arrays.asList("id 3", "firstName Jane", "time 30h20m")));
 
     String body =
-            RestUtils.get(
-                    authToken,
-                    String.format(
-                            "%s/v2/keyspaces/%s/%s/%s?raw=true", restUrlBase, keyspaceName, tableName, "2"),
-                    HttpStatus.SC_OK);
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s/%s?raw=true", restUrlBase, keyspaceName, tableName, "2"),
+            HttpStatus.SC_OK);
     JsonNode json = objectMapper.readTree(body);
     assertThat(json.size()).isEqualTo(1);
     assertThat(json.at("/0/firstName").asText()).isEqualTo("Sarah");
