@@ -26,7 +26,9 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
+import com.fasterxml.jackson.databind.node.TextNode;
 import io.stargate.auth.model.AuthTokenResponse;
+import io.stargate.grpc.CqlDuration;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.http.models.Credentials;
@@ -609,6 +611,39 @@ public class RestApiv2RowsTest extends BaseRestApiTest {
     assertThat(data.get(0).get("id")).isEqualTo("1");
     assertThat(data.get(0).get("firstname")).isEqualTo("John");
     assertThat(data.get(0).get("created")).isEqualTo(timestamp);
+  }
+
+  @Test
+  public void getRowsWithDurationValue() throws IOException {
+    createTestKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "firstName text", "time duration"),
+        Collections.singletonList("id"),
+        Collections.singletonList("firstName"));
+
+    CqlDuration expDuration = CqlDuration.from("2w");
+    insertTestTableRows(
+        Arrays.asList(
+            Arrays.asList("id 1", "firstName John", "time 2d"),
+            Arrays.asList("id 2", "firstName Sarah", "time " + expDuration),
+            Arrays.asList("id 3", "firstName Jane", "time 30h20m")));
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s/%s?raw=true", restUrlBase, keyspaceName, tableName, "2"),
+            HttpStatus.SC_OK);
+    JsonNode json = objectMapper.readTree(body);
+    assertThat(json.size()).isEqualTo(1);
+    assertThat(json.at("/0/firstName").asText()).isEqualTo("Sarah");
+    final JsonNode actualDuration = json.at("/0/time");
+    // There seem to be issues with serialization; we expect JSON String but in some
+    // cases could try to write JSON Object:
+    assertThat(actualDuration).isInstanceOf(TextNode.class);
+    // NOTE: "2 weeks" may become "14 days" (or vice versa); so let's compare CqlDuration equality
+    assertThat(actualDuration.textValue()).isEqualTo(expDuration.toString());
   }
 
   @Test
