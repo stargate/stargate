@@ -643,8 +643,7 @@ public class RestApiv2RowsTest extends BaseRestApiTest {
     // cases could try to write JSON Object:
     assertThat(actualDuration).isInstanceOf(TextNode.class);
     // NOTE: "2 weeks" may become "14 days" (or vice versa); so let's compare CqlDuration equality
-    assertThat(actualDuration.textValue())
-            .isEqualTo(expDuration.toString());
+    assertThat(actualDuration.textValue()).isEqualTo(expDuration.toString());
   }
 
   @Test

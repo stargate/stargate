@@ -430,9 +430,14 @@ public class FromProtoValueCodecs {
   protected static final class DurationCodec extends FromProtoValueCodec {
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
-      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
-          ? null
-          : Values.duration(value);
+      if (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL) {
+        return null;
+      }
+      // 16-Mar-2022, tatu: Two ways to go; either return CqlDuration and expect
+      //    caller to deal with it (requires custom Json serializer), or convert
+      //    here. Latter seems easier and safer for now since caller has no need
+      //    for actual full type. May be changed later if there is need to retain type.
+      return Values.duration(value).toString();
     }
 
     @Override
