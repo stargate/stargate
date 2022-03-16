@@ -69,7 +69,7 @@ jobs:
           mvn -P dse -q -ff clean package -DskipTests
       - name: zip-up
         run: |
-          zip -r stargate-jars.zip starctl* start_all_local.sh stargate-lib
+          zip -r stargate-jars.zip starctl* stargate-lib
       - name: Retrieve stashed release URL
         uses: actions/download-artifact@v1
         with:
