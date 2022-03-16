@@ -42,6 +42,7 @@ public class FromProtoValueCodecs {
   private static final TimestampCodec CODEC_TIMESTAMP = new TimestampCodec();
   private static final DateCodec CODEC_DATE = new DateCodec();
   private static final TimeCodec CODEC_TIME = new TimeCodec();
+  private static final DurationCodec CODEC_DURATION = new DurationCodec();
   private static final InetCodec CODEC_INET = new InetCodec();
   private static final BlobCodec CODEC_BLOB = new BlobCodec();
 
@@ -127,6 +128,8 @@ public class FromProtoValueCodecs {
         return CODEC_DATE;
       case TIME:
         return CODEC_TIME;
+      case DURATION:
+        return CODEC_DURATION;
       case INET:
         return CODEC_INET;
       case BLOB:
@@ -421,6 +424,22 @@ public class FromProtoValueCodecs {
       return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
           ? jsonNodeFactory.nullNode()
           : jsonNodeFactory.textNode(Values.time(value).toString());
+    }
+  }
+
+  protected static final class DurationCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? null
+          : Values.duration(value);
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? jsonNodeFactory.nullNode()
+          : jsonNodeFactory.textNode(Values.duration(value).toString());
     }
   }
 

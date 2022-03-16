@@ -310,6 +310,7 @@ public class ConvertersTest {
           Type.Timestamp,
           "\"a\"",
           "Invalid Timestamp value: Text 'a' could not be parsed at index 0"),
+      arguments(Type.Duration, "\"a\"", "Invalid Duration value 'a': cannot parse"),
       arguments(
           Type.List.of(Type.Int), "1", "Invalid List value '1': expected a JSON array or a string"),
       arguments(
