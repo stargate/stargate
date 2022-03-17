@@ -19,21 +19,6 @@
 - Fix \#1685 handling of `timestamp` values on REST/json output [\#1686](https://github.com/stargate/stargate/pull/1686) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Fix \#1680: update Jackson dependency to 2.12.6 [\#1681](https://github.com/stargate/stargate/pull/1681) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 
-## [v2.0.0-ALPHA-4](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-4) (2022-03-03)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.50...v2.0.0-ALPHA-4)
-
-**Merged pull requests:**
-
-- Bumping version for next release [\#1675](https://github.com/stargate/stargate/pull/1675) ([github-actions[bot]](https://github.com/apps/github-actions))
-- Add Authn/z integration tests for Bridge [\#1672](https://github.com/stargate/stargate/pull/1672) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
-- Improve logging by ConfigStoreYaml [\#1669](https://github.com/stargate/stargate/pull/1669) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Specialize v2 QueryBuilder to generate gRPC Query [\#1657](https://github.com/stargate/stargate/pull/1657) ([olim7t](https://github.com/olim7t))
-- Add a listener mechanism to StargateBridgeSchema [\#1648](https://github.com/stargate/stargate/pull/1648) ([olim7t](https://github.com/olim7t))
-- Post-merge fix for SGv1/SGv2 REST API test refactoring [\#1645](https://github.com/stargate/stargate/pull/1645) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Extract bridge HTTP helpers to sgv2-service-common [\#1641](https://github.com/stargate/stargate/pull/1641) ([olim7t](https://github.com/olim7t))
-- Bumping version for next v2 release [\#1638](https://github.com/stargate/stargate/pull/1638) ([github-actions[bot]](https://github.com/apps/github-actions))
-
 ## [v1.0.50](https://github.com/stargate/stargate/tree/v1.0.50) (2022-03-03)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.49...v1.0.50)
