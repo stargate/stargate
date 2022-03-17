@@ -32,16 +32,20 @@ import io.stargate.proto.QueryOuterClass.ResultSet;
 import io.stargate.proto.QueryOuterClass.Row;
 import io.stargate.proto.Schema;
 import io.stargate.proto.Schema.AuthorizeSchemaReadsRequest;
+import io.stargate.proto.Schema.AuthorizeSchemaReadsResponse;
 import io.stargate.proto.Schema.CqlKeyspace;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.SchemaRead;
 import io.stargate.proto.Schema.SchemaRead.SourceApi;
 import io.stargate.proto.StargateBridgeGrpc;
+import io.stargate.sgv2.common.futures.Futures;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -89,8 +93,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
             response -> {
               if (response.hasSchemaChange()) {
                 // Ensure we're not holding a stale copy of the impacted keyspace by the time we
-                // return
-                // control to the caller
+                // return control to the caller
                 String keyspaceName = addTenantPrefix(response.getSchemaChange().getKeyspace());
                 schema.removeKeyspace(keyspaceName);
               }
@@ -108,36 +111,62 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
   }
 
   @Override
-  public Optional<CqlKeyspaceDescribe> getKeyspace(String keyspaceName)
-      throws UnauthorizedKeyspaceException {
-    if (!authorizeSchemaRead(SchemaReads.keyspace(keyspaceName, sourceApi))) {
-      throw new UnauthorizedKeyspaceException(keyspaceName);
-    }
-    return getAuthorizedKeyspace(keyspaceName);
+  public CompletionStage<Optional<CqlKeyspaceDescribe>> getKeyspaceAsync(String keyspaceName) {
+    return authorizeSchemaReadAsync(SchemaReads.keyspace(keyspaceName, sourceApi))
+        .thenApply(
+            authorized -> {
+              if (!authorized) {
+                throw new UnauthorizedKeyspaceException(keyspaceName);
+              }
+              return authorized;
+            })
+        .thenCompose(__ -> getAuthorizedKeyspace(keyspaceName));
   }
 
-  private Optional<CqlKeyspaceDescribe> getAuthorizedKeyspace(String keyspaceName) {
-    return Optional.ofNullable(
-        stripTenantPrefix(schema.getKeyspace(addTenantPrefix(keyspaceName))));
+  private CompletionStage<Optional<CqlKeyspaceDescribe>> getAuthorizedKeyspace(
+      String keyspaceName) {
+    return schema
+        .getKeyspaceAsync(addTenantPrefix(keyspaceName))
+        .thenApply(ks -> Optional.ofNullable(stripTenantPrefix(ks)));
   }
 
   @Override
-  public List<CqlKeyspaceDescribe> getAllKeyspaces() {
-    List<String> names = getKeyspaceNames(new ArrayList<>(), null);
-    List<Boolean> authorizations =
-        authorizeSchemaReads(
-            names.stream()
-                .map(n -> SchemaReads.keyspace(n, sourceApi))
-                .collect(Collectors.toList()));
-    List<CqlKeyspaceDescribe> keyspaces = new ArrayList<>(names.size());
-    int i = 0;
-    for (String name : names) {
+  public CompletionStage<List<CqlKeyspaceDescribe>> getAllKeyspacesAsync() {
+    CompletionStage<List<String>> allNamesFuture = getKeyspaceNames(new ArrayList<>(), null);
+    CompletionStage<List<String>> authorizedNamesFuture =
+        allNamesFuture.thenCompose(
+            names -> {
+              List<SchemaRead> reads =
+                  names.stream()
+                      .map(n -> SchemaReads.keyspace(n, sourceApi))
+                      .collect(Collectors.toList());
+              return authorizeSchemaReadsAsync(reads)
+                  .thenApply(authorizations -> removeUnauthorized(names, authorizations));
+            });
+    return authorizedNamesFuture.thenCompose(this::getAuthorizedkeyspaces);
+  }
+
+  private <T> List<T> removeUnauthorized(List<T> elements, List<Boolean> authorizations) {
+    assert elements.size() == authorizations.size();
+    List<T> filtered = new ArrayList<>(elements.size());
+    for (int i = 0; i < elements.size(); i++) {
       if (authorizations.get(i)) {
-        getAuthorizedKeyspace(name).ifPresent(keyspaces::add);
+        filtered.add(elements.get(i));
       }
-      i++;
     }
-    return keyspaces;
+    return filtered;
+  }
+
+  private CompletionStage<List<CqlKeyspaceDescribe>> getAuthorizedkeyspaces(
+      List<String> keyspaceNames) {
+    List<CompletionStage<CqlKeyspaceDescribe>> keyspaceFutures =
+        keyspaceNames.stream()
+            .map(keyspaceName -> schema.getKeyspaceAsync(addTenantPrefix(keyspaceName)))
+            .collect(Collectors.toList());
+    // Filter out nulls in case any keyspace was removed since we fetched the names
+    return Futures.sequence(keyspaceFutures)
+        .thenApply(
+            keyspaces -> keyspaces.stream().filter(Objects::nonNull).collect(Collectors.toList()));
   }
 
   @Override
@@ -146,67 +175,79 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
   }
 
   @Override
-  public Optional<Schema.CqlTable> getTable(String keyspaceName, String tableName)
-      throws UnauthorizedTableException {
-    if (!authorizeSchemaRead(SchemaReads.table(keyspaceName, tableName, sourceApi))) {
-      throw new UnauthorizedTableException(keyspaceName, tableName);
-    }
-    return getAuthorizedKeyspace(keyspaceName)
-        .flatMap(
-            keyspace ->
-                keyspace.getTablesList().stream()
-                    .filter(t -> t.getName().equals(tableName))
-                    .findFirst());
-  }
-
-  @Override
-  public List<Schema.CqlTable> getTables(String keyspaceName) {
-    return getAuthorizedKeyspace(keyspaceName)
-        .map(
-            keyspace -> {
-              List<Schema.CqlTable> tables = keyspace.getTablesList();
-              List<Boolean> authorizations =
-                  authorizeSchemaReads(
-                      tables.stream()
-                          .map(t -> SchemaReads.table(keyspaceName, t.getName(), sourceApi))
-                          .collect(Collectors.toList()));
-              List<Schema.CqlTable> authorizedTables = new ArrayList<>(tables.size());
-              int i = 0;
-              for (Schema.CqlTable table : tables) {
-                if (authorizations.get(i)) {
-                  authorizedTables.add(table);
-                }
-                i++;
+  public CompletionStage<Optional<Schema.CqlTable>> getTableAsync(
+      String keyspaceName, String tableName) {
+    return authorizeSchemaReadAsync(SchemaReads.table(keyspaceName, tableName, sourceApi))
+        .thenApply(
+            authorized -> {
+              if (!authorized) {
+                throw new UnauthorizedTableException(keyspaceName, tableName);
               }
-              return authorizedTables;
+              return authorized;
             })
-        .orElse(Collections.emptyList());
+        .thenCompose(
+            __ ->
+                getAuthorizedKeyspace(keyspaceName)
+                    .thenApply(
+                        maybeKs ->
+                            maybeKs.flatMap(
+                                ks ->
+                                    ks.getTablesList().stream()
+                                        .filter(t -> t.getName().equals(tableName))
+                                        .findFirst())));
   }
 
   @Override
-  public List<Boolean> authorizeSchemaReads(List<SchemaRead> schemaReads) {
-    return ClientCalls.blockingUnaryCall(
-            channel,
-            StargateBridgeGrpc.getAuthorizeSchemaReadsMethod(),
-            callOptions,
-            AuthorizeSchemaReadsRequest.newBuilder().addAllSchemaReads(schemaReads).build())
-        .getAuthorizedList();
+  public CompletionStage<List<Schema.CqlTable>> getTablesAsync(String keyspaceName) {
+    return getAuthorizedKeyspace(keyspaceName)
+        .thenCompose(
+            maybeKeyspace ->
+                maybeKeyspace
+                    .map(
+                        keyspace -> {
+                          List<Schema.CqlTable> tables = keyspace.getTablesList();
+                          List<SchemaRead> reads =
+                              tables.stream()
+                                  .map(t -> SchemaReads.table(keyspaceName, t.getName(), sourceApi))
+                                  .collect(Collectors.toList());
+                          return authorizeSchemaReadsAsync(reads)
+                              .thenApply(
+                                  authorizations -> removeUnauthorized(tables, authorizations));
+                        })
+                    .orElse(CompletableFuture.completedFuture(Collections.emptyList())));
   }
 
-  private List<String> getKeyspaceNames(List<String> accumulator, BytesValue pagingState) {
+  @Override
+  public CompletionStage<List<Boolean>> authorizeSchemaReadsAsync(List<SchemaRead> schemaReads) {
+    ClientCall<AuthorizeSchemaReadsRequest, AuthorizeSchemaReadsResponse> call =
+        channel.newCall(StargateBridgeGrpc.getAuthorizeSchemaReadsMethod(), callOptions);
+    UnaryStreamObserver<AuthorizeSchemaReadsResponse> observer = new UnaryStreamObserver<>();
+    ClientCalls.asyncUnaryCall(
+        call,
+        AuthorizeSchemaReadsRequest.newBuilder().addAllSchemaReads(schemaReads).build(),
+        observer);
+    return observer.asFuture().thenApply(AuthorizeSchemaReadsResponse::getAuthorizedList);
+  }
+
+  private CompletionStage<List<String>> getKeyspaceNames(
+      List<String> accumulator, BytesValue pagingState) {
     Query query =
         (pagingState == null)
             ? SELECT_KEYSPACE_NAMES
             : Query.newBuilder(SELECT_KEYSPACE_NAMES)
                 .setParameters(QueryParameters.newBuilder().setPagingState(pagingState).build())
                 .build();
-    ResultSet resultSet = executeQuery(query).getResultSet();
-    for (Row row : resultSet.getRowsList()) {
-      accumulator.add(row.getValues(0).getString());
-    }
-    return (resultSet.hasPagingState())
-        ? getKeyspaceNames(accumulator, resultSet.getPagingState())
-        : accumulator;
+    return executeQueryAsync(query)
+        .thenCompose(
+            response -> {
+              ResultSet resultSet = response.getResultSet();
+              for (Row row : resultSet.getRowsList()) {
+                accumulator.add(row.getValues(0).getString());
+              }
+              return (resultSet.hasPagingState())
+                  ? getKeyspaceNames(accumulator, resultSet.getPagingState())
+                  : CompletableFuture.completedFuture(accumulator);
+            });
   }
 
   private Channel addMetadata(Channel channel, String tenantId) {

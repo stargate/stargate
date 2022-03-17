@@ -60,13 +60,18 @@ public interface StargateBridgeClient {
   /**
    * Gets the metadata describing the given keyspace.
    *
-   * @throws UnauthorizedKeyspaceException if the client is not allowed to access this keyspace.
-   *     However, this check is shallow: if the caller surfaces keyspace elements (tables, UDTs...)
-   *     to the end user, it must authorize them individually with {@link
-   *     #authorizeSchemaReads(List)}.
+   * @throws UnauthorizedKeyspaceException (wrapped in the returned future) if the client is not
+   *     allowed to access this keyspace. However, this check is shallow: if the caller surfaces
+   *     keyspace elements (tables, UDTs...) to the end user, it must authorize them individually
+   *     with {@link #authorizeSchemaReads(List)}.
    */
-  Optional<CqlKeyspaceDescribe> getKeyspace(String keyspaceName)
-      throws UnauthorizedKeyspaceException;
+  CompletionStage<Optional<CqlKeyspaceDescribe>> getKeyspaceAsync(String keyspaceName);
+
+  /** @see #getKeyspaceAsync(String) */
+  default Optional<CqlKeyspaceDescribe> getKeyspace(String keyspaceName)
+      throws UnauthorizedKeyspaceException {
+    return Futures.getUninterruptibly(getKeyspaceAsync(keyspaceName));
+  }
 
   /**
    * Gets the metadata describing all the keyspaces that are visible to this client.
@@ -75,7 +80,12 @@ public interface StargateBridgeClient {
    * shallow: if the caller surfaces keyspace elements (tables, UDTs...) to the end user, it must
    * authorize them individually with {@link #authorizeSchemaReads(List)}.
    */
-  List<CqlKeyspaceDescribe> getAllKeyspaces();
+  CompletionStage<List<CqlKeyspaceDescribe>> getAllKeyspacesAsync();
+
+  /** @see #getAllKeyspacesAsync() */
+  default List<CqlKeyspaceDescribe> getAllKeyspaces() {
+    return Futures.getUninterruptibly(getAllKeyspacesAsync());
+  }
 
   /**
    * Converts an "external" keyspace name known to this client to the "internal" one actually used
@@ -91,9 +101,19 @@ public interface StargateBridgeClient {
    */
   String decorateKeyspaceName(String keyspaceName);
 
-  /** Gets the metadata describing the given table. */
-  Optional<CqlTable> getTable(String keyspaceName, String tableName)
-      throws UnauthorizedTableException;
+  /**
+   * Gets the metadata describing the given table.
+   *
+   * @throws UnauthorizedTableException (wrapped in the returned future) if the client is not
+   *     allowed to access this table.
+   */
+  CompletionStage<Optional<CqlTable>> getTableAsync(String keyspaceName, String tableName);
+
+  /** @see #getTableAsync(String, String) */
+  default Optional<CqlTable> getTable(String keyspaceName, String tableName)
+      throws UnauthorizedTableException {
+    return Futures.getUninterruptibly(getTableAsync(keyspaceName, tableName));
+  }
 
   /**
    * Gets the metadata describing all the tables that are visible to this client in the given
@@ -101,14 +121,37 @@ public interface StargateBridgeClient {
    *
    * <p>This method automatically filters out unauthorized tables.
    */
-  List<CqlTable> getTables(String keyspaceName);
+  CompletionStage<List<CqlTable>> getTablesAsync(String keyspaceName);
+
+  /** @see #getTableAsync(String, String) */
+  default List<CqlTable> getTables(String keyspaceName) {
+    return Futures.getUninterruptibly(getTablesAsync(keyspaceName));
+  }
 
   /**
    * Checks whether this client is authorized to describe a set of schema elements.
    *
    * @see SchemaReads
    */
-  List<Boolean> authorizeSchemaReads(List<SchemaRead> schemaReads);
+  CompletionStage<List<Boolean>> authorizeSchemaReadsAsync(List<SchemaRead> schemaReads);
+
+  /**
+   * @see #authorizeSchemaReadsAsync(List)
+   * @see SchemaReads
+   */
+  default List<Boolean> authorizeSchemaReads(List<SchemaRead> schemaReads) {
+    return Futures.getUninterruptibly(authorizeSchemaReadsAsync(schemaReads));
+  }
+
+  /**
+   * Convenience method to call {@link #authorizeSchemaReadsAsync(List)} with a single element.
+   *
+   * @see SchemaReads
+   */
+  default CompletionStage<Boolean> authorizeSchemaReadAsync(SchemaRead schemaRead) {
+    return authorizeSchemaReadsAsync(Collections.singletonList(schemaRead))
+        .thenApply(l -> l.get(0));
+  }
 
   /**
    * Convenience method to call {@link #authorizeSchemaReads(List)} with a single element.
