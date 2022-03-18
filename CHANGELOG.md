@@ -49,7 +49,7 @@
 
 ## [v2.0.0-ALPHA-2](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-2) (2022-02-07)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.49...v2.0.0-ALPHA-2)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-1...v2.0.0-ALPHA-2)
 
 **Merged pull requests:**
 
@@ -145,7 +145,7 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 
 ## [v1.0.51](https://github.com/stargate/stargate/tree/v1.0.51) (2022-03-14)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-4...v1.0.51)
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.50...v1.0.51)
 
 **Fixed bugs:**
 
