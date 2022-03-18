@@ -2,7 +2,7 @@
 
 ## [v2.0.0-ALPHA-5](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-5) (2022-03-18)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.51...v2.0.0-ALPHA-5)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-4...v2.0.0-ALPHA-5)
 
 **Closed issues:**
 
