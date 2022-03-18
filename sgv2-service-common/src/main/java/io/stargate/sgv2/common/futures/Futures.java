@@ -15,6 +15,7 @@
  */
 package io.stargate.sgv2.common.futures;
 
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
 
@@ -52,5 +53,11 @@ public class Futures {
         Thread.currentThread().interrupt();
       }
     }
+  }
+
+  public static <T> CompletableFuture<T> failedFuture(Exception e) {
+    CompletableFuture<T> f = new CompletableFuture<>();
+    f.completeExceptionally(e);
+    return f;
   }
 }

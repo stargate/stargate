@@ -18,6 +18,7 @@ package io.stargate.sgv2.common.grpc;
 import com.google.protobuf.BytesValue;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
+import io.grpc.ClientCall;
 import io.grpc.ClientInterceptors;
 import io.grpc.Metadata;
 import io.grpc.stub.ClientCalls;
@@ -41,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.commons.codec.binary.Hex;
@@ -76,23 +78,33 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
   }
 
   @Override
-  public Response executeQuery(Query request) {
-    Response response =
-        ClientCalls.blockingUnaryCall(
-            channel, StargateBridgeGrpc.getExecuteQueryMethod(), callOptions, request);
-    if (response.hasSchemaChange()) {
-      // Ensure we're not holding a stale copy of the impacted keyspace by the time we return
-      // control to the caller
-      String keyspaceName = addTenantPrefix(response.getSchemaChange().getKeyspace());
-      schema.removeKeyspace(keyspaceName);
-    }
-    return response;
+  public CompletionStage<Response> executeQueryAsync(Query query) {
+    ClientCall<Query, Response> call =
+        channel.newCall(StargateBridgeGrpc.getExecuteQueryMethod(), callOptions);
+    UnaryStreamObserver<Response> observer = new UnaryStreamObserver<>();
+    ClientCalls.asyncUnaryCall(call, query, observer);
+    return observer
+        .asFuture()
+        .thenApply(
+            response -> {
+              if (response.hasSchemaChange()) {
+                // Ensure we're not holding a stale copy of the impacted keyspace by the time we
+                // return
+                // control to the caller
+                String keyspaceName = addTenantPrefix(response.getSchemaChange().getKeyspace());
+                schema.removeKeyspace(keyspaceName);
+              }
+              return response;
+            });
   }
 
   @Override
-  public Response executeBatch(Batch request) {
-    return ClientCalls.blockingUnaryCall(
-        channel, StargateBridgeGrpc.getExecuteBatchMethod(), callOptions, request);
+  public CompletionStage<Response> executeBatchAsync(Batch batch) {
+    ClientCall<Batch, Response> call =
+        channel.newCall(StargateBridgeGrpc.getExecuteBatchMethod(), callOptions);
+    UnaryStreamObserver<Response> observer = new UnaryStreamObserver<>();
+    ClientCalls.asyncUnaryCall(call, batch, observer);
+    return observer.asFuture();
   }
 
   @Override
@@ -126,6 +138,11 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
       i++;
     }
     return keyspaces;
+  }
+
+  @Override
+  public String decorateKeyspaceName(String keyspaceName) {
+    return addTenantPrefix(keyspaceName);
   }
 
   @Override
