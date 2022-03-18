@@ -1,5 +1,24 @@
 # Changelog
 
+## [v2.0.0-ALPHA-5](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-5) (2022-03-18)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.51...v2.0.0-ALPHA-5)
+
+**Closed issues:**
+
+- Stargate V2 REST Service should support "Duration" type [\#1696](https://github.com/stargate/stargate/issues/1696)
+- Verify that duration \(`CqlDuration`\) works with REST API [\#1693](https://github.com/stargate/stargate/issues/1693)
+- Create Docker image for REST API Service [\#1400](https://github.com/stargate/stargate/issues/1400)
+
+**Merged pull requests:**
+
+- Bumping version for next release [\#1700](https://github.com/stargate/stargate/pull/1700) ([github-actions[bot]](https://github.com/apps/github-actions))
+- gRPC: Revisit index metadata [\#1698](https://github.com/stargate/stargate/pull/1698) ([olim7t](https://github.com/olim7t))
+- Add support for Duration/CqlDuration for REST API, SGv2 [\#1697](https://github.com/stargate/stargate/pull/1697) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- gRPC: add support for CQL duration type [\#1690](https://github.com/stargate/stargate/pull/1690) ([olim7t](https://github.com/olim7t))
+- Update starctl scripts for v2 [\#1689](https://github.com/stargate/stargate/pull/1689) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Fix \#1685 handling of `timestamp` values on REST/json output [\#1686](https://github.com/stargate/stargate/pull/1686) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v2.0.0-ALPHA-4](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-3) (2022-02-23)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-3...v2.0.0-ALPHA-4)
@@ -123,6 +142,24 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Rest integration test - initial work (#1359)
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
+
+## [v1.0.51](https://github.com/stargate/stargate/tree/v1.0.51) (2022-03-14)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-4...v1.0.51)
+
+**Fixed bugs:**
+
+- REST API serializes `timestamp` values as POJOs: should be ISO-8601 [\#1685](https://github.com/stargate/stargate/issues/1685)
+- `ExecuteBatchStreamingTest` fails sporadically for the C\* 4.0 [\#1679](https://github.com/stargate/stargate/issues/1679)
+
+**Closed issues:**
+
+- Update Jackson dependency to 2.12.6 \(from 2.10 and others\) [\#1680](https://github.com/stargate/stargate/issues/1680)
+
+**Merged pull requests:**
+
+- Fix eviction race for prepared statements on Cassandra 4.0 [\#1688](https://github.com/stargate/stargate/pull/1688) ([mpenick](https://github.com/mpenick))
+- Fix \#1680: update Jackson dependency to 2.12.6 [\#1681](https://github.com/stargate/stargate/pull/1681) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 
 ## [v1.0.50](https://github.com/stargate/stargate/tree/v1.0.50) (2022-03-03)
 
