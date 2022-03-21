@@ -112,4 +112,11 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
             request, GrpcService.CONNECTION_KEY.get(), authorizationService, responseObserver)
         .handle();
   }
+
+  @Override
+  public void makePagingState(
+      Schema.MakePagingStateParams request, StreamObserver<Schema.PagingState> responseObserver) {
+    PagingStateHandler.makePagingState(
+        request, GrpcService.CONNECTION_KEY.get(), persistence, responseObserver);
+  }
 }

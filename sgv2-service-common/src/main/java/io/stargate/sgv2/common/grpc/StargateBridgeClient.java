@@ -20,7 +20,9 @@ import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.CqlTable;
+import io.stargate.proto.Schema.MakePagingStateParams;
 import io.stargate.proto.Schema.SchemaRead;
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -92,4 +94,11 @@ public interface StargateBridgeClient {
   default boolean authorizeSchemaRead(SchemaRead schemaRead) {
     return authorizeSchemaReads(Collections.singletonList(schemaRead)).get(0);
   }
+
+  /**
+   * Generates a paging state.
+   *
+   * @see MakePagingStateParams
+   */
+  ByteBuffer makePagingState(MakePagingStateParams pagingStateParams);
 }

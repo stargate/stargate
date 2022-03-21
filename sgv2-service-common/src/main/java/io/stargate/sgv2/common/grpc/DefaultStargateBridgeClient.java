@@ -15,6 +15,7 @@
  */
 package io.stargate.sgv2.common.grpc;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
@@ -33,9 +34,11 @@ import io.stargate.proto.Schema;
 import io.stargate.proto.Schema.AuthorizeSchemaReadsRequest;
 import io.stargate.proto.Schema.CqlKeyspace;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.proto.Schema.MakePagingStateParams;
 import io.stargate.proto.Schema.SchemaRead;
 import io.stargate.proto.Schema.SchemaRead.SourceApi;
 import io.stargate.proto.StargateBridgeGrpc;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -174,6 +177,16 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
             callOptions,
             AuthorizeSchemaReadsRequest.newBuilder().addAllSchemaReads(schemaReads).build())
         .getAuthorizedList();
+  }
+
+  @Override
+  public ByteBuffer makePagingState(MakePagingStateParams params) {
+    ByteString res =
+        ClientCalls.blockingUnaryCall(
+                channel, StargateBridgeGrpc.getMakePagingStateMethod(), callOptions, params)
+            .getPagingState()
+            .getValue();
+    return ByteBuffer.wrap(res.toByteArray());
   }
 
   private List<String> getKeyspaceNames(List<String> accumulator, BytesValue pagingState) {
