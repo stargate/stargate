@@ -46,6 +46,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import org.apache.commons.codec.binary.Hex;
 import org.junit.jupiter.api.AfterEach;
@@ -87,7 +88,8 @@ public class DefaultStargateBridgeClientTest {
     String keyspaceName = "ks";
     mockAuthorization(SchemaReads.keyspace(keyspaceName, SOURCE_API), true);
     CqlKeyspaceDescribe schemaKeyspace = mockKeyspace(keyspaceName);
-    when(schema.getKeyspace(keyspaceName)).thenReturn(schemaKeyspace);
+    when(schema.getKeyspaceAsync(keyspaceName))
+        .thenReturn(CompletableFuture.completedFuture(schemaKeyspace));
 
     // When
     Optional<CqlKeyspaceDescribe> keyspace = newClient().getKeyspace(keyspaceName);
@@ -101,6 +103,7 @@ public class DefaultStargateBridgeClientTest {
     // Given
     String keyspaceName = "ks";
     mockAuthorization(SchemaReads.keyspace(keyspaceName, SOURCE_API), true);
+    when(schema.getKeyspaceAsync(keyspaceName)).thenReturn(CompletableFuture.completedFuture(null));
 
     // When
     Optional<CqlKeyspaceDescribe> keyspace = newClient().getKeyspace(keyspaceName);
@@ -129,7 +132,8 @@ public class DefaultStargateBridgeClientTest {
         Hex.encodeHexString(tenantId.getBytes(StandardCharsets.UTF_8)) + '_' + keyspaceName;
     mockAuthorization(SchemaReads.keyspace(keyspaceName, SOURCE_API), true);
     CqlKeyspaceDescribe schemaKeyspace = mockKeyspace(decoratedKeyspaceName);
-    when(schema.getKeyspace(decoratedKeyspaceName)).thenReturn(schemaKeyspace);
+    when(schema.getKeyspaceAsync(decoratedKeyspaceName))
+        .thenReturn(CompletableFuture.completedFuture(schemaKeyspace));
 
     // When
     Optional<CqlKeyspaceDescribe> keyspace = newClient(tenantId).getKeyspace(keyspaceName);
@@ -152,9 +156,11 @@ public class DefaultStargateBridgeClientTest {
             SchemaReads.keyspace("ks3", SOURCE_API),
             true));
     CqlKeyspaceDescribe schemaKeyspace1 = mockKeyspace("ks1");
-    when(schema.getKeyspace("ks1")).thenReturn(schemaKeyspace1);
+    when(schema.getKeyspaceAsync("ks1"))
+        .thenReturn(CompletableFuture.completedFuture(schemaKeyspace1));
     CqlKeyspaceDescribe schemaKeyspace3 = mockKeyspace("ks3");
-    when(schema.getKeyspace("ks3")).thenReturn(schemaKeyspace3);
+    when(schema.getKeyspaceAsync("ks3"))
+        .thenReturn(CompletableFuture.completedFuture(schemaKeyspace3));
 
     // When
     List<CqlKeyspaceDescribe> keyspaces = newClient().getAllKeyspaces();
@@ -170,7 +176,8 @@ public class DefaultStargateBridgeClientTest {
     String tableName = "tbl";
     mockAuthorization(SchemaReads.table(keyspaceName, tableName, SOURCE_API), true);
     CqlKeyspaceDescribe schemaKeyspace = mockKeyspace(keyspaceName, tableName);
-    when(schema.getKeyspace(keyspaceName)).thenReturn(schemaKeyspace);
+    when(schema.getKeyspaceAsync(keyspaceName))
+        .thenReturn(CompletableFuture.completedFuture(schemaKeyspace));
 
     // When
     Optional<CqlTable> table = newClient().getTable(keyspaceName, tableName);
@@ -186,7 +193,8 @@ public class DefaultStargateBridgeClientTest {
     String tableName = "tbl";
     mockAuthorization(SchemaReads.table(keyspaceName, tableName, SOURCE_API), true);
     CqlKeyspaceDescribe schemaKeyspace = mockKeyspace(keyspaceName);
-    when(schema.getKeyspace(keyspaceName)).thenReturn(schemaKeyspace);
+    when(schema.getKeyspaceAsync(keyspaceName))
+        .thenReturn(CompletableFuture.completedFuture(schemaKeyspace));
 
     // When
     Optional<CqlTable> table = newClient().getTable(keyspaceName, tableName);
@@ -218,7 +226,8 @@ public class DefaultStargateBridgeClientTest {
             SchemaReads.table(keyspaceName, "tbl3", SOURCE_API), true));
 
     CqlKeyspaceDescribe schemaKeyspace = mockKeyspace(keyspaceName, "tbl1", "tbl2", "tbl3");
-    when(schema.getKeyspace(keyspaceName)).thenReturn(schemaKeyspace);
+    when(schema.getKeyspaceAsync(keyspaceName))
+        .thenReturn(CompletableFuture.completedFuture(schemaKeyspace));
 
     // When
     List<CqlTable> tables = newClient().getTables(keyspaceName);
