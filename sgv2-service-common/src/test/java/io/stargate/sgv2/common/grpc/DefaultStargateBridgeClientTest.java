@@ -15,12 +15,14 @@
  */
 package io.stargate.sgv2.common.grpc;
 
+import static io.stargate.sgv2.common.grpc.DefaultStargateBridgeClient.SELECT_KEYSPACE_NAMES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.grpc.ManagedChannel;
 import io.grpc.Server;
@@ -28,6 +30,9 @@ import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.StreamObserver;
 import io.stargate.grpc.Values;
+import io.stargate.proto.QueryOuterClass.Batch;
+import io.stargate.proto.QueryOuterClass.BatchQuery;
+import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.ResultSet;
 import io.stargate.proto.QueryOuterClass.Row;
@@ -55,6 +60,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
@@ -80,6 +86,44 @@ public class DefaultStargateBridgeClientTest {
   @AfterEach
   public void teardown() {
     server.shutdownNow();
+  }
+
+  @Test
+  public void executeQuery() {
+    // Given
+    Query query = Query.newBuilder().setCql("mock CQL query").build();
+    List<Row> rows =
+        ImmutableList.of(
+            Row.newBuilder().addValues(Values.of("a")).build(),
+            Row.newBuilder().addValues(Values.of("b")).build());
+    mockQuery(query, rows);
+
+    // When
+    Response response = newClient().executeQuery(query);
+
+    // Then
+    assertThat(response.getResultSet().getRowsList()).isEqualTo(rows);
+  }
+
+  @Test
+  public void executeBatch() {
+    // Given
+    Batch batch =
+        Batch.newBuilder()
+            .addQueries(BatchQuery.newBuilder().setCql("mock CQL query 1"))
+            .addQueries(BatchQuery.newBuilder().setCql("mock CQL query 2"))
+            .build();
+    List<Row> rows =
+        ImmutableList.of(
+            Row.newBuilder().addValues(Values.of("a")).build(),
+            Row.newBuilder().addValues(Values.of("b")).build());
+    mockBatch(batch, rows);
+
+    // When
+    Response response = newClient().executeBatch(batch);
+
+    // Then
+    assertThat(response.getResultSet().getRowsList()).isEqualTo(rows);
   }
 
   @Test
@@ -281,22 +325,26 @@ public class DefaultStargateBridgeClientTest {
   }
 
   void mockKeyspaceNames(String... keyspaceNames) {
-    doAnswer(
-            i -> {
-              StreamObserver<Response> observer = i.getArgument(1);
-              observer.onNext(
-                  Response.newBuilder()
-                      .setResultSet(
-                          ResultSet.newBuilder()
-                              .addAllRows(
-                                  Arrays.stream(keyspaceNames)
-                                      .map(n -> Row.newBuilder().addValues(Values.of(n)).build())
-                                      .collect(Collectors.toList())))
-                      .build());
-              observer.onCompleted();
-              return null;
-            })
-        .when(service)
-        .executeQuery(Mockito.eq(DefaultStargateBridgeClient.SELECT_KEYSPACE_NAMES), any());
+    mockQuery(
+        SELECT_KEYSPACE_NAMES,
+        Arrays.stream(keyspaceNames)
+            .map(n -> Row.newBuilder().addValues(Values.of(n)).build())
+            .collect(Collectors.toList()));
+  }
+
+  private void mockQuery(Query query, List<Row> rows) {
+    doAnswer(i -> mockResponse(i, rows)).when(service).executeQuery(Mockito.eq(query), any());
+  }
+
+  private void mockBatch(Batch batch, List<Row> rows) {
+    doAnswer(i -> mockResponse(i, rows)).when(service).executeBatch(Mockito.eq(batch), any());
+  }
+
+  private Void mockResponse(InvocationOnMock i, List<Row> rows) {
+    StreamObserver<Response> observer = i.getArgument(1);
+    observer.onNext(
+        Response.newBuilder().setResultSet(ResultSet.newBuilder().addAllRows(rows)).build());
+    observer.onCompleted();
+    return null;
   }
 }
