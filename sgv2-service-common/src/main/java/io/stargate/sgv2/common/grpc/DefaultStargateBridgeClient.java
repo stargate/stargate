@@ -113,14 +113,13 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
   @Override
   public CompletionStage<Optional<CqlKeyspaceDescribe>> getKeyspaceAsync(String keyspaceName) {
     return authorizeSchemaReadAsync(SchemaReads.keyspace(keyspaceName, sourceApi))
-        .thenApply(
+        .thenCompose(
             authorized -> {
               if (!authorized) {
                 throw new UnauthorizedKeyspaceException(keyspaceName);
               }
-              return authorized;
-            })
-        .thenCompose(__ -> getAuthorizedKeyspace(keyspaceName));
+              return getAuthorizedKeyspace(keyspaceName);
+            });
   }
 
   private CompletionStage<Optional<CqlKeyspaceDescribe>> getAuthorizedKeyspace(
@@ -178,23 +177,20 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
   public CompletionStage<Optional<Schema.CqlTable>> getTableAsync(
       String keyspaceName, String tableName) {
     return authorizeSchemaReadAsync(SchemaReads.table(keyspaceName, tableName, sourceApi))
-        .thenApply(
+        .thenCompose(
             authorized -> {
               if (!authorized) {
                 throw new UnauthorizedTableException(keyspaceName, tableName);
               }
-              return authorized;
-            })
-        .thenCompose(
-            __ ->
-                getAuthorizedKeyspace(keyspaceName)
-                    .thenApply(
-                        maybeKs ->
-                            maybeKs.flatMap(
-                                ks ->
-                                    ks.getTablesList().stream()
-                                        .filter(t -> t.getName().equals(tableName))
-                                        .findFirst())));
+              return getAuthorizedKeyspace(keyspaceName)
+                  .thenApply(
+                      maybeKs ->
+                          maybeKs.flatMap(
+                              ks ->
+                                  ks.getTablesList().stream()
+                                      .filter(t -> t.getName().equals(tableName))
+                                      .findFirst()));
+            });
   }
 
   @Override
