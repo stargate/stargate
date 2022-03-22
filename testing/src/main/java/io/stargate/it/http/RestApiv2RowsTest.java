@@ -19,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import com.datastax.oss.driver.api.core.data.CqlDuration;
 import com.datastax.oss.driver.api.core.uuid.Uuids;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -26,9 +27,7 @@ import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectReader;
-import com.fasterxml.jackson.databind.node.TextNode;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.grpc.CqlDuration;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.http.models.Credentials;
@@ -638,12 +637,8 @@ public class RestApiv2RowsTest extends BaseRestApiTest {
     JsonNode json = objectMapper.readTree(body);
     assertThat(json.size()).isEqualTo(1);
     assertThat(json.at("/0/firstName").asText()).isEqualTo("Sarah");
-    final JsonNode actualDuration = json.at("/0/time");
-    // There seem to be issues with serialization; we expect JSON String but in some
-    // cases could try to write JSON Object:
-    assertThat(actualDuration).isInstanceOf(TextNode.class);
     // NOTE: "2 weeks" may become "14 days" (or vice versa); so let's compare CqlDuration equality
-    assertThat(actualDuration.textValue()).isEqualTo(expDuration.toString());
+    assertThat(CqlDuration.from(json.at("/0/time").asText())).isEqualTo(expDuration);
   }
 
   @Test
