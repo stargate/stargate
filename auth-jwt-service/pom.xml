@@ -33,7 +33,6 @@
     <dependency>
       <groupId>com.nimbusds</groupId>
       <artifactId>nimbus-jose-jwt</artifactId>
-      <version>9.21</version>
     </dependency>
 
     <!-- Test dependencies -->
