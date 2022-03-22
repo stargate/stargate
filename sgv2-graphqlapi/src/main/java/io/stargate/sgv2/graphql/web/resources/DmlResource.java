@@ -69,10 +69,8 @@ public class DmlResource extends GraphqlResourceBase {
       @Suspended AsyncResponse asyncResponse,
       @Context StargateBridgeClient bridge) {
 
-    GraphQL graphql = getDefaultGraphql(bridge, asyncResponse);
-    if (graphql != null) {
-      get(query, operationName, variables, graphql, httpRequest, asyncResponse, bridge);
-    }
+    GraphQL graphql = getDefaultGraphql(bridge);
+    get(query, operationName, variables, graphql, httpRequest, asyncResponse, bridge);
   }
 
   @GET
@@ -86,10 +84,8 @@ public class DmlResource extends GraphqlResourceBase {
       @Suspended AsyncResponse asyncResponse,
       @Context StargateBridgeClient bridge) {
 
-    GraphQL graphql = getGraphql(keyspaceName, bridge, asyncResponse);
-    if (graphql != null) {
-      get(query, operationName, variables, graphql, httpRequest, asyncResponse, bridge);
-    }
+    GraphQL graphql = getGraphql(keyspaceName, bridge);
+    get(query, operationName, variables, graphql, httpRequest, asyncResponse, bridge);
   }
 
   @POST
@@ -101,10 +97,8 @@ public class DmlResource extends GraphqlResourceBase {
       @Suspended AsyncResponse asyncResponse,
       @Context StargateBridgeClient bridge) {
 
-    GraphQL graphql = getDefaultGraphql(bridge, asyncResponse);
-    if (graphql != null) {
-      postJson(jsonBody, queryFromUrl, graphql, httpRequest, asyncResponse, bridge);
-    }
+    GraphQL graphql = getDefaultGraphql(bridge);
+    postJson(jsonBody, queryFromUrl, graphql, httpRequest, asyncResponse, bridge);
   }
 
   @POST
@@ -118,10 +112,8 @@ public class DmlResource extends GraphqlResourceBase {
       @Suspended AsyncResponse asyncResponse,
       @Context StargateBridgeClient bridge) {
 
-    GraphQL graphql = getGraphql(keyspaceName, bridge, asyncResponse);
-    if (graphql != null) {
-      postJson(jsonBody, queryFromUrl, graphql, httpRequest, asyncResponse, bridge);
-    }
+    GraphQL graphql = getGraphql(keyspaceName, bridge);
+    postJson(jsonBody, queryFromUrl, graphql, httpRequest, asyncResponse, bridge);
   }
 
   @POST
@@ -133,10 +125,8 @@ public class DmlResource extends GraphqlResourceBase {
       @Suspended AsyncResponse asyncResponse,
       @Context StargateBridgeClient bridge) {
 
-    GraphQL graphql = getDefaultGraphql(bridge, asyncResponse);
-    if (graphql != null) {
-      postGraphql(query, graphql, httpRequest, asyncResponse, bridge);
-    }
+    GraphQL graphql = getDefaultGraphql(bridge);
+    postGraphql(query, graphql, httpRequest, asyncResponse, bridge);
   }
 
   @POST
@@ -150,56 +140,41 @@ public class DmlResource extends GraphqlResourceBase {
       @Suspended AsyncResponse asyncResponse,
       @Context StargateBridgeClient bridge) {
 
-    GraphQL graphql = getGraphql(keyspaceName, bridge, asyncResponse);
-    if (graphql != null) {
-      postGraphql(query, graphql, httpRequest, asyncResponse, bridge);
-    }
+    GraphQL graphql = getGraphql(keyspaceName, bridge);
+    postGraphql(query, graphql, httpRequest, asyncResponse, bridge);
   }
 
-  private GraphQL getGraphql(
-      String keyspaceName, StargateBridgeClient bridge, AsyncResponse asyncResponse) {
+  private GraphQL getGraphql(String keyspaceName, StargateBridgeClient bridge) {
     if (!KEYSPACE_NAME_PATTERN.matcher(keyspaceName).matches()) {
       LOG.warn("Invalid keyspace in URI, this could be an XSS attack: {}", keyspaceName);
       // Do not reflect back the value
-      replyWithGraphqlError(Status.BAD_REQUEST, "Invalid keyspace name", asyncResponse);
-      return null;
+      throw graphqlError(Status.BAD_REQUEST, "Invalid keyspace name");
     }
 
     if (!isAuthorized(keyspaceName, bridge)) {
-      replyWithGraphqlError(Status.UNAUTHORIZED, "Not authorized", asyncResponse);
-      return null;
+      throw graphqlError(Status.UNAUTHORIZED, "Not authorized");
     }
 
     try {
       String decoratedKeyspaceName = bridge.decorateKeyspaceName(keyspaceName);
       Optional<GraphQL> graphql = graphqlCache.getDml(decoratedKeyspaceName, keyspaceName);
-      if (graphql.isPresent()) {
-        return graphql.get();
-      } else {
-        replyWithGraphqlError(
-            Status.NOT_FOUND, String.format("Unknown keyspace '%s'", keyspaceName), asyncResponse);
-        return null;
-      }
+      return graphql.orElseThrow(
+          () ->
+              graphqlError(Status.NOT_FOUND, String.format("Unknown keyspace '%s'", keyspaceName)));
     } catch (GraphqlErrorException e) {
-      replyWithGraphqlError(Status.INTERNAL_SERVER_ERROR, e, asyncResponse);
-      return null;
+      throw graphqlError(Status.INTERNAL_SERVER_ERROR, e);
     } catch (Exception e) {
       LOG.error("Unexpected error while accessing keyspace {}", keyspaceName, e);
-      replyWithGraphqlError(
+      throw graphqlError(
           Status.INTERNAL_SERVER_ERROR,
-          "Unexpected error while accessing keyspace: " + e.getMessage(),
-          asyncResponse);
-      return null;
+          "Unexpected error while accessing keyspace: " + e.getMessage());
     }
   }
 
-  private GraphQL getDefaultGraphql(StargateBridgeClient bridge, AsyncResponse asyncResponse) {
-    Optional<String> defaultKeyspaceName = graphqlCache.getDefaultKeyspaceName();
-    if (defaultKeyspaceName.isPresent()) {
-      return getGraphql(defaultKeyspaceName.get(), bridge, asyncResponse);
-    } else {
-      replyWithGraphqlError(Status.NOT_FOUND, "No default keyspace defined", asyncResponse);
-      return null;
-    }
+  private GraphQL getDefaultGraphql(StargateBridgeClient bridge) {
+    return graphqlCache
+        .getDefaultKeyspaceName()
+        .map(ks -> getGraphql(ks, bridge))
+        .orElseThrow(() -> graphqlError(Status.NOT_FOUND, "No default keyspace defined"));
   }
 }

@@ -37,6 +37,7 @@ import java.util.Map;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Produces;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
@@ -79,9 +80,7 @@ public class GraphqlResourceBase {
       StargateBridgeClient bridge) {
 
     if (Strings.isNullOrEmpty(query)) {
-      replyWithGraphqlError(
-          Status.BAD_REQUEST, "You must provide a GraphQL query as a URL parameter", asyncResponse);
-      return;
+      throw graphqlError(Status.BAD_REQUEST, "You must provide a GraphQL query as a URL parameter");
     }
 
     try {
@@ -98,8 +97,7 @@ public class GraphqlResourceBase {
 
       executeAsync(input.build(), graphql, asyncResponse);
     } catch (IOException e) {
-      replyWithGraphqlError(
-          Status.BAD_REQUEST, "Could not parse variables: " + e.getMessage(), asyncResponse);
+      throw graphqlError(Status.BAD_REQUEST, "Could not parse variables: " + e.getMessage());
     }
   }
 
@@ -124,21 +122,17 @@ public class GraphqlResourceBase {
     Map<String, Object> variables = (jsonBody == null) ? null : jsonBody.getVariables();
 
     if (queryFromBody == null && queryFromUrl == null) {
-      replyWithGraphqlError(
+      throw graphqlError(
           Status.BAD_REQUEST,
-          "You must provide a GraphQL query, either as a query parameter or in the request body",
-          asyncResponse);
-      return;
+          "You must provide a GraphQL query, either as a query parameter or in the request body");
     }
 
     if (queryFromBody != null && queryFromUrl != null) {
       // The GraphQL spec doesn't specify what to do in this case, but it's probably better to error
       // out rather than pick one arbitrarily.
-      replyWithGraphqlError(
+      throw graphqlError(
           Status.BAD_REQUEST,
-          "You can't provide a GraphQL query both as a query parameter and in the request body",
-          asyncResponse);
-      return;
+          "You can't provide a GraphQL query both as a query parameter and in the request body");
     }
 
     String query = MoreObjects.firstNonNull(queryFromBody, queryFromUrl);
@@ -192,26 +186,23 @@ public class GraphqlResourceBase {
       StargateBridgeClient bridge) {
 
     if (jsonBody == null) {
-      replyWithGraphqlError(
+      throw graphqlError(
           Status.BAD_REQUEST,
           "Could not find GraphQL operations object. "
               + "Make sure your multipart request includes an 'operations' part with MIME type "
-              + MediaType.APPLICATION_JSON,
-          asyncResponse);
-      return;
+              + MediaType.APPLICATION_JSON);
     }
 
-    if (bindFilesToVariables(jsonBody, allParts, asyncResponse)) {
-      postJson(
-          jsonBody,
-          // We don't allow passing the query as a URL param for this variant. The spec does not
-          // preclude it explicitly, but it's unlikely that someone would try to do that.
-          null,
-          graphql,
-          httpRequest,
-          asyncResponse,
-          bridge);
-    }
+    bindFilesToVariables(jsonBody, allParts, asyncResponse);
+    postJson(
+        jsonBody,
+        // We don't allow passing the query as a URL param for this variant. The spec does not
+        // preclude it explicitly, but it's unlikely that someone would try to do that.
+        null,
+        graphql,
+        httpRequest,
+        asyncResponse,
+        bridge);
   }
 
   /**
@@ -231,10 +222,8 @@ public class GraphqlResourceBase {
    *
    * <p>We want to read each file part as an {@link InputStream}, and inject it in {@link
    * GraphqlJsonBody#getVariables()} at the corresponding position (overriding whatever was there).
-   *
-   * @return true if the process succeeded. Otherwise an error response has already been written.
    */
-  private static boolean bindFilesToVariables(
+  private static void bindFilesToVariables(
       GraphqlJsonBody jsonBody, FormDataMultiPart allParts, AsyncResponse asyncResponse) {
 
     Map<String, Object> variables = jsonBody.getVariables();
@@ -242,19 +231,14 @@ public class GraphqlResourceBase {
     if (filesMappingPart != null) {
       if (variables == null || variables.isEmpty()) {
         // We could just ignore the files but this is likely a user mistake
-        replyWithGraphqlError(
-            Status.BAD_REQUEST,
-            "Found a 'map' part but the GraphQL query has no variables",
-            asyncResponse);
-        return false;
+        throw graphqlError(
+            Status.BAD_REQUEST, "Found a 'map' part but the GraphQL query has no variables");
       }
       Map<String, List<String>> filesMapping;
       try {
         filesMapping = OBJECT_MAPPER.readValue(filesMappingPart.getValue(), FILES_MAPPING_TYPE);
       } catch (JsonProcessingException e) {
-        replyWithGraphqlError(
-            Status.BAD_REQUEST, "Could not parse map part: " + e.getMessage(), asyncResponse);
-        return false;
+        throw graphqlError(Status.BAD_REQUEST, "Could not parse map part: " + e.getMessage());
       }
       for (Map.Entry<String, List<String>> entry : filesMapping.entrySet()) {
         String partName = entry.getKey();
@@ -262,25 +246,21 @@ public class GraphqlResourceBase {
 
         FormDataBodyPart part = allParts.getField(partName);
         if (part == null) {
-          replyWithGraphqlError(
+          throw graphqlError(
               Status.BAD_REQUEST,
               String.format(
-                  "The 'map' part references '%s', but found no part with that name", partName),
-              asyncResponse);
-          return false;
+                  "The 'map' part references '%s', but found no part with that name", partName));
         }
 
         if (variablePaths == null || variablePaths.size() != 1) {
           // The spec allows more than one variable, but we won't use that feature and it would
           // complicate things with InputStream.
-          replyWithGraphqlError(
-              Status.BAD_REQUEST,
+          String message =
               String.format(
                   "This implementation only allows file parts to reference exactly one variable "
                       + "(offending part: '%s' with %d variables)",
-                  partName, variablePaths == null ? 0 : variablePaths.size()),
-              asyncResponse);
-          return false;
+                  partName, variablePaths == null ? 0 : variablePaths.size());
+          throw graphqlError(Status.BAD_REQUEST, message);
         }
         String variablePath = variablePaths.get(0);
 
@@ -288,21 +268,18 @@ public class GraphqlResourceBase {
         if (pathElements.size() != 2 && !"variables".equals(pathElements.get(0))) {
           // Again, the spec allows more complicated cases like nested variables or arrays, but we
           // won't need that so let's keep it simple for now.
-          replyWithGraphqlError(
+          throw graphqlError(
               Status.BAD_REQUEST,
               String.format(
                   "This implementation only allows simple variable references like 'variables.x' "
                       + "(offending reference: '%s')",
-                  variablePath),
-              asyncResponse);
-          return false;
+                  variablePath));
         }
         String variableName = pathElements.get(1);
 
         variables.put(variableName, part.getEntityAs(InputStream.class));
       }
     }
-    return true;
   }
 
   /**
@@ -318,11 +295,8 @@ public class GraphqlResourceBase {
       StargateBridgeClient bridge) {
 
     if (Strings.isNullOrEmpty(query)) {
-      replyWithGraphqlError(
-          Status.BAD_REQUEST,
-          "You must provide a GraphQL query in the request body",
-          asyncResponse);
-      return;
+      throw graphqlError(
+          Status.BAD_REQUEST, "You must provide a GraphQL query in the request body");
     }
 
     ExecutionInput input =
@@ -340,13 +314,11 @@ public class GraphqlResourceBase {
             (result, error) -> {
               if (error != null) {
                 LOG.error("Unexpected error while processing GraphQL request", error);
-                replyWithGraphqlError(
-                    Status.INTERNAL_SERVER_ERROR, "Internal server error", asyncResponse);
+                throw graphqlError(Status.INTERNAL_SERVER_ERROR, "Internal server error");
               } else {
                 StargateGraphqlContext context = (StargateGraphqlContext) input.getContext();
                 if (context.isOverloaded()) {
-                  replyWithGraphqlError(
-                      Status.TOO_MANY_REQUESTS, "Database is overloaded", asyncResponse);
+                  throw graphqlError(Status.TOO_MANY_REQUESTS, "Database is overloaded");
                 } else {
                   asyncResponse.resume(result.toSpecification());
                 }
@@ -358,18 +330,17 @@ public class GraphqlResourceBase {
     return bridge.authorizeSchemaRead(SchemaReads.keyspace(keyspaceName, SourceApi.GRAPHQL));
   }
 
-  protected static void replyWithGraphqlError(
-      Status status, String message, @Suspended AsyncResponse asyncResponse) {
-    asyncResponse.resume(
+  protected static WebApplicationException graphqlError(Status status, String message) {
+    return new WebApplicationException(
         Response.status(status)
             .entity(
                 ImmutableMap.of("errors", ImmutableList.of(ImmutableMap.of("message", message))))
             .build());
   }
 
-  protected static void replyWithGraphqlError(
-      Status status, GraphqlErrorException error, @Suspended AsyncResponse asyncResponse) {
-    asyncResponse.resume(
+  protected static WebApplicationException graphqlError(
+      Status status, GraphqlErrorException error) {
+    return new WebApplicationException(
         Response.status(status)
             .entity(ImmutableMap.of("errors", ImmutableList.of(error.toSpecification())))
             .build());
