@@ -21,6 +21,8 @@ import io.grpc.Channel;
 import io.grpc.ClientCall;
 import io.grpc.ClientInterceptors;
 import io.grpc.Metadata;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ClientCalls;
 import io.grpc.stub.MetadataUtils;
 import io.stargate.grpc.StargateBearerToken;
@@ -33,8 +35,8 @@ import io.stargate.proto.QueryOuterClass.Row;
 import io.stargate.proto.Schema;
 import io.stargate.proto.Schema.AuthorizeSchemaReadsRequest;
 import io.stargate.proto.Schema.AuthorizeSchemaReadsResponse;
-import io.stargate.proto.Schema.CqlKeyspace;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.proto.Schema.DescribeKeyspaceQuery;
 import io.stargate.proto.Schema.SchemaRead;
 import io.stargate.proto.Schema.SchemaRead.SourceApi;
 import io.stargate.proto.StargateBridgeGrpc;
@@ -60,18 +62,12 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
       Query.newBuilder().setCql("SELECT keyspace_name FROM system_schema.keyspaces").build();
 
   private final Channel channel;
-  private final DefaultStargateBridgeSchema schema;
   private final CallOptions callOptions;
   private final String tenantPrefix;
   private final SourceApi sourceApi;
 
   DefaultStargateBridgeClient(
-      Channel channel,
-      DefaultStargateBridgeSchema schema,
-      String authToken,
-      Optional<String> tenantId,
-      SourceApi sourceApi) {
-    this.schema = schema;
+      Channel channel, String authToken, Optional<String> tenantId, SourceApi sourceApi) {
     this.channel = tenantId.map(i -> addMetadata(channel, i)).orElse(channel);
     this.callOptions =
         CallOptions.DEFAULT
@@ -87,18 +83,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
         channel.newCall(StargateBridgeGrpc.getExecuteQueryMethod(), callOptions);
     UnaryStreamObserver<Response> observer = new UnaryStreamObserver<>();
     ClientCalls.asyncUnaryCall(call, query, observer);
-    return observer
-        .asFuture()
-        .thenApply(
-            response -> {
-              if (response.hasSchemaChange()) {
-                // Ensure we're not holding a stale copy of the impacted keyspace by the time we
-                // return control to the caller
-                String keyspaceName = addTenantPrefix(response.getSchemaChange().getKeyspace());
-                schema.removeKeyspace(keyspaceName);
-              }
-              return response;
-            });
+    return observer.asFuture();
   }
 
   @Override
@@ -118,15 +103,17 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
               if (!authorized) {
                 throw new UnauthorizedKeyspaceException(keyspaceName);
               }
-              return getAuthorizedKeyspace(keyspaceName);
+              return getAuthorizedKeyspace(keyspaceName).thenApply(Optional::ofNullable);
             });
   }
 
-  private CompletionStage<Optional<CqlKeyspaceDescribe>> getAuthorizedKeyspace(
-      String keyspaceName) {
-    return schema
-        .getKeyspaceAsync(addTenantPrefix(keyspaceName))
-        .thenApply(ks -> Optional.ofNullable(stripTenantPrefix(ks)));
+  private CompletionStage<CqlKeyspaceDescribe> getAuthorizedKeyspace(String keyspaceName) {
+    ClientCall<DescribeKeyspaceQuery, CqlKeyspaceDescribe> call =
+        channel.newCall(StargateBridgeGrpc.getDescribeKeyspaceMethod(), callOptions);
+    UnaryStreamObserver<CqlKeyspaceDescribe> observer = new DescribeKeyspaceObserver();
+    ClientCalls.asyncUnaryCall(
+        call, DescribeKeyspaceQuery.newBuilder().setKeyspaceName(keyspaceName).build(), observer);
+    return observer.asFuture();
   }
 
   @Override
@@ -142,7 +129,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
               return authorizeSchemaReadsAsync(reads)
                   .thenApply(authorizations -> removeUnauthorized(names, authorizations));
             });
-    return authorizedNamesFuture.thenCompose(this::getAuthorizedkeyspaces);
+    return authorizedNamesFuture.thenCompose(this::getAuthorizedKeyspaces);
   }
 
   private <T> List<T> removeUnauthorized(List<T> elements, List<Boolean> authorizations) {
@@ -156,12 +143,10 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
     return filtered;
   }
 
-  private CompletionStage<List<CqlKeyspaceDescribe>> getAuthorizedkeyspaces(
+  private CompletionStage<List<CqlKeyspaceDescribe>> getAuthorizedKeyspaces(
       List<String> keyspaceNames) {
     List<CompletionStage<CqlKeyspaceDescribe>> keyspaceFutures =
-        keyspaceNames.stream()
-            .map(keyspaceName -> schema.getKeyspaceAsync(addTenantPrefix(keyspaceName)))
-            .collect(Collectors.toList());
+        keyspaceNames.stream().map(this::getAuthorizedKeyspace).collect(Collectors.toList());
     // Filter out nulls in case any keyspace was removed since we fetched the names
     return Futures.sequence(keyspaceFutures)
         .thenApply(
@@ -184,12 +169,12 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
               }
               return getAuthorizedKeyspace(keyspaceName)
                   .thenApply(
-                      maybeKs ->
-                          maybeKs.flatMap(
-                              ks ->
-                                  ks.getTablesList().stream()
-                                      .filter(t -> t.getName().equals(tableName))
-                                      .findFirst()));
+                      ks ->
+                          ks == null
+                              ? Optional.empty()
+                              : ks.getTablesList().stream()
+                                  .filter(t -> t.getName().equals(tableName))
+                                  .findFirst());
             });
   }
 
@@ -197,20 +182,19 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
   public CompletionStage<List<Schema.CqlTable>> getTablesAsync(String keyspaceName) {
     return getAuthorizedKeyspace(keyspaceName)
         .thenCompose(
-            maybeKeyspace ->
-                maybeKeyspace
-                    .map(
-                        keyspace -> {
-                          List<Schema.CqlTable> tables = keyspace.getTablesList();
-                          List<SchemaRead> reads =
-                              tables.stream()
-                                  .map(t -> SchemaReads.table(keyspaceName, t.getName(), sourceApi))
-                                  .collect(Collectors.toList());
-                          return authorizeSchemaReadsAsync(reads)
-                              .thenApply(
-                                  authorizations -> removeUnauthorized(tables, authorizations));
-                        })
-                    .orElse(CompletableFuture.completedFuture(Collections.emptyList())));
+            ks -> {
+              if (ks == null) {
+                return CompletableFuture.completedFuture(Collections.emptyList());
+              } else {
+                List<Schema.CqlTable> tables = ks.getTablesList();
+                List<SchemaRead> reads =
+                    tables.stream()
+                        .map(t -> SchemaReads.table(keyspaceName, t.getName(), sourceApi))
+                        .collect(Collectors.toList());
+                return authorizeSchemaReadsAsync(reads)
+                    .thenApply(authorizations -> removeUnauthorized(tables, authorizations));
+              }
+            });
   }
 
   @Override
@@ -261,21 +245,15 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
     return tenantPrefix + keyspaceName;
   }
 
-  private CqlKeyspaceDescribe stripTenantPrefix(CqlKeyspaceDescribe describe) {
-    if (describe == null || tenantPrefix.isEmpty()) {
-      return describe;
+  static class DescribeKeyspaceObserver extends UnaryStreamObserver<CqlKeyspaceDescribe> {
+    @Override
+    public void onError(Throwable t) {
+      if (t instanceof StatusRuntimeException
+          && ((StatusRuntimeException) t).getStatus().getCode() == Status.Code.NOT_FOUND) {
+        onNext(null);
+      } else {
+        onError(t);
+      }
     }
-    CqlKeyspace keyspace = describe.getCqlKeyspace();
-    return CqlKeyspaceDescribe.newBuilder(describe)
-        .setCqlKeyspace(
-            CqlKeyspace.newBuilder(keyspace).setName(stripTenantPrefix(keyspace.getName())).build())
-        .build();
-  }
-
-  private String stripTenantPrefix(String fullKeyspaceName) {
-    if (fullKeyspaceName.startsWith(tenantPrefix)) {
-      return fullKeyspaceName.substring(tenantPrefix.length());
-    }
-    return fullKeyspaceName;
   }
 }

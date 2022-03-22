@@ -24,7 +24,6 @@ class DefaultStargateBridgeClientFactory implements StargateBridgeClientFactory 
 
   private final Channel channel;
   private final SchemaRead.SourceApi sourceApi;
-  private final DefaultStargateBridgeSchema schema;
 
   DefaultStargateBridgeClientFactory(
       Channel channel,
@@ -33,16 +32,10 @@ class DefaultStargateBridgeClientFactory implements StargateBridgeClientFactory 
       ScheduledExecutorService executor) {
     this.channel = channel;
     this.sourceApi = sourceApi;
-    this.schema = new DefaultStargateBridgeSchema(channel, adminAuthToken, executor);
   }
 
   @Override
   public StargateBridgeClient newClient(String authToken, Optional<String> tenantId) {
-    return new DefaultStargateBridgeClient(channel, schema, authToken, tenantId, sourceApi);
-  }
-
-  @Override
-  public StargateBridgeSchema getSchema() {
-    return schema;
+    return new DefaultStargateBridgeClient(channel, authToken, tenantId, sourceApi);
   }
 }

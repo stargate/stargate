@@ -31,6 +31,4 @@ public interface StargateBridgeClientFactory {
   }
 
   StargateBridgeClient newClient(String authToken, Optional<String> tenantId);
-
-  StargateBridgeSchema getSchema();
 }
