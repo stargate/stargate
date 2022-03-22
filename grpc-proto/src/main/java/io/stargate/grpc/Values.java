@@ -242,9 +242,7 @@ public class Values {
   public static ByteBuffer byteBuffer(Value value) {
     checkInnerCase(value, InnerCase.BYTES);
 
-    ByteBuffer bytes = ByteBuffer.allocate(value.getBytes().size());
-    value.getBytes().copyTo(bytes);
-    return bytes;
+    return value.getBytes().asReadOnlyByteBuffer();
   }
 
   public static byte[] bytes(Value value) {

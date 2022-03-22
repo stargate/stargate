@@ -76,12 +76,12 @@ class SchemaHandler {
     Map<String, String> replication = new LinkedHashMap<>(keyspace.replication());
     if (replication.containsKey("class")) {
       String strategyName = replication.remove("class");
-      if (strategyName.equals("SimpleStrategy")) {
+      if (strategyName.endsWith("SimpleStrategy")) {
         cqlKeyspaceBuilder.putOptions("replication", Replication.simpleStrategy(1).toString());
-      } else if (strategyName.equals("NetworkTopologyStrategy")) {
+      } else if (strategyName.endsWith("NetworkTopologyStrategy")) {
         Map<String, Integer> replicationMap = new HashMap<String, Integer>();
         for (Map.Entry<String, String> entry : replication.entrySet()) {
-          replicationMap.put(entry.getKey(), Integer.getInteger(entry.getValue()));
+          replicationMap.put(entry.getKey(), Integer.parseInt(entry.getValue()));
         }
 
         cqlKeyspaceBuilder.putOptions(
