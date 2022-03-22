@@ -74,7 +74,7 @@ public abstract class BulkMutationFetcher
     }
 
     List<Map<String, Object>> values = environment.getArgument("values");
-    assert values.size() != queries.size(); // per the contract of buildQueries()
+    assert values.size() == queries.size(); // per the contract of buildQueries()
 
     List<CompletionStage<Map<String, Object>>> results = new ArrayList<>(values.size());
     QueryParameters parameters = buildParameters(environment);
