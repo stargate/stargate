@@ -72,7 +72,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class Converters {
-
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
   static {

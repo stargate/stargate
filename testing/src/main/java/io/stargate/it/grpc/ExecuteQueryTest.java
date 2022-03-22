@@ -24,10 +24,12 @@ import com.google.protobuf.BytesValue;
 import com.google.protobuf.Int32Value;
 import com.google.protobuf.InvalidProtocolBufferException;
 import io.grpc.StatusRuntimeException;
+import io.stargate.grpc.CqlDuration;
 import io.stargate.grpc.Values;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.ResultSet;
@@ -48,6 +50,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE TABLE IF NOT EXISTS test_uuid (id uuid, value int, PRIMARY KEY(id, value))",
       "CREATE TYPE IF NOT EXISTS address(street text, phone_numbers frozen<map<text,text>>)",
       "CREATE TABLE IF NOT EXISTS user(id int PRIMARY KEY, name text, address address)",
+      "CREATE TABLE IF NOT EXISTS test_duration(id int PRIMARY KEY, d duration)"
     })
 public class ExecuteQueryTest extends GrpcIntegrationTest {
 
@@ -325,5 +328,26 @@ public class ExecuteQueryTest extends GrpcIntegrationTest {
               assertThat(map.getKey().getBasic()).isEqualTo(TypeSpec.Basic.VARCHAR);
               assertThat(map.getValue().getBasic()).isEqualTo(TypeSpec.Basic.VARCHAR);
             });
+  }
+
+  @Test
+  public void shouldHandleDurations(@TestKeyspace CqlIdentifier keyspace) {
+    StargateBlockingStub stub = stubWithCallCredentials();
+
+    CqlDuration duration = CqlDuration.newInstance(1, 5, 100);
+    stub.executeQuery(
+        cqlQuery(
+            "INSERT INTO test_duration (id, d) VALUES (1, ?)",
+            queryParameters(keyspace),
+            Values.of(duration)));
+
+    QueryOuterClass.Row row =
+        stub.executeQuery(
+                cqlQuery("SELECT d FROM test_duration WHERE id = 1", queryParameters(keyspace)))
+            .getResultSet()
+            .getRows(0);
+
+    QueryOuterClass.Value value = row.getValues(0);
+    assertThat(Values.duration(value)).isEqualTo(duration);
   }
 }

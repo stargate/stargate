@@ -21,6 +21,7 @@ import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 import io.stargate.db.Persistence;
 import io.stargate.db.query.builder.Replication;
+import io.stargate.db.schema.CollectionIndexingType;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Index;
 import io.stargate.db.schema.Keyspace;
@@ -32,6 +33,7 @@ import io.stargate.grpc.service.GrpcService;
 import io.stargate.grpc.service.ValuesHelper;
 import io.stargate.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.proto.QueryOuterClass.TypeSpec.Udt;
+import io.stargate.proto.Schema;
 import io.stargate.proto.Schema.ColumnOrderBy;
 import io.stargate.proto.Schema.CqlIndex;
 import io.stargate.proto.Schema.CqlKeyspace;
@@ -74,12 +76,12 @@ class SchemaHandler {
     Map<String, String> replication = new LinkedHashMap<>(keyspace.replication());
     if (replication.containsKey("class")) {
       String strategyName = replication.remove("class");
-      if (strategyName.equals("SimpleStrategy")) {
+      if (strategyName.endsWith("SimpleStrategy")) {
         cqlKeyspaceBuilder.putOptions("replication", Replication.simpleStrategy(1).toString());
-      } else if (strategyName.equals("NetworkTopologyStrategy")) {
+      } else if (strategyName.endsWith("NetworkTopologyStrategy")) {
         Map<String, Integer> replicationMap = new HashMap<String, Integer>();
         for (Map.Entry<String, String> entry : replication.entrySet()) {
-          replicationMap.put(entry.getKey(), Integer.getInteger(entry.getValue()));
+          replicationMap.put(entry.getKey(), Integer.parseInt(entry.getValue()));
         }
 
         cqlKeyspaceBuilder.putOptions(
@@ -174,11 +176,25 @@ class SchemaHandler {
   }
 
   private static CqlIndex buildSecondaryIndex(SecondaryIndex index) {
-    return CqlIndex.newBuilder()
-        .setName(index.name())
-        .setColumnName(index.column().name())
-        .setCustomType(StringValue.newBuilder().setValue(index.indexTypeName()).build())
-        .build();
+    CqlIndex.Builder builder =
+        CqlIndex.newBuilder().setName(index.name()).setColumnName(index.column().name());
+    CollectionIndexingType indexingType = index.indexingType();
+    if (indexingType.indexKeys()) {
+      builder.setIndexingType(Schema.IndexingType.KEYS);
+    } else if (indexingType.indexValues()) {
+      builder.setIndexingType(Schema.IndexingType.VALUES_);
+    } else if (indexingType.indexEntries()) {
+      builder.setIndexingType(Schema.IndexingType.ENTRIES);
+    } else if (indexingType.indexFull()) {
+      builder.setIndexingType(Schema.IndexingType.FULL);
+    }
+    builder.setCustom(index.isCustom());
+    String indexingClass = index.indexingClass();
+    if (indexingClass != null) {
+      builder.setIndexingClass(StringValue.of(indexingClass));
+    }
+    builder.putAllOptions(index.indexingOptions());
+    return builder.build();
   }
 
   private static CqlMaterializedView buildMaterializedView(MaterializedView materializedView)

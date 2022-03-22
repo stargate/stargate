@@ -27,6 +27,7 @@ import org.immutables.value.Value.Style.ImplementationVisibility;
 @Immutable
 @Style(visibility = ImplementationVisibility.PACKAGE)
 public interface BuiltCondition {
+
   LHS lhs();
 
   Predicate predicate();
@@ -39,6 +40,10 @@ public interface BuiltCondition {
 
   static BuiltCondition of(String columnName, Predicate predicate, Term value) {
     return of(LHS.column(columnName), predicate, value);
+  }
+
+  static BuiltCondition of(LHS lhs, Predicate predicate, Object value) {
+    return of(lhs, predicate, Term.of(value));
   }
 
   static BuiltCondition of(LHS lhs, Predicate predicate, Term value) {

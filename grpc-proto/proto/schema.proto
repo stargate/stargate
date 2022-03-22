@@ -32,11 +32,23 @@ enum ColumnOrderBy {
 
 // INDEXES
 
+enum IndexingType {
+  DEFAULT = 0;
+  KEYS = 1;
+  // Note: should be named `VALUES`, but adding a trailing underscore to avoid a clash with an
+  // internal variable in the protobuf-generated Java code.
+  VALUES_ = 2;
+  ENTRIES = 3;
+  FULL = 4;
+}
+
 message CqlIndex {
   string name = 1;
   string column_name = 2;
-  google.protobuf.StringValue custom_type = 3;
-  map<string, string> options = 4;
+  IndexingType indexing_type = 3;
+  bool custom = 4;
+  google.protobuf.StringValue indexing_class = 5;
+  map<string, string> options = 6;
 }
 
 // MATERIALIZED VIEWS
