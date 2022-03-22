@@ -102,7 +102,6 @@ public class JwtAuthTest extends BaseGraphqlV2ApiTest {
     String error =
         client.getDmlQueryError(
             keyspaceId, "mutation { insertSecret(value: {k:1}) { value { k } } }");
-    // Don't rely on the full message because it's not standardized across Cassandra/DSE versions
-    assertThat(error).matches(".*User web_user has no (MODIFY|UPDATE) permission.*");
+    assertThat(error).contains("PERMISSION_DENIED");
   }
 }
