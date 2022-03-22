@@ -298,7 +298,7 @@ public class QueryBuilderTest {
               .column("b", "int")
               .build()
               .getCql(),
-          "CREATE TYPE ks.t(a int, b int)"),
+          "CREATE TYPE ks.t (a int, b int)"),
       arguments(
           new QueryBuilder()
               .alter()

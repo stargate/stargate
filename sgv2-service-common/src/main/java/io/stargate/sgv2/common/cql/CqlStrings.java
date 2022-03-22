@@ -55,9 +55,6 @@ public class CqlStrings {
   /**
    * Quote the given string; single quotes are escaped. If the given string is null, this method
    * returns a quoted empty string ({@code ''}).
-   *
-   * @param value The value to quote.
-   * @return The quoted string.
    */
   public static String quote(String value) {
     return quote(value, '\'');
@@ -180,7 +177,7 @@ public class CqlStrings {
       return baseTypeName
           + parameters.stream()
               .map(CqlStrings::doubleQuoteUdts)
-              .collect(Collectors.joining(",", "<", ">"));
+              .collect(Collectors.joining(", ", "<", ">"));
     }
   }
 

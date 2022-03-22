@@ -1101,7 +1101,7 @@ public class QueryBuilderImpl {
         .append(
             createColumns.stream()
                 .map(c -> c.cqlName() + " " + CqlStrings.doubleQuoteUdts(c.type()))
-                .collect(Collectors.joining(", ", "(", ")")));
+                .collect(Collectors.joining(", ", " (", ")")));
     return query.toString();
   }
 
@@ -1349,9 +1349,10 @@ public class QueryBuilderImpl {
       throw new IllegalArgumentException(
           "Using Marker instances as values is not supported. Pass a QueryOuterClass.Value "
               + "instead, and it will be converted to a marker internally. ");
-    } else if (value instanceof Value) {
+    } else if (value == null || value instanceof Value) {
       Marker marker = new Marker();
-      markers.put(marker, ((Value) value));
+      Value grpcValue = (value == null) ? io.stargate.grpc.Values.NULL : (Value) value;
+      markers.put(marker, grpcValue);
       return marker;
     } else {
       return Term.of(value);

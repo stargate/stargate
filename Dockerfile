@@ -30,9 +30,9 @@ EXPOSE 8084
 ARG LIBDIR
 COPY ${LIBDIR} /stargate-lib/
 
-COPY ./starctl /starctl
-RUN chmod +x starctl
-ENTRYPOINT ["./starctl"]
+COPY ./starctl-coordinator /starctl-coordinator
+RUN chmod +x starctl-coordinator
+ENTRYPOINT ["./starctl-coordinator"]
 
 FROM base as coordinator-4_0
 COPY stargate-lib/persistence-api*.jar stargate-lib/persistence-cassandra-4.0*.jar /stargate-lib/

@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>2.0.0-ALPHA-5-SNAPSHOT</version>
+    <version>2.0.0-ALPHA-6-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.cql</groupId>
   <artifactId>cql</artifactId>
@@ -46,12 +46,12 @@
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-all</artifactId>
-      <version>4.1.42.Final</version>
+      <version>${netty.version}</version>
     </dependency>
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-tcnative-boringssl-static</artifactId>
-      <version>2.0.25.Final</version>
+      <version>${netty-boringssl.version}</version>
     </dependency>
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
