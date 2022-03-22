@@ -146,12 +146,18 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
     Stream<Index> secondaryIndexes = convertSecondaryIndexes(keyspaceName, table, columns);
     Stream<Index> materializedViews = convertMVIndexes(keyspaceName, table, views);
     String comment = comment(table);
-    return Table.create(
-        keyspaceName,
-        tableName(table),
-        columns,
-        Stream.concat(secondaryIndexes, materializedViews).collect(Collectors.toList()),
-        comment);
+    Table t =
+        Table.create(
+            keyspaceName,
+            tableName(table),
+            columns,
+            Stream.concat(secondaryIndexes, materializedViews).collect(Collectors.toList()),
+            comment);
+    return appyAdvancedWorkloadProperty(table, t);
+  }
+
+  protected Table appyAdvancedWorkloadProperty(T tableMetadata, Table table) {
+    return table;
   }
 
   private Stream<Column> convertColumns(String keyspaceName, T table) {

@@ -3,13 +3,11 @@ package io.stargate.db.dse.impl;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
 import com.datastax.oss.driver.shaded.guava.common.collect.Iterables;
 import io.stargate.db.datastore.common.AbstractCassandraSchemaConverter;
-import io.stargate.db.schema.Column;
+import io.stargate.db.schema.*;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Order;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.cassandra.cql3.statements.schema.IndexTarget;
 import org.apache.cassandra.db.Keyspace;
@@ -85,6 +83,63 @@ public class SchemaConverter
   @Override
   protected ColumnType columnType(ColumnMetadata column) {
     return Conversion.getTypeFromInternal(column.type);
+  }
+
+  @Override
+  protected Table appyAdvancedWorkloadProperty(TableMetadata tableMetadata, Table table) {
+    Optional<VertexLabelMetadata> vertexLabelMetadata =
+        getVertexLabelMetaData(tableMetadata.vertexLabel());
+    Optional<EdgeLabelMetadata> edgeLabelMetadata = getEdgeLabelMetadata(tableMetadata.edgeLabel());
+    return Table.create(
+        table.keyspace(),
+        table.name(),
+        table.columns(),
+        table.indexes(),
+        table.comment(),
+        vertexLabelMetadata,
+        edgeLabelMetadata);
+  }
+
+  private Optional<EdgeLabelMetadata> getEdgeLabelMetadata(
+      org.apache.cassandra.schema.EdgeLabelMetadata edgeLabel) {
+    if (edgeLabel != null) {
+      String edgeLabelName = edgeLabel.name.toString();
+      VertexMappingMetadata from = extractVertexMapping(edgeLabel.from);
+      VertexMappingMetadata to = extractVertexMapping(edgeLabel.to);
+      return Optional.of(EdgeLabelMetadata.create(edgeLabelName, from, to));
+    }
+    return Optional.empty();
+  }
+
+  private VertexMappingMetadata extractVertexMapping(
+      org.apache.cassandra.schema.EdgeLabelMetadata.VertexMapping mapping) {
+    List<ColumnMappingMetadata> columnMappings = new ArrayList<>();
+    for (org.apache.cassandra.schema.EdgeLabelMetadata.ColumnMapping columnMapping : mapping) {
+      columnMappings.add(
+          ColumnMappingMetadata.create(
+              columnMapping.vertexColumn().toString(), columnMapping.edgeColumn().toString()));
+    }
+    List<Column> columns = new ArrayList<>();
+    mapping.partitionKeyColumns.forEach(
+        c ->
+            columns.add(
+                ImmutableColumn.builder()
+                    .name(c.toString())
+                    .kind(Column.Kind.PartitionKey)
+                    .build()));
+    mapping.clusteringColumns.forEach(
+        c ->
+            columns.add(
+                ImmutableColumn.builder().name(c.toString()).kind(Column.Kind.Clustering).build()));
+    return VertexMappingMetadata.create(mapping.table.name, columns, columnMappings);
+  }
+
+  private Optional<VertexLabelMetadata> getVertexLabelMetaData(
+      org.apache.cassandra.schema.VertexLabelMetadata vertexLabel) {
+    if (vertexLabel != null) {
+      return Optional.of(VertexLabelMetadata.create(vertexLabel.name.toString()));
+    }
+    return Optional.empty();
   }
 
   @Override
