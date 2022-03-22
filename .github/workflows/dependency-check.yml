@@ -1,0 +1,45 @@
+name: Check Dependencies
+
+on:
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    - cron:  '0 12 * * *'
+  workflow_dispatch:
+
+jobs:
+  check-dependencies:
+    name: Check Dependencies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          ref: "master"
+      - name: Setup Java JDK
+        uses: actions/setup-java@v1
+        with:
+          java-version: 1.8
+      - name: Setup Maven
+        env:
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+        run: |
+          mkdir -p ~/.m2
+          cat <<EOF > ~/.m2/settings.xml
+          <settings>
+            <servers>
+              <server>
+                <id>artifactory-snapshots</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+              <server>
+                <id>artifactory-releases</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+             </server>
+           </servers>
+          </settings>
+          EOF
+      - name: Check Maven Dependencies
+        run: |
+          mvn versions:display-dependency-updates
