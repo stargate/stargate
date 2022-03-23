@@ -86,6 +86,29 @@ public class SchemaConverter
   }
 
   @Override
+  protected io.stargate.db.schema.Keyspace appyAdvancedWorkloadProperty(
+      KeyspaceMetadata keyspaceMetadata, io.stargate.db.schema.Keyspace keyspace) {
+    String engine = getEngine(keyspaceMetadata);
+    return io.stargate.db.schema.Keyspace.create(
+        keyspace.name(),
+        keyspace.tables(),
+        keyspace.userDefinedTypes(),
+        keyspace.replication(),
+        keyspace.durableWrites(),
+        engine);
+  }
+
+  private String getEngine(KeyspaceMetadata keyspaceMetadata) {
+    String engine = null;
+    try {
+      engine = keyspaceMetadata.params.get(KeyspaceParams.GRAPH_ENGINE).name();
+    } catch (Exception e) {
+      return engine;
+    }
+    return engine;
+  }
+
+  @Override
   protected Table appyAdvancedWorkloadProperty(TableMetadata tableMetadata, Table table) {
     Optional<VertexLabelMetadata> vertexLabelMetadata =
         getVertexLabelMetaData(tableMetadata.vertexLabel());

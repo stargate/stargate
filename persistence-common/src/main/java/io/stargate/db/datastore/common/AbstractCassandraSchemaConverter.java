@@ -127,12 +127,18 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
     String name = keyspaceName(keyspace);
     Stream<Table> tables = convertTables(name, tables(keyspace), views(keyspace));
     Stream<UserDefinedType> userDefinedTypes = convertUserTypes(name, userTypes(keyspace));
-    return Keyspace.create(
-        name,
-        tables.collect(Collectors.toList()),
-        userDefinedTypes.collect(Collectors.toList()),
-        replicationOptions(keyspace),
-        Optional.of(usesDurableWrites(keyspace)));
+    Keyspace k =
+        Keyspace.create(
+            name,
+            tables.collect(Collectors.toList()),
+            userDefinedTypes.collect(Collectors.toList()),
+            replicationOptions(keyspace),
+            Optional.of(usesDurableWrites(keyspace)));
+    return appyAdvancedWorkloadProperty(keyspace, k);
+  }
+
+  protected Keyspace appyAdvancedWorkloadProperty(K keyspaceMetadata, Keyspace keyspace) {
+    return keyspace;
   }
 
   // We pass the MVs because in Stargate metadata, each table lists the MVs for which it is a base
