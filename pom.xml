@@ -462,6 +462,11 @@
           <artifactId>versions-maven-plugin</artifactId>
           <version>2.10.0</version>
         </plugin>
+        <plugin>
+          <groupId>org.owasp</groupId>
+          <artifactId>dependency-check-maven</artifactId>
+          <version>7.0.0</version>
+        </plugin>
       </plugins>
     </pluginManagement>
   </build>
