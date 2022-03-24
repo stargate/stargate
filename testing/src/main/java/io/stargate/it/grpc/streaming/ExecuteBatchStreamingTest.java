@@ -153,7 +153,7 @@ public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
 
     // make sure all queries where executed, and we got not errors back
     Awaitility.await()
-        .atMost(5, TimeUnit.SECONDS)
+        .atMost(30, TimeUnit.SECONDS)
         .untilAsserted(
             () -> {
               assertThat(responses).hasSize(queries);
