@@ -15,6 +15,8 @@
  */
 package io.stargate.bridge.service;
 
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
@@ -31,9 +33,14 @@ import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.Schema;
 import io.stargate.proto.StargateBridgeGrpc;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ScheduledExecutorService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
+
+  private static final Logger LOG = LoggerFactory.getLogger(BridgeService.class);
 
   private static final Schema.CqlKeyspaceDescribe EMPTY_KEYSPACE_DESCRIPTION =
       Schema.CqlKeyspaceDescribe.newBuilder().build();
@@ -43,6 +50,12 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
 
   private final ScheduledExecutorService executor;
   private final int schemaAgreementRetries;
+
+  private final LoadingCache<Keyspace, Schema.CqlKeyspaceDescribe> descriptionCache =
+      Caffeine.newBuilder()
+          // TODO adjust size and TTL
+          .maximumSize(1000)
+          .build(SchemaHandler::buildKeyspaceDescription);
 
   public BridgeService(
       Persistence persistence,
@@ -108,11 +121,21 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
       responseObserver.onCompleted();
     } else {
       try {
-        Schema.CqlKeyspaceDescribe description = SchemaHandler.buildKeyspaceDescription(keyspace);
+        Schema.CqlKeyspaceDescribe description = descriptionCache.get(keyspace);
         responseObserver.onNext(description);
         responseObserver.onCompleted();
-      } catch (StatusException e) {
-        responseObserver.onError(e);
+      } catch (CompletionException e) {
+        Throwable cause = e.getCause();
+        if (cause instanceof StatusException) {
+          responseObserver.onError(e);
+        } else {
+          LOG.error("Internal error while building keyspace description", cause);
+          responseObserver.onError(
+              Status.INTERNAL
+                  .withDescription("Internal error while building keyspace description")
+                  .asException());
+        }
+        descriptionCache.invalidate(keyspace);
       }
     }
   }
