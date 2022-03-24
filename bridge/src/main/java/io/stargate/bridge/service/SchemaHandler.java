@@ -69,7 +69,8 @@ class SchemaHandler {
 
   static CqlKeyspaceDescribe buildKeyspaceDescription(Keyspace keyspace) throws StatusException {
 
-    CqlKeyspaceDescribe.Builder describeResultBuilder = CqlKeyspaceDescribe.newBuilder();
+    CqlKeyspaceDescribe.Builder describeResultBuilder =
+        CqlKeyspaceDescribe.newBuilder().setHash(keyspace.hashCode());
     CqlKeyspace.Builder cqlKeyspaceBuilder = CqlKeyspace.newBuilder();
     cqlKeyspaceBuilder.setName(keyspace.name());
 

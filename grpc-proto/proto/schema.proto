@@ -85,6 +85,11 @@ message CqlKeyspace {
 
 message DescribeKeyspaceQuery {
   string keyspace_name = 1;
+  // The value of `CqlKeyspaceDescribe.hash` the last time the client described that keyspace.
+  // - if it matches the current hash on the server, the server will return an empty response, to
+  //   indicate that the client can continue using the last known value.
+  // - if it doesn't match, or is not provided, the server will return a regular response.
+  google.protobuf.Int32Value hash = 2;
 }
 
 message CqlKeyspaceDescribe {
@@ -93,6 +98,8 @@ message CqlKeyspaceDescribe {
   repeated CqlTable tables = 3;
   repeated CqlIndex indexes = 4;
   repeated CqlMaterializedView materialized_views = 5;
+  // A hash of the metadata (see `DescribeKeyspaceQuery.hash`).
+  sint32 hash = 6;
 }
 
 message DescribeTableQuery {

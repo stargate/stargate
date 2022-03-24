@@ -15,9 +15,12 @@
  */
 package io.stargate.bridge.service;
 
+import io.grpc.Status;
+import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
+import io.stargate.db.schema.Keyspace;
 import io.stargate.grpc.service.GrpcService;
 import io.stargate.grpc.service.SingleBatchHandler;
 import io.stargate.grpc.service.SingleExceptionHandler;
@@ -31,6 +34,9 @@ import io.stargate.proto.StargateBridgeGrpc;
 import java.util.concurrent.ScheduledExecutorService;
 
 public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
+
+  private static final Schema.CqlKeyspaceDescribe EMPTY_KEYSPACE_DESCRIPTION =
+      Schema.CqlKeyspaceDescribe.newBuilder().build();
 
   private final Persistence persistence;
   private final AuthorizationService authorizationService;
@@ -88,7 +94,27 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
   public void describeKeyspace(
       Schema.DescribeKeyspaceQuery request,
       StreamObserver<Schema.CqlKeyspaceDescribe> responseObserver) {
-    SchemaHandler.describeKeyspace(request, persistence, responseObserver);
+
+    String decoratedName =
+        persistence.decorateKeyspaceName(request.getKeyspaceName(), GrpcService.HEADERS_KEY.get());
+
+    Keyspace keyspace = persistence.schema().keyspace(decoratedName);
+    if (keyspace == null) {
+      responseObserver.onError(
+          Status.NOT_FOUND.withDescription("Keyspace not found").asException());
+    } else if (request.hasHash() && request.getHash().getValue() == keyspace.hashCode()) {
+      // Client already has the latest version, don't resend
+      responseObserver.onNext(EMPTY_KEYSPACE_DESCRIPTION);
+      responseObserver.onCompleted();
+    } else {
+      try {
+        Schema.CqlKeyspaceDescribe description = SchemaHandler.buildKeyspaceDescription(keyspace);
+        responseObserver.onNext(description);
+        responseObserver.onCompleted();
+      } catch (StatusException e) {
+        responseObserver.onError(e);
+      }
+    }
   }
 
   @Override
