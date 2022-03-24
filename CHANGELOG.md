@@ -2,7 +2,7 @@
 
 ## [v1.0.52](https://github.com/stargate/stargate/tree/v1.0.52) (2022-03-22)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.52...v1.0.51)
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.51...v1.0.52)
 
 **Closed issues:**
 
