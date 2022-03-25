@@ -43,6 +43,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.RandomUtils;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -117,7 +118,7 @@ public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
                     rowOf(Values.of("c"), Values.of(3)))));
   }
 
-  @Test
+  @RepeatedTest(1000)
   public void manyStreamingBatch(@TestKeyspace CqlIdentifier keyspace) {
     List<StreamingResponse> responses = new CopyOnWriteArrayList<>();
 
@@ -153,7 +154,7 @@ public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
 
     // make sure all queries where executed, and we got not errors back
     Awaitility.await()
-        .atMost(30, TimeUnit.SECONDS)
+        .atMost(5, TimeUnit.SECONDS)
         .untilAsserted(
             () -> {
               assertThat(responses).hasSize(queries);
