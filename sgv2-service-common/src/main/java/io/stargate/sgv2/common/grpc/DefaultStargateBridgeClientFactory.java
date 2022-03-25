@@ -15,7 +15,10 @@
  */
 package io.stargate.sgv2.common.grpc;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.grpc.Channel;
+import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.SchemaRead;
 import java.util.Optional;
 import java.util.concurrent.ScheduledExecutorService;
@@ -24,6 +27,11 @@ class DefaultStargateBridgeClientFactory implements StargateBridgeClientFactory 
 
   private final Channel channel;
   private final SchemaRead.SourceApi sourceApi;
+  private final Cache<String, CqlKeyspaceDescribe> keyspaceCache =
+      Caffeine.newBuilder()
+          // TODO tune max size, TTL...
+          .maximumSize(10000)
+          .build();
 
   DefaultStargateBridgeClientFactory(
       Channel channel,
@@ -36,6 +44,6 @@ class DefaultStargateBridgeClientFactory implements StargateBridgeClientFactory 
 
   @Override
   public StargateBridgeClient newClient(String authToken, Optional<String> tenantId) {
-    return new DefaultStargateBridgeClient(channel, authToken, tenantId, sourceApi);
+    return new DefaultStargateBridgeClient(channel, authToken, tenantId, keyspaceCache, sourceApi);
   }
 }

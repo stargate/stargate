@@ -15,7 +15,9 @@
  */
 package io.stargate.sgv2.common.grpc;
 
+import com.github.benmanes.caffeine.cache.Cache;
 import com.google.protobuf.BytesValue;
+import com.google.protobuf.Int32Value;
 import io.grpc.CallOptions;
 import io.grpc.Channel;
 import io.grpc.ClientCall;
@@ -64,16 +66,22 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
   private final Channel channel;
   private final CallOptions callOptions;
   private final String tenantPrefix;
+  private final Cache<String, CqlKeyspaceDescribe> keyspaceCache;
   private final SourceApi sourceApi;
 
   DefaultStargateBridgeClient(
-      Channel channel, String authToken, Optional<String> tenantId, SourceApi sourceApi) {
+      Channel channel,
+      String authToken,
+      Optional<String> tenantId,
+      Cache<String, CqlKeyspaceDescribe> keyspaceCache,
+      SourceApi sourceApi) {
     this.channel = tenantId.map(i -> addMetadata(channel, i)).orElse(channel);
     this.callOptions =
         CallOptions.DEFAULT
             .withDeadlineAfter(TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .withCallCredentials(new StargateBearerToken(authToken));
     this.tenantPrefix = tenantId.map(this::encodeKeyspacePrefix).orElse("");
+    this.keyspaceCache = keyspaceCache;
     this.sourceApi = sourceApi;
   }
 
@@ -108,11 +116,48 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
   }
 
   private CompletionStage<CqlKeyspaceDescribe> getAuthorizedKeyspace(String keyspaceName) {
+    CompletableFuture<CqlKeyspaceDescribe> result = new CompletableFuture<>();
+
+    CqlKeyspaceDescribe cached = keyspaceCache.getIfPresent(keyspaceName);
+    Optional<Integer> cachedHash = Optional.ofNullable(cached).map(CqlKeyspaceDescribe::getHash);
+
+    // The result is cached locally, but we always hit the bridge anyway, to check if it has a more
+    // recent version.
+    fetchKeyspaceFromBridge(keyspaceName, cachedHash)
+        .whenComplete(
+            (fetched, error) -> {
+              if (error != null) {
+                result.completeExceptionally(error);
+              } else if (fetched == null) {
+                // Keyspace does not exist. Update the cache if we previously thought it did.
+                if (cached != null) {
+                  keyspaceCache.invalidate(keyspaceName);
+                }
+                result.complete(null);
+              } else if (!fetched.hasCqlKeyspace()) {
+                // Empty response means the hash hasn't changed, we can keep using the
+                // cached version.
+                result.complete(cached);
+              } else {
+                keyspaceCache.put(keyspaceName, fetched);
+                result.complete(fetched);
+              }
+            });
+
+    return result;
+  }
+
+  private CompletionStage<CqlKeyspaceDescribe> fetchKeyspaceFromBridge(
+      String keyspaceName, Optional<Integer> hash) {
+
+    DescribeKeyspaceQuery.Builder query =
+        DescribeKeyspaceQuery.newBuilder().setKeyspaceName(keyspaceName);
+    hash.ifPresent(h -> query.setHash(Int32Value.of(h)));
+
     ClientCall<DescribeKeyspaceQuery, CqlKeyspaceDescribe> call =
         channel.newCall(StargateBridgeGrpc.getDescribeKeyspaceMethod(), callOptions);
     UnaryStreamObserver<CqlKeyspaceDescribe> observer = new DescribeKeyspaceObserver();
-    ClientCalls.asyncUnaryCall(
-        call, DescribeKeyspaceQuery.newBuilder().setKeyspaceName(keyspaceName).build(), observer);
+    ClientCalls.asyncUnaryCall(call, query.build(), observer);
     return observer.asFuture();
   }
 
@@ -252,7 +297,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
           && ((StatusRuntimeException) t).getStatus().getCode() == Status.Code.NOT_FOUND) {
         onNext(null);
       } else {
-        onError(t);
+        super.onError(t);
       }
     }
   }

@@ -21,9 +21,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.protobuf.Int32Value;
 import io.grpc.ManagedChannel;
 import io.grpc.Server;
 import io.grpc.Status;
@@ -51,6 +55,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.AfterEach;
@@ -71,6 +76,7 @@ public class DefaultStargateBridgeClientTest {
   private Server server;
   private ManagedChannel channel;
   @Mock private StargateBridgeImplBase service;
+  private Cache<String, CqlKeyspaceDescribe> keyspaceCache;
 
   @BeforeEach
   public void setup() throws IOException {
@@ -78,6 +84,7 @@ public class DefaultStargateBridgeClientTest {
         InProcessServerBuilder.forName(SERVER_NAME).directExecutor().addService(service).build();
     server.start();
     channel = InProcessChannelBuilder.forName(SERVER_NAME).usePlaintext().build();
+    keyspaceCache = Caffeine.newBuilder().build();
   }
 
   @AfterEach
@@ -129,27 +136,104 @@ public class DefaultStargateBridgeClientTest {
     String keyspaceName = "ks";
     mockAuthorization(SchemaReads.keyspace(keyspaceName, SOURCE_API), true);
     CqlKeyspaceDescribe bridgeKeyspace = buildKeyspace(keyspaceName);
-    mockDescribeResponse(keyspaceName, bridgeKeyspace);
+    mockDescribeResponse(keyspaceName, Optional.empty(), bridgeKeyspace);
 
     // When
     Optional<CqlKeyspaceDescribe> keyspace = newClient().getKeyspace(keyspaceName);
 
     // Then
     assertThat(keyspace).hasValue(bridgeKeyspace);
+    assertThat(keyspaceCache.getIfPresent(keyspaceName)).isEqualTo(bridgeKeyspace);
   }
 
   @Test
-  public void getKeyspaceNonExistent() {
+  public void getKeyspaceWhenNonExistent() {
     // Given
     String keyspaceName = "ks";
     mockAuthorization(SchemaReads.keyspace(keyspaceName, SOURCE_API), true);
-    mockDescribeNotFound(keyspaceName);
+    mockDescribeNotFound(keyspaceName, Optional.empty());
 
     // When
     Optional<CqlKeyspaceDescribe> keyspace = newClient().getKeyspace(keyspaceName);
 
     // Then
     assertThat(keyspace).isEmpty();
+  }
+
+  @Test
+  public void getKeyspaceWhenAlreadyCached() {
+    // Given
+    DefaultStargateBridgeClient client = newClient();
+    String keyspaceName = "ks";
+    mockAuthorization(SchemaReads.keyspace(keyspaceName, SOURCE_API), true);
+    CqlKeyspaceDescribe bridgeKeyspace = buildKeyspace(keyspaceName);
+    // first bridge call fetches and populates the cache
+    mockDescribeResponse(keyspaceName, Optional.empty(), bridgeKeyspace);
+    client.getKeyspace(keyspaceName);
+    verify(service).describeKeyspace(eq(describeQuery(keyspaceName)), any());
+    assertThat(keyspaceCache.getIfPresent(keyspaceName)).isEqualTo(bridgeKeyspace);
+    // second bridge call will only check the hash
+    mockDescribeUnchanged(keyspaceName, bridgeKeyspace.getHash());
+
+    // When
+    Optional<CqlKeyspaceDescribe> keyspace = client.getKeyspace(keyspaceName);
+
+    // Then
+    verify(service)
+        .describeKeyspace(eq(describeQuery(keyspaceName, bridgeKeyspace.getHash())), any());
+    assertThat(keyspace).hasValue(bridgeKeyspace);
+    assertThat(keyspaceCache.getIfPresent(keyspaceName)).isEqualTo(bridgeKeyspace);
+  }
+
+  @Test
+  public void getKeyspaceWhenCachedButHasChanged() {
+    // Given
+    DefaultStargateBridgeClient client = newClient();
+    String keyspaceName = "ks";
+    mockAuthorization(SchemaReads.keyspace(keyspaceName, SOURCE_API), true);
+    CqlKeyspaceDescribe bridgeKeyspace1 = buildKeyspace(keyspaceName);
+    // first bridge call fetches and populates the cache
+    mockDescribeResponse(keyspaceName, Optional.empty(), bridgeKeyspace1);
+    client.getKeyspace(keyspaceName);
+    verify(service).describeKeyspace(eq(describeQuery(keyspaceName)), any());
+    assertThat(keyspaceCache.getIfPresent(keyspaceName)).isEqualTo(bridgeKeyspace1);
+    // second bridge call will check the hash and find out a new version exists
+    CqlKeyspaceDescribe bridgeKeyspace2 = buildKeyspace(keyspaceName, "tbl1");
+    mockDescribeResponse(keyspaceName, Optional.of(bridgeKeyspace1.getHash()), bridgeKeyspace2);
+
+    // When
+    Optional<CqlKeyspaceDescribe> keyspace = client.getKeyspace(keyspaceName);
+
+    // Then
+    verify(service)
+        .describeKeyspace(eq(describeQuery(keyspaceName, bridgeKeyspace1.getHash())), any());
+    assertThat(keyspace).hasValue(bridgeKeyspace2);
+    assertThat(keyspaceCache.getIfPresent(keyspaceName)).isEqualTo(bridgeKeyspace2);
+  }
+
+  @Test
+  public void getKeyspaceWhenCachedButWasDeleted() {
+    // Given
+    DefaultStargateBridgeClient client = newClient();
+    String keyspaceName = "ks";
+    mockAuthorization(SchemaReads.keyspace(keyspaceName, SOURCE_API), true);
+    CqlKeyspaceDescribe bridgeKeyspace = buildKeyspace(keyspaceName);
+    // first bridge call fetches and populates the cache
+    mockDescribeResponse(keyspaceName, Optional.empty(), bridgeKeyspace);
+    client.getKeyspace(keyspaceName);
+    verify(service).describeKeyspace(eq(describeQuery(keyspaceName)), any());
+    assertThat(keyspaceCache.getIfPresent(keyspaceName)).isEqualTo(bridgeKeyspace);
+    // second bridge call will check the hash and find out the keyspace is gone
+    mockDescribeNotFound(keyspaceName, Optional.of(bridgeKeyspace.getHash()));
+
+    // When
+    Optional<CqlKeyspaceDescribe> keyspace = client.getKeyspace(keyspaceName);
+
+    // Then
+    verify(service)
+        .describeKeyspace(eq(describeQuery(keyspaceName, bridgeKeyspace.getHash())), any());
+    assertThat(keyspace).isEmpty();
+    assertThat(keyspaceCache.getIfPresent(keyspaceName)).isNull();
   }
 
   @Test
@@ -176,9 +260,9 @@ public class DefaultStargateBridgeClientTest {
             SchemaReads.keyspace("ks3", SOURCE_API),
             true));
     CqlKeyspaceDescribe bridgeKeyspace1 = buildKeyspace("ks1");
-    mockDescribeResponse("ks1", bridgeKeyspace1);
+    mockDescribeResponse("ks1", Optional.empty(), bridgeKeyspace1);
     CqlKeyspaceDescribe bridgeKeyspace3 = buildKeyspace("ks3");
-    mockDescribeResponse("ks3", bridgeKeyspace3);
+    mockDescribeResponse("ks3", Optional.empty(), bridgeKeyspace3);
 
     // When
     List<CqlKeyspaceDescribe> keyspaces = newClient().getAllKeyspaces();
@@ -194,7 +278,7 @@ public class DefaultStargateBridgeClientTest {
     String tableName = "tbl";
     mockAuthorization(SchemaReads.table(keyspaceName, tableName, SOURCE_API), true);
     CqlKeyspaceDescribe bridgeKeyspace = buildKeyspace(keyspaceName, tableName);
-    mockDescribeResponse(keyspaceName, bridgeKeyspace);
+    mockDescribeResponse(keyspaceName, Optional.empty(), bridgeKeyspace);
 
     // When
     Optional<CqlTable> table = newClient().getTable(keyspaceName, tableName);
@@ -210,7 +294,7 @@ public class DefaultStargateBridgeClientTest {
     String tableName = "tbl";
     mockAuthorization(SchemaReads.table(keyspaceName, tableName, SOURCE_API), true);
     CqlKeyspaceDescribe bridgeKeyspace = buildKeyspace(keyspaceName);
-    mockDescribeResponse(keyspaceName, bridgeKeyspace);
+    mockDescribeResponse(keyspaceName, Optional.empty(), bridgeKeyspace);
 
     // When
     Optional<CqlTable> table = newClient().getTable(keyspaceName, tableName);
@@ -242,7 +326,7 @@ public class DefaultStargateBridgeClientTest {
             SchemaReads.table(keyspaceName, "tbl3", SOURCE_API), true));
 
     CqlKeyspaceDescribe bridgeKeyspace = buildKeyspace(keyspaceName, "tbl1", "tbl2", "tbl3");
-    mockDescribeResponse(keyspaceName, bridgeKeyspace);
+    mockDescribeResponse(keyspaceName, Optional.empty(), bridgeKeyspace);
 
     // When
     List<CqlTable> tables = newClient().getTables(keyspaceName);
@@ -252,7 +336,8 @@ public class DefaultStargateBridgeClientTest {
   }
 
   private DefaultStargateBridgeClient newClient() {
-    return new DefaultStargateBridgeClient(channel, AUTH_TOKEN, Optional.empty(), SOURCE_API);
+    return new DefaultStargateBridgeClient(
+        channel, AUTH_TOKEN, Optional.empty(), keyspaceCache, SOURCE_API);
   }
 
   void mockAuthorizations(Map<SchemaRead, Boolean> authorizations) {
@@ -288,27 +373,51 @@ public class DefaultStargateBridgeClientTest {
   }
 
   private CqlKeyspaceDescribe buildKeyspace(String keyspaceName, String... tableNames) {
+    // Simulate a distinct hash (would normally be generated on the bridge side)
+    int hash = Objects.hash(keyspaceName, Arrays.hashCode(tableNames));
+
     return CqlKeyspaceDescribe.newBuilder()
         .setCqlKeyspace(CqlKeyspace.newBuilder().setName(keyspaceName))
         .addAllTables(
             Arrays.stream(tableNames)
                 .map(n -> CqlTable.newBuilder().setName(n).build())
                 .collect(Collectors.toList()))
+        .setHash(hash)
         .build();
   }
 
-  private void mockDescribeResponse(String keyspaceName, CqlKeyspaceDescribe response) {
+  private void mockDescribeResponse(
+      String keyspaceName, Optional<Integer> hash, CqlKeyspaceDescribe response) {
     DescribeKeyspaceQuery request =
-        DescribeKeyspaceQuery.newBuilder().setKeyspaceName(keyspaceName).build();
+        hash.map(h -> describeQuery(keyspaceName, h)).orElse(describeQuery(keyspaceName));
     doAnswer(i -> mockResponse(i, response)).when(service).describeKeyspace(eq(request), any());
   }
 
-  private void mockDescribeNotFound(String keyspaceName) {
+  private void mockDescribeNotFound(String keyspaceName, Optional<Integer> hash) {
     DescribeKeyspaceQuery request =
-        DescribeKeyspaceQuery.newBuilder().setKeyspaceName(keyspaceName).build();
+        hash.map(h -> describeQuery(keyspaceName, h)).orElse(describeQuery(keyspaceName));
     doAnswer(i -> mockError(i, Status.NOT_FOUND.withDescription("Keyspace not found")))
         .when(service)
         .describeKeyspace(eq(request), any());
+  }
+
+  private void mockDescribeUnchanged(String keyspaceName, int hash) {
+    DescribeKeyspaceQuery request = describeQuery(keyspaceName, hash);
+    CqlKeyspaceDescribe emptyResponse = CqlKeyspaceDescribe.newBuilder().build();
+    doAnswer(i -> mockResponse(i, emptyResponse))
+        .when(service)
+        .describeKeyspace(eq(request), any());
+  }
+
+  private DescribeKeyspaceQuery describeQuery(String keyspaceName) {
+    return DescribeKeyspaceQuery.newBuilder().setKeyspaceName(keyspaceName).build();
+  }
+
+  private DescribeKeyspaceQuery describeQuery(String keyspaceName, int hash) {
+    return DescribeKeyspaceQuery.newBuilder()
+        .setKeyspaceName(keyspaceName)
+        .setHash(Int32Value.of(hash))
+        .build();
   }
 
   private void mockQuery(Query query, List<Row> rows) {
