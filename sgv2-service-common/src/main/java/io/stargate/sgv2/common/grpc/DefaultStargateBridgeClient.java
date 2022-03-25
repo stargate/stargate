@@ -100,15 +100,20 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
   }
 
   @Override
-  public CompletionStage<Optional<CqlKeyspaceDescribe>> getKeyspaceAsync(String keyspaceName) {
-    return authorizeSchemaReadAsync(SchemaReads.keyspace(keyspaceName, sourceApi))
-        .thenCompose(
-            authorized -> {
-              if (!authorized) {
-                throw new UnauthorizedKeyspaceException(keyspaceName);
-              }
-              return getAuthorizedKeyspace(keyspaceName).thenApply(Optional::ofNullable);
-            });
+  public CompletionStage<Optional<CqlKeyspaceDescribe>> getKeyspaceAsync(
+      String keyspaceName, boolean checkIfAuthorized) {
+    if (checkIfAuthorized) {
+      return authorizeSchemaReadAsync(SchemaReads.keyspace(keyspaceName, sourceApi))
+          .thenCompose(
+              authorized -> {
+                if (!authorized) {
+                  throw new UnauthorizedKeyspaceException(keyspaceName);
+                }
+                return getAuthorizedKeyspace(keyspaceName).thenApply(Optional::ofNullable);
+              });
+    } else {
+      return getAuthorizedKeyspace(keyspaceName).thenApply(Optional::ofNullable);
+    }
   }
 
   private CompletionStage<CqlKeyspaceDescribe> getAuthorizedKeyspace(String keyspaceName) {
@@ -196,22 +201,31 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
 
   @Override
   public CompletionStage<Optional<Schema.CqlTable>> getTableAsync(
+      String keyspaceName, String tableName, boolean checkIfAuthorized) {
+    if (checkIfAuthorized) {
+      return authorizeSchemaReadAsync(SchemaReads.table(keyspaceName, tableName, sourceApi))
+          .thenCompose(
+              authorized -> {
+                if (!authorized) {
+                  throw new UnauthorizedTableException(keyspaceName, tableName);
+                }
+                return getAuthorizedTable(keyspaceName, tableName);
+              });
+    } else {
+      return getAuthorizedTable(keyspaceName, tableName);
+    }
+  }
+
+  private CompletionStage<Optional<Schema.CqlTable>> getAuthorizedTable(
       String keyspaceName, String tableName) {
-    return authorizeSchemaReadAsync(SchemaReads.table(keyspaceName, tableName, sourceApi))
-        .thenCompose(
-            authorized -> {
-              if (!authorized) {
-                throw new UnauthorizedTableException(keyspaceName, tableName);
-              }
-              return getAuthorizedKeyspace(keyspaceName)
-                  .thenApply(
-                      ks ->
-                          ks == null
-                              ? Optional.empty()
-                              : ks.getTablesList().stream()
-                                  .filter(t -> t.getName().equals(tableName))
-                                  .findFirst());
-            });
+    return getAuthorizedKeyspace(keyspaceName)
+        .thenApply(
+            ks ->
+                ks == null
+                    ? Optional.empty()
+                    : ks.getTablesList().stream()
+                        .filter(t -> t.getName().equals(tableName))
+                        .findFirst());
   }
 
   @Override

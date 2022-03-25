@@ -31,10 +31,17 @@ service StargateBridge {
   // Executes a batch of CQL queries.
   rpc ExecuteBatch(Batch) returns (Response) {}
 
-  // Similar to CQL "DESCRIBE KEYSPACE"
+  // Similar to CQL "DESCRIBE KEYSPACE".
+  // Note that this operation does not perform any authorization check. The rationale is that, most
+  // of the time, client services use schema metadata to build another query that will be
+  // immediately executed with `ExecuteQuery` (which does check authorization).
+  // If that is not the case (e.g. you return the metadata directly to the client), you can check
+  // authorization explicitly with `AuthorizeSchemaReads`.
   rpc DescribeKeyspace(DescribeKeyspaceQuery) returns (CqlKeyspaceDescribe) {}
 
-  // Similar to CQL "DESCRIBE KEYSPACE"
+  // Similar to CQL "DESCRIBE TABLE".
+  // Note that this operation does not perform any authorization check. See explanations on
+  // `DescribeKeyspace`.
   rpc DescribeTable(DescribeTableQuery) returns (CqlTable) {}
 
   // Requests notification of schema changes.

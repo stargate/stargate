@@ -49,9 +49,10 @@ public abstract class ResourceBase {
       StargateBridgeClient bridge,
       String keyspaceName,
       String tableName,
+      boolean checkIfAuthorized,
       Function<Schema.CqlTable, Response> function) {
     return bridge
-        .getTable(keyspaceName, tableName)
+        .getTable(keyspaceName, tableName, checkIfAuthorized)
         .map(function)
         .orElseThrow(
             () ->

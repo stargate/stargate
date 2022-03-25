@@ -66,7 +66,7 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
   public Response getOneKeyspace(
       final StargateBridgeClient bridge, final String keyspaceName, final boolean raw) {
     return bridge
-        .getKeyspace(keyspaceName)
+        .getKeyspace(keyspaceName, true)
         .map(
             describe -> {
               Sgv2Keyspace keyspace = keyspaceFrom(describe);
