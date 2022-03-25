@@ -43,7 +43,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.commons.lang3.RandomUtils;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.RepeatedTest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -118,7 +117,7 @@ public class ExecuteBatchStreamingTest extends GrpcIntegrationTest {
                     rowOf(Values.of("c"), Values.of(3)))));
   }
 
-  @RepeatedTest(1000)
+  @Test
   public void manyStreamingBatch(@TestKeyspace CqlIdentifier keyspace) {
     List<StreamingResponse> responses = new CopyOnWriteArrayList<>();
 
