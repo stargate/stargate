@@ -24,8 +24,6 @@ import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
-import io.grpc.ManagedChannel;
-import io.stargate.core.grpc.BridgeConfig;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
@@ -108,7 +106,8 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
       throws IOException {
 
     StargateBridgeClientFactory clientFactory =
-        buildClientFactory(appConfig.stargate.bridge.buildChannel(), environment);
+        StargateBridgeClientFactory.newInstance(
+            appConfig.stargate.bridge.buildChannel(), SchemaRead.SourceApi.REST);
     environment.jersey().register(buildClientFilter(clientFactory));
 
     environment
@@ -163,15 +162,6 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
 
     // no html content
     environment.jersey().property(ServerProperties.RESPONSE_SET_STATUS_OVER_SEND_ERROR, true);
-  }
-
-  private StargateBridgeClientFactory buildClientFactory(
-      ManagedChannel channel, Environment environment) {
-    return StargateBridgeClientFactory.newInstance(
-        channel,
-        BridgeConfig.ADMIN_TOKEN,
-        SchemaRead.SourceApi.REST,
-        environment.lifecycle().scheduledExecutorService("bridge-factory").threads(1).build());
   }
 
   private CreateStargateBridgeClientFilter buildClientFilter(

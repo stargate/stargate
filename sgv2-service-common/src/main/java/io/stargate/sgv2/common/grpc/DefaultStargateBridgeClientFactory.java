@@ -21,7 +21,6 @@ import io.grpc.Channel;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.SchemaRead;
 import java.util.Optional;
-import java.util.concurrent.ScheduledExecutorService;
 
 class DefaultStargateBridgeClientFactory implements StargateBridgeClientFactory {
 
@@ -33,11 +32,7 @@ class DefaultStargateBridgeClientFactory implements StargateBridgeClientFactory 
           .maximumSize(10000)
           .build();
 
-  DefaultStargateBridgeClientFactory(
-      Channel channel,
-      String adminAuthToken,
-      SchemaRead.SourceApi sourceApi,
-      ScheduledExecutorService executor) {
+  DefaultStargateBridgeClientFactory(Channel channel, SchemaRead.SourceApi sourceApi) {
     this.channel = channel;
     this.sourceApi = sourceApi;
   }
