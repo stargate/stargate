@@ -49,21 +49,32 @@ import org.jetbrains.annotations.NotNull;
 
 class SchemaHandler {
 
+  private static final Schema.CqlKeyspaceDescribe EMPTY_KEYSPACE_DESCRIPTION =
+      Schema.CqlKeyspaceDescribe.newBuilder().build();
+
   public static void describeKeyspace(
       DescribeKeyspaceQuery query,
       Persistence persistence,
       StreamObserver<CqlKeyspaceDescribe> responseObserver) {
-    try {
-      String decoratedKeyspace =
-          persistence.decorateKeyspaceName(query.getKeyspaceName(), GrpcService.HEADERS_KEY.get());
-      Keyspace keyspace = persistence.schema().keyspace(decoratedKeyspace);
-      if (keyspace == null) {
-        throw Status.NOT_FOUND.withDescription("Keyspace not found").asException();
-      }
-      responseObserver.onNext(buildKeyspaceDescription(keyspace));
+    String decoratedName =
+        persistence.decorateKeyspaceName(query.getKeyspaceName(), GrpcService.HEADERS_KEY.get());
+
+    Keyspace keyspace = persistence.schema().keyspace(decoratedName);
+    if (keyspace == null) {
+      responseObserver.onError(
+          Status.NOT_FOUND.withDescription("Keyspace not found").asException());
+    } else if (query.hasHash() && query.getHash().getValue() == keyspace.hashCode()) {
+      // Client already has the latest version, don't resend
+      responseObserver.onNext(EMPTY_KEYSPACE_DESCRIPTION);
       responseObserver.onCompleted();
-    } catch (StatusException e) {
-      responseObserver.onError(e);
+    } else {
+      try {
+        CqlKeyspaceDescribe description = SchemaHandler.buildKeyspaceDescription(keyspace);
+        responseObserver.onNext(description);
+        responseObserver.onCompleted();
+      } catch (StatusException e) {
+        responseObserver.onError(e);
+      }
     }
   }
 
