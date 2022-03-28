@@ -21,16 +21,14 @@ import io.grpc.Channel;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.SchemaRead;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 class DefaultStargateBridgeClientFactory implements StargateBridgeClientFactory {
 
   private final Channel channel;
   private final SchemaRead.SourceApi sourceApi;
   private final Cache<String, CqlKeyspaceDescribe> keyspaceCache =
-      Caffeine.newBuilder()
-          // TODO tune max size, TTL...
-          .maximumSize(10000)
-          .build();
+      Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(5, TimeUnit.MINUTES).build();
 
   DefaultStargateBridgeClientFactory(Channel channel, SchemaRead.SourceApi sourceApi) {
     this.channel = channel;
