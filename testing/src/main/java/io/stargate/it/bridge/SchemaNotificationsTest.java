@@ -12,6 +12,7 @@ import io.stargate.grpc.StargateBearerToken;
 import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.proto.QueryOuterClass.SchemaChange;
 import io.stargate.proto.QueryOuterClass.SchemaChange.Target;
@@ -41,7 +42,7 @@ public class SchemaNotificationsTest extends BaseIntegrationTest {
     channel = ManagedChannelBuilder.forAddress(seedAddress, 8091).usePlaintext().build();
     asyncStub =
         StargateBridgeGrpc.newStub(channel)
-            .withCallCredentials(new StargateBearerToken("mockAdminToken"));
+            .withCallCredentials(new StargateBearerToken(RestUtils.getAuthToken(seedAddress)));
   }
 
   @AfterEach
