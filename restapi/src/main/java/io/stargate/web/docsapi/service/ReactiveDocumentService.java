@@ -372,9 +372,9 @@ public class ReactiveDocumentService {
       String documentId,
       List<String> subPath,
       String payload,
-      Boolean ttlAuto,
+      boolean ttlAuto,
       ExecutionContext context) {
-    if (ttlAuto != null && ttlAuto) {
+    if (ttlAuto) {
       return determineTtl(db, namespace, collection, documentId, context)
           .flatMap(
               ttl ->
@@ -453,7 +453,7 @@ public class ReactiveDocumentService {
    * @param documentId The ID of the document to patch
    * @param subPath Sub-path of the document to patch. If empty will patch the whole doc.
    * @param payload Document represented as JSON string
-   * @param ttl The time-to-live of the document (seconds)
+   * @param ttlAuto Whether to automatically determine TTL from the surrounding document
    * @param context Execution content
    * @return Document response wrapper containing the generated ID.
    */
@@ -462,38 +462,11 @@ public class ReactiveDocumentService {
       String namespace,
       String collection,
       String documentId,
-      String payload,
-      Integer ttl,
-      ExecutionContext context) {
-    return patchDocumentInternal(
-        db, namespace, collection, documentId, Collections.emptyList(), payload, ttl, context);
-  }
-
-  /**
-   * Patches a document with given ID in the given namespace and collection at the specified
-   * sub-path. Any previously existing patched keys at the given path will be overwritten, as well
-   * as any existing array.
-   *
-   * @param db {@link DocumentDB} to write in
-   * @param namespace Namespace
-   * @param collection Collection name
-   * @param documentId The ID of the document to patch
-   * @param subPath Sub-path of the document to patch. If empty will patch the whole doc.
-   * @param payload Document represented as JSON string
-   * @param ttlAuto Whether to automatically determine TTL from the surrounding document
-   * @param context Execution content
-   * @return Document response wrapper containing the generated ID.
-   */
-  public Single<DocumentResponseWrapper<Void>> patchSubDocument(
-      DocumentDB db,
-      String namespace,
-      String collection,
-      String documentId,
       List<String> subPath,
       String payload,
-      Boolean ttlAuto,
+      boolean ttlAuto,
       ExecutionContext context) {
-    if (ttlAuto != null && ttlAuto) {
+    if (ttlAuto) {
       return determineTtl(db, namespace, collection, documentId, context)
           .flatMap(
               ttl ->
@@ -568,25 +541,6 @@ public class ReactiveDocumentService {
                   context);
             })
         .map(any -> new DocumentResponseWrapper<>(documentId, null, null, context.toProfile()));
-  }
-
-  /**
-   * Deletes a document with given ID in the given namespace and collection.
-   *
-   * @param db {@link DocumentDB} to write in
-   * @param namespace Namespace
-   * @param collection Collection name
-   * @param documentId The ID of the document to delete
-   * @param context Execution content @@return Flag representing if the operation was success.
-   */
-  public Single<Boolean> deleteDocument(
-      DocumentDB db,
-      String namespace,
-      String collection,
-      String documentId,
-      ExecutionContext context) {
-    List<String> subPath = Collections.emptyList();
-    return deleteDocument(db, namespace, collection, documentId, subPath, context);
   }
 
   /**

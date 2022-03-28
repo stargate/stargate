@@ -238,7 +238,7 @@ public class DocumentSearchService {
             () -> {
               DataStore dataStore = queryExecutor.getDataStore();
 
-              DocumentTtlQueryBuilder queryBuilder = new DocumentTtlQueryBuilder(documentId);
+              DocumentTtlQueryBuilder queryBuilder = new DocumentTtlQueryBuilder();
               BuiltQuery<? extends BoundQuery> query =
                   queryBuilder.buildQuery(dataStore::queryBuilder, keyspace, collection);
 

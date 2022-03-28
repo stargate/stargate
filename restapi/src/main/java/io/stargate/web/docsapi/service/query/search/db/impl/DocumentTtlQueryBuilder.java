@@ -36,16 +36,9 @@ import java.util.function.Supplier;
 /** Simple query builder to get the TTL of a document. */
 public class DocumentTtlQueryBuilder extends AbstractSearchQueryBuilder {
 
-  /** Doc id to target. */
-  private final String documentId;
-
   @Override
   protected boolean allowFiltering() {
     return false;
-  }
-
-  public DocumentTtlQueryBuilder(String documentId) {
-    this.documentId = documentId;
   }
 
   @Override

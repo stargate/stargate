@@ -359,10 +359,11 @@ public class ReactiveDocumentResourceV2 {
           @NotBlank(message = "payload must not be empty")
           String payload,
       @ApiParam(
-              value = "Include this to make the TTL match that of the parent document.",
+              value =
+                  "Include this to make the TTL match that of the parent document. Requires read-before-write if set to true",
               required = false)
           @QueryParam("ttl-auto")
-          Boolean ttlAuto,
+          boolean ttlAuto,
       @ApiParam(
               value = "Whether to include profiling information in the response (advanced)",
               defaultValue = "false")
@@ -437,7 +438,8 @@ public class ReactiveDocumentResourceV2 {
           @NotBlank(message = "payload must not be empty")
           String payload,
       @ApiParam(
-              value = "Include this to match this data's TTL to the document's TTL",
+              value =
+                  "Include this to match this data's TTL to the document's TTL. Requires read-before-write if set to true",
               required = false)
           @QueryParam("ttl-auto")
           boolean ttlAuto,
@@ -503,7 +505,8 @@ public class ReactiveDocumentResourceV2 {
           @NotBlank(message = "payload must not be empty")
           String payload,
       @ApiParam(
-              value = "Include this to match this data's TTL to the document's TTL",
+              value =
+                  "Include this to match this data's TTL to the document's TTL. Requires read-before-write if set to true",
               required = false)
           @QueryParam("ttl-auto")
           boolean ttlAuto,
@@ -527,8 +530,7 @@ public class ReactiveDocumentResourceV2 {
 
               // and call the document service to fire write
               return reactiveDocumentService
-                  .patchSubDocument(
-                      db, namespace, collection, id, subPath, payload, ttlAuto, context)
+                  .patchDocument(db, namespace, collection, id, subPath, payload, ttlAuto, context)
 
                   // map to response
                   .map(

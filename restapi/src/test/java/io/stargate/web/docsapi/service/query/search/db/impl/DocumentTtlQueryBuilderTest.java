@@ -44,7 +44,7 @@ class DocumentTtlQueryBuilderTest extends AbstractDataStoreTest {
     @Test
     public void happyPath() {
       String documentId = "docId";
-      DocumentTtlQueryBuilder queryBuilder = new DocumentTtlQueryBuilder(documentId);
+      DocumentTtlQueryBuilder queryBuilder = new DocumentTtlQueryBuilder();
       BuiltQuery<? extends BoundQuery> query =
           queryBuilder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
 
@@ -58,7 +58,7 @@ class DocumentTtlQueryBuilderTest extends AbstractDataStoreTest {
     @Test
     public void happyPathAddedColumnsIgnored() {
       String documentId = "docId";
-      DocumentTtlQueryBuilder queryBuilder = new DocumentTtlQueryBuilder(documentId);
+      DocumentTtlQueryBuilder queryBuilder = new DocumentTtlQueryBuilder();
       BuiltQuery<? extends BoundQuery> query =
           queryBuilder.buildQuery(
               datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, "column1", "column2");
