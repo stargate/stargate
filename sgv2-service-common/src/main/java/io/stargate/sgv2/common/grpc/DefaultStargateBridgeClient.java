@@ -127,14 +127,16 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
     fetchKeyspaceFromBridge(keyspaceName, cachedHash)
         .whenComplete(
             (fetched, error) -> {
-              if (error != null) {
-                result.completeExceptionally(error);
-              } else if (fetched == null) {
+              if (error instanceof StatusRuntimeException
+                  && ((StatusRuntimeException) error).getStatus().getCode()
+                      == Status.Code.NOT_FOUND) {
                 // Keyspace does not exist. Update the cache if we previously thought it did.
                 if (cached != null) {
                   keyspaceCache.invalidate(keyspaceName);
                 }
                 result.complete(null);
+              } else if (error != null) {
+                result.completeExceptionally(error);
               } else if (!fetched.hasCqlKeyspace()) {
                 // Empty response means the hash hasn't changed, we can keep using the
                 // cached version.
@@ -157,7 +159,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
 
     ClientCall<DescribeKeyspaceQuery, CqlKeyspaceDescribe> call =
         channel.newCall(StargateBridgeGrpc.getDescribeKeyspaceMethod(), callOptions);
-    UnaryStreamObserver<CqlKeyspaceDescribe> observer = new DescribeKeyspaceObserver();
+    UnaryStreamObserver<CqlKeyspaceDescribe> observer = new UnaryStreamObserver<>();
     ClientCalls.asyncUnaryCall(call, query.build(), observer);
     return observer.asFuture();
   }
@@ -285,17 +287,5 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
     metadata.put(HOST_KEY, tenantId);
     return ClientInterceptors.intercept(
         channel, MetadataUtils.newAttachHeadersInterceptor(metadata));
-  }
-
-  static class DescribeKeyspaceObserver extends UnaryStreamObserver<CqlKeyspaceDescribe> {
-    @Override
-    public void onError(Throwable t) {
-      if (t instanceof StatusRuntimeException
-          && ((StatusRuntimeException) t).getStatus().getCode() == Status.Code.NOT_FOUND) {
-        onNext(null);
-      } else {
-        super.onError(t);
-      }
-    }
   }
 }
