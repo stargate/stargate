@@ -120,7 +120,10 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
     CompletableFuture<CqlKeyspaceDescribe> result = new CompletableFuture<>();
 
     CqlKeyspaceDescribe cached = keyspaceCache.getIfPresent(keyspaceName);
-    Optional<Integer> cachedHash = Optional.ofNullable(cached).map(CqlKeyspaceDescribe::getHash);
+    Optional<Integer> cachedHash =
+        Optional.ofNullable(cached)
+            .filter(CqlKeyspaceDescribe::hasHash)
+            .map(d -> d.getHash().getValue());
 
     // The result is cached locally, but we always hit the bridge anyway, to check if it has a more
     // recent version.

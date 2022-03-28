@@ -15,6 +15,7 @@
  */
 package io.stargate.bridge.service;
 
+import com.google.protobuf.Int32Value;
 import com.google.protobuf.StringValue;
 import io.grpc.Status;
 import io.grpc.StatusException;
@@ -88,7 +89,7 @@ class SchemaHandler {
       Keyspace keyspace, String simpleName, String decoratedName) throws StatusException {
 
     CqlKeyspaceDescribe.Builder describeResultBuilder =
-        CqlKeyspaceDescribe.newBuilder().setHash(keyspace.hashCode());
+        CqlKeyspaceDescribe.newBuilder().setHash(Int32Value.of(keyspace.hashCode()));
     CqlKeyspace.Builder cqlKeyspaceBuilder =
         CqlKeyspace.newBuilder().setName(simpleName).setGlobalName(decoratedName);
 

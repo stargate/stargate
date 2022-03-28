@@ -190,14 +190,15 @@ public class DefaultStargateBridgeClientTest {
     verify(service).describeKeyspace(eq(describeQuery(keyspaceName)), any());
     assertThat(keyspaceCache.getIfPresent(keyspaceName)).isEqualTo(bridgeKeyspace);
     // second bridge call will only check the hash
-    mockDescribeUnchanged(keyspaceName, bridgeKeyspace.getHash());
+    mockDescribeUnchanged(keyspaceName, bridgeKeyspace.getHash().getValue());
 
     // When
     Optional<CqlKeyspaceDescribe> keyspace = client.getKeyspace(keyspaceName, true);
 
     // Then
     verify(service)
-        .describeKeyspace(eq(describeQuery(keyspaceName, bridgeKeyspace.getHash())), any());
+        .describeKeyspace(
+            eq(describeQuery(keyspaceName, bridgeKeyspace.getHash().getValue())), any());
     assertThat(keyspace).hasValue(bridgeKeyspace);
     assertThat(keyspaceCache.getIfPresent(keyspaceName)).isEqualTo(bridgeKeyspace);
   }
@@ -216,14 +217,16 @@ public class DefaultStargateBridgeClientTest {
     assertThat(keyspaceCache.getIfPresent(keyspaceName)).isEqualTo(bridgeKeyspace1);
     // second bridge call will check the hash and find out a new version exists
     CqlKeyspaceDescribe bridgeKeyspace2 = buildKeyspace(keyspaceName, "tbl1");
-    mockDescribeResponse(keyspaceName, Optional.of(bridgeKeyspace1.getHash()), bridgeKeyspace2);
+    mockDescribeResponse(
+        keyspaceName, Optional.of(bridgeKeyspace1.getHash().getValue()), bridgeKeyspace2);
 
     // When
     Optional<CqlKeyspaceDescribe> keyspace = client.getKeyspace(keyspaceName, true);
 
     // Then
     verify(service)
-        .describeKeyspace(eq(describeQuery(keyspaceName, bridgeKeyspace1.getHash())), any());
+        .describeKeyspace(
+            eq(describeQuery(keyspaceName, bridgeKeyspace1.getHash().getValue())), any());
     assertThat(keyspace).hasValue(bridgeKeyspace2);
     assertThat(keyspaceCache.getIfPresent(keyspaceName)).isEqualTo(bridgeKeyspace2);
   }
@@ -241,14 +244,15 @@ public class DefaultStargateBridgeClientTest {
     verify(service).describeKeyspace(eq(describeQuery(keyspaceName)), any());
     assertThat(keyspaceCache.getIfPresent(keyspaceName)).isEqualTo(bridgeKeyspace);
     // second bridge call will check the hash and find out the keyspace is gone
-    mockDescribeNotFound(keyspaceName, Optional.of(bridgeKeyspace.getHash()));
+    mockDescribeNotFound(keyspaceName, Optional.of(bridgeKeyspace.getHash().getValue()));
 
     // When
     Optional<CqlKeyspaceDescribe> keyspace = client.getKeyspace(keyspaceName, true);
 
     // Then
     verify(service)
-        .describeKeyspace(eq(describeQuery(keyspaceName, bridgeKeyspace.getHash())), any());
+        .describeKeyspace(
+            eq(describeQuery(keyspaceName, bridgeKeyspace.getHash().getValue())), any());
     assertThat(keyspace).isEmpty();
     assertThat(keyspaceCache.getIfPresent(keyspaceName)).isNull();
   }
@@ -415,7 +419,7 @@ public class DefaultStargateBridgeClientTest {
             Arrays.stream(tableNames)
                 .map(n -> CqlTable.newBuilder().setName(n).build())
                 .collect(Collectors.toList()))
-        .setHash(hash)
+        .setHash(Int32Value.of(hash))
         .build();
   }
 

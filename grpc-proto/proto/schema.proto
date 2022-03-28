@@ -103,7 +103,7 @@ message CqlKeyspaceDescribe {
   repeated CqlIndex indexes = 4;
   repeated CqlMaterializedView materialized_views = 5;
   // A hash of the metadata (see `DescribeKeyspaceQuery.hash`).
-  sint32 hash = 6;
+  google.protobuf.Int32Value hash = 6;
 }
 
 message DescribeTableQuery {
