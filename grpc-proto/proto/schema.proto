@@ -80,6 +80,10 @@ message CqlTable {
 
 message CqlKeyspace {
   string name = 1;
+  // If the persistence backend supports multi-tenancy, a "global" keyspace name that is unique
+  // across all tenants (for example, this could be achieved by prepending a tenant id).
+  // Otherwise, this is the same as `name`.
+  string global_name = 3;
   map<string, string> options = 2;
 }
 

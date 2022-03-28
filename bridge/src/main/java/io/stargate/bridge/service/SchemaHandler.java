@@ -56,8 +56,13 @@ class SchemaHandler {
       DescribeKeyspaceQuery query,
       Persistence persistence,
       StreamObserver<CqlKeyspaceDescribe> responseObserver) {
+
+    // The name that the client asked for, e.g. "ks".
+    String simpleName = query.getKeyspaceName();
+    // If the persistence supports multi-tenancy, the actual name contains tenant information, e.g.
+    // "tenant1_ks".
     String decoratedName =
-        persistence.decorateKeyspaceName(query.getKeyspaceName(), GrpcService.HEADERS_KEY.get());
+        persistence.decorateKeyspaceName(simpleName, GrpcService.HEADERS_KEY.get());
 
     Keyspace keyspace = persistence.schema().keyspace(decoratedName);
     if (keyspace == null) {
@@ -69,7 +74,8 @@ class SchemaHandler {
       responseObserver.onCompleted();
     } else {
       try {
-        CqlKeyspaceDescribe description = SchemaHandler.buildKeyspaceDescription(keyspace);
+        CqlKeyspaceDescribe description =
+            SchemaHandler.buildKeyspaceDescription(keyspace, simpleName, decoratedName);
         responseObserver.onNext(description);
         responseObserver.onCompleted();
       } catch (StatusException e) {
@@ -78,12 +84,13 @@ class SchemaHandler {
     }
   }
 
-  static CqlKeyspaceDescribe buildKeyspaceDescription(Keyspace keyspace) throws StatusException {
+  static CqlKeyspaceDescribe buildKeyspaceDescription(
+      Keyspace keyspace, String simpleName, String decoratedName) throws StatusException {
 
     CqlKeyspaceDescribe.Builder describeResultBuilder =
         CqlKeyspaceDescribe.newBuilder().setHash(keyspace.hashCode());
-    CqlKeyspace.Builder cqlKeyspaceBuilder = CqlKeyspace.newBuilder();
-    cqlKeyspaceBuilder.setName(keyspace.name());
+    CqlKeyspace.Builder cqlKeyspaceBuilder =
+        CqlKeyspace.newBuilder().setName(simpleName).setGlobalName(decoratedName);
 
     Map<String, String> replication = new LinkedHashMap<>(keyspace.replication());
     if (replication.containsKey("class")) {
