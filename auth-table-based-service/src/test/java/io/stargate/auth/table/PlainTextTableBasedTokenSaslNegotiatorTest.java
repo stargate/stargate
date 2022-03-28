@@ -19,7 +19,6 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import org.apache.cassandra.stargate.exceptions.AuthenticationException;
-import org.apache.commons.lang3.StringUtils;
 import org.junit.jupiter.api.Test;
 
 class PlainTextTableBasedTokenSaslNegotiatorTest {
@@ -124,7 +123,7 @@ class PlainTextTableBasedTokenSaslNegotiatorTest {
 
   @Test
   public void tokenGreaterThanMaxLength() throws IOException {
-    final String tooLongToken = StringUtils.repeat("a", TOKEN_MAX_LENGTH + 1);
+    final String tooLongToken = new String(new char[TOKEN_MAX_LENGTH + 1]).replace('\0', 'a');
 
     SaslNegotiator wrappedNegotiator = mock(SaslNegotiator.class);
     when(wrappedNegotiator.isComplete()).thenReturn(false);
