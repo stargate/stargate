@@ -994,7 +994,6 @@ class ReactiveDocumentServiceTest {
           .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
-      verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
       verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
       verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
     }
@@ -1350,7 +1349,6 @@ class ReactiveDocumentServiceTest {
           .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
-      verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
       verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
       verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
     }
@@ -2498,8 +2496,6 @@ class ReactiveDocumentServiceTest {
               })
           .assertComplete();
 
-      verify(authService, times(2))
-          .authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
       verify(authService)
@@ -2642,8 +2638,6 @@ class ReactiveDocumentServiceTest {
               })
           .assertComplete();
 
-      verify(authService, times(2))
-          .authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
       verify(authService)

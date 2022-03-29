@@ -181,6 +181,16 @@ public class DocumentSearchService {
         .take(1);
   }
 
+  /**
+   * Gets a single document's rows with its TTL data in each row.
+   *
+   * @param queryExecutor Query executor for running queries.
+   * @param keyspace Keyspace to search in.
+   * @param collection Collection to search in.
+   * @param documentId Document ID to search in
+   * @param context Context for recording profiling information
+   * @return Flowable of {@link RawDocument}s representing a document's rows with TTL as a column
+   */
   public Flowable<RawDocument> getDocumentTtlInfo(
       QueryExecutor queryExecutor,
       String keyspace,

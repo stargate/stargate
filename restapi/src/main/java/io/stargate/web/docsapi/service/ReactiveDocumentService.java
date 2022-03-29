@@ -120,28 +120,27 @@ public class ReactiveDocumentService {
       ExecutionContext context) {
 
     return Single.defer(
-        () -> {
-          authorizeRead(db, namespace, collection);
-          return searchService
-              .getDocumentTtlInfo(db.getQueryExecutor(), namespace, collection, documentId, context)
-              .singleElement()
-              .map(
-                  document -> {
-                    Integer ttl =
-                        document.rows().stream()
-                            .map(
-                                row ->
-                                    row.getInt(
-                                        String.format(
-                                            "ttl(%s)", DocsApiConstants.LEAF_COLUMN_NAME)))
-                            .filter(Objects::nonNull)
-                            .mapToInt(Integer::valueOf)
-                            .max()
-                            .getAsInt();
-                    return ttl == null ? 0 : ttl;
-                  })
-              .defaultIfEmpty(0);
-        });
+        () ->
+            searchService
+                .getDocumentTtlInfo(
+                    db.getQueryExecutor(), namespace, collection, documentId, context)
+                .singleElement()
+                .map(
+                    document -> {
+                      Integer ttl =
+                          document.rows().stream()
+                              .map(
+                                  row ->
+                                      row.getInt(
+                                          String.format(
+                                              "ttl(%s)", DocsApiConstants.LEAF_COLUMN_NAME)))
+                              .filter(Objects::nonNull)
+                              .mapToInt(Integer::valueOf)
+                              .max()
+                              .getAsInt();
+                      return ttl == null ? 0 : ttl;
+                    })
+                .defaultIfEmpty(0));
   }
 
   /**
