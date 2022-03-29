@@ -15,20 +15,21 @@
  */
 package io.stargate.sgv2.common.grpc;
 
-import io.grpc.Channel;
-import io.stargate.proto.Schema.SchemaRead;
-import java.util.Optional;
+import io.stargate.proto.Schema;
 
-public interface StargateBridgeClientFactory {
+/**
+ * Allows external components to get notified when {@link StargateBridgeClientFactory} invalidates a
+ * keyspace from its internal cache.
+ *
+ * <p>This is intended for clients that build their own cache on top of the keyspace metadata.
+ *
+ * @see StargateBridgeClientFactory#register(KeyspaceInvalidationListener)
+ */
+public interface KeyspaceInvalidationListener {
 
-  static StargateBridgeClientFactory newInstance(Channel channel, SchemaRead.SourceApi sourceApi) {
-    return new DefaultStargateBridgeClientFactory(channel, sourceApi);
-  }
-
-  StargateBridgeClient newClient(String authToken, Optional<String> tenantId);
-
-  void register(KeyspaceInvalidationListener listener);
-
-  /** @return whether the listener was registered. */
-  boolean unregister(KeyspaceInvalidationListener listener);
+  /**
+   * @param globalKeyspaceName the "global" keyspace name, as specified by {@link
+   *     Schema.CqlKeyspace#getGlobalName()}.
+   */
+  void onKeyspaceInvalidated(String globalKeyspaceName);
 }
