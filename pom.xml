@@ -476,8 +476,6 @@
           <artifactId>dependency-check-maven</artifactId>
           <version>7.0.3</version>
           <configuration>
-            <skipProvidedScope>true</skipProvidedScope>
-            <skipRuntimeScope>true</skipRuntimeScope>
             <suppressionFiles>
               <suppressionFile>file:///${session.executionRootDirectory}/dependency-check-suppression.xml</suppressionFile>
             </suppressionFiles>
