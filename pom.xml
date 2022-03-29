@@ -649,11 +649,6 @@
         <version>25.1-jre</version>
       </dependency>
       <dependency>
-        <groupId>com.google.auto.factory</groupId>
-        <artifactId>auto-factory</artifactId>
-        <version>1.0.1</version>
-      </dependency>
-      <dependency>
         <groupId>com.google.errorprone</groupId>
         <artifactId>error_prone_annotations</artifactId>
         <version>${errorprone.version}</version>

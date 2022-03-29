@@ -94,16 +94,6 @@
       <artifactId>metrics-graphite</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.google.auto.factory</groupId>
-      <artifactId>auto-factory</artifactId>
-      <exclusions>
-        <exclusion>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
-    <dependency>
       <groupId>com.github.akarnokd</groupId>
       <artifactId>rxjava2-extensions</artifactId>
       <version>0.20.10</version>
