@@ -22,4 +22,11 @@
         <cve>CVE-2017-9431</cve>
         <cve>CVE-2020-7768</cve>
     </suppress>
+    <suppress>
+        <notes><![CDATA[
+      False positive, jackson-databind-2.12.6.1.jar specifically pulled in under https://github.com/stargate/stargate/pull/1741
+      ]]></notes>
+        <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-databind@.*$</packageUrl>
+        <cve>CVE-2020-36518</cve>
+    </suppress>
 </suppressions>
