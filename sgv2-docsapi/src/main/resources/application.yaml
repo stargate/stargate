@@ -1,1 +1,11 @@
 ---
+
+quarkus:
+
+  # general app properties
+  application:
+    name: docsapi
+
+  # properties related to the docker image building
+  container-image:
+    group: stargateio
