@@ -1,5 +1,22 @@
 # Changelog
 
+## [v1.0.52](https://github.com/stargate/stargate/tree/v1.0.52) (2022-03-22)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.51...v1.0.52)
+
+**Closed issues:**
+
+- Update DSE to 6.8.21  [\#1692](https://github.com/stargate/stargate/issues/1692)
+
+**Merged pull requests:**
+
+- updating netty versions [\#1709](https://github.com/stargate/stargate/pull/1709) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- update slf4j library version [\#1705](https://github.com/stargate/stargate/pull/1705) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- updating version of nimbus-jose-jwt library [\#1704](https://github.com/stargate/stargate/pull/1704) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Fix changelog reference for release v1.0.51 to get proper delta [\#1702](https://github.com/stargate/stargate/pull/1702) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- closes \#1692: updates DSE version to 6.8.21 [\#1699](https://github.com/stargate/stargate/pull/1699) ([ivansenic](https://github.com/ivansenic))
+- Add testing of Duration/CqlDuration values wrt REST API [\#1695](https://github.com/stargate/stargate/pull/1695) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v1.0.51](https://github.com/stargate/stargate/tree/v1.0.51) (2022-03-14)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.50...v1.0.51)
