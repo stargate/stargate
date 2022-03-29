@@ -7,7 +7,6 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.Iterables;
 import com.datastax.oss.driver.shaded.guava.common.util.concurrent.Uninterruptibles;
-import com.google.common.util.concurrent.Striped;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.core.util.TimeSource;
 import io.stargate.db.Authenticator;
@@ -39,7 +38,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
 import java.util.function.Supplier;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
@@ -100,13 +98,6 @@ public class Cassandra40Persistence
         IndexMetadata,
         ViewMetadata> {
   private static final Logger logger = LoggerFactory.getLogger(Cassandra40Persistence.class);
-
-  // Locks for synchronizing prepared statements. This default uses the recommended number of locks
-  // suggested in the Java docs for CPU-bound tasks (which preparing a statement is).
-  private static final Striped<Lock> PREPARE_LOCKS =
-      Striped.lock(
-          Integer.getInteger(
-              "stargate.prepare_lock_count", Runtime.getRuntime().availableProcessors() * 4));
 
   private static final boolean USE_TRANSITIONAL_AUTH =
       Boolean.getBoolean("stargate.cql_use_transitional_auth");
@@ -515,22 +506,13 @@ public class Cassandra40Persistence
 
     @Override
     public CompletableFuture<Result.Prepared> prepare(String query, Parameters parameters) {
-      // The behavior of prepared statements was changed as part of CASSANDRA-15252
-      // (and CASSANDRA-17248) which can cause multiple prepares of the same query to evict each
-      // other from the prepared cache. A few Stargate APIs eagerly prepare queries which
-      // increases this chance and to avoid this we serialize prepares for similar queries.
-      Lock lock = PREPARE_LOCKS.get(query);
-      try {
-        lock.lock();
-        return executeRequestOnExecutor(
-            parameters,
-            // The queryStartNanoTime is not used by prepared message, so it doesn't really matter
-            // that it's only computed now.
-            System.nanoTime(),
-            () -> new PrepareMessage(query, parameters.defaultKeyspace().orElse(null)));
-      } finally {
-        lock.unlock();
-      }
+      return executeRequestOnExecutor(
+          parameters,
+          // The queryStartNanoTime is not used by prepared message, so it doesn't really
+          // matter
+          // that it's only computed now.
+          System.nanoTime(),
+          () -> new PrepareMessage(query, parameters.defaultKeyspace().orElse(null)));
     }
 
     @Override
