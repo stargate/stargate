@@ -39,14 +39,6 @@ service StargateBridge {
   // authorization explicitly with `AuthorizeSchemaReads`.
   rpc DescribeKeyspace(DescribeKeyspaceQuery) returns (CqlKeyspaceDescribe) {}
 
-  // Similar to CQL "DESCRIBE TABLE".
-  // Note that this operation does not perform any authorization check. See explanations on
-  // `DescribeKeyspace`.
-  rpc DescribeTable(DescribeTableQuery) returns (CqlTable) {}
-
-  // Requests notification of schema changes.
-  rpc GetSchemaNotifications(GetSchemaNotificationsParams) returns (stream SchemaNotification) {}
-
   // Checks whether the client is authorized to describe one or more schema elements.
   rpc AuthorizeSchemaReads(AuthorizeSchemaReadsRequest) returns (AuthorizeSchemaReadsResponse) {}
 }

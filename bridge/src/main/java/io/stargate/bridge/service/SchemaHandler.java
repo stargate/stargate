@@ -42,7 +42,6 @@ import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.CqlMaterializedView;
 import io.stargate.proto.Schema.CqlTable;
 import io.stargate.proto.Schema.DescribeKeyspaceQuery;
-import io.stargate.proto.Schema.DescribeTableQuery;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -132,30 +131,6 @@ class SchemaHandler {
     }
 
     return describeResultBuilder.build();
-  }
-
-  public static void describeTable(
-      DescribeTableQuery query,
-      Persistence persistence,
-      StreamObserver<CqlTable> responseObserver) {
-    String decoratedKeyspace =
-        persistence.decorateKeyspaceName(query.getKeyspaceName(), GrpcService.HEADERS_KEY.get());
-
-    try {
-      Keyspace keyspace = persistence.schema().keyspace(decoratedKeyspace);
-      if (keyspace == null) {
-        throw Status.NOT_FOUND.withDescription("Keyspace not found").asException();
-      }
-      Table table = keyspace.table(query.getTableName());
-      if (table == null) {
-        throw Status.NOT_FOUND.withDescription("Table not found").asException();
-      }
-
-      responseObserver.onNext(buildCqlTable(table));
-      responseObserver.onCompleted();
-    } catch (StatusException e) {
-      responseObserver.onError(e);
-    }
   }
 
   @NotNull
