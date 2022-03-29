@@ -40,8 +40,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class PersistenceBackedResultSetTest {
   private Connection connection;
