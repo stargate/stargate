@@ -1,10 +1,15 @@
 ---
+# please keep properties in alphabetical order
 
 quarkus:
 
   # general app properties
   application:
     name: docsapi
+
+  # banner for the startup
+  banner:
+    path: banner/banner.txt
 
   # properties related to the docker image building
   container-image:
