@@ -516,16 +516,6 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-      <!-- 29-Mar-2022, tatu: And same for Netty; force newer version
-              and hope it all works out
-        -->
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-bom</artifactId>
-        <version>${netty.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
       <dependency>
         <groupId>io.dropwizard</groupId>
         <artifactId>dropwizard-core</artifactId>
