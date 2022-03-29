@@ -29,4 +29,12 @@
         <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-databind@.*$</packageUrl>
         <cve>CVE-2020-36518</cve>
     </suppress>
+    <suppress>
+        <notes><![CDATA[
+      False positives related to testing module - Kotlin
+      ]]></notes>
+        <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin.*@.*$</packageUrl>
+        <cve>CVE-2020-29582</cve>
+        <cve>CVE-2022-24329</cve>
+    </suppress>
 </suppressions>
