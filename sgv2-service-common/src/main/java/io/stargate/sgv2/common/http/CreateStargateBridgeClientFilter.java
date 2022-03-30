@@ -54,7 +54,7 @@ public abstract class CreateStargateBridgeClientFilter implements ContainerReque
 
   @Override
   public void filter(ContainerRequestContext context) {
-    String token = context.getHeaderString("X-Cassandra-Token");
+    final String token = getToken(context);
     if (token == null || token.isEmpty()) {
       context.abortWith(
           buildError(Status.UNAUTHORIZED, "Missing or invalid Auth Token", context.getMediaType()));
@@ -63,6 +63,10 @@ public abstract class CreateStargateBridgeClientFilter implements ContainerReque
           CLIENT_KEY,
           stargateBridgeClientFactory.newClient(token, getTenantId(context.getHeaders())));
     }
+  }
+
+  protected String getToken(ContainerRequestContext context) {
+    return context.getHeaderString("X-Cassandra-Token");
   }
 
   private Optional<String> getTenantId(MultivaluedMap<String, String> headers) {

@@ -171,6 +171,7 @@
         <module>graphqlapi</module>
         <module>restapi</module>
         <module>sgv2-restapi</module>
+        <module>sgv2-dynamo-api</module>
         <module>sgv2-service-common</module>
         <module>auth-api</module>
         <module>authnz</module>
@@ -207,6 +208,7 @@
         <module>graphqlapi</module>
         <module>restapi</module>
         <module>sgv2-restapi</module>
+        <module>sgv2-dynamo-api</module>
         <module>sgv2-service-common</module>
         <module>auth-api</module>
         <module>authnz</module>
@@ -731,6 +733,11 @@
       <id>central</id>
       <name>bintray</name>
       <url>https://jcenter.bintray.com</url>
+    </repository>
+    <repository>
+      <id>dynamodblocal</id>
+      <name>AWS DynamoDB Local Release Repository</name>
+      <url>https://s3-us-west-2.amazonaws.com/dynamodb-local/release</url>
     </repository>
   </repositories>
 </project>
