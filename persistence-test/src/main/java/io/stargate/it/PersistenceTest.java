@@ -1981,11 +1981,11 @@ public abstract class PersistenceTest {
 
     ResultSet rs1 = dataStore.execute(selectAll).get();
     RowDecorator dec1 = rs1.makeRowDecorator();
-    Stream<Byte> src = dec1.getComparableBytes(rs1.one());
+    ByteBuffer src = dec1.getComparableBytes(rs1.one());
     if (backend.isDse()) {
-      assertThat(src.collect(Collectors.toList()).size()).isGreaterThan(0);
+      assertThat(src.array().length).isGreaterThan(0);
     } else {
-      assertThat(src.collect(Collectors.toList()).size()).isEqualTo(0);
+      assertThat(src.array().length).isEqualTo(0);
     }
   }
 

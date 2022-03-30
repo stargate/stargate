@@ -17,7 +17,7 @@ package io.stargate.db;
 
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
-import java.util.stream.Stream;
+import java.nio.ByteBuffer;
 
 /**
  * A table-specific interface for extracting key column values from a {@link ResultSet} {@link Row}
@@ -31,5 +31,5 @@ public interface RowDecorator {
    */
   <T extends Comparable<T>> ComparableKey<T> decoratePartitionKey(Row row);
 
-  Stream<Byte> getComparableBytes(Row row);
+  ByteBuffer getComparableBytes(Row row);
 }

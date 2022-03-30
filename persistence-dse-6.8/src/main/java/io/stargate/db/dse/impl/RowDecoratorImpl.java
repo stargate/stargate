@@ -21,43 +21,17 @@ import io.stargate.db.AbstractRowDecorator;
 import io.stargate.db.ComparableKey;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.TableName;
-import java.util.Iterator;
-import java.util.Spliterator;
-import java.util.Spliterators;
+import java.io.ByteArrayOutputStream;
+import java.nio.ByteBuffer;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
 import org.apache.cassandra.db.Clustering;
 import org.apache.cassandra.db.DecoratedKey;
 import org.apache.cassandra.db.PartitionPosition;
 import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.utils.ByteComparable;
 import org.apache.cassandra.utils.ByteSource;
-import org.apache.cassandra.utils.ByteSource.Peekable;
 
 public class RowDecoratorImpl extends AbstractRowDecorator {
-
-  /**
-   * Utility to treat a ByteSource as an Iterable, to easily convert to Stream. This can likely be
-   * reused in the other RowDecoratorImpl's once ByteSource is available in Cassandra 3.11/4.0.
-   */
-  private static class ByteSourceIterator implements Iterator<Byte> {
-    Peekable src;
-
-    public ByteSourceIterator(ByteSource src) {
-      this.src = new Peekable(src);
-    }
-
-    @Override
-    public Byte next() {
-      return (byte) src.next();
-    }
-
-    @Override
-    public boolean hasNext() {
-      return src.peek() != END_OF_STREAM;
-    }
-  }
 
   private final TableMetadata metadata;
 
@@ -78,12 +52,14 @@ public class RowDecoratorImpl extends AbstractRowDecorator {
   }
 
   @Override
-  public Stream<Byte> getComparableBytes(Row row) {
+  public ByteBuffer getComparableBytes(Row row) {
     Clustering key = metadata.partitionKeyAsClusteringComparator().make(primaryKeyValues(row));
     DecoratedKey decoratedKey = metadata.partitioner.decorateKey(key.serializeAsPartitionKey());
     ByteSource src = decoratedKey.asComparableBytes(ByteComparable.Version.DSE68);
-    Spliterator<Byte> spliterator =
-        Spliterators.spliteratorUnknownSize(new ByteSourceIterator(src), 0);
-    return StreamSupport.stream(spliterator, false);
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    for (int i = src.next(); i != END_OF_STREAM; i = src.next()) {
+      baos.write(i);
+    }
+    return ByteBuffer.wrap(baos.toByteArray());
   }
 }
