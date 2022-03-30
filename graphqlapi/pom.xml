@@ -51,7 +51,7 @@
     <dependency>
       <groupId>com.graphql-java</groupId>
       <artifactId>graphql-java</artifactId>
-      <version>16.2</version>
+      <version>17.3</version>
     </dependency>
     <dependency>
       <groupId>io.dropwizard</groupId>
@@ -121,7 +121,7 @@
     <dependency>
       <groupId>com.apollographql.federation</groupId>
       <artifactId>federation-graphql-java-support</artifactId>
-      <version>0.6.3</version>
+      <version>0.9.0</version>
     </dependency>
 
     <!-- Test dependencies -->
