@@ -20,13 +20,18 @@ import static org.apache.cassandra.utils.ByteSource.END_OF_STREAM;
 import io.stargate.db.AbstractRowDecorator;
 import io.stargate.db.ComparableKey;
 import io.stargate.db.schema.TableName;
+import java.util.Iterator;
 import java.util.Spliterator;
+import java.util.Spliterators;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 import org.apache.cassandra.db.Clustering;
 import org.apache.cassandra.db.DecoratedKey;
 import org.apache.cassandra.db.PartitionPosition;
 import org.apache.cassandra.schema.TableMetadata;
+import org.apache.cassandra.utils.ByteComparable;
+import org.apache.cassandra.utils.ByteSource;
 import org.apache.cassandra.utils.ByteSource.Peekable;
 
 public class RowDecoratorImpl extends AbstractRowDecorator {
@@ -35,17 +40,19 @@ public class RowDecoratorImpl extends AbstractRowDecorator {
    * Utility to treat a ByteSource as an Iterable, to easily convert to Stream. This can likely be
    * reused in the other RowDecoratorImpl's once ByteSource is available in Cassandra 3.11/4.0.
    */
-  private static class ByteSourceIterable implements Iterable<Byte> {
+  private static class ByteSourceIterator implements Iterator<Byte> {
     Peekable src;
 
-    public ByteSourceIterable(Peekable src) {
-      this.src = src;
+    public ByteSourceIterator(ByteSource src) {
+      this.src = new Peekable(src);
     }
 
+    @Override
     public Byte next() {
-      return src.next().byteValue();
+      return (byte) src.next();
     }
 
+    @Override
     public boolean hasNext() {
       return src.peek() != END_OF_STREAM;
     }
@@ -71,9 +78,11 @@ public class RowDecoratorImpl extends AbstractRowDecorator {
 
   @Override
   public Stream<Byte> getComparableBytes(Object... rawKeyValues) {
-    ByteSource src = decoratePrimaryKey(rawKeyValues).asComparableBytes();
+    Clustering key = metadata.partitionKeyAsClusteringComparator().make(rawKeyValues);
+    DecoratedKey decoratedKey = metadata.partitioner.decorateKey(key.serializeAsPartitionKey());
+    ByteSource src = decoratedKey.asComparableBytes(ByteComparable.Version.DSE68);
     Spliterator<Byte> spliterator =
-        Spliterators.spliteratorUnknownSize(new ByteSourceIterable(src), 0);
+        Spliterators.spliteratorUnknownSize(new ByteSourceIterator(src), 0);
     return StreamSupport.stream(spliterator, false);
   }
 }
