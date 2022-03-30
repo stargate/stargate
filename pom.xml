@@ -382,12 +382,41 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce</id>
+            <configuration>
+              <rules>
+                <requireUpperBoundDeps>
+		  <!-- If specifying includes ONLY those are checked
+		       (default: all)
+		      -->
+                  <includes>
+                    <include>com.fasterxml.jackson.core:*</include>
+                    <include>org.glassfish.jersey.core:jersey-common</include>
+                  </includes>
+                </requireUpperBoundDeps>
+              </rules>
+            </configuration>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
     <pluginManagement>
       <plugins>
         <plugin>
           <artifactId>maven-jar-plugin</artifactId>
           <version>3.2.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <version>3.0.0</version>
         </plugin>
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
@@ -521,51 +550,24 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <!-- BOM/dependencies for dropwizard too: -->
       <dependency>
         <groupId>io.dropwizard</groupId>
-        <artifactId>dropwizard-core</artifactId>
+        <artifactId>dropwizard-dependencies</artifactId>
         <version>${dropwizard.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
+      <!-- 30-Mar-2022, tatu: temporarily force newer jersey-common
+	   too; make sure we have enforcer rules to alert if this
+	   becomes less than latest
+	  -->
       <dependency>
-        <groupId>io.dropwizard</groupId>
-        <artifactId>dropwizard-forms</artifactId>
-        <version>${dropwizard.version}</version>
+        <groupId>org.glassfish.jersey.core</groupId>
+        <artifactId>jersey-common</artifactId>
+        <version>2.35</version>
       </dependency>
-      <dependency>
-        <groupId>io.dropwizard</groupId>
-        <artifactId>dropwizard-jersey</artifactId>
-        <version>${dropwizard.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.dropwizard</groupId>
-        <artifactId>dropwizard-logging</artifactId>
-        <version>${dropwizard.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.dropwizard.metrics</groupId>
-        <artifactId>metrics-core</artifactId>
-        <version>${dropwizard.metrics.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.dropwizard.metrics</groupId>
-        <artifactId>metrics-healthchecks</artifactId>
-        <version>${dropwizard.metrics.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.dropwizard.metrics</groupId>
-        <artifactId>metrics-jvm</artifactId>
-        <version>${dropwizard.metrics.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.dropwizard.metrics</groupId>
-        <artifactId>metrics-servlet</artifactId>
-        <version>${dropwizard.metrics.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.dropwizard.metrics</groupId>
-        <artifactId>metrics-graphite</artifactId>
-        <version>${dropwizard.metrics.version}</version>
-      </dependency>
+
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-server</artifactId>
