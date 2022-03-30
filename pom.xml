@@ -396,9 +396,7 @@
 		      -->
                   <includes>
                     <include>com.fasterxml.jackson.core:*</include>
-		    <!--
                     <include>org.glassfish.jersey.core:jersey-common</include>
--->
                   </includes>
                 </requireUpperBoundDeps>
               </rules>
@@ -589,13 +587,13 @@
         <version>${dropwizard.metrics.version}</version>
       </dependency>
       <!-- 30-Mar-2022, tatu: temporarily force newer jersey-common
-	   too; make sure we have enforcer rules to alert if this
+	   (over what DW asks) to get vuln fixes; make sure we have enforcer rules to alert if this
 	   becomes less than latest
 	  -->
       <dependency>
-        <groupId>org.glassfish.jersey.core</groupId>
-        <artifactId>jersey-common</artifactId>
-        <version>2.33</version>
+        <groupId>org.glassfish.jersey</groupId>
+        <artifactId>jersey-bom</artifactId>
+        <version>2.34</version>
       </dependency>
 
       <dependency>
