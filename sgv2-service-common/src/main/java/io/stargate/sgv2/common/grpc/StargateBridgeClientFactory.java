@@ -26,9 +26,4 @@ public interface StargateBridgeClientFactory {
   }
 
   StargateBridgeClient newClient(String authToken, Optional<String> tenantId);
-
-  void register(KeyspaceInvalidationListener listener);
-
-  /** @return whether the listener was registered. */
-  boolean unregister(KeyspaceInvalidationListener listener);
 }
