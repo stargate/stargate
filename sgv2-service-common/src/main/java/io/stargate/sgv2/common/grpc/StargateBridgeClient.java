@@ -18,6 +18,7 @@ package io.stargate.sgv2.common.grpc;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
+import io.stargate.proto.Schema;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.CqlTable;
 import io.stargate.proto.Schema.SchemaRead;
@@ -94,6 +95,13 @@ public interface StargateBridgeClient {
   default List<CqlKeyspaceDescribe> getAllKeyspaces() {
     return Futures.getUninterruptibly(getAllKeyspacesAsync());
   }
+
+  /**
+   * Converts a keyspace name used by this client to the "global" one actually used by the
+   * persistence backend. In other words, this provides a way to compute {@link
+   * Schema.CqlKeyspace#getGlobalName()} from {@link Schema.CqlKeyspace#getName()}.
+   */
+  String decorateKeyspaceName(String keyspaceName);
 
   /**
    * Gets the metadata describing the given table.

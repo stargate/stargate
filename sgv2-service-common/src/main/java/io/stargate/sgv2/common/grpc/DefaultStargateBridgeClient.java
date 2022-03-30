@@ -43,6 +43,7 @@ import io.stargate.proto.Schema.SchemaRead;
 import io.stargate.proto.Schema.SchemaRead.SourceApi;
 import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.common.futures.Futures;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -52,6 +53,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
+import org.apache.commons.codec.binary.Hex;
 
 class DefaultStargateBridgeClient implements StargateBridgeClient {
 
@@ -63,6 +65,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
 
   private final Channel channel;
   private final CallOptions callOptions;
+  private final String tenantPrefix;
   private final Cache<String, CqlKeyspaceDescribe> keyspaceCache;
   private final SourceApi sourceApi;
 
@@ -77,6 +80,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
         CallOptions.DEFAULT
             .withDeadlineAfter(TIMEOUT_SECONDS, TimeUnit.SECONDS)
             .withCallCredentials(new StargateBearerToken(authToken));
+    this.tenantPrefix = tenantId.map(this::encodeKeyspacePrefix).orElse("");
     this.keyspaceCache = keyspaceCache;
     this.sourceApi = sourceApi;
   }
@@ -205,6 +209,11 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
   }
 
   @Override
+  public String decorateKeyspaceName(String keyspaceName) {
+    return addTenantPrefix(keyspaceName);
+  }
+
+  @Override
   public CompletionStage<Optional<Schema.CqlTable>> getTableAsync(
       String keyspaceName, String tableName, boolean checkIfAuthorized) {
     if (checkIfAuthorized) {
@@ -290,5 +299,13 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
     metadata.put(HOST_KEY, tenantId);
     return ClientInterceptors.intercept(
         channel, MetadataUtils.newAttachHeadersInterceptor(metadata));
+  }
+
+  private String encodeKeyspacePrefix(String tenantId) {
+    return Hex.encodeHexString(tenantId.getBytes(StandardCharsets.UTF_8)) + "_";
+  }
+
+  private String addTenantPrefix(String keyspaceName) {
+    return tenantPrefix + keyspaceName;
   }
 }
