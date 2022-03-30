@@ -104,15 +104,6 @@
       <artifactId>dse-java-driver-core</artifactId>
       <version>1.10.0-dse+20210424</version>
     </dependency>
-
-    <!-- Prior to java-driver-core 4.14, this was compile-time but was
-         change to optional. So:
-      -->
-    <dependency>
-      <groupId>com.esri.geometry</groupId>
-      <artifactId>esri-geometry-api</artifactId>
-      <version>1.2.1</version>
-    </dependency>
     <dependency>
       <groupId>com.datastax.dse</groupId>
       <artifactId>dse-commons</artifactId>
