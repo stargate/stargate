@@ -20,12 +20,12 @@
     <xml-format.skip>true</xml-format.skip>
 
     <!-- First DropWizard version and things it directly depends on that make sense to sync -->
-    <dropwizard.version>2.0.27</dropwizard.version>
+    <dropwizard.version>2.0.28</dropwizard.version>
     <!--
       Note that this is currently aligned with the metrics version that DropWizard transitively depends on.
       It's probably a good idea to keep the two versions in sync.
     -->
-    <dropwizard.metrics.version>4.1.28</dropwizard.metrics.version>
+    <dropwizard.metrics.version>4.1.29</dropwizard.metrics.version>
     <!--
       Note that this is currently aligned with the Jetty version that DropWizard transitively depends on.
       It's probably a good idea to keep the two versions in sync.
