@@ -68,11 +68,10 @@ public class RowDecoratorImpl extends AbstractRowDecorator {
   }
 
   @Override
-  public Stream<Byte> getComparableBytes() {
-    ByteSource src = decoratePrimaryKey().asComparableBytes();
-    Spliterator<Byte>
-            spliterator = Spliterators
-            .spliteratorUnknownSize(new ByteSourceIterable(src), 0);
+  public Stream<Byte> getComparableBytes(Object... rawKeyValues) {
+    ByteSource src = decoratePrimaryKey(rawKeyValues).asComparableBytes();
+    Spliterator<Byte> spliterator = Spliterators
+        .spliteratorUnknownSize(new ByteSourceIterable(src), 0);
     return StreamSupport.stream(spliterator, false);
   }
 }

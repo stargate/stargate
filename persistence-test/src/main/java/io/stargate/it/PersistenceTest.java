@@ -1964,6 +1964,31 @@ public abstract class PersistenceTest {
     assertGt(last, first, dec1, dec2);
   }
 
+  @Test
+  public void testRowDecoratorComparableBytes() throws ExecutionException, InterruptedException {
+    setupCustomPagingData();
+
+    // Obtain partition keys in "ring" order
+    AbstractBound<?> selectAll =
+        dataStore
+            .queryBuilder()
+            .select()
+            .column("pk")
+            .column("val")
+            .from(keyspace, table)
+            .build()
+            .bind();
+
+    ResultSet rs1 = dataStore.execute(selectAll).get();
+    RowDecorator dec1 = rs1.makeRowDecorator();
+    Stream<Byte> src = dec1.getComparableBytes();
+    if (backend.isDse()) {
+      assertThat(src.collect(Collectors.toList()).size()).isGreaterThan(0);
+    } else {
+      assertThat(src.collect(Collectors.toList()).size()).isEqualTo(0);
+    }
+  }
+
   private boolean isCassandra4() {
     return !backend.isDse()
         && Version.parse(backend.clusterVersion()).nextStable().compareTo(Version.V4_0_0) >= 0;

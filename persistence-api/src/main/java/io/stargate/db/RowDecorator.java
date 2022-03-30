@@ -17,6 +17,7 @@ package io.stargate.db;
 
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
+import java.util.stream.Stream;
 
 /**
  * A table-specific interface for extracting key column values from a {@link ResultSet} {@link Row}
@@ -29,4 +30,6 @@ public interface RowDecorator {
    * same order that queries iterate / paginate over the Cassandra data ring.
    */
   <T extends Comparable<T>> ComparableKey<T> decoratePartitionKey(Row row);
+
+  Stream<Byte> getComparableBytes(Object... rawKeyValues);
 }

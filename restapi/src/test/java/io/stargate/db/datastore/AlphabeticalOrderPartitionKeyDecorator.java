@@ -20,6 +20,7 @@ import io.stargate.db.RowDecorator;
 import io.stargate.db.schema.Column;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * A test implementation of {@link RowDecorator} that assumes partition keys to be {@link String}
@@ -42,5 +43,12 @@ public class AlphabeticalOrderPartitionKeyDecorator implements RowDecorator {
             .collect(Collectors.joining("|"));
     //noinspection unchecked
     return (ComparableKey<T>) new ComparableKey<>(String.class, decorated);
+  }
+
+  @Override
+  public Stream<Byte> getComparableBytes(Object... rawKeyValues) {
+    // TODO replace this with the relevant row's byte-comparable value when
+    // https://github.com/apache/cassandra/pull/1294 is ready
+    return Stream.empty();
   }
 }

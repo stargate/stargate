@@ -50,7 +50,7 @@ public class RowDecoratorImpl extends AbstractRowDecorator {
   }
 
   @Override
-  public Stream<Byte> getComparableBytes() {
+  public Stream<Byte> getComparableBytes(Object... rawKeyValues) {
     // TODO replace this with the relevant row's byte-comparable value when
     // https://github.com/apache/cassandra/pull/1294 is ready
     return Stream.empty();
