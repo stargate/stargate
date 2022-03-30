@@ -19,12 +19,35 @@ import io.stargate.db.AbstractRowDecorator;
 import io.stargate.db.ComparableKey;
 import io.stargate.db.schema.TableName;
 import java.util.stream.Collectors;
+import java.util.Spliterator;
+import java.util.stream.StreamSupport;
 import org.apache.cassandra.db.Clustering;
 import org.apache.cassandra.db.DecoratedKey;
 import org.apache.cassandra.db.PartitionPosition;
 import org.apache.cassandra.schema.TableMetadata;
+import org.apache.cassandra.utils.ByteSource.Peekable;
+import static org.apache.cassandra.utils.ByteSource.END_OF_STREAM;
 
 public class RowDecoratorImpl extends AbstractRowDecorator {
+
+  /**
+   * Utility to treat a ByteSource as an Iterable, to easily convert to Stream.
+   * This can likely be reused in the other RowDecoratorImpl's once ByteSource is available in Cassandra 3.11/4.0.
+   */
+  private static class ByteSourceIterable implements Iterable<Byte> {
+    Peekable src;
+    public ByteSourceIterable(Peekable src) {
+      this.src = src;
+    }
+
+    public Byte next() {
+      return src.next().byteValue();
+    }
+
+    public boolean hasNext() {
+      return src.peek() != END_OF_STREAM;
+    }
+  }
 
   private final TableMetadata metadata;
 
@@ -42,5 +65,14 @@ public class RowDecoratorImpl extends AbstractRowDecorator {
     Clustering key = metadata.partitionKeyAsClusteringComparator().make(rawKeyValues);
     DecoratedKey decoratedKey = metadata.partitioner.decorateKey(key.serializeAsPartitionKey());
     return new ComparableKey<>(PartitionPosition.class, decoratedKey);
+  }
+
+  @Override
+  public Stream<Byte> getComparableBytes() {
+    ByteSource src = decoratePrimaryKey().asComparableBytes();
+    Spliterator<Byte>
+            spliterator = Spliterators
+            .spliteratorUnknownSize(new ByteSourceIterable(src), 0);
+    return StreamSupport.stream(spliterator, false);
   }
 }

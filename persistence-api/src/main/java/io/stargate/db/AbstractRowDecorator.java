@@ -19,6 +19,7 @@ import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.TableName;
 import java.nio.ByteBuffer;
 import java.util.List;
+import java.util.stream.Stream;
 
 public abstract class AbstractRowDecorator implements RowDecorator {
 
@@ -54,4 +55,6 @@ public abstract class AbstractRowDecorator implements RowDecorator {
     //noinspection unchecked
     return (ComparableKey<T>) decoratePrimaryKey(pkValues);
   }
+
+  public abstract Stream<Byte> getComparableBytes();
 }
