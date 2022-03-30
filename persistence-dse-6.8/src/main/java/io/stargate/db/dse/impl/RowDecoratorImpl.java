@@ -19,6 +19,7 @@ import static org.apache.cassandra.utils.ByteSource.END_OF_STREAM;
 
 import io.stargate.db.AbstractRowDecorator;
 import io.stargate.db.ComparableKey;
+import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.TableName;
 import java.util.Iterator;
 import java.util.Spliterator;
@@ -77,8 +78,8 @@ public class RowDecoratorImpl extends AbstractRowDecorator {
   }
 
   @Override
-  public Stream<Byte> getComparableBytes(Object... rawKeyValues) {
-    Clustering key = metadata.partitionKeyAsClusteringComparator().make(rawKeyValues);
+  public Stream<Byte> getComparableBytes(Row row) {
+    Clustering key = metadata.partitionKeyAsClusteringComparator().make(primaryKeyValues(row));
     DecoratedKey decoratedKey = metadata.partitioner.decorateKey(key.serializeAsPartitionKey());
     ByteSource src = decoratedKey.asComparableBytes(ByteComparable.Version.DSE68);
     Spliterator<Byte> spliterator =

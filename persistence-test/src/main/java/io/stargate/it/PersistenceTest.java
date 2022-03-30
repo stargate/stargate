@@ -1981,7 +1981,7 @@ public abstract class PersistenceTest {
 
     ResultSet rs1 = dataStore.execute(selectAll).get();
     RowDecorator dec1 = rs1.makeRowDecorator();
-    Stream<Byte> src = dec1.getComparableBytes();
+    Stream<Byte> src = dec1.getComparableBytes(rs1.one());
     if (backend.isDse()) {
       assertThat(src.collect(Collectors.toList()).size()).isGreaterThan(0);
     } else {

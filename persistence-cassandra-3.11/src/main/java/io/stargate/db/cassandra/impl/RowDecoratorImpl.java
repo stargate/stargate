@@ -17,6 +17,7 @@ package io.stargate.db.cassandra.impl;
 
 import io.stargate.db.AbstractRowDecorator;
 import io.stargate.db.ComparableKey;
+import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.TableName;
 import java.nio.ByteBuffer;
 import java.util.stream.Collectors;
@@ -52,7 +53,7 @@ public class RowDecoratorImpl extends AbstractRowDecorator {
   }
 
   @Override
-  public Stream<Byte> getComparableBytes(Object... rawKeyValues) {
+  public Stream<Byte> getComparableBytes(Row row) {
     // TODO replace this with the relevant row's byte-comparable value when
     // https://github.com/apache/cassandra/pull/1294 is ready
     return Stream.empty();

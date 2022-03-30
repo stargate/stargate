@@ -31,5 +31,5 @@ public interface RowDecorator {
    */
   <T extends Comparable<T>> ComparableKey<T> decoratePartitionKey(Row row);
 
-  Stream<Byte> getComparableBytes(Object... rawKeyValues);
+  Stream<Byte> getComparableBytes(Row row);
 }
