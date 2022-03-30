@@ -143,7 +143,95 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
 
       Single<ResultSet> result =
           service.writeDocument(
-              datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, false, context);
+              datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, null, false, context);
+
+      result.test().await().assertValueCount(1).assertComplete();
+      row1QueryAssert.assertExecuteCount().isEqualTo(1);
+      row2QueryAssert.assertExecuteCount().isEqualTo(1);
+
+      // execution context
+      assertThat(context.toProfile().nested())
+          .singleElement()
+          .satisfies(
+              nested -> {
+                assertThat(nested.description()).isEqualTo("ASYNC INSERT");
+                assertThat(nested.queries())
+                    .singleElement()
+                    .satisfies(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(insertCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.rowCount()).isEqualTo(2);
+                        });
+              });
+    }
+
+    @Test
+    public void happyPathWithTtl() throws Exception {
+      DataStore datastore = datastore();
+      BatchType batchType =
+          datastore.supportsLoggedBatches() ? BatchType.LOGGED : BatchType.UNLOGGED;
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(MAX_DEPTH)
+              .addPath("key1")
+              .stringValue("value1")
+              .build();
+      JsonShreddedRow row2 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(MAX_DEPTH)
+              .addPath("key2")
+              .addPath("nested")
+              .doubleValue(2.2d)
+              .build();
+      List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
+
+      long timestamp = RandomUtils.nextLong();
+      when(timeSource.currentTimeMicros()).thenReturn(timestamp);
+
+      String insertCql =
+          "INSERT INTO %s (key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) USING TTL ? AND TIMESTAMP ?";
+      ValidatingDataStore.QueryAssert row1QueryAssert =
+          withQuery(
+                  SCHEMA_PROVIDER.getTable(),
+                  insertCql,
+                  documentId,
+                  "key1",
+                  "",
+                  "",
+                  "",
+                  "key1",
+                  "value1",
+                  null,
+                  null,
+                  100,
+                  timestamp)
+              .inBatch(batchType)
+              .returningNothing();
+      ValidatingDataStore.QueryAssert row2QueryAssert =
+          withQuery(
+                  SCHEMA_PROVIDER.getTable(),
+                  insertCql,
+                  documentId,
+                  "key2",
+                  "nested",
+                  "",
+                  "",
+                  "nested",
+                  null,
+                  2.2d,
+                  null,
+                  100,
+                  timestamp)
+              .inBatch(batchType)
+              .returningNothing();
+
+      Single<ResultSet> result =
+          service.writeDocument(
+              datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, 100, false, context);
 
       result.test().await().assertValueCount(1).assertComplete();
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -239,7 +327,110 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
 
       Single<ResultSet> result =
           service.updateDocument(
-              datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, false, context);
+              datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, null, false, context);
+
+      result.test().await().assertValueCount(1).assertComplete();
+      row1QueryAssert.assertExecuteCount().isEqualTo(1);
+      row2QueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteQueryAssert.assertExecuteCount().isEqualTo(1);
+
+      // execution context
+      assertThat(context.toProfile().nested())
+          .singleElement()
+          .satisfies(
+              nested -> {
+                assertThat(nested.description()).isEqualTo("ASYNC UPDATE");
+                assertThat(nested.queries())
+                    .hasSize(2)
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(deleteCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(0);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(insertCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.rowCount()).isEqualTo(2);
+                        });
+              });
+    }
+
+    @Test
+    public void happyPathWithTtl() throws Exception {
+      DataStore datastore = datastore();
+      BatchType batchType =
+          datastore.supportsLoggedBatches() ? BatchType.LOGGED : BatchType.UNLOGGED;
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(MAX_DEPTH)
+              .addPath("key1")
+              .stringValue("value1")
+              .build();
+      JsonShreddedRow row2 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(MAX_DEPTH)
+              .addPath("key2")
+              .addPath("nested")
+              .doubleValue(2.2d)
+              .build();
+      List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
+
+      long timestamp = RandomUtils.nextLong();
+      when(timeSource.currentTimeMicros()).thenReturn(timestamp);
+
+      String insertCql =
+          "INSERT INTO %s (key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) USING TTL ? AND TIMESTAMP ?";
+      ValidatingDataStore.QueryAssert row1QueryAssert =
+          withQuery(
+                  SCHEMA_PROVIDER.getTable(),
+                  insertCql,
+                  documentId,
+                  "key1",
+                  "",
+                  "",
+                  "",
+                  "key1",
+                  "value1",
+                  null,
+                  null,
+                  100,
+                  timestamp)
+              .inBatch(batchType)
+              .returningNothing();
+      ValidatingDataStore.QueryAssert row2QueryAssert =
+          withQuery(
+                  SCHEMA_PROVIDER.getTable(),
+                  insertCql,
+                  documentId,
+                  "key2",
+                  "nested",
+                  "",
+                  "",
+                  "nested",
+                  null,
+                  2.2d,
+                  null,
+                  100,
+                  timestamp)
+              .inBatch(batchType)
+              .returningNothing();
+
+      String deleteCql = "DELETE FROM %s USING TIMESTAMP ? WHERE key = ?";
+      ValidatingDataStore.QueryAssert deleteQueryAssert =
+          withQuery(SCHEMA_PROVIDER.getTable(), deleteCql, timestamp - 1, documentId)
+              .inBatch(batchType)
+              .returningNothing();
+
+      Single<ResultSet> result =
+          service.updateDocument(
+              datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, 100, false, context);
 
       result.test().await().assertValueCount(1).assertComplete();
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -347,6 +538,7 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
               documentId,
               subDocumentPath,
               rows,
+              null,
               false,
               context);
 
@@ -412,6 +604,7 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
                       documentId,
                       subDocumentPath,
                       rows,
+                      null,
                       false,
                       context));
 
@@ -440,6 +633,7 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
                       documentId,
                       subDocumentPath,
                       rows,
+                      null,
                       false,
                       context));
 
@@ -551,7 +745,160 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
 
       Single<ResultSet> result =
           service.patchDocument(
-              datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, false, context);
+              datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, null, false, context);
+
+      result.test().await().assertValueCount(1).assertComplete();
+      row1QueryAssert.assertExecuteCount().isEqualTo(1);
+      row2QueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteExactQueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteKeysQueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteArrayQueryAssert.assertExecuteCount().isEqualTo(1);
+
+      // execution context
+      assertThat(context.toProfile().nested())
+          .singleElement()
+          .satisfies(
+              nested -> {
+                assertThat(nested.description()).isEqualTo("ASYNC PATCH");
+                assertThat(nested.queries())
+                    .hasSize(4)
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(
+                                      deleteExactCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(
+                                      deletePatchedKeys, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(
+                                      deleteArray, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(insertCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.rowCount()).isEqualTo(2);
+                        });
+              });
+    }
+
+    @Test
+    public void happyPathWithTtl() throws Exception {
+      DataStore datastore = datastore();
+      BatchType batchType =
+          datastore.supportsLoggedBatches() ? BatchType.LOGGED : BatchType.UNLOGGED;
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(MAX_DEPTH)
+              .addPath("key1")
+              .stringValue("value1")
+              .build();
+      JsonShreddedRow row2 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(MAX_DEPTH)
+              .addPath("key2")
+              .addPath("nested")
+              .doubleValue(2.2d)
+              .build();
+      List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
+
+      long timestamp = RandomUtils.nextLong();
+      when(timeSource.currentTimeMicros()).thenReturn(timestamp);
+
+      String insertCql =
+          "INSERT INTO %s (key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) USING TTL ? AND TIMESTAMP ?";
+      ValidatingDataStore.QueryAssert row1QueryAssert =
+          withQuery(
+                  SCHEMA_PROVIDER.getTable(),
+                  insertCql,
+                  documentId,
+                  "key1",
+                  "",
+                  "",
+                  "",
+                  "key1",
+                  "value1",
+                  null,
+                  null,
+                  100,
+                  timestamp)
+              .inBatch(batchType)
+              .returningNothing();
+      ValidatingDataStore.QueryAssert row2QueryAssert =
+          withQuery(
+                  SCHEMA_PROVIDER.getTable(),
+                  insertCql,
+                  documentId,
+                  "key2",
+                  "nested",
+                  "",
+                  "",
+                  "nested",
+                  null,
+                  2.2d,
+                  null,
+                  100,
+                  timestamp)
+              .inBatch(batchType)
+              .returningNothing();
+
+      String deleteExactCql =
+          "DELETE FROM %s USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ?";
+      ValidatingDataStore.QueryAssert deleteExactQueryAssert =
+          withQuery(
+                  SCHEMA_PROVIDER.getTable(),
+                  deleteExactCql,
+                  timestamp - 1,
+                  documentId,
+                  "",
+                  "",
+                  "",
+                  "")
+              .inBatch(batchType)
+              .returningNothing();
+
+      String deletePatchedKeys = "DELETE FROM %s USING TIMESTAMP ? WHERE key = ? AND p0 IN ?";
+      ValidatingDataStore.QueryAssert deleteKeysQueryAssert =
+          withQuery(
+                  SCHEMA_PROVIDER.getTable(),
+                  deletePatchedKeys,
+                  timestamp - 1,
+                  documentId,
+                  Arrays.asList("key1", "key2"))
+              .inBatch(batchType)
+              .returningNothing();
+
+      String deleteArray = "DELETE FROM %s USING TIMESTAMP ? WHERE key = ? AND p0 >= ? AND p0 <= ?";
+      ValidatingDataStore.QueryAssert deleteArrayQueryAssert =
+          withQuery(
+                  SCHEMA_PROVIDER.getTable(),
+                  deleteArray,
+                  timestamp - 1,
+                  documentId,
+                  "[000000]",
+                  "[999999]")
+              .inBatch(batchType)
+              .returningNothing();
+
+      Single<ResultSet> result =
+          service.patchDocument(
+              datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, 100, false, context);
 
       result.test().await().assertValueCount(1).assertComplete();
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -709,7 +1056,15 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
 
       Single<ResultSet> result =
           service.patchDocument(
-              datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, subPath, rows, false, context);
+              datastore,
+              KEYSPACE_NAME,
+              COLLECTION_NAME,
+              documentId,
+              subPath,
+              rows,
+              null,
+              false,
+              context);
 
       result.test().await().assertValueCount(1).assertComplete();
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -791,6 +1146,7 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
                       documentId,
                       subDocumentPath,
                       rows,
+                      null,
                       false,
                       context));
 
@@ -815,7 +1171,14 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
           catchThrowable(
               () ->
                   service.patchDocument(
-                      datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, false, context));
+                      datastore,
+                      KEYSPACE_NAME,
+                      COLLECTION_NAME,
+                      documentId,
+                      rows,
+                      null,
+                      false,
+                      context));
 
       assertThat(throwable)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -832,7 +1195,14 @@ class DocumentWriteServiceTest extends AbstractDataStoreTest {
           catchThrowable(
               () ->
                   service.patchDocument(
-                      datastore, KEYSPACE_NAME, COLLECTION_NAME, documentId, rows, false, context));
+                      datastore,
+                      KEYSPACE_NAME,
+                      COLLECTION_NAME,
+                      documentId,
+                      rows,
+                      null,
+                      false,
+                      context));
 
       assertThat(throwable)
           .isInstanceOf(ErrorCodeRuntimeException.class)
