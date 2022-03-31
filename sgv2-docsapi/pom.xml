@@ -5,23 +5,19 @@
   <groupId>io.stargate</groupId>
   <artifactId>sgv2-docsapi</artifactId>
   <version>2.0.0-ALPHA-6-SNAPSHOT</version>
-  <!-- Updating Quarkus version:
-    - Check what's the native image used by default and set the <quarkus.native.builder-image> accordingly
-    - Check how are src/main/docker files updated
-  -->
   <properties>
     <compiler-plugin.version>3.8.1</compiler-plugin.version>
     <failsafe.useModulePath>false</failsafe.useModulePath>
     <maven.compiler.release>17</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <quarkus.container-group>stargateio</quarkus.container-group>
+    <quarkus.container-image.name>docsapi</quarkus.container-image.name>
+    <quarkus.generate-code.grpc.scan-for-proto>io.stargate.grpc:grpc-proto</quarkus.generate-code.grpc.scan-for-proto>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
     <quarkus.platform.version>2.7.5.Final</quarkus.platform.version>
     <surefire-plugin.version>3.0.0-M5</surefire-plugin.version>
-    <!-- Custom properties by Stargate team -->
-    <quarkus.container-group>stargateio</quarkus.container-group>
-    <quarkus.container-image.name>docsapi</quarkus.container-image.name>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -35,6 +31,11 @@
     </dependencies>
   </dependencyManagement>
   <dependencies>
+    <dependency>
+      <groupId>io.stargate.grpc</groupId>
+      <artifactId>grpc-proto</artifactId>
+      <version>${version}</version>
+    </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-arc</artifactId>
@@ -58,6 +59,10 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-smallrye-openapi</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-grpc</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
@@ -140,10 +145,10 @@
         </plugins>
       </build>
       <properties>
-        <quarkus.package.type>native</quarkus.package.type>
-        <quarkus.native.builder-image>quay.io/quarkus/ubi-quarkus-mandrel:21.3-java17</quarkus.native.builder-image>
-        <quarkus.native.native-image-xmx>6G</quarkus.native.native-image-xmx>
         <quarkus.container-image.name>docsapi-native</quarkus.container-image.name>
+        <quarkus.native.builder-image>quay.io/quarkus/ubi-quarkus-mandrel:21.3-java17</quarkus.native.builder-image>
+        <quarkus.package.type>native</quarkus.package.type>
+        <quarkus.native.native-image-xmx>6G</quarkus.native.native-image-xmx>
       </properties>
     </profile>
   </profiles>
