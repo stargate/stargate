@@ -143,6 +143,32 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
 
+## [v1.0.53](https://github.com/stargate/stargate/tree/v1.0.53) (2022-03-30)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.52...v1.0.53)
+
+**Implemented enhancements:**
+
+- Enhancement request to include TTL for Documents in Astra DB [\#1414](https://github.com/stargate/stargate/issues/1414)
+
+**Closed issues:**
+
+**Merged pull requests:**
+
+- Netty version update to 4.1.75.Final [\#1751](https://github.com/stargate/stargate/pull/1751) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Updated `jersey-common` dependency to 2.34 for vulns [\#1749](https://github.com/stargate/stargate/pull/1749) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- updating to dropwizard 2.0.28 [\#1748](https://github.com/stargate/stargate/pull/1748) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Upgrade Java driver 4.10-\>4.13 [\#1746](https://github.com/stargate/stargate/pull/1746) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Force C\*4 persistence to use latest Netty \(4.1.75-final\) [\#1745](https://github.com/stargate/stargate/pull/1745) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- updating apollo graphql federation library [\#1744](https://github.com/stargate/stargate/pull/1744) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Bump logback-core from 1.2.8 to 1.2.9 [\#1743](https://github.com/stargate/stargate/pull/1743) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Update jackson-databind to 2.12.6.1 \(via jackson-bom\) for CVE-2020-36518 [\#1741](https://github.com/stargate/stargate/pull/1741) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Remove `auto-factory` dependency if possible; or if not, update version from pre-1.0 to 1.0.1 [\#1740](https://github.com/stargate/stargate/pull/1740) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Upgrade java driver 4.9 -\> 4.10, to make gremlin dep optional [\#1739](https://github.com/stargate/stargate/pull/1739) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix prepared query not found in Cassandra 4.0 by adding lock to StargateQueryHandler [\#1714](https://github.com/stargate/stargate/pull/1714) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Change nimbus-jose-jwt version to be "managed" to change version globally [\#1708](https://github.com/stargate/stargate/pull/1708) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add in TTL work, with tests [\#1670](https://github.com/stargate/stargate/pull/1670) ([EricBorczuk](https://github.com/EricBorczuk))
+
 ## [v1.0.52](https://github.com/stargate/stargate/tree/v1.0.52) (2022-03-22)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.51...v1.0.52)
