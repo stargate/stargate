@@ -1,7 +1,13 @@
 package io.stargate.db.dse;
 
+import com.datastax.bdp.node.transport.internode.InternodeMessaging;
+import com.datastax.bdp.router.InternalQueryRouterProtocol;
+import com.datastax.bdp.search.solr.SearchInjector;
+import com.datastax.bdp.search.solr.SearchModule;
+import com.datastax.bdp.search.solr.core.StargateCoreContainer;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
+import com.google.inject.Injector;
 import io.stargate.auth.AuthorizationProcessor;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.core.activator.BaseActivator;
@@ -12,11 +18,7 @@ import io.stargate.db.dse.impl.DelegatingAuthorizer;
 import io.stargate.db.dse.impl.DsePersistence;
 import io.stargate.db.dse.impl.StargateConfigSnitch;
 import io.stargate.db.dse.impl.StargateSeedProvider;
-import java.io.Closeable;
-import java.io.File;
-import java.io.IOError;
-import java.io.IOException;
-import java.io.UncheckedIOException;
+import java.io.*;
 import java.net.InetAddress;
 import java.nio.file.Paths;
 import java.util.Collections;
@@ -24,11 +26,7 @@ import java.util.Hashtable;
 import java.util.List;
 import org.apache.cassandra.auth.IAuthorizer;
 import org.apache.cassandra.auth.PasswordAuthenticator;
-import org.apache.cassandra.config.Config;
-import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.config.GuardrailsConfig;
-import org.apache.cassandra.config.ParameterizedClass;
-import org.apache.cassandra.config.YamlConfigurationLoader;
+import org.apache.cassandra.config.*;
 import org.apache.cassandra.dht.Murmur3Partitioner;
 import org.apache.cassandra.locator.SimpleSnitch;
 import org.apache.cassandra.metrics.CassandraMetricsRegistry;
@@ -195,11 +193,23 @@ public class DsePersistenceActivator extends BaseActivator {
       if (authorizer instanceof DelegatingAuthorizer) {
         ((DelegatingAuthorizer) authorizer).setProcessor(authorizationProcessor.get());
       }
-
+      initSearch();
       return new ServiceAndProperties(dseDB, Persistence.class, props);
     } catch (IOException e) {
       throw new IOError(e);
     }
+  }
+
+  public void initSearch() {
+    SearchModule searchModule = new SearchModule();
+    SearchInjector.setModule(searchModule);
+    Injector injector = SearchInjector.get();
+
+    InternodeMessaging internodeMessaging = injector.getInstance(InternodeMessaging.class);
+    internodeMessaging.register(injector.getInstance(InternalQueryRouterProtocol.class));
+    internodeMessaging.activate();
+
+    StargateCoreContainer.setInstance(injector.getInstance(StargateCoreContainer.class));
   }
 
   @Override

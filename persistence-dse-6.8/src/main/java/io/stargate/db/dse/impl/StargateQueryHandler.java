@@ -17,6 +17,7 @@
  */
 package io.stargate.db.dse.impl;
 
+import com.datastax.bdp.cassandra.cql3.SolrQueryOperationFactory;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import io.reactivex.Single;
 import io.stargate.auth.AuthenticationSubject;
@@ -110,7 +111,7 @@ public class StargateQueryHandler implements QueryHandler {
       long queryStartNanoTime) {
 
     QueryState state = queryState.cloneWithKeyspaceIfSet(options.getKeyspace());
-    CQLStatement statement;
+    /*CQLStatement statement;
     try {
       statement = QueryProcessor.getStatement(query, state);
       options.prepare(statement.getBindVariables());
@@ -120,7 +121,27 @@ public class StargateQueryHandler implements QueryHandler {
 
     if (!queryState.isSystem()) QueryProcessor.metrics.regularStatementsExecuted.inc();
 
-    return processStatement(statement, state, options, customPayload, queryStartNanoTime);
+    return processStatement(statement, state, options, customPayload, queryStartNanoTime);*/
+    try {
+      return new SolrQueryOperationFactory(this)
+          .create(query, queryState, options, customPayload, queryStartNanoTime, false)
+          .process();
+    } catch (Exception e) {
+      return QueryProcessor.auditLogger.logFailedQuery(query, state, e).andThen(Single.error(e));
+    }
+  }
+
+  public Single<ResultMessage> processNonSearchQueries(
+      CQLStatement statement,
+      String query,
+      QueryState queryState,
+      QueryOptions options,
+      Map<String, ByteBuffer> customPayload,
+      long queryStartNanoTime) {
+    statement = QueryProcessor.getStatement(query, queryState);
+    options.prepare(statement.getBindVariables());
+    if (!queryState.isSystem()) QueryProcessor.metrics.regularStatementsExecuted.inc();
+    return processStatement(statement, queryState, options, customPayload, queryStartNanoTime);
   }
 
   @Override
@@ -184,7 +205,7 @@ public class StargateQueryHandler implements QueryHandler {
   }
 
   @VisibleForTesting
-  protected void authorizeByToken(Map<String, ByteBuffer> customPayload, CQLStatement statement) {
+  public void authorizeByToken(Map<String, ByteBuffer> customPayload, CQLStatement statement) {
     AuthenticationSubject authenticationSubject = loadAuthenticationSubject(customPayload);
 
     if (!getAuthorizationService().isPresent()) {
