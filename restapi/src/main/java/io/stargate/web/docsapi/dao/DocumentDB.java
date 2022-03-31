@@ -14,7 +14,6 @@ import io.stargate.db.query.Predicate;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.builder.BuiltCondition;
 import io.stargate.db.query.builder.QueryBuilder;
-import io.stargate.db.query.builder.ValueModifier;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Type;
@@ -28,7 +27,6 @@ import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.json.DeadLeaf;
 import io.stargate.web.docsapi.service.query.DocsApiConstants;
-import io.stargate.web.docsapi.service.util.ImmutableKeyspaceAndTable;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -286,25 +284,6 @@ public class DocumentDB {
           ErrorCode.DATASTORE_TABLE_DOES_NOT_EXIST,
           String.format("Collection %s does not exist.", tableName));
     }
-  }
-
-  private Query getInsertQueryForTable(ImmutableKeyspaceAndTable info) {
-    // Add a bind position for each column
-    List<ValueModifier> markers = new ArrayList<>(allColumnNames.size());
-    for (String columnName : allColumnNames) {
-      markers.add(ValueModifier.marker(columnName));
-    }
-
-    // Add a bind position for a timestamp, build, and return
-    return dataStore
-        .prepare(
-            dataStore
-                .queryBuilder()
-                .insertInto(info.getKeyspace(), info.getTable())
-                .value(markers)
-                .timestamp()
-                .build())
-        .join();
   }
 
   private void createDefaultIndexes(String keyspaceName, String tableName)
