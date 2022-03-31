@@ -16,16 +16,16 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.scm.id>github</project.scm.id>
     <doclint>none</doclint>
-    <driver.version>4.10.0</driver.version>
+    <driver.version>4.13.0</driver.version>
     <xml-format.skip>true</xml-format.skip>
 
     <!-- First DropWizard version and things it directly depends on that make sense to sync -->
-    <dropwizard.version>2.0.27</dropwizard.version>
+    <dropwizard.version>2.0.28</dropwizard.version>
     <!--
       Note that this is currently aligned with the metrics version that DropWizard transitively depends on.
       It's probably a good idea to keep the two versions in sync.
     -->
-    <dropwizard.metrics.version>4.1.28</dropwizard.metrics.version>
+    <dropwizard.metrics.version>4.1.29</dropwizard.metrics.version>
     <!--
       Note that this is currently aligned with the Jetty version that DropWizard transitively depends on.
       It's probably a good idea to keep the two versions in sync.
@@ -33,7 +33,7 @@
     <jetty.version>9.4.44.v20210927</jetty.version>
     <!-- Logging framework likewise in sync -->
     <slf4j.version>1.7.36</slf4j.version>
-    <logback.version>1.2.8</logback.version>
+    <logback.version>1.2.9</logback.version>
 
     <!-- And then other 3rd party version dependencies, compile/runtime -->
 
@@ -388,12 +388,41 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce</id>
+            <configuration>
+              <rules>
+                <requireUpperBoundDeps>
+		  <!-- If specifying includes ONLY those are checked
+		       (default: all)
+		      -->
+                  <includes>
+                    <include>com.fasterxml.jackson.core:*</include>
+                    <include>org.glassfish.jersey.core:jersey-common</include>
+                  </includes>
+                </requireUpperBoundDeps>
+              </rules>
+            </configuration>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
     <pluginManagement>
       <plugins>
         <plugin>
           <artifactId>maven-jar-plugin</artifactId>
           <version>3.2.0</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <version>3.0.0</version>
         </plugin>
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
@@ -469,6 +498,24 @@
           <artifactId>maven-failsafe-plugin</artifactId>
           <version>3.0.0-M3</version>
         </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>versions-maven-plugin</artifactId>
+          <version>2.10.0</version>
+          <configuration>
+            <rulesUri>file:///${session.executionRootDirectory}/maven-version-rules.xml</rulesUri>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.owasp</groupId>
+          <artifactId>dependency-check-maven</artifactId>
+          <version>7.0.3</version>
+          <configuration>
+            <suppressionFiles>
+              <suppressionFile>file:///${session.executionRootDirectory}/dependency-check-suppression.xml</suppressionFile>
+            </suppressionFiles>
+          </configuration>
+        </plugin>
       </plugins>
     </pluginManagement>
   </build>
@@ -509,26 +556,17 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <!-- BOM/dependencies for dropwizard too: -->
       <dependency>
         <groupId>io.dropwizard</groupId>
-        <artifactId>dropwizard-core</artifactId>
+        <artifactId>dropwizard-bom</artifactId>
         <version>${dropwizard.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
-      <dependency>
-        <groupId>io.dropwizard</groupId>
-        <artifactId>dropwizard-forms</artifactId>
-        <version>${dropwizard.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.dropwizard</groupId>
-        <artifactId>dropwizard-jersey</artifactId>
-        <version>${dropwizard.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.dropwizard</groupId>
-        <artifactId>dropwizard-logging</artifactId>
-        <version>${dropwizard.version}</version>
-      </dependency>
+      <!-- But note that dropwizard-bom only contains core components,
+	   not dropwizard-metrics, so we still need these:
+	  -->
       <dependency>
         <groupId>io.dropwizard.metrics</groupId>
         <artifactId>metrics-core</artifactId>
@@ -554,6 +592,18 @@
         <artifactId>metrics-graphite</artifactId>
         <version>${dropwizard.metrics.version}</version>
       </dependency>
+      <!-- 30-Mar-2022, tatu: temporarily force newer jersey-common
+	   (over what DW asks) to get vuln fixes; make sure we have enforcer rules to alert if this
+	   becomes less than latest
+	  -->
+      <dependency>
+        <groupId>org.glassfish.jersey</groupId>
+        <artifactId>jersey-bom</artifactId>
+        <version>2.34</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-server</artifactId>
