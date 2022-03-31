@@ -1,29 +1,44 @@
 package io.stargate.sgv2.dynamosvc.dynamo;
 
 import com.amazonaws.services.dynamodbv2.datamodeling.DynamoDBMapperFieldModel;
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 
 public class DataTypeMapper {
+
+  public static String TEXT = "text";
+  public static String DOUBLE = "double";
+  public static String BOOLEAN = "boolean";
+  public static String BLOB = "blob";
+
+  public static String fromDynamo(AttributeValue value) {
+    if (value.getS() != null) {
+      return TEXT;
+    } else if (value.getN() != null) {
+      return DOUBLE;
+    } else if (value.getBOOL() != null) {
+      return BOOLEAN;
+    } else {
+      return BLOB;
+    }
+  }
+
   public static String fromDynamo(DynamoDBMapperFieldModel.DynamoDBAttributeType dynamoType) {
     switch (dynamoType) {
       case S:
-        return "text";
+        return TEXT;
       case N:
-        return "double";
-      case B:
-        return "blob";
+        // in DynamoDB, both integers and floating numbers are of N type
+        return DOUBLE;
       case BOOL:
-        return "boolean";
-      case M:
-        return "map";
-      case L:
-        return "list";
-        // TODO: revisit the following
+        return BOOLEAN;
       case NULL:
-        return null;
+      case M:
+      case L:
       case SS:
       case NS:
       case BS:
-        return "set";
+      case B:
+        return BLOB;
       default:
         throw new IllegalArgumentException("Dynamo Type " + dynamoType + " not supported");
     }

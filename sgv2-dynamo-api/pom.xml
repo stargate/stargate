@@ -59,7 +59,11 @@
       <artifactId>sgv2-service-common</artifactId>
       <version>${project.version}</version>
     </dependency>
-
+    <dependency>
+      <groupId>com.esotericsoftware.kryo</groupId>
+      <artifactId>kryo5</artifactId>
+      <version>5.3.0</version>
+    </dependency>
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>aws-java-sdk-dynamodb</artifactId>

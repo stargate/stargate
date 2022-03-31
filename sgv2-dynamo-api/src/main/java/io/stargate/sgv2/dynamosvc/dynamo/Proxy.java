@@ -8,8 +8,13 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.PropertyNamingStrategy;
+import io.stargate.proto.QueryOuterClass;
+import io.stargate.sgv2.dynamosvc.grpc.BridgeProtoValueConverters;
+import io.stargate.sgv2.dynamosvc.grpc.FromProtoConverter;
 import io.stargate.sgv2.dynamosvc.models.PrimaryKey;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public abstract class Proxy {
 
@@ -54,5 +59,16 @@ public abstract class Proxy {
       }
     }
     return primaryKey;
+  }
+
+  protected List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
+    FromProtoConverter converter =
+        BridgeProtoValueConverters.instance().fromProtoConverter(rs.getColumnsList());
+    List<Map<String, Object>> resultRows = new ArrayList<>();
+    List<QueryOuterClass.Row> rows = rs.getRowsList();
+    for (QueryOuterClass.Row row : rows) {
+      resultRows.add(converter.mapFromProtoValues(row.getValuesList()));
+    }
+    return resultRows;
   }
 }

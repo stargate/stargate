@@ -4,6 +4,7 @@ import static io.stargate.sgv2.dynamosvc.dynamo.Proxy.awsRequestMapper;
 
 import com.amazonaws.AmazonWebServiceResult;
 import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
+import com.amazonaws.services.dynamodbv2.model.GetItemRequest;
 import com.amazonaws.services.dynamodbv2.model.PutItemRequest;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -61,8 +62,9 @@ public class DynamoResource {
       String payload) {
     target = target.split("\\.")[1];
     DynamoStatementType statementType = DynamoStatementType.valueOf(target);
-    AmazonWebServiceResult result;
+    byte[] response;
     try {
+      AmazonWebServiceResult result;
       switch (statementType) {
         case CreateTable:
           CreateTableRequest createTableRequest =
@@ -73,12 +75,15 @@ public class DynamoResource {
           PutItemRequest putItemRequest = awsRequestMapper.readValue(payload, PutItemRequest.class);
           result = itemProxy.putItem(putItemRequest, bridge);
           break;
+        case GetItem:
+          GetItemRequest getItemRequest = awsRequestMapper.readValue(payload, GetItemRequest.class);
+          result = itemProxy.getItem(getItemRequest, bridge);
+          break;
         default:
-          {
-            throw new WebApplicationException(
-                "Invalid statement type: " + target, Response.Status.BAD_REQUEST);
-          }
+          throw new WebApplicationException(
+              "Invalid statement type: " + target, Response.Status.BAD_REQUEST);
       }
+      response = awsRequestMapper.writeValueAsBytes(result);
     } catch (JsonProcessingException ex) {
       throw new WebApplicationException("Invalid payload", Response.Status.BAD_REQUEST);
     } catch (IOException ex) {
@@ -87,7 +92,7 @@ public class DynamoResource {
     } catch (Exception ex) {
       throw new WebApplicationException(ex.getMessage(), Response.Status.INTERNAL_SERVER_ERROR);
     }
-    return Response.status(Response.Status.OK).entity(result).build();
+    return Response.status(Response.Status.OK).entity(response).build();
   }
 
   @Timed
