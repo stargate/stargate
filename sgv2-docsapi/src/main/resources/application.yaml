@@ -5,7 +5,7 @@ quarkus:
 
   # general app properties
   application:
-    name: docsapi
+    name: Stargate Documents API
 
   # banner for the startup
   banner:
@@ -14,3 +14,21 @@ quarkus:
   # properties related to the docker image building
   container-image:
     group: stargateio
+    name: docsapi
+
+  # information for the generated Open API definitions
+  smallrye-openapi:
+    info-title: ${quarkus.application.name}
+    info-version: ${quarkus.application.version:}
+    info-description: Some description to be updated after talking to Lorina.
+    info-terms-of-service: https://terms.com
+    info-contact-name: DataStax Stargate
+    info-contact-url: https://stargate.io
+    info-license-name: Apache 2.0
+    info-license-url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+  # swagger UI settings
+  swagger-ui:
+    path: /swagger-ui
+    always-include: true
+    title: ${quarkus.application.name}
