@@ -81,6 +81,7 @@ public class DocumentWriteService {
    * @param collection Collection the document belongs to.
    * @param documentId Document ID.
    * @param rows Rows of this document.
+   * @param ttl the time-to-live of the rows (seconds)
    * @param numericBooleans If numeric boolean should be stored.
    * @param context Execution content for profiling.
    * @return Single containing the {@link ResultSet} of the batch execution.
@@ -91,10 +92,11 @@ public class DocumentWriteService {
       String collection,
       String documentId,
       List<JsonShreddedRow> rows,
+      Integer ttl,
       boolean numericBooleans,
       ExecutionContext context) {
     // create and cache the insert query prepare
-    return prepareInsertDocumentRowQuery(dataStore, keyspace, collection)
+    return prepareInsertDocumentRowQuery(dataStore, keyspace, collection, ttl)
 
         // then map to the list of the bound queries
         .observeOn(Schedulers.computation())
@@ -136,6 +138,7 @@ public class DocumentWriteService {
    * @param documentId Document ID.
    * @param rows Rows of this document.
    * @param numericBooleans If numeric boolean should be stored.
+   * @param ttl the time-to-live of the rows (seconds)
    * @param context Execution content for profiling.
    * @return Single containing the {@link ResultSet} of the batch execution.
    */
@@ -145,6 +148,7 @@ public class DocumentWriteService {
       String collection,
       String documentId,
       List<JsonShreddedRow> rows,
+      Integer ttl,
       boolean numericBooleans,
       ExecutionContext context) {
     List<String> subDocumentPath = Collections.emptyList();
@@ -155,6 +159,7 @@ public class DocumentWriteService {
         documentId,
         subDocumentPath,
         rows,
+        ttl,
         numericBooleans,
         context);
   }
@@ -169,6 +174,7 @@ public class DocumentWriteService {
    * @param documentId Document ID.
    * @param subDocumentPath The sub-document path to delete.
    * @param rows Rows of this document.
+   * @param ttl the time-to-live of the rows (seconds)
    * @param numericBooleans If numeric boolean should be stored.
    * @param context Execution content for profiling.
    * @return Single containing the {@link ResultSet} of the batch execution.
@@ -180,6 +186,7 @@ public class DocumentWriteService {
       String documentId,
       List<String> subDocumentPath,
       List<JsonShreddedRow> rows,
+      Integer ttl,
       boolean numericBooleans,
       ExecutionContext context) {
     // check that update path matches the rows supplied
@@ -196,7 +203,7 @@ public class DocumentWriteService {
 
     // create and cache the insert query prepare
     Single<? extends Query<? extends BoundQuery>> insertQueryPrepare =
-        prepareInsertDocumentRowQuery(dataStore, keyspace, collection);
+        prepareInsertDocumentRowQuery(dataStore, keyspace, collection, ttl);
 
     // execute when both done
     return Single.zip(deleteQueryPrepare, insertQueryPrepare, Pair::of)
@@ -249,6 +256,7 @@ public class DocumentWriteService {
    * @param collection Collection the document belongs to.
    * @param documentId Document ID.
    * @param rows Rows of the patch.
+   * @param ttl the time-to-live of the document (seconds)
    * @param numericBooleans If numeric boolean should be stored.
    * @param context Execution content for profiling.
    * @return Single containing the {@link ResultSet} of the batch execution.
@@ -259,11 +267,12 @@ public class DocumentWriteService {
       String collection,
       String documentId,
       List<JsonShreddedRow> rows,
+      Integer ttl,
       boolean numericBooleans,
       ExecutionContext context) {
     List<String> path = Collections.emptyList();
     return patchDocument(
-        dataStore, keyspace, collection, documentId, path, rows, numericBooleans, context);
+        dataStore, keyspace, collection, documentId, path, rows, ttl, numericBooleans, context);
   }
 
   /**
@@ -284,6 +293,7 @@ public class DocumentWriteService {
    * @param documentId Document ID.
    * @param subDocumentPath The sub-document path to patch. Empty patches at the root level.
    * @param rows Rows of the patch.
+   * @param ttl the time-to-live of the document (seconds)
    * @param numericBooleans If numeric boolean should be stored.
    * @param context Execution content for profiling.
    * @return Single containing the {@link ResultSet} of the batch execution.
@@ -295,6 +305,7 @@ public class DocumentWriteService {
       String documentId,
       List<String> subDocumentPath,
       List<JsonShreddedRow> rows,
+      Integer ttl,
       boolean numericBooleans,
       ExecutionContext context) {
     // check that sub path matches the rows supplied
@@ -328,7 +339,7 @@ public class DocumentWriteService {
 
     // create and cache the insert query prepare
     Single<? extends Query<? extends BoundQuery>> insertPrepared =
-        prepareInsertDocumentRowQuery(dataStore, keyspace, collection)
+        prepareInsertDocumentRowQuery(dataStore, keyspace, collection, ttl)
             .observeOn(Schedulers.computation());
 
     // execute when all done
@@ -453,10 +464,10 @@ public class DocumentWriteService {
 
   // create and cache the remove query prepare
   private Single<? extends Query<? extends BoundQuery>> prepareInsertDocumentRowQuery(
-      DataStore dataStore, String keyspace, String collection) {
+      DataStore dataStore, String keyspace, String collection, Integer ttl) {
 
     return Single.fromCallable(
-            () -> insertQueryBuilder.buildQuery(dataStore::queryBuilder, keyspace, collection))
+            () -> insertQueryBuilder.buildQuery(dataStore::queryBuilder, keyspace, collection, ttl))
         .flatMap(query -> Single.fromCompletionStage(dataStore.prepare(query)))
         .cache();
   }

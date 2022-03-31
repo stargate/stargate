@@ -56,11 +56,25 @@ class InsertQueryBuilderTest extends AbstractDataStoreTest {
       InsertQueryBuilder queryBuilder = new InsertQueryBuilder(MAX_DEPTH);
 
       BuiltQuery<? extends BoundQuery> query =
-          queryBuilder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
+          queryBuilder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, null);
 
       String expected =
           String.format(
               "INSERT INTO %s.%s (key, p0, p1, p2, p3, p4, p5, p6, p7, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?",
+              KEYSPACE_NAME, COLLECTION_NAME);
+      assertThat(query.toString()).isEqualTo(expected);
+    }
+
+    @Test
+    public void happyPathWithTtl() {
+      InsertQueryBuilder queryBuilder = new InsertQueryBuilder(MAX_DEPTH);
+
+      BuiltQuery<? extends BoundQuery> query =
+          queryBuilder.buildQuery(datastore()::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, 1);
+
+      String expected =
+          String.format(
+              "INSERT INTO %s.%s (key, p0, p1, p2, p3, p4, p5, p6, p7, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) USING TTL 1 AND TIMESTAMP ?",
               KEYSPACE_NAME, COLLECTION_NAME);
       assertThat(query.toString()).isEqualTo(expected);
     }
@@ -74,7 +88,7 @@ class InsertQueryBuilderTest extends AbstractDataStoreTest {
       DataStore datastore = datastore();
       InsertQueryBuilder queryBuilder = new InsertQueryBuilder(MAX_DEPTH);
       BuiltQuery<? extends BoundQuery> query =
-          queryBuilder.buildQuery(datastore::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
+          queryBuilder.buildQuery(datastore::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, null);
 
       long timestamp = RandomUtils.nextLong();
       String documentId = RandomStringUtils.randomAlphanumeric(16);
@@ -118,7 +132,7 @@ class InsertQueryBuilderTest extends AbstractDataStoreTest {
       DataStore datastore = datastore();
       InsertQueryBuilder queryBuilder = new InsertQueryBuilder(MAX_DEPTH);
       BuiltQuery<? extends BoundQuery> query =
-          queryBuilder.buildQuery(datastore::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
+          queryBuilder.buildQuery(datastore::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, null);
 
       long timestamp = RandomUtils.nextLong();
       String documentId = RandomStringUtils.randomAlphanumeric(16);
@@ -162,7 +176,7 @@ class InsertQueryBuilderTest extends AbstractDataStoreTest {
       DataStore datastore = datastore();
       InsertQueryBuilder queryBuilder = new InsertQueryBuilder(MAX_DEPTH);
       BuiltQuery<? extends BoundQuery> query =
-          queryBuilder.buildQuery(datastore::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
+          queryBuilder.buildQuery(datastore::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, null);
 
       long timestamp = RandomUtils.nextLong();
       String documentId = RandomStringUtils.randomAlphanumeric(16);
@@ -206,7 +220,7 @@ class InsertQueryBuilderTest extends AbstractDataStoreTest {
       DataStore datastore = datastore();
       InsertQueryBuilder queryBuilder = new InsertQueryBuilder(MAX_DEPTH);
       BuiltQuery<? extends BoundQuery> query =
-          queryBuilder.buildQuery(datastore::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME);
+          queryBuilder.buildQuery(datastore::queryBuilder, KEYSPACE_NAME, COLLECTION_NAME, null);
 
       long timestamp = RandomUtils.nextLong();
       String documentId = RandomStringUtils.randomAlphanumeric(16);

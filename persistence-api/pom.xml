@@ -15,6 +15,21 @@
       <url>https://repo.maven.apache.org/maven2</url>
     </repository>
   </repositories>
+  <dependencyManagement>
+    <dependencies>
+      <!-- 30-Mar-2022, tatu: Need to force Netty overrides here so
+	   they propagate to most modules but NOT to persistence where
+	   DSE at least requires different versions (3.11 may or may not)
+        -->
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>${netty.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
   <dependencies>
     <!-- Stargate component dependencies -->
     <dependency>
