@@ -92,19 +92,6 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
   }
 
   @Override
-  public void describeTable(
-      Schema.DescribeTableQuery request, StreamObserver<Schema.CqlTable> responseObserver) {
-    SchemaHandler.describeTable(request, persistence, responseObserver);
-  }
-
-  @Override
-  public void getSchemaNotifications(
-      Schema.GetSchemaNotificationsParams request,
-      StreamObserver<Schema.SchemaNotification> responseObserver) {
-    new SchemaNotificationsHandler(persistence, responseObserver).handle();
-  }
-
-  @Override
   public void authorizeSchemaReads(
       Schema.AuthorizeSchemaReadsRequest request,
       StreamObserver<Schema.AuthorizeSchemaReadsResponse> responseObserver) {

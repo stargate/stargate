@@ -18,6 +18,7 @@ package io.stargate.sgv2.common.grpc;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
+import io.stargate.proto.Schema;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.CqlTable;
 import io.stargate.proto.Schema.SchemaRead;
@@ -60,17 +61,25 @@ public interface StargateBridgeClient {
   /**
    * Gets the metadata describing the given keyspace.
    *
-   * @throws UnauthorizedKeyspaceException (wrapped in the returned future) if the client is not
-   *     allowed to access this keyspace. However, this check is shallow: if the caller surfaces
-   *     keyspace elements (tables, UDTs...) to the end user, it must authorize them individually
-   *     with {@link #authorizeSchemaReads(List)}.
+   * @param checkIfAuthorized whether to check if the current user is allowed to describe this
+   *     keyspace (this requires an additional background call to the bridge). This is an
+   *     optimization: if you only use the schema metadata to build a DML query that will be
+   *     executed immediately after, you can skip authorization since {@link
+   *     #executeQueryAsync(Query)} does it automatically. However, if there is no other query and
+   *     you build a client response directly from the metadata, then authorization should be done
+   *     by this method.
+   * @throws UnauthorizedKeyspaceException (wrapped in the returned future) if {@code
+   *     checkIfAuthorized} is set, and the client is not allowed to access this keyspace. However,
+   *     this check is shallow: if the caller surfaces keyspace elements (tables, UDTs...) to the
+   *     end user, it must authorize them individually with {@link #authorizeSchemaReads(List)}.
    */
-  CompletionStage<Optional<CqlKeyspaceDescribe>> getKeyspaceAsync(String keyspaceName);
+  CompletionStage<Optional<CqlKeyspaceDescribe>> getKeyspaceAsync(
+      String keyspaceName, boolean checkIfAuthorized);
 
-  /** @see #getKeyspaceAsync(String) */
-  default Optional<CqlKeyspaceDescribe> getKeyspace(String keyspaceName)
+  /** @see #getKeyspaceAsync(String, boolean) */
+  default Optional<CqlKeyspaceDescribe> getKeyspace(String keyspaceName, boolean checkIfAuthorized)
       throws UnauthorizedKeyspaceException {
-    return Futures.getUninterruptibly(getKeyspaceAsync(keyspaceName));
+    return Futures.getUninterruptibly(getKeyspaceAsync(keyspaceName, checkIfAuthorized));
   }
 
   /**
@@ -88,31 +97,27 @@ public interface StargateBridgeClient {
   }
 
   /**
-   * Converts an "external" keyspace name known to this client to the "internal" one actually used
-   * by the persistence backend.
-   *
-   * <p>Most of the time, this interface deals with this automatically: for example, the CQL queries
-   * passed to {@link #executeQuery(Query)} expect the external name; so does {@link
-   * #getKeyspace(String)}. Decorating manually is only needed if the caller interacts directly with
-   * {@link StargateBridgeSchema} (which uses internal names).
-   *
-   * <p>Not all persistence backends use such a mapping. If not applicable, this method returns its
-   * argument unchanged.
+   * Converts a keyspace name used by this client to the "global" one actually used by the
+   * persistence backend. In other words, this provides a way to compute {@link
+   * Schema.CqlKeyspace#getGlobalName()} from {@link Schema.CqlKeyspace#getName()}.
    */
   String decorateKeyspaceName(String keyspaceName);
 
   /**
    * Gets the metadata describing the given table.
    *
-   * @throws UnauthorizedTableException (wrapped in the returned future) if the client is not
-   *     allowed to access this table.
+   * @param checkIfAuthorized see explanations in {@link #getKeyspaceAsync(String, boolean)}.
+   * @throws UnauthorizedTableException (wrapped in the returned future) if {@code
+   *     checkIfAuthorized} is set, and the client is not allowed to access this table.
    */
-  CompletionStage<Optional<CqlTable>> getTableAsync(String keyspaceName, String tableName);
+  CompletionStage<Optional<CqlTable>> getTableAsync(
+      String keyspaceName, String tableName, boolean checkIfAuthorized);
 
-  /** @see #getTableAsync(String, String) */
-  default Optional<CqlTable> getTable(String keyspaceName, String tableName)
+  /** @see #getTableAsync(String, String, boolean) */
+  default Optional<CqlTable> getTable(
+      String keyspaceName, String tableName, boolean checkIfAuthorized)
       throws UnauthorizedTableException {
-    return Futures.getUninterruptibly(getTableAsync(keyspaceName, tableName));
+    return Futures.getUninterruptibly(getTableAsync(keyspaceName, tableName, checkIfAuthorized));
   }
 
   /**
@@ -123,7 +128,7 @@ public interface StargateBridgeClient {
    */
   CompletionStage<List<CqlTable>> getTablesAsync(String keyspaceName);
 
-  /** @see #getTableAsync(String, String) */
+  /** @see #getTableAsync(String, String, boolean) */
   default List<CqlTable> getTables(String keyspaceName) {
     return Futures.getUninterruptibly(getTablesAsync(keyspaceName));
   }

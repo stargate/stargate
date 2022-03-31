@@ -39,6 +39,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
         bridge,
         keyspaceName,
         tableName,
+        true,
         (tableDef) -> {
           List<Sgv2ColumnDefinition> columns = table2columns(tableDef);
           final Object payload = raw ? columns : new Sgv2RESTResponse(columns);
@@ -62,6 +63,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
         bridge,
         keyspaceName,
         tableName,
+        false,
         (tableDef) -> {
           Column.Kind kind =
               columnDefinition.getIsStatic() ? Column.Kind.STATIC : Column.Kind.REGULAR;
@@ -102,6 +104,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
         bridge,
         keyspaceName,
         tableName,
+        true,
         (tableDef) -> {
           Sgv2ColumnDefinition column = findColumn(tableDef, columnName);
           if (column == null) {
@@ -130,6 +133,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
         bridge,
         keyspaceName,
         tableName,
+        false,
         (tableDef) -> {
           final String newName = columnUpdate.getName();
           // Optional, could let backend verify but this gives us better error reporting
@@ -172,6 +176,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
         bridge,
         keyspaceName,
         tableName,
+        false,
         (tableDef) -> {
           // Optional, could let backend verify but this gives us better error reporting
           if (findColumn(tableDef, columnName) == null) {

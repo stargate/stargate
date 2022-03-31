@@ -15,34 +15,28 @@
  */
 package io.stargate.sgv2.common.grpc;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.grpc.Channel;
+import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.SchemaRead;
 import java.util.Optional;
-import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 class DefaultStargateBridgeClientFactory implements StargateBridgeClientFactory {
 
   private final Channel channel;
   private final SchemaRead.SourceApi sourceApi;
-  private final DefaultStargateBridgeSchema schema;
+  private final Cache<String, CqlKeyspaceDescribe> keyspaceCache =
+      Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(5, TimeUnit.MINUTES).build();
 
-  DefaultStargateBridgeClientFactory(
-      Channel channel,
-      String adminAuthToken,
-      SchemaRead.SourceApi sourceApi,
-      ScheduledExecutorService executor) {
+  DefaultStargateBridgeClientFactory(Channel channel, SchemaRead.SourceApi sourceApi) {
     this.channel = channel;
     this.sourceApi = sourceApi;
-    this.schema = new DefaultStargateBridgeSchema(channel, adminAuthToken, executor);
   }
 
   @Override
   public StargateBridgeClient newClient(String authToken, Optional<String> tenantId) {
-    return new DefaultStargateBridgeClient(channel, schema, authToken, tenantId, sourceApi);
-  }
-
-  @Override
-  public StargateBridgeSchema getSchema() {
-    return schema;
+    return new DefaultStargateBridgeClient(channel, authToken, tenantId, keyspaceCache, sourceApi);
   }
 }
