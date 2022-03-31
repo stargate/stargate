@@ -6,11 +6,13 @@ import static io.stargate.db.dse.impl.Conversion.toResultMetadata;
 import com.datastax.bdp.db.nodes.Nodes;
 import com.datastax.bdp.db.util.ProductType;
 import com.datastax.bdp.db.util.ProductVersion;
+import com.datastax.bdp.node.transport.internode.InternodeClient;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.Iterables;
 import com.datastax.oss.driver.shaded.guava.common.util.concurrent.Uninterruptibles;
+import com.google.inject.Inject;
 import io.reactivex.Completable;
 import io.reactivex.Single;
 import io.reactivex.disposables.Disposable;
@@ -149,6 +151,8 @@ public class DsePersistence
   private StargateQueryHandler stargateHandler() {
     return (StargateQueryHandler) ClientState.getCQLQueryHandler();
   }
+
+  @Inject private volatile InternodeClient messagingClient;
 
   @Override
   protected SchemaConverter newSchemaConverter() {
