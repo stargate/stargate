@@ -18,6 +18,20 @@
     -->
     <cassandra.bundled-driver.version>3.0.1</cassandra.bundled-driver.version>
   </properties>
+  <dependencyManagement>
+    <dependencies>
+      <!-- 30-Mar-2022, tatu: Need to force Netty overrides here since
+	   it cannot be done in parent pom (due to DSE backend)
+        -->
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>${netty.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
   <dependencies>
     <!-- Stargate component dependencies -->
     <dependency>
