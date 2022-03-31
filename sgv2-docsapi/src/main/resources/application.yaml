@@ -11,11 +11,6 @@ quarkus:
   banner:
     path: banner/banner.txt
 
-  # properties related to the docker image building
-  container-image:
-    group: stargateio
-    name: docsapi
-
   # information for the generated Open API definitions
   smallrye-openapi:
     info-title: ${quarkus.application.name}
