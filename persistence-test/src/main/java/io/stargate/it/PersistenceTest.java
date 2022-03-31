@@ -98,6 +98,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1981,11 +1982,16 @@ public abstract class PersistenceTest {
 
     ResultSet rs1 = dataStore.execute(selectAll).get();
     RowDecorator dec1 = rs1.makeRowDecorator();
-    ByteBuffer src = dec1.getComparableBytes(rs1.one());
+    List<Row> rows = rs1.rows();
     if (backend.isDse()) {
-      assertThat(src.array().length).isGreaterThan(0);
-    } else {
-      assertThat(src.array().length).isEqualTo(0);
+      List<ByteBuffer> allComparableBytes =
+          rows.stream().map(dec1::getComparableBytes).collect(Collectors.toList());
+      Collections.sort(allComparableBytes);
+      for (int idx = 0; idx < allComparableBytes.size(); idx++) {
+        ByteBuffer cb1 = allComparableBytes.get(idx);
+        ByteBuffer cb2 = dec1.getComparableBytes(rows.get(idx));
+        assertThat(cb1.compareTo(cb2)).isEqualTo(0);
+      }
     }
   }
 

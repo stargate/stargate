@@ -31,5 +31,9 @@ public interface RowDecorator {
    */
   <T extends Comparable<T>> ComparableKey<T> decoratePartitionKey(Row row);
 
+  /**
+   * Generates the comparable byte value of the {@link Row}, using the "comparable bytes" API of the
+   * underlying datastore. If no such API exists, an empty ByteBuffer is returned.
+   */
   ByteBuffer getComparableBytes(Row row);
 }

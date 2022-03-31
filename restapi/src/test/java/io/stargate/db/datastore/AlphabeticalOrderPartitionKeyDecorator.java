@@ -19,6 +19,7 @@ import io.stargate.db.ComparableKey;
 import io.stargate.db.RowDecorator;
 import io.stargate.db.schema.Column;
 import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -35,20 +36,22 @@ public class AlphabeticalOrderPartitionKeyDecorator implements RowDecorator {
         allColumns.stream().filter(Column::isPartitionKey).collect(Collectors.toList());
   }
 
+  private String decoratedKeyString(Row row) {
+    return partitionKeyColumns.stream()
+        .map(column -> row.getString(column.name()))
+        .collect(Collectors.joining("|"));
+  }
+
   @Override
   public <T extends Comparable<T>> ComparableKey<T> decoratePartitionKey(Row row) {
-    String decorated =
-        partitionKeyColumns.stream()
-            .map(column -> row.getString(column.name()))
-            .collect(Collectors.joining("|"));
+    String decorated = decoratedKeyString(row);
     //noinspection unchecked
     return (ComparableKey<T>) new ComparableKey<>(String.class, decorated);
   }
 
   @Override
   public ByteBuffer getComparableBytes(Row row) {
-    // TODO replace this with the relevant row's byte-comparable value when
-    // https://github.com/apache/cassandra/pull/1294 is ready
-    return ByteBuffer.wrap(new byte[] {});
+    String decorated = decoratedKeyString(row);
+    return ByteBuffer.wrap(decorated.getBytes(StandardCharsets.UTF_8));
   }
 }

@@ -15,13 +15,11 @@
  */
 package io.stargate.db.dse.impl;
 
-import static org.apache.cassandra.utils.ByteSource.END_OF_STREAM;
-
+import com.datastax.bdp.db.tries.util.ByteSourceUtil;
 import io.stargate.db.AbstractRowDecorator;
 import io.stargate.db.ComparableKey;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.TableName;
-import java.io.ByteArrayOutputStream;
 import java.nio.ByteBuffer;
 import java.util.stream.Collectors;
 import org.apache.cassandra.db.Clustering;
@@ -44,22 +42,23 @@ public class RowDecoratorImpl extends AbstractRowDecorator {
     this.metadata = tableMetadata;
   }
 
-  @Override
-  protected ComparableKey<?> decoratePrimaryKey(Object... rawKeyValues) {
+  private DecoratedKey decoratedKeyFromRawKeyValues(Object... rawKeyValues) {
     Clustering key = metadata.partitionKeyAsClusteringComparator().make(rawKeyValues);
     DecoratedKey decoratedKey = metadata.partitioner.decorateKey(key.serializeAsPartitionKey());
+    return decoratedKey;
+  }
+
+  @Override
+  protected ComparableKey<?> decoratePrimaryKey(Object... rawKeyValues) {
+    DecoratedKey decoratedKey = decoratedKeyFromRawKeyValues(rawKeyValues);
     return new ComparableKey<>(PartitionPosition.class, decoratedKey);
   }
 
   @Override
   public ByteBuffer getComparableBytes(Row row) {
-    Clustering key = metadata.partitionKeyAsClusteringComparator().make(primaryKeyValues(row));
-    DecoratedKey decoratedKey = metadata.partitioner.decorateKey(key.serializeAsPartitionKey());
+    DecoratedKey decoratedKey = decoratedKeyFromRawKeyValues(primaryKeyValues(row));
     ByteSource src = decoratedKey.asComparableBytes(ByteComparable.Version.DSE68);
-    ByteArrayOutputStream baos = new ByteArrayOutputStream();
-    for (int i = src.next(); i != END_OF_STREAM; i = src.next()) {
-      baos.write(i);
-    }
-    return ByteBuffer.wrap(baos.toByteArray());
+    int initialBufSize = 256;
+    return ByteBuffer.wrap(ByteSourceUtil.readBytes(src, initialBufSize));
   }
 }
