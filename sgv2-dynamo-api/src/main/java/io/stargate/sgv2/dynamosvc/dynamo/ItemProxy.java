@@ -99,7 +99,9 @@ public class ItemProxy extends Proxy {
         }
       }
     }
-    bridge.executeQuery(alterTableBuilder.build());
+    if (alterTableBuilder != null) {
+      bridge.executeQuery(alterTableBuilder.build());
+    }
 
     // Step 3: Write data
     QueryBuilder.QueryBuilder__18 writeDataBuilder = null;

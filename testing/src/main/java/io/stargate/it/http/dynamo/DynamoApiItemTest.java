@@ -51,6 +51,13 @@ public class DynamoApiItemTest extends BaseDynamoApiTest {
             .withNumber("Serial", 23)
             .withNumber("Price", 10.0));
 
+    // put another simple item with no new column
+    proxyTable.putItem(
+        new Item()
+            .withPrimaryKey("Name", "simpleName2")
+            .withNumber("Serial", 20)
+            .withNumber("Price", 0.0));
+
     Map<String, Object> dict = new HashMap<>();
     dict.put("integerList", Arrays.asList(0, 1, 2));
     dict.put("stringList", Arrays.asList("aa", "bb"));
