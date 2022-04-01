@@ -28,6 +28,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +49,7 @@ import org.slf4j.LoggerFactory;
  */
 class DefaultKeyspaceHelper {
   private static final Logger LOG = LoggerFactory.getLogger(DefaultKeyspaceHelper.class);
-  private static final Query QUERY =
+  private static final Query SELECT_KEYSPACE_NAMES =
       new QueryBuilder()
           .select()
           .column("keyspace_name")
@@ -61,46 +63,49 @@ class DefaultKeyspaceHelper {
     this.bridge = bridge;
   }
 
-  Optional<String> find() {
-    try {
-      return getRows().stream()
-          .filter(
-              r -> {
-                Value writeTime = r.getValues(1);
-                return !writeTime.hasNull() && Values.bigint(writeTime) > 0;
-              })
-          .min(Comparator.comparing(r -> Values.bigint(r.getValues(1))))
-          .map(r -> Values.string(r.getValues(0)))
-          .filter(
-              ks ->
-                  !ks.equals("system")
-                      && !ks.equals("data_endpoint_auth")
-                      && !ks.equals("solr_admin")
-                      && !ks.startsWith("system_")
-                      && !ks.startsWith("dse_"));
-    } catch (Exception e) {
-      LOG.warn("Unexpected error while trying to find default keyspace", e);
-      return Optional.empty();
-    }
+  CompletionStage<Optional<String>> find() {
+    return getRows(new ArrayList<>(), null)
+        .thenApply(
+            rows -> {
+              try {
+                return rows.stream()
+                    .filter(
+                        r -> {
+                          Value writeTime = r.getValues(1);
+                          return !writeTime.hasNull() && Values.bigint(writeTime) > 0;
+                        })
+                    .min(Comparator.comparing(r -> Values.bigint(r.getValues(1))))
+                    .map(r -> Values.string(r.getValues(0)))
+                    .filter(
+                        ks ->
+                            !ks.equals("system")
+                                && !ks.equals("data_endpoint_auth")
+                                && !ks.equals("solr_admin")
+                                && !ks.startsWith("system_")
+                                && !ks.startsWith("dse_"));
+              } catch (Exception e) {
+                LOG.warn("Unexpected error while trying to find default keyspace", e);
+                return Optional.empty();
+              }
+            });
   }
 
-  private List<Row> getRows() {
-    ResultSet resultSet = bridge.executeQuery(QUERY).getResultSet();
-    // Optimize for simple (and likely) case where there is only one page
-    if (!resultSet.hasPagingState()) {
-      return resultSet.getRowsList();
-    }
-    List<Row> rows = new ArrayList<>(resultSet.getRowsList());
-    do {
-      BytesValue pagingState = resultSet.getPagingState();
-      QueryParameters.Builder newParameters =
-          QueryParameters.newBuilder(QUERY.getParameters()).setPagingState(pagingState);
-      resultSet =
-          bridge
-              .executeQuery(Query.newBuilder(QUERY).setParameters(newParameters).build())
-              .getResultSet();
-      rows.addAll(resultSet.getRowsList());
-    } while (resultSet.hasPagingState());
-    return rows;
+  private CompletionStage<List<Row>> getRows(List<Row> rows, BytesValue pagingState) {
+    Query query =
+        (pagingState == null)
+            ? SELECT_KEYSPACE_NAMES
+            : Query.newBuilder(SELECT_KEYSPACE_NAMES)
+                .setParameters(QueryParameters.newBuilder().setPagingState(pagingState).build())
+                .build();
+    return bridge
+        .executeQueryAsync(query)
+        .thenCompose(
+            response -> {
+              ResultSet resultSet = response.getResultSet();
+              rows.addAll(resultSet.getRowsList());
+              return (resultSet.hasPagingState())
+                  ? getRows(rows, resultSet.getPagingState())
+                  : CompletableFuture.completedFuture(rows);
+            });
   }
 }

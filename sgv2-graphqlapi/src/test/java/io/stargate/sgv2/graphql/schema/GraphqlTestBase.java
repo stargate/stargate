@@ -16,6 +16,7 @@
 package io.stargate.sgv2.graphql.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -76,7 +77,7 @@ public abstract class GraphqlTestBase {
     Map<String, CqlKeyspaceDescribe> cqlSchema =
         getCqlSchema().stream()
             .collect(Collectors.toMap(d -> d.getCqlKeyspace().getName(), Function.identity()));
-    when(bridge.getKeyspace(anyString()))
+    when(bridge.getKeyspace(anyString(), anyBoolean()))
         .thenAnswer(
             i -> {
               String keyspaceName = i.getArgument(0);
@@ -89,7 +90,7 @@ public abstract class GraphqlTestBase {
               CqlKeyspaceDescribe describe = cqlSchema.get(keyspaceName);
               return describe == null ? Collections.emptyList() : describe.getTablesList();
             });
-    when(bridge.getTable(anyString(), anyString()))
+    when(bridge.getTable(anyString(), anyString(), anyBoolean()))
         .thenAnswer(
             i -> {
               String keyspaceName = i.getArgument(0);

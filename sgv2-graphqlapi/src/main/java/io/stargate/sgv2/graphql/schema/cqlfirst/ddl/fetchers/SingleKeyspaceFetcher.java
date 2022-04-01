@@ -27,7 +27,7 @@ public class SingleKeyspaceFetcher extends CassandraFetcher<KeyspaceDto> {
 
     return context
         .getBridge()
-        .getKeyspace(keyspaceName)
+        .getKeyspace(keyspaceName, true)
         .map(keyspace -> new KeyspaceDto(keyspace, context.getBridge()))
         .orElse(null);
   }

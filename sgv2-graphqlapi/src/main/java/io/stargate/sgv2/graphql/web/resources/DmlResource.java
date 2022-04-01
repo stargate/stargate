@@ -157,7 +157,7 @@ public class DmlResource extends GraphqlResourceBase {
 
     try {
       String decoratedKeyspaceName = bridge.decorateKeyspaceName(keyspaceName);
-      Optional<GraphQL> graphql = graphqlCache.getDml(decoratedKeyspaceName, keyspaceName);
+      Optional<GraphQL> graphql = graphqlCache.getDml(bridge, keyspaceName);
       return graphql.orElseThrow(
           () ->
               graphqlError(Status.NOT_FOUND, String.format("Unknown keyspace '%s'", keyspaceName)));
@@ -173,7 +173,7 @@ public class DmlResource extends GraphqlResourceBase {
 
   private GraphQL getDefaultGraphql(StargateBridgeClient bridge) {
     return graphqlCache
-        .getDefaultKeyspaceName()
+        .getDefaultKeyspaceName(bridge)
         .map(ks -> getGraphql(ks, bridge))
         .orElseThrow(() -> graphqlError(Status.NOT_FOUND, "No default keyspace defined"));
   }

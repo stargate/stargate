@@ -81,7 +81,10 @@ public class KeyspaceDto {
 
   public Map<String, Object> getTable(DataFetchingEnvironment environment) {
     String name = environment.getArgument("name");
-    return bridge.getTable(keyspace.getName(), name).map(KeyspaceDto::buildTable).orElse(null);
+    return bridge
+        .getTable(keyspace.getName(), name, true)
+        .map(KeyspaceDto::buildTable)
+        .orElse(null);
   }
 
   public List<Map<String, Object>> getTypes() {

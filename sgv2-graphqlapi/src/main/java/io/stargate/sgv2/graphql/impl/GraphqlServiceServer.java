@@ -21,8 +21,6 @@ import io.dropwizard.forms.MultiPartBundle;
 import io.dropwizard.jersey.setup.JerseyEnvironment;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
-import io.grpc.ManagedChannel;
-import io.stargate.core.grpc.BridgeConfig;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
@@ -39,7 +37,6 @@ import io.stargate.sgv2.graphql.web.resources.GraphqlCache;
 import io.stargate.sgv2.graphql.web.resources.PlaygroundResource;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.Optional;
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
 import javax.ws.rs.core.MediaType;
@@ -77,14 +74,11 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
     JerseyEnvironment jersey = environment.jersey();
 
     StargateBridgeClientFactory clientFactory =
-        buildClientFactory(config.stargate.bridge.buildChannel(), environment);
+        StargateBridgeClientFactory.newInstance(
+            config.stargate.bridge.buildChannel(), Schema.SchemaRead.SourceApi.GRAPHQL);
     jersey.register(buildClientFilter(clientFactory));
 
-    GraphqlCache graphqlCache =
-        new GraphqlCache(
-            clientFactory.newClient(BridgeConfig.ADMIN_TOKEN, Optional.empty()),
-            clientFactory.getSchema(),
-            disableDefaultKeyspace);
+    GraphqlCache graphqlCache = new GraphqlCache(disableDefaultKeyspace);
 
     jersey.register(
         new AbstractBinder() {
@@ -112,15 +106,6 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
     environment.jersey().register(MetricsResource.class);
 
     enableCors(environment);
-  }
-
-  private StargateBridgeClientFactory buildClientFactory(
-      ManagedChannel channel, Environment environment) {
-    return StargateBridgeClientFactory.newInstance(
-        channel,
-        BridgeConfig.ADMIN_TOKEN,
-        Schema.SchemaRead.SourceApi.GRAPHQL,
-        environment.lifecycle().scheduledExecutorService("bridge-factory").threads(1).build());
   }
 
   private CreateStargateBridgeClientFilter buildClientFilter(

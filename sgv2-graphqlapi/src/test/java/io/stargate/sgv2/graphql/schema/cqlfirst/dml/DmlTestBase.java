@@ -18,7 +18,7 @@ public abstract class DmlTestBase extends GraphqlTestBase {
   @Override
   protected GraphQLSchema createGraphqlSchema() {
     CqlKeyspaceDescribe firstkeyspace = getCqlSchema().get(0);
-    return SchemaFactory.newDmlSchema(firstkeyspace, firstkeyspace.getCqlKeyspace().getName());
+    return SchemaFactory.newDmlSchema(firstkeyspace);
   }
 
   protected static Value listV(Object... values) {

@@ -15,99 +15,82 @@
  */
 package io.stargate.sgv2.graphql.web.resources;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import graphql.GraphQL;
 import graphql.execution.AsyncExecutionStrategy;
 import graphql.schema.GraphQLSchema;
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.sgv2.common.futures.Futures;
-import io.stargate.sgv2.common.grpc.KeyspaceInvalidationListener;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
-import io.stargate.sgv2.common.grpc.StargateBridgeSchema;
+import io.stargate.sgv2.common.grpc.UnauthorizedKeyspaceException;
 import io.stargate.sgv2.graphql.schema.CassandraFetcherExceptionHandler;
 import io.stargate.sgv2.graphql.schema.cqlfirst.SchemaFactory;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * Manages the {@link GraphQL} instances used by our REST resources.
  *
  * <p>This includes staying up to date with CQL schema changes.
  */
-public class GraphqlCache implements KeyspaceInvalidationListener {
+public class GraphqlCache {
 
-  private final StargateBridgeSchema schema;
+  private final boolean disableDefaultKeyspace;
   private final GraphQL ddlGraphql;
-  private final Optional<String> defaultKeyspaceName;
-  private final ConcurrentMap<String, CompletionStage<Optional<GraphQL>>> dmlGraphqls =
-      new ConcurrentHashMap<>();
+  private volatile CompletionStage<Optional<String>> defaultKeyspaceName;
+  private final Cache<String, GraphqlHolder> dmlGraphqlCache =
+      Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(5, TimeUnit.MINUTES).build();
 
-  public GraphqlCache(
-      StargateBridgeClient adminClient,
-      StargateBridgeSchema schema,
-      boolean disableDefaultKeyspace) {
-    this.schema = schema;
+  public GraphqlCache(boolean disableDefaultKeyspace) {
+    this.disableDefaultKeyspace = disableDefaultKeyspace;
     this.ddlGraphql = newGraphql(SchemaFactory.newDdlSchema());
-    this.defaultKeyspaceName =
-        disableDefaultKeyspace ? Optional.empty() : new DefaultKeyspaceHelper(adminClient).find();
-
-    schema.register(this);
   }
 
   public GraphQL getDdl() {
     return ddlGraphql;
   }
 
+  /**
+   * @throws UnauthorizedKeyspaceException (wrapped in the future) if the client is not authorized
+   *     to read the keyspace's contents.
+   */
   public CompletionStage<Optional<GraphQL>> getDmlAsync(
-      String decoratedKeyspaceName, String keyspaceName) {
+      StargateBridgeClient bridge, String keyspaceName) {
 
-    CompletionStage<Optional<GraphQL>> existing = dmlGraphqls.get(decoratedKeyspaceName);
-    if (existing != null) {
-      return existing;
+    String decoratedKeyspaceName = bridge.decorateKeyspaceName(keyspaceName);
+    GraphqlHolder holder =
+        dmlGraphqlCache.get(decoratedKeyspaceName, __ -> new GraphqlHolder(keyspaceName));
+    assert holder != null;
+    return holder.getGraphql(bridge);
+  }
+
+  public Optional<GraphQL> getDml(StargateBridgeClient bridge, String keyspaceName) {
+    return Futures.getUninterruptibly(getDmlAsync(bridge, keyspaceName));
+  }
+
+  public CompletionStage<Optional<String>> getDefaultKeyspaceNameAsync(
+      StargateBridgeClient bridge) {
+    // Lazy init with double-checked locking:
+    CompletionStage<Optional<String>> result = this.defaultKeyspaceName;
+    if (result != null) {
+      return result;
     }
-    CompletableFuture<Optional<GraphQL>> mine = new CompletableFuture<>();
-    existing = dmlGraphqls.putIfAbsent(decoratedKeyspaceName, mine);
-    if (existing != null) {
-      return existing;
+    synchronized (this) {
+      if (defaultKeyspaceName == null) {
+        defaultKeyspaceName =
+            disableDefaultKeyspace
+                ? CompletableFuture.completedFuture(Optional.empty())
+                : new DefaultKeyspaceHelper(bridge).find();
+      }
+      return defaultKeyspaceName;
     }
-    loadAsync(decoratedKeyspaceName, keyspaceName, mine);
-    return mine;
   }
 
-  public Optional<GraphQL> getDml(String decoratedKeyspaceName, String keyspaceName) {
-    return Futures.getUninterruptibly(getDmlAsync(decoratedKeyspaceName, keyspaceName));
-  }
-
-  public Optional<String> getDefaultKeyspaceName() {
-    return defaultKeyspaceName;
-  }
-
-  @Override
-  public void onKeyspaceInvalidated(String keyspaceName) {
-    dmlGraphqls.remove(keyspaceName);
-  }
-
-  private void loadAsync(
-      String decoratedKeyspaceName,
-      String keyspaceName,
-      CompletableFuture<Optional<GraphQL>> toComplete) {
-    schema
-        .getKeyspaceAsync(decoratedKeyspaceName)
-        .thenAccept(cqlSchema -> toComplete.complete(buildDml(cqlSchema, keyspaceName)))
-        .exceptionally(
-            throwable -> {
-              // Surface to the caller, but don't leave a failed entry in the cache
-              toComplete.completeExceptionally(throwable);
-              dmlGraphqls.remove(decoratedKeyspaceName);
-              return null;
-            });
-  }
-
-  private Optional<GraphQL> buildDml(CqlKeyspaceDescribe cqlSchema, String keyspaceName) {
-    return Optional.ofNullable(cqlSchema)
-        .map(s -> newGraphql(SchemaFactory.newDmlSchema(s, keyspaceName)));
+  public Optional<String> getDefaultKeyspaceName(StargateBridgeClient bridge) {
+    return Futures.getUninterruptibly(getDefaultKeyspaceNameAsync(bridge));
   }
 
   private static GraphQL newGraphql(GraphQLSchema schema) {
@@ -117,5 +100,65 @@ public class GraphqlCache implements KeyspaceInvalidationListener {
         .mutationExecutionStrategy(
             new AsyncExecutionStrategy(CassandraFetcherExceptionHandler.INSTANCE))
         .build();
+  }
+
+  static class GraphqlHolder {
+
+    private final String keyspaceName;
+    private final AtomicReference<GraphqlHolderState> stateRef =
+        new AtomicReference<>(GraphqlHolderState.EMPTY);
+
+    GraphqlHolder(String keyspaceName) {
+      this.keyspaceName = keyspaceName;
+    }
+
+    CompletionStage<Optional<GraphQL>> getGraphql(StargateBridgeClient bridge) {
+      return bridge
+          .getKeyspaceAsync(keyspaceName, true)
+          .thenCompose(
+              maybeKeyspace -> {
+                Optional<Integer> hash =
+                    maybeKeyspace.map(describe -> describe.getHash().getValue());
+                while (true) {
+                  GraphqlHolderState state = stateRef.get();
+                  // If the hash matches, we already have the latest version
+                  if (state.hash.equals(hash)) {
+                    return state.graphqlFuture;
+                  }
+                  // Otherwise, record the new hash and recompute (accounting for concurrent calls)
+                  GraphqlHolderState newState =
+                      hash.map(GraphqlHolderState::new).orElse(GraphqlHolderState.EMPTY);
+                  if (stateRef.compareAndSet(state, newState)) {
+                    maybeKeyspace.ifPresent(
+                        keyspace -> {
+                          GraphQL graphql = newGraphql(SchemaFactory.newDmlSchema(keyspace));
+                          newState.graphqlFuture.complete(Optional.of(graphql));
+                        });
+                    return newState.graphqlFuture;
+                  }
+                }
+              });
+    }
+  }
+
+  static class GraphqlHolderState {
+
+    static GraphqlHolderState EMPTY =
+        new GraphqlHolderState(
+            Optional.empty(), CompletableFuture.completedFuture(Optional.empty()));
+
+    final Optional<Integer> hash;
+    final CompletableFuture<Optional<GraphQL>> graphqlFuture;
+
+    GraphqlHolderState(Integer hash) {
+      this.hash = Optional.of(hash);
+      this.graphqlFuture = new CompletableFuture<>();
+    }
+
+    private GraphqlHolderState(
+        Optional<Integer> hash, CompletableFuture<Optional<GraphQL>> graphqlFuture) {
+      this.hash = hash;
+      this.graphqlFuture = graphqlFuture;
+    }
   }
 }

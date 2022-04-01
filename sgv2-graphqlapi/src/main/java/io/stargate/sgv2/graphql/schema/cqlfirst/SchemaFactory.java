@@ -28,8 +28,8 @@ public class SchemaFactory {
    *
    * <p>This is the API exposed at {@code /graphql/<keyspaceName>}.
    */
-  public static GraphQLSchema newDmlSchema(CqlKeyspaceDescribe describe, String keyspaceName) {
-    return new DmlSchemaBuilder(describe, keyspaceName).build();
+  public static GraphQLSchema newDmlSchema(CqlKeyspaceDescribe describe) {
+    return new DmlSchemaBuilder(describe).build();
   }
 
   /**
