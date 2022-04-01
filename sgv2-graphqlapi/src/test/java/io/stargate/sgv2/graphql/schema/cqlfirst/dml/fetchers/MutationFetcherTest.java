@@ -143,7 +143,7 @@ public class MutationFetcherTest extends DmlTestBase {
         .hasSize(2)
         .extracting(GraphQLError::getMessage)
         .containsExactly(
-            "Exception while fetching data (/m1) : graphql.GraphQLException: options can only de defined once in an @atomic mutation selection",
-            "Exception while fetching data (/m2) : graphql.GraphQLException: options can only de defined once in an @atomic mutation selection");
+            "Exception while fetching data (/m1) : options can only de defined once in an @atomic mutation selection",
+            "Exception while fetching data (/m2) : options can only de defined once in an @atomic mutation selection");
   }
 }
