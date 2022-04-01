@@ -127,12 +127,18 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
     String name = keyspaceName(keyspace);
     Stream<Table> tables = convertTables(name, tables(keyspace), views(keyspace));
     Stream<UserDefinedType> userDefinedTypes = convertUserTypes(name, userTypes(keyspace));
-    return Keyspace.create(
-        name,
-        tables.collect(Collectors.toList()),
-        userDefinedTypes.collect(Collectors.toList()),
-        replicationOptions(keyspace),
-        Optional.of(usesDurableWrites(keyspace)));
+    Keyspace k =
+        Keyspace.create(
+            name,
+            tables.collect(Collectors.toList()),
+            userDefinedTypes.collect(Collectors.toList()),
+            replicationOptions(keyspace),
+            Optional.of(usesDurableWrites(keyspace)));
+    return appyAdvancedWorkloadProperty(keyspace, k);
+  }
+
+  protected Keyspace appyAdvancedWorkloadProperty(K keyspaceMetadata, Keyspace keyspace) {
+    return keyspace;
   }
 
   // We pass the MVs because in Stargate metadata, each table lists the MVs for which it is a base
@@ -146,12 +152,18 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
     Stream<Index> secondaryIndexes = convertSecondaryIndexes(keyspaceName, table, columns);
     Stream<Index> materializedViews = convertMVIndexes(keyspaceName, table, views);
     String comment = comment(table);
-    return Table.create(
-        keyspaceName,
-        tableName(table),
-        columns,
-        Stream.concat(secondaryIndexes, materializedViews).collect(Collectors.toList()),
-        comment);
+    Table t =
+        Table.create(
+            keyspaceName,
+            tableName(table),
+            columns,
+            Stream.concat(secondaryIndexes, materializedViews).collect(Collectors.toList()),
+            comment);
+    return appylAdvancedWorkloadProperty(table, t);
+  }
+
+  protected Table appylAdvancedWorkloadProperty(T tableMetadata, Table table) {
+    return table;
   }
 
   private Stream<Column> convertColumns(String keyspaceName, T table) {
@@ -176,6 +188,12 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
 
   private Stream<Index> convertSecondaryIndexes(
       String keyspaceName, T table, List<Column> columns) {
+    return Streams.of(secondaryIndexes(table))
+        .map(i -> (Index) convertSecondaryIndex(keyspaceName, tableName(table), i, columns))
+        .filter(Objects::nonNull);
+  }
+
+  private Stream<Index> convertSearchIndexes(String keyspaceName, T table, List<Column> columns) {
     return Streams.of(secondaryIndexes(table))
         .map(i -> (Index) convertSecondaryIndex(keyspaceName, tableName(table), i, columns))
         .filter(Objects::nonNull);

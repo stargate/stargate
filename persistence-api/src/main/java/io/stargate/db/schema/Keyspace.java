@@ -21,6 +21,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.immutables.value.Value;
 import org.javatuples.Pair;
 
@@ -36,6 +37,8 @@ public abstract class Keyspace implements SchemaEntity {
   public abstract Map<String, String> replication();
 
   public abstract Optional<Boolean> durableWrites();
+
+  public abstract @Nullable String engine();
 
   @Value.Lazy
   Map<String, Table> tableMap() {
@@ -138,6 +141,23 @@ public abstract class Keyspace implements SchemaEntity {
         .addAllUserDefinedTypes(userDefinedTypes)
         .putAllReplication(replication)
         .durableWrites(durableWrites)
+        .build();
+  }
+
+  public static Keyspace create(
+      String name,
+      Iterable<Table> tables,
+      Iterable<UserDefinedType> userDefinedTypes,
+      Map<String, String> replication,
+      Optional<Boolean> durableWrites,
+      String engine) {
+    return ImmutableKeyspace.builder()
+        .name(name)
+        .addAllTables(tables)
+        .addAllUserDefinedTypes(userDefinedTypes)
+        .putAllReplication(replication)
+        .durableWrites(durableWrites)
+        .engine(engine)
         .build();
   }
 

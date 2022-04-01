@@ -17,8 +17,10 @@ package io.stargate.db.schema;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 @Value.Immutable(prehash = true)
@@ -27,6 +29,10 @@ public abstract class Table extends AbstractTable {
 
   public abstract List<Index> indexes();
 
+  public abstract @Nullable VertexLabelMetadata vertexLabel();
+
+  public abstract @Nullable EdgeLabelMetadata edgeLabel();
+
   @Value.Lazy
   Map<String, Index> indexMap() {
     return indexes().stream().collect(Collectors.toMap(Index::name, Function.identity()));
@@ -34,6 +40,27 @@ public abstract class Table extends AbstractTable {
 
   public Index index(String name) {
     return indexMap().get(name);
+  }
+
+  public static Table create(
+      String keyspace,
+      String name,
+      Iterable<Column> columns,
+      Iterable<Index> indexes,
+      String comment,
+      Optional<VertexLabelMetadata> vertexLabel,
+      Optional<EdgeLabelMetadata> edgeLabel) {
+    VertexLabelMetadata vertexMappingMetadata = vertexLabel.orElse(null);
+    EdgeLabelMetadata edgeLabelMetadata = edgeLabel.orElse(null);
+    return ImmutableTable.builder()
+        .keyspace(keyspace)
+        .name(name)
+        .columns(columns)
+        .indexes(indexes)
+        .comment(comment)
+        .vertexLabel(vertexMappingMetadata)
+        .edgeLabel(edgeLabelMetadata)
+        .build();
   }
 
   public static Table create(

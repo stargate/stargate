@@ -2,6 +2,8 @@ package com.datastax.bdp.search.solr;
 
 import static com.datastax.bdp.config.DseConfigYamlLoader.CONFIG_FILE_PROPERTY;
 
+import com.datastax.bdp.cassandra.cql3.DseQueryOperationFactory;
+import com.datastax.bdp.cassandra.cql3.SolrQueryOperationFactory;
 import com.datastax.bdp.node.transport.internode.InternodeClient;
 import com.datastax.bdp.node.transport.internode.InternodeMessaging;
 import com.datastax.bdp.node.transport.internode.InternodeProtocolRegistry;
@@ -25,11 +27,10 @@ public class SearchModule extends AbstractModule {
     bind(InternodeMessaging.class);
     bind(InternodeProtocolRegistry.class).to(InternodeMessaging.class);
     bind(InternodeClient.class).toProvider(InternodeMessaging.class);
-
     bind(InternalQueryRouterProtocol.class);
-
     bind(Cql_DseSearchParser.SearchStatementFactory.class).to(SearchStatementFactory.class);
-
+    bind(DseQueryOperationFactory.class).to(SolrQueryOperationFactory.class);
     requestStaticInjection(Cql_DseSearchParser.class);
+    requestInjection(DseQueryOperationFactory.class);
   }
 }
