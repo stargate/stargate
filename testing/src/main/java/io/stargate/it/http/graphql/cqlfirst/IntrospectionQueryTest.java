@@ -49,7 +49,6 @@ public class IntrospectionQueryTest extends BaseGraphqlV2ApiTest {
     String keyspaceName = "library";
 
     Map<String, Object> response = createKeyspace(keyspaceName);
-    System.out.println(response);
     assertThat(JsonPath.<Boolean>read(response, "$.createKeyspace")).isTrue();
 
     assertThatCode(() -> introspectionQuery(keyspaceName)).doesNotThrowAnyException();
