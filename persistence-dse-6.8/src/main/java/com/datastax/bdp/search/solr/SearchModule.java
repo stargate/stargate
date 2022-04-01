@@ -8,6 +8,7 @@ import com.datastax.bdp.node.transport.internode.InternodeClient;
 import com.datastax.bdp.node.transport.internode.InternodeMessaging;
 import com.datastax.bdp.node.transport.internode.InternodeProtocolRegistry;
 import com.datastax.bdp.router.InternalQueryRouterProtocol;
+import com.datastax.bdp.search.solr.statements.SearchStatementFactory;
 import com.google.inject.AbstractModule;
 import org.apache.cassandra.cql3.Cql_DseSearchParser;
 import org.slf4j.Logger;
@@ -18,13 +19,16 @@ public class SearchModule extends AbstractModule {
 
   @Override
   protected void configure() {
+    logger.info("SearchModule.configure");
+
+    // required for InternodeClient init
     System.setProperty(CONFIG_FILE_PROPERTY, "/dse.yaml");
 
     bind(InternodeMessaging.class);
     bind(InternodeProtocolRegistry.class).to(InternodeMessaging.class);
     bind(InternodeClient.class).toProvider(InternodeMessaging.class);
     bind(InternalQueryRouterProtocol.class);
-    // bind(Cql_DseSearchParser.SearchStatementFactory.class).to(SearchStatementFactory.class);
+    bind(Cql_DseSearchParser.SearchStatementFactory.class).to(SearchStatementFactory.class);
     bind(DseQueryOperationFactory.class).to(SolrQueryOperationFactory.class);
     requestStaticInjection(Cql_DseSearchParser.class);
     requestInjection(DseQueryOperationFactory.class);

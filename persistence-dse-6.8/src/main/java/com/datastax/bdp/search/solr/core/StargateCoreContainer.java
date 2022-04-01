@@ -36,8 +36,4 @@ public class StargateCoreContainer {
     this.messagingClient = messagingClient;
     queryRouter = new InternalQueryRouter(messagingClient);
   }
-
-  // public DataStore getDataStore() {
-  // return null;
-  // }
 }

@@ -18,6 +18,7 @@
 package io.stargate.db.dse.impl;
 
 import com.datastax.bdp.cassandra.cql3.SolrQueryOperationFactory;
+import com.datastax.bdp.search.solr.statements.*;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import io.reactivex.Single;
 import io.stargate.auth.AuthenticationSubject;
@@ -39,52 +40,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.validation.constraints.NotNull;
 import org.apache.cassandra.auth.IResource;
 import org.apache.cassandra.auth.RoleResource;
-import org.apache.cassandra.cql3.BatchQueryOptions;
-import org.apache.cassandra.cql3.CQLStatement;
-import org.apache.cassandra.cql3.QueryHandler;
-import org.apache.cassandra.cql3.QueryOptions;
-import org.apache.cassandra.cql3.QueryProcessor;
-import org.apache.cassandra.cql3.statements.AlterRoleStatement;
-import org.apache.cassandra.cql3.statements.AuthenticationStatement;
-import org.apache.cassandra.cql3.statements.AuthorizationStatement;
-import org.apache.cassandra.cql3.statements.BatchStatement;
-import org.apache.cassandra.cql3.statements.CreateRoleStatement;
-import org.apache.cassandra.cql3.statements.DeleteStatement;
-import org.apache.cassandra.cql3.statements.DropRoleStatement;
-import org.apache.cassandra.cql3.statements.GrantPermissionsStatement;
-import org.apache.cassandra.cql3.statements.GrantRoleStatement;
-import org.apache.cassandra.cql3.statements.ListPermissionsStatement;
-import org.apache.cassandra.cql3.statements.ListRolesStatement;
-import org.apache.cassandra.cql3.statements.ListUsersStatement;
-import org.apache.cassandra.cql3.statements.ModificationStatement;
-import org.apache.cassandra.cql3.statements.PermissionsManagementStatement;
-import org.apache.cassandra.cql3.statements.PermissionsRelatedStatement;
-import org.apache.cassandra.cql3.statements.RevokePermissionsStatement;
-import org.apache.cassandra.cql3.statements.RevokeRoleStatement;
-import org.apache.cassandra.cql3.statements.SelectStatement;
-import org.apache.cassandra.cql3.statements.TruncateStatement;
-import org.apache.cassandra.cql3.statements.UseStatement;
-import org.apache.cassandra.cql3.statements.schema.AlterKeyspaceStatement;
-import org.apache.cassandra.cql3.statements.schema.AlterSchemaStatement;
-import org.apache.cassandra.cql3.statements.schema.AlterTableStatement;
-import org.apache.cassandra.cql3.statements.schema.AlterTypeStatement;
-import org.apache.cassandra.cql3.statements.schema.AlterViewStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateAggregateStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateFunctionStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateIndexStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateKeyspaceStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateTableStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateTriggerStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateTypeStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateViewStatement;
-import org.apache.cassandra.cql3.statements.schema.DropAggregateStatement;
-import org.apache.cassandra.cql3.statements.schema.DropFunctionStatement;
-import org.apache.cassandra.cql3.statements.schema.DropIndexStatement;
-import org.apache.cassandra.cql3.statements.schema.DropKeyspaceStatement;
-import org.apache.cassandra.cql3.statements.schema.DropTableStatement;
-import org.apache.cassandra.cql3.statements.schema.DropTriggerStatement;
-import org.apache.cassandra.cql3.statements.schema.DropTypeStatement;
-import org.apache.cassandra.cql3.statements.schema.DropViewStatement;
+import org.apache.cassandra.cql3.*;
+import org.apache.cassandra.cql3.statements.*;
+import org.apache.cassandra.cql3.statements.schema.*;
 import org.apache.cassandra.exceptions.UnauthorizedException;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.transport.messages.ResultMessage;
@@ -281,6 +239,15 @@ public class StargateQueryHandler implements QueryHandler {
       for (ModificationStatement stmt : statements) {
         authorizeModificationStatement(stmt, authenticationSubject, authorization);
       }
+    } else if (statement instanceof CreateSearchIndexStatement
+        || statement instanceof AlterSearchIndexStatement
+        || statement instanceof CommitSearchIndexStatement
+        || statement instanceof DropSearchIndexStatement
+        || statement instanceof RebuildSearchIndexStatement
+        || statement instanceof ReloadSearchIndexStatement) {
+      // TODO(versaurabh): GRAPH-50 & ARTMS-19
+      // Noop as of now
+      return;
     } else {
       logger.warn("Tried to authorize unsupported statement");
       throw new UnsupportedOperationException(

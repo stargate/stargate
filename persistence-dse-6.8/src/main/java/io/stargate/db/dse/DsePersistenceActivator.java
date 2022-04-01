@@ -18,7 +18,11 @@ import io.stargate.db.dse.impl.DelegatingAuthorizer;
 import io.stargate.db.dse.impl.DsePersistence;
 import io.stargate.db.dse.impl.StargateConfigSnitch;
 import io.stargate.db.dse.impl.StargateSeedProvider;
-import java.io.*;
+import java.io.Closeable;
+import java.io.File;
+import java.io.IOError;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.InetAddress;
 import java.nio.file.Paths;
 import java.util.Collections;
@@ -26,12 +30,18 @@ import java.util.Hashtable;
 import java.util.List;
 import org.apache.cassandra.auth.IAuthorizer;
 import org.apache.cassandra.auth.PasswordAuthenticator;
-import org.apache.cassandra.config.*;
+import org.apache.cassandra.config.Config;
+import org.apache.cassandra.config.DatabaseDescriptor;
+import org.apache.cassandra.config.GuardrailsConfig;
+import org.apache.cassandra.config.ParameterizedClass;
+import org.apache.cassandra.config.YamlConfigurationLoader;
 import org.apache.cassandra.dht.Murmur3Partitioner;
 import org.apache.cassandra.locator.SimpleSnitch;
 import org.apache.cassandra.metrics.CassandraMetricsRegistry;
 import org.apache.cassandra.utils.FBUtilities;
 import org.apache.commons.io.FileUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class DsePersistenceActivator extends BaseActivator {
 
@@ -39,6 +49,7 @@ public class DsePersistenceActivator extends BaseActivator {
     UserDefinedFunctionHelper.fixCompilerClassLoader();
   }
 
+  private static final Logger logger = LoggerFactory.getLogger(DsePersistenceActivator.class);
   private static final String AUTHZ_PROCESSOR_ID =
       System.getProperty("stargate.authorization.processor.id");
 
@@ -174,6 +185,20 @@ public class DsePersistenceActivator extends BaseActivator {
     return c;
   }
 
+  public void initSearch() {
+    logger.info("Initializing Search Functionality");
+
+    SearchModule searchModule = new SearchModule();
+    SearchInjector.setModule(searchModule);
+    Injector injector = SearchInjector.get();
+
+    InternodeMessaging internodeMessaging = injector.getInstance(InternodeMessaging.class);
+    internodeMessaging.register(injector.getInstance(InternalQueryRouterProtocol.class));
+    internodeMessaging.activate();
+
+    StargateCoreContainer.setInstance(injector.getInstance(StargateCoreContainer.class));
+  }
+
   @Override
   protected ServiceAndProperties createService() {
     dseDB = new DsePersistence();
@@ -198,18 +223,6 @@ public class DsePersistenceActivator extends BaseActivator {
     } catch (IOException e) {
       throw new IOError(e);
     }
-  }
-
-  public void initSearch() {
-    SearchModule searchModule = new SearchModule();
-    SearchInjector.setModule(searchModule);
-    Injector injector = SearchInjector.get();
-
-    InternodeMessaging internodeMessaging = injector.getInstance(InternodeMessaging.class);
-    internodeMessaging.register(injector.getInstance(InternalQueryRouterProtocol.class));
-    internodeMessaging.activate();
-
-    StargateCoreContainer.setInstance(injector.getInstance(StargateCoreContainer.class));
   }
 
   @Override
