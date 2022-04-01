@@ -53,6 +53,8 @@ public class DsePersistenceActivator extends BaseActivator {
   private static final String AUTHZ_PROCESSOR_ID =
       System.getProperty("stargate.authorization.processor.id");
 
+  private static final String ADVANCED_WORKLOAD = "AdvancedWorkload";
+
   private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
   private final LazyServicePointer<AuthorizationService> authorizationService =
       LazyServicePointer.create(
@@ -61,6 +63,9 @@ public class DsePersistenceActivator extends BaseActivator {
           System.getProperty("stargate.auth_id", "AuthTableBasedService"));
   private final ServicePointer<AuthorizationProcessor> authorizationProcessor =
       ServicePointer.create(AuthorizationProcessor.class, "AuthProcessorId", AUTHZ_PROCESSOR_ID);
+
+  private final LazyServicePointer<Persistence> advanceWorkLoadProcessor =
+      LazyServicePointer.create(Persistence.class, "AdvancedWorkload", ADVANCED_WORKLOAD);
 
   private DsePersistence dseDB;
   private File baseDir;
@@ -206,15 +211,14 @@ public class DsePersistenceActivator extends BaseActivator {
       baseDir = getBaseDir();
 
       dseDB.setAuthorizationService(authorizationService.get());
+      dseDB.setAdvanceWorkloadProcessor(advanceWorkLoadProcessor.get());
       dseDB.initialize(makeConfig(baseDir));
 
       IAuthorizer authorizer = DatabaseDescriptor.getAuthorizer().implementation();
       if (authorizer instanceof DelegatingAuthorizer) {
         ((DelegatingAuthorizer) authorizer).setProcessor(authorizationProcessor.get());
       }
-
       initSearch();
-
       return new ServiceAndProperties(dseDB, Persistence.class, props);
     } catch (IOException e) {
       throw new IOError(e);
@@ -246,6 +250,9 @@ public class DsePersistenceActivator extends BaseActivator {
 
   @Override
   protected List<LazyServicePointer<?>> lazyDependencies() {
-    return Collections.singletonList(authorizationService);
+    ImmutableList.Builder<LazyServicePointer<?>> dependencies = ImmutableList.builder();
+    dependencies.add(authorizationService);
+    dependencies.add(advanceWorkLoadProcessor);
+    return dependencies.build();
   }
 }

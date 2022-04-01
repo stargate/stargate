@@ -39,14 +39,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -143,6 +136,7 @@ public class DsePersistence
   // C* listener that ensures that our Stargate schema remains up-to-date with the internal C* one.
   private SchemaChangeListener schemaChangeListener;
   private AtomicReference<AuthorizationService> authorizationService;
+  private AtomicReference<Persistence> advanceWorkloadProcessor;
 
   public DsePersistence() {
     super("DataStax Enterprise");
@@ -239,7 +233,6 @@ public class DsePersistence
         ApplicationState.X10, StorageService.instance.valueFactory.dsefsState("stargate"));
 
     waitForSchema(STARTUP_DELAY_MS);
-
     interceptor = new DefaultQueryInterceptor();
     if (USE_PROXY_PROTOCOL) interceptor = new ProxyProtocolQueryInterceptor(interceptor);
 
@@ -441,13 +434,21 @@ public class DsePersistence
     this.authorizationService = authorizationService;
   }
 
+  public void setAdvanceWorkloadProcessor(AtomicReference<Persistence> advanceWorkloadProcessor) {
+    this.advanceWorkloadProcessor = advanceWorkloadProcessor;
+  }
+
   private class DseConnection extends AbstractConnection {
 
     private final StargateClientState clientState;
     private final ServerConnection fakeServerConnection;
+    private Persistence.Connection advanceWorkloadConnection;
 
     private DseConnection(@Nonnull ClientInfo clientInfo) {
       this(clientInfo, StargateClientState.forExternalCalls(clientInfo));
+      if (advanceWorkloadProcessor.get() != null) {
+        this.advanceWorkloadConnection = advanceWorkloadProcessor.get().newConnection(clientInfo);
+      }
     }
 
     private DseConnection() {
@@ -607,6 +608,15 @@ public class DsePersistence
     @Override
     public CompletableFuture<Result> execute(
         Statement statement, Parameters parameters, long queryStartNanoTime) {
+      Map<String, ByteBuffer> customPayload = parameters.customPayload().orElse(new HashMap<>());
+      if (customPayload.containsKey("graph-language")) {
+        if (advanceWorkloadConnection != null) {
+          return advanceWorkloadConnection.execute(statement, parameters, queryStartNanoTime);
+        } else {
+          throw new RuntimeException(
+              "Failed to find an Advanced Workload Service to execute request");
+        }
+      }
       return executeRequest(
           parameters,
           queryStartNanoTime,
