@@ -17,6 +17,7 @@ package io.stargate.db;
 
 import io.stargate.db.datastore.ResultSet;
 import io.stargate.db.datastore.Row;
+import java.nio.ByteBuffer;
 
 /**
  * A table-specific interface for extracting key column values from a {@link ResultSet} {@link Row}
@@ -29,4 +30,10 @@ public interface RowDecorator {
    * same order that queries iterate / paginate over the Cassandra data ring.
    */
   <T extends Comparable<T>> ComparableKey<T> decoratePartitionKey(Row row);
+
+  /**
+   * Generates the comparable byte value of the {@link Row}, using the "comparable bytes" API of the
+   * underlying datastore. If no such API exists, an empty ByteBuffer is returned.
+   */
+  ByteBuffer getComparableBytes(Row row);
 }

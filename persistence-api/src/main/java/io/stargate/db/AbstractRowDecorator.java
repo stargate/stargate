@@ -32,11 +32,8 @@ public abstract class AbstractRowDecorator implements RowDecorator {
 
   protected abstract ComparableKey<?> decoratePrimaryKey(Object... rawKeyValues);
 
-  @Override
-  public <T extends Comparable<T>> ComparableKey<T> decoratePartitionKey(Row row) {
-
+  protected Object[] primaryKeyValues(Row row) {
     Object[] pkValues = new Object[partitionKeyColumnNames.size()];
-
     int idx = 0;
     for (String columnName : partitionKeyColumnNames) {
       ByteBuffer value = row.getBytesUnsafe(columnName);
@@ -50,6 +47,13 @@ public abstract class AbstractRowDecorator implements RowDecorator {
 
       pkValues[idx++] = value;
     }
+
+    return pkValues;
+  }
+
+  @Override
+  public <T extends Comparable<T>> ComparableKey<T> decoratePartitionKey(Row row) {
+    Object[] pkValues = primaryKeyValues(row);
 
     //noinspection unchecked
     return (ComparableKey<T>) decoratePrimaryKey(pkValues);
