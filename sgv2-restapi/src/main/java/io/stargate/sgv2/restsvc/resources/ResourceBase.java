@@ -44,14 +44,19 @@ public abstract class ResourceBase {
   /**
    * Method to call to try to access Table metadata and call given Function with it (if successful),
    * or, create and return an appropriate error Response if access fails.
+   *
+   * @param checkIfAuthorized whether to check if the caller is authorized to read this table (not
+   *     needed if {@code function} executes a CQL query, see explanations in {@link
+   *     StargateBridgeClient#getKeyspaceAsync(String, boolean)}).
    */
   protected Response callWithTable(
       StargateBridgeClient bridge,
       String keyspaceName,
       String tableName,
+      boolean checkIfAuthorized,
       Function<Schema.CqlTable, Response> function) {
     return bridge
-        .getTable(keyspaceName, tableName)
+        .getTable(keyspaceName, tableName, checkIfAuthorized)
         .map(function)
         .orElseThrow(
             () ->
