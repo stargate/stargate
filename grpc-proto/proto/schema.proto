@@ -141,3 +141,20 @@ message SchemaRead {
 message AuthorizeSchemaReadsResponse {
   repeated bool authorized = 1;
 }
+
+// The arguments to a GetSupportedFeatures call.
+// Intentionally empty, there are no arguments at this time but this is intended for future
+// extensibility.
+message SupportedFeaturesRequest {}
+
+// The response to a GetSupportedFeatures call.
+message SupportedFeaturesResponse {
+  // Whether the persistence backend supports regular Cassandra secondary indexes.
+  bool secondary_indexes = 1;
+
+  // Whether the persistence backend supports Storage Attached Indexes.
+  bool sai = 2;
+
+  // Whether the persistence backend supports logged CQL batches.
+  bool logged_batches = 3;
+}

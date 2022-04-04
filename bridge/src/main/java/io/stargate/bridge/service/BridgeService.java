@@ -37,6 +37,7 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
 
   private final ScheduledExecutorService executor;
   private final int schemaAgreementRetries;
+  private final Schema.SupportedFeaturesResponse supportedFeaturesResponse;
 
   public BridgeService(
       Persistence persistence,
@@ -54,6 +55,12 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
     this.authorizationService = authorizationService;
     this.executor = executor;
     this.schemaAgreementRetries = schemaAgreementRetries;
+    this.supportedFeaturesResponse =
+        Schema.SupportedFeaturesResponse.newBuilder()
+            .setSecondaryIndexes(persistence.supportsSecondaryIndex())
+            .setSai(persistence.supportsSAI())
+            .setLoggedBatches(persistence.supportsLoggedBatches())
+            .build();
   }
 
   @Override
@@ -98,5 +105,13 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
     new AuthorizationHandler(
             request, GrpcService.CONNECTION_KEY.get(), authorizationService, responseObserver)
         .handle();
+  }
+
+  @Override
+  public void getSupportedFeatures(
+      Schema.SupportedFeaturesRequest request,
+      StreamObserver<Schema.SupportedFeaturesResponse> responseObserver) {
+    responseObserver.onNext(supportedFeaturesResponse);
+    responseObserver.onCompleted();
   }
 }

@@ -41,6 +41,8 @@ import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.DescribeKeyspaceQuery;
 import io.stargate.proto.Schema.SchemaRead;
 import io.stargate.proto.Schema.SchemaRead.SourceApi;
+import io.stargate.proto.Schema.SupportedFeaturesRequest;
+import io.stargate.proto.Schema.SupportedFeaturesResponse;
 import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.common.futures.Futures;
 import java.nio.charset.StandardCharsets;
@@ -62,6 +64,8 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
       Metadata.Key.of("Host", Metadata.ASCII_STRING_MARSHALLER);
   static final Query SELECT_KEYSPACE_NAMES =
       Query.newBuilder().setCql("SELECT keyspace_name FROM system_schema.keyspaces").build();
+  private static final SupportedFeaturesRequest SUPPORTED_FEATURES_REQUEST =
+      SupportedFeaturesRequest.newBuilder().build();
 
   private final Channel channel;
   private final CallOptions callOptions;
@@ -271,6 +275,15 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
         AuthorizeSchemaReadsRequest.newBuilder().addAllSchemaReads(schemaReads).build(),
         observer);
     return observer.asFuture().thenApply(AuthorizeSchemaReadsResponse::getAuthorizedList);
+  }
+
+  @Override
+  public CompletionStage<SupportedFeaturesResponse> getSupportedFeaturesAsync() {
+    ClientCall<SupportedFeaturesRequest, SupportedFeaturesResponse> call =
+        channel.newCall(StargateBridgeGrpc.getGetSupportedFeaturesMethod(), callOptions);
+    UnaryStreamObserver<SupportedFeaturesResponse> observer = new UnaryStreamObserver<>();
+    ClientCalls.asyncUnaryCall(call, SUPPORTED_FEATURES_REQUEST, observer);
+    return observer.asFuture();
   }
 
   private CompletionStage<List<String>> getKeyspaceNames(
