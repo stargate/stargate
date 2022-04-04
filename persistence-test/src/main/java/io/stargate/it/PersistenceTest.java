@@ -98,7 +98,6 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -113,6 +112,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import net.jcip.annotations.NotThreadSafe;
+import org.apache.cassandra.stargate.utils.FastByteOperations.PureJavaOperations;
 import org.assertj.core.api.Assertions;
 import org.javatuples.Pair;
 import org.junit.jupiter.api.BeforeEach;
@@ -1981,17 +1981,35 @@ public abstract class PersistenceTest {
             .bind();
 
     ResultSet rs1 = dataStore.execute(selectAll).get();
+    Iterator<Row> it1 = rs1.iterator();
     RowDecorator dec1 = rs1.makeRowDecorator();
-    List<Row> rows = rs1.rows();
+
+    ResultSet rs2 = dataStore.execute(selectAll).get();
+    RowDecorator dec2 = rs2.makeRowDecorator();
+    Iterator<Row> it2 = rs2.iterator();
+
     if (backend.isDse()) {
-      List<ByteBuffer> allComparableBytes =
-          rows.stream().map(dec1::getComparableBytes).collect(Collectors.toList());
-      Collections.sort(allComparableBytes);
-      for (int idx = 0; idx < allComparableBytes.size(); idx++) {
-        ByteBuffer cb1 = allComparableBytes.get(idx);
-        ByteBuffer cb2 = dec1.getComparableBytes(rows.get(idx));
-        assertThat(cb1.compareTo(cb2)).isEqualTo(0);
+      Row first = null;
+      Row last = null;
+      Row p1 = null;
+      PureJavaOperations ops = new PureJavaOperations();
+      while (it1.hasNext()) {
+        assertThat(it2.hasNext()).isTrue();
+        Row r1 = it1.next();
+        Row r2 = it2.next();
+        first = first == null ? r1 : first;
+        last = r1;
+        assertThat(ops.compare(dec1.getComparableBytes(r1), dec2.getComparableBytes(r2)))
+            .isEqualTo(0);
+        if (p1 == null) {
+          p1 = r1;
+        }
+        assertThat(ops.compare(dec1.getComparableBytes(r1), dec2.getComparableBytes(p1)))
+            .isGreaterThanOrEqualTo(0);
       }
+      assertThat(it2.hasNext()).isFalse();
+      assertThat(ops.compare(dec1.getComparableBytes(last), dec2.getComparableBytes(first)))
+          .isGreaterThan(0);
     }
   }
 
