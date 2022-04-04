@@ -1,6 +1,17 @@
 ---
 # please keep properties in alphabetical order
 
+# please have a look on io.stargate.sgv2.docsapi.config.StargateConfig for all config properties
+stargate:
+
+  # the tenant resolver to use, remove in order to have noop tenant resolver active
+  tenant-resolver:
+    type: subdomain
+
+  # the C* token resolver to use, remove in order to have noop token resolver active
+  token-resolver:
+    type: header
+
 quarkus:
 
   # general app properties
@@ -13,10 +24,15 @@ quarkus:
 
   # properties for the gRPC clients
   grpc:
+    # all the clients' setup, only bridge
     clients:
       bridge:
         host: localhost
         port: 8091
+
+    # force no grpc server start in dev as we have no grpc service
+    dev-mode:
+      force-server-start: false
 
   # HTTP settings
   http:

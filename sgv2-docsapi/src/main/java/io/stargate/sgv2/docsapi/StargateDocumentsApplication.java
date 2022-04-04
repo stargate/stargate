@@ -13,8 +13,8 @@ import javax.ws.rs.core.Application;
 @OpenAPIDefinition(
         // note that info is defined via the properties
         info = @Info(
-              title = "",
-              version = ""
+                title = "",
+                version = ""
         ),
         components = @Components(
                 securitySchemes = {

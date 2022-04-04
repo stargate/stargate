@@ -1,11 +1,85 @@
 package io.stargate.sgv2.docsapi.config;
 
-import io.quarkus.runtime.annotations.StaticInitSafe;
 import io.smallrye.config.ConfigMapping;
+import io.smallrye.config.WithDefault;
 
-@StaticInitSafe
+import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Pattern;
+
 @ConfigMapping(prefix = "stargate")
 public interface StargateConfig {
+
+    /**
+     * @return The configuration for {@link io.stargate.sgv2.docsapi.api.common.tenant.TenantResolver} to be used.
+     */
+    @Valid
+    TenantResolverConfig tenantResolver();
+
+    interface TenantResolverConfig {
+
+        /**
+         * @return The type of the {@link io.stargate.sgv2.docsapi.api.common.tenant.TenantResolver} used.
+         */
+        @Pattern(regexp = "subdomain")
+        String type();
+
+    }
+
+    /**
+     * @return The configuration for {@link io.stargate.sgv2.docsapi.api.common.auth.CassandraTokenResolver} to be used.
+     */
+    @Valid
+    TokenResolverConfig tokenResolver();
+
+    interface TokenResolverConfig {
+
+        /**
+         * @return The type of the {@link io.stargate.sgv2.docsapi.api.common.auth.CassandraTokenResolver} used.
+         */
+        @Pattern(regexp = "header")
+        String type();
+
+        /**
+         * @return Specific settings for the <code>header</code> token resolver type.
+         */
+        @Valid
+        HeaderTokenResolverConfig header();
+
+        interface HeaderTokenResolverConfig {
+
+            @WithDefault(Constants.AUTHENTICATION_TOKEN_HEADER_NAME)
+            String headerName();
+
+        }
+
+    }
+
+    /**
+     * @return gRPC Metadata properties for the Bridge.
+     */
+    @Valid
+    StargateConfig.GrpcMetadataConfig grpcMetadata();
+
+    interface GrpcMetadataConfig {
+
+        /**
+         * @return Metadata key for passing the tenant-id to the Bridge.
+         */
+        @NotBlank
+        @WithDefault(Constants.TENANT_ID_HEADER_NAME)
+        String tenantIdKey();
+
+        /**
+         * @return Metadata key for passing the cassandra token to the Bridge.
+         */
+        @NotBlank
+        @WithDefault(Constants.AUTHENTICATION_TOKEN_HEADER_NAME)
+        String cassandraTokenKey();
+
+    }
+
+    // static constants, not configurable via props
 
     interface Constants {
 
@@ -18,6 +92,11 @@ public interface StargateConfig {
          * Authentication token header name.
          */
         String AUTHENTICATION_TOKEN_HEADER_NAME = "X-Cassandra-Token";
+
+        /**
+         * Authentication token header name.
+         */
+        String TENANT_ID_HEADER_NAME = "X-Tenant-Id";
 
     }
 
