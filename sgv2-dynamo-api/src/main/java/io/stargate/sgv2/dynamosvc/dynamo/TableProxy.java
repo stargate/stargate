@@ -46,6 +46,22 @@ public class TableProxy extends Proxy {
     return (new CreateTableResult()).withTableDescription(newTableDesc);
   }
 
+  public DeleteTableResult deleteTable(
+      DeleteTableRequest deleteTableRequest, StargateBridgeClient bridge) throws IOException {
+    final String tableName = deleteTableRequest.getTableName();
+    QueryOuterClass.Query query = new QueryBuilder().drop().table(KEYSPACE_NAME, tableName).build();
+
+    bridge.executeQuery(query);
+    // TODO: throws appropriate exception when it fails
+
+    TableDescription tableDesc =
+        new TableDescription()
+            .withTableName(tableName)
+            .withTableStatus(TableStatus.DELETING)
+            .withTableArn(tableName);
+    return (new DeleteTableResult()).withTableDescription(tableDesc);
+  }
+
   private TableDescription getTableDescription(
       String tableName,
       Collection<AttributeDefinition> attributeDefinitions,

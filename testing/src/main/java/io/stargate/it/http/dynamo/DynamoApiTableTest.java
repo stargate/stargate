@@ -1,5 +1,7 @@
 package io.stargate.it.http.dynamo;
 
+import static org.junit.jupiter.api.Assertions.assertThrows;
+
 import com.amazonaws.services.dynamodbv2.model.*;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
@@ -17,8 +19,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 public class DynamoApiTableTest extends BaseDynamoApiTest {
 
   @Test
-  public void testCreateTable() {
-    // TODO: retrieve table again and compare it with DynamoDB
+  public void testDeleteNonExistentTable() {
+    DeleteTableRequest req = new DeleteTableRequest().withTableName("non-existent");
+    assertThrows(ResourceNotFoundException.class, () -> awsClient.deleteTable(req));
+    // TODO: ensure the exceptions are the same
+    assertThrows(Exception.class, () -> proxyClient.deleteTable(req));
+  }
+
+  @Test
+  public void testCreateThenDeleteTable() {
     CreateTableRequest req =
         new CreateTableRequest()
             .withTableName("foo")
@@ -31,5 +40,8 @@ public class DynamoApiTableTest extends BaseDynamoApiTest {
 
     awsClient.createTable(req);
     proxyClient.createTable(req);
+
+    awsClient.deleteTable("foo");
+    proxyClient.deleteTable("foo");
   }
 }

@@ -4,6 +4,7 @@ import static io.stargate.sgv2.dynamosvc.dynamo.Proxy.awsRequestMapper;
 
 import com.amazonaws.AmazonWebServiceResult;
 import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
+import com.amazonaws.services.dynamodbv2.model.DeleteTableRequest;
 import com.amazonaws.services.dynamodbv2.model.GetItemRequest;
 import com.amazonaws.services.dynamodbv2.model.PutItemRequest;
 import com.codahale.metrics.annotation.Timed;
@@ -70,6 +71,11 @@ public class DynamoResource {
           CreateTableRequest createTableRequest =
               awsRequestMapper.readValue(payload, CreateTableRequest.class);
           result = tableProxy.createTable(createTableRequest, bridge);
+          break;
+        case DeleteTable:
+          DeleteTableRequest deleteTableRequest =
+              awsRequestMapper.readValue(payload, DeleteTableRequest.class);
+          result = tableProxy.deleteTable(deleteTableRequest, bridge);
           break;
         case PutItem:
           PutItemRequest putItemRequest = awsRequestMapper.readValue(payload, PutItemRequest.class);

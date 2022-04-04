@@ -36,7 +36,8 @@ public class DynamoApiItemTest extends BaseDynamoApiTest {
 
   @AfterEach
   public void deleteTable() {
-    // TODO: delete table
+    awsClient.deleteTable(tableName);
+    proxyClient.deleteTable(tableName);
   }
 
   @Test
