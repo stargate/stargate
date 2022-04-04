@@ -17,11 +17,13 @@
 
 package io.stargate.sgv2.docsapi.api.v2.example.model.dto;
 
-import lombok.Builder;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
-@Builder
-public record KeyspaceExistsDto(
-        @Schema(description = "Keyspace name.", example = "cycling") String name,
-        @Schema(description = "If the keyspace exists or not.") boolean exists) {
+public record KeyspaceExistsResponse(
+
+        @Schema(description = "Keyspace name.", example = "cycling")
+        String name,
+
+        @Schema(description = "If the keyspace exists or not.")
+        boolean exists) {
 }

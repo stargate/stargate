@@ -20,7 +20,6 @@ package io.stargate.sgv2.docsapi.api.common.exception;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
-import lombok.extern.slf4j.Slf4j;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 
@@ -29,17 +28,19 @@ import javax.ws.rs.core.Response;
 /**
  * Simple exception mapper for the {@link StatusRuntimeException}.
  */
-@Slf4j
 public class StatusRuntimeExceptionMapper {
 
     @ServerExceptionMapper
     public RestResponse<ApiError> statusRuntimeException(StatusRuntimeException exception) {
-        log.error("gRPC call failed.", exception);
+        // TODO finalize mapper, messages, logs, etc.
 
         Status status = exception.getStatus();
+        ApiError body = new ApiError(status.getDescription());
+
         return switch (status.getCode()) {
-            case UNAVAILABLE -> RestResponse.status(Response.Status.BAD_GATEWAY);
-            default -> RestResponse.status(Response.Status.INTERNAL_SERVER_ERROR);
+            case UNAVAILABLE -> RestResponse.status(Response.Status.BAD_GATEWAY, body);
+            case UNAUTHENTICATED -> RestResponse.status(Response.Status.UNAUTHORIZED, body);
+            default -> RestResponse.status(Response.Status.INTERNAL_SERVER_ERROR, body);
         };
     }
 

@@ -17,21 +17,29 @@
 
 package io.stargate.sgv2.docsapi.api.common.exception.model.dto;
 
-import lombok.Builder;
-import lombok.Value;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
-@Value
-@Builder
-public class ApiError {
+/**
+ * Record for representing the API error,.
+ *
+ * @param description A human-readable description of the error state.
+ * @param code The internal number referencing the error state.
+ * @param internalTxId The internal tracking number of the request.
+ */
+public record ApiError(
 
-    @Schema(description = "A human readable description of the error state.", example = "//TODO")
-    String description;
+        @Schema(description = "A human readable description of the error state.", example = "//TODO")
+        String description,
 
-    @Schema(description = "The internal number referencing the error state.", example = "//TODO")
-    int code;
+        @Schema(description = "The internal number referencing the error state.", example = "//TODO")
+        int code,
 
-    @Schema(hidden = true)
-    String internalTxId;
+        // TODO Is this still needed and used? This was not part of the public API.
+        @Schema(hidden = true)
+        String internalTxId) {
+
+    public ApiError(String description) {
+        this(description, 0, null);
+    }
 
 }
