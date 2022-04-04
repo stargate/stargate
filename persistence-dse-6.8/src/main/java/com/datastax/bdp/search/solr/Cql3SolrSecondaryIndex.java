@@ -1,137 +1,96 @@
+/*
+ * Copyright DataStax, Inc.
+ *
+ * Please see the included license file for details.
+ */
 package com.datastax.bdp.search.solr;
 
-import java.util.Optional;
-import java.util.concurrent.Callable;
 import org.apache.cassandra.cql3.Operator;
 import org.apache.cassandra.db.ColumnFamilyStore;
-import org.apache.cassandra.db.DecoratedKey;
-import org.apache.cassandra.db.Memtable;
-import org.apache.cassandra.db.ReadCommand;
-import org.apache.cassandra.db.RegularAndStaticColumns;
-import org.apache.cassandra.db.filter.RowFilter;
-import org.apache.cassandra.db.marshal.AbstractType;
-import org.apache.cassandra.db.partitions.PartitionUpdate;
+import org.apache.cassandra.db.marshal.*;
 import org.apache.cassandra.exceptions.InvalidRequestException;
-import org.apache.cassandra.index.Index;
-import org.apache.cassandra.index.IndexRegistry;
-import org.apache.cassandra.index.transactions.IndexTransaction;
 import org.apache.cassandra.schema.ColumnMetadata;
 import org.apache.cassandra.schema.IndexMetadata;
-import org.apache.cassandra.utils.concurrent.OpOrder;
-import org.jetbrains.annotations.Nullable;
 
-/**
- * Empty implementation for DSE search indexes.
- *
- * <p>This is used as a placeholder when our DSE backend contains search indexes. Search queries
- * won't work through Stargate, but it gets us past the schema parsing phase, and we are able to
- * handle other queries.
- */
-public class Cql3SolrSecondaryIndex implements Index {
+public class Cql3SolrSecondaryIndex extends AbstractSolrSecondaryIndex {
 
-  private static final Callable<?> EMPTY_TASK = () -> null;
-
-  private final IndexMetadata indexMetadata;
-
-  public Cql3SolrSecondaryIndex(ColumnFamilyStore ignoredCfs, IndexMetadata indexMetadata) {
-    this.indexMetadata = indexMetadata;
+  public Cql3SolrSecondaryIndex(ColumnFamilyStore baseCfs, IndexMetadata indexDef) {
+    super(baseCfs, indexDef);
   }
 
-  @Override
-  public Callable<?> getInitializationTask() {
-    return EMPTY_TASK;
-  }
+  // DSE Search SELECT Restrictions will use this method instead of Index.supportsExpression()
+  // as that one is used by C* to pick up indexes for the C* vanilla path and we need to support X
+  // operators
+  // but not get picked up as candidate index in C* at the same time.
+  public boolean supportsOperator(ColumnMetadata column, Operator operator) {
+    // There types are backed by a string in Solr and other scenarios so only some operators are
+    // possible
+    if ((column.type instanceof DecimalType
+            || column.type instanceof IntegerType
+            || column.type instanceof BooleanType)
+        && !(operator.equals(Operator.EQ)
+            || operator.isIN()
+            || operator.equals(Operator.IS_NOT)
+            || operator.equals(Operator.NEQ))) {
+      if (column.type instanceof DecimalType || column.type instanceof IntegerType) {
+        throw new InvalidRequestException(
+            column.type
+                + " is backed in Solr by a String so it doesn't support operator "
+                + operator
+                + ". Offending column: "
+                + column.name.toString());
+      }
 
-  @Override
-  public IndexMetadata getIndexMetadata() {
-    return indexMetadata;
-  }
+      throw new InvalidRequestException(
+          column.type
+              + " and operator "
+              + operator
+              + " are not supported. Offending column: "
+              + column.name.toString());
+    }
 
-  @Override
-  public Callable<?> getMetadataReloadTask(IndexMetadata indexMetadata) {
-    return EMPTY_TASK;
-  }
+    if (column.type instanceof MapType && operator.equals(Operator.CONTAINS)) {
+      throw new InvalidRequestException(
+          "CONTAINS on a map is not supported. Offending column: " + column.name.toString());
+    }
 
-  @Override
-  public void register(IndexRegistry indexRegistry) {
-    // intentionally empty
-  }
+    if ((column.type instanceof ListType || column.type instanceof SetType)
+        && operator.equals(Operator.EQ)) {
+      // EQ on *collection* (not on collection *entry*) has no Solr equivalent
+      throw new InvalidRequestException(
+          "Equality on a collections is not supported. Offending column: "
+              + column.name.toString());
+    }
 
-  @Override
-  public Optional<ColumnFamilyStore> getBackingTable() {
-    return Optional.empty();
-  }
+    // LIKE is only allowed against text
+    if (!(column.type instanceof UTF8Type)
+        && !(column.type instanceof AsciiType)
+        && (operator.equals(Operator.LIKE)
+            || operator.equals(Operator.LIKE_MATCHES)
+            || operator.equals(Operator.LIKE_CONTAINS)
+            || operator.equals(Operator.LIKE_PREFIX)
+            || operator.equals(Operator.LIKE_SUFFIX))) {
+      throw new InvalidRequestException(
+          "LIKE operator is only supported against text types. Offending column: "
+              + column.name.toString());
+    }
 
-  @Nullable
-  @Override
-  public Callable<?> getBlockingFlushTask() {
-    return EMPTY_TASK;
-  }
+    // TODO-SEARCH
+    // Tokenized text should only support LIKE and IS NOT NULL.
+    /*if (!NativeCQLSolrSelectStatement.TOKENIZED_TEXT_ALLOWED_OPERATORS.contains(operator))
+    {
+      try (SolrCore core = getCore())
+      {
+        SchemaField field = core.getLatestSchema().getFieldOrNull(column.name.toString());
+        assert field != null : "The field " + column.name.toString() + " could not be found in the schema.";
+        if (field.getType() instanceof TextField)
+        {
+          throw new InvalidRequestException("Tokenized text only supports LIKE and IS NOT NULL operators. Offeding field: "
+                  + column.name.toString() + " for operator: " + operator);
+        }
+      }
+    }*/
 
-  @Override
-  public Callable<?> getInvalidateTask() {
-    return EMPTY_TASK;
-  }
-
-  @Override
-  public Callable<?> getTruncateTask(long l) {
-    return EMPTY_TASK;
-  }
-
-  @Override
-  public boolean shouldBuildBlocking() {
-    return false;
-  }
-
-  @Override
-  public boolean dependsOn(ColumnMetadata columnMetadata) {
-    return false;
-  }
-
-  @Override
-  public boolean supportsExpression(ColumnMetadata columnMetadata, Operator operator) {
-    return false;
-  }
-
-  @Override
-  public AbstractType<?> customExpressionValueType() {
-    // indicates custom expressions are not supported
-    return null;
-  }
-
-  @Override
-  public long getEstimatedResultRows() {
-    return 0;
-  }
-
-  @Override
-  public void validate(PartitionUpdate partitionUpdate) throws InvalidRequestException {
-    // intentionally empty
-  }
-
-  @Override
-  public Indexer indexerFor(
-      DecoratedKey decoratedKey,
-      RegularAndStaticColumns regularAndStaticColumns,
-      int i,
-      OpOrder.Group group,
-      IndexTransaction.Type type,
-      Memtable memtable) {
-    // indicates we're not interested in the update
-    return null;
-  }
-
-  @Override
-  public Searcher searcherFor(ReadCommand readCommand) {
-    // Per original implementation
-    throw new IllegalStateException(
-        "Solr queries should not be executed via Cassandra 2i searchers.");
-  }
-
-  @Override
-  public RowFilter postIndexQueryFilter(RowFilter rowFilter) {
-    // Per original implementation
-    throw new IllegalStateException(
-        "Solr queries should not be executed via Cassandra 2i searchers.");
+    return true;
   }
 }

@@ -109,7 +109,7 @@ public class SchemaConverter
   }
 
   @Override
-  protected Table appyAdvancedWorkloadProperty(TableMetadata tableMetadata, Table table) {
+  protected Table appylAdvancedWorkloadProperty(TableMetadata tableMetadata, Table table) {
     Optional<VertexLabelMetadata> vertexLabelMetadata =
         getVertexLabelMetaData(tableMetadata.vertexLabel());
     Optional<EdgeLabelMetadata> edgeLabelMetadata = getEdgeLabelMetadata(tableMetadata.edgeLabel());

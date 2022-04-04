@@ -159,10 +159,10 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
             columns,
             Stream.concat(secondaryIndexes, materializedViews).collect(Collectors.toList()),
             comment);
-    return appyAdvancedWorkloadProperty(table, t);
+    return appylAdvancedWorkloadProperty(table, t);
   }
 
-  protected Table appyAdvancedWorkloadProperty(T tableMetadata, Table table) {
+  protected Table appylAdvancedWorkloadProperty(T tableMetadata, Table table) {
     return table;
   }
 
@@ -188,6 +188,12 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
 
   private Stream<Index> convertSecondaryIndexes(
       String keyspaceName, T table, List<Column> columns) {
+    return Streams.of(secondaryIndexes(table))
+        .map(i -> (Index) convertSecondaryIndex(keyspaceName, tableName(table), i, columns))
+        .filter(Objects::nonNull);
+  }
+
+  private Stream<Index> convertSearchIndexes(String keyspaceName, T table, List<Column> columns) {
     return Streams.of(secondaryIndexes(table))
         .map(i -> (Index) convertSecondaryIndex(keyspaceName, tableName(table), i, columns))
         .filter(Objects::nonNull);
