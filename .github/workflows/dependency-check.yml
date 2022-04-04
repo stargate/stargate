@@ -40,9 +40,14 @@ jobs:
            </servers>
           </settings>
           EOF
-      - name: Check Maven Dependencies
+      - name: Check Maven Dependency Updates
         run: |
-          mvn versions:display-dependency-updates
+          mvn -B versions:display-dependency-updates -Dversions.outputFile=target/dependency-updates-report.txt
+      - name: Archive dependency update results
+        uses: actions/upload-artifact@v3
+        with:
+          name: dependency-update-report
+          path: target/dependency-updates-report.txt
 
   check-vulnerabilities:
     name: Check Vulnerabilities
@@ -79,7 +84,7 @@ jobs:
           EOF
       - name: Check Maven Dependencies
         run: |
-          mvn dependency-check:aggregate
+          mvn -B dependency-check:aggregate
       - name: Archive vulnerability results
         uses: actions/upload-artifact@v3
         with:
