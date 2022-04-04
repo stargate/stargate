@@ -92,7 +92,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class StargateQueryHandler implements QueryHandler {
-
+  private static final String ADV_WORKLOAD_QUERY =
+      System.getProperty("stargate.adv.workload.query");
   private static final Logger logger = LoggerFactory.getLogger(StargateQueryHandler.class);
   private final List<QueryInterceptor> interceptors = new CopyOnWriteArrayList<>();
   private AtomicReference<AuthorizationService> authorizationService;
@@ -246,7 +247,11 @@ public class StargateQueryHandler implements QueryHandler {
           castStatement.keyspace(),
           castStatement.table());
     } else if (statement instanceof AlterSchemaStatement) {
-      authorizeAlterSchemaStatement(statement, authenticationSubject, authorization);
+      authorizeAlterSchemaStatement(
+          statement,
+          authenticationSubject,
+          authorization,
+          ADV_WORKLOAD_QUERY != null && customPayload.containsKey(ADV_WORKLOAD_QUERY));
     } else if (statement instanceof AuthorizationStatement) {
       authorizeAuthorizationStatement(statement, authenticationSubject, authorization);
     } else if (statement instanceof AuthenticationStatement) {
@@ -440,7 +445,8 @@ public class StargateQueryHandler implements QueryHandler {
   private void authorizeAlterSchemaStatement(
       CQLStatement statement,
       AuthenticationSubject authenticationSubject,
-      AuthorizationService authorization) {
+      AuthorizationService authorization,
+      boolean advancedWorkload) {
     AlterSchemaStatement castStatement = (AlterSchemaStatement) statement;
     Scope scope = null;
     ResourceKind resource = null;
@@ -549,8 +555,14 @@ public class StargateQueryHandler implements QueryHandler {
         tableName);
 
     try {
-      authorization.authorizeSchemaWrite(
-          authenticationSubject, keyspaceName, tableName, scope, SourceAPI.CQL, resource);
+      if (advancedWorkload) {
+        authorization.authorizeAdvancedWorkloadSchemaWrite(
+            authenticationSubject, keyspaceName, tableName, scope, SourceAPI.CQL, resource);
+      } else {
+        authorization.authorizeSchemaWrite(
+            authenticationSubject, keyspaceName, tableName, scope, SourceAPI.CQL, resource);
+      }
+
     } catch (io.stargate.auth.UnauthorizedException e) {
       throw new UnauthorizedException(
           String.format(
