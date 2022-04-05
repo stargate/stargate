@@ -1,6 +1,6 @@
 package io.stargate.sgv2.docsapi;
 
-import io.stargate.sgv2.docsapi.config.StargateConfig;
+import io.stargate.sgv2.docsapi.config.constants.Constants;
 import org.eclipse.microprofile.openapi.annotations.Components;
 import org.eclipse.microprofile.openapi.annotations.OpenAPIDefinition;
 import org.eclipse.microprofile.openapi.annotations.enums.SecuritySchemeIn;
@@ -19,10 +19,10 @@ import javax.ws.rs.core.Application;
         components = @Components(
                 securitySchemes = {
                         @SecurityScheme(
-                                securitySchemeName = StargateConfig.Constants.OPEN_API_DEFAULT_SECURITY_SCHEME,
+                                securitySchemeName = Constants.OPEN_API_DEFAULT_SECURITY_SCHEME,
                                 type = SecuritySchemeType.APIKEY,
                                 in = SecuritySchemeIn.HEADER,
-                                apiKeyName = StargateConfig.Constants.AUTHENTICATION_TOKEN_HEADER_NAME
+                                apiKeyName = Constants.AUTHENTICATION_TOKEN_HEADER_NAME
                         )
                 }
         ),

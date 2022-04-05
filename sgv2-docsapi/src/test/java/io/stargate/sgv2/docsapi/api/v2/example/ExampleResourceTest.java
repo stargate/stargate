@@ -22,7 +22,8 @@ import io.grpc.stub.StreamObserver;
 import io.quarkus.test.junit.QuarkusTest;
 import io.stargate.proto.Schema;
 import io.stargate.sgv2.docsapi.api.BridgeTest;
-import io.stargate.sgv2.docsapi.config.StargateConfig;
+import io.stargate.sgv2.docsapi.config.GrpcMetadataConfig;
+import io.stargate.sgv2.docsapi.config.constants.Constants;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -45,7 +46,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 public class ExampleResourceTest extends BridgeTest {
 
     @Inject
-    StargateConfig stargateConfig;
+    GrpcMetadataConfig metadataConfig;
 
     ArgumentCaptor<Metadata> headersCaptor;
 
@@ -71,7 +72,7 @@ public class ExampleResourceTest extends BridgeTest {
             }).when(bridgeService).describeKeyspace(eq(query), any());
 
             given()
-                    .header(StargateConfig.Constants.AUTHENTICATION_TOKEN_HEADER_NAME, token)
+                    .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, token)
                     .when().get("/api/v2/example/keyspace-exists/{name}", keyspaceName)
                     .then()
                     .statusCode(200)
@@ -81,7 +82,7 @@ public class ExampleResourceTest extends BridgeTest {
             verify(bridgeInterceptor).interceptCall(any(), headersCaptor.capture(), any());
             assertThat(headersCaptor.getAllValues()).singleElement()
                     .satisfies(metadata -> {
-                        Metadata.Key<String> tokenKey = Metadata.Key.of(stargateConfig.grpcMetadata().cassandraTokenKey(), Metadata.ASCII_STRING_MARSHALLER);
+                        Metadata.Key<String> tokenKey = Metadata.Key.of(metadataConfig.cassandraTokenKey(), Metadata.ASCII_STRING_MARSHALLER);
                         assertThat(metadata.get(tokenKey)).isEqualTo(token);
                     });
         }

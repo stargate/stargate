@@ -21,7 +21,7 @@ import io.quarkus.arc.lookup.LookupIfProperty;
 import io.stargate.sgv2.docsapi.api.common.token.CassandraTokenResolver;
 import io.stargate.sgv2.docsapi.api.common.token.impl.HeaderTokenResolver;
 import io.stargate.sgv2.docsapi.api.common.token.impl.PrincipalTokenResolver;
-import io.stargate.sgv2.docsapi.config.StargateConfig;
+import io.stargate.sgv2.docsapi.config.TokenResolverConfig;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
@@ -38,8 +38,8 @@ public class CassandraTokenConfiguration {
             name = "stargate.token-resolver.type",
             stringValue = "header"
     )
-    CassandraTokenResolver headerTokenResolver(StargateConfig stargateConfig) {
-        String headerName = stargateConfig.tokenResolver().header().headerName();
+    CassandraTokenResolver headerTokenResolver(TokenResolverConfig config) {
+        String headerName = config.header().headerName();
         return new HeaderTokenResolver(headerName);
     }
 

@@ -5,7 +5,7 @@ import io.quarkus.grpc.GrpcClient;
 import io.quarkus.grpc.GrpcClientUtils;
 import io.stargate.proto.MutinyStargateBridgeGrpc;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
-import io.stargate.sgv2.docsapi.config.StargateConfig;
+import io.stargate.sgv2.docsapi.config.GrpcMetadataConfig;
 
 import javax.enterprise.context.ApplicationScoped;
 
@@ -30,10 +30,9 @@ public class GrpcClients {
      */
     private final Metadata.Key<String> cassandraTokenKey;
 
-    public GrpcClients(@GrpcClient("bridge") MutinyStargateBridgeGrpc.MutinyStargateBridgeStub bridge, StargateConfig stargateConfig) {
-        StargateConfig.GrpcMetadataConfig grpcMetadata = stargateConfig.grpcMetadata();
-        this.tenantIdKey = Metadata.Key.of(grpcMetadata.tenantIdKey(), Metadata.ASCII_STRING_MARSHALLER);
-        this.cassandraTokenKey = Metadata.Key.of(grpcMetadata.cassandraTokenKey(), Metadata.ASCII_STRING_MARSHALLER);
+    public GrpcClients(@GrpcClient("bridge") MutinyStargateBridgeGrpc.MutinyStargateBridgeStub bridge, GrpcMetadataConfig config) {
+        this.tenantIdKey = Metadata.Key.of(config.tenantIdKey(), Metadata.ASCII_STRING_MARSHALLER);
+        this.cassandraTokenKey = Metadata.Key.of(config.cassandraTokenKey(), Metadata.ASCII_STRING_MARSHALLER);
         this.bridge = bridge;
     }
 

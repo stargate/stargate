@@ -24,7 +24,7 @@ import io.stargate.proto.Schema;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.docsapi.api.v2.example.model.dto.KeyspaceExistsResponse;
-import io.stargate.sgv2.docsapi.config.StargateConfig;
+import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.grpc.GrpcClients;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.enums.ParameterIn;
@@ -48,7 +48,7 @@ import javax.ws.rs.core.MediaType;
  */
 @Path("/api/v2/example")
 @Produces(MediaType.APPLICATION_JSON)
-@SecurityRequirement(name = StargateConfig.Constants.OPEN_API_DEFAULT_SECURITY_SCHEME)
+@SecurityRequirement(name = Constants.OPEN_API_DEFAULT_SECURITY_SCHEME)
 public class ExampleResource {
 
     @Inject

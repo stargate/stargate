@@ -23,7 +23,7 @@ import io.quarkus.vertx.http.runtime.security.HttpAuthenticationMechanism;
 import io.stargate.sgv2.docsapi.api.common.security.HeaderAuthenticationRequest;
 import io.stargate.sgv2.docsapi.api.common.security.HeaderBasedAuthenticationMechanism;
 import io.stargate.sgv2.docsapi.api.common.security.HeaderIdentityProvider;
-import io.stargate.sgv2.docsapi.config.StargateConfig;
+import io.stargate.sgv2.docsapi.config.HeaderBasedAuthConfig;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
@@ -36,8 +36,8 @@ public class HeaderBasedSecurityConfiguration {
     @Produces
     @ApplicationScoped
     @LookupIfProperty(name = "stargate.header-based-auth.enabled", stringValue = "true")
-    HttpAuthenticationMechanism httpAuthenticationMechanism(StargateConfig stargateConfig) {
-        String headerName = stargateConfig.headerBasedAuth().headerName();
+    HttpAuthenticationMechanism httpAuthenticationMechanism(HeaderBasedAuthConfig config) {
+        String headerName = config.headerName();
         return new HeaderBasedAuthenticationMechanism(headerName);
     }
 
