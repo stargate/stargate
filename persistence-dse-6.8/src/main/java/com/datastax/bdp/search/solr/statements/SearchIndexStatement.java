@@ -71,6 +71,10 @@ public abstract class SearchIndexStatement extends QualifiedStatement
     return qualifiedName.toString();
   }
 
+  public QualifiedName getQualifiedName() {
+    return qualifiedName;
+  }
+
   @Override
   public void validate(QueryState state) throws InvalidRequestException {
     if (null != RowLevelAccessControlAuthorizer.findRlacTargetColumn(keyspace(), name())) {

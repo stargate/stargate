@@ -244,15 +244,9 @@ public class StargateQueryHandler implements QueryHandler {
       for (ModificationStatement stmt : statements) {
         authorizeModificationStatement(stmt, authenticationSubject, authorization);
       }
-    } else if (statement instanceof CreateSearchIndexStatement
-        || statement instanceof AlterSearchIndexStatement
-        || statement instanceof CommitSearchIndexStatement
-        || statement instanceof DropSearchIndexStatement
-        || statement instanceof RebuildSearchIndexStatement
-        || statement instanceof ReloadSearchIndexStatement) {
+    } else if (statement instanceof SearchIndexStatement) {
       // TODO(versaurabh): GRAPH-50 & ARTMS-19
-      // Noop as of now
-      return;
+      authorizeSearchIndexStatement(statement, authenticationSubject, authorization);
     } else {
       logger.warn("Tried to authorize unsupported statement");
       throw new UnsupportedOperationException(
@@ -563,6 +557,36 @@ public class StargateQueryHandler implements QueryHandler {
         castStatement.getClass(),
         keyspaceName,
         tableName);
+  }
+
+  private void authorizeSearchIndexStatement(
+      CQLStatement statement,
+      AuthenticationSubject authenticationSubject,
+      AuthorizationService authorization) {
+    Scope scope = Scope.ALTER;
+    ResourceKind resource = ResourceKind.TABLE;
+    QualifiedName qualifiedName = ((SearchIndexStatement) statement).getQualifiedName();
+    String keyspaceName = qualifiedName.getKeyspace();
+    String tableName = qualifiedName.getName();
+
+    logger.debug(
+        "preparing to authorize statement of type {} on {}.{}",
+        statement.getClass().toString(),
+        keyspaceName,
+        tableName);
+
+    try {
+      authorization.authorizeSchemaWrite(
+          authenticationSubject, keyspaceName, tableName, scope, SourceAPI.CQL, resource);
+    } catch (io.stargate.auth.UnauthorizedException e) {
+      throw new UnauthorizedException(
+          String.format(
+              "Missing correct permission on %s.%s",
+              keyspaceName, (tableName == null ? "" : tableName)));
+    }
+
+    logger.debug(
+        "authorized statement of type {} on {}.{}", statement.getClass(), keyspaceName, tableName);
   }
 
   private String getRoleResourceFromStatement(Object stmt, String fieldName) {
