@@ -9,11 +9,7 @@ package com.datastax.bdp.cassandra.cql3;
 import com.datastax.bdp.db.audit.AuditableEvent;
 import com.datastax.bdp.db.audit.CoreAuditableEventType;
 import com.datastax.bdp.search.solr.Cql3SolrSecondaryIndex;
-import com.datastax.bdp.search.solr.cql.CqlSolrQueryExecutor;
-import com.datastax.bdp.search.solr.cql.EmbeddedSolrQueryStatement;
-import com.datastax.bdp.search.solr.cql.NativeCQLSolrSelectStatement;
-import com.datastax.bdp.search.solr.cql.SolrQueryType;
-import com.datastax.bdp.search.solr.cql.SolrSelectStatement;
+import com.datastax.bdp.search.solr.cql.*;
 import com.datastax.bdp.server.DseDaemon;
 import com.google.common.base.Preconditions;
 import com.google.common.base.Stopwatch;
@@ -21,24 +17,15 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import io.reactivex.Scheduler;
 import io.reactivex.Single;
 import io.reactivex.schedulers.Schedulers;
-import io.stargate.db.dse.impl.StargateQueryHandler;
 import java.nio.ByteBuffer;
 import java.nio.charset.CharacterCodingException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.concurrent.*;
-import org.apache.cassandra.cql3.CQLStatement;
-import org.apache.cassandra.cql3.Operator;
-import org.apache.cassandra.cql3.QueryOptions;
-import org.apache.cassandra.cql3.Relation;
-import org.apache.cassandra.cql3.SingleColumnRelation;
+import org.apache.cassandra.cql3.*;
 import org.apache.cassandra.cql3.functions.AggregateFcts;
 import org.apache.cassandra.cql3.restrictions.SearchRawStatement;
 import org.apache.cassandra.cql3.selection.RawSelector;
@@ -74,12 +61,12 @@ import org.slf4j.LoggerFactory;
  * constructor boilerplate, though.
  */
 public class SolrQueryOperationFactory extends DseStandardQueryOperationFactory {
-  private StargateQueryHandler stargateQueryHandler;
+  private QueryHandler queryHandler;
 
   public SolrQueryOperationFactory() {}
 
-  public SolrQueryOperationFactory(StargateQueryHandler stargateQueryHandler) {
-    this.stargateQueryHandler = stargateQueryHandler;
+  public SolrQueryOperationFactory(QueryHandler stargateQueryHandler) {
+    this.queryHandler = stargateQueryHandler;
   }
 
   private enum OrderingType {
@@ -172,9 +159,11 @@ public class SolrQueryOperationFactory extends DseStandardQueryOperationFactory 
 
                 // Create the appropriate Solr select statement decorator depending on whether
                 // that statement embeds a query in "solr_query" or uses the native CQL syntax:
-                if (payload != null && payload.containsKey("stargate.auth.subject.token")) {
-                  this.stargateQueryHandler.authorizeByToken(payload, statement);
-                }
+                // TODO(versaurabh)
+                //                if (payload != null &&
+                // payload.containsKey("stargate.auth.subject.token")) {
+                //                  this.stargateQueryHandler.authorizeByToken(payload, statement);
+                //                }
                 SolrSelectStatement stmnt =
                     solrStmntType.equals(SolrQueryType.EMBEDDED)
                         ? new EmbeddedSolrQueryStatement(statement, options, state)
@@ -212,8 +201,8 @@ public class SolrQueryOperationFactory extends DseStandardQueryOperationFactory 
         return !solrStmntType.equals(SolrQueryType.NONE)
             ? executeSolrStatement(cql, statement, solrStmntType, options, state, payload)
             // : super.execute();
-            : stargateQueryHandler.processNonSearchQueries(
-                statement, cql, queryState, options, payload, queryStartNanoTime);
+            : queryHandler.processStatement(
+                statement, queryState, options, payload, queryStartNanoTime);
       }
 
       @Override
@@ -265,8 +254,8 @@ public class SolrQueryOperationFactory extends DseStandardQueryOperationFactory 
         return !solrStmntType.equals(SolrQueryType.NONE)
             ? executeSolrStatement(cql, statement, solrStmntType, options, state, payload)
             // : super.execute();
-            : stargateQueryHandler.processNonSearchQueries(
-                statement, cql, queryState, options, payload, queryStartNanoTime);
+            : queryHandler.processStatement(
+                statement, queryState, options, payload, queryStartNanoTime);
       }
     };
   }

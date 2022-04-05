@@ -90,18 +90,18 @@ public class StargateQueryHandler implements QueryHandler {
     }
   }
 
-  public Single<ResultMessage> processNonSearchQueries(
-      CQLStatement statement,
-      String query,
-      QueryState queryState,
-      QueryOptions options,
-      Map<String, ByteBuffer> customPayload,
-      long queryStartNanoTime) {
-    statement = QueryProcessor.getStatement(query, queryState);
-    options.prepare(statement.getBindVariables());
-    if (!queryState.isSystem()) QueryProcessor.metrics.regularStatementsExecuted.inc();
-    return processStatement(statement, queryState, options, customPayload, queryStartNanoTime);
-  }
+  //  public Single<ResultMessage> processNonSearchQueries(
+  //      CQLStatement statement,
+  //      String query,
+  //      QueryState queryState,
+  //      QueryOptions options,
+  //      Map<String, ByteBuffer> customPayload,
+  //      long queryStartNanoTime) {
+  //    statement = QueryProcessor.getStatement(query, queryState);
+  //    options.prepare(statement.getBindVariables());
+  //    if (!queryState.isSystem()) QueryProcessor.metrics.regularStatementsExecuted.inc();
+  //    return processStatement(statement, queryState, options, customPayload, queryStartNanoTime);
+  //  }
 
   @Override
   public Single<ResultMessage.Prepared> prepare(
@@ -130,7 +130,7 @@ public class StargateQueryHandler implements QueryHandler {
       QueryOptions options,
       Map<String, ByteBuffer> customPayload,
       long queryStartNanoTime) {
-
+    options.prepare(statement.getBindVariables());
     for (QueryInterceptor interceptor : interceptors) {
       Single<ResultMessage> result =
           interceptor.interceptQuery(

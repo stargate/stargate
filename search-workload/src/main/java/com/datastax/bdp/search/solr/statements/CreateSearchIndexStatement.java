@@ -1,6 +1,7 @@
 package com.datastax.bdp.search.solr.statements;
 
 import com.datastax.bdp.db.audit.AuditableEventType;
+import com.datastax.bdp.search.solr.CoreAdminConstants;
 import com.datastax.bdp.search.solr.core.CassandraCoreRequestOptions;
 import com.datastax.bdp.snitch.EndpointStateTracker;
 import com.datastax.bdp.util.Addresses;
@@ -19,7 +20,6 @@ import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.transport.Event;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.commons.lang.text.StrSubstitutor;
-import org.apache.solr.handler.admin.CoreAdminConstants;
 
 public class CreateSearchIndexStatement extends SearchIndexStatement {
   public static final String INDEX_CREATED_MSG = "Search index successfully created ";
