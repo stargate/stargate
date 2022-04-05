@@ -28,5 +28,5 @@ import javax.ws.rs.core.Application;
         ),
         tags = {}
 )
-public class StargateDocumentsApplication extends Application {
+public class StargateDocsApi extends Application {
 }
