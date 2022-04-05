@@ -19,7 +19,9 @@ package io.stargate.sgv2.docsapi.api.common.tenant.configuration;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
 import io.stargate.sgv2.docsapi.api.common.tenant.TenantResolver;
+import io.stargate.sgv2.docsapi.api.common.tenant.impl.FixedTenantResolver;
 import io.stargate.sgv2.docsapi.api.common.tenant.impl.SubdomainTenantResolver;
+import io.stargate.sgv2.docsapi.config.TenantResolverConfig;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
@@ -38,6 +40,16 @@ public class TenantConfiguration {
     )
     TenantResolver subdomainTenantResolver() {
         return new SubdomainTenantResolver();
+    }
+
+    @Produces
+    @ApplicationScoped
+    @LookupIfProperty(
+            name = "stargate.tenant-resolver.type",
+            stringValue = "fixed"
+    )
+    TenantResolver fixedTenantResolver(TenantResolverConfig config) {
+        return new FixedTenantResolver(config.fixed());
     }
 
     @Produces

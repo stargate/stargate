@@ -37,13 +37,14 @@ public interface TokenResolverConfig {
      * <ol>
      *     <li><code>header</code> - reads Cassandra token from the HTTP request header (see {@link io.stargate.sgv2.docsapi.api.common.token.impl.HeaderTokenResolver}}</li>
      *     <li><code>principal</code> - reads Cassandra token from the security {@link java.security.Principal} name (see {@link io.stargate.sgv2.docsapi.api.common.token.impl.PrincipalTokenResolver}}</li>
+     *     <li><code>fixed</code> - fixed token supplied by the configuration (see {@link io.stargate.sgv2.docsapi.api.common.token.impl.FixedTokenResolver}}</li>
      *     <li><code>custom</code> - allows configuring custom token resolver</li>
      * </ol>
      * If unset, noop resolver will be used.
      *
      * @return The type of the {@link io.stargate.sgv2.docsapi.api.common.token.CassandraTokenResolver} used.
      */
-    Optional<@Pattern(regexp = "header|principal|custom") String> type();
+    Optional<@Pattern(regexp = "header|principal|fixed|custom") String> type();
 
     /**
      * @return Specific settings for the <code>header</code> token resolver type.
@@ -59,6 +60,21 @@ public interface TokenResolverConfig {
         @NotBlank
         @WithDefault(Constants.AUTHENTICATION_TOKEN_HEADER_NAME)
         String headerName();
+
+    }
+
+    /**
+     * @return Specific settings for the <code>fixed</code> token resolver type.
+     */
+    @Valid
+    TokenResolverConfig.FixedTokenResolverConfig fixed();
+
+    interface FixedTokenResolverConfig {
+
+        /**
+         * @return Token value.
+         */
+        Optional<@NotBlank String> token();
 
     }
 

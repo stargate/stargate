@@ -19,6 +19,7 @@ package io.stargate.sgv2.docsapi.api.common.token.configuration;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
 import io.stargate.sgv2.docsapi.api.common.token.CassandraTokenResolver;
+import io.stargate.sgv2.docsapi.api.common.token.impl.FixedTokenResolver;
 import io.stargate.sgv2.docsapi.api.common.token.impl.HeaderTokenResolver;
 import io.stargate.sgv2.docsapi.api.common.token.impl.PrincipalTokenResolver;
 import io.stargate.sgv2.docsapi.config.TokenResolverConfig;
@@ -51,6 +52,16 @@ public class CassandraTokenConfiguration {
     )
     CassandraTokenResolver principalTokenResolver() {
         return new PrincipalTokenResolver();
+    }
+
+    @Produces
+    @ApplicationScoped
+    @LookupIfProperty(
+            name = "stargate.token-resolver.type",
+            stringValue = "fixed"
+    )
+    CassandraTokenResolver fixedTokenResolver(TokenResolverConfig config) {
+        return new FixedTokenResolver(config.fixed());
     }
 
     @Produces

@@ -19,6 +19,8 @@ package io.stargate.sgv2.docsapi.config;
 
 import io.smallrye.config.ConfigMapping;
 
+import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Pattern;
 import java.util.Optional;
 
@@ -32,12 +34,27 @@ public interface TenantResolverConfig {
      * Tenant resolver type, possible options:
      * <ol>
      *     <li><code>subdomain</code> - reads tenant id from request host domain (see {@link io.stargate.sgv2.docsapi.api.common.tenant.impl.SubdomainTenantResolver}</li>
+     *     <li><code>fixed</code> - fixed tenant id supplied by the configuration (see {@link io.stargate.sgv2.docsapi.api.common.tenant.impl.FixedTenantResolver}}</li>
      *     <li><code>custom</code> - allows configuring custom tenant resolver</li>
      * </ol>
      * If unset, noop resolver will be used.
      *
      * @return The type of the {@link io.stargate.sgv2.docsapi.api.common.tenant.TenantResolver} used.
      */
-    Optional<@Pattern(regexp = "subdomain|custom") String> type();
+    Optional<@Pattern(regexp = "subdomain|fixed|custom") String> type();
 
+    /**
+     * @return Specific settings for the <code>fixed</code> tenant resolver type.
+     */
+    @Valid
+    TenantResolverConfig.FixedTenantResolverConfig fixed();
+
+    interface FixedTenantResolverConfig {
+
+        /**
+         * @return Tenant ID value.
+         */
+        Optional<@NotBlank String> tenantId();
+
+    }
 }
