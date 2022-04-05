@@ -5,6 +5,18 @@ This project represents the stand-alone Docs API microservice for Stargate V2, e
 The high-level design of the application is described in the [Document API in Stargate V2 discoussion](https://github.com/stargate/stargate/discussions/1742).
 All issues related to the Docs API V2 are marked with the `stargate-v2` and `documents API` [labels](https://github.com/stargate/stargate/issues?q=is%3Aopen+is%3Aissue+label%3Astargate-v2+label%3A%22documents+API%22).
 
+##### Table of Contents
+* [Concepts](#concepts)
+   * [Authentication](#authentication) 
+   * [Multi-tenancy](#multi-tenancy) 
+* [Configuration properties](#configuration-properties)  
+* [Development guide](#development-guide)  
+   * [Running the application in dev mode](#running-the-application-in-dev-mode) 
+   * [Running the application in dev mode](#packaging-and-running-the-application) 
+   * [Creating a native executable](#creating-a-native-executable) 
+   * [Creating a docker image](#creating-a-docker-image) 
+* [Quarkus Extensions](#quarkus-extensions)  
+
 ## Concepts
 
 ### Authentication
