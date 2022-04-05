@@ -17,8 +17,8 @@
 
 package io.stargate.sgv2.docsapi.api.common;
 
-import io.stargate.sgv2.docsapi.api.common.token.CassandraTokenResolver;
 import io.stargate.sgv2.docsapi.api.common.tenant.TenantResolver;
+import io.stargate.sgv2.docsapi.api.common.token.CassandraTokenResolver;
 import io.vertx.ext.web.RoutingContext;
 
 import javax.enterprise.context.RequestScoped;
@@ -30,17 +30,17 @@ import java.util.Optional;
 /**
  * The request information containing the tenant ID and the Cassandra key. This bean is @{@link RequestScoped}.
  * <p>
- * Uses the registered {@link TenantResolver} and
+ * Uses the registered {@link TenantResolver} and {@link CassandraTokenResolver} to optionally resolve the tenant ID and the Cassandra token.
  */
 @RequestScoped
-public class StargateRequestInfo {
+public class RequestInfo {
 
     private final Optional<String> tenantId;
 
     private final Optional<String> cassandraToken;
 
     @Inject
-    public StargateRequestInfo(RoutingContext routingContext, SecurityContext securityContext, Instance<TenantResolver> tenantResolver, Instance<CassandraTokenResolver> tokenResolver) {
+    public RequestInfo(RoutingContext routingContext, SecurityContext securityContext, Instance<TenantResolver> tenantResolver, Instance<CassandraTokenResolver> tokenResolver) {
         this.tenantId = tenantResolver.get().resolve(routingContext, securityContext);
         this.cassandraToken = tokenResolver.get().resolve(routingContext, securityContext);
     }

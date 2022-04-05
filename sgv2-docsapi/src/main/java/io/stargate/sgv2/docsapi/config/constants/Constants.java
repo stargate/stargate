@@ -33,7 +33,7 @@ public interface Constants {
     String AUTHENTICATION_TOKEN_HEADER_NAME = "X-Cassandra-Token";
 
     /**
-     * Authentication token header name.
+     * Tenant identifier header name.
      */
     String TENANT_ID_HEADER_NAME = "X-Tenant-Id";
 

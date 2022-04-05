@@ -33,7 +33,7 @@ import java.util.Optional;
 import java.util.Set;
 
 /**
- * Implementation of the {@link HttpAuthenticationMechanism} that authenticates on the header. If header exists, request is considered as authenticated.
+ * Implementation of the {@link HttpAuthenticationMechanism} that authenticates on a header. If a target header exists, request is considered as authenticated.
  *
  * @see HeaderIdentityProvider
  */

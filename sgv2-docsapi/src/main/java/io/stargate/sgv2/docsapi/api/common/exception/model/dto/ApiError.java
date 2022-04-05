@@ -20,18 +20,18 @@ package io.stargate.sgv2.docsapi.api.common.exception.model.dto;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 /**
- * Record for representing the API error,.
+ * Record for representing the API error.
  *
- * @param description A human-readable description of the error state.
- * @param code The internal number referencing the error state.
+ * @param description  A human-readable description of the error state.
+ * @param code         The internal number referencing the error state.
  * @param internalTxId The internal tracking number of the request.
  */
 public record ApiError(
 
-        @Schema(description = "A human readable description of the error state.", example = "//TODO")
+        @Schema(description = "A human readable description of the error state.", example = "Could not create collection `custom-users`, it has invalid characters. Valid characters are alphanumeric and underscores.")
         String description,
 
-        @Schema(description = "The internal number referencing the error state.", example = "//TODO")
+        @Schema(description = "The internal number referencing the error state.", example = "22000")
         int code,
 
         // TODO Is this still needed and used? This was not part of the public API.

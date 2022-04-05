@@ -49,6 +49,9 @@ public class BridgeTest {
 
     ManagedChannel channel;
 
+    @ConfigProperty(name = "quarkus.grpc.clients.bridge.host")
+    String bridgeHost;
+
     @ConfigProperty(name = "quarkus.grpc.clients.bridge.port")
     int bridgePort;
 
@@ -65,7 +68,7 @@ public class BridgeTest {
                 .when(bridgeInterceptor).interceptCall(any(), any(), any());
 
         // set up the server that runs on the target bridge port
-        SocketAddress address = new InetSocketAddress(bridgePort);
+        SocketAddress address = new InetSocketAddress(bridgeHost, bridgePort);
         server = NettyServerBuilder.forAddress(address).directExecutor().intercept(bridgeInterceptor).addService(bridgeService).build();
         server.start();
         channel = NettyChannelBuilder.forAddress(address).usePlaintext().build();

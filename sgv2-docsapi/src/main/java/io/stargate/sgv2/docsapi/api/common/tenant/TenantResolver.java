@@ -29,11 +29,11 @@ import java.util.Optional;
 public interface TenantResolver {
 
     /**
-     * Returns a tenant identifier given a RoutingContext.
+     * Returns a tenant identifier given a RoutingContext & SecurityContext.
      *
-     * @param context the routing context
+     * @param context         the routing context
      * @param securityContext the security context
-     * @return The tenant identifier. If empty, indicates that the default tenant should be chosen.
+     * @return The tenant identifier. If empty, indicates that the multi-tenancy is disabled.
      */
     Optional<String> resolve(RoutingContext context, SecurityContext securityContext);
 

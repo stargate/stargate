@@ -20,7 +20,7 @@ package io.stargate.sgv2.docsapi.api.common.security;
 import io.quarkus.security.identity.request.BaseAuthenticationRequest;
 
 /**
- * {@link io.quarkus.security.identity.request.AuthenticationRequest} based on the header.
+ * {@link io.quarkus.security.identity.request.AuthenticationRequest} based on the HTTP header.
  */
 public class HeaderAuthenticationRequest extends BaseAuthenticationRequest {
 

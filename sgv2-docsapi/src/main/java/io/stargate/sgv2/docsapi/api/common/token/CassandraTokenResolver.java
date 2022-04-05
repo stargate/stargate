@@ -25,15 +25,15 @@ import java.util.Optional;
 /**
  * Resolver of the Cassandra token. This token will be passed to the Bridge.
  * <p>
- * The implementation can use any information from the {@link RoutingContext} to obtain the token.
+ * The implementation can use any information from the {@link RoutingContext} or {@link SecurityContext} to obtain the token.
  */
 @FunctionalInterface
 public interface CassandraTokenResolver {
 
     /**
-     * Returns a Cassandra token given a RoutingContext.
+     * Returns a Cassandra token given a RoutingContext & SecurityContext.
      *
-     * @param context the routing context
+     * @param context         the routing context
      * @param securityContext the security context
      * @return The Cassandra token to pass to the Bridge. If empty, indicates that no token should be used..
      */

@@ -4,7 +4,7 @@ import io.grpc.Metadata;
 import io.quarkus.grpc.GrpcClient;
 import io.quarkus.grpc.GrpcClientUtils;
 import io.stargate.proto.MutinyStargateBridgeGrpc;
-import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
+import io.stargate.sgv2.docsapi.api.common.RequestInfo;
 import io.stargate.sgv2.docsapi.config.GrpcMetadataConfig;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -37,12 +37,12 @@ public class GrpcClients {
     }
 
     /**
-     * Returns the reactive gRPC Bridge Client, with attached information from the {@link StargateRequestInfo}.
+     * Returns the reactive gRPC Bridge Client, with attached information from the {@link RequestInfo}.
      *
-     * @param requestInfo {@link StargateRequestInfo}
+     * @param requestInfo {@link RequestInfo}
      * @return MutinyStargateBridgeGrpc.MutinyStargateBridgeStub Reactive Bridge stub
      */
-    public MutinyStargateBridgeGrpc.MutinyStargateBridgeStub bridgeClient(StargateRequestInfo requestInfo) {
+    public MutinyStargateBridgeGrpc.MutinyStargateBridgeStub bridgeClient(RequestInfo requestInfo) {
         if (requestInfo.getTenantId().isEmpty() && requestInfo.getCassandraToken().isEmpty()) {
             return bridge;
         }

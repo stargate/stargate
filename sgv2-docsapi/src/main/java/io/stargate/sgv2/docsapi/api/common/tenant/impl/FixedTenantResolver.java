@@ -24,6 +24,9 @@ import io.vertx.ext.web.RoutingContext;
 import javax.ws.rs.core.SecurityContext;
 import java.util.Optional;
 
+/**
+ * The {@link TenantResolver} that uses a fixed tenant ID supplied by the configuration.
+ */
 public class FixedTenantResolver implements TenantResolver {
 
     private final TenantResolverConfig.FixedTenantResolverConfig config;
@@ -32,6 +35,9 @@ public class FixedTenantResolver implements TenantResolver {
         this.config = config;
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public Optional<String> resolve(RoutingContext context, SecurityContext securityContext) {
         return config.tenantId();
