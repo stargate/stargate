@@ -15,12 +15,13 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api.common.auth.impl;
+package io.stargate.sgv2.docsapi.api.common.token.impl;
 
-import io.stargate.sgv2.docsapi.api.common.auth.CassandraTokenResolver;
+import io.stargate.sgv2.docsapi.api.common.token.CassandraTokenResolver;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 
+import javax.ws.rs.core.SecurityContext;
 import java.util.Optional;
 
 /**
@@ -41,8 +42,9 @@ public class HeaderTokenResolver implements CassandraTokenResolver {
      * {@inheritDoc}
      */
     @Override
-    public Optional<String> resolve(RoutingContext context) {
+    public Optional<String> resolve(RoutingContext context, SecurityContext securityContext) {
         HttpServerRequest request = context.request();
-        return Optional.ofNullable(request.getHeader(headerName));
+        String headerValue = request.getHeader(headerName);
+        return Optional.ofNullable(headerValue);
     }
 }

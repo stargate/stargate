@@ -15,12 +15,12 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api.common.auth.configuration;
+package io.stargate.sgv2.docsapi.api.common.token.configuration;
 
-import io.quarkus.arc.DefaultBean;
 import io.quarkus.arc.lookup.LookupIfProperty;
-import io.stargate.sgv2.docsapi.api.common.auth.CassandraTokenResolver;
-import io.stargate.sgv2.docsapi.api.common.auth.impl.HeaderTokenResolver;
+import io.stargate.sgv2.docsapi.api.common.token.CassandraTokenResolver;
+import io.stargate.sgv2.docsapi.api.common.token.impl.HeaderTokenResolver;
+import io.stargate.sgv2.docsapi.api.common.token.impl.PrincipalTokenResolver;
 import io.stargate.sgv2.docsapi.config.StargateConfig;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -38,16 +38,30 @@ public class CassandraTokenConfiguration {
             name = "stargate.token-resolver.type",
             stringValue = "header"
     )
-    CassandraTokenResolver headerCassandraTokenResolver(StargateConfig stargateConfig) {
+    CassandraTokenResolver headerTokenResolver(StargateConfig stargateConfig) {
         String headerName = stargateConfig.tokenResolver().header().headerName();
         return new HeaderTokenResolver(headerName);
     }
 
     @Produces
     @ApplicationScoped
-    @DefaultBean
+    @LookupIfProperty(
+            name = "stargate.token-resolver.type",
+            stringValue = "principal"
+    )
+    CassandraTokenResolver principalTokenResolver() {
+        return new PrincipalTokenResolver();
+    }
+
+    @Produces
+    @ApplicationScoped
+    @LookupIfProperty(
+            name = "stargate.token-resolver.type",
+            stringValue = "noop",
+            lookupIfMissing = true
+    )
     CassandraTokenResolver noopCassandraTokenResolver() {
-        return context -> Optional.empty();
+        return (context, securityContext) -> Optional.empty();
     }
 
 }

@@ -17,11 +17,14 @@
 
 package io.stargate.sgv2.docsapi.api.common;
 
-import io.stargate.sgv2.docsapi.api.common.auth.CassandraTokenResolver;
+import io.stargate.sgv2.docsapi.api.common.token.CassandraTokenResolver;
 import io.stargate.sgv2.docsapi.api.common.tenant.TenantResolver;
 import io.vertx.ext.web.RoutingContext;
 
 import javax.enterprise.context.RequestScoped;
+import javax.enterprise.inject.Instance;
+import javax.inject.Inject;
+import javax.ws.rs.core.SecurityContext;
 import java.util.Optional;
 
 /**
@@ -36,12 +39,12 @@ public class StargateRequestInfo {
 
     private final Optional<String> cassandraToken;
 
-    public StargateRequestInfo(RoutingContext routingContext, TenantResolver tenantResolver, CassandraTokenResolver tokenResolver) {
-        this.tenantId = tenantResolver.resolve(routingContext);
-        this.cassandraToken = tokenResolver.resolve(routingContext);
+    @Inject
+    public StargateRequestInfo(RoutingContext routingContext, SecurityContext securityContext, Instance<TenantResolver> tenantResolver, Instance<CassandraTokenResolver> tokenResolver) {
+        this.tenantId = tenantResolver.get().resolve(routingContext, securityContext);
+        this.cassandraToken = tokenResolver.get().resolve(routingContext, securityContext);
     }
 
-    // TODO add lombok
     public Optional<String> getTenantId() {
         return tenantId;
     }

@@ -6,6 +6,7 @@ import io.smallrye.config.WithDefault;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Pattern;
+import java.util.Optional;
 
 @ConfigMapping(prefix = "stargate")
 public interface StargateConfig {
@@ -21,13 +22,12 @@ public interface StargateConfig {
         /**
          * @return The type of the {@link io.stargate.sgv2.docsapi.api.common.tenant.TenantResolver} used.
          */
-        @Pattern(regexp = "subdomain")
-        String type();
+        Optional<@Pattern(regexp = "subdomain|custom") String> type();
 
     }
 
     /**
-     * @return The configuration for {@link io.stargate.sgv2.docsapi.api.common.auth.CassandraTokenResolver} to be used.
+     * @return The configuration for {@link io.stargate.sgv2.docsapi.api.common.token.CassandraTokenResolver} to be used.
      */
     @Valid
     TokenResolverConfig tokenResolver();
@@ -35,10 +35,9 @@ public interface StargateConfig {
     interface TokenResolverConfig {
 
         /**
-         * @return The type of the {@link io.stargate.sgv2.docsapi.api.common.auth.CassandraTokenResolver} used.
+         * @return The type of the {@link io.stargate.sgv2.docsapi.api.common.token.CassandraTokenResolver} used.
          */
-        @Pattern(regexp = "header")
-        String type();
+        Optional<@Pattern(regexp = "header|principal|custom") String> type();
 
         /**
          * @return Specific settings for the <code>header</code> token resolver type.
@@ -54,6 +53,18 @@ public interface StargateConfig {
         }
 
     }
+
+    HeaderBasedAuthConfig headerBasedAuth();
+
+    interface HeaderBasedAuthConfig {
+
+        boolean enabled();
+
+        @WithDefault(Constants.AUTHENTICATION_TOKEN_HEADER_NAME)
+        String headerName();
+
+    }
+
 
     /**
      * @return gRPC Metadata properties for the Bridge.

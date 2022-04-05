@@ -17,29 +17,49 @@
 
 package io.stargate.sgv2.docsapi.api.v2.example;
 
+import io.grpc.Metadata;
 import io.grpc.stub.StreamObserver;
 import io.quarkus.test.junit.QuarkusTest;
 import io.stargate.proto.Schema;
 import io.stargate.sgv2.docsapi.api.BridgeTest;
+import io.stargate.sgv2.docsapi.config.StargateConfig;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+
+import javax.inject.Inject;
 
 import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 
 @QuarkusTest
 public class ExampleResourceTest extends BridgeTest {
+
+    @Inject
+    StargateConfig stargateConfig;
+
+    ArgumentCaptor<Metadata> headersCaptor;
+
+    @BeforeEach
+    public void init() {
+        headersCaptor = ArgumentCaptor.forClass(Metadata.class);
+    }
 
     @Nested
     class KeyspaceExists {
 
         @Test
         public void happyPath() {
+            String token = RandomStringUtils.randomAlphanumeric(16);
             String keyspaceName = RandomStringUtils.randomAlphanumeric(16);
             Schema.DescribeKeyspaceQuery query = Schema.DescribeKeyspaceQuery.newBuilder().setKeyspaceName(keyspaceName).build();
             Schema.CqlKeyspaceDescribe response = Schema.CqlKeyspaceDescribe.newBuilder().setCqlKeyspace(Schema.CqlKeyspace.newBuilder().setName(keyspaceName).build()).buildPartial();
@@ -48,14 +68,34 @@ public class ExampleResourceTest extends BridgeTest {
                 observer.onNext(response);
                 observer.onCompleted();
                 return null;
-            }).when(bridgeImplBase).describeKeyspace(eq(query), any());
+            }).when(bridgeService).describeKeyspace(eq(query), any());
 
             given()
+                    .header(StargateConfig.Constants.AUTHENTICATION_TOKEN_HEADER_NAME, token)
                     .when().get("/api/v2/example/keyspace-exists/{name}", keyspaceName)
                     .then()
                     .statusCode(200)
                     .body("name", is(equalTo(keyspaceName)))
                     .body("exists", is(equalTo(true)));
+
+            verify(bridgeInterceptor).interceptCall(any(), headersCaptor.capture(), any());
+            assertThat(headersCaptor.getAllValues()).singleElement()
+                    .satisfies(metadata -> {
+                        Metadata.Key<String> tokenKey = Metadata.Key.of(stargateConfig.grpcMetadata().cassandraTokenKey(), Metadata.ASCII_STRING_MARSHALLER);
+                        assertThat(metadata.get(tokenKey)).isEqualTo(token);
+                    });
+        }
+
+        @Test
+        public void noToken() {
+            String keyspaceName = RandomStringUtils.randomAlphanumeric(16);
+
+            given()
+                    .when().get("/api/v2/example/keyspace-exists/{name}", keyspaceName)
+                    .then()
+                    .statusCode(401);
+
+            verifyNoInteractions(bridgeInterceptor, bridgeService);
         }
 
     }

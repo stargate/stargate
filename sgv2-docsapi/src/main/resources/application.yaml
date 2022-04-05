@@ -10,7 +10,11 @@ stargate:
 
   # the C* token resolver to use, remove in order to have noop token resolver active
   token-resolver:
-    type: header
+    type: principal
+
+  # if enable header based authentication, disable if you want no authentication
+  header-based-auth:
+    enabled: true
 
 quarkus:
 
@@ -39,6 +43,11 @@ quarkus:
     # TODO update both port and non-app paths after discussions
     port: 8180
     non-application-root-path: stargate
+    auth:
+      permission:
+        default:
+          paths: /api/v2/*
+          policy: authenticated
 
   # information for the generated Open API definitions
   smallrye-openapi:

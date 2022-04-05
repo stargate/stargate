@@ -20,6 +20,7 @@ package io.stargate.sgv2.docsapi.api.common.tenant.impl;
 import io.stargate.sgv2.docsapi.api.common.tenant.TenantResolver;
 import io.vertx.ext.web.RoutingContext;
 
+import javax.ws.rs.core.SecurityContext;
 import java.util.Optional;
 
 /**
@@ -34,7 +35,7 @@ public class SubdomainTenantResolver implements TenantResolver {
      * {@inheritDoc}
      */
     @Override
-    public Optional<String> resolve(RoutingContext context) {
+    public Optional<String> resolve(RoutingContext context, SecurityContext securityContext) {
         // get host and first index of the dot
         String host = context.request().host();
         int index = host.indexOf('.');

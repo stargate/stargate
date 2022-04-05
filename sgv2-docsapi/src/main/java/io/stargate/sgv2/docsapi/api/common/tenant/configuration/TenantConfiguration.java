@@ -17,7 +17,6 @@
 
 package io.stargate.sgv2.docsapi.api.common.tenant.configuration;
 
-import io.quarkus.arc.DefaultBean;
 import io.quarkus.arc.lookup.LookupIfProperty;
 import io.stargate.sgv2.docsapi.api.common.tenant.TenantResolver;
 import io.stargate.sgv2.docsapi.api.common.tenant.impl.SubdomainTenantResolver;
@@ -34,7 +33,7 @@ public class TenantConfiguration {
     @Produces
     @ApplicationScoped
     @LookupIfProperty(
-            name = "stargate.tenant-resolver",
+            name = "stargate.tenant-resolver.type",
             stringValue = "subdomain"
     )
     TenantResolver subdomainTenantResolver() {
@@ -43,9 +42,13 @@ public class TenantConfiguration {
 
     @Produces
     @ApplicationScoped
-    @DefaultBean
+    @LookupIfProperty(
+            name = "stargate.tenant-resolver.type",
+            stringValue = "noop",
+            lookupIfMissing = true
+    )
     TenantResolver noopTenantResolver() {
-        return context -> Optional.empty();
+        return (context, securityContext) -> Optional.empty();
     }
 
 }
