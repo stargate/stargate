@@ -4,7 +4,7 @@
  * Please see the included license file for details.
  */
 
-package org.apache.solr.handler.admin;
+package com.datastax.bdp.search.solr;
 
 public class CoreAdminConstants {
   // Parameter names
