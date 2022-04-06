@@ -50,7 +50,6 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
   private final String decoratedKeyspace;
   private final SchemaAgreementHelper schemaAgreementHelper;
   private boolean enrichResponse;
-  private RowDecorator rowDecorator;
   private Parameters parameters;
 
   protected QueryHandler(
@@ -70,7 +69,6 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
                 queryParameters.getKeyspace().getValue(), GrpcService.HEADERS_KEY.get())
             : null;
     this.enrichResponse = false;
-    this.rowDecorator = null;
   }
 
   protected QueryHandler(
@@ -91,7 +89,6 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
                 queryParameters.getKeyspace().getValue(), GrpcService.HEADERS_KEY.get())
             : null;
     this.enrichResponse = enrichResponse;
-    this.rowDecorator = null;
   }
 
   @Override
@@ -111,9 +108,6 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
     QueryParameters parameters = message.getParameters();
     try {
       this.parameters = makeParameters(parameters, connection.clientInfo());
-      if (enrichResponse) {
-        this.rowDecorator = connection.makeRowDecorator(TableName.of(prepared.metadata.columns));
-      }
       return connection.execute(
           bindValues(prepared, message.getValues()), this.parameters, queryStartNanoTime);
     } catch (Exception e) {
@@ -156,8 +150,9 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
     }
   }
 
-  private ByteBuffer getComparableBytesFromRow(Row row) {
+  private ByteBuffer getComparableBytesFromRow(List<Column> columns, Row row) {
     if (enrichResponse) {
+      RowDecorator rowDecorator = connection.makeRowDecorator(TableName.of(columns));
       return rowDecorator.getComparableBytes(row);
     }
     return null;
@@ -165,7 +160,9 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
 
   private ByteBuffer getPagingStateFromRow(Row row) {
     if (enrichResponse) {
-      return connection.makePagingState(PagingPosition.ofCurrentRow(row).build(), parameters);
+      return connection.makePagingState(
+          PagingPosition.ofCurrentRow(row).resumeFrom(PagingPosition.ResumeMode.NEXT_ROW).build(),
+          parameters);
     }
     return null;
   }

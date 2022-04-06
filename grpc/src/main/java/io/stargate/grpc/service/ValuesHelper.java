@@ -133,7 +133,7 @@ public class ValuesHelper {
   public static ResultSet processResult(
       Rows rows,
       QueryParameters parameters,
-      Function<io.stargate.db.datastore.Row, ByteBuffer> getComparableBytes,
+      BiFunction<List<Column>, io.stargate.db.datastore.Row, ByteBuffer> getComparableBytes,
       Function<io.stargate.db.datastore.Row, ByteBuffer> getPagingState,
       BiFunction<List<Column>, List<ByteBuffer>, io.stargate.db.datastore.Row> makeRow)
       throws StatusException {
@@ -144,7 +144,7 @@ public class ValuesHelper {
   private static ResultSet processResult(
       Rows rows,
       boolean skipMetadata,
-      Function<io.stargate.db.datastore.Row, ByteBuffer> getComparableBytes,
+      BiFunction<List<Column>, io.stargate.db.datastore.Row, ByteBuffer> getComparableBytes,
       Function<io.stargate.db.datastore.Row, ByteBuffer> getPagingState,
       BiFunction<List<Column>, List<ByteBuffer>, io.stargate.db.datastore.Row> makeRow)
       throws StatusException {
@@ -167,7 +167,7 @@ public class ValuesHelper {
       ByteBuffer rowPagingState = null;
       if (makeRow != null) {
         io.stargate.db.datastore.Row arrayListRow = makeRow.apply(columns, row);
-        comparableBytes = getComparableBytes.apply(arrayListRow);
+        comparableBytes = getComparableBytes.apply(columns, arrayListRow);
         rowPagingState = getPagingState.apply(arrayListRow);
       }
       Row.Builder rowBuilder = Row.newBuilder();
