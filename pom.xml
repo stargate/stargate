@@ -39,7 +39,7 @@
 
     <caffeine.version>2.9.3</caffeine.version>
     <commons-io.version>2.7</commons-io.version>
-    <grpc.version>1.42.1</grpc.version>
+    <grpc.version>1.45.1</grpc.version>
     <immutables.version>2.8.8</immutables.version>
     <!-- 28-Mar-2022, tatu: BOM for "micro-patch" 2.12.6.1 of jackson-databind
         is bit unusual wrt version; normally would be "x.y.z": when updating see:
@@ -594,6 +594,15 @@
         <groupId>org.glassfish.jersey</groupId>
         <artifactId>jersey-bom</artifactId>
         <version>2.34</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- BOM for gRPC as well -->
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-bom</artifactId>
+        <version>${grpc.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
