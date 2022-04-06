@@ -17,7 +17,6 @@ package io.stargate.grpc.service;
 
 import static io.stargate.grpc.codec.ValueCodec.decodeValue;
 
-import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -25,13 +24,8 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.stargate.db.BoundStatement;
-import io.stargate.db.PagingPosition;
-import io.stargate.db.Parameters;
-import io.stargate.db.Persistence;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.Result.Rows;
-import io.stargate.db.RowDecorator;
-import io.stargate.db.datastore.ArrayListBackedRow;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.UserDefinedType;
@@ -49,6 +43,8 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 public class ValuesHelper {
   public static BoundStatement bindValues(Prepared prepared, Values values, ByteBuffer unsetValue)
@@ -137,20 +133,20 @@ public class ValuesHelper {
   public static ResultSet processResult(
       Rows rows,
       QueryParameters parameters,
-      RowDecorator rowDecorator,
-      Parameters requestParameters,
-      Persistence.Connection connection)
+      Function<io.stargate.db.datastore.Row, ByteBuffer> getComparableBytes,
+      Function<io.stargate.db.datastore.Row, ByteBuffer> getPagingState,
+      BiFunction<List<Column>, List<ByteBuffer>, io.stargate.db.datastore.Row> makeRow)
       throws StatusException {
     return processResult(
-        rows, parameters.getSkipMetadata(), rowDecorator, requestParameters, connection);
+        rows, parameters.getSkipMetadata(), getComparableBytes, getPagingState, makeRow);
   }
 
   private static ResultSet processResult(
       Rows rows,
       boolean skipMetadata,
-      RowDecorator rowDecorator,
-      Parameters requestParameters,
-      Persistence.Connection connection)
+      Function<io.stargate.db.datastore.Row, ByteBuffer> getComparableBytes,
+      Function<io.stargate.db.datastore.Row, ByteBuffer> getPagingState,
+      BiFunction<List<Column>, List<ByteBuffer>, io.stargate.db.datastore.Row> makeRow)
       throws StatusException {
     final List<Column> columns = rows.resultMetadata.columns;
     final int columnCount = columns.size();
@@ -169,15 +165,10 @@ public class ValuesHelper {
     for (List<ByteBuffer> row : rows.rows) {
       ByteBuffer comparableBytes = null;
       ByteBuffer rowPagingState = null;
-      if (rowDecorator != null) {
-        ProtocolVersion driverProtocolVersion =
-            requestParameters.protocolVersion().toDriverVersion();
-        ArrayListBackedRow arrayListRow =
-            new ArrayListBackedRow(columns, row, driverProtocolVersion);
-        comparableBytes = rowDecorator.getComparableBytes(arrayListRow);
-        rowPagingState =
-            connection.makePagingState(
-                PagingPosition.ofCurrentRow(arrayListRow).build(), requestParameters);
+      io.stargate.db.datastore.Row arrayListRow = makeRow.apply(columns, row);
+      if (arrayListRow != null) {
+        comparableBytes = getComparableBytes.apply(arrayListRow);
+        rowPagingState = getPagingState.apply(arrayListRow);
       }
       Row.Builder rowBuilder = Row.newBuilder();
       for (int i = 0; i < columnCount; ++i) {
