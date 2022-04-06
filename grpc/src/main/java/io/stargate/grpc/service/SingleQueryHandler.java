@@ -20,6 +20,26 @@ public class SingleQueryHandler extends QueryHandler {
     this.responseObserver = responseObserver;
   }
 
+  public SingleQueryHandler(
+      QueryOuterClass.Query query,
+      Persistence.Connection connection,
+      Persistence persistence,
+      ScheduledExecutorService executor,
+      int schemaAgreementRetries,
+      StreamObserver<QueryOuterClass.Response> responseObserver,
+      ExceptionHandler exceptionHandler,
+      boolean enrichResponse) {
+    super(
+        query,
+        connection,
+        persistence,
+        executor,
+        schemaAgreementRetries,
+        exceptionHandler,
+        enrichResponse);
+    this.responseObserver = responseObserver;
+  }
+
   @Override
   protected void setSuccess(QueryOuterClass.Response response) {
     responseObserver.onNext(response);

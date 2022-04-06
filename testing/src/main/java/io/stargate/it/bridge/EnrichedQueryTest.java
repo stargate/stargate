@@ -17,10 +17,8 @@ package io.stargate.it.bridge;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.datastax.oss.driver.api.core.CqlIdentifier;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
-import io.stargate.it.driver.TestKeyspace;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateBridgeGrpc.StargateBridgeBlockingStub;
 import org.junit.jupiter.api.Test;
@@ -39,13 +37,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 public class EnrichedQueryTest extends BridgeIntegrationTest {
 
   @Test
-  public void getEnrichedDataFromRows(@TestKeyspace CqlIdentifier keyspace) {
+  public void getEnrichedDataFromRows() {
     StargateBridgeBlockingStub stub = stubWithCallCredentials();
 
     QueryOuterClass.Query q =
-        QueryOuterClass.Query.newBuilder()
-            .setCql(String.format("select * from %s.data", keyspace))
-            .build();
+        QueryOuterClass.Query.newBuilder().setCql(String.format("select * from data")).build();
     QueryOuterClass.Response response = stub.executeEnrichedQuery(q);
     assertThat(response).isNotNull();
     QueryOuterClass.ResultSet rs = response.getResultSet();

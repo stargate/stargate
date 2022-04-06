@@ -23,6 +23,8 @@ import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
 import io.stargate.db.Result.Prepared;
+import io.stargate.db.RowDecorator;
+import io.stargate.db.schema.TableName;
 import io.stargate.grpc.service.GrpcService.ResponseAndTraceId;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
@@ -41,6 +43,8 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
 
   private final String decoratedKeyspace;
   private final SchemaAgreementHelper schemaAgreementHelper;
+  private boolean enrichResponse;
+  private RowDecorator rowDecorator;
 
   protected QueryHandler(
       Query query,
@@ -58,6 +62,29 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
             ? persistence.decorateKeyspaceName(
                 queryParameters.getKeyspace().getValue(), GrpcService.HEADERS_KEY.get())
             : null;
+    this.enrichResponse = false;
+    this.rowDecorator = null;
+  }
+
+  protected QueryHandler(
+      Query query,
+      Connection connection,
+      Persistence persistence,
+      ScheduledExecutorService executor,
+      int schemaAgreementRetries,
+      ExceptionHandler exceptionHandler,
+      boolean enrichResponse) {
+    super(query, connection, persistence, exceptionHandler);
+    this.schemaAgreementHelper =
+        new SchemaAgreementHelper(connection, schemaAgreementRetries, executor);
+    QueryParameters queryParameters = query.getParameters();
+    this.decoratedKeyspace =
+        queryParameters.hasKeyspace()
+            ? persistence.decorateKeyspaceName(
+                queryParameters.getKeyspace().getValue(), GrpcService.HEADERS_KEY.get())
+            : null;
+    this.enrichResponse = enrichResponse;
+    this.rowDecorator = null;
   }
 
   @Override
@@ -76,6 +103,9 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
 
     QueryParameters parameters = message.getParameters();
     try {
+      if (enrichResponse) {
+        this.rowDecorator = connection.makeRowDecorator(TableName.of(prepared.metadata.columns));
+      }
       return connection.execute(
           bindValues(prepared, message.getValues()),
           makeParameters(parameters, connection.clientInfo()),
@@ -103,7 +133,12 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
       case Rows:
         try {
           responseBuilder.setResultSet(
-              ValuesHelper.processResult((Result.Rows) result, message.getParameters()));
+              ValuesHelper.processResult(
+                  (Result.Rows) result,
+                  message.getParameters(),
+                  rowDecorator,
+                  makeParameters(message.getParameters(), connection.clientInfo()),
+                  connection));
           return CompletableFuture.completedFuture(
               ResponseAndTraceId.from(result, responseBuilder));
         } catch (Exception e) {

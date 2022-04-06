@@ -17,6 +17,7 @@ package io.stargate.grpc.service;
 
 import static io.stargate.grpc.codec.ValueCodec.decodeValue;
 
+import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
 import edu.umd.cs.findbugs.annotations.NonNull;
@@ -24,8 +25,13 @@ import edu.umd.cs.findbugs.annotations.Nullable;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.stargate.db.BoundStatement;
+import io.stargate.db.PagingPosition;
+import io.stargate.db.Parameters;
+import io.stargate.db.Persistence;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.Result.Rows;
+import io.stargate.db.RowDecorator;
+import io.stargate.db.datastore.ArrayListBackedRow;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.UserDefinedType;
@@ -120,20 +126,36 @@ public class ValuesHelper {
 
   public static ResultSet processResult(Rows rows, QueryParameters parameters)
       throws StatusException {
-    return processResult(rows, parameters.getSkipMetadata());
+    return processResult(rows, parameters.getSkipMetadata(), null, null, null);
   }
 
   public static ResultSet processResult(Rows rows, BatchParameters parameters)
       throws StatusException {
-    return processResult(rows, parameters.getSkipMetadata());
+    return processResult(rows, parameters.getSkipMetadata(), null, null, null);
   }
 
-  private static ResultSet processResult(Rows rows, boolean skipMetadata) throws StatusException {
+  public static ResultSet processResult(
+      Rows rows,
+      QueryParameters parameters,
+      RowDecorator rowDecorator,
+      Parameters requestParameters,
+      Persistence.Connection connection)
+      throws StatusException {
+    return processResult(
+        rows, parameters.getSkipMetadata(), rowDecorator, requestParameters, connection);
+  }
+
+  private static ResultSet processResult(
+      Rows rows,
+      boolean skipMetadata,
+      RowDecorator rowDecorator,
+      Parameters requestParameters,
+      Persistence.Connection connection)
+      throws StatusException {
     final List<Column> columns = rows.resultMetadata.columns;
     final int columnCount = columns.size();
 
     ResultSet.Builder resultSetBuilder = ResultSet.newBuilder();
-
     if (!skipMetadata) {
       for (Column column : columns) {
         resultSetBuilder.addColumns(
@@ -145,11 +167,31 @@ public class ValuesHelper {
     }
 
     for (List<ByteBuffer> row : rows.rows) {
+      ByteBuffer comparableBytes = null;
+      ByteBuffer rowPagingState = null;
+      if (rowDecorator != null) {
+        ProtocolVersion driverProtocolVersion =
+            requestParameters.protocolVersion().toDriverVersion();
+        ArrayListBackedRow arrayListRow =
+            new ArrayListBackedRow(columns, row, driverProtocolVersion);
+        comparableBytes = rowDecorator.getComparableBytes(arrayListRow);
+        rowPagingState =
+            connection.makePagingState(
+                PagingPosition.ofCurrentRow(arrayListRow).build(), requestParameters);
+      }
       Row.Builder rowBuilder = Row.newBuilder();
       for (int i = 0; i < columnCount; ++i) {
         ColumnType columnType = columnTypeNotNull(columns.get(i));
         ValueCodec codec = ValueCodecs.get(columnType.rawType());
         rowBuilder.addValues(decodeValue(codec, row.get(i), columnType));
+      }
+      if (comparableBytes != null) {
+        rowBuilder.setComparableBytes(
+            BytesValue.newBuilder().setValue(ByteString.copyFrom(comparableBytes)).build());
+      }
+      if (rowPagingState != null) {
+        rowBuilder.setPagingState(
+            BytesValue.newBuilder().setValue(ByteString.copyFrom(rowPagingState)).build());
       }
       resultSetBuilder.addRows(rowBuilder);
     }
