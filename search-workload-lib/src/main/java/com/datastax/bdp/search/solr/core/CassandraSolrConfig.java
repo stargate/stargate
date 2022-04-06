@@ -52,16 +52,13 @@ public class CassandraSolrConfig extends SolrConfig {
   public static final String DSE_TYPE_MAPPING_FORCE = "force";
   public static final String DSE_ALLOW_TOKENIZED_UNIQUE_KEY = "dseAllowTokenizedUniqueKey";
 
-  private static final HashMap<
-          CassandraSolrTypeMapper.TypeMappingVersion, CassandraSolrTypeMapper.Factory>
-      mappers =
-          new HashMap<
-              CassandraSolrTypeMapper.TypeMappingVersion, CassandraSolrTypeMapper.Factory>() {
-            {
-              put(CassandraSolrTypeMapper.TypeMappingVersion.VERSION_1, new V1TypeMapper.Factory());
-              put(CassandraSolrTypeMapper.TypeMappingVersion.VERSION_2, new V2TypeMapper.Factory());
-            }
-          };
+  private static final HashMap<TypeMappingVersion, CassandraSolrTypeMapper.Factory> mappers =
+      new HashMap<TypeMappingVersion, CassandraSolrTypeMapper.Factory>() {
+        {
+          put(TypeMappingVersion.VERSION_1, new V1TypeMapper.Factory());
+          put(TypeMappingVersion.VERSION_2, new V2TypeMapper.Factory());
+        }
+      };
 
   private static final Set<String> unsupportedRequestHandlers =
       ImmutableSet.of(
@@ -88,8 +85,7 @@ public class CassandraSolrConfig extends SolrConfig {
   private volatile NamedList<Object> updateHandlerDefaults;
 
   public static CassandraSolrTypeMapper.Factory getTypeMapperByVersion(String version) {
-    return CassandraSolrConfig.mappers.get(
-        CassandraSolrTypeMapper.TypeMappingVersion.lookup(version));
+    return CassandraSolrConfig.mappers.get(TypeMappingVersion.lookup(version));
   }
 
   public CassandraSolrConfig(
@@ -307,7 +303,7 @@ public class CassandraSolrConfig extends SolrConfig {
     if (nodes != null && nodes.getLength() > 0) {
       Node typeMappingNode = nodes.item(0);
       Node forcedNode = typeMappingNode.getAttributes().getNamedItem(DSE_TYPE_MAPPING_FORCE);
-      String versionValue = CassandraSolrTypeMapper.TypeMappingVersion.VERSION_1.getVersion();
+      String versionValue = TypeMappingVersion.VERSION_1.getVersion();
       boolean forcedValue = false;
       if (typeMappingNode.getTextContent() != null) {
         versionValue = typeMappingNode.getTextContent();
@@ -316,15 +312,14 @@ public class CassandraSolrConfig extends SolrConfig {
         forcedValue = Boolean.parseBoolean(forcedNode.getTextContent());
       }
 
-      CassandraSolrTypeMapper.TypeMappingVersion candidate =
-          CassandraSolrTypeMapper.TypeMappingVersion.lookup(versionValue);
+      TypeMappingVersion candidate = TypeMappingVersion.lookup(versionValue);
       if (mappers.containsKey(candidate)) {
         typeMapper = mappers.get(candidate).make(forcedValue);
       } else {
         throw new IllegalStateException("Missed type mapping version: " + candidate.getVersion());
       }
     } else {
-      typeMapper = mappers.get(CassandraSolrTypeMapper.TypeMappingVersion.VERSION_1).make(false);
+      typeMapper = mappers.get(TypeMappingVersion.VERSION_1).make(false);
     }
   }
 

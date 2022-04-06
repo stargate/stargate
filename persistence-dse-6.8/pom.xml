@@ -34,6 +34,11 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>io.stargate.db.dse</groupId>
+      <artifactId>search-workload-lib</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>io.stargate.db</groupId>
       <artifactId>persistence-test</artifactId>
       <version>${project.version}</version>
@@ -55,7 +60,6 @@
       <groupId>io.stargate.auth</groupId>
       <artifactId>authnz</artifactId>
       <version>${project.version}</version>
-      <scope>provided</scope>
     </dependency>
 
     <!-- Cassandra/DataStax -->
@@ -196,37 +200,7 @@
       <artifactId>awaitility</artifactId>
       <scope>test</scope>
     </dependency>
-    <dependency>
-      <groupId>com.datastax.bdp</groupId>
-      <artifactId>solr-uber-with-auth_2.1</artifactId>
-      <version>6.0.1.4.2887</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.slf4j</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>log4j</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>commons-logging</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>commons-configuration</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>geronimo-stax-api_1.0_spec</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.restlet.jee</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
-    </dependency>
+
     <!-- default-pkg dependencies-->
     <dependency>
       <groupId>jdom</groupId>
@@ -480,13 +454,13 @@
               org.javatuples,
               !com.codahale.metrics.graphite.*,
               com.codahale.metrics,
-              com.datastax.oss.driver.shaded.guava.common.*,
+              com.datastax.oss.driver.shaded.guava.common.*
             ]]></Import-Package>
-            <Export-Package>!*</Export-Package>
+            <Export-Package>com.datastax.bdp.search.solr.*,com.datastax.bdp.cassandra.cql3,org.apache.cassandra.cql3.restrictions.*,org.apache.cassandra.db.marshal.*,org.apache.cassandra.serializers.*</Export-Package>
             <Bundle-ClassPath>.,sjk-core-0.14.jar,dnsjava-2.1.8.jar,{maven-dependencies}</Bundle-ClassPath>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
             <Embed-Transitive>true</Embed-Transitive>
-            <Include-Resource>{maven-resources},/autoSolrConfig.xml=src/main/resources/com/datastax/bdp/solr/core/config/autoSolrConfig.xml,/dse.yaml=src/main/resources/dse.yaml</Include-Resource>
+            <Include-Resource>{maven-resources},/dse.yaml=src/main/resources/dse.yaml</Include-Resource>
           </instructions>
         </configuration>
       </plugin>
