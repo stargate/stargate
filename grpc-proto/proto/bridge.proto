@@ -29,7 +29,7 @@ service StargateBridge {
   rpc ExecuteQuery(Query) returns (Response) {}
 
   // Executes a single CQL query, returning auxiliary data (paging state, comparable bytes) for each row.
-  rpc ExecuteEnrichedQuery(Query) returns (EnrichedResponse) {}
+  rpc ExecuteEnrichedQuery(Query) returns (Response) {}
 
   // Executes a batch of CQL queries.
   rpc ExecuteBatch(Batch) returns (Response) {}

@@ -385,17 +385,6 @@ message Response {
   Traces traces = 3;
 }
 
-// The response to a Query message, which additionally contains
-// the page state and comparable bytes of each row.
-message EnrichedResponse {
-  // The result data.
-  EnrichedResultSet result_set = 1;
-  // The server-side warnings for the query, if any.
-  repeated string warnings = 2;
-  // The tracing information, if it was requested for the query.
-  Traces traces = 3;
-}
-
 message StreamingResponse {
   oneof message{
     Response response = 1;
@@ -517,15 +506,9 @@ message CasWriteUnknown {
 message Row {
   // The values for the columns (in the same order as ResultSet.columns).
   repeated Value values = 1;
-}
-
-// A single enriched row in a result set.
-message EnrichedRow {
-  // The values for the columns (in the same order as ResultSet.columns).
-  repeated Value values = 1;
-  // The paging state for the row.
+  // The paging state for the row (only set on enriched responses).
   google.protobuf.BytesValue paging_state = 2;
-  // The comparable bytes for the row.
+  // The comparable bytes for the row (only set on enriched responses).
   google.protobuf.BytesValue comparable_bytes = 3;
 }
 
@@ -538,21 +521,6 @@ message ResultSet {
 
   // The rows of CQL data.
   repeated Row rows = 2;
-
-  // If there are more pages, a paging state that will allow the client to build a new query for the
-  // next page.
-  google.protobuf.BytesValue paging_state = 3;
-}
-
-// The data returned in response to a CQL query, with each row containing auxiliary data (paging state and comparable bytes)
-message EnrichedResultSet {
-  // Metadata about the columns that this result set contains.
-  // This may be omitted if explicitly requested by the client (see QueryParameters.skip_metadata
-  // and BatchParameters.skip_metadata).
-  repeated ColumnSpec columns = 1;
-
-  // The rows of CQL data.
-  repeated EnrichedRow rows = 2;
 
   // If there are more pages, a paging state that will allow the client to build a new query for the
   // next page.

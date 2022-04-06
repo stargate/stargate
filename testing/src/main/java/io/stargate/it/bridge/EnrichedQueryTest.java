@@ -46,12 +46,12 @@ public class EnrichedQueryTest extends BridgeIntegrationTest {
         QueryOuterClass.Query.newBuilder()
             .setCql(String.format("select * from %s.data", keyspace))
             .build();
-    QueryOuterClass.EnrichedResponse response = stub.executeEnrichedQuery(q);
+    QueryOuterClass.Response response = stub.executeEnrichedQuery(q);
     assertThat(response).isNotNull();
-    QueryOuterClass.EnrichedResultSet rs = response.getResultSet();
+    QueryOuterClass.ResultSet rs = response.getResultSet();
     assertThat(rs.getRowsCount()).isEqualTo(5);
     for (int i = 0; i < 5; i++) {
-      QueryOuterClass.EnrichedRow r = rs.getRows(i);
+      QueryOuterClass.Row r = rs.getRows(i);
       assertThat(r.getComparableBytes()).isNotNull();
       assertThat(r.getPagingState()).isNotNull();
       assertThat(r.getValuesCount()).isEqualTo(4);
