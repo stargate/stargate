@@ -165,8 +165,8 @@ public class ValuesHelper {
     for (List<ByteBuffer> row : rows.rows) {
       ByteBuffer comparableBytes = null;
       ByteBuffer rowPagingState = null;
-      io.stargate.db.datastore.Row arrayListRow = makeRow.apply(columns, row);
-      if (arrayListRow != null) {
+      if (makeRow != null) {
+        io.stargate.db.datastore.Row arrayListRow = makeRow.apply(columns, row);
         comparableBytes = getComparableBytes.apply(arrayListRow);
         rowPagingState = getPagingState.apply(arrayListRow);
       }
