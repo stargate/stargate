@@ -116,6 +116,14 @@
         </dependency>
     </dependencies>
 
+    <distributionManagement>
+        <repository>
+            <id>central</id>
+            <name>build-inf-artifactory-releases</name>
+            <url>http://repo.sjc.dsinternal.org/artifactory/datastax-snapshots-local</url>
+        </repository>
+    </distributionManagement>
+
     <build>
         <plugins>
             <plugin>
