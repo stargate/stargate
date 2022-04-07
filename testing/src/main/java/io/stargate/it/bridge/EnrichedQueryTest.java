@@ -18,6 +18,7 @@ package io.stargate.it.bridge;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.google.protobuf.BytesValue;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
@@ -53,5 +54,27 @@ public class EnrichedQueryTest extends BridgeIntegrationTest {
       assertThat(r.getPagingState()).isNotNull();
       assertThat(r.getValuesCount()).isEqualTo(4);
     }
+  }
+
+  @Test
+  public void getEnrichedDataUsingPagination(@TestKeyspace CqlIdentifier keyspace) {
+    StargateBridgeBlockingStub stub = stubWithCallCredentials();
+
+    QueryOuterClass.Response response =
+        stub.executeEnrichedQuery(cqlQuery("SELECT * FROM data;", queryParameters(keyspace)));
+    assertThat(response).isNotNull();
+    QueryOuterClass.ResultSet rs = response.getResultSet();
+    assertThat(rs.getRowsCount()).isEqualTo(5);
+    BytesValue thirdRow = rs.getRows(2).getPagingState();
+
+    QueryOuterClass.Response response2 =
+        stub.executeEnrichedQuery(
+            cqlQuery("SELECT * FROM data;", queryParameters(keyspace).setPagingState(thirdRow)));
+
+    QueryOuterClass.ResultSet rs2 = response2.getResultSet();
+    assertThat(rs2.getRowsCount()).isEqualTo(2);
+
+    assertThat(rs2.getRows(0).getValues(0)).isEqualTo(rs.getRows(3).getValues(0));
+    assertThat(rs2.getRows(1).getValues(0)).isEqualTo(rs.getRows(4).getValues(0));
   }
 }
