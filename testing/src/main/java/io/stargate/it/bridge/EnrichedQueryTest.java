@@ -22,7 +22,7 @@ import com.google.protobuf.BytesValue;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
-import io.stargate.proto.QueryOuterClass;
+import io.stargate.proto.BridgeQuery;
 import io.stargate.proto.StargateBridgeGrpc.StargateBridgeBlockingStub;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,16 +43,16 @@ public class EnrichedQueryTest extends BridgeIntegrationTest {
   public void getEnrichedDataFromRows(@TestKeyspace CqlIdentifier keyspace) {
     StargateBridgeBlockingStub stub = stubWithCallCredentials();
 
-    QueryOuterClass.Response response =
+    BridgeQuery.EnrichedResponse response =
         stub.executeEnrichedQuery(cqlQuery("SELECT * FROM data;", queryParameters(keyspace)));
     assertThat(response).isNotNull();
-    QueryOuterClass.ResultSet rs = response.getResultSet();
+    BridgeQuery.EnrichedResultSet rs = response.getResultSet();
     assertThat(rs.getRowsCount()).isEqualTo(5);
     for (int i = 0; i < 5; i++) {
-      QueryOuterClass.Row r = rs.getRows(i);
+      BridgeQuery.EnrichedRow r = rs.getRows(i);
       assertThat(r.getComparableBytes()).isNotNull();
       assertThat(r.getPagingState()).isNotNull();
-      assertThat(r.getValuesCount()).isEqualTo(4);
+      assertThat(r.getRow().getValuesCount()).isEqualTo(4);
     }
   }
 
@@ -60,21 +60,21 @@ public class EnrichedQueryTest extends BridgeIntegrationTest {
   public void getEnrichedDataUsingPagination(@TestKeyspace CqlIdentifier keyspace) {
     StargateBridgeBlockingStub stub = stubWithCallCredentials();
 
-    QueryOuterClass.Response response =
+    BridgeQuery.EnrichedResponse response =
         stub.executeEnrichedQuery(cqlQuery("SELECT * FROM data;", queryParameters(keyspace)));
     assertThat(response).isNotNull();
-    QueryOuterClass.ResultSet rs = response.getResultSet();
+    BridgeQuery.EnrichedResultSet rs = response.getResultSet();
     assertThat(rs.getRowsCount()).isEqualTo(5);
     BytesValue thirdRow = rs.getRows(2).getPagingState();
 
-    QueryOuterClass.Response response2 =
+    BridgeQuery.EnrichedResponse response2 =
         stub.executeEnrichedQuery(
             cqlQuery("SELECT * FROM data;", queryParameters(keyspace).setPagingState(thirdRow)));
 
-    QueryOuterClass.ResultSet rs2 = response2.getResultSet();
+    BridgeQuery.EnrichedResultSet rs2 = response2.getResultSet();
     assertThat(rs2.getRowsCount()).isEqualTo(2);
 
-    assertThat(rs2.getRows(0).getValues(0)).isEqualTo(rs.getRows(3).getValues(0));
-    assertThat(rs2.getRows(1).getValues(0)).isEqualTo(rs.getRows(4).getValues(0));
+    assertThat(rs2.getRows(0).getRow().getValues(0)).isEqualTo(rs.getRows(3).getRow().getValues(0));
+    assertThat(rs2.getRows(1).getRow().getValues(0)).isEqualTo(rs.getRows(4).getRow().getValues(0));
   }
 }

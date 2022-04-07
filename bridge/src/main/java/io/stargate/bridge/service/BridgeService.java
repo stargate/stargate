@@ -20,9 +20,12 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.db.Persistence;
 import io.stargate.grpc.service.GrpcService;
 import io.stargate.grpc.service.SingleBatchHandler;
+import io.stargate.grpc.service.SingleEnrichedExceptionHandler;
+import io.stargate.grpc.service.SingleEnrichedQueryHandler;
 import io.stargate.grpc.service.SingleExceptionHandler;
 import io.stargate.grpc.service.SingleQueryHandler;
 import io.stargate.grpc.service.SynchronizedStreamObserver;
+import io.stargate.proto.BridgeQuery.EnrichedResponse;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
@@ -72,18 +75,17 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
   }
 
   @Override
-  public void executeEnrichedQuery(Query query, StreamObserver<Response> responseObserver) {
-    SynchronizedStreamObserver<Response> synchronizedStreamObserver =
+  public void executeEnrichedQuery(Query query, StreamObserver<EnrichedResponse> responseObserver) {
+    SynchronizedStreamObserver<EnrichedResponse> synchronizedStreamObserver =
         new SynchronizedStreamObserver<>(responseObserver);
-    new SingleQueryHandler(
+    new SingleEnrichedQueryHandler(
             query,
             GrpcService.CONNECTION_KEY.get(),
             persistence,
             executor,
             schemaAgreementRetries,
             synchronizedStreamObserver,
-            new SingleExceptionHandler(synchronizedStreamObserver),
-            true)
+            new SingleEnrichedExceptionHandler(synchronizedStreamObserver))
         .handle();
   }
 

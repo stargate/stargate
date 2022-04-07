@@ -506,10 +506,6 @@ message CasWriteUnknown {
 message Row {
   // The values for the columns (in the same order as ResultSet.columns).
   repeated Value values = 1;
-  // The paging state for the row (only set on enriched responses).
-  google.protobuf.BytesValue paging_state = 2;
-  // The comparable bytes for the row (only set on enriched responses).
-  google.protobuf.BytesValue comparable_bytes = 3;
 }
 
 // The data returned in response to a CQL query.
