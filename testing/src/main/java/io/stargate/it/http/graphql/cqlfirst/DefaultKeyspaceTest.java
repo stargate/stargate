@@ -17,8 +17,9 @@ package io.stargate.it.http.graphql.cqlfirst;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.stargate.it.BaseIntegrationTest;
+import io.stargate.it.http.ApiServiceConnectionInfo;
 import io.stargate.it.http.RestUtils;
+import io.stargate.it.http.graphql.BaseGraphqlV2ApiTest;
 import io.stargate.it.storage.ClusterSpec;
 import io.stargate.it.storage.StargateConnectionInfo;
 import org.apache.http.HttpStatus;
@@ -28,14 +29,18 @@ import org.junit.jupiter.api.Test;
 // Redeclare ClusterSpec to get shared=false; this test must be isolated because it will fail if
 // other tests have created their own user keyspaces before it.
 @ClusterSpec
-public class DefaultKeyspaceTest extends BaseIntegrationTest {
+public class DefaultKeyspaceTest extends BaseGraphqlV2ApiTest {
 
   @Test
   @DisplayName("Should fail to query default keyspace when there is none")
-  public void queryDefaultKeyspaceWhenMissing(StargateConnectionInfo cluster) {
+  public void queryDefaultKeyspaceWhenMissing(
+      StargateConnectionInfo stargateBackend, ApiServiceConnectionInfo stargateGraphqlApi) {
     // Given
-    String host = cluster.seedAddress();
-    CqlFirstClient client = new CqlFirstClient(host, RestUtils.getAuthToken(host));
+    CqlFirstClient client =
+        new CqlFirstClient(
+            stargateGraphqlApi.host(),
+            stargateGraphqlApi.port(),
+            RestUtils.getAuthToken(stargateBackend.seedAddress()));
 
     // When
     String error = client.getDmlQueryError(null, "{}", HttpStatus.SC_NOT_FOUND);

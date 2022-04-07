@@ -171,6 +171,7 @@
         <module>graphqlapi</module>
         <module>restapi</module>
         <module>sgv2-restapi</module>
+        <module>sgv2-graphqlapi</module>
         <module>sgv2-service-common</module>
         <module>auth-api</module>
         <module>authnz</module>
@@ -207,6 +208,7 @@
         <module>graphqlapi</module>
         <module>restapi</module>
         <module>sgv2-restapi</module>
+        <module>sgv2-graphqlapi</module>
         <module>sgv2-service-common</module>
         <module>auth-api</module>
         <module>authnz</module>
