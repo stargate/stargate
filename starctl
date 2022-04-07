@@ -13,15 +13,11 @@ done
 cd -P -- "$(dirname -- "$0")" # switch to this dir
 echo $PWD
 
-if [ -z $BRIDGE_TOKEN ]; then
-  export BRIDGE_TOKEN=mockAdminToken
-fi
-
 # start REST API service
 ./starctl-service-rest &
 
 # pass along same arguments to script to start coordinator
-./starctl-coordinator "$@" --bridge-token="$BRIDGE_TOKEN" &
+./starctl-coordinator "$@" &
 
 wait
 

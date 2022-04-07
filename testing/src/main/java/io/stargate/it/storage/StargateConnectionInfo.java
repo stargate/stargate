@@ -24,8 +24,6 @@ public interface StargateConnectionInfo {
 
   int bridgePort();
 
-  String bridgeToken();
-
   int jmxPort();
 
   String clusterName();
