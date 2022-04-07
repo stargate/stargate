@@ -1,27 +1,16 @@
 # Changelog
 
-## [v2.0.0-ALPHA-5](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-5) (2022-03-18)
+## [v2.0.0-ALPHA-6](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-6) (2022-04-06)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-4...v2.0.0-ALPHA-5)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-5...v2.0.0-ALPHA-6) 
 
-**Closed issues:**
+## [v2.0.0-ALPHA-5](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-5) (2022-03-23) 
 
-- Stargate V2 REST Service should support "Duration" type [\#1696](https://github.com/stargate/stargate/issues/1696)
-- Verify that duration \(`CqlDuration`\) works with REST API [\#1693](https://github.com/stargate/stargate/issues/1693)
-- Create Docker image for REST API Service [\#1400](https://github.com/stargate/stargate/issues/1400)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-4...v2.0.0-ALPHA-5) 
 
-**Merged pull requests:**
+## [v2.0.0-ALPHA-4](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-4) (2022-02-23) 
 
-- Bumping version for next release [\#1700](https://github.com/stargate/stargate/pull/1700) ([github-actions[bot]](https://github.com/apps/github-actions))
-- gRPC: Revisit index metadata [\#1698](https://github.com/stargate/stargate/pull/1698) ([olim7t](https://github.com/olim7t))
-- Add support for Duration/CqlDuration for REST API, SGv2 [\#1697](https://github.com/stargate/stargate/pull/1697) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- gRPC: add support for CQL duration type [\#1690](https://github.com/stargate/stargate/pull/1690) ([olim7t](https://github.com/olim7t))
-- Update starctl scripts for v2 [\#1689](https://github.com/stargate/stargate/pull/1689) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
-- Fix \#1685 handling of `timestamp` values on REST/json output [\#1686](https://github.com/stargate/stargate/pull/1686) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-
-## [v2.0.0-ALPHA-4](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-3) (2022-02-23)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-3...v2.0.0-ALPHA-4)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-3...v2.0.0-ALPHA-4) 
 
 ## [v2.0.0-ALPHA-3](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-3) (2022-02-14)
 
