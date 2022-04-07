@@ -1,5 +1,15 @@
 # Changelog
 
+## [v2.0.0-ALPHA-7](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-7) (2022-04-07)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-6...v2.0.0-ALPHA-7)
+
+**Merged pull requests:**
+
+- Remove bridge token references [\#1766](https://github.com/stargate/stargate/pull/1766) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- 2.0.0-ALPHA-6 release [\#1765](https://github.com/stargate/stargate/pull/1765) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Port GraphQL CQL-first API to V2 architecture [\#1651](https://github.com/stargate/stargate/pull/1651) ([olim7t](https://github.com/olim7t))
+
 ## [v2.0.0-ALPHA-6](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-6) (2022-04-06)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-5...v2.0.0-ALPHA-6) 
