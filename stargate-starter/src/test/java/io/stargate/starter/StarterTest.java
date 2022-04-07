@@ -37,7 +37,6 @@ class StarterTest {
     starter.clusterName = "foo";
     starter.version = "3.11";
     starter.seedList = Arrays.asList("127.0.0.1", "127.0.0.2");
-    starter.bridgeToken = "sample-bridge-token";
   }
 
   @Test
@@ -149,19 +148,6 @@ class StarterTest {
         IllegalArgumentException.class,
         starter::setStargateProperties,
         "At least one seed node address is required.");
-  }
-
-  @Test
-  void testSetStargatePropertiesMissingBridgeToken() {
-    starter.bridgeToken = null;
-
-    RuntimeException thrown =
-        assertThrows(
-            IllegalArgumentException.class,
-            starter::setStargateProperties,
-            "Expected setStargateProperties() to throw RuntimeException");
-
-    assertThat(thrown.getMessage()).isEqualTo("--bridge-token must be specified");
   }
 
   @Test

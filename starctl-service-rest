@@ -42,13 +42,6 @@ fi
 
 eval declare -a JAVA_OPTS=("$JAVA_OPTS")
 
-if [ ! "x$BRIDGE_TOKEN" == "x" ]; then
-  JAVA_OPTS+=(-Dstargate.bridge.admin_token="$BRIDGE_TOKEN")
-else
-  echo "BRIDGE_TOKEN not found"
-  exit 2
-fi
-
 if [ ! "x$STARGATE_BRIDGE_HOST" == "x" ]; then
   JAVA_OPTS+=(-Ddw.stargate.bridge.host="$STARGATE_BRIDGE_HOST")
 else
