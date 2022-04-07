@@ -7,6 +7,7 @@
   <name>${project.groupId}:${project.artifactId}</name>
   <description>Core modules for Stargate</description>
   <url>http://github.com/stargate/stargate</url>
+  <packaging>pom</packaging>
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
@@ -148,9 +149,6 @@
       <activation>
         <activeByDefault>false</activeByDefault>
       </activation>
-      <properties>
-        <maven.test.skip>true</maven.test.skip>
-      </properties>
       <modules>
         <module>core</module>
         <module>stargate-starter</module>
@@ -159,7 +157,6 @@
         <module>persistence-test</module>
         <module>persistence-cassandra-3.11</module>
         <module>persistence-cassandra-4.0</module>
-        <module>search-workload-lib</module>
         <module>persistence-dse-6.8</module>
         <module>cql</module>
         <module>graphqlapi</module>

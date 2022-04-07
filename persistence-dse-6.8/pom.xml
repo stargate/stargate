@@ -35,8 +35,8 @@
     </dependency>
     <dependency>
       <groupId>io.stargate.db.dse</groupId>
-      <artifactId>search-workload-lib</artifactId>
-      <version>${project.version}</version>
+      <artifactId>stargate-dse-search</artifactId>
+      <version>1.0.0</version>
     </dependency>
     <dependency>
       <groupId>io.stargate.db</groupId>
@@ -60,6 +60,7 @@
       <groupId>io.stargate.auth</groupId>
       <artifactId>authnz</artifactId>
       <version>${project.version}</version>
+      <scope>provided</scope>
     </dependency>
 
     <!-- Cassandra/DataStax -->
