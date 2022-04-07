@@ -168,8 +168,10 @@ public interface StargateBridgeClient {
     return authorizeSchemaReads(Collections.singletonList(schemaRead)).get(0);
   }
 
+  /** Checks which features are supported by the persistence backend. */
   CompletionStage<SupportedFeaturesResponse> getSupportedFeaturesAsync();
 
+  /** @see #getSupportedFeaturesAsync() */
   default SupportedFeaturesResponse getSupportedFeatures() {
     return Futures.getUninterruptibly(getSupportedFeaturesAsync());
   }

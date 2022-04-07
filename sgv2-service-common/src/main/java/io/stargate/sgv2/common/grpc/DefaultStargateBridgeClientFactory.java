@@ -18,9 +18,11 @@ package io.stargate.sgv2.common.grpc;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.grpc.Channel;
+import io.stargate.proto.Schema;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.SchemaRead;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 
 class DefaultStargateBridgeClientFactory implements StargateBridgeClientFactory {
@@ -29,6 +31,8 @@ class DefaultStargateBridgeClientFactory implements StargateBridgeClientFactory 
   private final SchemaRead.SourceApi sourceApi;
   private final Cache<String, CqlKeyspaceDescribe> keyspaceCache =
       Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(5, TimeUnit.MINUTES).build();
+  private final LazyReference<CompletionStage<Schema.SupportedFeaturesResponse>>
+      supportedFeaturesResponse = new LazyReference<>();
 
   DefaultStargateBridgeClientFactory(Channel channel, SchemaRead.SourceApi sourceApi) {
     this.channel = channel;
@@ -37,6 +41,7 @@ class DefaultStargateBridgeClientFactory implements StargateBridgeClientFactory 
 
   @Override
   public StargateBridgeClient newClient(String authToken, Optional<String> tenantId) {
-    return new DefaultStargateBridgeClient(channel, authToken, tenantId, keyspaceCache, sourceApi);
+    return new DefaultStargateBridgeClient(
+        channel, authToken, tenantId, keyspaceCache, supportedFeaturesResponse, sourceApi);
   }
 }

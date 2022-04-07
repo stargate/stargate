@@ -71,6 +71,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
   private final CallOptions callOptions;
   private final String tenantPrefix;
   private final Cache<String, CqlKeyspaceDescribe> keyspaceCache;
+  private final LazyReference<CompletionStage<SupportedFeaturesResponse>> supportedFeaturesResponse;
   private final SourceApi sourceApi;
 
   DefaultStargateBridgeClient(
@@ -78,6 +79,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
       String authToken,
       Optional<String> tenantId,
       Cache<String, CqlKeyspaceDescribe> keyspaceCache,
+      LazyReference<CompletionStage<SupportedFeaturesResponse>> supportedFeaturesResponse,
       SourceApi sourceApi) {
     this.channel = tenantId.map(i -> addMetadata(channel, i)).orElse(channel);
     this.callOptions =
@@ -86,6 +88,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
             .withCallCredentials(new StargateBearerToken(authToken));
     this.tenantPrefix = tenantId.map(this::encodeKeyspacePrefix).orElse("");
     this.keyspaceCache = keyspaceCache;
+    this.supportedFeaturesResponse = supportedFeaturesResponse;
     this.sourceApi = sourceApi;
   }
 
@@ -279,6 +282,12 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
 
   @Override
   public CompletionStage<SupportedFeaturesResponse> getSupportedFeaturesAsync() {
+    // This response is the same for all clients, and never changes over time. So only do the actual
+    // gRPC call the first time, and then cache it.
+    return supportedFeaturesResponse.get(this::getSupportedFeaturesFromBridge);
+  }
+
+  private CompletionStage<SupportedFeaturesResponse> getSupportedFeaturesFromBridge() {
     ClientCall<SupportedFeaturesRequest, SupportedFeaturesResponse> call =
         channel.newCall(StargateBridgeGrpc.getGetSupportedFeaturesMethod(), callOptions);
     UnaryStreamObserver<SupportedFeaturesResponse> observer = new UnaryStreamObserver<>();
