@@ -47,6 +47,8 @@ public class DsePersistenceActivator extends BaseActivator {
 
   private static final String ADVANCED_WORKLOAD = "AdvancedWorkload";
 
+  private static final String DSE_YAML_PATH = "/dse.yaml";
+
   private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
   private final LazyServicePointer<AuthorizationService> authorizationService =
       LazyServicePointer.create(
@@ -196,7 +198,7 @@ public class DsePersistenceActivator extends BaseActivator {
       if (authorizer instanceof DelegatingAuthorizer) {
         ((DelegatingAuthorizer) authorizer).setProcessor(authorizationProcessor.get());
       }
-      SearchInjector.initSearch();
+      SearchInjector.initSearch(DSE_YAML_PATH);
       return new ServiceAndProperties(dseDB, Persistence.class, props);
     } catch (IOException e) {
       throw new IOError(e);

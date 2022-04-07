@@ -18,7 +18,6 @@
 package io.stargate.db.dse.impl;
 
 import com.datastax.bdp.cassandra.cql3.QueryHandlerWithTokenAuth;
-import com.datastax.bdp.cassandra.cql3.SolrQueryOperationFactory;
 import com.datastax.bdp.search.solr.statements.SearchIndexStatement;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import io.reactivex.Single;
@@ -73,8 +72,7 @@ public class StargateQueryHandler implements QueryHandlerWithTokenAuth {
     QueryState state = queryState.cloneWithKeyspaceIfSet(options.getKeyspace());
 
     try {
-      return new SolrQueryOperationFactory(this)
-          .create(query, state, options, customPayload, queryStartNanoTime, false)
+      return getStandardOperation(query, state, options, customPayload, queryStartNanoTime, false)
           .process();
     } catch (Exception e) {
       return QueryProcessor.auditLogger.logFailedQuery(query, state, e).andThen(Single.error(e));
