@@ -21,7 +21,7 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.smallrye.mutiny.Uni;
 import io.stargate.proto.Schema;
-import io.stargate.sgv2.docsapi.api.common.RequestInfo;
+import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.docsapi.api.v2.example.model.dto.KeyspaceExistsResponse;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
@@ -55,7 +55,7 @@ public class ExampleResource {
     GrpcClients grpcClients;
 
     @Inject
-    RequestInfo requestInfo;
+    StargateRequestInfo requestInfo;
 
     @Operation(
             summary = "Keyspace exists",

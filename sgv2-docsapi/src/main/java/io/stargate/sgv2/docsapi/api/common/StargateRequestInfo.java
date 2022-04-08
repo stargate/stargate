@@ -33,14 +33,14 @@ import java.util.Optional;
  * Uses the registered {@link TenantResolver} and {@link CassandraTokenResolver} to optionally resolve the tenant ID and the Cassandra token.
  */
 @RequestScoped
-public class RequestInfo {
+public class StargateRequestInfo {
 
     private final Optional<String> tenantId;
 
     private final Optional<String> cassandraToken;
 
     @Inject
-    public RequestInfo(RoutingContext routingContext, SecurityContext securityContext, Instance<TenantResolver> tenantResolver, Instance<CassandraTokenResolver> tokenResolver) {
+    public StargateRequestInfo(RoutingContext routingContext, SecurityContext securityContext, Instance<TenantResolver> tenantResolver, Instance<CassandraTokenResolver> tokenResolver) {
         this.tenantId = tenantResolver.get().resolve(routingContext, securityContext);
         this.cassandraToken = tokenResolver.get().resolve(routingContext, securityContext);
     }
