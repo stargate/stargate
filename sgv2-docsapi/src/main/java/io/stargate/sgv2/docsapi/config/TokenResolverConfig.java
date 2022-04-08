@@ -74,7 +74,7 @@ public interface TokenResolverConfig {
         /**
          * @return Token value.
          */
-        Optional<@NotBlank String> token();
+        Optional<String> token();
 
     }
 

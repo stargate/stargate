@@ -20,7 +20,6 @@ package io.stargate.sgv2.docsapi.config;
 import io.smallrye.config.ConfigMapping;
 
 import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.Pattern;
 import java.util.Optional;
 
@@ -54,7 +53,7 @@ public interface TenantResolverConfig {
         /**
          * @return Tenant ID value.
          */
-        Optional<@NotBlank String> tenantId();
+        Optional<String> tenantId();
 
     }
 }

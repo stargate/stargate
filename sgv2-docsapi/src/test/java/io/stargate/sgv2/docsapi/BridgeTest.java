@@ -15,7 +15,7 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api;
+package io.stargate.sgv2.docsapi;
 
 import io.grpc.ManagedChannel;
 import io.grpc.Server;
