@@ -11,7 +11,7 @@
     <maven.compiler.release>17</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-    <quarkus.container-group>stargateio</quarkus.container-group>
+    <quarkus.container-image.group>stargateio</quarkus.container-image.group>
     <quarkus.container-image.name>docsapi</quarkus.container-image.name>
     <quarkus.generate-code.grpc.scan-for-proto>io.stargate.grpc:grpc-proto</quarkus.generate-code.grpc.scan-for-proto>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>

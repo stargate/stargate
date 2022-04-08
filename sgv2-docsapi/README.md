@@ -79,7 +79,7 @@ Below is the list of currently available properties.
 
 | Property                                     | Type     | Default             | Description                                                                                                                |
 |----------------------------------------------|----------|---------------------|----------------------------------------------------------------------------------------------------------------------------|
-| `stargate.token-resolver.type`               | `String` | `principal`         | Token resolver type. If unset, empty token is used. Possible options are `header`, `subdomain` `fixed`, `custom` or unset. |
+| `stargate.token-resolver.type`               | `String` | `principal`         | Token resolver type. If unset, empty token is used. Possible options are `header`, `principal` `fixed`, `custom` or unset. |
 | `stargate.token-resolver.header.header-name` | `String` | `X-Cassandra-Token` | Header to get the token from if the `header` type is used.                                                                 |
 | `stargate.token-resolver.fixed.token`        | `String` | unset               | Tenant identifier value if the `fixed` type is used.                                                                       |
 
@@ -149,12 +149,12 @@ If you want to learn more about building native executables, please consult [Mav
 
 You can create a docker image named `io.stargate/docsapi` using:
 ```shell script
-./mvnw package -Dquarkus.container-image.build=true
+./mvnw clean package -Dquarkus.container-image.build=true
 ```
 
 Or, if you want to create a native-runnable docker image named `io.stargate/docsapi-native` using:
 ```shell script
-./mvnw package -Pnative -Dquarkus.native.container-build=true -Dquarkus.container-image.build=true
+./mvnw clean package -Pnative -Dquarkus.native.container-build=true -Dquarkus.container-image.build=true
 ```
 
 If you want to learn more about building container images, please consult [Container images](https://quarkus.io/guides/container-image).
