@@ -18,6 +18,7 @@ package io.stargate.sgv2.common.grpc;
 import static io.stargate.sgv2.common.grpc.DefaultStargateBridgeClient.SELECT_KEYSPACE_NAMES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -50,6 +51,7 @@ import io.stargate.proto.Schema.CqlTable;
 import io.stargate.proto.Schema.DescribeKeyspaceQuery;
 import io.stargate.proto.Schema.SchemaRead;
 import io.stargate.proto.Schema.SchemaRead.SourceApi;
+import io.stargate.proto.Schema.SupportedFeaturesResponse;
 import io.stargate.proto.StargateBridgeGrpc.StargateBridgeImplBase;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -63,6 +65,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -372,9 +377,38 @@ public class DefaultStargateBridgeClientTest {
     assertThat(tables).extracting(CqlTable::getName).contains("tbl1", "tbl3");
   }
 
+  @ParameterizedTest
+  @MethodSource("getSupportedFeatures")
+  public void shouldGetSupportedFeatures(
+      boolean secondaryIndexes, boolean sai, boolean loggedBatches) {
+    // Given
+    mockSupportedFeatures(secondaryIndexes, sai, loggedBatches);
+
+    // When
+    SupportedFeaturesResponse response = newClient().getSupportedFeatures();
+
+    // Then
+    assertThat(response.getSecondaryIndexes()).isEqualTo(secondaryIndexes);
+    assertThat(response.getSai()).isEqualTo(sai);
+    assertThat(response.getLoggedBatches()).isEqualTo(loggedBatches);
+  }
+
+  public static Arguments[] getSupportedFeatures() {
+    return new Arguments[] {
+      arguments(false, false, false),
+      arguments(false, false, true),
+      arguments(false, true, false),
+      arguments(false, true, true),
+      arguments(true, false, false),
+      arguments(true, false, true),
+      arguments(true, true, false),
+      arguments(true, true, true),
+    };
+  }
+
   private DefaultStargateBridgeClient newClient() {
     return new DefaultStargateBridgeClient(
-        channel, AUTH_TOKEN, Optional.empty(), keyspaceCache, SOURCE_API);
+        channel, AUTH_TOKEN, Optional.empty(), keyspaceCache, new LazyReference<>(), SOURCE_API);
   }
 
   void mockAuthorizations(Map<SchemaRead, Boolean> authorizations) {
@@ -463,6 +497,20 @@ public class DefaultStargateBridgeClientTest {
 
   private void mockBatch(Batch batch, List<Row> rows) {
     doAnswer(i -> mockRows(i, rows)).when(service).executeBatch(eq(batch), any());
+  }
+
+  private void mockSupportedFeatures(boolean secondaryIndexes, boolean sai, boolean loggedBatches) {
+    doAnswer(
+            i ->
+                mockResponse(
+                    i,
+                    SupportedFeaturesResponse.newBuilder()
+                        .setSecondaryIndexes(secondaryIndexes)
+                        .setSai(sai)
+                        .setLoggedBatches(loggedBatches)
+                        .build()))
+        .when(service)
+        .getSupportedFeatures(any(), any());
   }
 
   private Void mockRows(InvocationOnMock i, List<Row> rows) {
