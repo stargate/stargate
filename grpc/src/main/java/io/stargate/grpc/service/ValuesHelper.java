@@ -31,8 +31,6 @@ import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.UserDefinedType;
 import io.stargate.grpc.codec.ValueCodec;
 import io.stargate.grpc.codec.ValueCodecs;
-import io.stargate.proto.BridgeQuery.EnrichedResultSet;
-import io.stargate.proto.BridgeQuery.EnrichedRow;
 import io.stargate.proto.QueryOuterClass.BatchParameters;
 import io.stargate.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
@@ -124,15 +122,32 @@ public class ValuesHelper {
 
   public static ResultSet processResult(Rows rows, QueryParameters parameters)
       throws StatusException {
-    return processResult(rows, parameters.getSkipMetadata());
+    return processResult(rows, parameters.getSkipMetadata(), null, null, null);
   }
 
   public static ResultSet processResult(Rows rows, BatchParameters parameters)
       throws StatusException {
-    return processResult(rows, parameters.getSkipMetadata());
+    return processResult(rows, parameters.getSkipMetadata(), null, null, null);
   }
 
-  private static ResultSet processResult(Rows rows, boolean skipMetadata) throws StatusException {
+  public static ResultSet processResult(
+      Rows rows,
+      QueryParameters parameters,
+      BiFunction<List<Column>, io.stargate.db.datastore.Row, ByteBuffer> getComparableBytes,
+      Function<io.stargate.db.datastore.Row, ByteBuffer> getPagingState,
+      BiFunction<List<Column>, List<ByteBuffer>, io.stargate.db.datastore.Row> makeRow)
+      throws StatusException {
+    return processResult(
+        rows, parameters.getSkipMetadata(), getComparableBytes, getPagingState, makeRow);
+  }
+
+  private static ResultSet processResult(
+      Rows rows,
+      boolean skipMetadata,
+      BiFunction<List<Column>, io.stargate.db.datastore.Row, ByteBuffer> getComparableBytes,
+      Function<io.stargate.db.datastore.Row, ByteBuffer> getPagingState,
+      BiFunction<List<Column>, List<ByteBuffer>, io.stargate.db.datastore.Row> makeRow)
+      throws StatusException {
     final List<Column> columns = rows.resultMetadata.columns;
     final int columnCount = columns.size();
 
@@ -148,63 +163,28 @@ public class ValuesHelper {
     }
 
     for (List<ByteBuffer> row : rows.rows) {
+      ByteBuffer comparableBytes = null;
+      ByteBuffer rowPagingState = null;
+      if (makeRow != null) {
+        io.stargate.db.datastore.Row arrayListRow = makeRow.apply(columns, row);
+        comparableBytes = getComparableBytes.apply(columns, arrayListRow);
+        rowPagingState = getPagingState.apply(arrayListRow);
+      }
       Row.Builder rowBuilder = Row.newBuilder();
       for (int i = 0; i < columnCount; ++i) {
         ColumnType columnType = columnTypeNotNull(columns.get(i));
         ValueCodec codec = ValueCodecs.get(columnType.rawType());
         rowBuilder.addValues(decodeValue(codec, row.get(i), columnType));
+      }
+      if (comparableBytes != null) {
+        rowBuilder.setComparableBytes(
+            BytesValue.newBuilder().setValue(ByteString.copyFrom(comparableBytes)).build());
+      }
+      if (rowPagingState != null) {
+        rowBuilder.setPagingState(
+            BytesValue.newBuilder().setValue(ByteString.copyFrom(rowPagingState)).build());
       }
       resultSetBuilder.addRows(rowBuilder);
-    }
-
-    if (rows.resultMetadata.pagingState != null) {
-      resultSetBuilder.setPagingState(
-          BytesValue.newBuilder()
-              .setValue(ByteString.copyFrom(rows.resultMetadata.pagingState))
-              .build());
-    }
-
-    return resultSetBuilder.build();
-  }
-
-  public static EnrichedResultSet processEnrichedResult(
-      Rows rows,
-      boolean skipMetadata,
-      BiFunction<List<Column>, io.stargate.db.datastore.Row, ByteBuffer> getComparableBytes,
-      Function<io.stargate.db.datastore.Row, ByteBuffer> getPagingState,
-      BiFunction<List<Column>, List<ByteBuffer>, io.stargate.db.datastore.Row> makeRow)
-      throws StatusException {
-    final List<Column> columns = rows.resultMetadata.columns;
-    final int columnCount = columns.size();
-
-    EnrichedResultSet.Builder resultSetBuilder = EnrichedResultSet.newBuilder();
-    if (!skipMetadata) {
-      for (Column column : columns) {
-        resultSetBuilder.addColumns(
-            ColumnSpec.newBuilder()
-                .setType(convertType(columnTypeNotNull(column)))
-                .setName(column.name())
-                .build());
-      }
-    }
-
-    for (List<ByteBuffer> row : rows.rows) {
-      EnrichedRow.Builder enrichedRowBuilder = EnrichedRow.newBuilder();
-      Row.Builder rowBuilder = Row.newBuilder();
-      io.stargate.db.datastore.Row arrayListRow = makeRow.apply(columns, row);
-      ByteBuffer comparableBytes = getComparableBytes.apply(columns, arrayListRow);
-      ByteBuffer rowPagingState = getPagingState.apply(arrayListRow);
-      for (int i = 0; i < columnCount; ++i) {
-        ColumnType columnType = columnTypeNotNull(columns.get(i));
-        ValueCodec codec = ValueCodecs.get(columnType.rawType());
-        rowBuilder.addValues(decodeValue(codec, row.get(i), columnType));
-      }
-      enrichedRowBuilder.setRow(rowBuilder.build());
-      enrichedRowBuilder.setPagingState(
-          BytesValue.newBuilder().setValue(ByteString.copyFrom(rowPagingState)));
-      enrichedRowBuilder.setComparableBytes(
-          BytesValue.newBuilder().setValue(ByteString.copyFrom(comparableBytes)));
-      resultSetBuilder.addRows(enrichedRowBuilder);
     }
 
     if (rows.resultMetadata.pagingState != null) {

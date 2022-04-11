@@ -15,14 +15,21 @@
  */
 package io.stargate.grpc.service;
 
+import com.datastax.oss.driver.api.core.ProtocolVersion;
 import io.grpc.Status;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.ImmutableParameters;
+import io.stargate.db.PagingPosition;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
 import io.stargate.db.Result.Prepared;
+import io.stargate.db.RowDecorator;
+import io.stargate.db.datastore.ArrayListBackedRow;
+import io.stargate.db.datastore.Row;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.TableName;
 import io.stargate.grpc.service.GrpcService.ResponseAndTraceId;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
@@ -30,6 +37,7 @@ import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.SchemaChange;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -41,6 +49,8 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
 
   private final String decoratedKeyspace;
   private final SchemaAgreementHelper schemaAgreementHelper;
+  private boolean enrichResponse;
+  private Parameters parameters;
 
   protected QueryHandler(
       Query query,
@@ -58,6 +68,27 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
             ? persistence.decorateKeyspaceName(
                 queryParameters.getKeyspace().getValue(), GrpcService.HEADERS_KEY.get())
             : null;
+    this.enrichResponse = false;
+  }
+
+  protected QueryHandler(
+      Query query,
+      Connection connection,
+      Persistence persistence,
+      ScheduledExecutorService executor,
+      int schemaAgreementRetries,
+      ExceptionHandler exceptionHandler,
+      boolean enrichResponse) {
+    super(query, connection, persistence, exceptionHandler);
+    this.schemaAgreementHelper =
+        new SchemaAgreementHelper(connection, schemaAgreementRetries, executor);
+    QueryParameters queryParameters = query.getParameters();
+    this.decoratedKeyspace =
+        queryParameters.hasKeyspace()
+            ? persistence.decorateKeyspaceName(
+                queryParameters.getKeyspace().getValue(), GrpcService.HEADERS_KEY.get())
+            : null;
+    this.enrichResponse = enrichResponse;
   }
 
   @Override
@@ -76,10 +107,9 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
 
     QueryParameters parameters = message.getParameters();
     try {
+      this.parameters = makeParameters(parameters, connection.clientInfo());
       return connection.execute(
-          bindValues(prepared, message.getValues()),
-          makeParameters(parameters, connection.clientInfo()),
-          queryStartNanoTime);
+          bindValues(prepared, message.getValues()), this.parameters, queryStartNanoTime);
     } catch (Exception e) {
       return failedFuture(e, prepared.isIdempotent);
     }
@@ -103,7 +133,12 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
       case Rows:
         try {
           responseBuilder.setResultSet(
-              ValuesHelper.processResult((Result.Rows) result, message.getParameters()));
+              ValuesHelper.processResult(
+                  (Result.Rows) result,
+                  message.getParameters(),
+                  this::getComparableBytesFromRow,
+                  this::getPagingStateFromRow,
+                  this::makeRow));
           return CompletableFuture.completedFuture(
               ResponseAndTraceId.from(result, responseBuilder));
         } catch (Exception e) {
@@ -113,6 +148,31 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
         return failedFuture(
             Status.INTERNAL.withDescription("Unhandled result kind").asException(), false);
     }
+  }
+
+  private ByteBuffer getComparableBytesFromRow(List<Column> columns, Row row) {
+    if (enrichResponse) {
+      RowDecorator rowDecorator = connection.makeRowDecorator(TableName.of(columns));
+      return rowDecorator.getComparableBytes(row);
+    }
+    return null;
+  }
+
+  private ByteBuffer getPagingStateFromRow(Row row) {
+    if (enrichResponse) {
+      return connection.makePagingState(
+          PagingPosition.ofCurrentRow(row).resumeFrom(PagingPosition.ResumeMode.NEXT_ROW).build(),
+          parameters);
+    }
+    return null;
+  }
+
+  private Row makeRow(List<Column> columns, List<ByteBuffer> row) {
+    if (enrichResponse) {
+      ProtocolVersion driverProtocolVersion = this.parameters.protocolVersion().toDriverVersion();
+      return new ArrayListBackedRow(columns, row, driverProtocolVersion);
+    }
+    return null;
   }
 
   @Override

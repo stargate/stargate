@@ -25,7 +25,6 @@ import io.stargate.grpc.service.streaming.MessageStreamObserver;
 import io.stargate.grpc.service.streaming.StreamingBatchHandlerFactory;
 import io.stargate.grpc.service.streaming.StreamingExceptionHandler;
 import io.stargate.grpc.service.streaming.StreamingQueryHandlerFactory;
-import io.stargate.proto.BridgeQuery.EnrichedResponse;
 import io.stargate.proto.QueryOuterClass.Batch;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.Response;
@@ -124,26 +123,6 @@ public class GrpcService extends io.stargate.proto.StargateGrpc.StargateImplBase
     }
 
     private ResponseAndTraceId(@Nullable UUID tracingId, Response.Builder responseBuilder) {
-      this.tracingId = tracingId;
-      this.responseBuilder = responseBuilder;
-    }
-
-    public boolean tracingIdIsEmpty() {
-      return tracingId == null || tracingId.toString().isEmpty();
-    }
-  }
-
-  static class EnrichedResponseAndTraceId {
-    final @Nullable UUID tracingId;
-    final EnrichedResponse.Builder responseBuilder;
-
-    static EnrichedResponseAndTraceId from(
-        Result result, EnrichedResponse.Builder responseBuilder) {
-      return new EnrichedResponseAndTraceId(result.getTracingId(), responseBuilder);
-    }
-
-    private EnrichedResponseAndTraceId(
-        @Nullable UUID tracingId, EnrichedResponse.Builder responseBuilder) {
       this.tracingId = tracingId;
       this.responseBuilder = responseBuilder;
     }
