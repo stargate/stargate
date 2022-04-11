@@ -223,6 +223,9 @@ message QueryParameters {
   // The consistency level to use to retrieve the query trace (if tracing is set).
   // If unset, it defaults to ONE.
   ConsistencyValue tracing_consistency = 10;
+
+  // Whether to decorate the result set with comparable byte data and per-row paging states.
+  bool enriched = 11;
 }
 
 // A CQL column type.

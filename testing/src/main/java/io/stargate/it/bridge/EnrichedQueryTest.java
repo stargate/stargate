@@ -44,7 +44,8 @@ public class EnrichedQueryTest extends BridgeIntegrationTest {
     StargateBridgeBlockingStub stub = stubWithCallCredentials();
 
     QueryOuterClass.Response response =
-        stub.executeEnrichedQuery(cqlQuery("SELECT * FROM data;", queryParameters(keyspace)));
+        stub.executeQuery(
+            cqlQuery("SELECT * FROM data;", queryParameters(keyspace).setEnriched(true)));
     assertThat(response).isNotNull();
     QueryOuterClass.ResultSet rs = response.getResultSet();
     assertThat(rs.getRowsCount()).isEqualTo(5);
@@ -61,20 +62,26 @@ public class EnrichedQueryTest extends BridgeIntegrationTest {
     StargateBridgeBlockingStub stub = stubWithCallCredentials();
 
     QueryOuterClass.Response response =
-        stub.executeEnrichedQuery(cqlQuery("SELECT * FROM data;", queryParameters(keyspace)));
+        stub.executeQuery(
+            cqlQuery("SELECT * FROM data;", queryParameters(keyspace).setEnriched(true)));
     assertThat(response).isNotNull();
     QueryOuterClass.ResultSet rs = response.getResultSet();
     assertThat(rs.getRowsCount()).isEqualTo(5);
     BytesValue thirdRow = rs.getRows(2).getPagingState();
 
     QueryOuterClass.Response response2 =
-        stub.executeEnrichedQuery(
-            cqlQuery("SELECT * FROM data;", queryParameters(keyspace).setPagingState(thirdRow)));
+        stub.executeQuery(
+            cqlQuery(
+                "SELECT * FROM data;",
+                queryParameters(keyspace).setPagingState(thirdRow).setEnriched(true)));
 
     QueryOuterClass.ResultSet rs2 = response2.getResultSet();
     assertThat(rs2.getRowsCount()).isEqualTo(2);
 
     assertThat(rs2.getRows(0).getValues(0)).isEqualTo(rs.getRows(3).getValues(0));
     assertThat(rs2.getRows(1).getValues(0)).isEqualTo(rs.getRows(4).getValues(0));
+
+    BytesValue lastRow = rs2.getRows(1).getPagingState();
+    assertThat(lastRow.getValue().isEmpty()).isTrue();
   }
 }

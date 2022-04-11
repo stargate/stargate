@@ -44,7 +44,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.BiFunction;
-import java.util.function.Function;
 
 public class ValuesHelper {
   public static BoundStatement bindValues(Prepared prepared, Values values, ByteBuffer unsetValue)
@@ -130,11 +129,16 @@ public class ValuesHelper {
     return processResult(rows, parameters.getSkipMetadata(), null, null, null);
   }
 
+  public interface GetPagingStateFromRow {
+    ByteBuffer apply(
+        ByteBuffer resultSetPagingState, io.stargate.db.datastore.Row row, boolean lastInPage);
+  }
+
   public static ResultSet processResult(
       Rows rows,
       QueryParameters parameters,
       BiFunction<List<Column>, io.stargate.db.datastore.Row, ByteBuffer> getComparableBytes,
-      Function<io.stargate.db.datastore.Row, ByteBuffer> getPagingState,
+      GetPagingStateFromRow getPagingState,
       BiFunction<List<Column>, List<ByteBuffer>, io.stargate.db.datastore.Row> makeRow)
       throws StatusException {
     return processResult(
@@ -145,7 +149,7 @@ public class ValuesHelper {
       Rows rows,
       boolean skipMetadata,
       BiFunction<List<Column>, io.stargate.db.datastore.Row, ByteBuffer> getComparableBytes,
-      Function<io.stargate.db.datastore.Row, ByteBuffer> getPagingState,
+      GetPagingStateFromRow getPagingState,
       BiFunction<List<Column>, List<ByteBuffer>, io.stargate.db.datastore.Row> makeRow)
       throws StatusException {
     final List<Column> columns = rows.resultMetadata.columns;
@@ -162,13 +166,17 @@ public class ValuesHelper {
       }
     }
 
+    int count = 0;
+
     for (List<ByteBuffer> row : rows.rows) {
       ByteBuffer comparableBytes = null;
       ByteBuffer rowPagingState = null;
       if (makeRow != null) {
         io.stargate.db.datastore.Row arrayListRow = makeRow.apply(columns, row);
         comparableBytes = getComparableBytes.apply(columns, arrayListRow);
-        rowPagingState = getPagingState.apply(arrayListRow);
+        rowPagingState =
+            getPagingState.apply(
+                rows.resultMetadata.pagingState, arrayListRow, count == rows.rows.size() - 1);
       }
       Row.Builder rowBuilder = Row.newBuilder();
       for (int i = 0; i < columnCount; ++i) {
@@ -185,6 +193,7 @@ public class ValuesHelper {
             BytesValue.newBuilder().setValue(ByteString.copyFrom(rowPagingState)).build());
       }
       resultSetBuilder.addRows(rowBuilder);
+      count++;
     }
 
     if (rows.resultMetadata.pagingState != null) {

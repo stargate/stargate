@@ -50,6 +50,7 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
   private final String decoratedKeyspace;
   private final SchemaAgreementHelper schemaAgreementHelper;
   private boolean enrichResponse;
+  private RowDecorator rowDecorator;
   private Parameters parameters;
 
   protected QueryHandler(
@@ -68,27 +69,8 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
             ? persistence.decorateKeyspaceName(
                 queryParameters.getKeyspace().getValue(), GrpcService.HEADERS_KEY.get())
             : null;
-    this.enrichResponse = false;
-  }
-
-  protected QueryHandler(
-      Query query,
-      Connection connection,
-      Persistence persistence,
-      ScheduledExecutorService executor,
-      int schemaAgreementRetries,
-      ExceptionHandler exceptionHandler,
-      boolean enrichResponse) {
-    super(query, connection, persistence, exceptionHandler);
-    this.schemaAgreementHelper =
-        new SchemaAgreementHelper(connection, schemaAgreementRetries, executor);
-    QueryParameters queryParameters = query.getParameters();
-    this.decoratedKeyspace =
-        queryParameters.hasKeyspace()
-            ? persistence.decorateKeyspaceName(
-                queryParameters.getKeyspace().getValue(), GrpcService.HEADERS_KEY.get())
-            : null;
-    this.enrichResponse = enrichResponse;
+    this.enrichResponse = query.hasParameters() && query.getParameters().getEnriched();
+    this.rowDecorator = null;
   }
 
   @Override
@@ -151,24 +133,31 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
   }
 
   private ByteBuffer getComparableBytesFromRow(List<Column> columns, Row row) {
-    if (enrichResponse) {
-      RowDecorator rowDecorator = connection.makeRowDecorator(TableName.of(columns));
-      return rowDecorator.getComparableBytes(row);
+    if (this.enrichResponse) {
+      if (this.rowDecorator == null) {
+        this.rowDecorator = connection.makeRowDecorator(TableName.of(columns));
+      }
+      return this.rowDecorator.getComparableBytes(row);
     }
     return null;
   }
 
-  private ByteBuffer getPagingStateFromRow(Row row) {
-    if (enrichResponse) {
+  private ByteBuffer getPagingStateFromRow(
+      ByteBuffer resultSetPagingState, Row row, boolean lastInPage) {
+    if (this.enrichResponse) {
+      if (lastInPage && resultSetPagingState == null) {
+        return null;
+      }
+
       return connection.makePagingState(
           PagingPosition.ofCurrentRow(row).resumeFrom(PagingPosition.ResumeMode.NEXT_ROW).build(),
-          parameters);
+          this.parameters);
     }
     return null;
   }
 
   private Row makeRow(List<Column> columns, List<ByteBuffer> row) {
-    if (enrichResponse) {
+    if (this.enrichResponse) {
       ProtocolVersion driverProtocolVersion = this.parameters.protocolVersion().toDriverVersion();
       return new ArrayListBackedRow(columns, row, driverProtocolVersion);
     }

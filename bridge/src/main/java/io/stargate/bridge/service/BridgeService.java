@@ -72,22 +72,6 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
   }
 
   @Override
-  public void executeEnrichedQuery(Query query, StreamObserver<Response> responseObserver) {
-    SynchronizedStreamObserver<Response> synchronizedStreamObserver =
-        new SynchronizedStreamObserver<>(responseObserver);
-    new SingleQueryHandler(
-            query,
-            GrpcService.CONNECTION_KEY.get(),
-            persistence,
-            executor,
-            schemaAgreementRetries,
-            synchronizedStreamObserver,
-            new SingleExceptionHandler(synchronizedStreamObserver),
-            true)
-        .handle();
-  }
-
-  @Override
   public void executeBatch(Batch batch, StreamObserver<Response> responseObserver) {
     SynchronizedStreamObserver<Response> synchronizedStreamObserver =
         new SynchronizedStreamObserver<>(responseObserver);
