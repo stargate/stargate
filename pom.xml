@@ -11,7 +11,6 @@
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
-
     <osgi.bundle.version>${project.version}</osgi.bundle.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.scm.id>github</project.scm.id>
@@ -62,7 +61,7 @@
         but build fails with newer versions so keeping at this level
       -->
     <errorprone.version>2.3.4</errorprone.version>
-    <jacoco.version>0.8.6</jacoco.version>
+    <jacoco.version>0.8.8</jacoco.version>
     <junit.version>5.8.2</junit.version>
     <mockito.version>3.12.4</mockito.version>
     <assertj.version>3.21.0</assertj.version>
@@ -170,6 +169,7 @@
         <module>cql</module>
         <module>graphqlapi</module>
         <module>restapi</module>
+        <module>sgv2-docsapi</module>
         <module>sgv2-restapi</module>
         <module>sgv2-graphqlapi</module>
         <module>sgv2-service-common</module>
@@ -207,6 +207,7 @@
         <module>cql</module>
         <module>graphqlapi</module>
         <module>restapi</module>
+        <module>sgv2-docsapi</module>
         <module>sgv2-restapi</module>
         <module>sgv2-graphqlapi</module>
         <module>sgv2-service-common</module>
@@ -259,19 +260,6 @@
         </configuration>
       </plugin>
       <plugin>
-        <groupId>com.coveo</groupId>
-        <artifactId>fmt-maven-plugin</artifactId>
-        <version>2.9</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>check</goal>
-            </goals>
-            <phase>process-sources</phase>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <groupId>au.com.acegi</groupId>
         <artifactId>xml-format-maven-plugin</artifactId>
         <version>3.1.2</version>
@@ -292,16 +280,13 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.0.0-M3</version>
+        <version>3.0.0-M6</version>
         <configuration>
-          <forkCount>1</forkCount>
-          <reuseForks>false</reuseForks>
           <excludes>
             <exclude>**/integration/**/*.java</exclude>
           </excludes>
           <systemPropertyVariables>
             <jacoco-agent.destfile>${project.build.directory}/jacoco-ut.exec</jacoco-agent.destfile>
-            <projectRoot>${basedir}/..</projectRoot> <!-- Assumed to run from module -->
           </systemPropertyVariables>
           <argLine>${surefire.jacoco.args}</argLine>
         </configuration>
@@ -415,6 +400,25 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-toolchains-plugin</artifactId>
+        <version>3.0.0</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>toolchain</goal>
+            </goals>
+            <configuration>
+              <toolchains>
+                <jdk>
+                  <version>8</version>
+                </jdk>
+              </toolchains>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
     <pluginManagement>
       <plugins>
@@ -429,32 +433,6 @@
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
           <version>3.8.1</version>
-          <configuration>
-            <compilerId>javac-with-errorprone</compilerId>
-            <forceJavacCompilerUse>true</forceJavacCompilerUse>
-            <source>1.8</source>
-            <target>1.8</target>
-            <compilerArgs combine.children="override">
-              <compilerArg>-Xep:MixedMutabilityReturnType:OFF</compilerArg>
-              <compilerArg>-Xep:ImmutableEnumChecker:OFF</compilerArg>
-              <compilerArg>-Xep:FutureReturnValueIgnored:OFF</compilerArg>
-              <compilerArg>-XepExcludedPaths:.*/target/(?:generated-sources|generated-test-sources)/.*</compilerArg>
-            </compilerArgs>
-            <showWarnings>true</showWarnings>
-            <failOnWarning>false</failOnWarning>
-          </configuration>
-          <dependencies>
-            <dependency>
-              <groupId>org.codehaus.plexus</groupId>
-              <artifactId>plexus-compiler-javac-errorprone</artifactId>
-              <version>2.8.6</version>
-            </dependency>
-            <dependency>
-              <groupId>com.google.errorprone</groupId>
-              <artifactId>error_prone_core</artifactId>
-              <version>${errorprone.version}</version>
-            </dependency>
-          </dependencies>
         </plugin>
         <plugin>
           <groupId>org.apache.felix</groupId>

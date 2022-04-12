@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <artifactId>stargate</artifactId>
+    <groupId>io.stargate</groupId>
+    <version>2.0.0-ALPHA-8-SNAPSHOT</version>
+  </parent>
   <groupId>io.stargate</groupId>
   <artifactId>sgv2-docsapi</artifactId>
-  <version>2.0.0-ALPHA-8-SNAPSHOT</version>
   <properties>
     <assertj.version>3.22.0</assertj.version>
     <compiler-plugin.version>3.8.1</compiler-plugin.version>
@@ -106,6 +110,24 @@
   <build>
     <plugins>
       <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-toolchains-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>toolchain</goal>
+            </goals>
+            <configuration>
+              <toolchains>
+                <jdk>
+                  <version>17</version>
+                </jdk>
+              </toolchains>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>${quarkus.platform.group-id}</groupId>
         <artifactId>quarkus-maven-plugin</artifactId>
         <version>${quarkus.platform.version}</version>
@@ -124,6 +146,7 @@
         <artifactId>maven-compiler-plugin</artifactId>
         <version>${compiler-plugin.version}</version>
         <configuration>
+          <release>17</release>
           <compilerArgs>
             <arg>-parameters</arg>
           </compilerArgs>
@@ -137,6 +160,9 @@
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
             <maven.home>${maven.home}</maven.home>
           </systemPropertyVariables>
+          <jdkToolchain>
+            <version>17</version>
+          </jdkToolchain>
         </configuration>
       </plugin>
       <!-- formatting plugins -->
