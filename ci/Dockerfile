@@ -47,9 +47,6 @@ RUN adduser --disabled-password --gecos "" ubuntu \
     && usermod -aG docker ubuntu \
     && su - ubuntu
 
-# copy toolchains
-COPY toolchains.xml $HOME/.m2
-
 RUN git clone --branch master --single-branch https://github.com/riptano/ccm.git && \
     cd ccm && \
     sudo python setup.py install
@@ -58,6 +55,9 @@ RUN git clone --branch master --single-branch https://github.com/riptano/ccm.git
 RUN ccm create -v 4.0.3 stargate_40 && ccm remove stargate_40
 RUN ccm create -v 3.11.12 stargate_311 && ccm remove stargate_311
 RUN ccm create -v 6.8.21 --dse stargate_dse68 && ccm remove stargate_dse68
+
+# copy toolchains to the correct location
+COPY toolchains.xml /home/ubuntu/.m2
 
 # copy toolchains to the correct location
 RUN mkdir /home/ubuntu/.m2/ \
