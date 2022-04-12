@@ -20,7 +20,7 @@ set -euo pipefail
 echoinfo() { echo "[\$(date -Is)] - \$@" 1>&2; }
 export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-amd64"
 export PATH=$PATH:\$JAVA_HOME/bin
-export MAVEN_OPTS="-Dmaven.repo.local=/cache/.m2 -Dmaven.user.home=/home/ubuntu/.m2"
+export MAVEN_OPTS="-Dmaven.repo.local=/cache/.m2"
 export TESTCONTAINERS_RYUK_DISABLED=true
 
 cd /workspace
@@ -44,9 +44,12 @@ echoinfo "Using backend $PERSISTENCE_BACKEND"
 
 export CCM_CLUSTER_START_TIMEOUT_OVERRIDE=600
 
+who
+ls -all /home/ubuntu/.m2
+
 # we need to set Java 17 as the main Java,
 # toolchains will compile and run tests in target version
-JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./mvnw -B verify --file pom.xml \
+JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 MAVEN_USER_HOME=/home/ubuntu/.m2 ./mvnw -B verify --file pom.xml \
 -P \${C3}it-cassandra-3.11 \
 -P \${C4}it-cassandra-4.0 \
 -P \${DSE}dse -P \${DSE}it-dse-6.8 \
