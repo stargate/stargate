@@ -26,6 +26,7 @@ import io.grpc.StatusException;
 import io.stargate.db.BoundStatement;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.Result.Rows;
+import io.stargate.db.RowDecorator;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.UserDefinedType;
@@ -121,12 +122,17 @@ public class ValuesHelper {
 
   public static ResultSet processResult(Rows rows, QueryParameters parameters)
       throws StatusException {
-    return processResult(rows, parameters.getSkipMetadata(), null, null, null);
+    return processResult(rows, parameters.getSkipMetadata(), null, null, null, null);
   }
 
   public static ResultSet processResult(Rows rows, BatchParameters parameters)
       throws StatusException {
-    return processResult(rows, parameters.getSkipMetadata(), null, null, null);
+    return processResult(rows, parameters.getSkipMetadata(), null, null, null, null);
+  }
+
+  public interface GetComparableBytesFromRow {
+    ByteBuffer apply(
+        List<Column> columns, io.stargate.db.datastore.Row row, RowDecorator rowDecorator);
   }
 
   public interface GetPagingStateFromRow {
@@ -137,20 +143,27 @@ public class ValuesHelper {
   public static ResultSet processResult(
       Rows rows,
       QueryParameters parameters,
-      BiFunction<List<Column>, io.stargate.db.datastore.Row, ByteBuffer> getComparableBytes,
+      GetComparableBytesFromRow getComparableBytes,
       GetPagingStateFromRow getPagingState,
-      BiFunction<List<Column>, List<ByteBuffer>, io.stargate.db.datastore.Row> makeRow)
+      BiFunction<List<Column>, List<ByteBuffer>, io.stargate.db.datastore.Row> makeRow,
+      RowDecorator rowDecorator)
       throws StatusException {
     return processResult(
-        rows, parameters.getSkipMetadata(), getComparableBytes, getPagingState, makeRow);
+        rows,
+        parameters.getSkipMetadata(),
+        getComparableBytes,
+        getPagingState,
+        makeRow,
+        rowDecorator);
   }
 
   private static ResultSet processResult(
       Rows rows,
       boolean skipMetadata,
-      BiFunction<List<Column>, io.stargate.db.datastore.Row, ByteBuffer> getComparableBytes,
+      GetComparableBytesFromRow getComparableBytes,
       GetPagingStateFromRow getPagingState,
-      BiFunction<List<Column>, List<ByteBuffer>, io.stargate.db.datastore.Row> makeRow)
+      BiFunction<List<Column>, List<ByteBuffer>, io.stargate.db.datastore.Row> makeRow,
+      RowDecorator rowDecorator)
       throws StatusException {
     final List<Column> columns = rows.resultMetadata.columns;
     final int columnCount = columns.size();
@@ -173,7 +186,7 @@ public class ValuesHelper {
       ByteBuffer rowPagingState = null;
       if (makeRow != null) {
         io.stargate.db.datastore.Row arrayListRow = makeRow.apply(columns, row);
-        comparableBytes = getComparableBytes.apply(columns, arrayListRow);
+        comparableBytes = getComparableBytes.apply(columns, arrayListRow, rowDecorator);
         rowPagingState =
             getPagingState.apply(
                 rows.resultMetadata.pagingState, arrayListRow, count == rows.rows.size() - 1);

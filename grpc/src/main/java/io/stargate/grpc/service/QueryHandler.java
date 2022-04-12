@@ -50,8 +50,8 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
   private final String decoratedKeyspace;
   private final SchemaAgreementHelper schemaAgreementHelper;
   private boolean enrichResponse;
-  private RowDecorator rowDecorator;
   private Parameters parameters;
+  public static final ByteBuffer EXHAUSTED_PAGE_STATE = ByteBuffer.allocate(0);
 
   protected QueryHandler(
       Query query,
@@ -70,7 +70,6 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
                 queryParameters.getKeyspace().getValue(), GrpcService.HEADERS_KEY.get())
             : null;
     this.enrichResponse = query.hasParameters() && query.getParameters().getEnriched();
-    this.rowDecorator = null;
   }
 
   @Override
@@ -114,13 +113,19 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
                 });
       case Rows:
         try {
+          Result.Rows rows = (Result.Rows) result;
+          RowDecorator rowDecorator = null;
+          if (this.enrichResponse) {
+            rowDecorator = connection.makeRowDecorator(TableName.of(rows.resultMetadata.columns));
+          }
           responseBuilder.setResultSet(
               ValuesHelper.processResult(
-                  (Result.Rows) result,
+                  rows,
                   message.getParameters(),
                   this::getComparableBytesFromRow,
                   this::getPagingStateFromRow,
-                  this::makeRow));
+                  this::makeRow,
+                  rowDecorator));
           return CompletableFuture.completedFuture(
               ResponseAndTraceId.from(result, responseBuilder));
         } catch (Exception e) {
@@ -132,12 +137,10 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
     }
   }
 
-  private ByteBuffer getComparableBytesFromRow(List<Column> columns, Row row) {
+  private ByteBuffer getComparableBytesFromRow(
+      List<Column> columns, Row row, RowDecorator rowDecorator) {
     if (this.enrichResponse) {
-      if (this.rowDecorator == null) {
-        this.rowDecorator = connection.makeRowDecorator(TableName.of(columns));
-      }
-      return this.rowDecorator.getComparableBytes(row);
+      return rowDecorator.getComparableBytes(row);
     }
     return null;
   }
@@ -146,7 +149,7 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
       ByteBuffer resultSetPagingState, Row row, boolean lastInPage) {
     if (this.enrichResponse) {
       if (lastInPage && resultSetPagingState == null) {
-        return null;
+        return EXHAUSTED_PAGE_STATE;
       }
 
       return connection.makePagingState(
