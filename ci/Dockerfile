@@ -47,6 +47,9 @@ RUN adduser --disabled-password --gecos "" ubuntu \
     && usermod -aG docker ubuntu \
     && su - ubuntu
 
+# copy toolchains
+COPY toolchains.xml $HOME/.m2
+
 RUN git clone --branch master --single-branch https://github.com/riptano/ccm.git && \
     cd ccm && \
     sudo python setup.py install

@@ -43,19 +43,15 @@ esac
 echoinfo "Using backend $PERSISTENCE_BACKEND"
 
 export CCM_CLUSTER_START_TIMEOUT_OVERRIDE=600
-mvn -B install verify --file pom.xml \
+
+# we need to set Java 17 as the main Java,
+# toolchains will compile and run tests in target version
+JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./mvnw -B verify --file pom.xml \
 -P \${C3}it-cassandra-3.11 \
 -P \${C4}it-cassandra-4.0 \
 -P \${DSE}dse -P \${DSE}it-dse-6.8 \
 -P default \
 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
-
-echoinfo "Testing Java 17 projects"
-
-cd sgv2-docsapi/
-JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./mvnw -B verify --file ./pom.xml \
--Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
-cd ../
 
 echoinfo "Test complete"
 
