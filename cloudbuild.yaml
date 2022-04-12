@@ -28,7 +28,7 @@ steps:
       - path: '/cache/.m2'
         name: 'm2_cache'
   - id: 'build'
-    name: 'maven:3-jdk-8'
+    name: 'maven:3-openjdk-17'
     waitFor: [ 'fetch_secret', 'init_cache' ]
     entrypoint: mvn
     args: [ '-B','install', '--settings', 'ci/custom-settings.xml', '--file', 'pom.xml', '-DskipITs',
