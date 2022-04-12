@@ -57,7 +57,7 @@ RUN ccm create -v 3.11.12 stargate_311 && ccm remove stargate_311
 RUN ccm create -v 6.8.21 --dse stargate_dse68 && ccm remove stargate_dse68
 
 # copy toolchains to the correct location
-COPY toolchains.xml /home/ubuntu/.m2
+COPY --chown=ubuntu:ubuntu toolchains.xml /home/ubuntu/.m2
 
 # copy toolchains to the correct location
 RUN mkdir /home/ubuntu/.m2/ \
