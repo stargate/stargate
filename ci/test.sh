@@ -44,7 +44,7 @@ echoinfo "Using backend $PERSISTENCE_BACKEND"
 
 export CCM_CLUSTER_START_TIMEOUT_OVERRIDE=600
 
-who
+whoami
 ls -all /home/ubuntu/.m2
 
 # we need to set Java 17 as the main Java,
