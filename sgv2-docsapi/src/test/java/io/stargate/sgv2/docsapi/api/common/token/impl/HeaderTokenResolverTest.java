@@ -50,7 +50,8 @@ class HeaderTokenResolverTest {
         }
     }
 
-    // TODO move to @Nested with Quarkus update to 2.8.0
+    // TODO move to @Nested with Quarkus fix
+    //  https://github.com/quarkusio/quarkus/issues/24910
 
     @Inject
     Instance<CassandraTokenResolver> tokenResolver;

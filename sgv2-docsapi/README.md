@@ -1,5 +1,7 @@
 # Stargate Docs API V2
 
+> **IMPORTANT:**  This project is currently an independent project in this monorepo, and it's not connected to the root `io.stargate:stargate` project.
+
 This project represents the stand-alone Docs API microservice for Stargate V2, extracted from monolithic Stargate V1 Coordinator.
 
 The high-level design of the application is described in the [Document API in Stargate V2 discussion](https://github.com/stargate/stargate/discussions/1742).

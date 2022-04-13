@@ -36,7 +36,8 @@ class FixedTenantResolverTest {
     @Inject
     Instance<TenantResolver> tenantResolver;
 
-    // TODO move to @Nested with Quarkus update to 2.8.0
+    // TODO move to @Nested with Quarkus fix
+    //  https://github.com/quarkusio/quarkus/issues/24910
 
     @Test
     public void happyPath() {
