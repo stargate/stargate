@@ -88,7 +88,7 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, DataFetcherResul
     Optional<Long> timestamp =
         TimestampParser.parse(model.getCqlTimestampArgumentName(), environment);
     Query query =
-        buildUpdateQuery(entityModel, modifiers, whereConditions, ifConditions, timestamp, context);
+        buildUpdateQuery(entityModel, modifiers, whereConditions, ifConditions, timestamp);
 
     List<TypedKeyValue> primaryKey = computePrimaryKey(entityModel, whereConditions);
 
@@ -157,8 +157,7 @@ public class UpdateFetcher extends MutationFetcher<UpdateModel, DataFetcherResul
       Collection<ValueModifier> modifiers,
       List<BuiltCondition> whereConditions,
       List<BuiltCondition> ifConditions,
-      Optional<Long> timestamp,
-      StargateGraphqlContext context) {
+      Optional<Long> timestamp) {
     return new QueryBuilder()
         .update(entityModel.getKeyspaceName(), entityModel.getCqlName())
         .ttl(model.getTtl().orElse(null))

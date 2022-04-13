@@ -109,9 +109,7 @@ public abstract class MutationFetcher<MutationModelT extends MutationModel, Resu
     StargateGraphqlContext.BatchContext batchContext = context.getBatchContext();
 
     for (Query query : payload.getQueries()) {
-      if (query.hasParameters()
-          && !query.getParameters().equals(DEFAULT_PARAMETERS)
-          && !batchContext.setParameters(query.getParameters())) {
+      if (query.hasParameters() && !batchContext.setParameters(query.getParameters())) {
         buildException =
             new GraphQLException(
                 "all the selections in an @atomic mutation must use the same consistency levels");

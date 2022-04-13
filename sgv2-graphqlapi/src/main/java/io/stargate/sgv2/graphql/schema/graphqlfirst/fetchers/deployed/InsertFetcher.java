@@ -22,6 +22,7 @@ import graphql.language.ArrayValue;
 import graphql.language.SourceLocation;
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.DataFetchingFieldSelectionSet;
+import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.TypeSpec;
 import io.stargate.proto.QueryOuterClass.Value;
@@ -79,10 +80,10 @@ public class InsertFetcher extends MutationFetcher<InsertModel, DataFetcherResul
     }
     List<Query> queries = new ArrayList<>();
     List<List<TypedKeyValue>> primaryKeys = new ArrayList<>();
-    List<Map<String, Object>> cqlValuesList = Lists.newArrayListWithCapacity(inputs.size());
+    List<Map<String, Value>> cqlValuesList = Lists.newArrayListWithCapacity(inputs.size());
 
     for (Map<String, Object> input : inputs) {
-      Map<String, Object> cqlValues = buildCqlValues(entityModel, keyspace, input);
+      Map<String, Value> cqlValues = buildCqlValues(entityModel, keyspace, input);
       Collection<ValueModifier> modifiers =
           cqlValues.entrySet().stream()
               .map(e -> ValueModifier.set(e.getKey(), e.getValue()))
@@ -91,7 +92,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, DataFetcherResul
       Optional<Long> timestamp =
           TimestampParser.parse(model.getCqlTimestampArgumentName(), environment);
 
-      Query query = buildInsertQuery(entityModel, modifiers, timestamp, isLwt, context);
+      Query query = buildInsertQuery(entityModel, modifiers, timestamp, isLwt);
 
       List<TypedKeyValue> primaryKey = computePrimaryKey(entityModel, modifiers);
 
@@ -110,8 +111,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, DataFetcherResul
       EntityModel entityModel,
       Collection<ValueModifier> modifiers,
       Optional<Long> timestamp,
-      boolean isLwt,
-      StargateGraphqlContext context) {
+      boolean isLwt) {
     return new QueryBuilder()
         .insertInto(entityModel.getKeyspaceName(), entityModel.getCqlName())
         .value(modifiers)
@@ -143,7 +143,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, DataFetcherResul
       DataFetchingFieldSelectionSet selectionSet,
       String entityPrefixInResponse,
       List<Map<String, Object>> inputs,
-      List<Map<String, Object>> cqlValuesList,
+      List<Map<String, Value>> cqlValuesList,
       DataFetchingEnvironment environment) {
     return queryResults -> {
       DataFetcherResult.Builder<Object> result = DataFetcherResult.newResult();
@@ -209,7 +209,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, DataFetcherResul
       MutationResult queryResult,
       String entityPrefixInResponse,
       Map<String, Object> input,
-      Map<String, Object> cqlValues,
+      Map<String, Value> cqlValues,
       DataFetchingFieldSelectionSet selectionSet) {
     Map<String, Object> response = new LinkedHashMap<>();
 
@@ -236,7 +236,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, DataFetcherResul
   }
 
   private Map<String, Object> buildEntityResponse(
-      MutationResult queryResult, Map<String, Object> input, Map<String, Object> cqlValues) {
+      MutationResult queryResult, Map<String, Object> input, Map<String, Value> cqlValues) {
 
     Map<String, Object> entityResponse = new LinkedHashMap<>();
     if (queryResult instanceof MutationResult.Applied) {
@@ -271,13 +271,13 @@ public class InsertFetcher extends MutationFetcher<InsertModel, DataFetcherResul
         || model.getReturnType() instanceof OperationModel.EntityListReturnType;
   }
 
-  private Map<String, Object> buildCqlValues(
+  private Map<String, Value> buildCqlValues(
       EntityModel entityModel, CqlKeyspaceDescribe keyspace, Map<String, Object> input) {
 
-    Map<String, Object> values = new HashMap<>();
+    Map<String, Value> values = new HashMap<>();
     for (FieldModel column : entityModel.getAllColumns()) {
       String graphqlName = column.getGraphqlName();
-      Object cqlValue;
+      Value cqlValue;
       if (input.containsKey(graphqlName)) {
         Object graphqlValue = input.get(graphqlName);
         cqlValue = toCqlValue(graphqlValue, column.getCqlType(), keyspace);
@@ -295,12 +295,12 @@ public class InsertFetcher extends MutationFetcher<InsertModel, DataFetcherResul
     return values;
   }
 
-  private Object generateUuid(TypeSpec cqlType) {
+  private Value generateUuid(TypeSpec cqlType) {
     if (cqlType.getBasic() == TypeSpec.Basic.UUID) {
-      return UUID.randomUUID();
+      return Values.of(UUID.randomUUID());
     }
     if (cqlType.getBasic() == TypeSpec.Basic.TIMEUUID) {
-      return Uuids.timeBased();
+      return Values.of(Uuids.timeBased());
     }
     throw new AssertionError("This shouldn't get called for CQL type " + cqlType);
   }
@@ -310,7 +310,7 @@ public class InsertFetcher extends MutationFetcher<InsertModel, DataFetcherResul
    * out to be a failed LWT).
    */
   private void copyInputDataToResponse(
-      Map<String, Object> input, Map<String, Object> cqlValues, Map<String, Object> entityData) {
+      Map<String, Object> input, Map<String, Value> cqlValues, Map<String, Object> entityData) {
 
     for (FieldModel column : model.getEntity().getAllColumns()) {
       String graphqlName = column.getGraphqlName();
@@ -319,9 +319,8 @@ public class InsertFetcher extends MutationFetcher<InsertModel, DataFetcherResul
         graphqlValue = input.get(graphqlName);
       } else if (column.isPrimaryKey()) {
         // The value is a generated UUID
-        Object cqlValue = cqlValues.get(column.getCqlName());
-        assert cqlValue instanceof UUID;
-        graphqlValue = cqlValue.toString();
+        Value cqlValue = cqlValues.get(column.getCqlName());
+        graphqlValue = Values.uuid(cqlValue).toString();
       } else {
         continue;
       }
