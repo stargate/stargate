@@ -15,20 +15,17 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api.common.exception;
+package io.stargate.sgv2.docsapi.api.exception;
 
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
-import javax.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 
-/** Simple exception mapper for the {@link StatusRuntimeException}. */
+/** Simple exception mapper for the {@link ErrorCodeRuntimeException}. */
 public class ErrorCodeRuntimeExceptionMapper {
 
-    @ServerExceptionMapper
-    public RestResponse<ApiError> errorCodeRuntimeException(ErrorCodeRuntimeException exception) {
-        return exception.getResponse();
-    }
+  @ServerExceptionMapper
+  public RestResponse<ApiError> errorCodeRuntimeException(ErrorCodeRuntimeException exception) {
+    return exception.getResponse();
+  }
 }

@@ -41,4 +41,8 @@ public record ApiError(
   public ApiError(String description) {
     this(description, 0, null);
   }
+
+  public ApiError(String description, int code) {
+    this(description, code, null);
+  }
 }

@@ -14,8 +14,9 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.exception;
+package io.stargate.sgv2.docsapi.api.exception;
 
+import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
 import org.jboss.resteasy.reactive.RestResponse;
 
 /** {@link RuntimeException} that carries an {@link ErrorCode}. */

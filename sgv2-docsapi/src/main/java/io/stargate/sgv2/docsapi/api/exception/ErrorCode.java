@@ -14,13 +14,14 @@
  *  limitations under the License.
  */
 
-package io.stargate.web.docsapi.exception;
+package io.stargate.sgv2.docsapi.api.exception;
 
-import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
+import io.stargate.sgv2.docsapi.api.config.DocsApiConfiguration;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;
+import org.jboss.resteasy.reactive.RestResponse.ResponseBuilder;
 
 /** Simple enumeration for the error code that can provide back the correct response to the user. */
 public enum ErrorCode {
@@ -184,11 +185,11 @@ public enum ErrorCode {
    * @return Returns the Response.ResponseBuilder in order to be able to alter the final response to
    *     the user
    */
-  public RestResponse.ResponseBuilder<ApiError> toResponseBuilder(String message) {
+  public ResponseBuilder<ApiError> toResponseBuilder(String message) {
     ApiError apiError = new ApiError(message, responseStatus.getStatusCode());
 
     // declare as MediaType.APPLICATION_JSON_TYPE as we have non-string entity here
-    return ResponseBuilder.status(responseStatus).type(MediaType.APPLICATION_JSON_TYPE).entity(apiError);
+    return ResponseBuilder.create(responseStatus, apiError).type(MediaType.APPLICATION_JSON_TYPE);
   }
 
   public String getDefaultMessage() {
