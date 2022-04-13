@@ -20,26 +20,21 @@ package io.stargate.sgv2.docsapi.api.common.tenant.impl;
 import io.stargate.sgv2.docsapi.api.common.tenant.TenantResolver;
 import io.stargate.sgv2.docsapi.config.TenantResolverConfig;
 import io.vertx.ext.web.RoutingContext;
-
-import javax.ws.rs.core.SecurityContext;
 import java.util.Optional;
+import javax.ws.rs.core.SecurityContext;
 
-/**
- * The {@link TenantResolver} that uses a fixed tenant ID supplied by the configuration.
- */
+/** The {@link TenantResolver} that uses a fixed tenant ID supplied by the configuration. */
 public class FixedTenantResolver implements TenantResolver {
 
-    private final TenantResolverConfig.FixedTenantResolverConfig config;
+  private final TenantResolverConfig.FixedTenantResolverConfig config;
 
-    public FixedTenantResolver(TenantResolverConfig.FixedTenantResolverConfig config) {
-        this.config = config;
-    }
+  public FixedTenantResolver(TenantResolverConfig.FixedTenantResolverConfig config) {
+    this.config = config;
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Optional<String> resolve(RoutingContext context, SecurityContext securityContext) {
-        return config.tenantId();
-    }
+  /** {@inheritDoc} */
+  @Override
+  public Optional<String> resolve(RoutingContext context, SecurityContext securityContext) {
+    return config.tenantId();
+  }
 }

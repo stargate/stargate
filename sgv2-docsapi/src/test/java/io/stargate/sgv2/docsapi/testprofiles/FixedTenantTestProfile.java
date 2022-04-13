@@ -19,23 +19,22 @@ package io.stargate.sgv2.docsapi.testprofiles;
 
 import com.google.common.collect.ImmutableMap;
 import io.quarkus.test.junit.QuarkusTestProfile;
-
 import java.util.Map;
 
 /**
  * Simple test profile to enable fixed tenant id with value {@value #TENANT_ID}.
- * <p>
- * Annotate test class with @TestProfile(FixedTenantTestProfile.class) to use.
+ *
+ * <p>Annotate test class with @TestProfile(FixedTenantTestProfile.class) to use.
  */
 public class FixedTenantTestProfile implements QuarkusTestProfile {
 
-    public static final String TENANT_ID = "mickey-mouse";
+  public static final String TENANT_ID = "mickey-mouse";
 
-    @Override
-    public Map<String, String> getConfigOverrides() {
-        return ImmutableMap.<String, String>builder()
-                .put("stargate.tenant-resolver.type", "fixed")
-                .put("stargate.tenant-resolver.fixed.tenant-id", TENANT_ID)
-                .build();
-    }
+  @Override
+  public Map<String, String> getConfigOverrides() {
+    return ImmutableMap.<String, String>builder()
+        .put("stargate.tenant-resolver.type", "fixed")
+        .put("stargate.tenant-resolver.fixed.tenant-id", TENANT_ID)
+        .build();
+  }
 }

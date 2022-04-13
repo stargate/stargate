@@ -22,45 +22,34 @@ import io.stargate.sgv2.docsapi.api.common.tenant.TenantResolver;
 import io.stargate.sgv2.docsapi.api.common.tenant.impl.FixedTenantResolver;
 import io.stargate.sgv2.docsapi.api.common.tenant.impl.SubdomainTenantResolver;
 import io.stargate.sgv2.docsapi.config.TenantResolverConfig;
-
+import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
-import java.util.Optional;
 
-/**
- * Configuration for activating a correct {@link TenantResolver}.
- */
+/** Configuration for activating a correct {@link TenantResolver}. */
 public class TenantConfiguration {
 
-    @Produces
-    @ApplicationScoped
-    @LookupIfProperty(
-            name = "stargate.tenant-resolver.type",
-            stringValue = "subdomain"
-    )
-    TenantResolver subdomainTenantResolver() {
-        return new SubdomainTenantResolver();
-    }
+  @Produces
+  @ApplicationScoped
+  @LookupIfProperty(name = "stargate.tenant-resolver.type", stringValue = "subdomain")
+  TenantResolver subdomainTenantResolver() {
+    return new SubdomainTenantResolver();
+  }
 
-    @Produces
-    @ApplicationScoped
-    @LookupIfProperty(
-            name = "stargate.tenant-resolver.type",
-            stringValue = "fixed"
-    )
-    TenantResolver fixedTenantResolver(TenantResolverConfig config) {
-        return new FixedTenantResolver(config.fixed());
-    }
+  @Produces
+  @ApplicationScoped
+  @LookupIfProperty(name = "stargate.tenant-resolver.type", stringValue = "fixed")
+  TenantResolver fixedTenantResolver(TenantResolverConfig config) {
+    return new FixedTenantResolver(config.fixed());
+  }
 
-    @Produces
-    @ApplicationScoped
-    @LookupIfProperty(
-            name = "stargate.tenant-resolver.type",
-            stringValue = "noop",
-            lookupIfMissing = true
-    )
-    TenantResolver noopTenantResolver() {
-        return (context, securityContext) -> Optional.empty();
-    }
-
+  @Produces
+  @ApplicationScoped
+  @LookupIfProperty(
+      name = "stargate.tenant-resolver.type",
+      stringValue = "noop",
+      lookupIfMissing = true)
+  TenantResolver noopTenantResolver() {
+    return (context, securityContext) -> Optional.empty();
+  }
 }

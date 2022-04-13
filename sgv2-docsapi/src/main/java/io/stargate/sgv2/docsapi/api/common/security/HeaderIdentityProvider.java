@@ -26,27 +26,26 @@ import io.smallrye.mutiny.Uni;
 
 /**
  * Identity provider that works with the {@link HeaderAuthenticationRequest}.
- * <p>
- * Note that this provider creates an identity with a {@link java.security.Principal} containing the value of the authentication header.
+ *
+ * <p>Note that this provider creates an identity with a {@link java.security.Principal} containing
+ * the value of the authentication header.
  */
 public class HeaderIdentityProvider implements IdentityProvider<HeaderAuthenticationRequest> {
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Class<HeaderAuthenticationRequest> getRequestType() {
-        return HeaderAuthenticationRequest.class;
-    }
+  /** {@inheritDoc} */
+  @Override
+  public Class<HeaderAuthenticationRequest> getRequestType() {
+    return HeaderAuthenticationRequest.class;
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Uni<SecurityIdentity> authenticate(HeaderAuthenticationRequest request, AuthenticationRequestContext context) {
-        // no explicit authentication, the existence of the HeaderAuthenticationRequest is enough
-        QuarkusPrincipal headerValuePrincipal = new QuarkusPrincipal(request.getHeaderValue());
-        QuarkusSecurityIdentity identity = QuarkusSecurityIdentity.builder().setPrincipal(headerValuePrincipal).build();
-        return Uni.createFrom().item(identity);
-    }
+  /** {@inheritDoc} */
+  @Override
+  public Uni<SecurityIdentity> authenticate(
+      HeaderAuthenticationRequest request, AuthenticationRequestContext context) {
+    // no explicit authentication, the existence of the HeaderAuthenticationRequest is enough
+    QuarkusPrincipal headerValuePrincipal = new QuarkusPrincipal(request.getHeaderValue());
+    QuarkusSecurityIdentity identity =
+        QuarkusSecurityIdentity.builder().setPrincipal(headerValuePrincipal).build();
+    return Uni.createFrom().item(identity);
+  }
 }

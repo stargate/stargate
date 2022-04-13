@@ -20,27 +20,21 @@ package io.stargate.sgv2.docsapi.api.common.token.impl;
 import io.stargate.sgv2.docsapi.api.common.token.CassandraTokenResolver;
 import io.stargate.sgv2.docsapi.config.TokenResolverConfig;
 import io.vertx.ext.web.RoutingContext;
-
-import javax.ws.rs.core.SecurityContext;
 import java.util.Optional;
+import javax.ws.rs.core.SecurityContext;
 
-/**
- * The {@link CassandraTokenResolver} that uses a fixed token supplied by the configuration.
- */
+/** The {@link CassandraTokenResolver} that uses a fixed token supplied by the configuration. */
 public class FixedTokenResolver implements CassandraTokenResolver {
 
-    private final TokenResolverConfig.FixedTokenResolverConfig config;
+  private final TokenResolverConfig.FixedTokenResolverConfig config;
 
-    public FixedTokenResolver(TokenResolverConfig.FixedTokenResolverConfig config) {
-        this.config = config;
-    }
+  public FixedTokenResolver(TokenResolverConfig.FixedTokenResolverConfig config) {
+    this.config = config;
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Optional<String> resolve(RoutingContext context, SecurityContext securityContext) {
-        return config.token();
-    }
-
+  /** {@inheritDoc} */
+  @Override
+  public Optional<String> resolve(RoutingContext context, SecurityContext securityContext) {
+    return config.token();
+  }
 }

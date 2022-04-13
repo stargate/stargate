@@ -22,24 +22,23 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 /**
  * Record for representing the API error.
  *
- * @param description  A human-readable description of the error state.
- * @param code         The internal number referencing the error state.
+ * @param description A human-readable description of the error state.
+ * @param code The internal number referencing the error state.
  * @param internalTxId The internal tracking number of the request.
  */
 public record ApiError(
-
-        @Schema(description = "A human readable description of the error state.", example = "Could not create collection `custom-users`, it has invalid characters. Valid characters are alphanumeric and underscores.")
+    @Schema(
+            description = "A human readable description of the error state.",
+            example =
+                "Could not create collection `custom-users`, it has invalid characters. Valid characters are alphanumeric and underscores.")
         String description,
-
-        @Schema(description = "The internal number referencing the error state.", example = "22000")
+    @Schema(description = "The internal number referencing the error state.", example = "22000")
         int code,
 
-        // TODO Is this still needed and used? This was not part of the public API.
-        @Schema(hidden = true)
-        String internalTxId) {
+    // TODO Is this still needed and used? This was not part of the public API.
+    @Schema(hidden = true) String internalTxId) {
 
-    public ApiError(String description) {
-        this(description, 0, null);
-    }
-
+  public ApiError(String description) {
+    this(description, 0, null);
+  }
 }

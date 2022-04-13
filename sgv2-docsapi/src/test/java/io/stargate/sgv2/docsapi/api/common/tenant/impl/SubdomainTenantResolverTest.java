@@ -17,58 +17,56 @@
 
 package io.stargate.sgv2.docsapi.api.common.tenant.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
+
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.stargate.sgv2.docsapi.api.common.tenant.TenantResolver;
 import io.vertx.ext.web.RoutingContext;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-
+import java.util.Optional;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 class SubdomainTenantResolverTest {
 
-    @Inject // enabled by default
-    Instance<TenantResolver> tenantResolver;
+  @Inject // enabled by default
+  Instance<TenantResolver> tenantResolver;
 
-    @InjectMock(returnsDeepMocks = true)
-    RoutingContext routingContext;
+  @InjectMock(returnsDeepMocks = true)
+  RoutingContext routingContext;
 
-    @Nested
-    class Resolve {
+  @Nested
+  class Resolve {
 
-        @Test
-        public void happyPath() {
-            when(routingContext.request().host()).thenReturn("xyz.domain.host");
+    @Test
+    public void happyPath() {
+      when(routingContext.request().host()).thenReturn("xyz.domain.host");
 
-            Optional<String> result = tenantResolver.get().resolve(routingContext, null);
+      Optional<String> result = tenantResolver.get().resolve(routingContext, null);
 
-            assertThat(result).contains("xyz");
-        }
-
-        @Test
-        public void topLevelDomain() {
-            when(routingContext.request().host()).thenReturn("domain.host");
-
-            Optional<String> result = tenantResolver.get().resolve(routingContext, null);
-
-            assertThat(result).contains("domain");
-        }
-
-        @Test
-        public void notDomain() {
-            when(routingContext.request().host()).thenReturn("localhost");
-
-            Optional<String> result = tenantResolver.get().resolve(routingContext, null);
-
-            assertThat(result).isEmpty();
-        }
-
+      assertThat(result).contains("xyz");
     }
+
+    @Test
+    public void topLevelDomain() {
+      when(routingContext.request().host()).thenReturn("domain.host");
+
+      Optional<String> result = tenantResolver.get().resolve(routingContext, null);
+
+      assertThat(result).contains("domain");
+    }
+
+    @Test
+    public void notDomain() {
+      when(routingContext.request().host()).thenReturn("localhost");
+
+      Optional<String> result = tenantResolver.get().resolve(routingContext, null);
+
+      assertThat(result).isEmpty();
+    }
+  }
 }

@@ -17,52 +17,49 @@
 
 package io.stargate.sgv2.docsapi.api.common.token.impl;
 
+import static org.mockito.Mockito.when;
+
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.stargate.sgv2.docsapi.api.common.token.CassandraTokenResolver;
+import java.util.Optional;
+import javax.enterprise.inject.Instance;
+import javax.inject.Inject;
+import javax.ws.rs.core.SecurityContext;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
-import javax.ws.rs.core.SecurityContext;
-import java.util.Optional;
-
-import static org.mockito.Mockito.when;
-
 @QuarkusTest
 class PrincipalTokenResolverTest {
 
-    @Inject // enabled by default
-    Instance<CassandraTokenResolver> tokenResolver;
+  @Inject // enabled by default
+  Instance<CassandraTokenResolver> tokenResolver;
 
-    @InjectMock(returnsDeepMocks = true)
-    SecurityContext securityContext;
+  @InjectMock(returnsDeepMocks = true)
+  SecurityContext securityContext;
 
-    @Nested
-    class Resolve {
+  @Nested
+  class Resolve {
 
-        @Test
-        public void happyPath() {
-            String token = RandomStringUtils.randomAlphanumeric(16);
-            when(securityContext.getUserPrincipal().getName()).thenReturn(token);
+    @Test
+    public void happyPath() {
+      String token = RandomStringUtils.randomAlphanumeric(16);
+      when(securityContext.getUserPrincipal().getName()).thenReturn(token);
 
-            Optional<String> result = tokenResolver.get().resolve(null, securityContext);
+      Optional<String> result = tokenResolver.get().resolve(null, securityContext);
 
-            Assertions.assertThat(result).contains(token);
-        }
-
-        @Test
-        public void noPrincipal() {
-            when(securityContext.getUserPrincipal()).thenReturn(null);
-
-            Optional<String> result = tokenResolver.get().resolve(null, securityContext);
-
-            Assertions.assertThat(result).isEmpty();
-        }
-
+      Assertions.assertThat(result).contains(token);
     }
 
+    @Test
+    public void noPrincipal() {
+      when(securityContext.getUserPrincipal()).thenReturn(null);
+
+      Optional<String> result = tokenResolver.get().resolve(null, securityContext);
+
+      Assertions.assertThat(result).isEmpty();
+    }
+  }
 }

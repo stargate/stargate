@@ -17,6 +17,9 @@
 
 package io.stargate.sgv2.docsapi.api.common.token.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.when;
+
 import com.google.common.collect.ImmutableMap;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
@@ -24,58 +27,52 @@ import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.stargate.sgv2.docsapi.api.common.token.CassandraTokenResolver;
 import io.vertx.ext.web.RoutingContext;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.jupiter.api.Test;
-
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
 import java.util.Map;
 import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.when;
+import javax.enterprise.inject.Instance;
+import javax.inject.Inject;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 @TestProfile(HeaderTokenResolverTest.Profile.class)
 class HeaderTokenResolverTest {
 
-    public static class Profile implements QuarkusTestProfile {
+  public static class Profile implements QuarkusTestProfile {
 
-        @Override
-        public Map<String, String> getConfigOverrides() {
-            return ImmutableMap.<String, String>builder()
-                    .put("stargate.token-resolver.type", "header")
-                    .put("stargate.token-resolver.header.header-name", "x-some-header")
-                    .build();
-        }
+    @Override
+    public Map<String, String> getConfigOverrides() {
+      return ImmutableMap.<String, String>builder()
+          .put("stargate.token-resolver.type", "header")
+          .put("stargate.token-resolver.header.header-name", "x-some-header")
+          .build();
     }
+  }
 
-    // TODO move to @Nested with Quarkus fix
-    //  https://github.com/quarkusio/quarkus/issues/24910
+  // TODO move to @Nested with Quarkus fix
+  //  https://github.com/quarkusio/quarkus/issues/24910
 
-    @Inject
-    Instance<CassandraTokenResolver> tokenResolver;
+  @Inject Instance<CassandraTokenResolver> tokenResolver;
 
-    @InjectMock(returnsDeepMocks = true)
-    RoutingContext routingContext;
+  @InjectMock(returnsDeepMocks = true)
+  RoutingContext routingContext;
 
-    @Test
-    public void happyPath() {
-        String token = RandomStringUtils.randomAlphanumeric(16);
-        when(routingContext.request().getHeader("x-some-header")).thenReturn(token);
+  @Test
+  public void happyPath() {
+    String token = RandomStringUtils.randomAlphanumeric(16);
+    when(routingContext.request().getHeader("x-some-header")).thenReturn(token);
 
-        Optional<String> result = tokenResolver.get().resolve(routingContext, null);
+    Optional<String> result = tokenResolver.get().resolve(routingContext, null);
 
-        assertThat(result).contains(token);
-    }
+    assertThat(result).contains(token);
+  }
 
-    @Test
-    public void noHeader() {
-        when(routingContext.request().getHeader("x-some-header")).thenReturn(null);
+  @Test
+  public void noHeader() {
+    when(routingContext.request().getHeader("x-some-header")).thenReturn(null);
 
-        Optional<String> result = tokenResolver.get().resolve(routingContext, null);
+    Optional<String> result = tokenResolver.get().resolve(routingContext, null);
 
-        assertThat(result).isEmpty();
-    }
-
+    assertThat(result).isEmpty();
+  }
 }

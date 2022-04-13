@@ -17,33 +17,30 @@
 
 package io.stargate.sgv2.docsapi.api.common.tenant.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.docsapi.api.common.tenant.TenantResolver;
 import io.stargate.sgv2.docsapi.testprofiles.FixedTenantTestProfile;
-import org.junit.jupiter.api.Test;
-
+import java.util.Optional;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
-import java.util.Optional;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 @TestProfile(FixedTenantTestProfile.class)
 class FixedTenantResolverTest {
 
-    @Inject
-    Instance<TenantResolver> tenantResolver;
+  @Inject Instance<TenantResolver> tenantResolver;
 
-    // TODO move to @Nested with Quarkus fix
-    //  https://github.com/quarkusio/quarkus/issues/24910
+  // TODO move to @Nested with Quarkus fix
+  //  https://github.com/quarkusio/quarkus/issues/24910
 
-    @Test
-    public void happyPath() {
-        Optional<String> result = tenantResolver.get().resolve(null, null);
+  @Test
+  public void happyPath() {
+    Optional<String> result = tenantResolver.get().resolve(null, null);
 
-        assertThat(result).contains(FixedTenantTestProfile.TENANT_ID);
-    }
-
+    assertThat(result).contains(FixedTenantTestProfile.TENANT_ID);
+  }
 }

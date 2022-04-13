@@ -24,28 +24,24 @@ import io.stargate.sgv2.docsapi.api.common.security.HeaderAuthenticationRequest;
 import io.stargate.sgv2.docsapi.api.common.security.HeaderBasedAuthenticationMechanism;
 import io.stargate.sgv2.docsapi.api.common.security.HeaderIdentityProvider;
 import io.stargate.sgv2.docsapi.config.HeaderBasedAuthConfig;
-
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 
-/**
- * The configuration for the header based security.
- */
+/** The configuration for the header based security. */
 public class HeaderBasedSecurityConfiguration {
 
-    @Produces
-    @ApplicationScoped
-    @LookupIfProperty(name = "stargate.header-based-auth.enabled", stringValue = "true")
-    HttpAuthenticationMechanism httpAuthenticationMechanism(HeaderBasedAuthConfig config) {
-        String headerName = config.headerName();
-        return new HeaderBasedAuthenticationMechanism(headerName);
-    }
+  @Produces
+  @ApplicationScoped
+  @LookupIfProperty(name = "stargate.header-based-auth.enabled", stringValue = "true")
+  HttpAuthenticationMechanism httpAuthenticationMechanism(HeaderBasedAuthConfig config) {
+    String headerName = config.headerName();
+    return new HeaderBasedAuthenticationMechanism(headerName);
+  }
 
-    @Produces
-    @ApplicationScoped
-    @LookupIfProperty(name = "stargate.header-based-auth.enabled", stringValue = "true")
-    IdentityProvider<HeaderAuthenticationRequest> identityProvider() {
-        return new HeaderIdentityProvider();
-    }
-
+  @Produces
+  @ApplicationScoped
+  @LookupIfProperty(name = "stargate.header-based-auth.enabled", stringValue = "true")
+  IdentityProvider<HeaderAuthenticationRequest> identityProvider() {
+    return new HeaderIdentityProvider();
+  }
 }

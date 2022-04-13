@@ -19,31 +19,25 @@ package io.stargate.sgv2.docsapi.api.common.security;
 
 import io.quarkus.security.identity.request.BaseAuthenticationRequest;
 
-/**
- * {@link io.quarkus.security.identity.request.AuthenticationRequest} based on the HTTP header.
- */
+/** {@link io.quarkus.security.identity.request.AuthenticationRequest} based on the HTTP header. */
 public class HeaderAuthenticationRequest extends BaseAuthenticationRequest {
 
-    /**
-     * The name of the header that was used for the authentication request.
-     */
-    private final String headerName;
+  /** The name of the header that was used for the authentication request. */
+  private final String headerName;
 
-    /**
-     * The value of the header that was used for the authentication request.
-     */
-    private final String headerValue;
+  /** The value of the header that was used for the authentication request. */
+  private final String headerValue;
 
-    public HeaderAuthenticationRequest(String headerName, String headerValue) {
-        this.headerName = headerName;
-        this.headerValue = headerValue;
-    }
+  public HeaderAuthenticationRequest(String headerName, String headerValue) {
+    this.headerName = headerName;
+    this.headerValue = headerValue;
+  }
 
-    public String getHeaderName() {
-        return headerName;
-    }
+  public String getHeaderName() {
+    return headerName;
+  }
 
-    public String getHeaderValue() {
-        return headerValue;
-    }
+  public String getHeaderValue() {
+    return headerValue;
+  }
 }

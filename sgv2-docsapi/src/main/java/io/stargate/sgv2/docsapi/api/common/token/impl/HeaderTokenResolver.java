@@ -20,31 +20,24 @@ package io.stargate.sgv2.docsapi.api.common.token.impl;
 import io.stargate.sgv2.docsapi.api.common.token.CassandraTokenResolver;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
-
-import javax.ws.rs.core.SecurityContext;
 import java.util.Optional;
+import javax.ws.rs.core.SecurityContext;
 
-/**
- * The {@link CassandraTokenResolver} that resolves a token from the HTTP header.
- */
+/** The {@link CassandraTokenResolver} that resolves a token from the HTTP header. */
 public class HeaderTokenResolver implements CassandraTokenResolver {
 
-    /**
-     * The name of the header to extract the token from.
-     */
-    private final String headerName;
+  /** The name of the header to extract the token from. */
+  private final String headerName;
 
-    public HeaderTokenResolver(String headerName) {
-        this.headerName = headerName;
-    }
+  public HeaderTokenResolver(String headerName) {
+    this.headerName = headerName;
+  }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Optional<String> resolve(RoutingContext context, SecurityContext securityContext) {
-        HttpServerRequest request = context.request();
-        String headerValue = request.getHeader(headerName);
-        return Optional.ofNullable(headerValue);
-    }
+  /** {@inheritDoc} */
+  @Override
+  public Optional<String> resolve(RoutingContext context, SecurityContext securityContext) {
+    HttpServerRequest request = context.request();
+    String headerValue = request.getHeader(headerName);
+    return Optional.ofNullable(headerValue);
+  }
 }

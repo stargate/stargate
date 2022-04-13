@@ -19,23 +19,22 @@ package io.stargate.sgv2.docsapi.testprofiles;
 
 import com.google.common.collect.ImmutableMap;
 import io.quarkus.test.junit.QuarkusTestProfile;
-
 import java.util.Map;
 
 /**
  * Simple test profile to enable fixed Cassadnra token with value {@value #TOKEN}.
- * <p>
- * Annotate test class with @TestProfile(FixedTokenTestProfile.class) to use.
+ *
+ * <p>Annotate test class with @TestProfile(FixedTokenTestProfile.class) to use.
  */
 public class FixedTokenTestProfile implements QuarkusTestProfile {
 
-    public static final String TOKEN = "cassandra-rules";
+  public static final String TOKEN = "cassandra-rules";
 
-    @Override
-    public Map<String, String> getConfigOverrides() {
-        return ImmutableMap.<String, String>builder()
-                .put("stargate.token-resolver.type", "fixed")
-                .put("stargate.token-resolver.fixed.token", TOKEN)
-                .build();
-    }
+  @Override
+  public Map<String, String> getConfigOverrides() {
+    return ImmutableMap.<String, String>builder()
+        .put("stargate.token-resolver.type", "fixed")
+        .put("stargate.token-resolver.fixed.token", TOKEN)
+        .build();
+  }
 }

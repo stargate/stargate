@@ -18,25 +18,25 @@
 package io.stargate.sgv2.docsapi.api.common.token;
 
 import io.vertx.ext.web.RoutingContext;
-
-import javax.ws.rs.core.SecurityContext;
 import java.util.Optional;
+import javax.ws.rs.core.SecurityContext;
 
 /**
  * Resolver of the Cassandra token. This token will be passed to the Bridge.
- * <p>
- * The implementation can use any information from the {@link RoutingContext} or {@link SecurityContext} to obtain the token.
+ *
+ * <p>The implementation can use any information from the {@link RoutingContext} or {@link
+ * SecurityContext} to obtain the token.
  */
 @FunctionalInterface
 public interface CassandraTokenResolver {
 
-    /**
-     * Returns a Cassandra token given a RoutingContext & SecurityContext.
-     *
-     * @param context         the routing context
-     * @param securityContext the security context
-     * @return The Cassandra token to pass to the Bridge. If empty, indicates that no token should be used..
-     */
-    Optional<String> resolve(RoutingContext context, SecurityContext securityContext);
-
+  /**
+   * Returns a Cassandra token given a RoutingContext & SecurityContext.
+   *
+   * @param context the routing context
+   * @param securityContext the security context
+   * @return The Cassandra token to pass to the Bridge. If empty, indicates that no token should be
+   *     used..
+   */
+  Optional<String> resolve(RoutingContext context, SecurityContext securityContext);
 }

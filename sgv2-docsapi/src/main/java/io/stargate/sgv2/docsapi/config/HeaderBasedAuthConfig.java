@@ -20,25 +20,20 @@ package io.stargate.sgv2.docsapi.config;
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
-
 import javax.validation.constraints.NotBlank;
 
-/**
- * Configuration for the header based authentication.
- */
+/** Configuration for the header based authentication. */
 @ConfigMapping(prefix = "stargate.header-based-auth")
 public interface HeaderBasedAuthConfig {
 
-    /**
-     * @return If the header based auth is enabled.
-     */
-    boolean enabled();
+  /** @return If the header based auth is enabled. */
+  boolean enabled();
 
-    /**
-     * @return Name of the authentication header. Defaults to {@value Constants#AUTHENTICATION_TOKEN_HEADER_NAME}.
-     */
-    @NotBlank
-    @WithDefault(Constants.AUTHENTICATION_TOKEN_HEADER_NAME)
-    String headerName();
-
+  /**
+   * @return Name of the authentication header. Defaults to {@value
+   *     Constants#AUTHENTICATION_TOKEN_HEADER_NAME}.
+   */
+  @NotBlank
+  @WithDefault(Constants.AUTHENTICATION_TOKEN_HEADER_NAME)
+  String headerName();
 }

@@ -18,23 +18,19 @@
 package io.stargate.sgv2.docsapi.api.common.tenant;
 
 import io.vertx.ext.web.RoutingContext;
-
-import javax.ws.rs.core.SecurityContext;
 import java.util.Optional;
+import javax.ws.rs.core.SecurityContext;
 
-/**
- * Resolver of the tenant ID, in case multi-tenancy is used.
- */
+/** Resolver of the tenant ID, in case multi-tenancy is used. */
 @FunctionalInterface
 public interface TenantResolver {
 
-    /**
-     * Returns a tenant identifier given a RoutingContext & SecurityContext.
-     *
-     * @param context         the routing context
-     * @param securityContext the security context
-     * @return The tenant identifier. If empty, indicates that the multi-tenancy is disabled.
-     */
-    Optional<String> resolve(RoutingContext context, SecurityContext securityContext);
-
+  /**
+   * Returns a tenant identifier given a RoutingContext & SecurityContext.
+   *
+   * @param context the routing context
+   * @param securityContext the security context
+   * @return The tenant identifier. If empty, indicates that the multi-tenancy is disabled.
+   */
+  Optional<String> resolve(RoutingContext context, SecurityContext securityContext);
 }

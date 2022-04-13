@@ -26,6 +26,12 @@ import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.docsapi.api.v2.example.model.dto.KeyspaceExistsResponse;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.grpc.GrpcClients;
+import javax.inject.Inject;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
+import javax.ws.rs.core.MediaType;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.enums.ParameterIn;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
@@ -36,82 +42,67 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.jboss.resteasy.reactive.RestResponse;
 
-import javax.inject.Inject;
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.MediaType;
-
-/**
- * Example resource showcasing the OpenAPI v3 annotations and the reactive implementation.
- */
+/** Example resource showcasing the OpenAPI v3 annotations and the reactive implementation. */
 @Path("/api/v2/example")
 @Produces(MediaType.APPLICATION_JSON)
 @SecurityRequirement(name = Constants.OPEN_API_DEFAULT_SECURITY_SCHEME)
 public class ExampleResource {
 
-    @Inject
-    GrpcClients grpcClients;
+  @Inject GrpcClients grpcClients;
 
-    @Inject
-    StargateRequestInfo requestInfo;
+  @Inject StargateRequestInfo requestInfo;
 
-    @Operation(
-            summary = "Keyspace exists",
-            description = "Checks if the given keyspace exists."
-    )
-    @Parameters({
-            @Parameter(
-                    name = "name",
-                    description = "Name of the keyspace.",
-                    in = ParameterIn.PATH,
-                    example = "cycling"
-            )
-    })
-    @APIResponses({
-            @APIResponse(
-                    responseCode = "200",
-                    description = "Call successful.",
-                    content = {
-                            @Content(
-                                    mediaType = MediaType.APPLICATION_JSON,
-                                    schema = @org.eclipse.microprofile.openapi.annotations.media.Schema(
-                                            implementation = KeyspaceExistsResponse.class
-                                    )
-                            )
-                    }
-            ),
-            @APIResponse(
-                    responseCode = "401",
-                    description = "Unauthorized.",
-                    content = {
-                            @Content(
-                                    mediaType = MediaType.APPLICATION_JSON,
-                                    schema = @org.eclipse.microprofile.openapi.annotations.media.Schema(
-                                            implementation = ApiError.class
-                                    )
-                            )
-                    }
-            )
-    })
-    @GET
-    @Path("keyspace-exists/{name}")
-    public Uni<RestResponse<KeyspaceExistsResponse>> keyspaceExists(@PathParam("name") String name) {
-        Schema.DescribeKeyspaceQuery describeKeyspaceQuery = Schema.DescribeKeyspaceQuery.newBuilder().setKeyspaceName(name).build();
+  @Operation(summary = "Keyspace exists", description = "Checks if the given keyspace exists.")
+  @Parameters({
+    @Parameter(
+        name = "name",
+        description = "Name of the keyspace.",
+        in = ParameterIn.PATH,
+        example = "cycling")
+  })
+  @APIResponses({
+    @APIResponse(
+        responseCode = "200",
+        description = "Call successful.",
+        content = {
+          @Content(
+              mediaType = MediaType.APPLICATION_JSON,
+              schema =
+                  @org.eclipse.microprofile.openapi.annotations.media.Schema(
+                      implementation = KeyspaceExistsResponse.class))
+        }),
+    @APIResponse(
+        responseCode = "401",
+        description = "Unauthorized.",
+        content = {
+          @Content(
+              mediaType = MediaType.APPLICATION_JSON,
+              schema =
+                  @org.eclipse.microprofile.openapi.annotations.media.Schema(
+                      implementation = ApiError.class))
+        })
+  })
+  @GET
+  @Path("keyspace-exists/{name}")
+  public Uni<RestResponse<KeyspaceExistsResponse>> keyspaceExists(@PathParam("name") String name) {
+    Schema.DescribeKeyspaceQuery describeKeyspaceQuery =
+        Schema.DescribeKeyspaceQuery.newBuilder().setKeyspaceName(name).build();
 
-        return grpcClients.bridgeClient(requestInfo)
-                .describeKeyspace(describeKeyspaceQuery)
-                .map(r -> new KeyspaceExistsResponse(name, r.hasCqlKeyspace()))
-                .onFailure().recoverWithUni(t -> {
-                    if (t instanceof StatusRuntimeException sre) {
-                        Status status = sre.getStatus();
-                        if (Status.Code.NOT_FOUND.equals(status.getCode())) {
-                            return Uni.createFrom().item(new KeyspaceExistsResponse(name, false));
-                        }
-                    }
-                    return Uni.createFrom().failure(t);
-                })
-                .map(RestResponse::ok);
-    }
+    return grpcClients
+        .bridgeClient(requestInfo)
+        .describeKeyspace(describeKeyspaceQuery)
+        .map(r -> new KeyspaceExistsResponse(name, r.hasCqlKeyspace()))
+        .onFailure()
+        .recoverWithUni(
+            t -> {
+              if (t instanceof StatusRuntimeException sre) {
+                Status status = sre.getStatus();
+                if (Status.Code.NOT_FOUND.equals(status.getCode())) {
+                  return Uni.createFrom().item(new KeyspaceExistsResponse(name, false));
+                }
+              }
+              return Uni.createFrom().failure(t);
+            })
+        .map(RestResponse::ok);
+  }
 }

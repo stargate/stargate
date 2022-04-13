@@ -17,24 +17,15 @@
 
 package io.stargate.sgv2.docsapi.config.constants;
 
-/**
- * Static constants.
- */
+/** Static constants. */
 public interface Constants {
 
-    /**
-     * Name for the Open API default security scheme.
-     */
-    String OPEN_API_DEFAULT_SECURITY_SCHEME = "Token";
+  /** Name for the Open API default security scheme. */
+  String OPEN_API_DEFAULT_SECURITY_SCHEME = "Token";
 
-    /**
-     * Authentication token header name.
-     */
-    String AUTHENTICATION_TOKEN_HEADER_NAME = "X-Cassandra-Token";
+  /** Authentication token header name. */
+  String AUTHENTICATION_TOKEN_HEADER_NAME = "X-Cassandra-Token";
 
-    /**
-     * Tenant identifier header name.
-     */
-    String TENANT_ID_HEADER_NAME = "X-Tenant-Id";
-
+  /** Tenant identifier header name. */
+  String TENANT_ID_HEADER_NAME = "X-Tenant-Id";
 }

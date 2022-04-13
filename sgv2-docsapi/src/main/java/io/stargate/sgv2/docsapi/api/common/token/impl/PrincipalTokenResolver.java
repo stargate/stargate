@@ -19,23 +19,16 @@ package io.stargate.sgv2.docsapi.api.common.token.impl;
 
 import io.stargate.sgv2.docsapi.api.common.token.CassandraTokenResolver;
 import io.vertx.ext.web.RoutingContext;
-
-import javax.ws.rs.core.SecurityContext;
 import java.security.Principal;
 import java.util.Optional;
+import javax.ws.rs.core.SecurityContext;
 
-/**
- * {@link CassandraTokenResolver} that reads the token from the {@link Principal#getName()}.
- */
+/** {@link CassandraTokenResolver} that reads the token from the {@link Principal#getName()}. */
 public class PrincipalTokenResolver implements CassandraTokenResolver {
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public Optional<String> resolve(RoutingContext context, SecurityContext securityContext) {
-        return Optional.ofNullable(securityContext.getUserPrincipal())
-                .map(Principal::getName);
-    }
-
+  /** {@inheritDoc} */
+  @Override
+  public Optional<String> resolve(RoutingContext context, SecurityContext securityContext) {
+    return Optional.ofNullable(securityContext.getUserPrincipal()).map(Principal::getName);
+  }
 }
