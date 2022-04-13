@@ -114,18 +114,21 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
       case Rows:
         try {
           Result.Rows rows = (Result.Rows) result;
-          RowDecorator rowDecorator = null;
-          if (this.enrichResponse) {
-            rowDecorator = connection.makeRowDecorator(TableName.of(rows.resultMetadata.columns));
+
+          if (enrichResponse) {
+            RowDecorator rowDecorator =
+                connection.makeRowDecorator(TableName.of(rows.resultMetadata.columns));
+            responseBuilder.setResultSet(
+                ValuesHelper.processResult(
+                    rows,
+                    message.getParameters(),
+                    this::getComparableBytesFromRow,
+                    this::getPagingStateFromRow,
+                    this::makeRow,
+                    rowDecorator));
+          } else {
+            responseBuilder.setResultSet(ValuesHelper.processResult(rows, message.getParameters()));
           }
-          responseBuilder.setResultSet(
-              ValuesHelper.processResult(
-                  rows,
-                  message.getParameters(),
-                  this::getComparableBytesFromRow,
-                  this::getPagingStateFromRow,
-                  this::makeRow,
-                  rowDecorator));
           return CompletableFuture.completedFuture(
               ResponseAndTraceId.from(result, responseBuilder));
         } catch (Exception e) {
@@ -139,32 +142,23 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
 
   private ByteBuffer getComparableBytesFromRow(
       List<Column> columns, Row row, RowDecorator rowDecorator) {
-    if (this.enrichResponse) {
-      return rowDecorator.getComparableBytes(row);
-    }
-    return null;
+    return rowDecorator.getComparableBytes(row);
   }
 
   private ByteBuffer getPagingStateFromRow(
       ByteBuffer resultSetPagingState, Row row, boolean lastInPage) {
-    if (this.enrichResponse) {
-      if (lastInPage && resultSetPagingState == null) {
-        return EXHAUSTED_PAGE_STATE;
-      }
-
-      return connection.makePagingState(
-          PagingPosition.ofCurrentRow(row).resumeFrom(PagingPosition.ResumeMode.NEXT_ROW).build(),
-          this.parameters);
+    if (lastInPage && resultSetPagingState == null) {
+      return EXHAUSTED_PAGE_STATE;
     }
-    return null;
+
+    return connection.makePagingState(
+        PagingPosition.ofCurrentRow(row).resumeFrom(PagingPosition.ResumeMode.NEXT_ROW).build(),
+        this.parameters);
   }
 
   private Row makeRow(List<Column> columns, List<ByteBuffer> row) {
-    if (this.enrichResponse) {
-      ProtocolVersion driverProtocolVersion = this.parameters.protocolVersion().toDriverVersion();
-      return new ArrayListBackedRow(columns, row, driverProtocolVersion);
-    }
-    return null;
+    ProtocolVersion driverProtocolVersion = this.parameters.protocolVersion().toDriverVersion();
+    return new ArrayListBackedRow(columns, row, driverProtocolVersion);
   }
 
   @Override
