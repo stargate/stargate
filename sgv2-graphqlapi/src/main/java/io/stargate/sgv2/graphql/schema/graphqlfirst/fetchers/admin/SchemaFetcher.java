@@ -16,21 +16,10 @@
 package io.stargate.sgv2.graphql.schema.graphqlfirst.fetchers.admin;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.proto.Schema;
-import io.stargate.sgv2.common.grpc.SchemaReads;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.graphql.schema.CassandraFetcher;
 
 public abstract class SchemaFetcher<ResultT> extends CassandraFetcher<ResultT> {
-
-  protected void authorize(StargateBridgeClient bridge, String keyspace) {
-    // Check that the user has access to the keyspace. We don't want to let them see the GraphQL
-    // schema for something that's forbidden to them.
-    if (!bridge.authorizeSchemaRead(
-        SchemaReads.keyspace(keyspace, Schema.SchemaRead.SourceApi.GRAPHQL))) {
-      throw new IllegalArgumentException(String.format("Keyspace '%s' does not exist.", keyspace));
-    }
-  }
 
   protected String getKeyspace(DataFetchingEnvironment environment, StargateBridgeClient bridge) {
     String keyspace = environment.getArgument("keyspace");

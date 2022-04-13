@@ -38,8 +38,8 @@ public class AllSchemasFetcher extends SchemaFetcher<List<SchemaSource>> {
   }
 
   @Override
-  protected List<SchemaSource> get(
-      DataFetchingEnvironment environment, StargateGraphqlContext context) throws Exception {
+  public List<SchemaSource> get(DataFetchingEnvironment environment, StargateGraphqlContext context)
+      throws Exception {
     String keyspace = getKeyspace(environment, context.getBridge());
     return schemaSourceDaoProvider.apply(context.getBridge()).getAllVersions(keyspace);
   }
