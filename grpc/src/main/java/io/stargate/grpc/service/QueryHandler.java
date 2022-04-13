@@ -15,14 +15,21 @@
  */
 package io.stargate.grpc.service;
 
+import com.datastax.oss.driver.api.core.ProtocolVersion;
 import io.grpc.Status;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.ImmutableParameters;
+import io.stargate.db.PagingPosition;
 import io.stargate.db.Parameters;
 import io.stargate.db.Persistence;
 import io.stargate.db.Persistence.Connection;
 import io.stargate.db.Result;
 import io.stargate.db.Result.Prepared;
+import io.stargate.db.RowDecorator;
+import io.stargate.db.datastore.ArrayListBackedRow;
+import io.stargate.db.datastore.Row;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.TableName;
 import io.stargate.grpc.service.GrpcService.ResponseAndTraceId;
 import io.stargate.proto.QueryOuterClass.Query;
 import io.stargate.proto.QueryOuterClass.QueryParameters;
@@ -30,6 +37,7 @@ import io.stargate.proto.QueryOuterClass.Response;
 import io.stargate.proto.QueryOuterClass.SchemaChange;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
@@ -41,6 +49,9 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
 
   private final String decoratedKeyspace;
   private final SchemaAgreementHelper schemaAgreementHelper;
+  private boolean enrichResponse;
+  private Parameters parameters;
+  public static final ByteBuffer EXHAUSTED_PAGE_STATE = ByteBuffer.allocate(0);
 
   protected QueryHandler(
       Query query,
@@ -58,6 +69,7 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
             ? persistence.decorateKeyspaceName(
                 queryParameters.getKeyspace().getValue(), GrpcService.HEADERS_KEY.get())
             : null;
+    this.enrichResponse = query.hasParameters() && query.getParameters().getEnriched();
   }
 
   @Override
@@ -76,10 +88,9 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
 
     QueryParameters parameters = message.getParameters();
     try {
+      this.parameters = makeParameters(parameters, connection.clientInfo());
       return connection.execute(
-          bindValues(prepared, message.getValues()),
-          makeParameters(parameters, connection.clientInfo()),
-          queryStartNanoTime);
+          bindValues(prepared, message.getValues()), this.parameters, queryStartNanoTime);
     } catch (Exception e) {
       return failedFuture(e, prepared.isIdempotent);
     }
@@ -102,8 +113,22 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
                 });
       case Rows:
         try {
-          responseBuilder.setResultSet(
-              ValuesHelper.processResult((Result.Rows) result, message.getParameters()));
+          Result.Rows rows = (Result.Rows) result;
+
+          if (enrichResponse) {
+            RowDecorator rowDecorator =
+                connection.makeRowDecorator(TableName.of(rows.resultMetadata.columns));
+            responseBuilder.setResultSet(
+                ValuesHelper.processResult(
+                    rows,
+                    message.getParameters(),
+                    this::getComparableBytesFromRow,
+                    this::getPagingStateFromRow,
+                    this::makeRow,
+                    rowDecorator));
+          } else {
+            responseBuilder.setResultSet(ValuesHelper.processResult(rows, message.getParameters()));
+          }
           return CompletableFuture.completedFuture(
               ResponseAndTraceId.from(result, responseBuilder));
         } catch (Exception e) {
@@ -113,6 +138,27 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
         return failedFuture(
             Status.INTERNAL.withDescription("Unhandled result kind").asException(), false);
     }
+  }
+
+  private ByteBuffer getComparableBytesFromRow(
+      List<Column> columns, Row row, RowDecorator rowDecorator) {
+    return rowDecorator.getComparableBytes(row);
+  }
+
+  private ByteBuffer getPagingStateFromRow(
+      ByteBuffer resultSetPagingState, Row row, boolean lastInPage) {
+    if (lastInPage && resultSetPagingState == null) {
+      return EXHAUSTED_PAGE_STATE;
+    }
+
+    return connection.makePagingState(
+        PagingPosition.ofCurrentRow(row).resumeFrom(PagingPosition.ResumeMode.NEXT_ROW).build(),
+        this.parameters);
+  }
+
+  private Row makeRow(List<Column> columns, List<ByteBuffer> row) {
+    ProtocolVersion driverProtocolVersion = this.parameters.protocolVersion().toDriverVersion();
+    return new ArrayListBackedRow(columns, row, driverProtocolVersion);
   }
 
   @Override
