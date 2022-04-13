@@ -37,6 +37,7 @@ public class UpdateMutationFetcher extends MutationFetcher {
         .where(buildPrimaryKeyWhere(environment))
         .ifs(buildConditions(environment.getArgument("ifCondition")))
         .ifExists(ifExists)
+        .parameters(buildParameters(environment))
         .build();
   }
 

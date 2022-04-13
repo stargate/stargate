@@ -96,12 +96,11 @@ public class SchemaSourceDaoTest {
     SchemaSourceDao schemaSourceDao = new SchemaSourceDao(mockBridge(resultSet));
 
     // when
-    SchemaSource schema =
-        Futures.getUninterruptibly(schemaSourceDao.getLatestVersionAsync(keyspace))
-            .orElseThrow(AssertionError::new);
+    Optional<SchemaSource> schema =
+        Futures.getUninterruptibly(schemaSourceDao.getLatestVersionAsync(keyspace));
 
     // then
-    assertThat(schema).isNull();
+    assertThat(schema).isEmpty();
   }
 
   @Test

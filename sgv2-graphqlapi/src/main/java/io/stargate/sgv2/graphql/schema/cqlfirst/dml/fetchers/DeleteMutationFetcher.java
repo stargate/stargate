@@ -27,6 +27,7 @@ public class DeleteMutationFetcher extends MutationFetcher {
         .where(buildClause(table, environment))
         .ifs(buildConditions(environment.getArgument("ifCondition")))
         .ifExists(ifExists)
+        .parameters(buildParameters(environment))
         .build();
   }
 }
