@@ -62,9 +62,9 @@ quarkus:
   smallrye-openapi:
     info-title: ${quarkus.application.name}
     info-version: ${quarkus.application.version:}
-    info-description: Some description to be updated after talking to Lorina.
-    info-terms-of-service: https://terms.com
-    info-contact-name: DataStax Stargate
+    info-description:
+    info-terms-of-service:
+    info-contact-name: Stargate
     info-contact-url: https://stargate.io
     info-license-name: Apache 2.0
     info-license-url: https://www.apache.org/licenses/LICENSE-2.0.html
