@@ -1,4 +1,4 @@
-package io.stargate.sgv2.docsapi.api.config;
+package io.stargate.sgv2.docsapi.config;
 
 /** The configuration for the document API. */
 public interface DocsApiConfiguration {

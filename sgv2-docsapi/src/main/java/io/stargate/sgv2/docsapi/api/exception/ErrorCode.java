@@ -17,7 +17,7 @@
 package io.stargate.sgv2.docsapi.api.exception;
 
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
-import io.stargate.sgv2.docsapi.api.config.DocsApiConfiguration;
+import io.stargate.sgv2.docsapi.config.DocsApiConfiguration;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;
@@ -190,6 +190,10 @@ public enum ErrorCode {
 
     // declare as MediaType.APPLICATION_JSON_TYPE as we have non-string entity here
     return ResponseBuilder.create(responseStatus, apiError).type(MediaType.APPLICATION_JSON_TYPE);
+  }
+
+  public Response.Status getStatus() {
+    return responseStatus;
   }
 
   public String getDefaultMessage() {
