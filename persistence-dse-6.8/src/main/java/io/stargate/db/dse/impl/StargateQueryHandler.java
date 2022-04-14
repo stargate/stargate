@@ -50,7 +50,7 @@ import org.apache.cassandra.utils.MD5Digest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class StargateQueryHandler implements QueryHandlerWithTokenAuth {
+public class StargateQueryHandler extends QueryHandlerWithTokenAuth {
   private static final String ADV_WORKLOAD_QUERY =
       System.getProperty("stargate.adv.workload.query");
   private static final Logger logger = LoggerFactory.getLogger(StargateQueryHandler.class);
@@ -82,8 +82,7 @@ public class StargateQueryHandler implements QueryHandlerWithTokenAuth {
   @Override
   public Single<ResultMessage.Prepared> prepare(
       String query, QueryState queryState, Map<String, ByteBuffer> customPayload) {
-    return QueryProcessor.instance
-        .prepare(query, queryState, customPayload)
+    return super.prepare(query, queryState, customPayload)
         .map(
             p -> {
               Prepared prepared = QueryProcessor.instance.getPrepared(p.statementId);
@@ -222,7 +221,6 @@ public class StargateQueryHandler implements QueryHandlerWithTokenAuth {
         authorizeModificationStatement(stmt, authenticationSubject, authorization);
       }
     } else if (statement instanceof SearchIndexStatement) {
-      // TODO(versaurabh): GRAPH-50 & ARTMS-19
       authorizeSearchIndexStatement(statement, authenticationSubject, authorization);
     } else {
       logger.warn("Tried to authorize unsupported statement");
