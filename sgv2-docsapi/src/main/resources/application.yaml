@@ -12,6 +12,12 @@ stargate:
   header-based-auth:
     enabled: true
 
+  # metrics properties
+  # see io.stargate.sgv2.docsapi.config.MetricsConfig for all config properties and options
+  metrics:
+    global-tags:
+      module: docsapi
+
   # the tenant resolver to use
   # see io.stargate.sgv2.docsapi.config.TenantResolverConfig for all config properties and options
   tenant-resolver:
@@ -57,6 +63,26 @@ quarkus:
         default:
           paths: /api/v2/*
           policy: authenticated
+
+  # built-in micrometer properties
+  micrometer:
+    binder:
+      http-server:
+        # ignore all non-application uris, as well as the custom set
+        suppress-non-application-uris: true
+        ignore-patterns:
+          - /
+          - /metrics
+          - /swagger-ui.*
+          - .*\.html
+        # due to the https://github.com/quarkusio/quarkus/issues/24938
+        # we need to define uri templating on our own for now
+        match-patterns:
+          - /api/v2/example/keyspace-exists/[a-z]+=/api/v2/example/keyspace-exists/{name}
+
+    export:
+      prometheus:
+        path: /metrics
 
   # information for the generated Open API definitions
   smallrye-openapi:
