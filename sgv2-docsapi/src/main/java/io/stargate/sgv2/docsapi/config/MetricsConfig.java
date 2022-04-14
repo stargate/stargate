@@ -18,19 +18,12 @@
 package io.stargate.sgv2.docsapi.config;
 
 import io.smallrye.config.ConfigMapping;
-import io.smallrye.config.WithDefault;
-import io.stargate.sgv2.docsapi.config.constants.Constants;
-
-import javax.validation.constraints.NotBlank;
 import java.util.Map;
 
 /** Extra, Stargate related configuration for the metrics. */
 @ConfigMapping(prefix = "stargate.metrics")
 public interface MetricsConfig {
 
-  /**
-   * @return Global tags attached to each metric being recorded.
-   */
+  /** @return Global tags attached to each metric being recorded. */
   Map<String, String> globalTags();
-
 }

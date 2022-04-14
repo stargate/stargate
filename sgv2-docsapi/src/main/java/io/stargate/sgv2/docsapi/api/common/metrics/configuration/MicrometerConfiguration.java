@@ -21,38 +21,33 @@ import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.config.MeterFilter;
 import io.stargate.sgv2.docsapi.config.MetricsConfig;
-
-import javax.enterprise.inject.Produces;
-import javax.inject.Singleton;
 import java.util.Collection;
 import java.util.Map;
 import java.util.stream.Collectors;
+import javax.enterprise.inject.Produces;
+import javax.inject.Singleton;
 
-/**
- * Configuration of all {@link MeterFilter}s used.
- */
+/** Configuration of all {@link MeterFilter}s used. */
 public class MicrometerConfiguration {
 
-    /**
-     * @return Produces meter filter that takes care of the global tags
-     */
-    @Produces
-    @Singleton
-    public MeterFilter globalTagsFilters(MetricsConfig config) {
-        Map<String, String> globalTags = config.globalTags();
+  /** @return Produces meter filter that takes care of the global tags */
+  @Produces
+  @Singleton
+  public MeterFilter globalTagsFilters(MetricsConfig config) {
+    Map<String, String> globalTags = config.globalTags();
 
-        // if we have no global tags, use empty
-        if (null == globalTags) {
-            return MeterFilter.commonTags(Tags.empty());
-        }
-
-        // transform to tags
-        Collection<Tag> tags = globalTags.entrySet()
-                .stream()
-                .map(e -> Tag.of(e.getKey(), e.getValue()))
-                .collect(Collectors.toList());
-
-        // return all
-        return MeterFilter.commonTags(Tags.of(tags));
+    // if we have no global tags, use empty
+    if (null == globalTags) {
+      return MeterFilter.commonTags(Tags.empty());
     }
+
+    // transform to tags
+    Collection<Tag> tags =
+        globalTags.entrySet().stream()
+            .map(e -> Tag.of(e.getKey(), e.getValue()))
+            .collect(Collectors.toList());
+
+    // return all
+    return MeterFilter.commonTags(Tags.of(tags));
+  }
 }
