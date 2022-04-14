@@ -18,6 +18,11 @@
 package io.stargate.sgv2.docsapi.config;
 
 import io.smallrye.config.ConfigMapping;
+import io.smallrye.config.WithDefault;
+
+import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import java.util.Map;
 
 /** Extra, Stargate related configuration for the metrics. */
@@ -26,4 +31,42 @@ public interface MetricsConfig {
 
   /** @return Global tags attached to each metric being recorded. */
   Map<String, String> globalTags();
+
+  /**
+   * @return Setup for the tenant request counting.
+   */
+  @NotNull
+  @Valid
+  TenantRequestCounterConfig tenantRequestCounter();
+
+  interface TenantRequestCounterConfig {
+
+    /**
+     * @return If tenant request counter is enabled.
+     */
+    boolean enabled();
+
+    /**
+     * @return The metric name for the counter, defaults to <code>http.server.requests.counter</code>.
+     */
+    @NotBlank
+    @WithDefault("http.server.requests.counter")
+    String metricName();
+
+    /**
+     * @return The tag key for tenant-id, defaults to <code>tenant</code>.
+     */
+    @NotBlank
+    @WithDefault("tenant")
+    String tenantTag();
+
+    /**
+     * @return The tag key for error flag, defaults to <code>error</code>.
+     */
+    @NotBlank
+    @WithDefault("error")
+    String errorTag();
+
+  }
+
 }

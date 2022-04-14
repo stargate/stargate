@@ -71,10 +71,13 @@ Below is the list of currently available properties.
 #### [Metrics configuration](src/main/java/io/stargate/sgv2/docsapi/config/MetricsConfig.java)
 *Configuration mapping for the additional metrics properties.*
 
-| Property                                   | Type                 | Default | Description                                             |
-|--------------------------------------------|----------------------|---------|---------------------------------------------------------|
-| `stargate.metrics.global-tags`             | `Map<String,String>` | unset   | Map of global tags that will be applied to every meter. |
-
+| Property                                              | Type                 | Default                        | Description                                                             |
+|-------------------------------------------------------|----------------------|--------------------------------|-------------------------------------------------------------------------|
+| `stargate.metrics.global-tags`                        | `Map<String,String>` | unset                          | Map of global tags that will be applied to every meter.                 |
+| `stargate.metrics.tenant-request-counter.enabled`     | `boolean`            | `true`                         | If extra metric for counting the request per tenant should be recorded. |
+| `stargate.metrics.tenant-request-counter.metric-name` | `String`             | `http.server.requests.counter` | Name of the metric.                                                     |
+| `stargate.metrics.tenant-request-counter.tenant-tag`  | `String`             | `tenant`                       | The tag key for tenant id.                                              |
+| `stargate.metrics.tenant-request-counter.error-tag`   | `String`             | `error`                        | The tag key for the request error flag (true/false).                    |
 
 #### [Multi-tenancy configuration](src/main/java/io/stargate/sgv2/docsapi/config/TenantResolverConfig.java)
 *Configuration mapping for the tenant resolving.*
