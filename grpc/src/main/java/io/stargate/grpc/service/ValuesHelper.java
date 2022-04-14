@@ -26,7 +26,6 @@ import io.grpc.StatusException;
 import io.stargate.db.BoundStatement;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.Result.Rows;
-import io.stargate.db.RowDecorator;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.UserDefinedType;
@@ -44,7 +43,6 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.BiFunction;
 
 public class ValuesHelper {
   public static BoundStatement bindValues(Prepared prepared, Values values, ByteBuffer unsetValue)
@@ -122,53 +120,20 @@ public class ValuesHelper {
 
   public static ResultSet processResult(Rows rows, QueryParameters parameters)
       throws StatusException {
-    return processResult(rows, parameters.getSkipMetadata(), null, null, null, null);
+    return processResult(rows, parameters.getSkipMetadata());
   }
 
   public static ResultSet processResult(Rows rows, BatchParameters parameters)
       throws StatusException {
-    return processResult(rows, parameters.getSkipMetadata(), null, null, null, null);
+    return processResult(rows, parameters.getSkipMetadata());
   }
 
-  public interface GetComparableBytesFromRow {
-    ByteBuffer apply(
-        List<Column> columns, io.stargate.db.datastore.Row row, RowDecorator rowDecorator);
-  }
-
-  public interface GetPagingStateFromRow {
-    ByteBuffer apply(
-        ByteBuffer resultSetPagingState, io.stargate.db.datastore.Row row, boolean lastInPage);
-  }
-
-  public static ResultSet processResult(
-      Rows rows,
-      QueryParameters parameters,
-      GetComparableBytesFromRow getComparableBytes,
-      GetPagingStateFromRow getPagingState,
-      BiFunction<List<Column>, List<ByteBuffer>, io.stargate.db.datastore.Row> makeRow,
-      RowDecorator rowDecorator)
-      throws StatusException {
-    return processResult(
-        rows,
-        parameters.getSkipMetadata(),
-        getComparableBytes,
-        getPagingState,
-        makeRow,
-        rowDecorator);
-  }
-
-  private static ResultSet processResult(
-      Rows rows,
-      boolean skipMetadata,
-      GetComparableBytesFromRow getComparableBytes,
-      GetPagingStateFromRow getPagingState,
-      BiFunction<List<Column>, List<ByteBuffer>, io.stargate.db.datastore.Row> makeRow,
-      RowDecorator rowDecorator)
-      throws StatusException {
+  public static ResultSet processResult(Rows rows, boolean skipMetadata) throws StatusException {
     final List<Column> columns = rows.resultMetadata.columns;
     final int columnCount = columns.size();
 
     ResultSet.Builder resultSetBuilder = ResultSet.newBuilder();
+
     if (!skipMetadata) {
       for (Column column : columns) {
         resultSetBuilder.addColumns(
@@ -179,34 +144,14 @@ public class ValuesHelper {
       }
     }
 
-    int count = 0;
-
     for (List<ByteBuffer> row : rows.rows) {
-      ByteBuffer comparableBytes = null;
-      ByteBuffer rowPagingState = null;
-      if (makeRow != null) {
-        io.stargate.db.datastore.Row arrayListRow = makeRow.apply(columns, row);
-        comparableBytes = getComparableBytes.apply(columns, arrayListRow, rowDecorator);
-        rowPagingState =
-            getPagingState.apply(
-                rows.resultMetadata.pagingState, arrayListRow, count == rows.rows.size() - 1);
-      }
       Row.Builder rowBuilder = Row.newBuilder();
       for (int i = 0; i < columnCount; ++i) {
         ColumnType columnType = columnTypeNotNull(columns.get(i));
         ValueCodec codec = ValueCodecs.get(columnType.rawType());
         rowBuilder.addValues(decodeValue(codec, row.get(i), columnType));
       }
-      if (comparableBytes != null) {
-        rowBuilder.setComparableBytes(
-            BytesValue.newBuilder().setValue(ByteString.copyFrom(comparableBytes)).build());
-      }
-      if (rowPagingState != null) {
-        rowBuilder.setPagingState(
-            BytesValue.newBuilder().setValue(ByteString.copyFrom(rowPagingState)).build());
-      }
       resultSetBuilder.addRows(rowBuilder);
-      count++;
     }
 
     if (rows.resultMetadata.pagingState != null) {

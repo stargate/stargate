@@ -16,7 +16,7 @@
 package io.stargate.sgv2.graphql.schema.cqlfirst;
 
 import graphql.schema.GraphQLSchema;
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.sgv2.graphql.schema.cqlfirst.ddl.DdlSchemaBuilder;
 import io.stargate.sgv2.graphql.schema.cqlfirst.dml.DmlSchemaBuilder;
 

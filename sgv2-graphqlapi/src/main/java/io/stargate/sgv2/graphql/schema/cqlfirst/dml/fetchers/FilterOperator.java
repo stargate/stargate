@@ -19,10 +19,10 @@ import static graphql.schema.GraphQLList.list;
 
 import graphql.schema.GraphQLInputObjectField;
 import graphql.schema.GraphQLInputType;
-import io.stargate.grpc.Values;
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
-import io.stargate.proto.QueryOuterClass.Value;
+import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition.LHS;
 import io.stargate.sgv2.common.cql.builder.Predicate;

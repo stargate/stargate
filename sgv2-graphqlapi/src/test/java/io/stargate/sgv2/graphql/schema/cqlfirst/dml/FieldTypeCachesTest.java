@@ -19,7 +19,7 @@ import graphql.schema.GraphQLOutputType;
 import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchemaElement;
 import graphql.schema.GraphQLType;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
 import io.stargate.sgv2.graphql.schema.SchemaAssertions;
 import io.stargate.sgv2.graphql.schema.scalars.CqlScalar;
 import java.util.ArrayList;

@@ -17,9 +17,9 @@ package io.stargate.sgv2.restsvc.resources.schemas;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.json.JsonMapper;
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.Schema;
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.common.cql.builder.Replication;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;

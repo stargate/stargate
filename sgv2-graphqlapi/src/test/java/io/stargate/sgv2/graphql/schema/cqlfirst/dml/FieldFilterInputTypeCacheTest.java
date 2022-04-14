@@ -3,7 +3,7 @@ package io.stargate.sgv2.graphql.schema.cqlfirst.dml;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import graphql.schema.GraphQLInputObjectType;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;

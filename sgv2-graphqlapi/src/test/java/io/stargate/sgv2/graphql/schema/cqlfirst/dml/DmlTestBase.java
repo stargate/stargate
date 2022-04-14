@@ -2,12 +2,12 @@ package io.stargate.sgv2.graphql.schema.cqlfirst.dml;
 
 import com.google.common.collect.ImmutableList;
 import graphql.schema.GraphQLSchema;
-import io.stargate.grpc.Values;
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.ResultSet;
-import io.stargate.proto.QueryOuterClass.Row;
-import io.stargate.proto.QueryOuterClass.Value;
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.ResultSet;
+import io.stargate.bridge.proto.QueryOuterClass.Row;
+import io.stargate.bridge.proto.QueryOuterClass.Value;
+import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.sgv2.graphql.schema.GraphqlTestBase;
 import io.stargate.sgv2.graphql.schema.cqlfirst.SchemaFactory;
 import java.util.Arrays;

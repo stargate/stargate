@@ -19,11 +19,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.google.protobuf.BytesValue;
+import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.bridge.proto.StargateBridgeGrpc.StargateBridgeBlockingStub;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
-import io.stargate.proto.QueryOuterClass;
-import io.stargate.proto.StargateBridgeGrpc.StargateBridgeBlockingStub;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 

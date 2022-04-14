@@ -15,25 +15,25 @@
  */
 package io.stargate.sgv2.graphql.schema;
 
-import static io.stargate.proto.QueryOuterClass.TypeSpec.Basic.BOOLEAN;
-import static io.stargate.proto.QueryOuterClass.TypeSpec.Basic.CUSTOM;
-import static io.stargate.proto.QueryOuterClass.TypeSpec.Basic.FLOAT;
-import static io.stargate.proto.QueryOuterClass.TypeSpec.Basic.INT;
-import static io.stargate.proto.QueryOuterClass.TypeSpec.Basic.LINESTRING;
-import static io.stargate.proto.QueryOuterClass.TypeSpec.Basic.POINT;
-import static io.stargate.proto.QueryOuterClass.TypeSpec.Basic.POLYGON;
-import static io.stargate.proto.QueryOuterClass.TypeSpec.Basic.TEXT;
-import static io.stargate.proto.QueryOuterClass.TypeSpec.Basic.TIMEUUID;
-import static io.stargate.proto.QueryOuterClass.TypeSpec.Basic.UNRECOGNIZED;
-import static io.stargate.proto.QueryOuterClass.TypeSpec.Basic.UUID;
-import static io.stargate.proto.QueryOuterClass.TypeSpec.Basic.VARCHAR;
+import static io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Basic.BOOLEAN;
+import static io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Basic.CUSTOM;
+import static io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Basic.FLOAT;
+import static io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Basic.INT;
+import static io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Basic.LINESTRING;
+import static io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Basic.POINT;
+import static io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Basic.POLYGON;
+import static io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Basic.TEXT;
+import static io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Basic.TIMEUUID;
+import static io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Basic.UNRECOGNIZED;
+import static io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Basic.UUID;
+import static io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Basic.VARCHAR;
 
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec.Basic;
-import io.stargate.proto.Schema.CqlKeyspace;
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
-import io.stargate.proto.Schema.CqlTable;
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Basic;
+import io.stargate.bridge.proto.Schema.CqlKeyspace;
+import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.bridge.proto.Schema.CqlTable;
 
 public class SampleKeyspaces {
 

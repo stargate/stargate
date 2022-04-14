@@ -5,7 +5,7 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.grpc.StatusRuntimeException;
-import io.stargate.proto.QueryOuterClass;
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.common.cql.builder.Predicate;

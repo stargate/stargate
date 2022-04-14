@@ -17,9 +17,9 @@ package io.stargate.sgv2.common.cql.builder;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.stargate.grpc.Values;
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.QueryOuterClass.Value;
+import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition.LHS;
 import org.junit.jupiter.api.Test;
 

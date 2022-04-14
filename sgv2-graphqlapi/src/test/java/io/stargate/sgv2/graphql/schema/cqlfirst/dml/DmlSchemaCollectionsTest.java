@@ -8,7 +8,7 @@ import com.google.common.collect.ImmutableList;
 import graphql.Scalars;
 import graphql.schema.GraphQLInputObjectType;
 import graphql.schema.GraphQLList;
-import io.stargate.proto.Schema;
+import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.graphql.schema.SampleKeyspaces;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;

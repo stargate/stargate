@@ -1,7 +1,7 @@
 package io.stargate.sgv2.restsvc.grpc;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.stargate.proto.QueryOuterClass;
+import io.stargate.bridge.proto.QueryOuterClass;
 
 /**
  * Interface for low-level handles that convert a single column value defined in the "external"
