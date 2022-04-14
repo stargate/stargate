@@ -79,10 +79,21 @@ quarkus:
         # we need to define uri templating on our own for now
         match-patterns:
           - /api/v2/example/keyspace-exists/[a-z]+=/api/v2/example/keyspace-exists/{name}
-
+    # exports at prometheus default path
     export:
       prometheus:
         path: /metrics
+
+  # OpenTelemetry configuration
+  opentelemetry:
+    tracer:
+      # in the dev env use the sampler that samples all requests
+      sampler:
+        ratio: 1.0
+      # the OTPL endpoint should be specified in order to report traces
+      exporter:
+        otlp:
+          endpoint:
 
   # information for the generated Open API definitions
   smallrye-openapi:

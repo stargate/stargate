@@ -68,6 +68,14 @@ Below is the list of currently available properties.
 | `stargate.header-based-auth.enabled`     | `boolean` | `true`              | If the header based auth is enabled. |
 | `stargate.header-based-auth.header-name` | `String`  | `X-Cassandra-Token` | Name of the authentication header.   |
 
+#### [Metrics configuration](src/main/java/io/stargate/sgv2/docsapi/config/MetricsConfig.java)
+*Configuration mapping for the additional metrics properties.*
+
+| Property                                   | Type                 | Default | Description                                             |
+|--------------------------------------------|----------------------|---------|---------------------------------------------------------|
+| `stargate.metrics.global-tags`             | `Map<String,String>` | unset   | Map of global tags that will be applied to every meter. |
+
+
 #### [Multi-tenancy configuration](src/main/java/io/stargate/sgv2/docsapi/config/TenantResolverConfig.java)
 *Configuration mapping for the tenant resolving.*
 
@@ -199,6 +207,35 @@ In order to pass the request context information to the Bridge, the client shoul
 [Related guide](https://quarkus.io/guides/validation)
 
 Enables validation of configuration, beans, REST endpoints, etc.
+
+### `quarkus-micrometer-registry-prometheus`
+[Related guide](https://quarkus.io/guides/micrometer)
+
+Enables out-of-the-box metrics collection and the Prometheus exporter.
+Metrics are exported at the Prometheus default `/metrics` endpoint.
+All non-application endpoints are ignored from the collection.
+
+### `quarkus-opentelemetry-exporter-otlp`
+[Related guide](https://quarkus.io/guides/opentelemetry)
+
+Enables the [OpenTelemetry](https://opentelemetry.io/) tracing support.
+In order to activate the tracing, you need to supply the OTLP gRPC endpoint using the JVM parameter `-Dquarkus.opentelemetry.tracer.exporter.otlp.endpoint=http://localhost:55680`.
+The easiest way to locally collect and visualize traces is to use the [jaegertracing/opentelemetry-all-in-one](https://www.jaegertracing.io/docs/1.21/opentelemetry/) docker image with [in-memory](https://www.jaegertracing.io/docs/1.21/deployment/#badger---local-storage) storage:
+
+```shell
+docker run \
+  --rm \
+  -e SPAN_STORAGE_TYPE=badger \
+  -e BADGER_EPHEMERAL=false \
+  -e BADGER_DIRECTORY_VALUE=/badger/data \
+  -e BADGER_DIRECTORY_KEY=/badger/key \
+  -v badger:/badger \
+  -p 55680:55680 \
+  -p 16686:16686 \
+  jaegertracing/opentelemetry-all-in-one
+```
+
+You can then visualize traces using Jaeger UI started on http://localhost:16686.
 
 ### `quarkus-resteasy-reactive`
 [Related guide](https://quarkus.io/guides/resteasy-reactive)
