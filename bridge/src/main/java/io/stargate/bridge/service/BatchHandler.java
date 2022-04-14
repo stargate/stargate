@@ -16,6 +16,8 @@
 package io.stargate.bridge.service;
 
 import io.grpc.Status;
+import io.grpc.stub.StreamObserver;
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.Batch;
 import io.stargate.bridge.proto.QueryOuterClass.BatchParameters;
 import io.stargate.bridge.proto.QueryOuterClass.BatchQuery;
@@ -41,8 +43,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
-public abstract class BatchHandler
-    extends MessageHandler<Batch, BatchHandler.BatchAndIdempotencyInfo> {
+public class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIdempotencyInfo> {
 
   /** The maximum number of batch queries to prepare simultaneously. */
   private static final int MAX_CONCURRENT_PREPARES_FOR_BATCH =
@@ -50,12 +51,12 @@ public abstract class BatchHandler
 
   private final String decoratedKeyspace;
 
-  protected BatchHandler(
+  BatchHandler(
       Batch batch,
       Connection connection,
       Persistence persistence,
-      ExceptionHandler exceptionHandler) {
-    super(batch, connection, persistence, exceptionHandler);
+      StreamObserver<Response> responseObserver) {
+    super(batch, connection, persistence, responseObserver);
     BatchParameters batchParameters = batch.getParameters();
     this.decoratedKeyspace =
         batchParameters.hasKeyspace()
@@ -119,6 +120,12 @@ public abstract class BatchHandler
     return parameters.hasTracingConsistency()
         ? ConsistencyLevel.fromCode(parameters.getTracingConsistency().getValue().getNumber())
         : MessageHandler.DEFAULT_TRACING_CONSISTENCY;
+  }
+
+  @Override
+  protected void setSuccess(QueryOuterClass.Response response) {
+    responseObserver.onNext(response);
+    responseObserver.onCompleted();
   }
 
   private Parameters makeParameters(BatchParameters parameters, Optional<ClientInfo> clientInfo) {

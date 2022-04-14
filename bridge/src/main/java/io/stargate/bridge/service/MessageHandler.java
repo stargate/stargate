@@ -20,6 +20,7 @@ import com.google.protobuf.StringValue;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
+import io.grpc.stub.StreamObserver;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.Response;
 import io.stargate.bridge.proto.QueryOuterClass.Values;
@@ -61,18 +62,20 @@ public abstract class MessageHandler<MessageT extends GeneratedMessageV3, Prepar
   protected final Connection connection;
   protected final Persistence persistence;
   private final DefaultRetryPolicy retryPolicy;
+  protected final StreamObserver<QueryOuterClass.Response> responseObserver;
   private final ExceptionHandler exceptionHandler;
 
   protected MessageHandler(
       MessageT message,
       Connection connection,
       Persistence persistence,
-      ExceptionHandler exceptionHandler) {
+      StreamObserver<Response> responseObserver) {
     this.message = message;
     this.connection = connection;
     this.persistence = persistence;
     this.retryPolicy = new DefaultRetryPolicy();
-    this.exceptionHandler = exceptionHandler;
+    this.responseObserver = responseObserver;
+    this.exceptionHandler = new ExceptionHandler(responseObserver);
   }
 
   public void handle() {

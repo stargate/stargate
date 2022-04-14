@@ -75,14 +75,13 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
   public void executeQuery(Query query, StreamObserver<Response> responseObserver) {
     SynchronizedStreamObserver<Response> synchronizedStreamObserver =
         new SynchronizedStreamObserver<>(responseObserver);
-    new SingleQueryHandler(
+    new QueryHandler(
             query,
             CONNECTION_KEY.get(),
             persistence,
             executor,
             schemaAgreementRetries,
-            synchronizedStreamObserver,
-            new SingleExceptionHandler(synchronizedStreamObserver))
+            synchronizedStreamObserver)
         .handle();
   }
 
@@ -90,13 +89,7 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
   public void executeBatch(Batch batch, StreamObserver<Response> responseObserver) {
     SynchronizedStreamObserver<Response> synchronizedStreamObserver =
         new SynchronizedStreamObserver<>(responseObserver);
-    new SingleBatchHandler(
-            batch,
-            CONNECTION_KEY.get(),
-            persistence,
-            synchronizedStreamObserver,
-            new SingleExceptionHandler(synchronizedStreamObserver))
-        .handle();
+    new BatchHandler(batch, CONNECTION_KEY.get(), persistence, synchronizedStreamObserver).handle();
   }
 
   @Override

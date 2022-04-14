@@ -17,6 +17,8 @@ package io.stargate.bridge.service;
 
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import io.grpc.Status;
+import io.grpc.stub.StreamObserver;
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.QueryOuterClass.QueryParameters;
 import io.stargate.bridge.proto.QueryOuterClass.Response;
@@ -44,22 +46,22 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ScheduledExecutorService;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
-public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
+public class QueryHandler extends MessageHandler<Query, Prepared> {
 
   private final String decoratedKeyspace;
   private final SchemaAgreementHelper schemaAgreementHelper;
-  private boolean enrichResponse;
-  private Parameters parameters;
+  private final boolean enrichResponse;
+  private volatile Parameters parameters;
   public static final ByteBuffer EXHAUSTED_PAGE_STATE = ByteBuffer.allocate(0);
 
-  protected QueryHandler(
+  QueryHandler(
       Query query,
       Connection connection,
       Persistence persistence,
       ScheduledExecutorService executor,
       int schemaAgreementRetries,
-      ExceptionHandler exceptionHandler) {
-    super(query, connection, persistence, exceptionHandler);
+      StreamObserver<Response> responseObserver) {
+    super(query, connection, persistence, responseObserver);
     this.schemaAgreementHelper =
         new SchemaAgreementHelper(connection, schemaAgreementRetries, executor);
     QueryParameters queryParameters = query.getParameters();
@@ -138,6 +140,12 @@ public abstract class QueryHandler extends MessageHandler<Query, Prepared> {
         return failedFuture(
             Status.INTERNAL.withDescription("Unhandled result kind").asException(), false);
     }
+  }
+
+  @Override
+  protected void setSuccess(QueryOuterClass.Response response) {
+    responseObserver.onNext(response);
+    responseObserver.onCompleted();
   }
 
   private ByteBuffer getComparableBytesFromRow(

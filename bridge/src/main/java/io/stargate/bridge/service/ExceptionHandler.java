@@ -23,7 +23,7 @@ import org.apache.cassandra.stargate.exceptions.WriteTimeoutException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class ExceptionHandler {
+public class ExceptionHandler {
   private static final Logger LOG = LoggerFactory.getLogger(ExceptionHandler.class);
 
   static final Metadata.Key<QueryOuterClass.Unavailable> UNAVAILABLE_KEY =
@@ -43,8 +43,22 @@ public abstract class ExceptionHandler {
   static final Metadata.Key<QueryOuterClass.CasWriteUnknown> CAS_WRITE_UNKNOWN_KEY =
       ProtoUtils.keyForProto(QueryOuterClass.CasWriteUnknown.getDefaultInstance());
 
-  protected abstract void onError(
-      @Nullable Status status, @Nonnull Throwable throwable, @Nullable Metadata trailer);
+  private final StreamObserver<QueryOuterClass.Response> responseObserver;
+
+  public ExceptionHandler(StreamObserver<QueryOuterClass.Response> responseObserver) {
+    this.responseObserver = responseObserver;
+  }
+
+  private void onError(
+      @Nullable Status status, @Nonnull Throwable throwable, @Nullable Metadata trailer) {
+    if (status == null) {
+      responseObserver.onError(throwable);
+    } else {
+      status = status.withDescription(throwable.getMessage()).withCause(throwable);
+      responseObserver.onError(
+          trailer != null ? status.asRuntimeException(trailer) : status.asRuntimeException());
+    }
+  }
 
   /**
    * It handles the throwable that can be gRPC {@link StatusRuntimeException}, persistence related
@@ -52,8 +66,6 @@ public abstract class ExceptionHandler {
    * is {@link CompletionException} or {@link MessageHandler.ExceptionWithIdempotencyInfo}. Finally,
    * it converts the exception to a gRPC specific response using the {@link
    * StreamObserver#onError(Throwable)} method.
-   *
-   * @param throwable
    */
   public void handleException(Throwable throwable) {
     if (throwable instanceof CompletionException
