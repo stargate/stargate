@@ -17,6 +17,7 @@
 
 package io.stargate.sgv2.docsapi.api.common.metrics.configuration;
 
+import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.config.MeterFilter;
@@ -33,12 +34,12 @@ public class MicrometerConfiguration {
   /** @return Produces meter filter that takes care of the global tags */
   @Produces
   @Singleton
-  public MeterFilter globalTagsFilters(MetricsConfig config) {
+  public MeterFilter globalTagsMeterFilter(MetricsConfig config) {
     Map<String, String> globalTags = config.globalTags();
 
     // if we have no global tags, use empty
-    if (null == globalTags) {
-      return MeterFilter.commonTags(Tags.empty());
+    if (null == globalTags || globalTags.isEmpty()) {
+      return new MeterFilter() {};
     }
 
     // transform to tags
@@ -50,4 +51,7 @@ public class MicrometerConfiguration {
     // return all
     return MeterFilter.commonTags(Tags.of(tags));
   }
+
+
+
 }
