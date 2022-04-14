@@ -11,6 +11,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 
+import com.datastax.bdp.search.solr.SearchInjector;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -23,10 +24,7 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
-import org.apache.cassandra.cql3.CQLStatement;
-import org.apache.cassandra.cql3.ColumnIdentifier;
-import org.apache.cassandra.cql3.QueryProcessor;
-import org.apache.cassandra.cql3.VariableSpecifications;
+import org.apache.cassandra.cql3.*;
 import org.apache.cassandra.cql3.statements.AlterRoleStatement;
 import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.cql3.statements.CreateRoleStatement;
@@ -69,6 +67,7 @@ import org.apache.cassandra.schema.SchemaManager;
 import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.schema.Tables;
 import org.apache.cassandra.service.ClientState;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -79,6 +78,11 @@ class StargateQueryHandlerTest extends BaseDseTest {
   AuthenticationSubject authenticationSubject = AuthenticationSubject.of("token", "username");
   StargateQueryHandler queryHandler;
   AuthorizationService authorizationService;
+
+  @BeforeAll
+  public static void initSearchFunctionality() {
+    SearchInjector.initSearch("dse.yaml");
+  }
 
   @BeforeEach
   public void initTest() {
@@ -917,6 +921,120 @@ class StargateQueryHandlerTest extends BaseDseTest {
             eq("tbl1"),
             eq(Scope.MODIFY),
             eq(SourceAPI.CQL));
+  }
+
+  @Test
+  void authorizeByTokenCreateSearchIndexStatement() throws UnauthorizedException {
+    CQLStatement.Raw rawStatement =
+        QueryProcessor.parseStatement("CREATE SEARCH INDEX ON ks1.tbl1");
+
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+
+    queryHandler.authorizeByToken(createToken(), statement);
+
+    verify(authorizationService, times(1))
+        .authorizeSchemaWrite(
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq("tbl1"),
+            eq(Scope.ALTER),
+            eq(SourceAPI.CQL),
+            eq(ResourceKind.TABLE));
+  }
+
+  @Test
+  void authorizeByTokenAlterSearchIndexStatement() throws UnauthorizedException {
+    CQLStatement.Raw rawStatement =
+        QueryProcessor.parseStatement(
+            "ALTER SEARCH INDEX SCHEMA ON ks1.tbl1 SET fields.field[@name='value']@type='TextField'");
+
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+
+    queryHandler.authorizeByToken(createToken(), statement);
+
+    verify(authorizationService, times(1))
+        .authorizeSchemaWrite(
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq("tbl1"),
+            eq(Scope.ALTER),
+            eq(SourceAPI.CQL),
+            eq(ResourceKind.TABLE));
+  }
+
+  @Test
+  void authorizeByTokenDropSearchIndexStatement() throws UnauthorizedException {
+    CQLStatement.Raw rawStatement = QueryProcessor.parseStatement("DROP SEARCH INDEX ON ks1.tbl1");
+
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+
+    queryHandler.authorizeByToken(createToken(), statement);
+
+    verify(authorizationService, times(1))
+        .authorizeSchemaWrite(
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq("tbl1"),
+            eq(Scope.ALTER),
+            eq(SourceAPI.CQL),
+            eq(ResourceKind.TABLE));
+  }
+
+  @Test
+  void authorizeByTokenRebuildSearchIndexStatement() throws UnauthorizedException {
+    CQLStatement.Raw rawStatement =
+        QueryProcessor.parseStatement("REBUILD SEARCH INDEX ON ks1.tbl1");
+
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+
+    queryHandler.authorizeByToken(createToken(), statement);
+
+    verify(authorizationService, times(1))
+        .authorizeSchemaWrite(
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq("tbl1"),
+            eq(Scope.ALTER),
+            eq(SourceAPI.CQL),
+            eq(ResourceKind.TABLE));
+  }
+
+  @Test
+  void authorizeByTokenReloadSearchIndexStatement() throws UnauthorizedException {
+    CQLStatement.Raw rawStatement =
+        QueryProcessor.parseStatement("RELOAD SEARCH INDEX ON ks1.tbl1");
+
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+
+    queryHandler.authorizeByToken(createToken(), statement);
+
+    verify(authorizationService, times(1))
+        .authorizeSchemaWrite(
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq("tbl1"),
+            eq(Scope.ALTER),
+            eq(SourceAPI.CQL),
+            eq(ResourceKind.TABLE));
+  }
+
+  @Test
+  void authorizeByTokenCommitSearchIndexStatement() throws UnauthorizedException {
+    CQLStatement.Raw rawStatement =
+        QueryProcessor.parseStatement("COMMIT SEARCH INDEX ON ks1.tbl1");
+
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+
+    queryHandler.authorizeByToken(createToken(), statement);
+
+    verify(authorizationService, times(1))
+        .authorizeSchemaWrite(
+            refEq(authenticationSubject),
+            eq("ks1"),
+            eq("tbl1"),
+            eq(Scope.ALTER),
+            eq(SourceAPI.CQL),
+            eq(ResourceKind.TABLE));
   }
 
   private Map<String, ByteBuffer> createToken() {
