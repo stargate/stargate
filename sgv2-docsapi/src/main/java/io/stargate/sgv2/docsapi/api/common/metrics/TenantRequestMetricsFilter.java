@@ -22,84 +22,69 @@ import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.config.MetricsConfig;
-import org.jboss.resteasy.reactive.server.ServerResponseFilter;
-
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.container.ContainerResponseContext;
+import org.jboss.resteasy.reactive.server.ServerResponseFilter;
 
 /**
- * The filter for counting HTTP requests per tenant. Controlled by {@link MetricsConfig.TenantRequestCounterConfig}.
+ * The filter for counting HTTP requests per tenant. Controlled by {@link
+ * MetricsConfig.TenantRequestCounterConfig}.
  */
 @ApplicationScoped
 public class TenantRequestMetricsFilter {
 
-    /**
-     * The {@link MeterRegistry} to report to.
-     */
-    private final MeterRegistry meterRegistry;
+  /** The {@link MeterRegistry} to report to. */
+  private final MeterRegistry meterRegistry;
 
-    /**
-     * The configuration for metrics.
-     */
-    private final MetricsConfig.TenantRequestCounterConfig config;
+  /** The configuration for metrics. */
+  private final MetricsConfig.TenantRequestCounterConfig config;
 
-    /**
-     * The request info bean.
-     */
-    private final StargateRequestInfo requestInfo;
+  /** The request info bean. */
+  private final StargateRequestInfo requestInfo;
 
-    /**
-     * The tag for error being true, created only once.
-     */
-    private final Tag errorTrue;
+  /** The tag for error being true, created only once. */
+  private final Tag errorTrue;
 
-    /**
-     * The tag for error being false, created only once.
-     */
-    private final Tag errorFalse;
+  /** The tag for error being false, created only once. */
+  private final Tag errorFalse;
 
-    /**
-     * The tag for tenant being unknown, created only once.
-     */
-    Tag tenantUnknown;
+  /** The tag for tenant being unknown, created only once. */
+  Tag tenantUnknown;
 
-    /**
-     * Default constructor.
-     */
-    @Inject
-    public TenantRequestMetricsFilter(MeterRegistry meterRegistry, StargateRequestInfo requestInfo, MetricsConfig metricsConfig) {
-        this.meterRegistry = meterRegistry;
-        this.requestInfo = requestInfo;
-        this.config = metricsConfig.tenantRequestCounter();
-        errorTrue = Tag.of(config.errorTag(), "true");
-        errorFalse = Tag.of(config.errorTag(), "false");
-        tenantUnknown = Tag.of(config.tenantTag(), "UNKNOWN");
+  /** Default constructor. */
+  @Inject
+  public TenantRequestMetricsFilter(
+      MeterRegistry meterRegistry, StargateRequestInfo requestInfo, MetricsConfig metricsConfig) {
+    this.meterRegistry = meterRegistry;
+    this.requestInfo = requestInfo;
+    this.config = metricsConfig.tenantRequestCounter();
+    errorTrue = Tag.of(config.errorTag(), "true");
+    errorFalse = Tag.of(config.errorTag(), "false");
+    tenantUnknown = Tag.of(config.tenantTag(), "UNKNOWN");
+  }
+
+  /**
+   * Filter that this bean produces.
+   *
+   * @param context ContainerResponseContext
+   * @see https://quarkus.io/guides/resteasy-reactive#request-or-response-filters
+   */
+  @ServerResponseFilter
+  public void record(ContainerResponseContext context) {
+    // only if enabled
+    if (config.enabled()) {
+
+      // resolve tenant
+      Tag tenantTag =
+          requestInfo.getTenantId().map(id -> Tag.of(config.tenantTag(), id)).orElse(tenantUnknown);
+
+      // resolve error
+      boolean error = context.getStatus() >= 500;
+      Tag errorTag = error ? errorTrue : errorFalse;
+
+      // record
+      meterRegistry.counter(config.metricName(), Tags.of(tenantTag, errorTag)).increment();
     }
-
-    /**
-     * Filter that this bean produces.
-     *
-     * @param context ContainerResponseContext
-     * @see https://quarkus.io/guides/resteasy-reactive#request-or-response-filters
-     */
-    @ServerResponseFilter
-    public void record(ContainerResponseContext context) {
-        // only if enabled
-        if (config.enabled()) {
-
-            // resolve tenant
-            Tag tenantTag = requestInfo.getTenantId()
-                    .map(id -> Tag.of(config.tenantTag(), id))
-                    .orElse(tenantUnknown);
-
-            // resolve error
-            boolean error = context.getStatus() >= 500;
-            Tag errorTag = error ? errorTrue : errorFalse;
-
-            // record
-            meterRegistry.counter(config.metricName(), Tags.of(tenantTag, errorTag)).increment();
-        }
-    }
-
+  }
 }

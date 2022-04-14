@@ -92,9 +92,10 @@ quarkus:
       # in the dev env use the sampler that samples all requests
       sampler:
         ratio: 1.0
-      # the OTPL endpoint should be specified in order to report traces
+      # the OTPL should be enabled and endpoint should be specified in order to report traces
       exporter:
         otlp:
+          enabled: false
           endpoint:
 
   # information for the generated Open API definitions

@@ -222,7 +222,7 @@ All non-application endpoints are ignored from the collection.
 [Related guide](https://quarkus.io/guides/opentelemetry)
 
 Enables the [OpenTelemetry](https://opentelemetry.io/) tracing support.
-In order to activate the tracing, you need to supply the OTLP gRPC endpoint using the JVM parameter `-Dquarkus.opentelemetry.tracer.exporter.otlp.endpoint=http://localhost:55680`.
+In order to activate the tracing, you need to supply the OTLP gRPC endpoint using the JVM parameters `-Dquarkus.opentelemetry.tracer.exporter.otlp.enabled=true -Dquarkus.opentelemetry.tracer.exporter.otlp.endpoint=http://localhost:55680`.
 The easiest way to locally collect and visualize traces is to use the [jaegertracing/opentelemetry-all-in-one](https://www.jaegertracing.io/docs/1.21/opentelemetry/) docker image with [in-memory](https://www.jaegertracing.io/docs/1.21/deployment/#badger---local-storage) storage:
 
 ```shell
