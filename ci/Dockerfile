@@ -59,8 +59,4 @@ RUN ccm create -v 6.8.21 --dse stargate_dse68 && ccm remove stargate_dse68
 # copy toolchains to the correct location
 COPY --chown=ubuntu:ubuntu toolchains.xml /home/ubuntu/.m2/
 
-# copy toolchains to the correct location
-RUN mkdir /home/ubuntu/.m2/ \
-    && chown ubuntu:ubuntu /home/ubuntu/.m2/
-
 CMD ["/bin/bash"]
