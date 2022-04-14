@@ -30,7 +30,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import io.grpc.Metadata;
 import io.grpc.stub.StreamObserver;
 import io.quarkus.test.junit.QuarkusTest;
-import io.stargate.proto.Schema;
+import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.docsapi.BridgeTest;
 import io.stargate.sgv2.docsapi.config.GrpcMetadataConfig;
 import io.stargate.sgv2.docsapi.config.constants.Constants;

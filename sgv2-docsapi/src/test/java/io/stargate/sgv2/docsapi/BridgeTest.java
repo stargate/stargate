@@ -27,6 +27,7 @@ import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.netty.NettyServerBuilder;
+import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridgeGrpc;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;

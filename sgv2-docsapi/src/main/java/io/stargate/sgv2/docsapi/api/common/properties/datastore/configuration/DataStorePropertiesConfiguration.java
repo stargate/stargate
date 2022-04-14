@@ -19,8 +19,8 @@ package io.stargate.sgv2.docsapi.api.common.properties.datastore.configuration;
 
 import io.quarkus.grpc.GrpcClient;
 import io.quarkus.runtime.Startup;
-import io.stargate.proto.Schema;
-import io.stargate.proto.StargateBridgeGrpc;
+import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.datastore.impl.DataStorePropertiesImpl;
 import io.stargate.sgv2.docsapi.config.DataStoreConfig;
