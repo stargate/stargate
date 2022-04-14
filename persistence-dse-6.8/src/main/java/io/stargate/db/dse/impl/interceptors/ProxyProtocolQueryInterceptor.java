@@ -204,12 +204,6 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
     wrapped.ifPresent(w -> w.register(listener));
   }
 
-  @Override
-  public void unregister(EventListener listener) {
-    listeners.remove(listener);
-    wrapped.ifPresent(w -> w.unregister(listener));
-  }
-
   @SuppressWarnings("NonAtomicOperationOnVolatileField")
   private void resolveAllPeers() {
     if (!Strings.isNullOrEmpty(proxyDnsName)) {

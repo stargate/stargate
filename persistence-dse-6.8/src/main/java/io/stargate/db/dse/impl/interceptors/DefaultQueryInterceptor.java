@@ -80,11 +80,6 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     listeners.add(listener);
   }
 
-  @Override
-  public void unregister(EventListener listener) {
-    listeners.remove(listener);
-  }
-
   private static Single<ResultMessage> interceptSystemLocalOrPeers(
       CQLStatement statement, QueryState state, QueryOptions options, long queryStartNanoTime) {
     SelectStatement selectStatement = ((SelectStatement) statement);

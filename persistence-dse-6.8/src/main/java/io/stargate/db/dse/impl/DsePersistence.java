@@ -261,12 +261,6 @@ public class DsePersistence
   }
 
   @Override
-  public void unregisterEventListener(EventListener listener) {
-    SchemaManager.instance.unregisterListener(new EventListenerWrapper(listener));
-    interceptor.unregister(listener);
-  }
-
-  @Override
   public Authenticator getAuthenticator() {
     return authenticator;
   }

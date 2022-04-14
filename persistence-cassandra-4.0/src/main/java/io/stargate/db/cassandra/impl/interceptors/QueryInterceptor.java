@@ -23,6 +23,4 @@ public interface QueryInterceptor {
       long queryStartNanoTime);
 
   void register(EventListener listener);
-
-  void unregister(EventListener listener);
 }
