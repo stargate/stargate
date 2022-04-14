@@ -44,13 +44,24 @@ public class GraphqlServiceStarter {
               + "the oldest keyspace if not specified in the URL path)")
   private boolean disableDefaultKeyspace;
 
+  @Option(
+      name = {"--timeout-seconds"},
+      title = "timeout-seconds",
+      description = "the timeout for gRPC queries to the Stargate bridge")
+  private int timeoutSeconds = 5;
+
   public void start() throws Exception {
     final MetricsImpl metricsImpl = new MetricsImpl();
     final HttpMetricsTagProvider httpMetricsTags = new NoopHttpMetricsTagProvider();
 
     GraphqlServiceServer server =
         new GraphqlServiceServer(
-            metricsImpl, metricsImpl, httpMetricsTags, disablePlayground, disableDefaultKeyspace);
+            metricsImpl,
+            metricsImpl,
+            httpMetricsTags,
+            timeoutSeconds,
+            disablePlayground,
+            disableDefaultKeyspace);
     server.run("server", "config.yaml");
   }
 

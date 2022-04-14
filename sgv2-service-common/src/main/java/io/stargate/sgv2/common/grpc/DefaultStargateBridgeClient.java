@@ -59,7 +59,7 @@ import org.apache.commons.codec.binary.Hex;
 
 class DefaultStargateBridgeClient implements StargateBridgeClient {
 
-  private static final int TIMEOUT_SECONDS = 5;
+  private static final int TIMEOUT_SECONDS = 10;
   static final Metadata.Key<String> TENANT_ID_KEY =
       Metadata.Key.of("x-tenant-id", Metadata.ASCII_STRING_MARSHALLER);
   static final Query SELECT_KEYSPACE_NAMES =
@@ -83,13 +83,14 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
       Channel channel,
       String authToken,
       Optional<String> tenantId,
+      int timeoutSeconds,
       Cache<String, CqlKeyspaceDescribe> keyspaceCache,
       LazyReference<CompletionStage<SupportedFeaturesResponse>> supportedFeaturesResponse,
       SourceApi sourceApi) {
     this.channel = tenantId.map(i -> addMetadata(channel, i)).orElse(channel);
     this.callOptions =
         CallOptions.DEFAULT
-            .withDeadlineAfter(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .withDeadlineAfter(timeoutSeconds, TimeUnit.SECONDS)
             .withCallCredentials(new StargateBearerToken(authToken));
     this.tenantPrefix = tenantId.map(this::encodeKeyspacePrefix).orElse("");
     this.keyspaceCache = keyspaceCache;

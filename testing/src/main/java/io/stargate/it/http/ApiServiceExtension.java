@@ -226,6 +226,8 @@ public class ApiServiceExtension
       cmd.addArgument("-jar");
       cmd.addArgument(getStarterJar(params).getAbsolutePath());
 
+      params.serviceArguments().forEach(cmd::addArgument);
+
       addStdOutListener(
           (node, line) -> {
             if (line.contains(params.serviceStartedMessage())) {

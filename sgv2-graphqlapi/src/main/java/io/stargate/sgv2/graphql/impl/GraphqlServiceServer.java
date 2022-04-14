@@ -54,6 +54,7 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
   private final Metrics metrics;
   private final MetricsScraper metricsScraper;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
+  private final int timeoutSeconds;
   private final boolean disablePlayground;
   private final boolean disableDefaultKeyspace;
 
@@ -61,11 +62,13 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
       Metrics metrics,
       MetricsScraper metricsScraper,
       HttpMetricsTagProvider httpMetricsTagProvider,
+      int timeoutSeconds,
       boolean enableGraphqlPlayground,
       boolean disableDefaultKeyspace) {
     this.metrics = metrics;
     this.metricsScraper = metricsScraper;
     this.httpMetricsTagProvider = httpMetricsTagProvider;
+    this.timeoutSeconds = timeoutSeconds;
     this.disablePlayground = enableGraphqlPlayground;
     this.disableDefaultKeyspace = disableDefaultKeyspace;
   }
@@ -77,7 +80,9 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
 
     StargateBridgeClientFactory clientFactory =
         StargateBridgeClientFactory.newInstance(
-            config.stargate.bridge.buildChannel(), Schema.SchemaRead.SourceApi.GRAPHQL);
+            config.stargate.bridge.buildChannel(),
+            timeoutSeconds,
+            Schema.SchemaRead.SourceApi.GRAPHQL);
     jersey.register(buildClientFilter(clientFactory));
 
     GraphqlCache graphqlCache = new GraphqlCache(disableDefaultKeyspace);

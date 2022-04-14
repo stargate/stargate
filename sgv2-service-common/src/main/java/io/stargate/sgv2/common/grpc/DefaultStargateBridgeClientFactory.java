@@ -28,20 +28,29 @@ import java.util.concurrent.TimeUnit;
 class DefaultStargateBridgeClientFactory implements StargateBridgeClientFactory {
 
   private final Channel channel;
+  private final int timeoutSeconds;
   private final SchemaRead.SourceApi sourceApi;
   private final Cache<String, CqlKeyspaceDescribe> keyspaceCache =
       Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(5, TimeUnit.MINUTES).build();
   private final LazyReference<CompletionStage<Schema.SupportedFeaturesResponse>>
       supportedFeaturesResponse = new LazyReference<>();
 
-  DefaultStargateBridgeClientFactory(Channel channel, SchemaRead.SourceApi sourceApi) {
+  DefaultStargateBridgeClientFactory(
+      Channel channel, int timeoutSeconds, SchemaRead.SourceApi sourceApi) {
     this.channel = channel;
+    this.timeoutSeconds = timeoutSeconds;
     this.sourceApi = sourceApi;
   }
 
   @Override
   public StargateBridgeClient newClient(String authToken, Optional<String> tenantId) {
     return new DefaultStargateBridgeClient(
-        channel, authToken, tenantId, keyspaceCache, supportedFeaturesResponse, sourceApi);
+        channel,
+        authToken,
+        tenantId,
+        timeoutSeconds,
+        keyspaceCache,
+        supportedFeaturesResponse,
+        sourceApi);
   }
 }
