@@ -4,8 +4,10 @@ import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.esotericsoftware.kryo.kryo5.Kryo;
 import com.esotericsoftware.kryo.kryo5.io.Input;
 import com.esotericsoftware.kryo.kryo5.io.Output;
+import com.google.common.base.Preconditions;
 import io.stargate.grpc.Values;
 import java.io.ByteArrayOutputStream;
+import java.util.Objects;
 
 public class DataMapper {
   public static AttributeValue toDynamo(Object value) {
@@ -50,5 +52,16 @@ public class DataMapper {
       output.close();
       return Values.of(output.getBuffer());
     }
+  }
+
+  public static boolean equals(AttributeValue value1, AttributeValue value2) {
+    return Objects.equals(value1, value2);
+  }
+
+  public static int compareTo(AttributeValue value1, AttributeValue value2) {
+    Object v1 = fromDynamo(value1);
+    Object v2 = fromDynamo(value2);
+    Preconditions.checkArgument(v1 instanceof Comparable, "Value is not comparable: " + v1);
+    return ((Comparable) v1).compareTo(v2);
   }
 }

@@ -8,10 +8,18 @@ import io.stargate.proto.Schema;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
+import io.stargate.sgv2.dynamosvc.parser.ExpressionLexer;
+import io.stargate.sgv2.dynamosvc.parser.ExpressionParser;
+import io.stargate.sgv2.dynamosvc.parser.FilterExpressionVisitor;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import org.antlr.v4.runtime.CharStream;
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.Lexer;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
@@ -95,7 +103,8 @@ public class QueryProxy extends Proxy {
     QueryOuterClass.Query query =
         constructByKeyConditionExpression(queryRequest, partitionKey, clusteringKey);
 
-    // TODO: support FilterExpression (https://github.com/li-boxuan/stargate/issues/16)
+    java.util.function.Predicate<Map<String, AttributeValue>> pred =
+        getFilterPredicate(queryRequest);
 
     // TODO: support ProjectionExpression which retrieves a subset of row
     QueryOuterClass.Response response = bridge.executeQuery(query);
@@ -112,9 +121,28 @@ public class QueryProxy extends Proxy {
                               Collectors.toMap(
                                   Map.Entry::getKey,
                                   entry -> DataMapper.toDynamo(entry.getValue()))))
+              .filter(pred)
               .collect(Collectors.toList()));
     }
     return result;
+  }
+
+  private java.util.function.Predicate<Map<String, AttributeValue>> getFilterPredicate(
+      QueryRequest queryRequest) {
+    if (StringUtils.isEmpty(queryRequest.getFilterExpression())) {
+      // if no FilterExpression is given, nothing is filtered out
+      return item -> true;
+    }
+    CharStream chars = CharStreams.fromString(queryRequest.getFilterExpression());
+    Lexer lexer = new ExpressionLexer(chars);
+    CommonTokenStream tokens = new CommonTokenStream(lexer);
+    ExpressionParser parser = new ExpressionParser(tokens);
+    FilterExpressionVisitor visitor =
+        new FilterExpressionVisitor(
+            queryRequest.getExpressionAttributeNames(),
+            queryRequest.getExpressionAttributeValues());
+    ParseTree tree = parser.expr();
+    return item -> visitor.isMatch(tree, item);
   }
 
   /**

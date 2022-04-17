@@ -28,6 +28,9 @@ jobs:
           - module: core
             args: ""
             name: core
+          - module: sgv2-dynamo-api
+            args: ""
+            name: dynamo
 #          - module: testing
 #            args: "-Dit.test=\"**/http/dynamo/*\""
 #            name: dynamo

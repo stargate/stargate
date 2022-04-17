@@ -107,7 +107,7 @@ public class DynamoResource {
       throw new WebApplicationException(
           "An error occurred when connecting to Cassandra", Response.Status.INTERNAL_SERVER_ERROR);
     } catch (Exception ex) {
-      throw new WebApplicationException(ex.getMessage(), Response.Status.INTERNAL_SERVER_ERROR);
+      throw new WebApplicationException(ex, Response.Status.INTERNAL_SERVER_ERROR);
     }
     return Response.status(Response.Status.OK).entity(response).build();
   }
