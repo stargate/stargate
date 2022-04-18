@@ -3,6 +3,11 @@
 
 stargate:
 
+  # configures data store
+  # see io.stargate.sgv2.docsapi.config.DataStoreConfig for all config properties and options
+  data-store:
+    read-from-bridge: false
+
   # configures metadata keys to include when calling the Bridge
   # see io.stargate.sgv2.docsapi.config.GrpcMetadataConfig for all config properties and options
   grpc-metadata:

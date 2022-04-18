@@ -23,6 +23,7 @@ import io.smallrye.mutiny.Uni;
 import io.stargate.proto.Schema;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
+import io.stargate.sgv2.docsapi.api.common.properties.model.CombinedProperties;
 import io.stargate.sgv2.docsapi.api.v2.example.model.dto.KeyspaceExistsResponse;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.grpc.GrpcClients;
@@ -51,6 +52,8 @@ public class ExampleResource {
   @Inject GrpcClients grpcClients;
 
   @Inject StargateRequestInfo requestInfo;
+
+  @Inject CombinedProperties properties;
 
   @Operation(summary = "Keyspace exists", description = "Checks if the given keyspace exists.")
   @Parameters({
@@ -85,6 +88,10 @@ public class ExampleResource {
   @GET
   @Path("keyspace-exists/{name}")
   public Uni<RestResponse<KeyspaceExistsResponse>> keyspaceExists(@PathParam("name") String name) {
+    if (properties.saiEnabled()) {
+      return Uni.createFrom().item(RestResponse.ok());
+    }
+
     Schema.DescribeKeyspaceQuery describeKeyspaceQuery =
         Schema.DescribeKeyspaceQuery.newBuilder().setKeyspaceName(name).build();
 
