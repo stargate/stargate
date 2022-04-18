@@ -72,15 +72,11 @@ quarkus:
       http-server:
         # ignore all non-application uris, as well as the custom set
         suppress-non-application-uris: true
-        ignore-patterns:
-          - /
-          - /metrics
-          - /swagger-ui.*
-          - .*\.html
+        ignore-patterns: /,/metrics,/swagger-ui.*,.*\.html
+
         # due to the https://github.com/quarkusio/quarkus/issues/24938
         # we need to define uri templating on our own for now
-        match-patterns:
-          - /api/v2/example/keyspace-exists/[a-z]+=/api/v2/example/keyspace-exists/{name}
+        match-patterns: /api/v2/example/keyspace-exists/[a-z]+=/api/v2/example/keyspace-exists/{name}
     # exports at prometheus default path
     export:
       prometheus:
