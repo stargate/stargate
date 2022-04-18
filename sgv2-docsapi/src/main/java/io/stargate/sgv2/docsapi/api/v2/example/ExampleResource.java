@@ -88,10 +88,6 @@ public class ExampleResource {
   @GET
   @Path("keyspace-exists/{name}")
   public Uni<RestResponse<KeyspaceExistsResponse>> keyspaceExists(@PathParam("name") String name) {
-    if (properties.saiEnabled()) {
-      return Uni.createFrom().item(RestResponse.ok());
-    }
-
     Schema.DescribeKeyspaceQuery describeKeyspaceQuery =
         Schema.DescribeKeyspaceQuery.newBuilder().setKeyspaceName(name).build();
 
