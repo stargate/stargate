@@ -17,7 +17,6 @@
 
 package io.stargate.sgv2.docsapi.api.common.metrics.configuration;
 
-import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.config.MeterFilter;
@@ -51,7 +50,4 @@ public class MicrometerConfiguration {
     // return all
     return MeterFilter.commonTags(Tags.of(tags));
   }
-
-
-
 }
