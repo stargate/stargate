@@ -17,7 +17,6 @@
 package io.stargate.sgv2.docsapi.api.exception;
 
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
-import io.stargate.sgv2.docsapi.config.DocsApiConfiguration;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;
@@ -37,13 +36,10 @@ public enum ErrorCode {
 
   /** Document API. */
   DOCS_API_GENERAL_ARRAY_LENGTH_EXCEEDED(
-      Response.Status.BAD_REQUEST,
-      String.format(
-          "Max array length of %s exceeded.", DocsApiConfiguration.DEFAULT.getMaxArrayLength())),
+      Response.Status.BAD_REQUEST, String.format("Max array length of %s exceeded.", 1000000)),
 
   DOCS_API_GENERAL_DEPTH_EXCEEDED(
-      Response.Status.BAD_REQUEST,
-      String.format("Max depth of %s exceeded.", DocsApiConfiguration.DEFAULT.getMaxDepth())),
+      Response.Status.BAD_REQUEST, String.format("Max depth of %s exceeded.", 64)),
 
   DOCS_API_GENERAL_FIELDS_INVALID(
       Response.Status.BAD_REQUEST,
@@ -57,9 +53,7 @@ public enum ErrorCode {
 
   DOCS_API_GENERAL_PAGE_SIZE_EXCEEDED(
       Response.Status.BAD_REQUEST,
-      String.format(
-          "The parameter `page-size` is limited to %d.",
-          DocsApiConfiguration.DEFAULT.getMaxPageSize())),
+      String.format("The parameter `page-size` is limited to %d.", 1000)),
 
   DOCS_API_GENERAL_UPGRADE_INVALID(
       Response.Status.BAD_REQUEST, "The collection cannot be upgraded in given manner."),
