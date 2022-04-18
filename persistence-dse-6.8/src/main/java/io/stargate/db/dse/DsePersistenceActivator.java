@@ -1,13 +1,8 @@
 package io.stargate.db.dse;
 
-import com.datastax.bdp.node.transport.internode.InternodeMessaging;
-import com.datastax.bdp.router.InternalQueryRouterProtocol;
 import com.datastax.bdp.search.solr.SearchInjector;
-import com.datastax.bdp.search.solr.SearchModule;
-import com.datastax.bdp.search.solr.core.StargateCoreContainer;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
-import com.google.inject.Injector;
 import io.stargate.auth.AuthorizationProcessor;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.core.activator.BaseActivator;
@@ -40,8 +35,6 @@ import org.apache.cassandra.locator.SimpleSnitch;
 import org.apache.cassandra.metrics.CassandraMetricsRegistry;
 import org.apache.cassandra.utils.FBUtilities;
 import org.apache.commons.io.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class DsePersistenceActivator extends BaseActivator {
 
@@ -49,11 +42,12 @@ public class DsePersistenceActivator extends BaseActivator {
     UserDefinedFunctionHelper.fixCompilerClassLoader();
   }
 
-  private static final Logger logger = LoggerFactory.getLogger(DsePersistenceActivator.class);
   private static final String AUTHZ_PROCESSOR_ID =
       System.getProperty("stargate.authorization.processor.id");
 
   private static final String ADVANCED_WORKLOAD = "AdvancedWorkload";
+
+  private static final String DSE_YAML_PATH = "/dse.yaml";
 
   private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
   private final LazyServicePointer<AuthorizationService> authorizationService =
@@ -185,20 +179,6 @@ public class DsePersistenceActivator extends BaseActivator {
     return c;
   }
 
-  public void initSearch() {
-    logger.info("Initializing Search Functionality");
-
-    SearchModule searchModule = new SearchModule();
-    SearchInjector.setModule(searchModule);
-    Injector injector = SearchInjector.get();
-
-    InternodeMessaging internodeMessaging = injector.getInstance(InternodeMessaging.class);
-    internodeMessaging.register(injector.getInstance(InternalQueryRouterProtocol.class));
-    internodeMessaging.activate();
-
-    StargateCoreContainer.setInstance(injector.getInstance(StargateCoreContainer.class));
-  }
-
   @Override
   protected ServiceAndProperties createService() {
     dseDB = new DsePersistence();
@@ -218,7 +198,7 @@ public class DsePersistenceActivator extends BaseActivator {
       if (authorizer instanceof DelegatingAuthorizer) {
         ((DelegatingAuthorizer) authorizer).setProcessor(authorizationProcessor.get());
       }
-      initSearch();
+      SearchInjector.initSearch(DSE_YAML_PATH);
       return new ServiceAndProperties(dseDB, Persistence.class, props);
     } catch (IOException e) {
       throw new IOError(e);

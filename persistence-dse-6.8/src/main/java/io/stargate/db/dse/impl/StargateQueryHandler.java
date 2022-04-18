@@ -17,8 +17,8 @@
  */
 package io.stargate.db.dse.impl;
 
-import com.datastax.bdp.cassandra.cql3.SolrQueryOperationFactory;
-import com.datastax.bdp.search.solr.statements.*;
+import com.datastax.bdp.cassandra.cql3.QueryHandlerWithTokenAuth;
+import com.datastax.bdp.search.solr.statements.SearchIndexStatement;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import io.reactivex.Single;
 import io.stargate.auth.AuthenticationSubject;
@@ -50,7 +50,7 @@ import org.apache.cassandra.utils.MD5Digest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class StargateQueryHandler implements QueryHandler {
+public class StargateQueryHandler extends QueryHandlerWithTokenAuth {
   private static final String ADV_WORKLOAD_QUERY =
       System.getProperty("stargate.adv.workload.query");
   private static final Logger logger = LoggerFactory.getLogger(StargateQueryHandler.class);
@@ -70,44 +70,19 @@ public class StargateQueryHandler implements QueryHandler {
       long queryStartNanoTime) {
 
     QueryState state = queryState.cloneWithKeyspaceIfSet(options.getKeyspace());
-    /*CQLStatement statement;
-    try {
-      statement = QueryProcessor.getStatement(query, state);
-      options.prepare(statement.getBindVariables());
-    } catch (Exception e) {
-      return QueryProcessor.auditLogger.logFailedQuery(query, state, e).andThen(Single.error(e));
-    }
 
-    if (!queryState.isSystem()) QueryProcessor.metrics.regularStatementsExecuted.inc();
-
-    return processStatement(statement, state, options, customPayload, queryStartNanoTime);*/
     try {
-      return new SolrQueryOperationFactory(this)
-          .create(query, queryState, options, customPayload, queryStartNanoTime, false)
+      return getStandardOperation(query, state, options, customPayload, queryStartNanoTime, false)
           .process();
     } catch (Exception e) {
       return QueryProcessor.auditLogger.logFailedQuery(query, state, e).andThen(Single.error(e));
     }
   }
 
-  public Single<ResultMessage> processNonSearchQueries(
-      CQLStatement statement,
-      String query,
-      QueryState queryState,
-      QueryOptions options,
-      Map<String, ByteBuffer> customPayload,
-      long queryStartNanoTime) {
-    statement = QueryProcessor.getStatement(query, queryState);
-    options.prepare(statement.getBindVariables());
-    if (!queryState.isSystem()) QueryProcessor.metrics.regularStatementsExecuted.inc();
-    return processStatement(statement, queryState, options, customPayload, queryStartNanoTime);
-  }
-
   @Override
   public Single<ResultMessage.Prepared> prepare(
       String query, QueryState queryState, Map<String, ByteBuffer> customPayload) {
-    return QueryProcessor.instance
-        .prepare(query, queryState, customPayload)
+    return super.prepare(query, queryState, customPayload)
         .map(
             p -> {
               Prepared prepared = QueryProcessor.instance.getPrepared(p.statementId);
@@ -130,7 +105,7 @@ public class StargateQueryHandler implements QueryHandler {
       QueryOptions options,
       Map<String, ByteBuffer> customPayload,
       long queryStartNanoTime) {
-
+    options.prepare(statement.getBindVariables());
     for (QueryInterceptor interceptor : interceptors) {
       Single<ResultMessage> result =
           interceptor.interceptQuery(
@@ -164,6 +139,7 @@ public class StargateQueryHandler implements QueryHandler {
   }
 
   @VisibleForTesting
+  @Override
   public void authorizeByToken(Map<String, ByteBuffer> customPayload, CQLStatement statement) {
     AuthenticationSubject authenticationSubject = loadAuthenticationSubject(customPayload);
 
@@ -244,15 +220,8 @@ public class StargateQueryHandler implements QueryHandler {
       for (ModificationStatement stmt : statements) {
         authorizeModificationStatement(stmt, authenticationSubject, authorization);
       }
-    } else if (statement instanceof CreateSearchIndexStatement
-        || statement instanceof AlterSearchIndexStatement
-        || statement instanceof CommitSearchIndexStatement
-        || statement instanceof DropSearchIndexStatement
-        || statement instanceof RebuildSearchIndexStatement
-        || statement instanceof ReloadSearchIndexStatement) {
-      // TODO(versaurabh): GRAPH-50 & ARTMS-19
-      // Noop as of now
-      return;
+    } else if (statement instanceof SearchIndexStatement) {
+      authorizeSearchIndexStatement(statement, authenticationSubject, authorization);
     } else {
       logger.warn("Tried to authorize unsupported statement");
       throw new UnsupportedOperationException(
@@ -563,6 +532,36 @@ public class StargateQueryHandler implements QueryHandler {
         castStatement.getClass(),
         keyspaceName,
         tableName);
+  }
+
+  private void authorizeSearchIndexStatement(
+      CQLStatement statement,
+      AuthenticationSubject authenticationSubject,
+      AuthorizationService authorization) {
+    Scope scope = Scope.ALTER;
+    ResourceKind resource = ResourceKind.TABLE;
+    QualifiedName qualifiedName = ((SearchIndexStatement) statement).getQualifiedName();
+    String keyspaceName = qualifiedName.getKeyspace();
+    String tableName = qualifiedName.getName();
+
+    logger.debug(
+        "preparing to authorize statement of type {} on {}.{}",
+        statement.getClass().toString(),
+        keyspaceName,
+        tableName);
+
+    try {
+      authorization.authorizeSchemaWrite(
+          authenticationSubject, keyspaceName, tableName, scope, SourceAPI.CQL, resource);
+    } catch (io.stargate.auth.UnauthorizedException e) {
+      throw new UnauthorizedException(
+          String.format(
+              "Missing correct permission on %s.%s",
+              keyspaceName, (tableName == null ? "" : tableName)));
+    }
+
+    logger.debug(
+        "authorized statement of type {} on {}.{}", statement.getClass(), keyspaceName, tableName);
   }
 
   private String getRoleResourceFromStatement(Object stmt, String fieldName) {
