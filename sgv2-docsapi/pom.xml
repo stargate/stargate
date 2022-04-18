@@ -17,7 +17,8 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <quarkus.container-image.group>stargateio</quarkus.container-image.group>
     <quarkus.container-image.name>docsapi</quarkus.container-image.name>
-    <quarkus.generate-code.grpc.scan-for-proto>io.stargate.grpc:grpc-proto,com.google.api.grpc:proto-google-common-protos</quarkus.generate-code.grpc.scan-for-proto>
+    <quarkus.generate-code.grpc.scan-for-proto>io.stargate.grpc:grpc-proto</quarkus.generate-code.grpc.scan-for-proto>
+    <quarkus.generate-code.grpc.scan-for-imports>com.google.protobuf:protobuf-java,com.google.api.grpc:proto-google-common-protos</quarkus.generate-code.grpc.scan-for-imports>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
     <quarkus.platform.version>2.8.0.Final</quarkus.platform.version>
@@ -39,6 +40,12 @@
       <groupId>io.stargate.grpc</groupId>
       <artifactId>grpc-proto</artifactId>
       <version>${project.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>

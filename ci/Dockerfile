@@ -56,6 +56,11 @@ RUN ccm create -v 4.0.3 stargate_40 && ccm remove stargate_40
 RUN ccm create -v 3.11.12 stargate_311 && ccm remove stargate_311
 RUN ccm create -v 6.8.21 --dse stargate_dse68 && ccm remove stargate_dse68
 
+# init the maven user home dir with correct permissions
+# needed for running maven wrapper
+RUN mkdir /home/ubuntu/.m2/ \
+    && chown ubuntu:ubuntu /home/ubuntu/.m2/
+
 # copy toolchains to the correct location
 COPY --chown=ubuntu:ubuntu toolchains.xml /home/ubuntu/.m2/
 

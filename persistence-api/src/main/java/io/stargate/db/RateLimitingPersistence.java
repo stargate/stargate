@@ -50,11 +50,6 @@ public class RateLimitingPersistence implements Persistence {
   }
 
   @Override
-  public void unregisterEventListener(EventListener listener) {
-    persistence.unregisterEventListener(listener);
-  }
-
-  @Override
   public Authenticator getAuthenticator() {
     return persistence.getAuthenticator();
   }
