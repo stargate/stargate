@@ -52,7 +52,7 @@ steps:
     env:
       - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
   - name: 'gcr.io/cloud-builders/gsutil'
-    waitFor: [ 'build', 'build-java17' ]
+    waitFor: [ 'build', 'build-java14' ]
     args:
       - '-m'
       - 'rsync'
