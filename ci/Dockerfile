@@ -7,7 +7,7 @@ RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 RUN apt-get update \
     && apt-get install -y \
     openjdk-8-jdk \
-    openjdk-17-jdk \
+    openjdk-14-jdk \
     git \
     gcc \
     python-dev \

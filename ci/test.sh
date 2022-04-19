@@ -18,7 +18,7 @@ sudo -i -u ubuntu bash << EOF
 set -euo pipefail
 
 echoinfo() { echo "[\$(date -Is)] - \$@" 1>&2; }
-export JAVA_HOME="/usr/lib/jvm/java-1.8.0-openjdk-amd64"
+export JAVA_HOME="/usr/lib/jvm/java-14-openjdk-amd64"
 export PATH=$PATH:\$JAVA_HOME/bin
 export MAVEN_OPTS="-Dmaven.repo.local=/cache/.m2"
 export TESTCONTAINERS_RYUK_DISABLED=true
@@ -49,13 +49,6 @@ mvn -B install verify --file pom.xml \
 -P \${DSE}dse -P \${DSE}it-dse-6.8 \
 -P default \
 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
-
-echoinfo "Testing Java 17 projects"
-
-cd sgv2-docsapi/
-JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./mvnw -B verify --file ./pom.xml \
--Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
-cd ../
 
 echoinfo "Test complete"
 
