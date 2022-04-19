@@ -15,15 +15,14 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api.common.properties.configuration;
+package io.stargate.sgv2.docsapi.api.common.properties.datastore.configuration;
 
 import io.quarkus.grpc.GrpcClient;
 import io.stargate.proto.MutinyStargateBridgeGrpc;
 import io.stargate.proto.Schema;
-import io.stargate.sgv2.docsapi.api.common.properties.model.CombinedProperties;
-import io.stargate.sgv2.docsapi.api.common.properties.model.DataStoreProperties;
+import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;
+import io.stargate.sgv2.docsapi.api.common.properties.datastore.impl.DataStorePropertiesImpl;
 import io.stargate.sgv2.docsapi.config.DataStoreConfig;
-import io.stargate.sgv2.docsapi.config.DocumentConfig;
 import java.time.Duration;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
@@ -32,34 +31,33 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @ApplicationScoped
-public class CombinedPropertiesConfiguration {
+public class DataStorePropertiesConfiguration {
 
   /** Logger for the class. */
-  private static final Logger LOG = LoggerFactory.getLogger(CombinedPropertiesConfiguration.class);
+  private static final Logger LOG = LoggerFactory.getLogger(DataStorePropertiesConfiguration.class);
 
   /** The bridge client. */
   private final MutinyStargateBridgeGrpc.MutinyStargateBridgeStub bridge;
-
-  /** Document config based on YAML props. */
-  private final DocumentConfig documentConfig;
 
   /** Data store config based on YAML props. */
   private final DataStoreConfig dataStoreConfig;
 
   @Inject
-  public CombinedPropertiesConfiguration(
+  public DataStorePropertiesConfiguration(
       @GrpcClient("bridge") MutinyStargateBridgeGrpc.MutinyStargateBridgeStub bridge,
-      DocumentConfig documentConfig,
       DataStoreConfig dataStoreConfig) {
     this.bridge = bridge;
-    this.documentConfig = documentConfig;
     this.dataStoreConfig = dataStoreConfig;
   }
 
   @Produces
   @ApplicationScoped
-  CombinedProperties configuration() {
-    CombinedProperties fromConfig = new CombinedProperties(documentConfig, dataStoreConfig);
+  DataStoreProperties configuration() {
+    DataStoreProperties fromConfig =
+        new DataStorePropertiesImpl(
+            dataStoreConfig.secondaryIndexesEnabled(),
+            dataStoreConfig.saiEnabled(),
+            dataStoreConfig.loggedBatchesEnabled());
 
     // if we should not read from the bridge, go for defaults
     if (!dataStoreConfig.readFromBridge()) {
@@ -74,25 +72,10 @@ public class CombinedPropertiesConfiguration {
           bridge.getSupportedFeatures(request).await().atMost(Duration.ofSeconds(5));
 
       // construct props from bridge
-      DataStoreProperties propertiesFromBridge =
-          new DataStoreProperties() {
-            @Override
-            public boolean secondaryIndexesEnabled() {
-              return supportedFeatures.getSecondaryIndexes();
-            }
-
-            @Override
-            public boolean saiEnabled() {
-              return supportedFeatures.getSai();
-            }
-
-            @Override
-            public boolean loggedBatchesEnabled() {
-              return supportedFeatures.getLoggedBatches();
-            }
-          };
-
-      return new CombinedProperties(documentConfig, propertiesFromBridge);
+      return new DataStorePropertiesImpl(
+          supportedFeatures.getSecondaryIndexes(),
+          supportedFeatures.getSai(),
+          supportedFeatures.getLoggedBatches());
     } catch (Exception e) {
       LOG.error(
           "Error fetching the data store properties from the bridge, fallback to the configuration based properties.",

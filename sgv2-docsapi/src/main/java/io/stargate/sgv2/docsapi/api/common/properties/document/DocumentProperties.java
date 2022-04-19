@@ -15,8 +15,9 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api.common.properties.model;
+package io.stargate.sgv2.docsapi.api.common.properties.document;
 
+/** General document-related properties. */
 public interface DocumentProperties {
 
   /** @return Defines the maximum depth of the JSON document. */
@@ -32,12 +33,10 @@ public interface DocumentProperties {
   int searchPageSize();
 
   /** @return Properties for a table where documents are stored. */
-  DocumentTableProperties table();
+  DocumentTableProperties tableProperties();
 
   /** @return The helper for resolving column names in a document table. */
-  default DocumentTableColumns tableColumns() {
-    return new DocumentTableColumns(this);
-  }
+  DocumentTableColumns tableColumns();
 
   /**
    * @return Returns approximate storage page size to use when querying database, based on the

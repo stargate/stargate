@@ -19,16 +19,15 @@ package io.stargate.sgv2.docsapi.config;
 
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
-import io.stargate.sgv2.docsapi.api.common.properties.model.DataStoreProperties;
 
 /**
  * Configuration for the data store.
  *
  * <p><b>IMPORTANT:</b> Do not inject this class, but rather {@link
- * io.stargate.sgv2.docsapi.api.common.properties.model.CombinedProperties}.
+ * io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties}.
  */
 @ConfigMapping(prefix = "stargate.data-store")
-public interface DataStoreConfig extends DataStoreProperties {
+public interface DataStoreConfig {
 
   /**
    * @return If the data store config should be read by the bridge, defaults to <code>false</code>.

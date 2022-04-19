@@ -19,8 +19,6 @@ package io.stargate.sgv2.docsapi.config;
 
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
-import io.stargate.sgv2.docsapi.api.common.properties.model.DocumentProperties;
-import io.stargate.sgv2.docsapi.api.common.properties.model.DocumentTableProperties;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.NotBlank;
@@ -30,10 +28,10 @@ import javax.validation.constraints.Positive;
  * Configuration for the documents.
  *
  * <p><b>IMPORTANT:</b> Do not inject this class, but rather {@link
- * io.stargate.sgv2.docsapi.api.common.properties.model.CombinedProperties}.
+ * io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties}.
  */
 @ConfigMapping(prefix = "stargate.document")
-public interface DocumentConfig extends DocumentProperties {
+public interface DocumentConfig {
 
   /** @return Defines the maximum depth of the JSON document, defaults to <code>64</code>. */
   @Max(64)
@@ -62,10 +60,9 @@ public interface DocumentConfig extends DocumentProperties {
   int searchPageSize();
 
   /** {@inheritDoc} */
-  @Override
   DocumentTableConfig table();
 
-  interface DocumentTableConfig extends DocumentTableProperties {
+  interface DocumentTableConfig {
 
     /** @return The name of the column where a document key is stored. */
     @NotBlank

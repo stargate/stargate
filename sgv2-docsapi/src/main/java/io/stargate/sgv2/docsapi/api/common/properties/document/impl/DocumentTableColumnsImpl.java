@@ -15,32 +15,33 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api.common.properties.model;
+package io.stargate.sgv2.docsapi.api.common.properties.document.impl;
 
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableColumns;
+import io.stargate.sgv2.docsapi.config.DocumentConfig;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
- * A helper that pre-resolves all the columns names for the document table.
+ * Immutable implementation of the {@link DocumentTableColumns}.
  *
- * @param valueColumnNames Value columns
- * @param pathColumnNames Path columns
- * @param allColumnNames All columns
+ * @see DocumentTableColumns
  */
-public record DocumentTableColumns(
-    String[] valueColumnNames, String[] pathColumnNames, String[] allColumnNames) {
+public record DocumentTableColumnsImpl(
+    String[] valueColumnNames, String[] pathColumnNames, String[] allColumnNames)
+    implements DocumentTableColumns {
 
   /**
-   * Constructor that initializes all columns based on the {@link DocumentProperties}.
+   * Constructor that initializes all columns based on the {@link DocumentConfig}.
    *
-   * @param properties {@link DocumentProperties}
+   * @param documentConfig {@link DocumentConfig}
    */
-  public DocumentTableColumns(DocumentProperties properties) {
-    this(valueColumns(properties), pathColumns(properties), allColumns(properties));
+  public DocumentTableColumnsImpl(DocumentConfig documentConfig) {
+    this(valueColumns(documentConfig), pathColumns(documentConfig), allColumns(documentConfig));
   }
 
-  private static String[] valueColumns(DocumentProperties properties) {
-    DocumentTableProperties table = properties.table();
+  private static String[] valueColumns(DocumentConfig documentConfig) {
+    DocumentConfig.DocumentTableConfig table = documentConfig.table();
     return new String[] {
       table.leafColumnName(),
       table.stringValueColumnName(),
@@ -49,17 +50,17 @@ public record DocumentTableColumns(
     };
   }
 
-  private static String[] pathColumns(DocumentProperties properties) {
-    DocumentTableProperties table = properties.table();
-    int depth = properties.maxDepth();
+  private static String[] pathColumns(DocumentConfig documentConfig) {
+    DocumentConfig.DocumentTableConfig table = documentConfig.table();
+    int depth = documentConfig.maxDepth();
 
     return IntStream.range(0, depth)
         .mapToObj(i -> table.pathColumnPrefix() + i)
         .toArray(String[]::new);
   }
 
-  private static String[] allColumns(DocumentProperties properties) {
-    DocumentTableProperties table = properties.table();
+  private static String[] allColumns(DocumentConfig properties) {
+    DocumentConfig.DocumentTableConfig table = properties.table();
     int depth = properties.maxDepth();
 
     Stream<String> keyCol = Stream.of(table.keyColumnName());

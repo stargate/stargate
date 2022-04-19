@@ -11,17 +11,17 @@ import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.proto.Schema;
 import io.stargate.sgv2.docsapi.BridgeTest;
-import io.stargate.sgv2.docsapi.api.common.properties.model.CombinedProperties;
+import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;
 import java.util.Map;
 import javax.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@TestProfile(BridgeCombinedPropertiesConfigurationTest.Profile.class)
-class BridgeCombinedPropertiesConfigurationTest extends BridgeTest {
+@TestProfile(BridgeDataStorePropertiesConfigurationTest.Profile.class)
+class BridgeDataStorePropertiesConfigurationTest extends BridgeTest {
 
-  @Inject CombinedProperties properties;
+  @Inject DataStoreProperties dataStoreProperties;
 
   public static class Profile implements QuarkusTestProfile {
 
@@ -56,8 +56,8 @@ class BridgeCombinedPropertiesConfigurationTest extends BridgeTest {
 
   @Test
   public void dataStoreFromBridge() {
-    assertThat(properties.secondaryIndexesEnabled()).isFalse();
-    assertThat(properties.saiEnabled()).isTrue();
-    assertThat(properties.loggedBatchesEnabled()).isFalse();
+    assertThat(dataStoreProperties.secondaryIndexesEnabled()).isFalse();
+    assertThat(dataStoreProperties.saiEnabled()).isTrue();
+    assertThat(dataStoreProperties.loggedBatchesEnabled()).isFalse();
   }
 }

@@ -15,8 +15,9 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api.common.properties.model;
+package io.stargate.sgv2.docsapi.api.common.properties.document;
 
+/** Properties of a document table. */
 public interface DocumentTableProperties {
 
   /** @return The name of the column where a document key is stored. */

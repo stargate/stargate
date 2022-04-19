@@ -1,38 +1,31 @@
-package io.stargate.sgv2.docsapi.api.common.properties.configuration;
+package io.stargate.sgv2.docsapi.api.common.properties.document.configuration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.quarkus.test.junit.QuarkusTest;
-import io.stargate.sgv2.docsapi.api.common.properties.model.CombinedProperties;
-import io.stargate.sgv2.docsapi.api.common.properties.model.DocumentTableColumns;
-import io.stargate.sgv2.docsapi.api.common.properties.model.DocumentTableProperties;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableColumns;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
 import java.util.Arrays;
 import javax.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-class DefaultCombinedPropertiesConfigurationTest {
+class DefaultDocumentPropertiesConfigurationTest {
 
-  @Inject CombinedProperties properties;
-
-  @Test
-  public void dataStoreDefaults() {
-    assertThat(properties.secondaryIndexesEnabled()).isTrue();
-    assertThat(properties.saiEnabled()).isFalse();
-    assertThat(properties.loggedBatchesEnabled()).isTrue();
-  }
+  @Inject DocumentProperties documentProperties;
 
   @Test
   public void documentDefaults() {
-    assertThat(properties.maxDepth()).isEqualTo(64);
-    assertThat(properties.maxArrayLength()).isEqualTo(1_000_000);
-    assertThat(properties.maxPageSize()).isEqualTo(20);
-    assertThat(properties.searchPageSize()).isEqualTo(1_000);
+    assertThat(documentProperties.maxDepth()).isEqualTo(64);
+    assertThat(documentProperties.maxArrayLength()).isEqualTo(1_000_000);
+    assertThat(documentProperties.maxPageSize()).isEqualTo(20);
+    assertThat(documentProperties.searchPageSize()).isEqualTo(1_000);
   }
 
   @Test
   public void documentTableDefaults() {
-    DocumentTableProperties tableProperties = properties.table();
+    DocumentTableProperties tableProperties = documentProperties.tableProperties();
 
     assertThat(tableProperties.keyColumnName()).isEqualTo("key");
     assertThat(tableProperties.leafColumnName()).isEqualTo("leaf");
@@ -44,7 +37,7 @@ class DefaultCombinedPropertiesConfigurationTest {
 
   @Test
   public void documentTableColumnsDefaults() {
-    DocumentTableColumns columns = properties.tableColumns();
+    DocumentTableColumns columns = documentProperties.tableColumns();
 
     assertThat(columns.valueColumnNames())
         .containsExactly("leaf", "text_value", "dbl_value", "bool_value");
