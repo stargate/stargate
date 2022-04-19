@@ -2,45 +2,18 @@
 
 ## [v1.0.54](https://github.com/stargate/stargate/tree/v1.0.54) (2022-04-18)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-7...v1.0.54)
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.53...v1.0.54)
 
 **Closed issues:**
 
-- Bootstrap Document API V2 project with Quarkus [\#1717](https://github.com/stargate/stargate/issues/1717)
-- Extend Bridge to support per-row page state and comparable bytes [\#1715](https://github.com/stargate/stargate/issues/1715)
 
 **Merged pull requests:**
 
 - Update Maven wrapper plugin settings to simplify PR \#1769 [\#1784](https://github.com/stargate/stargate/pull/1784) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - update the CI image to include needed v2 changes [\#1774](https://github.com/stargate/stargate/pull/1774) ([ivansenic](https://github.com/ivansenic))
-
-## [v2.0.0-ALPHA-7](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-7) (2022-04-07)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-6...v2.0.0-ALPHA-7)
-
-**Merged pull requests:**
-
-- Remove bridge token references [\#1766](https://github.com/stargate/stargate/pull/1766) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
-- 2.0.0-ALPHA-6 release [\#1765](https://github.com/stargate/stargate/pull/1765) ([github-actions[bot]](https://github.com/apps/github-actions))
-- Port GraphQL CQL-first API to V2 architecture [\#1651](https://github.com/stargate/stargate/pull/1651) ([olim7t](https://github.com/olim7t))
-
-## [v2.0.0-ALPHA-6](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-6) (2022-04-06)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.53...v2.0.0-ALPHA-6)
-
-**Closed issues:**
-
-- Extend `RowDecorator` interface to return comparable bytes for a row [\#1716](https://github.com/stargate/stargate/issues/1716)
-
-**Merged pull requests:**
-
 - Upgrade io.grpc dependencies from 1.42.1 to 1.45.1, use grpc-bom [\#1758](https://github.com/stargate/stargate/pull/1758) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Upgrade json-path 2.5.0-\>2.7.0 to get json-smart upgrade [\#1756](https://github.com/stargate/stargate/pull/1756) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - upload dependency update results [\#1754](https://github.com/stargate/stargate/pull/1754) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
-- Add comparable bytes to row decorator [\#1750](https://github.com/stargate/stargate/pull/1750) ([EricBorczuk](https://github.com/EricBorczuk))
-- Remove StargateBridgeSchema [\#1711](https://github.com/stargate/stargate/pull/1711) ([olim7t](https://github.com/olim7t))
-- Prepare common components for GraphQL v2 [\#1703](https://github.com/stargate/stargate/pull/1703) ([olim7t](https://github.com/olim7t))
-- Bumping version for next v2 release [\#1701](https://github.com/stargate/stargate/pull/1701) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v1.0.53](https://github.com/stargate/stargate/tree/v1.0.53) (2022-03-30)
 
