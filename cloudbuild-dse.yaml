@@ -30,7 +30,7 @@ steps:
         name: 'm2_cache'
   - id: 'dse-6.8'
     waitFor: [ 'fetch_secret', 'init_cache' ]
-    name: 'gcr.io/stargateio/stargate-builder:v1.0.7'
+    name: 'gcr.io/stargateio/stargate-builder:v1.0.8'
     entrypoint: 'bash'
     args: [ 'ci/test.sh' ]
     volumes:
