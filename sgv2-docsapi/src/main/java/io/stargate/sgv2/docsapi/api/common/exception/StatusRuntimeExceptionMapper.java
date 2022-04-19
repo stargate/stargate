@@ -95,7 +95,8 @@ public class StatusRuntimeExceptionMapper {
   private static RestResponse<ApiError> grpcResponse(
       Status.Code grpcCode, Response.Status httpStatus, String prefix, String suffix) {
     final String msg = String.format("%s (%s->%s): %s", prefix, grpcCode, httpStatus, suffix);
-    return ResponseBuilder.create(httpStatus, new ApiError(msg, httpStatus.getStatusCode()))
+    return ResponseBuilder.create(
+            httpStatus, new ApiError(msg, httpStatus.getStatusCode(), grpcCode.toString()))
         .build();
   }
 }

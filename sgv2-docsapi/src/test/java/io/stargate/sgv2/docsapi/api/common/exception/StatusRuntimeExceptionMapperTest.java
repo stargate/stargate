@@ -5,30 +5,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
-import javax.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.junit.jupiter.api.Test;
 
 public class StatusRuntimeExceptionMapperTest {
-
-  private Response.Status getResponseStatus(Status.Code code) {
-    switch (code) {
-      case FAILED_PRECONDITION:
-      case INVALID_ARGUMENT:
-        return Response.Status.BAD_REQUEST;
-      case NOT_FOUND:
-        return Response.Status.NOT_FOUND;
-      case PERMISSION_DENIED:
-      case UNAUTHENTICATED:
-        return Response.Status.UNAUTHORIZED;
-      case UNAVAILABLE:
-        return Response.Status.SERVICE_UNAVAILABLE;
-      case UNIMPLEMENTED:
-        return Response.Status.NOT_IMPLEMENTED;
-      default:
-        return Response.Status.INTERNAL_SERVER_ERROR;
-    }
-  }
 
   @Test
   public void testGrpcStatusAborted() {
@@ -36,14 +16,7 @@ public class StatusRuntimeExceptionMapperTest {
     StatusRuntimeException error = new StatusRuntimeException(Status.ABORTED);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
-    assertThat(
-            response
-                .getEntity()
-                .description()
-                .contains(
-                    String.format(
-                        "(%s->%s)", Status.Code.ABORTED, getResponseStatus(Status.Code.ABORTED))))
-        .isTrue();
+    assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.ABORTED.toString());
   }
 
   @Test
@@ -52,15 +25,7 @@ public class StatusRuntimeExceptionMapperTest {
     StatusRuntimeException error = new StatusRuntimeException(Status.ALREADY_EXISTS);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
-    assertThat(
-            response
-                .getEntity()
-                .description()
-                .contains(
-                    String.format(
-                        "(%s->%s)",
-                        Status.Code.ALREADY_EXISTS, getResponseStatus(Status.Code.ALREADY_EXISTS))))
-        .isTrue();
+    assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.ALREADY_EXISTS.toString());
   }
 
   @Test
@@ -69,15 +34,7 @@ public class StatusRuntimeExceptionMapperTest {
     StatusRuntimeException error = new StatusRuntimeException(Status.CANCELLED);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
-    assertThat(
-            response
-                .getEntity()
-                .description()
-                .contains(
-                    String.format(
-                        "(%s->%s)",
-                        Status.Code.CANCELLED, getResponseStatus(Status.Code.CANCELLED))))
-        .isTrue();
+    assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.CANCELLED.toString());
   }
 
   @Test
@@ -86,15 +43,7 @@ public class StatusRuntimeExceptionMapperTest {
     StatusRuntimeException error = new StatusRuntimeException(Status.DATA_LOSS);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
-    assertThat(
-            response
-                .getEntity()
-                .description()
-                .contains(
-                    String.format(
-                        "(%s->%s)",
-                        Status.Code.DATA_LOSS, getResponseStatus(Status.Code.DATA_LOSS))))
-        .isTrue();
+    assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.DATA_LOSS.toString());
   }
 
   @Test
@@ -103,16 +52,8 @@ public class StatusRuntimeExceptionMapperTest {
     StatusRuntimeException error = new StatusRuntimeException(Status.DEADLINE_EXCEEDED);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
-    assertThat(
-            response
-                .getEntity()
-                .description()
-                .contains(
-                    String.format(
-                        "(%s->%s)",
-                        Status.Code.DEADLINE_EXCEEDED,
-                        getResponseStatus(Status.Code.DEADLINE_EXCEEDED))))
-        .isTrue();
+    assertThat(response.getEntity().grpcStatus())
+        .isEqualTo(Status.Code.DEADLINE_EXCEEDED.toString());
   }
 
   @Test
@@ -121,16 +62,8 @@ public class StatusRuntimeExceptionMapperTest {
     StatusRuntimeException error = new StatusRuntimeException(Status.FAILED_PRECONDITION);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
-    assertThat(
-            response
-                .getEntity()
-                .description()
-                .contains(
-                    String.format(
-                        "(%s->%s)",
-                        Status.Code.FAILED_PRECONDITION,
-                        getResponseStatus(Status.Code.FAILED_PRECONDITION))))
-        .isTrue();
+    assertThat(response.getEntity().grpcStatus())
+        .isEqualTo(Status.Code.FAILED_PRECONDITION.toString());
   }
 
   @Test
@@ -139,14 +72,7 @@ public class StatusRuntimeExceptionMapperTest {
     StatusRuntimeException error = new StatusRuntimeException(Status.INTERNAL);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
-    assertThat(
-            response
-                .getEntity()
-                .description()
-                .contains(
-                    String.format(
-                        "(%s->%s)", Status.Code.INTERNAL, getResponseStatus(Status.Code.INTERNAL))))
-        .isTrue();
+    assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.INTERNAL.toString());
   }
 
   @Test
@@ -155,16 +81,8 @@ public class StatusRuntimeExceptionMapperTest {
     StatusRuntimeException error = new StatusRuntimeException(Status.INVALID_ARGUMENT);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
-    assertThat(
-            response
-                .getEntity()
-                .description()
-                .contains(
-                    String.format(
-                        "(%s->%s)",
-                        Status.Code.INVALID_ARGUMENT,
-                        getResponseStatus(Status.Code.INVALID_ARGUMENT))))
-        .isTrue();
+    assertThat(response.getEntity().grpcStatus())
+        .isEqualTo(Status.Code.INVALID_ARGUMENT.toString());
   }
 
   @Test
@@ -173,15 +91,7 @@ public class StatusRuntimeExceptionMapperTest {
     StatusRuntimeException error = new StatusRuntimeException(Status.NOT_FOUND);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
-    assertThat(
-            response
-                .getEntity()
-                .description()
-                .contains(
-                    String.format(
-                        "(%s->%s)",
-                        Status.Code.NOT_FOUND, getResponseStatus(Status.Code.NOT_FOUND))))
-        .isTrue();
+    assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.NOT_FOUND.toString());
   }
 
   @Test
@@ -190,13 +100,7 @@ public class StatusRuntimeExceptionMapperTest {
     StatusRuntimeException error = new StatusRuntimeException(Status.OK);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
-    assertThat(
-            response
-                .getEntity()
-                .description()
-                .contains(
-                    String.format("(%s->%s)", Status.Code.OK, getResponseStatus(Status.Code.OK))))
-        .isTrue();
+    assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.OK.toString());
   }
 
   @Test
@@ -205,15 +109,7 @@ public class StatusRuntimeExceptionMapperTest {
     StatusRuntimeException error = new StatusRuntimeException(Status.OUT_OF_RANGE);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
-    assertThat(
-            response
-                .getEntity()
-                .description()
-                .contains(
-                    String.format(
-                        "(%s->%s)",
-                        Status.Code.OUT_OF_RANGE, getResponseStatus(Status.Code.OUT_OF_RANGE))))
-        .isTrue();
+    assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.OUT_OF_RANGE.toString());
   }
 
   @Test
@@ -222,16 +118,8 @@ public class StatusRuntimeExceptionMapperTest {
     StatusRuntimeException error = new StatusRuntimeException(Status.PERMISSION_DENIED);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
-    assertThat(
-            response
-                .getEntity()
-                .description()
-                .contains(
-                    String.format(
-                        "(%s->%s)",
-                        Status.Code.PERMISSION_DENIED,
-                        getResponseStatus(Status.Code.PERMISSION_DENIED))))
-        .isTrue();
+    assertThat(response.getEntity().grpcStatus())
+        .isEqualTo(Status.Code.PERMISSION_DENIED.toString());
   }
 
   @Test
@@ -240,16 +128,8 @@ public class StatusRuntimeExceptionMapperTest {
     StatusRuntimeException error = new StatusRuntimeException(Status.RESOURCE_EXHAUSTED);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
-    assertThat(
-            response
-                .getEntity()
-                .description()
-                .contains(
-                    String.format(
-                        "(%s->%s)",
-                        Status.Code.RESOURCE_EXHAUSTED,
-                        getResponseStatus(Status.Code.RESOURCE_EXHAUSTED))))
-        .isTrue();
+    assertThat(response.getEntity().grpcStatus())
+        .isEqualTo(Status.Code.RESOURCE_EXHAUSTED.toString());
   }
 
   @Test
@@ -258,16 +138,7 @@ public class StatusRuntimeExceptionMapperTest {
     StatusRuntimeException error = new StatusRuntimeException(Status.UNAUTHENTICATED);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
-    assertThat(
-            response
-                .getEntity()
-                .description()
-                .contains(
-                    String.format(
-                        "(%s->%s)",
-                        Status.Code.UNAUTHENTICATED,
-                        getResponseStatus(Status.Code.UNAUTHENTICATED))))
-        .isTrue();
+    assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.UNAUTHENTICATED.toString());
   }
 
   @Test
@@ -276,15 +147,7 @@ public class StatusRuntimeExceptionMapperTest {
     StatusRuntimeException error = new StatusRuntimeException(Status.UNAVAILABLE);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
-    assertThat(
-            response
-                .getEntity()
-                .description()
-                .contains(
-                    String.format(
-                        "(%s->%s)",
-                        Status.Code.UNAVAILABLE, getResponseStatus(Status.Code.UNAVAILABLE))))
-        .isTrue();
+    assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.UNAVAILABLE.toString());
   }
 
   @Test
@@ -293,15 +156,7 @@ public class StatusRuntimeExceptionMapperTest {
     StatusRuntimeException error = new StatusRuntimeException(Status.UNIMPLEMENTED);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
-    assertThat(
-            response
-                .getEntity()
-                .description()
-                .contains(
-                    String.format(
-                        "(%s->%s)",
-                        Status.Code.UNIMPLEMENTED, getResponseStatus(Status.Code.UNIMPLEMENTED))))
-        .isTrue();
+    assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.UNIMPLEMENTED.toString());
   }
 
   @Test
@@ -310,13 +165,6 @@ public class StatusRuntimeExceptionMapperTest {
     StatusRuntimeException error = new StatusRuntimeException(Status.UNKNOWN);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
-    assertThat(
-            response
-                .getEntity()
-                .description()
-                .contains(
-                    String.format(
-                        "(%s->%s)", Status.Code.UNKNOWN, getResponseStatus(Status.Code.UNKNOWN))))
-        .isTrue();
+    assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.UNKNOWN.toString());
   }
 }

@@ -34,15 +34,20 @@ public record ApiError(
         String description,
     @Schema(description = "The internal number referencing the error state.", example = "22000")
         int code,
+    @Schema(description = "The gRPC response status", example = "ABORTED") String grpcStatus,
 
     // TODO Is this still needed and used? This was not part of the public API.
     @Schema(hidden = true) String internalTxId) {
 
   public ApiError(String description) {
-    this(description, 0, null);
+    this(description, 0, null, null);
   }
 
   public ApiError(String description, int code) {
-    this(description, code, null);
+    this(description, code, null, null);
+  }
+
+  public ApiError(String description, int code, String grpcStatus) {
+    this(description, code, grpcStatus, null);
   }
 }
