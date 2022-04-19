@@ -1,14 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <artifactId>stargate</artifactId>
+    <groupId>io.stargate</groupId>
+    <version>2.0.0-ALPHA-8-SNAPSHOT</version>
+  </parent>
   <groupId>io.stargate</groupId>
   <artifactId>sgv2-docsapi</artifactId>
-  <version>2.0.0-ALPHA-8-SNAPSHOT</version>
   <properties>
     <assertj.version>3.22.0</assertj.version>
-    <compiler-plugin.version>3.8.1</compiler-plugin.version>
     <failsafe.useModulePath>false</failsafe.useModulePath>
-    <maven.compiler.release>17</maven.compiler.release>
+    <maven.compiler.release>14</maven.compiler.release>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <quarkus.container-image.group>stargateio</quarkus.container-image.group>
@@ -137,10 +140,10 @@
       </plugin>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
-        <version>${compiler-plugin.version}</version>
         <configuration>
           <compilerArgs>
             <arg>-parameters</arg>
+            <arg>--enable-preview</arg>
           </compilerArgs>
         </configuration>
       </plugin>
@@ -220,7 +223,7 @@
       </build>
       <properties>
         <quarkus.container-image.name>docsapi-native</quarkus.container-image.name>
-        <quarkus.native.builder-image>quay.io/quarkus/ubi-quarkus-mandrel:21.3-java17</quarkus.native.builder-image>
+        <quarkus.native.builder-image>quay.io/quarkus/ubi-quarkus-mandrel:21.3-java14</quarkus.native.builder-image>
         <quarkus.package.type>native</quarkus.package.type>
         <quarkus.native.native-image-xmx>6G</quarkus.native.native-image-xmx>
       </properties>

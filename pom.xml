@@ -177,6 +177,7 @@
         <module>cql</module>
         <module>graphqlapi</module>
         <module>restapi</module>
+        <module>sgv2-docsapi</module>
         <module>sgv2-restapi</module>
         <module>sgv2-graphqlapi</module>
         <module>sgv2-service-common</module>
@@ -214,6 +215,7 @@
         <module>cql</module>
         <module>graphqlapi</module>
         <module>restapi</module>
+        <module>sgv2-docsapi</module>
         <module>sgv2-restapi</module>
         <module>sgv2-graphqlapi</module>
         <module>sgv2-service-common</module>
