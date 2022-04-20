@@ -28,6 +28,13 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <!-- To upgrade StringTemplate version Duzzt uses, easiest to force here
+        -->
+      <dependency>
+        <groupId>org.antlr</groupId>
+        <artifactId>ST4</artifactId>
+        <version>4.3.3</version>
+      </dependency>
     </dependencies>
   </dependencyManagement>
   <dependencies>
@@ -64,7 +71,7 @@
     <dependency>
       <groupId>com.github.misberner.duzzt</groupId>
       <artifactId>duzzt-processor</artifactId>
-      <version>0.0.2</version>
+      <version>0.1.0</version>
       <scope>provided</scope>
     </dependency>
     <dependency>

@@ -161,6 +161,21 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
 
+## [v1.0.54](https://github.com/stargate/stargate/tree/v1.0.54) (2022-04-18)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.53...v1.0.54)
+
+**Closed issues:**
+
+
+**Merged pull requests:**
+
+- Update Maven wrapper plugin settings to simplify PR \#1769 [\#1784](https://github.com/stargate/stargate/pull/1784) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- update the CI image to include needed v2 changes [\#1774](https://github.com/stargate/stargate/pull/1774) ([ivansenic](https://github.com/ivansenic))
+- Upgrade io.grpc dependencies from 1.42.1 to 1.45.1, use grpc-bom [\#1758](https://github.com/stargate/stargate/pull/1758) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Upgrade json-path 2.5.0-\>2.7.0 to get json-smart upgrade [\#1756](https://github.com/stargate/stargate/pull/1756) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- upload dependency update results [\#1754](https://github.com/stargate/stargate/pull/1754) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+
 ## [v1.0.53](https://github.com/stargate/stargate/tree/v1.0.53) (2022-03-30)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.52...v1.0.53)
