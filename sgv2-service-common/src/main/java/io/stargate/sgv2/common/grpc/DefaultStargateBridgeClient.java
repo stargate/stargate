@@ -41,6 +41,8 @@ import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.DescribeKeyspaceQuery;
 import io.stargate.proto.Schema.SchemaRead;
 import io.stargate.proto.Schema.SchemaRead.SourceApi;
+import io.stargate.proto.Schema.SupportedFeaturesRequest;
+import io.stargate.proto.Schema.SupportedFeaturesResponse;
 import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.common.futures.Futures;
 import java.nio.charset.StandardCharsets;
@@ -62,11 +64,14 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
       Metadata.Key.of("Host", Metadata.ASCII_STRING_MARSHALLER);
   static final Query SELECT_KEYSPACE_NAMES =
       Query.newBuilder().setCql("SELECT keyspace_name FROM system_schema.keyspaces").build();
+  private static final SupportedFeaturesRequest SUPPORTED_FEATURES_REQUEST =
+      SupportedFeaturesRequest.newBuilder().build();
 
   private final Channel channel;
   private final CallOptions callOptions;
   private final String tenantPrefix;
   private final Cache<String, CqlKeyspaceDescribe> keyspaceCache;
+  private final LazyReference<CompletionStage<SupportedFeaturesResponse>> supportedFeaturesResponse;
   private final SourceApi sourceApi;
 
   DefaultStargateBridgeClient(
@@ -74,6 +79,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
       String authToken,
       Optional<String> tenantId,
       Cache<String, CqlKeyspaceDescribe> keyspaceCache,
+      LazyReference<CompletionStage<SupportedFeaturesResponse>> supportedFeaturesResponse,
       SourceApi sourceApi) {
     this.channel = tenantId.map(i -> addMetadata(channel, i)).orElse(channel);
     this.callOptions =
@@ -82,6 +88,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
             .withCallCredentials(new StargateBearerToken(authToken));
     this.tenantPrefix = tenantId.map(this::encodeKeyspacePrefix).orElse("");
     this.keyspaceCache = keyspaceCache;
+    this.supportedFeaturesResponse = supportedFeaturesResponse;
     this.sourceApi = sourceApi;
   }
 
@@ -271,6 +278,21 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
         AuthorizeSchemaReadsRequest.newBuilder().addAllSchemaReads(schemaReads).build(),
         observer);
     return observer.asFuture().thenApply(AuthorizeSchemaReadsResponse::getAuthorizedList);
+  }
+
+  @Override
+  public CompletionStage<SupportedFeaturesResponse> getSupportedFeaturesAsync() {
+    // This response is the same for all clients, and never changes over time. So only do the actual
+    // gRPC call the first time, and then cache it.
+    return supportedFeaturesResponse.get(this::getSupportedFeaturesFromBridge);
+  }
+
+  private CompletionStage<SupportedFeaturesResponse> getSupportedFeaturesFromBridge() {
+    ClientCall<SupportedFeaturesRequest, SupportedFeaturesResponse> call =
+        channel.newCall(StargateBridgeGrpc.getGetSupportedFeaturesMethod(), callOptions);
+    UnaryStreamObserver<SupportedFeaturesResponse> observer = new UnaryStreamObserver<>();
+    ClientCalls.asyncUnaryCall(call, SUPPORTED_FEATURES_REQUEST, observer);
+    return observer.asFuture();
   }
 
   private CompletionStage<List<String>> getKeyspaceNames(

@@ -19,11 +19,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
-import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.http.ApiServiceConnectionInfo;
 import io.stargate.it.http.RestUtils;
+import io.stargate.it.http.graphql.BaseGraphqlV2ApiTest;
 import io.stargate.it.storage.StargateConnectionInfo;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -34,16 +35,22 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(initQueries = {"CREATE TABLE \"Foo\"(k int PRIMARY KEY, v int)"})
-public class InvalidQueriesTest extends BaseIntegrationTest {
+public class InvalidQueriesTest extends BaseGraphqlV2ApiTest {
 
   private static CqlFirstClient CLIENT;
   private static CqlIdentifier KEYSPACE_ID;
 
   @BeforeAll
-  public static void setup(StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceId) {
-    String host = cluster.seedAddress();
-    CLIENT = new CqlFirstClient(host, RestUtils.getAuthToken(host));
+  public static void setup(
+      StargateConnectionInfo stargateBackend,
+      ApiServiceConnectionInfo stargateGraphqlApi,
+      @TestKeyspace CqlIdentifier keyspaceId) {
     KEYSPACE_ID = keyspaceId;
+    CLIENT =
+        new CqlFirstClient(
+            stargateGraphqlApi.host(),
+            stargateGraphqlApi.port(),
+            RestUtils.getAuthToken(stargateBackend.seedAddress()));
   }
 
   @ParameterizedTest

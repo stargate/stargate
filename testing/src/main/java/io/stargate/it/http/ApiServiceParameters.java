@@ -79,12 +79,6 @@ public interface ApiServiceParameters {
   // example: "dw.stargate.bridge.port"
   String bridgePortPropertyName();
 
-  @Value.Default
-  // standard value
-  default String bridgeTokenPropertyName() {
-    return "stargate.bridge.admin_token";
-  }
-
   static Builder builder() {
     return ImmutableApiServiceParameters.builder();
   }
@@ -110,8 +104,6 @@ public interface ApiServiceParameters {
     Builder bridgeHostPropertyName(String bridgeHostPropertyName);
 
     Builder bridgePortPropertyName(String bridgePortPropertyName);
-
-    Builder bridgeTokenPropertyName(String bridgeTokenPropertyName);
 
     ApiServiceParameters build();
   }

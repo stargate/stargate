@@ -19,12 +19,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
-import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.MetricsTestsHelper;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.http.ApiServiceConnectionInfo;
 import io.stargate.it.http.RestUtils;
+import io.stargate.it.http.graphql.BaseGraphqlV2ApiTest;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.io.IOException;
 import java.util.regex.Pattern;
@@ -35,19 +36,24 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(initQueries = {"CREATE TABLE \"Foo\"(k int PRIMARY KEY, v int)"})
-public class MetricsTest extends BaseIntegrationTest {
+public class MetricsTest extends BaseGraphqlV2ApiTest {
 
   private static final Pattern GRAPHQL_OPERATIONS_METRIC_REGEXP =
       Pattern.compile(
           "(graphqlapi_io_dropwizard_jetty_MutableServletContextHandler_dispatches_count\\s*)(\\d+.\\d+)");
 
-  private static String HOST;
+  private static ApiServiceConnectionInfo GRAPHQL_API;
   private static CqlFirstClient CLIENT;
 
   @BeforeAll
-  public static void setup(StargateConnectionInfo cluster) {
-    HOST = cluster.seedAddress();
-    CLIENT = new CqlFirstClient(HOST, RestUtils.getAuthToken(HOST));
+  public static void setup(
+      StargateConnectionInfo stargateBackend, ApiServiceConnectionInfo stargateGraphqlApi) {
+    GRAPHQL_API = stargateGraphqlApi;
+    CLIENT =
+        new CqlFirstClient(
+            stargateGraphqlApi.host(),
+            stargateGraphqlApi.port(),
+            RestUtils.getAuthToken(stargateBackend.seedAddress()));
   }
 
   @Test
@@ -65,7 +71,10 @@ public class MetricsTest extends BaseIntegrationTest {
   private int getQueryCount() {
     try {
       String body =
-          RestUtils.get("", String.format("http://%s:8084/metrics", HOST), HttpStatus.SC_OK);
+          RestUtils.get(
+              "",
+              String.format("http://%s:%d/metrics", GRAPHQL_API.host(), GRAPHQL_API.port()),
+              HttpStatus.SC_OK);
       return (int)
           MetricsTestsHelper.getMetricValue(body, "graphqlapi", GRAPHQL_OPERATIONS_METRIC_REGEXP);
     } catch (IOException e) {

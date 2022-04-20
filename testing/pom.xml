@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>2.0.0-ALPHA-6-SNAPSHOT</version>
+    <version>2.0.0-ALPHA-9-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.it</groupId>
   <artifactId>testing</artifactId>
@@ -261,6 +261,7 @@
           <systemPropertyVariables>
             <stargate.libdir>${basedir}/../stargate-lib</stargate.libdir>
             <stargate.rest.libdir>${basedir}/../stargate-lib/rest</stargate.rest.libdir>
+            <stargate.graphql.libdir>${basedir}/../stargate-lib/graphql</stargate.graphql.libdir>
             <jacoco-agent.destfile>${project.build.directory}/jacoco-it.exec</jacoco-agent.destfile>
             <jacoco-agent.args>${failsafe.jacoco.args}</jacoco-agent.args>
           </systemPropertyVariables>

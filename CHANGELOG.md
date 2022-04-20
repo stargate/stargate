@@ -1,27 +1,45 @@
 # Changelog
 
-## [v2.0.0-ALPHA-5](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-5) (2022-03-18)
+## [v2.0.0-ALPHA-8](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-8) (2022-04-19)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-4...v2.0.0-ALPHA-5)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-7...v2.0.0-ALPHA-8)
 
 **Closed issues:**
 
-- Stargate V2 REST Service should support "Duration" type [\#1696](https://github.com/stargate/stargate/issues/1696)
-- Verify that duration \(`CqlDuration`\) works with REST API [\#1693](https://github.com/stargate/stargate/issues/1693)
-- Create Docker image for REST API Service [\#1400](https://github.com/stargate/stargate/issues/1400)
+- Bootstrap Document API V2 project with Quarkus [\#1717](https://github.com/stargate/stargate/issues/1717)
+- Extend Bridge to support per-row page state and comparable bytes [\#1715](https://github.com/stargate/stargate/issues/1715)
 
 **Merged pull requests:**
 
-- Bumping version for next release [\#1700](https://github.com/stargate/stargate/pull/1700) ([github-actions[bot]](https://github.com/apps/github-actions))
-- gRPC: Revisit index metadata [\#1698](https://github.com/stargate/stargate/pull/1698) ([olim7t](https://github.com/olim7t))
-- Add support for Duration/CqlDuration for REST API, SGv2 [\#1697](https://github.com/stargate/stargate/pull/1697) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- gRPC: add support for CQL duration type [\#1690](https://github.com/stargate/stargate/pull/1690) ([olim7t](https://github.com/olim7t))
-- Update starctl scripts for v2 [\#1689](https://github.com/stargate/stargate/pull/1689) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
-- Fix \#1685 handling of `timestamp` values on REST/json output [\#1686](https://github.com/stargate/stargate/pull/1686) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Revert Persistence.unregisterEventListener \(fixes \#1777\) [\#1780](https://github.com/stargate/stargate/pull/1780) ([olim7t](https://github.com/olim7t))
+- Add exception mappers for grpc status runtime exception and ErrorCodes [\#1779](https://github.com/stargate/stargate/pull/1779) ([EricBorczuk](https://github.com/EricBorczuk))
+- relates to \#1717: correct grpc proto generation, exclude grpc-proto deps [\#1776](https://github.com/stargate/stargate/pull/1776) ([ivansenic](https://github.com/ivansenic))
+- closes \#1719: added generic Quarkus observability for Document API V2 [\#1775](https://github.com/stargate/stargate/pull/1775) ([ivansenic](https://github.com/ivansenic))
+- Add "enriched" responses to grpc bridge [\#1763](https://github.com/stargate/stargate/pull/1763) ([EricBorczuk](https://github.com/EricBorczuk))
+- closes \#1717: boostratping the Docs API V2 with Quarkus [\#1760](https://github.com/stargate/stargate/pull/1760) ([ivansenic](https://github.com/ivansenic))
+- Add bridge method to get supported persistence features [\#1757](https://github.com/stargate/stargate/pull/1757) ([olim7t](https://github.com/olim7t))
 
-## [v2.0.0-ALPHA-4](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-3) (2022-02-23)
+## [v2.0.0-ALPHA-7](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-7) (2022-04-07)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-3...v2.0.0-ALPHA-4)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-6...v2.0.0-ALPHA-7)
+
+**Merged pull requests:**
+
+- Remove bridge token references [\#1766](https://github.com/stargate/stargate/pull/1766) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- 2.0.0-ALPHA-6 release [\#1765](https://github.com/stargate/stargate/pull/1765) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Port GraphQL CQL-first API to V2 architecture [\#1651](https://github.com/stargate/stargate/pull/1651) ([olim7t](https://github.com/olim7t))
+
+## [v2.0.0-ALPHA-6](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-6) (2022-04-06)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-5...v2.0.0-ALPHA-6) 
+
+## [v2.0.0-ALPHA-5](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-5) (2022-03-23) 
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-4...v2.0.0-ALPHA-5) 
+
+## [v2.0.0-ALPHA-4](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-4) (2022-02-23) 
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-3...v2.0.0-ALPHA-4) 
 
 ## [v2.0.0-ALPHA-3](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-3) (2022-02-14)
 
@@ -142,6 +160,21 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Rest integration test - initial work (#1359)
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
+
+## [v1.0.54](https://github.com/stargate/stargate/tree/v1.0.54) (2022-04-18)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.53...v1.0.54)
+
+**Closed issues:**
+
+
+**Merged pull requests:**
+
+- Update Maven wrapper plugin settings to simplify PR \#1769 [\#1784](https://github.com/stargate/stargate/pull/1784) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- update the CI image to include needed v2 changes [\#1774](https://github.com/stargate/stargate/pull/1774) ([ivansenic](https://github.com/ivansenic))
+- Upgrade io.grpc dependencies from 1.42.1 to 1.45.1, use grpc-bom [\#1758](https://github.com/stargate/stargate/pull/1758) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Upgrade json-path 2.5.0-\>2.7.0 to get json-smart upgrade [\#1756](https://github.com/stargate/stargate/pull/1756) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- upload dependency update results [\#1754](https://github.com/stargate/stargate/pull/1754) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
 
 ## [v1.0.53](https://github.com/stargate/stargate/tree/v1.0.53) (2022-03-30)
 

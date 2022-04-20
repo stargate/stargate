@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.stargate</groupId>
   <artifactId>stargate</artifactId>
-  <version>2.0.0-ALPHA-6-SNAPSHOT</version>
+  <version>2.0.0-ALPHA-9-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>${project.groupId}:${project.artifactId}</name>
   <description>Core modules for Stargate</description>
@@ -63,7 +63,7 @@
         but build fails with newer versions so keeping at this level
       -->
     <errorprone.version>2.3.4</errorprone.version>
-    <jacoco.version>0.8.6</jacoco.version>
+    <jacoco.version>0.8.8</jacoco.version>
     <junit.version>5.8.2</junit.version>
     <mockito.version>3.12.4</mockito.version>
     <assertj.version>3.21.0</assertj.version>
@@ -172,6 +172,7 @@
         <module>graphqlapi</module>
         <module>restapi</module>
         <module>sgv2-restapi</module>
+        <module>sgv2-graphqlapi</module>
         <module>sgv2-service-common</module>
         <module>auth-api</module>
         <module>authnz</module>
@@ -208,6 +209,7 @@
         <module>graphqlapi</module>
         <module>restapi</module>
         <module>sgv2-restapi</module>
+        <module>sgv2-graphqlapi</module>
         <module>sgv2-service-common</module>
         <module>auth-api</module>
         <module>authnz</module>
@@ -498,6 +500,10 @@
         <plugin>
           <artifactId>maven-failsafe-plugin</artifactId>
           <version>3.0.0-M3</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-wrapper-plugin</artifactId>
+          <version>3.1.0</version>
         </plugin>
         <plugin>
           <groupId>org.codehaus.mojo</groupId>

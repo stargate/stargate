@@ -22,6 +22,7 @@ import io.stargate.proto.Schema;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.CqlTable;
 import io.stargate.proto.Schema.SchemaRead;
+import io.stargate.proto.Schema.SupportedFeaturesResponse;
 import io.stargate.sgv2.common.futures.Futures;
 import java.util.Collections;
 import java.util.List;
@@ -165,5 +166,13 @@ public interface StargateBridgeClient {
    */
   default boolean authorizeSchemaRead(SchemaRead schemaRead) {
     return authorizeSchemaReads(Collections.singletonList(schemaRead)).get(0);
+  }
+
+  /** Checks which features are supported by the persistence backend. */
+  CompletionStage<SupportedFeaturesResponse> getSupportedFeaturesAsync();
+
+  /** @see #getSupportedFeaturesAsync() */
+  default SupportedFeaturesResponse getSupportedFeatures() {
+    return Futures.getUninterruptibly(getSupportedFeaturesAsync());
   }
 }

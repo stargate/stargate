@@ -41,5 +41,8 @@ service StargateBridge {
 
   // Checks whether the client is authorized to describe one or more schema elements.
   rpc AuthorizeSchemaReads(AuthorizeSchemaReadsRequest) returns (AuthorizeSchemaReadsResponse) {}
+
+  // Checks which features are supported by the persistence backend.
+  rpc GetSupportedFeatures(SupportedFeaturesRequest) returns (SupportedFeaturesResponse) {}
 }
 
