@@ -1,5 +1,24 @@
 # Changelog
 
+## [v2.0.0-ALPHA-8](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-8) (2022-04-19)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-7...v2.0.0-ALPHA-8)
+
+**Closed issues:**
+
+- Bootstrap Document API V2 project with Quarkus [\#1717](https://github.com/stargate/stargate/issues/1717)
+- Extend Bridge to support per-row page state and comparable bytes [\#1715](https://github.com/stargate/stargate/issues/1715)
+
+**Merged pull requests:**
+
+- Revert Persistence.unregisterEventListener \(fixes \#1777\) [\#1780](https://github.com/stargate/stargate/pull/1780) ([olim7t](https://github.com/olim7t))
+- Add exception mappers for grpc status runtime exception and ErrorCodes [\#1779](https://github.com/stargate/stargate/pull/1779) ([EricBorczuk](https://github.com/EricBorczuk))
+- relates to \#1717: correct grpc proto generation, exclude grpc-proto deps [\#1776](https://github.com/stargate/stargate/pull/1776) ([ivansenic](https://github.com/ivansenic))
+- closes \#1719: added generic Quarkus observability for Document API V2 [\#1775](https://github.com/stargate/stargate/pull/1775) ([ivansenic](https://github.com/ivansenic))
+- Add "enriched" responses to grpc bridge [\#1763](https://github.com/stargate/stargate/pull/1763) ([EricBorczuk](https://github.com/EricBorczuk))
+- closes \#1717: boostratping the Docs API V2 with Quarkus [\#1760](https://github.com/stargate/stargate/pull/1760) ([ivansenic](https://github.com/ivansenic))
+- Add bridge method to get supported persistence features [\#1757](https://github.com/stargate/stargate/pull/1757) ([olim7t](https://github.com/olim7t))
+
 ## [v2.0.0-ALPHA-7](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-7) (2022-04-07)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-6...v2.0.0-ALPHA-7)
@@ -141,6 +160,21 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Rest integration test - initial work (#1359)
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
+
+## [v1.0.54](https://github.com/stargate/stargate/tree/v1.0.54) (2022-04-18)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.53...v1.0.54)
+
+**Closed issues:**
+
+
+**Merged pull requests:**
+
+- Update Maven wrapper plugin settings to simplify PR \#1769 [\#1784](https://github.com/stargate/stargate/pull/1784) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- update the CI image to include needed v2 changes [\#1774](https://github.com/stargate/stargate/pull/1774) ([ivansenic](https://github.com/ivansenic))
+- Upgrade io.grpc dependencies from 1.42.1 to 1.45.1, use grpc-bom [\#1758](https://github.com/stargate/stargate/pull/1758) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Upgrade json-path 2.5.0-\>2.7.0 to get json-smart upgrade [\#1756](https://github.com/stargate/stargate/pull/1756) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- upload dependency update results [\#1754](https://github.com/stargate/stargate/pull/1754) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
 
 ## [v1.0.53](https://github.com/stargate/stargate/tree/v1.0.53) (2022-03-30)
 
