@@ -44,8 +44,8 @@ echoinfo "Using backend $PERSISTENCE_BACKEND"
 
 export CCM_CLUSTER_START_TIMEOUT_OVERRIDE=600
 
-whoami
-ls -all /home/ubuntu/.m2
+echoinfo "JDKs under /usr/lib/jvm :"
+ls -all /usr/lib/jvm
 # we need to set Java 14 as the main Java
 JAVA_HOME="/usr/lib/jvm/java-14-openjdk-amd64" mvn -B install verify --file pom.xml \
 -P \${C3}it-cassandra-3.11 \
