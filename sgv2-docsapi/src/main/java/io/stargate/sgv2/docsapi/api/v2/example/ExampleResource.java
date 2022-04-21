@@ -23,6 +23,8 @@ import io.smallrye.mutiny.Uni;
 import io.stargate.proto.Schema;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
+import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.v2.example.model.dto.KeyspaceExistsResponse;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.grpc.GrpcClients;
@@ -41,6 +43,8 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.jboss.resteasy.reactive.RestResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Example resource showcasing the OpenAPI v3 annotations and the reactive implementation. */
 @Path("/api/v2/example")
@@ -48,9 +52,15 @@ import org.jboss.resteasy.reactive.RestResponse;
 @SecurityRequirement(name = Constants.OPEN_API_DEFAULT_SECURITY_SCHEME)
 public class ExampleResource {
 
+  private static final Logger LOG = LoggerFactory.getLogger(ExampleResource.class);
+
   @Inject GrpcClients grpcClients;
 
   @Inject StargateRequestInfo requestInfo;
+
+  @Inject DataStoreProperties dataStoreProperties;
+
+  @Inject DocumentProperties documentProperties;
 
   @Operation(summary = "Keyspace exists", description = "Checks if the given keyspace exists.")
   @Parameters({
@@ -85,6 +95,10 @@ public class ExampleResource {
   @GET
   @Path("keyspace-exists/{name}")
   public Uni<RestResponse<KeyspaceExistsResponse>> keyspaceExists(@PathParam("name") String name) {
+    LOG.info(
+        "Data store supports secondary indexes {}.", dataStoreProperties.secondaryIndexesEnabled());
+    LOG.info("Document max depth {}.", documentProperties.maxDepth());
+
     Schema.DescribeKeyspaceQuery describeKeyspaceQuery =
         Schema.DescribeKeyspaceQuery.newBuilder().setKeyspaceName(name).build();
 

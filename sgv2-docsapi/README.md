@@ -50,51 +50,7 @@ In addition, the related guide of each [Quarkus extension](#quarkus-extensions) 
 
 The `stargate.` properties are defined by this project itself.
 The properties are defined by dedicated config classes annotated with the `@ConfigMapping`.
-Below is the list of currently available properties.
-
-#### [gRPC metadata configuration](src/main/java/io/stargate/sgv2/docsapi/config/GrpcMetadataConfig.java)
-*Configuration for the gRPC metadata passed to the Bridge.*
-
-| Property                                     | Type     | Default             | Description                                                 |
-|----------------------------------------------|----------|---------------------|-------------------------------------------------------------|
-| `stargate.grpc-metadata.tenant-id-key`       | `String` | `X-Tenant-Id`       | Metadata key for passing the tenant-id to the Bridge.       |
-| `stargate.grpc-metadata.cassandra-token-key` | `String` | `X-Cassandra-Token` | Metadata key for passing the cassandra token to the Bridge. |
-
-#### [Header-based authentication configuration](src/main/java/io/stargate/sgv2/docsapi/config/HeaderBasedAuthConfig.java)
-*Configuration for the header based authentication.*
-
-| Property                                 | Type      | Default             | Description                          |
-|------------------------------------------|-----------|---------------------|--------------------------------------|
-| `stargate.header-based-auth.enabled`     | `boolean` | `true`              | If the header based auth is enabled. |
-| `stargate.header-based-auth.header-name` | `String`  | `X-Cassandra-Token` | Name of the authentication header.   |
-
-#### [Metrics configuration](src/main/java/io/stargate/sgv2/docsapi/config/MetricsConfig.java)
-*Configuration mapping for the additional metrics properties.*
-
-| Property                                              | Type                 | Default                        | Description                                                             |
-|-------------------------------------------------------|----------------------|--------------------------------|-------------------------------------------------------------------------|
-| `stargate.metrics.global-tags`                        | `Map<String,String>` | unset                          | Map of global tags that will be applied to every meter.                 |
-| `stargate.metrics.tenant-request-counter.enabled`     | `boolean`            | `true`                         | If extra metric for counting the request per tenant should be recorded. |
-| `stargate.metrics.tenant-request-counter.metric-name` | `String`             | `http.server.requests.counter` | Name of the metric.                                                     |
-| `stargate.metrics.tenant-request-counter.tenant-tag`  | `String`             | `tenant`                       | The tag key for tenant id.                                              |
-| `stargate.metrics.tenant-request-counter.error-tag`   | `String`             | `error`                        | The tag key for the request error flag (true/false).                    |
-
-#### [Multi-tenancy configuration](src/main/java/io/stargate/sgv2/docsapi/config/TenantResolverConfig.java)
-*Configuration mapping for the tenant resolving.*
-
-| Property                                   | Type     | Default     | Description                                                                                                                         |
-|--------------------------------------------|----------|-------------|-------------------------------------------------------------------------------------------------------------------------------------|
-| `stargate.tenant-resolver.type`            | `String` | `subdomain` | Tenant identifier resolver type. If unset, multi-tenancy is disabled. Possible options are `subdomain`, `fixed`, `custom` or unset. |
-| `stargate.tenant-resolver.fixed.tenant-id` | `String` | unset       | Tenant identifier value if the `fixed` type is used.                                                                                |
-
-#### [Cassandra token configuration](src/main/java/io/stargate/sgv2/docsapi/config/TokenResolverConfig.java)
-*Configuration mapping for the Cassandra token resolving.*
-
-| Property                                     | Type     | Default             | Description                                                                                                                |
-|----------------------------------------------|----------|---------------------|----------------------------------------------------------------------------------------------------------------------------|
-| `stargate.token-resolver.type`               | `String` | `principal`         | Token resolver type. If unset, empty token is used. Possible options are `header`, `principal` `fixed`, `custom` or unset. |
-| `stargate.token-resolver.header.header-name` | `String` | `X-Cassandra-Token` | Header to get the token from if the `header` type is used.                                                                 |
-| `stargate.token-resolver.fixed.token`        | `String` | unset               | Tenant identifier value if the `fixed` type is used.                                                                       |
+The list of currently available properties is documented in the [Configuration Guide](CONFIGURATION.md).
 
 ## Development guide
 

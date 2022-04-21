@@ -28,4 +28,37 @@ public interface Constants {
 
   /** Tenant identifier header name. */
   String TENANT_ID_HEADER_NAME = "X-Tenant-Id";
+
+  /** Default name of the key column in the document table. */
+  String KEY_COLUMN_NAME = "key";
+
+  /** Default name of the leaf column in the document table. */
+  String LEAF_COLUMN_NAME = "leaf";
+
+  /** Default name of the string value column in the document table. */
+  String STRING_VALUE_COLUMN_NAME = "text_value";
+
+  /** Default name of the double column in the document table. */
+  String DOUBLE_VALUE_COLUMN_NAME = "dbl_value";
+
+  /** Default name of the boolean value column in the document table. */
+  String BOOLEAN_VALUE_COLUMN_NAME = "bool_value";
+
+  /** The default prefix of the columns that store JSON path. */
+  String PATH_COLUMN_PREFIX = "p";
+
+  /** Search token that matches all values in a path. */
+  String GLOB_VALUE = "*";
+
+  /** Search token that matches all array elements in a path. */
+  String GLOB_ARRAY_VALUE = "[*]";
+
+  /** A UID that is used in older collections to represent the root of the document. */
+  String ROOT_DOC_MARKER = "DOCROOT-a9fb1f04-0394-4c74-b77b-49b4e0ef7900";
+
+  /** A UID that is used to represent an empty object, <code>{}</code>. */
+  String EMPTY_OBJECT_MARKER = "EMPTYOBJ-bccbeee1-6173-4120-8492-7d7bafaefb1f";
+
+  /** A UID that is used to represent an empty array, <code>[]</code>. */
+  String EMPTY_ARRAY_MARKER = "EMPTYARRAY-9df4802a-c135-42d6-8be3-d23d9520a4e7";
 }
