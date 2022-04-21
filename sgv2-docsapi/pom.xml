@@ -4,7 +4,7 @@
   <parent>
     <artifactId>stargate</artifactId>
     <groupId>io.stargate</groupId>
-    <version>2.0.0-ALPHA-8-SNAPSHOT</version>
+    <version>2.0.0-ALPHA-9-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate</groupId>
   <artifactId>sgv2-docsapi</artifactId>
@@ -86,6 +86,14 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-security</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-micrometer-registry-prometheus</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-opentelemetry-exporter-otlp</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
@@ -172,17 +180,16 @@
           </jdkToolchain>
         </configuration>
       </plugin>
-      <!-- formatting plugins -->
       <plugin>
         <groupId>com.coveo</groupId>
         <artifactId>fmt-maven-plugin</artifactId>
         <version>2.13</version>
         <executions>
           <execution>
+            <phase>process-sources</phase>
             <goals>
               <goal>check</goal>
             </goals>
-            <phase>process-sources</phase>
           </execution>
         </executions>
       </plugin>
