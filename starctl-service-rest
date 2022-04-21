@@ -40,7 +40,7 @@ else
     fi
 fi
 
-eval declare -a JAVA_OPTS=("$JAVA_OPTS")
+eval declare -a JAVA_OPTS=("$REST_JAVA_OPTS")
 
 if [ ! "x$STARGATE_BRIDGE_HOST" == "x" ]; then
   JAVA_OPTS+=(-Ddw.stargate.bridge.host="$STARGATE_BRIDGE_HOST")
