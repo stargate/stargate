@@ -1,4 +1,4 @@
-package io.stargate.sgv2.docsapi.api.common.properties.configuration;
+package io.stargate.sgv2.docsapi.api.common.properties.datastore.configuration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

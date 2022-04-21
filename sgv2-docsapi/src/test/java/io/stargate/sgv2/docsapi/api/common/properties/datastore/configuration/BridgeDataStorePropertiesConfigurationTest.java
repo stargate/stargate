@@ -1,37 +1,30 @@
-package io.stargate.sgv2.docsapi.api.common.properties.configuration;
+package io.stargate.sgv2.docsapi.api.common.properties.datastore.configuration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
-import com.google.common.collect.ImmutableMap;
 import io.grpc.stub.StreamObserver;
+import io.quarkus.grpc.GrpcClient;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.QuarkusTestProfile;
-import io.quarkus.test.junit.TestProfile;
 import io.stargate.proto.Schema;
+import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.docsapi.BridgeTest;
 import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;
-import java.util.Map;
+import io.stargate.sgv2.docsapi.config.DataStoreConfig;
 import javax.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@TestProfile(BridgeDataStorePropertiesConfigurationTest.Profile.class)
 class BridgeDataStorePropertiesConfigurationTest extends BridgeTest {
 
-  @Inject DataStoreProperties dataStoreProperties;
+  @GrpcClient("bridge")
+  StargateBridgeGrpc.StargateBridgeBlockingStub bridge;
 
-  public static class Profile implements QuarkusTestProfile {
-
-    @Override
-    public Map<String, String> getConfigOverrides() {
-      return ImmutableMap.<String, String>builder()
-          .put("stargate.data-store.ignore-bridge", "false")
-          .build();
-    }
-  }
+  @Inject DataStorePropertiesConfiguration dataStorePropertiesConfiguration;
 
   @BeforeEach
   public void mockBridge() {
@@ -56,6 +49,12 @@ class BridgeDataStorePropertiesConfigurationTest extends BridgeTest {
 
   @Test
   public void dataStoreFromBridge() {
+    DataStoreConfig config = mock(DataStoreConfig.class);
+    when(config.ignoreBridge()).thenReturn(false);
+
+    DataStoreProperties dataStoreProperties =
+        dataStorePropertiesConfiguration.configuration(bridge, config);
+
     assertThat(dataStoreProperties.secondaryIndexesEnabled()).isFalse();
     assertThat(dataStoreProperties.saiEnabled()).isTrue();
     assertThat(dataStoreProperties.loggedBatchesEnabled()).isFalse();

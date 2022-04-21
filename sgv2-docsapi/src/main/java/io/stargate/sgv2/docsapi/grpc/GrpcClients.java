@@ -3,7 +3,7 @@ package io.stargate.sgv2.docsapi.grpc;
 import io.grpc.Metadata;
 import io.quarkus.grpc.GrpcClient;
 import io.quarkus.grpc.GrpcClientUtils;
-import io.stargate.proto.MutinyStargateBridgeGrpc;
+import io.stargate.proto.StargateBridge;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.config.GrpcMetadataConfig;
 import javax.enterprise.context.ApplicationScoped;
@@ -16,7 +16,7 @@ import javax.enterprise.context.ApplicationScoped;
 public class GrpcClients {
 
   /** Bridge client. Uses the <code>quarkus.grpc.clients.bridge</code> properties. */
-  private final MutinyStargateBridgeGrpc.MutinyStargateBridgeStub bridge;
+  private final StargateBridge bridge;
 
   /** Metadata key for passing the tenant-id to the Bridge. */
   private final Metadata.Key<String> tenantIdKey;
@@ -24,9 +24,7 @@ public class GrpcClients {
   /** Metadata key for passing the cassandra token to the Bridge. */
   private final Metadata.Key<String> cassandraTokenKey;
 
-  public GrpcClients(
-      @GrpcClient("bridge") MutinyStargateBridgeGrpc.MutinyStargateBridgeStub bridge,
-      GrpcMetadataConfig config) {
+  public GrpcClients(@GrpcClient("bridge") StargateBridge bridge, GrpcMetadataConfig config) {
     this.tenantIdKey = Metadata.Key.of(config.tenantIdKey(), Metadata.ASCII_STRING_MARSHALLER);
     this.cassandraTokenKey =
         Metadata.Key.of(config.cassandraTokenKey(), Metadata.ASCII_STRING_MARSHALLER);
@@ -38,10 +36,9 @@ public class GrpcClients {
    * StargateRequestInfo}.
    *
    * @param requestInfo {@link StargateRequestInfo}
-   * @return MutinyStargateBridgeGrpc.MutinyStargateBridgeStub Reactive Bridge stub
+   * @return StargateBridge Reactive Bridge stub
    */
-  public MutinyStargateBridgeGrpc.MutinyStargateBridgeStub bridgeClient(
-      StargateRequestInfo requestInfo) {
+  public StargateBridge bridgeClient(StargateRequestInfo requestInfo) {
     if (requestInfo.getTenantId().isEmpty() && requestInfo.getCassandraToken().isEmpty()) {
       return bridge;
     }

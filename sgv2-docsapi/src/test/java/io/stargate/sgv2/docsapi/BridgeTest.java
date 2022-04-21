@@ -27,6 +27,7 @@ import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.grpc.netty.NettyChannelBuilder;
 import io.grpc.netty.NettyServerBuilder;
+import io.stargate.proto.Schema;
 import io.stargate.proto.StargateBridgeGrpc;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
@@ -52,11 +53,18 @@ public class BridgeTest {
   @ConfigProperty(name = "quarkus.grpc.clients.bridge.port")
   int bridgePort;
 
+  // override to set up the supported features response
+  protected Schema.SupportedFeaturesResponse getSupportedFeatures() {
+    return Schema.SupportedFeaturesResponse.newBuilder().build();
+  }
+
   @BeforeEach
   public void initBridge() throws Exception {
     // init mock
     bridgeService = mock(StargateBridgeGrpc.StargateBridgeImplBase.class);
     bridgeInterceptor = mock(ServerInterceptor.class);
+
+    // mock interceptor
     lenient()
         .doAnswer(
             invocation -> {

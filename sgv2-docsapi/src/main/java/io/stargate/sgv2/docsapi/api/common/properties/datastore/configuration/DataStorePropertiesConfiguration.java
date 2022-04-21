@@ -18,41 +18,28 @@
 package io.stargate.sgv2.docsapi.api.common.properties.datastore.configuration;
 
 import io.quarkus.grpc.GrpcClient;
-import io.stargate.proto.MutinyStargateBridgeGrpc;
+import io.quarkus.runtime.Startup;
 import io.stargate.proto.Schema;
+import io.stargate.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.datastore.impl.DataStorePropertiesImpl;
 import io.stargate.sgv2.docsapi.config.DataStoreConfig;
-import java.time.Duration;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@ApplicationScoped
 public class DataStorePropertiesConfiguration {
 
   /** Logger for the class. */
   private static final Logger LOG = LoggerFactory.getLogger(DataStorePropertiesConfiguration.class);
 
-  /** The bridge client. */
-  private final MutinyStargateBridgeGrpc.MutinyStargateBridgeStub bridge;
-
-  /** Data store config based on YAML props. */
-  private final DataStoreConfig dataStoreConfig;
-
-  @Inject
-  public DataStorePropertiesConfiguration(
-      @GrpcClient("bridge") MutinyStargateBridgeGrpc.MutinyStargateBridgeStub bridge,
-      DataStoreConfig dataStoreConfig) {
-    this.bridge = bridge;
-    this.dataStoreConfig = dataStoreConfig;
-  }
-
   @Produces
   @ApplicationScoped
-  DataStoreProperties configuration() {
+  @Startup
+  DataStoreProperties configuration(
+      @GrpcClient("bridge") StargateBridgeGrpc.StargateBridgeBlockingStub bridge,
+      DataStoreConfig dataStoreConfig) {
     DataStoreProperties fromConfig =
         new DataStorePropertiesImpl(
             dataStoreConfig.secondaryIndexesEnabled(),
@@ -68,8 +55,7 @@ public class DataStorePropertiesConfiguration {
       // fire request
       Schema.SupportedFeaturesRequest request =
           Schema.SupportedFeaturesRequest.newBuilder().build();
-      Schema.SupportedFeaturesResponse supportedFeatures =
-          bridge.getSupportedFeatures(request).await().atMost(Duration.ofSeconds(5));
+      Schema.SupportedFeaturesResponse supportedFeatures = bridge.getSupportedFeatures(request);
 
       // construct props from bridge
       return new DataStorePropertiesImpl(
@@ -77,7 +63,7 @@ public class DataStorePropertiesConfiguration {
           supportedFeatures.getSai(),
           supportedFeatures.getLoggedBatches());
     } catch (Exception e) {
-      LOG.error(
+      LOG.warn(
           "Error fetching the data store properties from the bridge, fallback to the configuration based properties.",
           e);
       return fromConfig;
