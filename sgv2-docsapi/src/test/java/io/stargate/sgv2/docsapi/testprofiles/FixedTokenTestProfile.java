@@ -33,8 +33,8 @@ public class FixedTokenTestProfile implements QuarkusTestProfile {
   @Override
   public Map<String, String> getConfigOverrides() {
     return ImmutableMap.<String, String>builder()
-        .put("stargate.token-resolver.type", "fixed")
-        .put("stargate.token-resolver.fixed.token", TOKEN)
+        .put("stargate.auth.token-resolver.type", "fixed")
+        .put("stargate.auth.token-resolver.fixed.token", TOKEN)
         .build();
   }
 }

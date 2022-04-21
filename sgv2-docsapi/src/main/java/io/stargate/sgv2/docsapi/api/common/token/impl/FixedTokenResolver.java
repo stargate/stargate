@@ -18,7 +18,7 @@
 package io.stargate.sgv2.docsapi.api.common.token.impl;
 
 import io.stargate.sgv2.docsapi.api.common.token.CassandraTokenResolver;
-import io.stargate.sgv2.docsapi.config.TokenResolverConfig;
+import io.stargate.sgv2.docsapi.config.AuthConfig;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Optional;
 import javax.ws.rs.core.SecurityContext;
@@ -26,9 +26,9 @@ import javax.ws.rs.core.SecurityContext;
 /** The {@link CassandraTokenResolver} that uses a fixed token supplied by the configuration. */
 public class FixedTokenResolver implements CassandraTokenResolver {
 
-  private final TokenResolverConfig.FixedTokenResolverConfig config;
+  private final AuthConfig.TokenResolverConfig.FixedTokenResolverConfig config;
 
-  public FixedTokenResolver(TokenResolverConfig.FixedTokenResolverConfig config) {
+  public FixedTokenResolver(AuthConfig.TokenResolverConfig.FixedTokenResolverConfig config) {
     this.config = config;
   }
 

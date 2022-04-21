@@ -33,8 +33,9 @@ public class FixedTenantTestProfile implements QuarkusTestProfile {
   @Override
   public Map<String, String> getConfigOverrides() {
     return ImmutableMap.<String, String>builder()
-        .put("stargate.tenant-resolver.type", "fixed")
-        .put("stargate.tenant-resolver.fixed.tenant-id", TENANT_ID)
+        .put("stargate.multi-tenancy.enabled", "true")
+        .put("stargate.multi-tenancy.tenant-resolver.type", "fixed")
+        .put("stargate.multi-tenancy.tenant-resolver.fixed.tenant-id", TENANT_ID)
         .build();
   }
 }

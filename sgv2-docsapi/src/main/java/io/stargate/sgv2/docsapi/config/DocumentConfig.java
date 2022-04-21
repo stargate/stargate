@@ -46,6 +46,7 @@ public interface DocumentConfig {
   int maxArrayLength();
 
   /** @return Defines the maximum document page size, defaults to <code>20</code>. */
+  @Max(50)
   @Positive
   @WithDefault("20")
   int maxPageSize();

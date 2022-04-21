@@ -23,7 +23,7 @@ import io.quarkus.vertx.http.runtime.security.HttpAuthenticationMechanism;
 import io.stargate.sgv2.docsapi.api.common.security.HeaderAuthenticationRequest;
 import io.stargate.sgv2.docsapi.api.common.security.HeaderBasedAuthenticationMechanism;
 import io.stargate.sgv2.docsapi.api.common.security.HeaderIdentityProvider;
-import io.stargate.sgv2.docsapi.config.HeaderBasedAuthConfig;
+import io.stargate.sgv2.docsapi.config.AuthConfig;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 
@@ -32,15 +32,15 @@ public class HeaderBasedSecurityConfiguration {
 
   @Produces
   @ApplicationScoped
-  @LookupIfProperty(name = "stargate.header-based-auth.enabled", stringValue = "true")
-  HttpAuthenticationMechanism httpAuthenticationMechanism(HeaderBasedAuthConfig config) {
-    String headerName = config.headerName();
+  @LookupIfProperty(name = "stargate.auth.header-based.enabled", stringValue = "true")
+  HttpAuthenticationMechanism httpAuthenticationMechanism(AuthConfig config) {
+    String headerName = config.headerBased().headerName();
     return new HeaderBasedAuthenticationMechanism(headerName);
   }
 
   @Produces
   @ApplicationScoped
-  @LookupIfProperty(name = "stargate.header-based-auth.enabled", stringValue = "true")
+  @LookupIfProperty(name = "stargate.auth.header-based.enabled", stringValue = "true")
   IdentityProvider<HeaderAuthenticationRequest> identityProvider() {
     return new HeaderIdentityProvider();
   }

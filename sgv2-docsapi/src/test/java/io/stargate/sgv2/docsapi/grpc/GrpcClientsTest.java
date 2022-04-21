@@ -14,8 +14,8 @@ import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
-import io.stargate.proto.MutinyStargateBridgeGrpc;
 import io.stargate.proto.Schema;
+import io.stargate.proto.StargateBridge;
 import io.stargate.sgv2.docsapi.BridgeTest;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import java.util.Map;
@@ -75,8 +75,7 @@ class GrpcClientsTest extends BridgeTest {
     when(requestInfo.getCassandraToken()).thenReturn(Optional.of(token));
     when(requestInfo.getTenantId()).thenReturn(Optional.of(tenant));
 
-    MutinyStargateBridgeGrpc.MutinyStargateBridgeStub client =
-        grpcClients.bridgeClient(requestInfo);
+    StargateBridge client = grpcClients.bridgeClient(requestInfo);
     UniAssertSubscriber<Schema.CqlKeyspaceDescribe> result =
         client.describeKeyspace(query).subscribe().withSubscriber(UniAssertSubscriber.create());
 
@@ -119,8 +118,7 @@ class GrpcClientsTest extends BridgeTest {
         .when(bridgeService)
         .describeKeyspace(any(), any());
 
-    MutinyStargateBridgeGrpc.MutinyStargateBridgeStub client =
-        grpcClients.bridgeClient(requestInfo);
+    StargateBridge client = grpcClients.bridgeClient(requestInfo);
     UniAssertSubscriber<Schema.CqlKeyspaceDescribe> result =
         client.describeKeyspace(query).subscribe().withSubscriber(UniAssertSubscriber.create());
 
