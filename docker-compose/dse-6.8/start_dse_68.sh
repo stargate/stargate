@@ -41,4 +41,4 @@ docker-compose up -d dse-3
 # Bring up the stargate
 
 docker-compose up -d coordinator restapi
-
+docker-compose up -d coordinator graphqlapi

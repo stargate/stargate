@@ -60,3 +60,20 @@ ENV STARGATE_REST_PORT=8082
 COPY stargate-lib/rest/sgv2*.jar stargate-lib/rest/
 COPY ./starctl-service-rest /starctl-service-rest
 ENTRYPOINT ["./starctl-service-rest"]
+
+
+#
+# Dockerfile for building GraphQL API image
+#
+
+FROM openjdk:11-jre-slim as graphqlapi
+
+EXPOSE 8080
+
+ENV STARGATE_BRIDGE_HOST=localhost
+ENV STARGATE_BRIDGE_PORT=8091
+ENV STARGATE_GRAPHQL_PORT=8080
+
+COPY stargate-lib/graphql/sgv2*.jar stargate-lib/graphql/
+COPY ./starctl-service-graphql /starctl-service-graphql
+ENTRYPOINT ["./starctl-service-graphql"]
