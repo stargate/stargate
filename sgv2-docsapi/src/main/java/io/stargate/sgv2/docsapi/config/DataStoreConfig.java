@@ -29,11 +29,8 @@ import io.smallrye.config.WithDefault;
 @ConfigMapping(prefix = "stargate.data-store")
 public interface DataStoreConfig {
 
-  /**
-   * @return If the data store config should be read by the bridge, defaults to <code>false</code>.
-   */
-  @WithDefault("false")
-  boolean readFromBridge();
+  /** @return If the data store config should not be read from the bridge. */
+  boolean ignoreBridge();
 
   /** @return If the secondary indexes are enabled, defaults to <code>true</code>. */
   @WithDefault("true")

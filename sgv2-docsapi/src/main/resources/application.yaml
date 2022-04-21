@@ -3,9 +3,22 @@
 
 stargate:
 
+  # security and authentication configuration
+  # see io.stargate.sgv2.docsapi.config.AuthConfig for all config properties and options
+  auth:
+    # header-based security by default
+    # if changed, adapt token resolver type
+    header-based:
+      enabled: true
+
+    # Cassandra token resolver from principal
+    token-resolver:
+      type: principal
+
   # configures data store
   # see io.stargate.sgv2.docsapi.config.DataStoreConfig for all config properties and options
   data-store:
+    ignore-bridge: ${stargate.multi-tenancy.enabled}
 
   # configuration related to the documents
   # see io.stargate.sgv2.docsapi.config.DocumentConfig for all config properties and options
@@ -15,28 +28,18 @@ stargate:
   # see io.stargate.sgv2.docsapi.config.GrpcMetadataConfig for all config properties and options
   grpc-metadata:
 
-  # header based authentication properties, disable if you want no authentication
-  # see io.stargate.sgv2.docsapi.config.HeaderBasedAuthConfig for all config properties and options
-  header-based-auth:
-    enabled: true
-
   # metrics properties
   # see io.stargate.sgv2.docsapi.config.MetricsConfig for all config properties and options
   metrics:
     global-tags:
       module: docsapi
     tenant-request-counter:
-      enabled: true
+      enabled: ${stargate.multi-tenancy.enabled}
 
-  # the tenant resolver to use
-  # see io.stargate.sgv2.docsapi.config.TenantResolverConfig for all config properties and options
-  tenant-resolver:
-    type: subdomain
-
-  # the C* token resolver to use
-  # see io.stargate.sgv2.docsapi.config.TokenResolverConfig for all config properties and options
-  token-resolver:
-    type: principal
+  # multi tenancy settings
+  # see io.stargate.sgv2.docsapi.config.MultiTenancyConfig for all config properties and options
+  multi-tenancy:
+    enabled: false
 
 quarkus:
 

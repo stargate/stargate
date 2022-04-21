@@ -26,6 +26,7 @@ import io.stargate.sgv2.docsapi.testprofiles.FixedTokenTestProfile;
 import java.util.Optional;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
@@ -34,13 +35,14 @@ class FixedTokenResolverTest {
 
   @Inject Instance<CassandraTokenResolver> tokenResolver;
 
-  // TODO move to @Nested with Quarkus fix
-  //  https://github.com/quarkusio/quarkus/issues/24910
+  @Nested
+  class Resolve {
 
-  @Test
-  public void happyPath() {
-    Optional<String> result = tokenResolver.get().resolve(null, null);
+    @Test
+    public void happyPath() {
+      Optional<String> result = tokenResolver.get().resolve(null, null);
 
-    assertThat(result).contains(FixedTokenTestProfile.TOKEN);
+      assertThat(result).contains(FixedTokenTestProfile.TOKEN);
+    }
   }
 }

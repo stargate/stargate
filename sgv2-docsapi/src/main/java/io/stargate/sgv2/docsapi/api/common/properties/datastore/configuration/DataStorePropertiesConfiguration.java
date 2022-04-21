@@ -60,7 +60,7 @@ public class DataStorePropertiesConfiguration {
             dataStoreConfig.loggedBatchesEnabled());
 
     // if we should not read from the bridge, go for defaults
-    if (!dataStoreConfig.readFromBridge()) {
+    if (dataStoreConfig.ignoreBridge()) {
       return fromConfig;
     }
 

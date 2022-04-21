@@ -28,7 +28,7 @@ class BridgeDataStorePropertiesConfigurationTest extends BridgeTest {
     @Override
     public Map<String, String> getConfigOverrides() {
       return ImmutableMap.<String, String>builder()
-          .put("stargate.data-store.read-from-bridge", "true")
+          .put("stargate.data-store.ignore-bridge", "false")
           .build();
     }
   }

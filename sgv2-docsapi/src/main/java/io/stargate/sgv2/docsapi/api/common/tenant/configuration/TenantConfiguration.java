@@ -21,7 +21,7 @@ import io.quarkus.arc.lookup.LookupIfProperty;
 import io.stargate.sgv2.docsapi.api.common.tenant.TenantResolver;
 import io.stargate.sgv2.docsapi.api.common.tenant.impl.FixedTenantResolver;
 import io.stargate.sgv2.docsapi.api.common.tenant.impl.SubdomainTenantResolver;
-import io.stargate.sgv2.docsapi.config.TenantResolverConfig;
+import io.stargate.sgv2.docsapi.config.MultiTenancyConfig;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
@@ -31,23 +31,29 @@ public class TenantConfiguration {
 
   @Produces
   @ApplicationScoped
-  @LookupIfProperty(name = "stargate.tenant-resolver.type", stringValue = "subdomain")
+  @LookupIfProperty(name = "stargate.multi-tenancy.tenant-resolver.type", stringValue = "subdomain")
+  @LookupIfProperty(name = "stargate.multi-tenancy.enabled", stringValue = "true")
   TenantResolver subdomainTenantResolver() {
     return new SubdomainTenantResolver();
   }
 
   @Produces
   @ApplicationScoped
-  @LookupIfProperty(name = "stargate.tenant-resolver.type", stringValue = "fixed")
-  TenantResolver fixedTenantResolver(TenantResolverConfig config) {
-    return new FixedTenantResolver(config.fixed());
+  @LookupIfProperty(name = "stargate.multi-tenancy.tenant-resolver.type", stringValue = "fixed")
+  @LookupIfProperty(name = "stargate.multi-tenancy.enabled", stringValue = "true")
+  TenantResolver fixedTenantResolver(MultiTenancyConfig config) {
+    return new FixedTenantResolver(config.tenantResolver().fixed());
   }
 
   @Produces
   @ApplicationScoped
   @LookupIfProperty(
-      name = "stargate.tenant-resolver.type",
+      name = "stargate.multi-tenancy.tenant-resolver.type",
       stringValue = "noop",
+      lookupIfMissing = true)
+  @LookupIfProperty(
+      name = "stargate.multi-tenancy.enabled",
+      stringValue = "false",
       lookupIfMissing = true)
   TenantResolver noopTenantResolver() {
     return (context, securityContext) -> Optional.empty();

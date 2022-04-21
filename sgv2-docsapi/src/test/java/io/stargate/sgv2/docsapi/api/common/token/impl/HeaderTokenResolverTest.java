@@ -32,6 +32,7 @@ import java.util.Optional;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
@@ -43,36 +44,37 @@ class HeaderTokenResolverTest {
     @Override
     public Map<String, String> getConfigOverrides() {
       return ImmutableMap.<String, String>builder()
-          .put("stargate.token-resolver.type", "header")
-          .put("stargate.token-resolver.header.header-name", "x-some-header")
+          .put("stargate.auth.token-resolver.type", "header")
+          .put("stargate.auth.token-resolver.header.header-name", "x-some-header")
           .build();
     }
   }
-
-  // TODO move to @Nested with Quarkus fix
-  //  https://github.com/quarkusio/quarkus/issues/24910
 
   @Inject Instance<CassandraTokenResolver> tokenResolver;
 
   @InjectMock(returnsDeepMocks = true)
   RoutingContext routingContext;
 
-  @Test
-  public void happyPath() {
-    String token = RandomStringUtils.randomAlphanumeric(16);
-    when(routingContext.request().getHeader("x-some-header")).thenReturn(token);
+  @Nested
+  class Resolve {
 
-    Optional<String> result = tokenResolver.get().resolve(routingContext, null);
+    @Test
+    public void happyPath() {
+      String token = RandomStringUtils.randomAlphanumeric(16);
+      when(routingContext.request().getHeader("x-some-header")).thenReturn(token);
 
-    assertThat(result).contains(token);
-  }
+      Optional<String> result = tokenResolver.get().resolve(routingContext, null);
 
-  @Test
-  public void noHeader() {
-    when(routingContext.request().getHeader("x-some-header")).thenReturn(null);
+      assertThat(result).contains(token);
+    }
 
-    Optional<String> result = tokenResolver.get().resolve(routingContext, null);
+    @Test
+    public void noHeader() {
+      when(routingContext.request().getHeader("x-some-header")).thenReturn(null);
 
-    assertThat(result).isEmpty();
+      Optional<String> result = tokenResolver.get().resolve(routingContext, null);
+
+      assertThat(result).isEmpty();
+    }
   }
 }
