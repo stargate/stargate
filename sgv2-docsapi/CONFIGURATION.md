@@ -18,7 +18,7 @@
 
 | Property                                        | Type      | Default                             | Description                                                                                                                                        |
 |-------------------------------------------------|-----------|-------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| `stargate.data-store.ignore-brdge`              | `boolean` | `${stargate.multi-tenancy.enabled}` | If the data store supported features should not be read from the Bridge. I case of a failure to read, the below properties are taken as fall back. |
+| `stargate.data-store.ignore-bridge`             | `boolean` | `${stargate.multi-tenancy.enabled}` | If the data store supported features should not be read from the Bridge. I case of a failure to read, the below properties are taken as fall back. |
 | `stargate.data-store.secondary-indexes-enabled` | `boolean` | `true`                              | If the data store supports secondary indexes.                                                                                                      |
 | `stargate.data-store.sai-enabled`               | `boolean` | `false`                             | If the data store supports SAI (storage-attached indexes).                                                                                         |
 | `stargate.data-store.logged-batches-enabled`    | `boolean` | `true`                              | If the data store supports logged batches.                                                                                                         |
@@ -48,12 +48,12 @@
 | `stargate.grpc-metadata.cassandra-token-key` | `String` | `X-Cassandra-Token` | Metadata key for passing the cassandra token to the Bridge. |
 
 
-#### [Metrics configuration](src/main/java/io/stargate/sgv2/docsapi/config/MetricsConfig.java)
+### [Metrics configuration](src/main/java/io/stargate/sgv2/docsapi/config/MetricsConfig.java)
 *Configuration mapping for the additional metrics properties.*
 
 | Property                                              | Type                 | Default                             | Description                                                             |
 |-------------------------------------------------------|----------------------|-------------------------------------|-------------------------------------------------------------------------|
-| `stargate.metrics.global-tags`                        | `Map<String,String>` | unset                               | Map of global tags that will be applied to every meter.                 |
+| `stargate.metrics.global-tags`                        | `Map<String,String>` | `{"module": "docsapi"}`             | Map of global tags that will be applied to every meter.                 |
 | `stargate.metrics.tenant-request-counter.enabled`     | `boolean`            | `${stargate.multi-tenancy.enabled}` | If extra metric for counting the request per tenant should be recorded. |
 | `stargate.metrics.tenant-request-counter.metric-name` | `String`             | `http.server.requests.counter`      | Name of the metric.                                                     |
 | `stargate.metrics.tenant-request-counter.tenant-tag`  | `String`             | `tenant`                            | The tag key for tenant id.                                              |
