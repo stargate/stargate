@@ -18,6 +18,7 @@ package io.stargate.it.http.graphql.cqlfirst;
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.http.ApiServiceConnectionInfo;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.util.Map;
@@ -29,9 +30,13 @@ public class SelectTest extends BetterbotzTestBase {
   private static CqlFirstClient CLIENT;
 
   @BeforeAll
-  public static void setup(StargateConnectionInfo cluster) {
-    String host = cluster.seedAddress();
-    CLIENT = new CqlFirstClient(host, RestUtils.getAuthToken(host));
+  public static void setup(
+      StargateConnectionInfo stargateBackend, ApiServiceConnectionInfo stargateGraphqlApi) {
+    CLIENT =
+        new CqlFirstClient(
+            stargateGraphqlApi.host(),
+            stargateGraphqlApi.port(),
+            RestUtils.getAuthToken(stargateBackend.seedAddress()));
   }
 
   @Test

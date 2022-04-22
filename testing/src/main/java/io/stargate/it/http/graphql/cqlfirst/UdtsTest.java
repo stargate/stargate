@@ -19,11 +19,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.jayway.jsonpath.JsonPath;
-import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.http.ApiServiceConnectionInfo;
 import io.stargate.it.http.RestUtils;
+import io.stargate.it.http.graphql.BaseGraphqlV2ApiTest;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
@@ -39,14 +40,18 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE TABLE IF NOT EXISTS \"Udts\"(a frozen<\"A\"> PRIMARY KEY, bs list<frozen<\"B\">>)",
       "CREATE TABLE IF NOT EXISTS \"Udts2\"(k int PRIMARY KEY, a \"A\")"
     })
-public class UdtsTest extends BaseIntegrationTest {
+public class UdtsTest extends BaseGraphqlV2ApiTest {
 
   private static CqlFirstClient CLIENT;
 
   @BeforeAll
-  public static void setup(StargateConnectionInfo cluster) {
-    String host = cluster.seedAddress();
-    CLIENT = new CqlFirstClient(host, RestUtils.getAuthToken(host));
+  public static void setup(
+      StargateConnectionInfo stargateBackend, ApiServiceConnectionInfo stargateGraphqlApi) {
+    CLIENT =
+        new CqlFirstClient(
+            stargateGraphqlApi.host(),
+            stargateGraphqlApi.port(),
+            RestUtils.getAuthToken(stargateBackend.seedAddress()));
   }
 
   @Test

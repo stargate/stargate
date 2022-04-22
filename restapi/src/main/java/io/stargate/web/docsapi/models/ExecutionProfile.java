@@ -15,11 +15,11 @@
  */
 package io.stargate.web.docsapi.models;
 
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
-import org.codehaus.jackson.annotate.JsonPropertyOrder;
 import org.immutables.value.Value;
 
 @JsonSerialize(as = ImmutableExecutionProfile.class)

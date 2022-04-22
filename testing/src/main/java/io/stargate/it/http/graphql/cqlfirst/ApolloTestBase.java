@@ -38,6 +38,7 @@ import com.example.graphql.client.betterbotz.type.QueryConsistency;
 import com.example.graphql.client.betterbotz.type.QueryOptions;
 import com.example.graphql.client.betterbotz.type.UuidFilterInput;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.http.ApiServiceConnectionInfo;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.text.ParseException;
@@ -71,21 +72,24 @@ public class ApolloTestBase extends BetterbotzTestBase {
   protected static final Logger logger = LoggerFactory.getLogger(ApolloTest.class);
 
   protected static CqlSession session;
+  protected static String graphqlHost;
+  protected static int graphqlPort;
   protected static String authToken;
-  protected static StargateConnectionInfo stargate;
   protected static String keyspace;
 
   @BeforeAll
   public static void setup(
-      StargateConnectionInfo stargateInfo,
+      StargateConnectionInfo stargateBackend,
+      ApiServiceConnectionInfo stargateGraphqlApi,
       CqlSession session,
       @TestKeyspace CqlIdentifier keyspaceId)
       throws Exception {
-    stargate = stargateInfo;
+    graphqlHost = stargateGraphqlApi.host();
+    graphqlPort = stargateGraphqlApi.port();
     ApolloTest.session = session;
     keyspace = keyspaceId.asInternal();
 
-    authToken = RestUtils.getAuthToken(stargate.seedAddress());
+    authToken = RestUtils.getAuthToken(stargateBackend.seedAddress());
   }
 
   @AfterEach
@@ -200,7 +204,7 @@ public class ApolloTestBase extends BetterbotzTestBase {
 
   protected ApolloClient getApolloClient(String path) {
     return ApolloClient.builder()
-        .serverUrl(String.format("http://%s:8080%s", stargate.seedAddress(), path))
+        .serverUrl(String.format("http://%s:%d%s", graphqlHost, graphqlPort, path))
         .okHttpClient(getHttpClient())
         .addCustomTypeAdapter(
             CustomType.TIMESTAMP,

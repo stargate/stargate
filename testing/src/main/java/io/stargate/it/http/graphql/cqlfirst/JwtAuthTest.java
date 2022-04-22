@@ -4,12 +4,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.jayway.jsonpath.JsonPath;
-import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.KeycloakContainer;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
-import io.stargate.it.storage.StargateConnectionInfo;
+import io.stargate.it.http.ApiServiceConnectionInfo;
+import io.stargate.it.http.graphql.BaseGraphqlV2ApiTest;
 import io.stargate.it.storage.StargateParameters;
 import io.stargate.it.storage.StargateSpec;
 import java.io.IOException;
@@ -33,7 +33,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
       "GRANT SELECT ON KEYSPACE stargate_graphql TO web_user",
     })
 @Testcontainers(disabledWithoutDocker = true)
-public class JwtAuthTest extends BaseIntegrationTest {
+public class JwtAuthTest extends BaseGraphqlV2ApiTest {
 
   private static KeycloakContainer keycloakContainer;
 
@@ -58,8 +58,10 @@ public class JwtAuthTest extends BaseIntegrationTest {
   }
 
   @BeforeEach
-  public void setup(StargateConnectionInfo cluster) throws IOException {
-    client = new CqlFirstClient(cluster.seedAddress(), keycloakContainer.generateJWT());
+  public void setup(ApiServiceConnectionInfo stargateGraphqlApi) throws IOException {
+    client =
+        new CqlFirstClient(
+            stargateGraphqlApi.host(), stargateGraphqlApi.port(), keycloakContainer.generateJWT());
   }
 
   @Test
@@ -100,7 +102,6 @@ public class JwtAuthTest extends BaseIntegrationTest {
     String error =
         client.getDmlQueryError(
             keyspaceId, "mutation { insertSecret(value: {k:1}) { value { k } } }");
-    // Don't rely on the full message because it's not standardized across Cassandra/DSE versions
-    assertThat(error).contains("UnauthorizedException");
+    assertThat(error).contains("PERMISSION_DENIED");
   }
 }

@@ -15,6 +15,7 @@
  */
 package io.stargate.bridge.service;
 
+import com.google.protobuf.Int32Value;
 import com.google.protobuf.StringValue;
 import io.grpc.Status;
 import io.grpc.StatusException;
@@ -41,7 +42,6 @@ import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.CqlMaterializedView;
 import io.stargate.proto.Schema.CqlTable;
 import io.stargate.proto.Schema.DescribeKeyspaceQuery;
-import io.stargate.proto.Schema.DescribeTableQuery;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -49,29 +49,48 @@ import org.jetbrains.annotations.NotNull;
 
 class SchemaHandler {
 
+  private static final Schema.CqlKeyspaceDescribe EMPTY_KEYSPACE_DESCRIPTION =
+      Schema.CqlKeyspaceDescribe.newBuilder().build();
+
   public static void describeKeyspace(
       DescribeKeyspaceQuery query,
       Persistence persistence,
       StreamObserver<CqlKeyspaceDescribe> responseObserver) {
-    try {
-      String decoratedKeyspace =
-          persistence.decorateKeyspaceName(query.getKeyspaceName(), GrpcService.HEADERS_KEY.get());
-      Keyspace keyspace = persistence.schema().keyspace(decoratedKeyspace);
-      if (keyspace == null) {
-        throw Status.NOT_FOUND.withDescription("Keyspace not found").asException();
-      }
-      responseObserver.onNext(buildKeyspaceDescription(keyspace));
+
+    // The name that the client asked for, e.g. "ks".
+    String simpleName = query.getKeyspaceName();
+    // If the persistence supports multi-tenancy, the actual name contains tenant information, e.g.
+    // "tenant1_ks".
+    String decoratedName =
+        persistence.decorateKeyspaceName(simpleName, GrpcService.HEADERS_KEY.get());
+
+    Keyspace keyspace = persistence.schema().keyspace(decoratedName);
+    if (keyspace == null) {
+      responseObserver.onError(
+          Status.NOT_FOUND.withDescription("Keyspace not found").asException());
+    } else if (query.hasHash() && query.getHash().getValue() == keyspace.hashCode()) {
+      // Client already has the latest version, don't resend
+      responseObserver.onNext(EMPTY_KEYSPACE_DESCRIPTION);
       responseObserver.onCompleted();
-    } catch (StatusException e) {
-      responseObserver.onError(e);
+    } else {
+      try {
+        CqlKeyspaceDescribe description =
+            SchemaHandler.buildKeyspaceDescription(keyspace, simpleName, decoratedName);
+        responseObserver.onNext(description);
+        responseObserver.onCompleted();
+      } catch (StatusException e) {
+        responseObserver.onError(e);
+      }
     }
   }
 
-  static CqlKeyspaceDescribe buildKeyspaceDescription(Keyspace keyspace) throws StatusException {
+  static CqlKeyspaceDescribe buildKeyspaceDescription(
+      Keyspace keyspace, String simpleName, String decoratedName) throws StatusException {
 
-    CqlKeyspaceDescribe.Builder describeResultBuilder = CqlKeyspaceDescribe.newBuilder();
-    CqlKeyspace.Builder cqlKeyspaceBuilder = CqlKeyspace.newBuilder();
-    cqlKeyspaceBuilder.setName(keyspace.name());
+    CqlKeyspaceDescribe.Builder describeResultBuilder =
+        CqlKeyspaceDescribe.newBuilder().setHash(Int32Value.of(keyspace.hashCode()));
+    CqlKeyspace.Builder cqlKeyspaceBuilder =
+        CqlKeyspace.newBuilder().setName(simpleName).setGlobalName(decoratedName);
 
     Map<String, String> replication = new LinkedHashMap<>(keyspace.replication());
     if (replication.containsKey("class")) {
@@ -112,30 +131,6 @@ class SchemaHandler {
     }
 
     return describeResultBuilder.build();
-  }
-
-  public static void describeTable(
-      DescribeTableQuery query,
-      Persistence persistence,
-      StreamObserver<CqlTable> responseObserver) {
-    String decoratedKeyspace =
-        persistence.decorateKeyspaceName(query.getKeyspaceName(), GrpcService.HEADERS_KEY.get());
-
-    try {
-      Keyspace keyspace = persistence.schema().keyspace(decoratedKeyspace);
-      if (keyspace == null) {
-        throw Status.NOT_FOUND.withDescription("Keyspace not found").asException();
-      }
-      Table table = keyspace.table(query.getTableName());
-      if (table == null) {
-        throw Status.NOT_FOUND.withDescription("Table not found").asException();
-      }
-
-      responseObserver.onNext(buildCqlTable(table));
-      responseObserver.onCompleted();
-    } catch (StatusException e) {
-      responseObserver.onError(e);
-    }
   }
 
   @NotNull

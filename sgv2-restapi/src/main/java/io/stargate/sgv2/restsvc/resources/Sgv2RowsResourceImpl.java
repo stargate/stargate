@@ -76,6 +76,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         bridge,
         keyspaceName,
         tableName,
+        false,
         (tableDef) -> {
           final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
 
@@ -138,6 +139,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         bridge,
         keyspaceName,
         tableName,
+        false,
         (tableDef) -> {
           final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
           final QueryOuterClass.Query query =
@@ -217,6 +219,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         bridge,
         keyspaceName,
         tableName,
+        false,
         (tableDef) -> {
           final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
 
@@ -257,6 +260,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         bridge,
         keyspaceName,
         tableName,
+        false,
         (tableDef) -> {
           final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
 
@@ -302,6 +306,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         bridge,
         keyspaceName,
         tableName,
+        false,
         (tableDef) -> {
           final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
 

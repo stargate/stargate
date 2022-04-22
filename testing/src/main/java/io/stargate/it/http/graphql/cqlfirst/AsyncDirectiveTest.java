@@ -21,6 +21,7 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.http.ApiServiceConnectionInfo;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.util.Map;
@@ -38,10 +39,16 @@ public class AsyncDirectiveTest extends BetterbotzTestBase {
   private static CqlIdentifier KEYSPACE_ID;
 
   @BeforeAll
-  public static void setup(StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceId) {
-    String host = cluster.seedAddress();
-    CLIENT = new CqlFirstClient(host, RestUtils.getAuthToken(host));
+  public static void setup(
+      StargateConnectionInfo stargateBackend,
+      ApiServiceConnectionInfo stargateGraphqlApi,
+      @TestKeyspace CqlIdentifier keyspaceId) {
     KEYSPACE_ID = keyspaceId;
+    CLIENT =
+        new CqlFirstClient(
+            stargateGraphqlApi.host(),
+            stargateGraphqlApi.port(),
+            RestUtils.getAuthToken(stargateBackend.seedAddress()));
   }
 
   @AfterEach

@@ -57,7 +57,7 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
     // NOTE: Can Not use "callWithTable()" as that would return 400 (Bad Request) for
     // missing Table; here we specifically want 404 instead.
     return bridge
-        .getTable(keyspaceName, tableName)
+        .getTable(keyspaceName, tableName, true)
         .map(
             tableDef -> {
               Sgv2Table tableResponse = table2table(tableDef, keyspaceName);
@@ -134,6 +134,7 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
         bridge,
         keyspaceName,
         tableName,
+        false,
         (tableDef) -> {
           Sgv2Table.TableOptions options = tableUpdate.getTableOptions();
           List<?> clusteringExpressions = options.getClusteringExpression();

@@ -3,17 +3,14 @@ package io.stargate.web.docsapi.models;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import io.stargate.web.docsapi.exception.ErrorCode;
 import io.stargate.web.docsapi.exception.ErrorCodeRuntimeException;
-import org.codehaus.jackson.annotate.JsonProperty;
 
 @JsonFormat(shape = JsonFormat.Shape.OBJECT)
 public enum BuiltInApiFunction {
   ARRAY_PUSH("$push", "Appends data to the end of an array"),
   ARRAY_POP("$pop", "Removes data from the end of an array, returning it");
 
-  @JsonProperty("name")
   public String name;
 
-  @JsonProperty("description")
   public String description;
 
   public boolean requiresValue() {

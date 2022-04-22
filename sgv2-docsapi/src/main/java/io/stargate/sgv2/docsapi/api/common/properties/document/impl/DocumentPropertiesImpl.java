@@ -1,0 +1,31 @@
+package io.stargate.sgv2.docsapi.api.common.properties.document.impl;
+
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableColumns;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
+import io.stargate.sgv2.docsapi.config.DocumentConfig;
+
+/**
+ * Immutable implementation of the {@link DocumentProperties}.
+ *
+ * @see DocumentProperties
+ */
+public record DocumentPropertiesImpl(
+    int maxDepth,
+    int maxArrayLength,
+    int maxPageSize,
+    int searchPageSize,
+    DocumentTableProperties tableProperties,
+    DocumentTableColumns tableColumns)
+    implements DocumentProperties {
+
+  public DocumentPropertiesImpl(DocumentConfig documentConfig) {
+    this(
+        documentConfig.maxDepth(),
+        documentConfig.maxArrayLength(),
+        documentConfig.maxPageSize(),
+        documentConfig.searchPageSize(),
+        new DocumentTablePropertiesImpl(documentConfig),
+        new DocumentTableColumnsImpl(documentConfig));
+  }
+}

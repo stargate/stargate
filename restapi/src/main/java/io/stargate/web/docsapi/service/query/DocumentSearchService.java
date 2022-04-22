@@ -31,6 +31,7 @@ import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.docsapi.service.ExecutionContext;
 import io.stargate.web.docsapi.service.QueryExecutor;
 import io.stargate.web.docsapi.service.RawDocument;
+import io.stargate.web.docsapi.service.query.search.db.impl.DocumentTtlQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.db.impl.FullSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.db.impl.PopulateSearchQueryBuilder;
 import io.stargate.web.docsapi.service.query.search.db.impl.SubDocumentSearchQueryBuilder;
@@ -180,6 +181,26 @@ public class DocumentSearchService {
         .take(1);
   }
 
+  /**
+   * Gets a single document's rows with its TTL data in each row.
+   *
+   * @param queryExecutor Query executor for running queries.
+   * @param keyspace Keyspace to search in.
+   * @param collection Collection to search in.
+   * @param documentId Document ID to search in
+   * @param context Context for recording profiling information
+   * @return Flowable of {@link RawDocument}s representing a document's rows with TTL as a column
+   */
+  public Flowable<RawDocument> getDocumentTtlInfo(
+      QueryExecutor queryExecutor,
+      String keyspace,
+      String collection,
+      String documentId,
+      ExecutionContext context) {
+    return documentTtl(queryExecutor, configuration, keyspace, collection, documentId, context)
+        .take(1);
+  }
+
   private Flowable<RawDocument> fullSearch(
       QueryExecutor queryExecutor,
       DocsApiConfiguration configuration,
@@ -212,6 +233,33 @@ public class DocumentSearchService {
                   true,
                   paginator.getCurrentDbPageState(),
                   context);
+            });
+  }
+
+  private Flowable<RawDocument> documentTtl(
+      QueryExecutor queryExecutor,
+      DocsApiConfiguration configuration,
+      String keyspace,
+      String collection,
+      String documentId,
+      ExecutionContext context) {
+    // prepare first
+    return RxUtils.singleFromFuture(
+            () -> {
+              DataStore dataStore = queryExecutor.getDataStore();
+
+              DocumentTtlQueryBuilder queryBuilder = new DocumentTtlQueryBuilder();
+              BuiltQuery<? extends BoundQuery> query =
+                  queryBuilder.buildQuery(dataStore::queryBuilder, keyspace, collection);
+
+              return dataStore.prepare(query);
+            })
+        .cache()
+        .flatMapPublisher(
+            prepared -> {
+              BoundQuery boundQuery = prepared.bind(documentId);
+              return queryExecutor.queryDocs(
+                  boundQuery, configuration.getMaxStoragePageSize(), false, null, context);
             });
   }
 

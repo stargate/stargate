@@ -16,9 +16,11 @@
 package io.stargate.sgv2.restsvc.resources.schemas;
 
 import io.stargate.proto.QueryOuterClass.Query;
+import io.stargate.proto.Schema;
 import io.stargate.proto.Schema.CqlTable;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
+import io.stargate.sgv2.common.grpc.SchemaReads;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.common.http.CreateStargateBridgeClient;
 import io.stargate.sgv2.restsvc.models.Sgv2IndexAddRequest;
@@ -54,7 +56,8 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
     }
 
     // check that we're authorized for the table
-    bridge.getTable(keyspaceName, tableName);
+    bridge.authorizeSchemaRead(
+        SchemaReads.table(keyspaceName, tableName, Schema.SchemaRead.SourceApi.REST));
 
     Query query =
         new QueryBuilder()
@@ -86,7 +89,7 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
       throw new WebApplicationException("columnName must be provided", Status.BAD_REQUEST);
     }
 
-    bridge.getTable(keyspaceName, tableName)
+    bridge.getTable(keyspaceName, tableName, false)
         .orElseThrow(() -> new WebApplicationException("Table not found", Status.NOT_FOUND))
         .getColumnsList().stream()
         .filter(c -> columnName.equals(c.getName()))
@@ -133,7 +136,7 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
 
     CqlTable table =
         bridge
-            .getTable(keyspaceName, tableName)
+            .getTable(keyspaceName, tableName, false)
             .orElseThrow(() -> new WebApplicationException("Table not found", Status.NOT_FOUND));
     if (!ifExists
         && table.getIndexesList().stream().noneMatch(i -> indexName.equals(i.getName()))) {
