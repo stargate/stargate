@@ -91,12 +91,12 @@
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>aws-java-sdk-dynamodb</artifactId>
-      <version>1.11.477</version>
+      <version>1.12.190</version>
     </dependency>
     <dependency>
       <groupId>com.amazonaws</groupId>
       <artifactId>DynamoDBLocal</artifactId>
-      <version>1.11.477</version>
+      <version>1.15.0</version>
       <exclusions>
         <exclusion>
           <groupId>com.google.guava</groupId>

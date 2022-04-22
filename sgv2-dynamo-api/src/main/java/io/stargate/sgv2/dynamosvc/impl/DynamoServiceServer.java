@@ -36,6 +36,7 @@ import io.stargate.sgv2.common.grpc.StargateBridgeClientFactory;
 import io.stargate.sgv2.common.http.CreateStargateBridgeClientFilter;
 import io.stargate.sgv2.common.http.StargateBridgeClientJerseyFactory;
 import io.stargate.sgv2.dynamosvc.dynamo.ItemProxy;
+import io.stargate.sgv2.dynamosvc.dynamo.QueryProxy;
 import io.stargate.sgv2.dynamosvc.dynamo.TableProxy;
 import io.stargate.sgv2.dynamosvc.models.DynamoServiceError;
 import io.stargate.sgv2.dynamosvc.resources.DynamoResource;
@@ -139,7 +140,9 @@ public class DynamoServiceServer extends Application<DynamoServiceServerConfigur
     environment.jersey().register(MetricsResource.class);
 
     // Main data endpoints
-    environment.jersey().register(new DynamoResource(new TableProxy(), new ItemProxy()));
+    environment
+        .jersey()
+        .register(new DynamoResource(new TableProxy(), new ItemProxy(), new QueryProxy()));
 
     // Swagger endpoints
     environment.jersey().register(SwaggerSerializers.class);

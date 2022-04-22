@@ -12,7 +12,7 @@
   <properties>
     <airline.version>2.8.2</airline.version>
     <swagger-ui.version>3.35.0</swagger-ui.version>
-    <dynamodb.sdk.version>1.11.477</dynamodb.sdk.version>
+    <dynamodb.sdk.version>1.12.190</dynamodb.sdk.version>
   </properties>
   <dependencyManagement>
     <dependencies>

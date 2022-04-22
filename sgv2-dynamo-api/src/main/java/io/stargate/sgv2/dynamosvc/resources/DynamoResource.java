@@ -7,6 +7,7 @@ import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
 import com.amazonaws.services.dynamodbv2.model.DeleteTableRequest;
 import com.amazonaws.services.dynamodbv2.model.GetItemRequest;
 import com.amazonaws.services.dynamodbv2.model.PutItemRequest;
+import com.amazonaws.services.dynamodbv2.model.QueryRequest;
 import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import io.stargate.proto.QueryOuterClass;
@@ -16,6 +17,7 @@ import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.common.http.CreateStargateBridgeClient;
 import io.stargate.sgv2.dynamosvc.dynamo.ItemProxy;
 import io.stargate.sgv2.dynamosvc.dynamo.Proxy;
+import io.stargate.sgv2.dynamosvc.dynamo.QueryProxy;
 import io.stargate.sgv2.dynamosvc.dynamo.TableProxy;
 import io.stargate.sgv2.dynamosvc.models.DynamoStatementType;
 import io.swagger.annotations.*;
@@ -27,6 +29,8 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Path("/")
 @Produces(MediaType.APPLICATION_JSON)
@@ -43,13 +47,16 @@ import javax.ws.rs.core.Response;
 })
 @CreateStargateBridgeClient
 public class DynamoResource {
+  private static final Logger logger = LoggerFactory.getLogger(DynamoResource.class);
 
-  TableProxy tableProxy;
-  ItemProxy itemProxy;
+  private final TableProxy tableProxy;
+  private final ItemProxy itemProxy;
+  private final QueryProxy queryProxy;
 
-  public DynamoResource(TableProxy tableProxy, ItemProxy itemProxy) {
+  public DynamoResource(TableProxy tableProxy, ItemProxy itemProxy, QueryProxy queryProxy) {
     this.tableProxy = tableProxy;
     this.itemProxy = itemProxy;
+    this.queryProxy = queryProxy;
   }
 
   @Timed
@@ -84,6 +91,10 @@ public class DynamoResource {
         case GetItem:
           GetItemRequest getItemRequest = awsRequestMapper.readValue(payload, GetItemRequest.class);
           result = itemProxy.getItem(getItemRequest, bridge);
+          break;
+        case Query:
+          QueryRequest queryRequest = awsRequestMapper.readValue(payload, QueryRequest.class);
+          result = queryProxy.query(queryRequest, bridge);
           break;
         default:
           throw new WebApplicationException(

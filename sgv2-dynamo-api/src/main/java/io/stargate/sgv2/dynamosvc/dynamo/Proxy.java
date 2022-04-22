@@ -3,6 +3,7 @@ package io.stargate.sgv2.dynamosvc.dynamo;
 import static com.amazonaws.services.dynamodbv2.model.KeyType.HASH;
 import static com.amazonaws.services.dynamodbv2.model.KeyType.RANGE;
 
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
@@ -70,5 +71,14 @@ public abstract class Proxy {
       resultRows.add(converter.mapFromProtoValues(row.getValuesList()));
     }
     return resultRows;
+  }
+
+  protected AttributeValue getExpressionAttributeValue(
+      Map<String, AttributeValue> map, String key) {
+    AttributeValue value = map.get(key);
+    if (value == null) {
+      throw new IllegalArgumentException(key + " does not appear in expression attributes");
+    }
+    return value;
   }
 }
