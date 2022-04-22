@@ -181,7 +181,6 @@
             <Export-Package>!*</Export-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
           </instructions>
-          <buildDirectory>${project.basedir}/../stargate-lib</buildDirectory>
         </configuration>
       </plugin>
       <plugin>
@@ -193,7 +192,6 @@
               <x-Stargate-Health-Checkers>graphql</x-Stargate-Health-Checkers>
             </manifestEntries>
           </archive>
-          <outputDirectory>${project.basedir}/../stargate-lib</outputDirectory>
         </configuration>
       </plugin>
     </plugins>
