@@ -164,9 +164,6 @@ if [[ ${#STARGATE_ARGS[@]} -eq 0 ]]; then
         STARGATE_ARGS+=("--host-id", "$HOST_ID")
     fi
 
-    if [[ ! -z "$BRIDGE_TOKEN" ]]; then
-        STARGATE_ARGS+=("--bridge-token" "$BRIDGE_TOKEN")
-    fi
 fi
 
 declare -a CMD=(java -server)

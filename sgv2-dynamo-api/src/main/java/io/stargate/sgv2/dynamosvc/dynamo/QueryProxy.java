@@ -79,7 +79,7 @@ public class QueryProxy extends Proxy {
     final String tableName = queryRequest.getTableName();
     Schema.CqlTable table =
         bridge
-            .getTable(KEYSPACE_NAME, tableName)
+            .getTable(KEYSPACE_NAME, tableName, false)
             .orElseThrow(() -> new IllegalArgumentException("Table not found: " + tableName));
     QueryOuterClass.ColumnSpec partitionKey = table.getPartitionKeyColumns(0);
     List<QueryOuterClass.ColumnSpec> clusteringKeys = table.getClusteringKeyColumnsList();

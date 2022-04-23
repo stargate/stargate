@@ -52,7 +52,7 @@ public class ItemProxy extends Proxy {
     final String tableName = putItemRequest.getTableName();
     Schema.CqlTable table =
         bridge
-            .getTable(KEYSPACE_NAME, tableName)
+            .getTable(KEYSPACE_NAME, tableName, false)
             .orElseThrow(() -> new IllegalArgumentException("Table not found: " + tableName));
     Map<String, QueryOuterClass.ColumnSpec> columnMap =
         table.getColumnsList().stream()

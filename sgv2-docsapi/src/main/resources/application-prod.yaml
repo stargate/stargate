@@ -1,0 +1,12 @@
+---
+# production configuration
+# please keep properties in the alphabetical order
+
+quarkus:
+
+  # OpenTelemetry configuration
+  opentelemetry:
+    tracer:
+      # in the prod env use the sampler that samples 1% of all requests
+      sampler:
+        ratio: 0.01

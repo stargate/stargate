@@ -112,6 +112,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import net.jcip.annotations.NotThreadSafe;
+import org.apache.cassandra.stargate.utils.FastByteOperations.PureJavaOperations;
 import org.assertj.core.api.Assertions;
 import org.javatuples.Pair;
 import org.junit.jupiter.api.BeforeEach;
@@ -1962,6 +1963,54 @@ public abstract class PersistenceTest {
     assertThat(it2.hasNext()).isFalse();
 
     assertGt(last, first, dec1, dec2);
+  }
+
+  @Test
+  public void testRowDecoratorComparableBytes() throws ExecutionException, InterruptedException {
+    setupCustomPagingData();
+
+    // Obtain partition keys in "ring" order
+    AbstractBound<?> selectAll =
+        dataStore
+            .queryBuilder()
+            .select()
+            .column("pk")
+            .column("val")
+            .from(keyspace, table)
+            .build()
+            .bind();
+
+    ResultSet rs1 = dataStore.execute(selectAll).get();
+    Iterator<Row> it1 = rs1.iterator();
+    RowDecorator dec1 = rs1.makeRowDecorator();
+
+    ResultSet rs2 = dataStore.execute(selectAll).get();
+    RowDecorator dec2 = rs2.makeRowDecorator();
+    Iterator<Row> it2 = rs2.iterator();
+
+    if (backend.isDse()) {
+      Row first = null;
+      Row last = null;
+      Row p1 = null;
+      PureJavaOperations ops = new PureJavaOperations();
+      while (it1.hasNext()) {
+        assertThat(it2.hasNext()).isTrue();
+        Row r1 = it1.next();
+        Row r2 = it2.next();
+        first = first == null ? r1 : first;
+        last = r1;
+        assertThat(ops.compare(dec1.getComparableBytes(r1), dec2.getComparableBytes(r2)))
+            .isEqualTo(0);
+        if (p1 == null) {
+          p1 = r1;
+        }
+        assertThat(ops.compare(dec1.getComparableBytes(r1), dec2.getComparableBytes(p1)))
+            .isGreaterThanOrEqualTo(0);
+      }
+      assertThat(it2.hasNext()).isFalse();
+      assertThat(ops.compare(dec1.getComparableBytes(last), dec2.getComparableBytes(first)))
+          .isGreaterThan(0);
+    }
   }
 
   private boolean isCassandra4() {

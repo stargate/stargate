@@ -19,11 +19,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.jayway.jsonpath.JsonPath;
-import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.http.ApiServiceConnectionInfo;
 import io.stargate.it.http.RestUtils;
+import io.stargate.it.http.graphql.BaseGraphqlV2ApiTest;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
@@ -40,16 +41,22 @@ import org.junit.jupiter.api.extension.ExtendWith;
           + "    c2 counter\n"
           + ")",
     })
-public class CounterUpdateTest extends BaseIntegrationTest {
+public class CounterUpdateTest extends BaseGraphqlV2ApiTest {
 
   private static CqlFirstClient CLIENT;
   private static CqlIdentifier KEYSPACE_ID;
 
   @BeforeAll
-  public static void setup(StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceId) {
-    String host = cluster.seedAddress();
-    CLIENT = new CqlFirstClient(host, RestUtils.getAuthToken(host));
+  public static void setup(
+      StargateConnectionInfo stargateBackend,
+      ApiServiceConnectionInfo stargateGraphqlApi,
+      @TestKeyspace CqlIdentifier keyspaceId) {
     KEYSPACE_ID = keyspaceId;
+    CLIENT =
+        new CqlFirstClient(
+            stargateGraphqlApi.host(),
+            stargateGraphqlApi.port(),
+            RestUtils.getAuthToken(stargateBackend.seedAddress()));
   }
 
   @Test

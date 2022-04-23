@@ -830,6 +830,56 @@ class DocumentSearchServiceTest extends AbstractDataStoreTest {
   }
 
   @Nested
+  class GetDocumentTtlInfo {
+    @Test
+    public void happyPath() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+
+      String cql = "SELECT key, TTL(leaf), WRITETIME(leaf) FROM %s WHERE key = ?";
+      ValidatingDataStore.QueryAssert cqlAssert =
+          withQuery(TABLE, cql, documentId)
+              .withPageSize(configuration.getMaxStoragePageSize())
+              .returning(Arrays.asList(ImmutableMap.of("key", documentId, "ttl(leaf)", 0)));
+
+      Flowable<RawDocument> results =
+          service.getDocumentTtlInfo(
+              new QueryExecutor(datastore(), configuration),
+              KEYSPACE_NAME,
+              COLLECTION_NAME,
+              documentId,
+              context);
+
+      // assert results
+      results
+          .test()
+          .await()
+          .assertValue(
+              doc -> {
+                assertThat(doc.id()).isEqualTo(documentId);
+                assertThat(doc.rows()).hasSize(1);
+                return true;
+              })
+          .assertComplete();
+
+      // assert queries execution
+      cqlAssert.assertExecuteCount().isEqualTo(1);
+
+      // assert execution context
+      ExecutionProfile executionProfile = context.toProfile();
+      assertThat(executionProfile.queries())
+          .singleElement()
+          .satisfies(
+              queryInfo -> {
+                assertThat(queryInfo.execCount()).isEqualTo(1);
+                assertThat(queryInfo.rowCount()).isEqualTo(1);
+                assertThat(queryInfo.preparedCQL())
+                    .isEqualTo(String.format(cql, KEYSPACE_NAME + "." + COLLECTION_NAME));
+              });
+    }
+  }
+
+  @Nested
   class SelectivityHints {
 
     @Test

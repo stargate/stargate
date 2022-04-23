@@ -18,14 +18,21 @@ package io.stargate.sgv2.common.grpc;
 import static io.stargate.sgv2.common.grpc.DefaultStargateBridgeClient.SELECT_KEYSPACE_NAMES;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import com.google.protobuf.Int32Value;
 import io.grpc.ManagedChannel;
 import io.grpc.Server;
+import io.grpc.Status;
 import io.grpc.inprocess.InProcessChannelBuilder;
 import io.grpc.inprocess.InProcessServerBuilder;
 import io.grpc.stub.StreamObserver;
@@ -41,25 +48,27 @@ import io.stargate.proto.Schema.AuthorizeSchemaReadsResponse;
 import io.stargate.proto.Schema.CqlKeyspace;
 import io.stargate.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.proto.Schema.CqlTable;
+import io.stargate.proto.Schema.DescribeKeyspaceQuery;
 import io.stargate.proto.Schema.SchemaRead;
 import io.stargate.proto.Schema.SchemaRead.SourceApi;
+import io.stargate.proto.Schema.SupportedFeaturesResponse;
 import io.stargate.proto.StargateBridgeGrpc.StargateBridgeImplBase;
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
-import org.apache.commons.codec.binary.Hex;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -73,7 +82,7 @@ public class DefaultStargateBridgeClientTest {
   private Server server;
   private ManagedChannel channel;
   @Mock private StargateBridgeImplBase service;
-  @Mock private DefaultStargateBridgeSchema schema;
+  private Cache<String, CqlKeyspaceDescribe> keyspaceCache;
 
   @BeforeEach
   public void setup() throws IOException {
@@ -81,6 +90,7 @@ public class DefaultStargateBridgeClientTest {
         InProcessServerBuilder.forName(SERVER_NAME).directExecutor().addService(service).build();
     server.start();
     channel = InProcessChannelBuilder.forName(SERVER_NAME).usePlaintext().build();
+    keyspaceCache = Caffeine.newBuilder().build();
   }
 
   @AfterEach
@@ -131,29 +141,125 @@ public class DefaultStargateBridgeClientTest {
     // Given
     String keyspaceName = "ks";
     mockAuthorization(SchemaReads.keyspace(keyspaceName, SOURCE_API), true);
-    CqlKeyspaceDescribe schemaKeyspace = mockKeyspace(keyspaceName);
-    when(schema.getKeyspaceAsync(keyspaceName))
-        .thenReturn(CompletableFuture.completedFuture(schemaKeyspace));
+    CqlKeyspaceDescribe bridgeKeyspace = buildKeyspace(keyspaceName);
+    mockDescribeResponse(keyspaceName, Optional.empty(), bridgeKeyspace);
 
     // When
-    Optional<CqlKeyspaceDescribe> keyspace = newClient().getKeyspace(keyspaceName);
+    Optional<CqlKeyspaceDescribe> keyspace = newClient().getKeyspace(keyspaceName, true);
 
     // Then
-    assertThat(keyspace).hasValue(schemaKeyspace);
+    assertThat(keyspace).hasValue(bridgeKeyspace);
+    assertThat(keyspaceCache.getIfPresent(keyspaceName)).isEqualTo(bridgeKeyspace);
   }
 
   @Test
-  public void getKeyspaceNonExistent() {
+  public void getKeyspaceNoAuthCheck() {
+    // Given
+    String keyspaceName = "ks";
+    CqlKeyspaceDescribe bridgeKeyspace = buildKeyspace(keyspaceName);
+    mockDescribeResponse(keyspaceName, Optional.empty(), bridgeKeyspace);
+
+    // When
+    Optional<CqlKeyspaceDescribe> keyspace = newClient().getKeyspace(keyspaceName, false);
+
+    // Then
+    assertThat(keyspace).hasValue(bridgeKeyspace);
+    assertThat(keyspaceCache.getIfPresent(keyspaceName)).isEqualTo(bridgeKeyspace);
+    verify(service, never()).authorizeSchemaReads(any(), any());
+  }
+
+  @Test
+  public void getKeyspaceWhenNonExistent() {
     // Given
     String keyspaceName = "ks";
     mockAuthorization(SchemaReads.keyspace(keyspaceName, SOURCE_API), true);
-    when(schema.getKeyspaceAsync(keyspaceName)).thenReturn(CompletableFuture.completedFuture(null));
+    mockDescribeNotFound(keyspaceName, Optional.empty());
 
     // When
-    Optional<CqlKeyspaceDescribe> keyspace = newClient().getKeyspace(keyspaceName);
+    Optional<CqlKeyspaceDescribe> keyspace = newClient().getKeyspace(keyspaceName, true);
 
     // Then
     assertThat(keyspace).isEmpty();
+  }
+
+  @Test
+  public void getKeyspaceWhenAlreadyCached() {
+    // Given
+    DefaultStargateBridgeClient client = newClient();
+    String keyspaceName = "ks";
+    mockAuthorization(SchemaReads.keyspace(keyspaceName, SOURCE_API), true);
+    CqlKeyspaceDescribe bridgeKeyspace = buildKeyspace(keyspaceName);
+    // first bridge call fetches and populates the cache
+    mockDescribeResponse(keyspaceName, Optional.empty(), bridgeKeyspace);
+    client.getKeyspace(keyspaceName, true);
+    verify(service).describeKeyspace(eq(describeQuery(keyspaceName)), any());
+    assertThat(keyspaceCache.getIfPresent(keyspaceName)).isEqualTo(bridgeKeyspace);
+    // second bridge call will only check the hash
+    mockDescribeUnchanged(keyspaceName, bridgeKeyspace.getHash().getValue());
+
+    // When
+    Optional<CqlKeyspaceDescribe> keyspace = client.getKeyspace(keyspaceName, true);
+
+    // Then
+    verify(service)
+        .describeKeyspace(
+            eq(describeQuery(keyspaceName, bridgeKeyspace.getHash().getValue())), any());
+    assertThat(keyspace).hasValue(bridgeKeyspace);
+    assertThat(keyspaceCache.getIfPresent(keyspaceName)).isEqualTo(bridgeKeyspace);
+  }
+
+  @Test
+  public void getKeyspaceWhenCachedButHasChanged() {
+    // Given
+    DefaultStargateBridgeClient client = newClient();
+    String keyspaceName = "ks";
+    mockAuthorization(SchemaReads.keyspace(keyspaceName, SOURCE_API), true);
+    CqlKeyspaceDescribe bridgeKeyspace1 = buildKeyspace(keyspaceName);
+    // first bridge call fetches and populates the cache
+    mockDescribeResponse(keyspaceName, Optional.empty(), bridgeKeyspace1);
+    client.getKeyspace(keyspaceName, true);
+    verify(service).describeKeyspace(eq(describeQuery(keyspaceName)), any());
+    assertThat(keyspaceCache.getIfPresent(keyspaceName)).isEqualTo(bridgeKeyspace1);
+    // second bridge call will check the hash and find out a new version exists
+    CqlKeyspaceDescribe bridgeKeyspace2 = buildKeyspace(keyspaceName, "tbl1");
+    mockDescribeResponse(
+        keyspaceName, Optional.of(bridgeKeyspace1.getHash().getValue()), bridgeKeyspace2);
+
+    // When
+    Optional<CqlKeyspaceDescribe> keyspace = client.getKeyspace(keyspaceName, true);
+
+    // Then
+    verify(service)
+        .describeKeyspace(
+            eq(describeQuery(keyspaceName, bridgeKeyspace1.getHash().getValue())), any());
+    assertThat(keyspace).hasValue(bridgeKeyspace2);
+    assertThat(keyspaceCache.getIfPresent(keyspaceName)).isEqualTo(bridgeKeyspace2);
+  }
+
+  @Test
+  public void getKeyspaceWhenCachedButWasDeleted() {
+    // Given
+    DefaultStargateBridgeClient client = newClient();
+    String keyspaceName = "ks";
+    mockAuthorization(SchemaReads.keyspace(keyspaceName, SOURCE_API), true);
+    CqlKeyspaceDescribe bridgeKeyspace = buildKeyspace(keyspaceName);
+    // first bridge call fetches and populates the cache
+    mockDescribeResponse(keyspaceName, Optional.empty(), bridgeKeyspace);
+    client.getKeyspace(keyspaceName, true);
+    verify(service).describeKeyspace(eq(describeQuery(keyspaceName)), any());
+    assertThat(keyspaceCache.getIfPresent(keyspaceName)).isEqualTo(bridgeKeyspace);
+    // second bridge call will check the hash and find out the keyspace is gone
+    mockDescribeNotFound(keyspaceName, Optional.of(bridgeKeyspace.getHash().getValue()));
+
+    // When
+    Optional<CqlKeyspaceDescribe> keyspace = client.getKeyspace(keyspaceName, true);
+
+    // Then
+    verify(service)
+        .describeKeyspace(
+            eq(describeQuery(keyspaceName, bridgeKeyspace.getHash().getValue())), any());
+    assertThat(keyspace).isEmpty();
+    assertThat(keyspaceCache.getIfPresent(keyspaceName)).isNull();
   }
 
   @Test
@@ -163,28 +269,8 @@ public class DefaultStargateBridgeClientTest {
     mockAuthorization(SchemaReads.keyspace(keyspaceName, SOURCE_API), false);
 
     // Then
-    assertThatThrownBy(() -> newClient().getKeyspace(keyspaceName))
+    assertThatThrownBy(() -> newClient().getKeyspace(keyspaceName, true))
         .isInstanceOf(UnauthorizedKeyspaceException.class);
-  }
-
-  @Test
-  public void getKeyspaceWithTenantId() {
-    // Given
-    String tenantId = "tenant1";
-    String keyspaceName = "ks";
-    String decoratedKeyspaceName =
-        Hex.encodeHexString(tenantId.getBytes(StandardCharsets.UTF_8)) + '_' + keyspaceName;
-    mockAuthorization(SchemaReads.keyspace(keyspaceName, SOURCE_API), true);
-    CqlKeyspaceDescribe schemaKeyspace = mockKeyspace(decoratedKeyspaceName);
-    when(schema.getKeyspaceAsync(decoratedKeyspaceName))
-        .thenReturn(CompletableFuture.completedFuture(schemaKeyspace));
-
-    // When
-    Optional<CqlKeyspaceDescribe> keyspace = newClient(tenantId).getKeyspace(keyspaceName);
-
-    // Then
-    assertThat(keyspace)
-        .hasValueSatisfying(d -> assertThat(d.getCqlKeyspace().getName()).isEqualTo(keyspaceName));
   }
 
   @Test
@@ -199,12 +285,10 @@ public class DefaultStargateBridgeClientTest {
             false,
             SchemaReads.keyspace("ks3", SOURCE_API),
             true));
-    CqlKeyspaceDescribe schemaKeyspace1 = mockKeyspace("ks1");
-    when(schema.getKeyspaceAsync("ks1"))
-        .thenReturn(CompletableFuture.completedFuture(schemaKeyspace1));
-    CqlKeyspaceDescribe schemaKeyspace3 = mockKeyspace("ks3");
-    when(schema.getKeyspaceAsync("ks3"))
-        .thenReturn(CompletableFuture.completedFuture(schemaKeyspace3));
+    CqlKeyspaceDescribe bridgeKeyspace1 = buildKeyspace("ks1");
+    mockDescribeResponse("ks1", Optional.empty(), bridgeKeyspace1);
+    CqlKeyspaceDescribe bridgeKeyspace3 = buildKeyspace("ks3");
+    mockDescribeResponse("ks3", Optional.empty(), bridgeKeyspace3);
 
     // When
     List<CqlKeyspaceDescribe> keyspaces = newClient().getAllKeyspaces();
@@ -219,15 +303,30 @@ public class DefaultStargateBridgeClientTest {
     String keyspaceName = "ks";
     String tableName = "tbl";
     mockAuthorization(SchemaReads.table(keyspaceName, tableName, SOURCE_API), true);
-    CqlKeyspaceDescribe schemaKeyspace = mockKeyspace(keyspaceName, tableName);
-    when(schema.getKeyspaceAsync(keyspaceName))
-        .thenReturn(CompletableFuture.completedFuture(schemaKeyspace));
+    CqlKeyspaceDescribe bridgeKeyspace = buildKeyspace(keyspaceName, tableName);
+    mockDescribeResponse(keyspaceName, Optional.empty(), bridgeKeyspace);
 
     // When
-    Optional<CqlTable> table = newClient().getTable(keyspaceName, tableName);
+    Optional<CqlTable> table = newClient().getTable(keyspaceName, tableName, true);
 
     // Then
     assertThat(table).hasValueSatisfying(t -> assertThat(t.getName()).isEqualTo(tableName));
+  }
+
+  @Test
+  public void getTableNoAuthCheck() {
+    // Given
+    String keyspaceName = "ks";
+    String tableName = "tbl";
+    CqlKeyspaceDescribe bridgeKeyspace = buildKeyspace(keyspaceName, tableName);
+    mockDescribeResponse(keyspaceName, Optional.empty(), bridgeKeyspace);
+
+    // When
+    Optional<CqlTable> table = newClient().getTable(keyspaceName, tableName, false);
+
+    // Then
+    assertThat(table).hasValueSatisfying(t -> assertThat(t.getName()).isEqualTo(tableName));
+    verify(service, never()).authorizeSchemaReads(any(), any());
   }
 
   @Test
@@ -236,12 +335,11 @@ public class DefaultStargateBridgeClientTest {
     String keyspaceName = "ks";
     String tableName = "tbl";
     mockAuthorization(SchemaReads.table(keyspaceName, tableName, SOURCE_API), true);
-    CqlKeyspaceDescribe schemaKeyspace = mockKeyspace(keyspaceName);
-    when(schema.getKeyspaceAsync(keyspaceName))
-        .thenReturn(CompletableFuture.completedFuture(schemaKeyspace));
+    CqlKeyspaceDescribe bridgeKeyspace = buildKeyspace(keyspaceName);
+    mockDescribeResponse(keyspaceName, Optional.empty(), bridgeKeyspace);
 
     // When
-    Optional<CqlTable> table = newClient().getTable(keyspaceName, tableName);
+    Optional<CqlTable> table = newClient().getTable(keyspaceName, tableName, true);
 
     // Then
     assertThat(table).isEmpty();
@@ -255,7 +353,7 @@ public class DefaultStargateBridgeClientTest {
     mockAuthorization(SchemaReads.table(keyspaceName, tableName, SOURCE_API), false);
 
     // Then
-    assertThatThrownBy(() -> newClient().getTable(keyspaceName, tableName))
+    assertThatThrownBy(() -> newClient().getTable(keyspaceName, tableName, true))
         .isInstanceOf(UnauthorizedTableException.class);
   }
 
@@ -269,9 +367,8 @@ public class DefaultStargateBridgeClientTest {
             SchemaReads.table(keyspaceName, "tbl2", SOURCE_API), false,
             SchemaReads.table(keyspaceName, "tbl3", SOURCE_API), true));
 
-    CqlKeyspaceDescribe schemaKeyspace = mockKeyspace(keyspaceName, "tbl1", "tbl2", "tbl3");
-    when(schema.getKeyspaceAsync(keyspaceName))
-        .thenReturn(CompletableFuture.completedFuture(schemaKeyspace));
+    CqlKeyspaceDescribe bridgeKeyspace = buildKeyspace(keyspaceName, "tbl1", "tbl2", "tbl3");
+    mockDescribeResponse(keyspaceName, Optional.empty(), bridgeKeyspace);
 
     // When
     List<CqlTable> tables = newClient().getTables(keyspaceName);
@@ -280,24 +377,38 @@ public class DefaultStargateBridgeClientTest {
     assertThat(tables).extracting(CqlTable::getName).contains("tbl1", "tbl3");
   }
 
-  private CqlKeyspaceDescribe mockKeyspace(String keyspaceName, String... tableNames) {
-    return CqlKeyspaceDescribe.newBuilder()
-        .setCqlKeyspace(CqlKeyspace.newBuilder().setName(keyspaceName))
-        .addAllTables(
-            Arrays.stream(tableNames)
-                .map(n -> CqlTable.newBuilder().setName(n).build())
-                .collect(Collectors.toList()))
-        .build();
+  @ParameterizedTest
+  @MethodSource("getSupportedFeatures")
+  public void shouldGetSupportedFeatures(
+      boolean secondaryIndexes, boolean sai, boolean loggedBatches) {
+    // Given
+    mockSupportedFeatures(secondaryIndexes, sai, loggedBatches);
+
+    // When
+    SupportedFeaturesResponse response = newClient().getSupportedFeatures();
+
+    // Then
+    assertThat(response.getSecondaryIndexes()).isEqualTo(secondaryIndexes);
+    assertThat(response.getSai()).isEqualTo(sai);
+    assertThat(response.getLoggedBatches()).isEqualTo(loggedBatches);
+  }
+
+  public static Arguments[] getSupportedFeatures() {
+    return new Arguments[] {
+      arguments(false, false, false),
+      arguments(false, false, true),
+      arguments(false, true, false),
+      arguments(false, true, true),
+      arguments(true, false, false),
+      arguments(true, false, true),
+      arguments(true, true, false),
+      arguments(true, true, true),
+    };
   }
 
   private DefaultStargateBridgeClient newClient() {
     return new DefaultStargateBridgeClient(
-        channel, schema, AUTH_TOKEN, Optional.empty(), SOURCE_API);
-  }
-
-  private DefaultStargateBridgeClient newClient(String tenantId) {
-    return new DefaultStargateBridgeClient(
-        channel, schema, AUTH_TOKEN, Optional.of(tenantId), SOURCE_API);
+        channel, AUTH_TOKEN, Optional.empty(), keyspaceCache, new LazyReference<>(), SOURCE_API);
   }
 
   void mockAuthorizations(Map<SchemaRead, Boolean> authorizations) {
@@ -332,19 +443,91 @@ public class DefaultStargateBridgeClientTest {
             .collect(Collectors.toList()));
   }
 
+  private CqlKeyspaceDescribe buildKeyspace(String keyspaceName, String... tableNames) {
+    // Simulate a distinct hash (would normally be generated on the bridge side)
+    int hash = Objects.hash(keyspaceName, Arrays.hashCode(tableNames));
+
+    return CqlKeyspaceDescribe.newBuilder()
+        .setCqlKeyspace(CqlKeyspace.newBuilder().setName(keyspaceName))
+        .addAllTables(
+            Arrays.stream(tableNames)
+                .map(n -> CqlTable.newBuilder().setName(n).build())
+                .collect(Collectors.toList()))
+        .setHash(Int32Value.of(hash))
+        .build();
+  }
+
+  private void mockDescribeResponse(
+      String keyspaceName, Optional<Integer> hash, CqlKeyspaceDescribe response) {
+    DescribeKeyspaceQuery request =
+        hash.map(h -> describeQuery(keyspaceName, h)).orElse(describeQuery(keyspaceName));
+    doAnswer(i -> mockResponse(i, response)).when(service).describeKeyspace(eq(request), any());
+  }
+
+  private void mockDescribeNotFound(String keyspaceName, Optional<Integer> hash) {
+    DescribeKeyspaceQuery request =
+        hash.map(h -> describeQuery(keyspaceName, h)).orElse(describeQuery(keyspaceName));
+    doAnswer(i -> mockError(i, Status.NOT_FOUND.withDescription("Keyspace not found")))
+        .when(service)
+        .describeKeyspace(eq(request), any());
+  }
+
+  private void mockDescribeUnchanged(String keyspaceName, int hash) {
+    DescribeKeyspaceQuery request = describeQuery(keyspaceName, hash);
+    CqlKeyspaceDescribe emptyResponse = CqlKeyspaceDescribe.newBuilder().build();
+    doAnswer(i -> mockResponse(i, emptyResponse))
+        .when(service)
+        .describeKeyspace(eq(request), any());
+  }
+
+  private DescribeKeyspaceQuery describeQuery(String keyspaceName) {
+    return DescribeKeyspaceQuery.newBuilder().setKeyspaceName(keyspaceName).build();
+  }
+
+  private DescribeKeyspaceQuery describeQuery(String keyspaceName, int hash) {
+    return DescribeKeyspaceQuery.newBuilder()
+        .setKeyspaceName(keyspaceName)
+        .setHash(Int32Value.of(hash))
+        .build();
+  }
+
   private void mockQuery(Query query, List<Row> rows) {
-    doAnswer(i -> mockResponse(i, rows)).when(service).executeQuery(Mockito.eq(query), any());
+    doAnswer(i -> mockRows(i, rows)).when(service).executeQuery(eq(query), any());
   }
 
   private void mockBatch(Batch batch, List<Row> rows) {
-    doAnswer(i -> mockResponse(i, rows)).when(service).executeBatch(Mockito.eq(batch), any());
+    doAnswer(i -> mockRows(i, rows)).when(service).executeBatch(eq(batch), any());
   }
 
-  private Void mockResponse(InvocationOnMock i, List<Row> rows) {
-    StreamObserver<Response> observer = i.getArgument(1);
-    observer.onNext(
-        Response.newBuilder().setResultSet(ResultSet.newBuilder().addAllRows(rows)).build());
+  private void mockSupportedFeatures(boolean secondaryIndexes, boolean sai, boolean loggedBatches) {
+    doAnswer(
+            i ->
+                mockResponse(
+                    i,
+                    SupportedFeaturesResponse.newBuilder()
+                        .setSecondaryIndexes(secondaryIndexes)
+                        .setSai(sai)
+                        .setLoggedBatches(loggedBatches)
+                        .build()))
+        .when(service)
+        .getSupportedFeatures(any(), any());
+  }
+
+  private Void mockRows(InvocationOnMock i, List<Row> rows) {
+    return mockResponse(
+        i, Response.newBuilder().setResultSet(ResultSet.newBuilder().addAllRows(rows)).build());
+  }
+
+  private <T> Void mockResponse(InvocationOnMock i, T response) {
+    StreamObserver<T> observer = i.getArgument(1);
+    observer.onNext(response);
     observer.onCompleted();
+    return null;
+  }
+
+  private <T> Void mockError(InvocationOnMock i, Status error) {
+    StreamObserver<T> observer = i.getArgument(1);
+    observer.onError(error.asException());
     return null;
   }
 }

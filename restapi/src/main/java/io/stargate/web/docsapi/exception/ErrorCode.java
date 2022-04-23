@@ -145,7 +145,11 @@ public enum ErrorCode {
 
   DOCS_API_UPDATE_PATH_NOT_MATCHING(
       Response.Status.INTERNAL_SERVER_ERROR,
-      "Updating a document failed as internally shredded rows did not match the update path.");
+      "Updating a document failed as internally shredded rows did not match the update path."),
+  DOCS_API_INVALID_TTL_NUMBER(
+      Response.Status.BAD_REQUEST, "TTL on a full document must be a positive integer"),
+  DOCS_API_INVALID_TTL_AUTO(
+      Response.Status.BAD_REQUEST, "TTL on a sub-document must be set to 'auto'");
 
   /** Status of the response. */
   private final Response.Status responseStatus;

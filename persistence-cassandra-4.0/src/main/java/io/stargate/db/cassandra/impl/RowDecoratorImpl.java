@@ -17,7 +17,9 @@ package io.stargate.db.cassandra.impl;
 
 import io.stargate.db.AbstractRowDecorator;
 import io.stargate.db.ComparableKey;
+import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.TableName;
+import java.nio.ByteBuffer;
 import java.util.stream.Collectors;
 import org.apache.cassandra.db.Clustering;
 import org.apache.cassandra.db.DecoratedKey;
@@ -46,5 +48,12 @@ public class RowDecoratorImpl extends AbstractRowDecorator {
     Clustering key = metadata.partitionKeyAsClusteringComparator().make(pkValues);
     DecoratedKey decoratedKey = metadata.partitioner.decorateKey(key.serializeAsPartitionKey());
     return new ComparableKey<>(PartitionPosition.class, decoratedKey);
+  }
+
+  @Override
+  public ByteBuffer getComparableBytes(Row row) {
+    // TODO replace this with the relevant row's byte-comparable value when
+    // https://github.com/apache/cassandra/pull/1294 is ready
+    return ByteBuffer.wrap(new byte[] {});
   }
 }
