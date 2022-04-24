@@ -39,6 +39,7 @@ public class ItemProxy extends Proxy {
       assert resultRows.size() == 1;
       result.setItem(
           resultRows.get(0).entrySet().stream()
+              .filter(entry -> entry.getValue() != null)
               .collect(
                   Collectors.toMap(
                       Map.Entry::getKey, entry -> DataMapper.toDynamo(entry.getValue()))));

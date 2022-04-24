@@ -201,11 +201,13 @@ public class DynamoApiQueryTest extends BaseDynamoApiTest {
     items.add(
         new Item()
             .withPrimaryKey("Username", "alice", "Birthday", 20000101)
-            .withString("Sex", "F"));
+            .withString("Sex", "F")
+            .withNumber("Deposit", 100));
     items.add(
         new Item()
             .withPrimaryKey("Username", "alice", "Birthday", 19801231)
-            .withString("Sex", "F"));
+            .withString("Sex", "F")
+            .withNumber("Deposit", 2000));
     items.add(
         new Item()
             .withPrimaryKey("Username", "alice", "Birthday", 20000304)

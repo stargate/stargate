@@ -57,7 +57,8 @@ public class DynamoApiItemTest extends BaseDynamoApiTest {
         new Item()
             .withPrimaryKey("Name", "simpleName2")
             .withNumber("Serial", 20)
-            .withNumber("Price", 0.0));
+            .withNumber("Price", 0.0)
+            .withString("Desc", "dummy text"));
 
     Map<String, Object> dict = new HashMap<>();
     dict.put("integerList", Arrays.asList(0, 1, 2));

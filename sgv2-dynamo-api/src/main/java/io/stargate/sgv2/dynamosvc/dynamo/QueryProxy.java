@@ -107,6 +107,7 @@ public class QueryProxy extends Proxy {
               .map(
                   r ->
                       r.entrySet().stream()
+                          .filter(entry -> entry.getValue() != null)
                           .collect(
                               Collectors.toMap(
                                   Map.Entry::getKey,
