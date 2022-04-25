@@ -49,6 +49,11 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>io.stargate.grpc</groupId>
+      <artifactId>bridge-proto</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>io.stargate.starter</groupId>
       <artifactId>stargate-starter</artifactId>
       <version>${project.version}</version>

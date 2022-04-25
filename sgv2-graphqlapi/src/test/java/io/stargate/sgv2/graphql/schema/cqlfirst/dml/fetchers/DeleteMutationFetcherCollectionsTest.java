@@ -3,9 +3,9 @@ package io.stargate.sgv2.graphql.schema.cqlfirst.dml.fetchers;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.google.common.collect.ImmutableList;
-import io.stargate.grpc.Values;
-import io.stargate.proto.QueryOuterClass.Value;
-import io.stargate.proto.Schema;
+import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass.Value;
+import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.graphql.schema.SampleKeyspaces;
 import io.stargate.sgv2.graphql.schema.cqlfirst.dml.DmlTestBase;
 import java.util.List;

@@ -5,12 +5,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.grpc.StatusRuntimeException;
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateParameters;
 import io.stargate.it.storage.StargateSpec;
-import io.stargate.proto.QueryOuterClass;
 import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

@@ -15,8 +15,8 @@
  */
 syntax = "proto3";
 
-option java_package = "io.stargate.proto";
-option go_package = "stargate/proto";
+option java_package = "io.stargate.bridge.proto";
+option go_package = "stargate/bridge/proto";
 
 package stargate;
 
@@ -45,4 +45,3 @@ service StargateBridge {
   // Checks which features are supported by the persistence backend.
   rpc GetSupportedFeatures(SupportedFeaturesRequest) returns (SupportedFeaturesResponse) {}
 }
-

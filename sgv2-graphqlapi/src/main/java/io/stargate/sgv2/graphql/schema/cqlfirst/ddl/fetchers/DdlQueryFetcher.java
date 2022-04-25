@@ -16,7 +16,7 @@
 package io.stargate.sgv2.graphql.schema.cqlfirst.ddl.fetchers;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.sgv2.common.cql.CqlStrings;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.Column.Kind;

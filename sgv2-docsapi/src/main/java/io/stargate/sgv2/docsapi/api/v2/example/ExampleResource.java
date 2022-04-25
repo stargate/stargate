@@ -20,7 +20,7 @@ package io.stargate.sgv2.docsapi.api.v2.example;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.smallrye.mutiny.Uni;
-import io.stargate.proto.Schema;
+import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;

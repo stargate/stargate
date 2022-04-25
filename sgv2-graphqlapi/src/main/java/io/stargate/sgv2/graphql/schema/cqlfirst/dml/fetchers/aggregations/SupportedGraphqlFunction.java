@@ -15,8 +15,8 @@
  */
 package io.stargate.sgv2.graphql.schema.cqlfirst.dml.fetchers.aggregations;
 
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.Row;
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.Row;
 import io.stargate.sgv2.common.grpc.proto.Rows;
 import java.util.List;
 import java.util.Optional;

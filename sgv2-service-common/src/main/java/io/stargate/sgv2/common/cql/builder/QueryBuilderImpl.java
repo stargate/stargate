@@ -21,10 +21,10 @@ import com.github.misberner.apcommons.util.AFModifier;
 import com.github.misberner.duzzt.annotations.DSLAction;
 import com.github.misberner.duzzt.annotations.GenerateEmbeddedDSL;
 import com.github.misberner.duzzt.annotations.SubExpr;
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.QueryOuterClass.QueryParameters;
-import io.stargate.proto.QueryOuterClass.Value;
-import io.stargate.proto.QueryOuterClass.Values;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.QueryOuterClass.QueryParameters;
+import io.stargate.bridge.proto.QueryOuterClass.Value;
+import io.stargate.bridge.proto.QueryOuterClass.Values;
 import io.stargate.sgv2.common.cql.ColumnUtils;
 import io.stargate.sgv2.common.cql.CqlStrings;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
@@ -1351,7 +1351,7 @@ public class QueryBuilderImpl {
               + "instead, and it will be converted to a marker internally. ");
     } else if (value == null || value instanceof Value) {
       Marker marker = new Marker();
-      Value grpcValue = (value == null) ? io.stargate.grpc.Values.NULL : (Value) value;
+      Value grpcValue = (value == null) ? io.stargate.bridge.grpc.Values.NULL : (Value) value;
       markers.put(marker, grpcValue);
       return marker;
     } else {

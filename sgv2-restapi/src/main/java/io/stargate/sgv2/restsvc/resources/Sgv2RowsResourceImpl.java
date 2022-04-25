@@ -1,8 +1,8 @@
 package io.stargate.sgv2.restsvc.resources;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.stargate.proto.QueryOuterClass;
-import io.stargate.proto.Schema;
+import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.Predicate;

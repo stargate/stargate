@@ -22,19 +22,6 @@
       <artifactId>core</artifactId>
       <version>${project.version}</version>
     </dependency>
-    <!-- this should also bring transitively "io.grpc:grpc-netty-shaded"...
-         but somehow does not seem to, despite being listed as a dep?!
-      -->
-    <dependency>
-      <groupId>io.stargate.grpc</groupId>
-      <artifactId>grpc-proto</artifactId>
-      <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.grpc</groupId>
-      <artifactId>grpc-netty-shaded</artifactId>
-      <version>${grpc.version}</version>
-    </dependency>
     <dependency>
       <groupId>io.stargate.metrics</groupId>
       <artifactId>metrics-jersey</artifactId>

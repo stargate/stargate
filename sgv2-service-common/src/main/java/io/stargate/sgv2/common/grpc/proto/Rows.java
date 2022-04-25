@@ -15,10 +15,10 @@
  */
 package io.stargate.sgv2.common.grpc.proto;
 
-import io.stargate.grpc.Values;
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.Row;
-import io.stargate.proto.QueryOuterClass.Value;
+import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.Row;
+import io.stargate.bridge.proto.QueryOuterClass.Value;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.List;

@@ -16,7 +16,7 @@
 package io.stargate.sgv2.common.grpc;
 
 import io.grpc.Channel;
-import io.stargate.proto.Schema.SchemaRead;
+import io.stargate.bridge.proto.Schema.SchemaRead;
 import java.util.Optional;
 
 public interface StargateBridgeClientFactory {

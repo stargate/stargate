@@ -1,7 +1,7 @@
 package io.stargate.sgv2.restsvc.grpc;
 
-import io.stargate.grpc.Values;
-import io.stargate.proto.QueryOuterClass;
+import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass;
 import java.util.Map;
 
 /**

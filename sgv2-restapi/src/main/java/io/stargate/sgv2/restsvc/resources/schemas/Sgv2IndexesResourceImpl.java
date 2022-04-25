@@ -15,9 +15,9 @@
  */
 package io.stargate.sgv2.restsvc.resources.schemas;
 
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.Schema;
-import io.stargate.proto.Schema.CqlTable;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.Schema.CqlTable;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.common.grpc.SchemaReads;

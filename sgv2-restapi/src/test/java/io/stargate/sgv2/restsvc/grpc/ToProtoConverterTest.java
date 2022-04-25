@@ -3,11 +3,11 @@ package io.stargate.sgv2.restsvc.grpc;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import io.stargate.grpc.CqlDuration;
-import io.stargate.grpc.Values;
-import io.stargate.proto.QueryOuterClass;
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.grpc.CqlDuration;
+import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
 import java.util.Arrays;
 import java.util.Collections;
 import org.junit.jupiter.api.DisplayName;

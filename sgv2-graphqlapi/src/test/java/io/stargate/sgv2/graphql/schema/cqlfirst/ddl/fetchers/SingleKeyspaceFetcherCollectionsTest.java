@@ -3,7 +3,7 @@ package io.stargate.sgv2.graphql.schema.cqlfirst.ddl.fetchers;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.google.common.collect.ImmutableList;
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.sgv2.graphql.schema.SampleKeyspaces;
 import io.stargate.sgv2.graphql.schema.cqlfirst.ddl.DdlTestBase;
 import java.util.List;

@@ -17,7 +17,7 @@ package io.stargate.sgv2.graphql.schema.cqlfirst.dml;
 
 import graphql.Scalars;
 import graphql.schema.GraphQLScalarType;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
 import io.stargate.sgv2.graphql.schema.scalars.CqlScalar;
 import java.util.HashMap;
 import java.util.Map;

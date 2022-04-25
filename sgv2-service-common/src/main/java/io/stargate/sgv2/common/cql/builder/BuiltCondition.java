@@ -15,7 +15,7 @@
  */
 package io.stargate.sgv2.common.cql.builder;
 
-import io.stargate.proto.QueryOuterClass.Value;
+import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.sgv2.common.cql.ColumnUtils;
 import java.util.List;
 import java.util.Map;

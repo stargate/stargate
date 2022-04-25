@@ -16,8 +16,8 @@
 package io.stargate.sgv2.graphql.schema.scalars;
 
 import graphql.schema.GraphQLScalarType;
-import io.stargate.grpc.CqlDuration;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.grpc.CqlDuration;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;

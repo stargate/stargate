@@ -3,7 +3,7 @@ package io.stargate.sgv2.docsapi.grpc;
 import io.grpc.Metadata;
 import io.quarkus.grpc.GrpcClient;
 import io.quarkus.grpc.GrpcClientUtils;
-import io.stargate.proto.StargateBridge;
+import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.config.GrpcMetadataConfig;
 import javax.enterprise.context.ApplicationScoped;
