@@ -13,14 +13,14 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.grpc;
+package io.stargate.bridge.grpc;
 
-import io.stargate.proto.QueryOuterClass.TypeSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec.List;
-import io.stargate.proto.QueryOuterClass.TypeSpec.Map;
-import io.stargate.proto.QueryOuterClass.TypeSpec.Set;
-import io.stargate.proto.QueryOuterClass.TypeSpec.Tuple;
-import io.stargate.proto.QueryOuterClass.TypeSpec.Udt;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.List;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Map;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Set;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Tuple;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Udt;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Optional;
