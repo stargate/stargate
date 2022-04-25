@@ -183,7 +183,7 @@ public class AuthResource {
           .cacheControl(cacheControlNoStore)
           .build();
     } catch (Exception e) {
-      logger.error("Failed to create token, internal error: "+e, e);
+      logger.error("Failed to create token, internal error: " + e, e);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
           .entity(new AuthApiError("Failed to create token: " + e.getMessage()))
           .cacheControl(cacheControlNoStore)
