@@ -61,7 +61,7 @@
   <logger name="com.datastax.bdp.db" level="${stargate.logging.level.dse:-INFO}"/>
   <logger name="com.datastax.cndb.metadata.schema" level="${cndb.logging.level.metadata.schema:-INFO}"/>
   <logger name="com.datastax.cndb.metadata.service" level="${cndb.logging.level.metadata.service:-INFO}"/>
-  <logger name="io.stargate.web" level="${stargate.logging.level.web:-INFO}"/>
-  <logger name="io.stargate.db" level="${stargate.logging.level.persistence:-INFO}"/>
   <logger name="io.stargate.auth" level="${stargate.logging.level.auth:-INFO}"/>
+  <logger name="io.stargate.db" level="${stargate.logging.level.persistence:-INFO}"/>
+  <logger name="io.stargate.web" level="${stargate.logging.level.web:-INFO}"/>
 </configuration>
