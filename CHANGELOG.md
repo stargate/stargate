@@ -1,5 +1,82 @@
 # Changelog
 
+## [v1.0.54](https://github.com/stargate/stargate/tree/v1.0.54) (2022-04-18)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.53...v1.0.54)
+
+**Closed issues:**
+
+
+**Merged pull requests:**
+
+- Update Maven wrapper plugin settings to simplify PR \#1769 [\#1784](https://github.com/stargate/stargate/pull/1784) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- update the CI image to include needed v2 changes [\#1774](https://github.com/stargate/stargate/pull/1774) ([ivansenic](https://github.com/ivansenic))
+- Upgrade io.grpc dependencies from 1.42.1 to 1.45.1, use grpc-bom [\#1758](https://github.com/stargate/stargate/pull/1758) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Upgrade json-path 2.5.0-\>2.7.0 to get json-smart upgrade [\#1756](https://github.com/stargate/stargate/pull/1756) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- upload dependency update results [\#1754](https://github.com/stargate/stargate/pull/1754) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+
+## [v1.0.53](https://github.com/stargate/stargate/tree/v1.0.53) (2022-03-30)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.52...v1.0.53)
+
+**Implemented enhancements:**
+
+- Enhancement request to include TTL for Documents in Astra DB [\#1414](https://github.com/stargate/stargate/issues/1414)
+
+**Closed issues:**
+
+**Merged pull requests:**
+
+- Netty version update to 4.1.75.Final [\#1751](https://github.com/stargate/stargate/pull/1751) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Updated `jersey-common` dependency to 2.34 for vulns [\#1749](https://github.com/stargate/stargate/pull/1749) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- updating to dropwizard 2.0.28 [\#1748](https://github.com/stargate/stargate/pull/1748) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Upgrade Java driver 4.10-\>4.13 [\#1746](https://github.com/stargate/stargate/pull/1746) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Force C\*4 persistence to use latest Netty \(4.1.75-final\) [\#1745](https://github.com/stargate/stargate/pull/1745) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- updating apollo graphql federation library [\#1744](https://github.com/stargate/stargate/pull/1744) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Bump logback-core from 1.2.8 to 1.2.9 [\#1743](https://github.com/stargate/stargate/pull/1743) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Update jackson-databind to 2.12.6.1 \(via jackson-bom\) for CVE-2020-36518 [\#1741](https://github.com/stargate/stargate/pull/1741) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Remove `auto-factory` dependency if possible; or if not, update version from pre-1.0 to 1.0.1 [\#1740](https://github.com/stargate/stargate/pull/1740) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Upgrade java driver 4.9 -\> 4.10, to make gremlin dep optional [\#1739](https://github.com/stargate/stargate/pull/1739) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix prepared query not found in Cassandra 4.0 by adding lock to StargateQueryHandler [\#1714](https://github.com/stargate/stargate/pull/1714) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Change nimbus-jose-jwt version to be "managed" to change version globally [\#1708](https://github.com/stargate/stargate/pull/1708) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add in TTL work, with tests [\#1670](https://github.com/stargate/stargate/pull/1670) ([EricBorczuk](https://github.com/EricBorczuk))
+
+## [v1.0.52](https://github.com/stargate/stargate/tree/v1.0.52) (2022-03-22)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.51...v1.0.52)
+
+**Closed issues:**
+
+- Update DSE to 6.8.21  [\#1692](https://github.com/stargate/stargate/issues/1692)
+
+**Merged pull requests:**
+
+- updating netty versions [\#1709](https://github.com/stargate/stargate/pull/1709) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- update slf4j library version [\#1705](https://github.com/stargate/stargate/pull/1705) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- updating version of nimbus-jose-jwt library [\#1704](https://github.com/stargate/stargate/pull/1704) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Fix changelog reference for release v1.0.51 to get proper delta [\#1702](https://github.com/stargate/stargate/pull/1702) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- closes \#1692: updates DSE version to 6.8.21 [\#1699](https://github.com/stargate/stargate/pull/1699) ([ivansenic](https://github.com/ivansenic))
+- Add testing of Duration/CqlDuration values wrt REST API [\#1695](https://github.com/stargate/stargate/pull/1695) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v1.0.51](https://github.com/stargate/stargate/tree/v1.0.51) (2022-03-14)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.50...v1.0.51)
+
+**Fixed bugs:**
+
+- REST API serializes `timestamp` values as POJOs: should be ISO-8601 [\#1685](https://github.com/stargate/stargate/issues/1685)
+- `ExecuteBatchStreamingTest` fails sporadically for the C\* 4.0 [\#1679](https://github.com/stargate/stargate/issues/1679)
+
+**Closed issues:**
+
+- Update Jackson dependency to 2.12.6 \(from 2.10 and others\) [\#1680](https://github.com/stargate/stargate/issues/1680)
+
+**Merged pull requests:**
+
+- Fix eviction race for prepared statements on Cassandra 4.0 [\#1688](https://github.com/stargate/stargate/pull/1688) ([mpenick](https://github.com/mpenick))
+- Fix \#1685 handling of `timestamp` values on REST/json output [\#1686](https://github.com/stargate/stargate/pull/1686) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#1680: update Jackson dependency to 2.12.6 [\#1681](https://github.com/stargate/stargate/pull/1681) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v1.0.50](https://github.com/stargate/stargate/tree/v1.0.50) (2022-03-03)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.49...v1.0.50)

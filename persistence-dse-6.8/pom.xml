@@ -5,12 +5,12 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.51-SNAPSHOT</version>
+    <version>1.0.55-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db.dse</groupId>
   <artifactId>persistence-dse-6.8</artifactId>
   <properties>
-    <dse.version>6.8.20</dse.version>
+    <dse.version>6.8.21</dse.version>
   </properties>
   <repositories>
     <repository>
@@ -151,17 +151,6 @@
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-graphite</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.google.auto.factory</groupId>
-      <artifactId>auto-factory</artifactId>
-      <version>1.0-beta7</version>
-      <exclusions>
-        <exclusion>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.github.akarnokd</groupId>

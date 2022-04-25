@@ -3,11 +3,11 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.stargate</groupId>
   <artifactId>stargate</artifactId>
-  <version>1.0.51-SNAPSHOT</version>
+  <version>1.0.55-SNAPSHOT</version>
+  <packaging>pom</packaging>
   <name>${project.groupId}:${project.artifactId}</name>
   <description>Core modules for Stargate</description>
   <url>http://github.com/stargate/stargate</url>
-  <packaging>pom</packaging>
   <properties>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
@@ -16,37 +16,45 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.scm.id>github</project.scm.id>
     <doclint>none</doclint>
-    <driver.version>4.9.0</driver.version>
+    <driver.version>4.13.0</driver.version>
     <xml-format.skip>true</xml-format.skip>
 
     <!-- First DropWizard version and things it directly depends on that make sense to sync -->
-    <dropwizard.version>2.0.27</dropwizard.version>
+    <dropwizard.version>2.0.28</dropwizard.version>
     <!--
       Note that this is currently aligned with the metrics version that DropWizard transitively depends on.
       It's probably a good idea to keep the two versions in sync.
     -->
-    <dropwizard.metrics.version>4.1.28</dropwizard.metrics.version>
+    <dropwizard.metrics.version>4.1.29</dropwizard.metrics.version>
     <!--
       Note that this is currently aligned with the Jetty version that DropWizard transitively depends on.
       It's probably a good idea to keep the two versions in sync.
     -->
     <jetty.version>9.4.44.v20210927</jetty.version>
     <!-- Logging framework likewise in sync -->
-    <slf4j.version>1.7.32</slf4j.version>
-    <logback.version>1.2.8</logback.version>
+    <slf4j.version>1.7.36</slf4j.version>
+    <logback.version>1.2.9</logback.version>
 
     <!-- And then other 3rd party version dependencies, compile/runtime -->
 
     <caffeine.version>2.9.3</caffeine.version>
     <commons-io.version>2.7</commons-io.version>
-    <grpc.version>1.42.1</grpc.version>
+    <grpc.version>1.45.1</grpc.version>
     <immutables.version>2.8.8</immutables.version>
+    <!-- 28-Mar-2022, tatu: BOM for "micro-patch" 2.12.6.1 of jackson-databind
+        is bit unusual wrt version; normally would be "x.y.z": when updating see:
+          https://mvnrepository.com/artifact/com.fasterxml.jackson/jackson-bom
+        for available versions
+      -->
+    <jackson.version>2.12.6.20220326</jackson.version>
     <javatuples.version>1.2</javatuples.version>
     <!-- Make sure micrometer and prometheus versions are in sync  -->
     <micrometer.version>1.7.3</micrometer.version>
     <prometheus.version>0.10.0</prometheus.version>
     <swagger-ui.version>3.52.5</swagger-ui.version>
     <swagger-jersey2-jaxrs.version>1.6.3</swagger-jersey2-jaxrs.version>
+    <netty.version>4.1.75.Final</netty.version>
+    <netty-boringssl.version>2.0.51.Final</netty-boringssl.version>
 
     <!-- And finally test/build deps -->
 
@@ -54,7 +62,7 @@
         but build fails with newer versions so keeping at this level
       -->
     <errorprone.version>2.3.4</errorprone.version>
-    <jacoco.version>0.8.6</jacoco.version>
+    <jacoco.version>0.8.8</jacoco.version>
     <junit.version>5.8.2</junit.version>
     <mockito.version>3.12.4</mockito.version>
     <assertj.version>3.21.0</assertj.version>
@@ -374,6 +382,31 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>enforce</id>
+            <configuration>
+              <rules>
+                <requireUpperBoundDeps>
+		  <!-- If specifying includes ONLY those are checked
+		       (default: all)
+		      -->
+                  <includes>
+                    <include>com.fasterxml.jackson.core:*</include>
+                    <include>org.glassfish.jersey.core:jersey-common</include>
+                  </includes>
+                </requireUpperBoundDeps>
+              </rules>
+            </configuration>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
     <pluginManagement>
       <plugins>
@@ -382,8 +415,12 @@
           <version>3.2.0</version>
         </plugin>
         <plugin>
+          <artifactId>maven-enforcer-plugin</artifactId>
+          <version>3.0.0</version>
+        </plugin>
+        <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.8.1</version>
+          <version>3.10.1</version>
           <configuration>
             <compilerId>javac-with-errorprone</compilerId>
             <forceJavacCompilerUse>true</forceJavacCompilerUse>
@@ -449,11 +486,33 @@
         </plugin>
         <plugin>
           <artifactId>maven-surefire-plugin</artifactId>
-          <version>3.0.0-M3</version>
+          <version>3.0.0-M6</version>
         </plugin>
         <plugin>
           <artifactId>maven-failsafe-plugin</artifactId>
-          <version>3.0.0-M3</version>
+          <version>3.0.0-M6</version>
+        </plugin>
+        <plugin>
+          <artifactId>maven-wrapper-plugin</artifactId>
+          <version>3.1.0</version>
+        </plugin>
+        <plugin>
+          <groupId>org.codehaus.mojo</groupId>
+          <artifactId>versions-maven-plugin</artifactId>
+          <version>2.10.0</version>
+          <configuration>
+            <rulesUri>file:///${session.executionRootDirectory}/maven-version-rules.xml</rulesUri>
+          </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.owasp</groupId>
+          <artifactId>dependency-check-maven</artifactId>
+          <version>7.0.3</version>
+          <configuration>
+            <suppressionFiles>
+              <suppressionFile>file:///${session.executionRootDirectory}/dependency-check-suppression.xml</suppressionFile>
+            </suppressionFiles>
+          </configuration>
         </plugin>
       </plugins>
     </pluginManagement>
@@ -484,26 +543,28 @@
   </distributionManagement>
   <dependencyManagement>
     <dependencies>
+      <!-- To get a consistent set of Jackson components, use BOM:
+           will provide default version for all standard components
+          (but will not add actual dependencies)
+        -->
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>${jackson.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- BOM/dependencies for dropwizard too: -->
       <dependency>
         <groupId>io.dropwizard</groupId>
-        <artifactId>dropwizard-core</artifactId>
+        <artifactId>dropwizard-bom</artifactId>
         <version>${dropwizard.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
       </dependency>
-      <dependency>
-        <groupId>io.dropwizard</groupId>
-        <artifactId>dropwizard-forms</artifactId>
-        <version>${dropwizard.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.dropwizard</groupId>
-        <artifactId>dropwizard-jersey</artifactId>
-        <version>${dropwizard.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>io.dropwizard</groupId>
-        <artifactId>dropwizard-logging</artifactId>
-        <version>${dropwizard.version}</version>
-      </dependency>
+      <!-- But note that dropwizard-bom only contains core components,
+	   not dropwizard-metrics, so we still need these:
+	  -->
       <dependency>
         <groupId>io.dropwizard.metrics</groupId>
         <artifactId>metrics-core</artifactId>
@@ -529,6 +590,27 @@
         <artifactId>metrics-graphite</artifactId>
         <version>${dropwizard.metrics.version}</version>
       </dependency>
+      <!-- 30-Mar-2022, tatu: temporarily force newer jersey-common
+	   (over what DW asks) to get vuln fixes; make sure we have enforcer rules to alert if this
+	   becomes less than latest
+	  -->
+      <dependency>
+        <groupId>org.glassfish.jersey</groupId>
+        <artifactId>jersey-bom</artifactId>
+        <version>2.34</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
+      <!-- BOM for gRPC as well -->
+      <dependency>
+        <groupId>io.grpc</groupId>
+        <artifactId>grpc-bom</artifactId>
+        <version>${grpc.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-server</artifactId>
@@ -690,6 +772,12 @@
         <artifactId>javax.servlet-api</artifactId>
         <version>4.0.1</version>
       </dependency>
+      <dependency>
+        <groupId>com.nimbusds</groupId>
+        <artifactId>nimbus-jose-jwt</artifactId>
+        <version>9.21</version>
+      </dependency>
+
     </dependencies>
   </dependencyManagement>
   <repositories>

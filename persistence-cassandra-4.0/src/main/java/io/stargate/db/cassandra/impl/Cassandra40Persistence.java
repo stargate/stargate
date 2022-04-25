@@ -502,7 +502,8 @@ public class Cassandra40Persistence
     public CompletableFuture<Result.Prepared> prepare(String query, Parameters parameters) {
       return executeRequestOnExecutor(
           parameters,
-          // The queryStartNanoTime is not used by prepared message, so it doesn't really matter
+          // The queryStartNanoTime is not used by prepared message, so it doesn't really
+          // matter
           // that it's only computed now.
           System.nanoTime(),
           () -> new PrepareMessage(query, parameters.defaultKeyspace().orElse(null)));

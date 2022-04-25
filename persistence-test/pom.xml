@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.51-SNAPSHOT</version>
+    <version>1.0.55-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db</groupId>
   <artifactId>persistence-test</artifactId>
@@ -53,11 +53,9 @@
       <groupId>commons-io</groupId>
       <artifactId>commons-io</artifactId>
     </dependency>
-    <!-- IMPORTANT: please note that this dependency must be in sync with the transitive version in the cassandra-all in persistence 3.11, 4.0 and DSE 6.8 projects -->
     <dependency>
       <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-yaml</artifactId>
-      <version>2.9.10</version>
     </dependency>
   </dependencies>
 </project>
