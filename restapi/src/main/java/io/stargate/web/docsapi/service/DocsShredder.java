@@ -142,13 +142,13 @@ public class DocsShredder {
           je.getClass().getName(),
           je.getMessage());
       throw new ErrorCodeRuntimeException(
-          ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Malformed JSON object found during read.", je);
+          ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Malformed JSON object found during read: " + je, je);
     } catch (RuntimeException e) {
       // We don't actually know it IS malformed JSON (perhaps we got NPE?) but this is what
       // has been reported so far so keep consistent. And log the stack trace.
-      logger.error("Error occurred during JSON read", e);
+      logger.error("Error occurred during JSON read: "+e, e);
       throw new ErrorCodeRuntimeException(
-          ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Malformed JSON object found during read.", e);
+          ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Malformed JSON object found during read: " + e, e);
     }
   }
 
