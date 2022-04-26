@@ -121,7 +121,7 @@ public class JsonSchemaHandler {
       tree = mapper.readTree(value);
     } catch (JsonProcessingException e) {
       throw new ErrorCodeRuntimeException(
-          ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Malformed JSON object found during read: "+e);
+          ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Malformed JSON object found during read: " + e);
     }
     validate(schema, tree);
   }
