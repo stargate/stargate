@@ -223,7 +223,7 @@ public class ValuesTest {
     @Test
     public void encodeDecodeByteBuffer() {
       ByteBuffer expected = ByteBuffer.wrap(new byte[] {1, 2, 3});
-      assertThat(Values.byteBuffer(Values.of(expected))).isEqualTo(expected);
+      assertThat(Values.byteBuffer(Values.of(expected.duplicate()))).isEqualTo(expected);
     }
 
     @Test
