@@ -78,6 +78,10 @@ public class Values {
     return Value.newBuilder().setBytes(ByteString.copyFrom(value)).build();
   }
 
+  /**
+   * Note that this method "consumes" its argument: after the call, {@code value} will have its
+   * position set to its limit, and thus appear empty.
+   */
   public static Value of(ByteBuffer value) {
     return Value.newBuilder().setBytes(ByteString.copyFrom(value)).build();
   }
