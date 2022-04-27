@@ -96,7 +96,7 @@ public class RequestHandler {
       }
 
       // Do log underlying Exception with Stack trace since this is unknown, unexpected:
-      logger.error("Error when executing request", ee);
+      logger.error("Internal error when executing request: " + ee, ee);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
           .entity(
               new ApiError(
@@ -105,7 +105,7 @@ public class RequestHandler {
           .build();
     } catch (Exception e) {
       // Do log underlying Exception with Stack trace since this is unknown, unexpected:
-      logger.error("Error when executing request", e);
+      logger.error("Internal error when executing request: " + e, e);
       return Response.status(Response.Status.INTERNAL_SERVER_ERROR)
           .entity(
               new ApiError(
