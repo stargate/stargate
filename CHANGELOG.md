@@ -1,5 +1,16 @@
 # Changelog
 
+## [v2.0.0-ALPHA-9](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-9) (2022-04-27)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.55...v2.0.0-ALPHA-9)
+
+**Merged pull requests:**
+
+- Add utility to deal with TypeSpec instances [\#1794](https://github.com/stargate/stargate/pull/1794) ([olim7t](https://github.com/olim7t))
+- closes \#1718: final configuration changes and fixes for Docs API V2 [\#1792](https://github.com/stargate/stargate/pull/1792) ([ivansenic](https://github.com/ivansenic))
+- relates to \#1718: docs api configuration for the V2 [\#1783](https://github.com/stargate/stargate/pull/1783) ([ivansenic](https://github.com/ivansenic))
+- Decouple bridge from public gRPC service \(fixes \#1770\) [\#1778](https://github.com/stargate/stargate/pull/1778) ([olim7t](https://github.com/olim7t))
+
 ## [v2.0.0-ALPHA-8](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-8) (2022-04-19)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-7...v2.0.0-ALPHA-8)
