@@ -13,8 +13,10 @@ import io.stargate.proto.QueryOuterClass;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import javax.inject.Inject;
 
 public class JsonConverter {
@@ -23,9 +25,7 @@ public class JsonConverter {
 
   @Inject
   public JsonConverter(ObjectMapper mapper, DocumentProperties docsProperties) {
-    if (mapper == null) {
-      throw new IllegalStateException("JsonConverter requires a non-null ObjectMapper");
-    }
+    Objects.requireNonNull(mapper, "JsonConverter requires a non-null ObjectMapper");
     this.mapper = mapper;
     this.docsProperties = docsProperties;
   }
@@ -36,17 +36,13 @@ public class JsonConverter {
       boolean writeAllPathsAsObjects,
       boolean numericBooleans) {
     return convertToJsonDoc(
-        rows,
-        columns,
-        new Object() /* should be a DeadLeafCollector */,
-        writeAllPathsAsObjects,
-        numericBooleans);
+        rows, columns, ImmutableDeadLeafCollector.of(), writeAllPathsAsObjects, numericBooleans);
   }
 
   public JsonNode convertToJsonDoc(
       List<QueryOuterClass.Row> rows,
       List<QueryOuterClass.ColumnSpec> columns,
-      Object collector,
+      DeadLeafCollector collector,
       boolean writeAllPathsAsObjects,
       boolean numericBooleans) {
     int maxDepth = docsProperties.maxDepth();
@@ -90,7 +86,7 @@ public class JsonConverter {
   private JsonNode convertToJsonDoc(
       List<QueryOuterClass.Row> rows,
       List<QueryOuterClass.ColumnSpec> columns,
-      Object collector, // TODO change to DeadLeafCollector after porting DeadLeafCollector
+      DeadLeafCollector collector,
       boolean writeAllPathsAsObjects,
       boolean numericBooleans,
       int maxDepth) {
@@ -133,8 +129,7 @@ public class JsonConverter {
                 || pathWriteTimes.get(parentPath) <= rowWriteTime;
 
         if (!shouldWrite) {
-          // TODO uncomment after porting DeadLeafCollector
-          // markFullPathAsDead(parentPath, p, collector);
+          markFullPathAsDead(parentPath, p, collector);
           break;
         }
 
@@ -145,13 +140,11 @@ public class JsonConverter {
             ref = doc;
             pathWriteTimes.put(parentPath, rowWriteTime);
           } else if (i != 0 && shouldBeArray) {
-            // TODO uncomment after porting DeadLeafCollector
-            // markObjectAtPathAsDead(ref, parentPath, collector);
+            markObjectAtPathAsDead(ref, parentPath, collector);
             ref = changeCurrentNodeToArray(row, parentRef, i, columnNameToIndex);
             pathWriteTimes.put(parentPath, rowWriteTime);
           } else if (i != 0 && !isArray && !ref.isObject()) {
-            // TODO uncomment after porting DeadLeafCollector
-            // markArrayAtPathAsDead(ref, parentPath, collector);
+            markArrayAtPathAsDead(ref, parentPath, collector);
             ref =
                 changeCurrentNodeToObject(
                     row, parentRef, i, writeAllPathsAsObjects, columnNameToIndex);
@@ -171,8 +164,7 @@ public class JsonConverter {
             doc = mapper.createArrayNode();
             ref = doc;
           } else if (shouldBeArray) {
-            // TODO uncomment after porting DeadLeafCollector
-            // markObjectAtPathAsDead(ref, parentPath, collector);
+            markObjectAtPathAsDead(ref, parentPath, collector);
             ref = changeCurrentNodeToArray(row, parentRef, i, columnNameToIndex);
             pathWriteTimes.put(parentPath, rowWriteTime);
           }
@@ -204,8 +196,7 @@ public class JsonConverter {
                     : mapper.createObjectNode();
 
             if (!ref.isObject()) {
-              // TODO uncomment after porting DeadLeafCollector
-              // markArrayAtPathAsDead(ref, parentPath, collector);
+              markArrayAtPathAsDead(ref, parentPath, collector);
               ref =
                   changeCurrentNodeToObject(
                       row, parentRef, i, writeAllPathsAsObjects, columnNameToIndex);
@@ -272,33 +263,31 @@ public class JsonConverter {
     return ref;
   }
 
-  // TODO uncomment after porting DeadLeafCollector
-  //  private void markFullPathAsDead(
-  //      String parentPath, String currentPath, DeadLeafCollector collector) {
-  //    collector.addAll(parentPath + "." + currentPath);
-  //  }
+  private void markFullPathAsDead(
+      String parentPath, String currentPath, DeadLeafCollector collector) {
+    collector.addAll(parentPath + "." + currentPath);
+  }
 
-  //  private void markObjectAtPathAsDead(
-  //      JsonNode ref, String parentPath, DeadLeafCollector collector) {
-  //    if (!ref.isObject()) { // it's a scalar
-  //      collector.addLeaf(parentPath, ImmutableDeadLeaf.builder().name("").build());
-  //    } else {
-  //      Iterator<String> fieldNames = ref.fieldNames();
-  //      while (fieldNames.hasNext()) {
-  //        String fieldName = fieldNames.next();
-  //        collector.addLeaf(parentPath, ImmutableDeadLeaf.builder().name(fieldName).build());
-  //      }
-  //    }
-  //  }
+  private void markObjectAtPathAsDead(
+      JsonNode ref, String parentPath, DeadLeafCollector collector) {
+    if (!ref.isObject()) { // it's a scalar
+      collector.addLeaf(parentPath, ImmutableDeadLeaf.builder().name("").build());
+    } else {
+      Iterator<String> fieldNames = ref.fieldNames();
+      while (fieldNames.hasNext()) {
+        String fieldName = fieldNames.next();
+        collector.addLeaf(parentPath, ImmutableDeadLeaf.builder().name(fieldName).build());
+      }
+    }
+  }
 
-  //  private void markArrayAtPathAsDead(JsonNode ref, String parentPath, DeadLeafCollector
-  // collector) {
-  //    if (!ref.isArray()) { // it's a scalar
-  //      collector.addLeaf(parentPath, ImmutableDeadLeaf.builder().name("").build());
-  //    } else {
-  //      collector.addArray(parentPath);
-  //    }
-  //  }
+  private void markArrayAtPathAsDead(JsonNode ref, String parentPath, DeadLeafCollector collector) {
+    if (!ref.isArray()) { // it's a scalar
+      collector.addLeaf(parentPath, ImmutableDeadLeaf.builder().name("").build());
+    } else {
+      collector.addArray(parentPath);
+    }
+  }
 
   private void writeLeafIfNewer(
       JsonNode ref,
