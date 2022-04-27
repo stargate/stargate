@@ -57,7 +57,7 @@ fi
 if [ ! "x$STARGATE_GRAPHQL_PORT" == "x" ]; then
   JAVA_OPTS+=(-Ddw.server.connector.port="$STARGATE_GRAPHQL_PORT")
 else
-  JAVA_OPTS+=(-Ddw.server.connector.port=8080)
+  JAVA_OPTS+=(-Ddw.server.connector.port=9080)
 fi
 
 echo "Starting GraphQL API Service"

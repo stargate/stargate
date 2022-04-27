@@ -68,7 +68,7 @@ ENTRYPOINT ["./starctl-service-rest"]
 
 FROM openjdk:11-jre-slim as graphqlapi
 
-EXPOSE 8080
+EXPOSE 9080
 
 ENV STARGATE_BRIDGE_HOST=localhost
 ENV STARGATE_BRIDGE_PORT=8091
