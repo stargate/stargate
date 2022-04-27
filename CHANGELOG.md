@@ -1,5 +1,22 @@
 # Changelog
 
+## [v1.0.55](https://github.com/stargate/stargate/tree/v1.0.55) (2022-04-27)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.54...v1.0.55)
+
+**Closed issues:**
+
+- Revert Persistence.unregisterEventListener [\#1777](https://github.com/stargate/stargate/issues/1777)
+- Values.byteBuffer returns an empty buffer [\#1676](https://github.com/stargate/stargate/issues/1676)
+
+**Merged pull requests:**
+
+- Add exception message in ErrorCodeRuntimeException for inclusion in Response [\#1800](https://github.com/stargate/stargate/pull/1800) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Improve Stargate V1 logging by adding more info to help Splunk indexing [\#1798](https://github.com/stargate/stargate/pull/1798) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update maven-compiler-plugin 3.8.1-\>3.10.1 \(for post-Java-8 builds\) [\#1791](https://github.com/stargate/stargate/pull/1791) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update Duzzt dependency, indirect StringTemplate, jacoco \(for Java 9+ support\) [\#1788](https://github.com/stargate/stargate/pull/1788) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix Values.byteBuffer to return non-empty buffer \(fixes \#1676\) [\#1781](https://github.com/stargate/stargate/pull/1781) ([olim7t](https://github.com/olim7t))
+
 ## [v1.0.54](https://github.com/stargate/stargate/tree/v1.0.54) (2022-04-18)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.53...v1.0.54)
