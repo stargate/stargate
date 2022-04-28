@@ -17,6 +17,9 @@
 
 package io.stargate.sgv2.docsapi.config.constants;
 
+import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass.Value;
+
 /** Static constants. */
 public interface Constants {
 
@@ -61,4 +64,10 @@ public interface Constants {
 
   /** A UID that is used to represent an empty array, <code>[]</code>. */
   String EMPTY_ARRAY_MARKER = "EMPTYARRAY-9df4802a-c135-42d6-8be3-d23d9520a4e7";
+
+  /** The gRPC value representing {@code false} when booleans are stored as numbers. */
+  Value NUMERIC_BOOLEAN_FALSE = Values.of(0);
+
+  /** The gRPC value representing {@code true} when booleans are stored as numbers. */
+  Value NUMERIC_BOOLEAN_TRUE = Values.of(1);
 }

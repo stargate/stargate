@@ -24,6 +24,7 @@ import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.bridge.proto.Schema.ColumnOrderBy;
+import io.stargate.bridge.proto.Schema.CqlKeyspace;
 import io.stargate.bridge.proto.Schema.CqlTable;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.impl.DocumentTablePropertiesImpl;
@@ -38,6 +39,7 @@ import org.apache.commons.lang3.RandomStringUtils;
 public class DocsApiTestSchemaProvider {
 
   private final CqlTable table;
+  private final CqlKeyspace keyspace;
 
   private final DocumentTableProperties tableProperties;
 
@@ -66,6 +68,7 @@ public class DocsApiTestSchemaProvider {
       DocumentTableProperties tableProperties,
       String keyspaceName,
       String collectionName) {
+    keyspace = CqlKeyspace.newBuilder().setName(keyspaceName).build();
     CqlTable.Builder tableBuilder =
         CqlTable.newBuilder()
             .setName(collectionName)
@@ -104,6 +107,10 @@ public class DocsApiTestSchemaProvider {
 
   public CqlTable getTable() {
     return table;
+  }
+
+  public CqlKeyspace getKeyspace() {
+    return keyspace;
   }
 
   public DocumentTableProperties getTableProperties() {

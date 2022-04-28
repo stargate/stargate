@@ -20,6 +20,7 @@ import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
+import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.FilterOperationCode;
@@ -30,9 +31,6 @@ import org.immutables.value.Value;
 /** Condition that accepts boolean filter values and compare against boolean database row value. */
 @Value.Immutable
 public abstract class BooleanCondition implements BaseCondition {
-
-  private static final QueryOuterClass.Value ZERO = Values.of(0);
-  private static final QueryOuterClass.Value ONE = Values.of(1);
 
   /** @return Filter operation for the condition. */
   @Value.Parameter
@@ -71,7 +69,11 @@ public abstract class BooleanCondition implements BaseCondition {
             predicate -> {
               // note that if we have numeric booleans then we need to adapt the query value
               QueryOuterClass.Value value =
-                  isNumericBooleans() ? (getQueryValue() ? ONE : ZERO) : Values.of(getQueryValue());
+                  isNumericBooleans()
+                      ? (getQueryValue()
+                          ? Constants.NUMERIC_BOOLEAN_TRUE
+                          : Constants.NUMERIC_BOOLEAN_FALSE)
+                      : Values.of(getQueryValue());
               return BuiltCondition.of(column, predicate, value);
             });
   }
