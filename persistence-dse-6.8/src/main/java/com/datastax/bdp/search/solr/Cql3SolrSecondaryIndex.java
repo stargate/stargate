@@ -75,22 +75,6 @@ public class Cql3SolrSecondaryIndex extends AbstractSolrSecondaryIndex {
               + column.name.toString());
     }
 
-    // TODO-SEARCH
-    // Tokenized text should only support LIKE and IS NOT NULL.
-    /*if (!NativeCQLSolrSelectStatement.TOKENIZED_TEXT_ALLOWED_OPERATORS.contains(operator))
-    {
-      try (SolrCore core = getCore())
-      {
-        SchemaField field = core.getLatestSchema().getFieldOrNull(column.name.toString());
-        assert field != null : "The field " + column.name.toString() + " could not be found in the schema.";
-        if (field.getType() instanceof TextField)
-        {
-          throw new InvalidRequestException("Tokenized text only supports LIKE and IS NOT NULL operators. Offeding field: "
-                  + column.name.toString() + " for operator: " + operator);
-        }
-      }
-    }*/
-
     return true;
   }
 }

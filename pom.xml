@@ -4,7 +4,6 @@
   <groupId>io.stargate</groupId>
   <artifactId>stargate</artifactId>
   <version>1.0.56-SNAPSHOT</version>
-  <packaging>pom</packaging>
   <name>${project.groupId}:${project.artifactId}</name>
   <description>Core modules for Stargate</description>
   <url>http://github.com/stargate/stargate</url>
