@@ -13,7 +13,7 @@
  *  See the License for the specific language governing permissions and
  *  limitations under the License.
  */
-package io.stargate.sgv2.docsapi.service.util;
+package io.stargate.sgv2.docsapi.model;
 
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
@@ -23,12 +23,12 @@ import java.util.List;
 import java.util.Objects;
 
 /** A wrapper around the protobuf-generated {@link Row}, to add the column metadata. */
-public class ExtendedRow {
+public class RowWrapper {
 
   private final List<ColumnSpec> columns;
   private final Row row;
 
-  public ExtendedRow(List<ColumnSpec> columns, Row row) {
+  public RowWrapper(List<ColumnSpec> columns, Row row) {
     this.columns = columns;
     this.row = row;
   }

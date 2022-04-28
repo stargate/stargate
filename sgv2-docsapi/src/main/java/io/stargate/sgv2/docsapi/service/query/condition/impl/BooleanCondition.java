@@ -19,11 +19,11 @@ package io.stargate.sgv2.docsapi.service.query.condition.impl;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
+import io.stargate.sgv2.docsapi.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.DocsApiConstants;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.FilterOperationCode;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.ValueFilterOperation;
-import io.stargate.sgv2.docsapi.service.util.ExtendedRow;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -86,7 +86,7 @@ public abstract class BooleanCondition implements BaseCondition {
 
   /** {@inheritDoc} */
   @Override
-  public boolean test(ExtendedRow row) {
+  public boolean test(RowWrapper row) {
     Boolean dbValue = getBoolean(row, isNumericBooleans());
     return getFilterOperation().test(dbValue, getQueryValue());
   }

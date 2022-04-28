@@ -20,11 +20,11 @@ import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.options.ExprOptions;
 import com.bpodgursky.jbool_expressions.rules.RuleList;
 import com.bpodgursky.jbool_expressions.util.ExprFactory;
+import io.stargate.sgv2.docsapi.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.RawDocument;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.FilterHintCode;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
-import io.stargate.sgv2.docsapi.service.util.ExtendedRow;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -118,9 +118,9 @@ public abstract class FilterExpression extends Expression<FilterExpression>
    * Tests all rows from a single document, making sure that at least is one the filter path and
    * fulfills the condition. If no row is on the filter path, returns true.
    */
-  public boolean test(List<ExtendedRow> documentRows) {
+  public boolean test(List<RowWrapper> documentRows) {
     boolean anyFailing = false;
-    for (ExtendedRow row : documentRows) {
+    for (RowWrapper row : documentRows) {
 
       // if row is not matching the filter path do nothing
       if (!matchesFilterPath(row)) {
@@ -152,7 +152,7 @@ public abstract class FilterExpression extends Expression<FilterExpression>
    *   <li>The condition test returns true
    * </ol>
    */
-  public boolean test(ExtendedRow row) {
+  public boolean test(RowWrapper row) {
     // if does not match the filter path, we can not test
     if (!matchesFilterPath(row)) {
       return true;
@@ -163,7 +163,7 @@ public abstract class FilterExpression extends Expression<FilterExpression>
   }
 
   // if given row matches the filter path in the
-  public boolean matchesFilterPath(ExtendedRow row) {
+  public boolean matchesFilterPath(RowWrapper row) {
     List<String> targetPath = getFilterPath().getPath();
     return DocsApiUtils.isRowMatchingPath(row, targetPath);
   }

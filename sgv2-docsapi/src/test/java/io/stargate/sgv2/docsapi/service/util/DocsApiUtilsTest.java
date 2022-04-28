@@ -27,6 +27,7 @@ import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
+import io.stargate.sgv2.docsapi.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.DocsApiConstants;
 import java.util.Arrays;
 import java.util.Collections;
@@ -201,7 +202,7 @@ class DocsApiUtilsTest {
   @Nested
   class GetStringFromRow {
 
-    @Mock ExtendedRow row;
+    @Mock RowWrapper row;
 
     @Test
     public void happyPath() {
@@ -227,7 +228,7 @@ class DocsApiUtilsTest {
   @Nested
   class GetDoubleFromRow {
 
-    @Mock ExtendedRow row;
+    @Mock RowWrapper row;
 
     @Test
     public void happyPath() {
@@ -253,7 +254,7 @@ class DocsApiUtilsTest {
   @Nested
   class GetBooleanFromRow {
 
-    @Mock ExtendedRow row;
+    @Mock RowWrapper row;
 
     @Test
     public void happyPath() {
@@ -304,7 +305,7 @@ class DocsApiUtilsTest {
     @Test
     public void matchingExact() {
       List<String> path = Arrays.asList("field", "value");
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.LEAF_COLUMN_NAME,
@@ -324,7 +325,7 @@ class DocsApiUtilsTest {
     @Test
     public void matchingSpecialCharacters() {
       List<String> path = Arrays.asList("field\\,with", "commas\\.");
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.LEAF_COLUMN_NAME,
@@ -344,7 +345,7 @@ class DocsApiUtilsTest {
     @Test
     public void notMatchingExtraDepth() {
       List<String> path = Arrays.asList("field", "value");
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.LEAF_COLUMN_NAME,
@@ -366,7 +367,7 @@ class DocsApiUtilsTest {
     @Test
     public void notMatchingWrongField() {
       List<String> path = Arrays.asList("field", "value");
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.LEAF_COLUMN_NAME,
@@ -392,7 +393,7 @@ class DocsApiUtilsTest {
     @Test
     public void matchingExact() {
       List<String> path = Arrays.asList("field", "value");
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.P_COLUMN_NAME.apply(0), Values.of("field"),
@@ -406,7 +407,7 @@ class DocsApiUtilsTest {
     @Test
     public void matchingSpecialCharacters() {
       List<String> path = Arrays.asList("field\\,with", "commas\\.");
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.P_COLUMN_NAME.apply(0), Values.of("field,with"),
@@ -420,7 +421,7 @@ class DocsApiUtilsTest {
     @Test
     public void matchingSubPath() {
       List<String> path = Collections.singletonList("field");
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.P_COLUMN_NAME.apply(0), Values.of("field"),
@@ -434,7 +435,7 @@ class DocsApiUtilsTest {
     @Test
     public void matchingSegment() {
       List<String> path = Arrays.asList("field", "value1,value2");
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.P_COLUMN_NAME.apply(0), Values.of("field"),
@@ -448,7 +449,7 @@ class DocsApiUtilsTest {
     @Test
     public void matchingGlob() {
       List<String> path = Arrays.asList("*", "[*]");
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.P_COLUMN_NAME.apply(0), Values.of("field"),
@@ -462,7 +463,7 @@ class DocsApiUtilsTest {
     @Test
     public void pathNotMatchingDifferent() {
       List<String> path = Arrays.asList("parent", "field");
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.P_COLUMN_NAME.apply(0), Values.of("field"),
@@ -476,7 +477,7 @@ class DocsApiUtilsTest {
     @Test
     public void pathNotMatchingTooShort() {
       List<String> path = Arrays.asList("parent", "field");
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.P_COLUMN_NAME.apply(0), Values.of("parent"),
@@ -490,7 +491,7 @@ class DocsApiUtilsTest {
     @Test
     public void notMatchingSegment() {
       List<String> path = Arrays.asList("field", "value1,value2");
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.P_COLUMN_NAME.apply(0), Values.of("field"),
@@ -504,7 +505,7 @@ class DocsApiUtilsTest {
     @Test
     public void matchingMatchingGlobArray() {
       List<String> path = Arrays.asList("field", "*");
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.P_COLUMN_NAME.apply(0), Values.of("field"),
@@ -518,7 +519,7 @@ class DocsApiUtilsTest {
     @Test
     public void matchingMatchingGlob() {
       List<String> path = Arrays.asList("field", "[*]");
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.P_COLUMN_NAME.apply(0),

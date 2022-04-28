@@ -25,8 +25,8 @@ import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Literal;
 import io.stargate.sgv2.common.cql.builder.Predicate;
+import io.stargate.sgv2.docsapi.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.ValueFilterOperation;
-import io.stargate.sgv2.docsapi.service.util.ExtendedRow;
 import java.util.Optional;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Nested;
@@ -92,7 +92,7 @@ class StringConditionTest {
   @Nested
   class RowTest {
 
-    @Mock ExtendedRow row;
+    @Mock RowWrapper row;
 
     @Test
     public void nullDatabaseValue() {

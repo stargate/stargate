@@ -26,9 +26,9 @@ import com.bpodgursky.jbool_expressions.Expression;
 import com.google.common.collect.ImmutableMap;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
+import io.stargate.sgv2.docsapi.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.RawDocument;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
-import io.stargate.sgv2.docsapi.service.util.ExtendedRow;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
@@ -75,7 +75,7 @@ public class FilterExpressionTest {
     @Test
     public void singleRowMatch() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("parent", "field"));
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.LEAF_COLUMN_NAME,
@@ -100,7 +100,7 @@ public class FilterExpressionTest {
     @Test
     public void multipleRowsOneMatch() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("parent", "field"));
-      ExtendedRow row1 =
+      RowWrapper row1 =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.LEAF_COLUMN_NAME,
@@ -111,7 +111,7 @@ public class FilterExpressionTest {
                   Values.of("other"),
                   DocsApiConstants.P_COLUMN_NAME.apply(2),
                   Values.of("")));
-      ExtendedRow row2 =
+      RowWrapper row2 =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.LEAF_COLUMN_NAME,
@@ -136,7 +136,7 @@ public class FilterExpressionTest {
     @Test
     public void singleRowConditionDoesMatch() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("parent", "field"));
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.LEAF_COLUMN_NAME,
@@ -161,7 +161,7 @@ public class FilterExpressionTest {
     @Test
     public void multipleRowsNoOneMatch() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("parent", "field"));
-      ExtendedRow row1 =
+      RowWrapper row1 =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.LEAF_COLUMN_NAME,
@@ -172,7 +172,7 @@ public class FilterExpressionTest {
                   Values.of("other"),
                   DocsApiConstants.P_COLUMN_NAME.apply(2),
                   Values.of("")));
-      ExtendedRow row2 =
+      RowWrapper row2 =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.LEAF_COLUMN_NAME,
@@ -197,7 +197,7 @@ public class FilterExpressionTest {
     @Test
     public void noRowOnFilterPath() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("parent", "field"));
-      ExtendedRow row1 =
+      RowWrapper row1 =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.LEAF_COLUMN_NAME,
@@ -208,7 +208,7 @@ public class FilterExpressionTest {
                   Values.of("other"),
                   DocsApiConstants.P_COLUMN_NAME.apply(2),
                   Values.of("")));
-      ExtendedRow row2 =
+      RowWrapper row2 =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.LEAF_COLUMN_NAME,
@@ -235,7 +235,7 @@ public class FilterExpressionTest {
     @Test
     public void conditionTrue() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("parent", "field"));
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.LEAF_COLUMN_NAME,
@@ -259,7 +259,7 @@ public class FilterExpressionTest {
     @Test
     public void conditionTrueGlob() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("*", "field"));
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.LEAF_COLUMN_NAME,
@@ -283,7 +283,7 @@ public class FilterExpressionTest {
     @Test
     public void conditionTrueArrayGlob() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("[*]", "field"));
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.LEAF_COLUMN_NAME,
@@ -307,7 +307,7 @@ public class FilterExpressionTest {
     @Test
     public void conditionFalse() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("parent", "field"));
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.LEAF_COLUMN_NAME,
@@ -332,7 +332,7 @@ public class FilterExpressionTest {
     public void conditionFalsePathSegment() {
       ImmutableFilterPath filterPath =
           ImmutableFilterPath.of(Arrays.asList("parent,other", "field"));
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.LEAF_COLUMN_NAME,
@@ -356,7 +356,7 @@ public class FilterExpressionTest {
     @Test
     public void pathNotMatchingLeafDoesNotMatchField() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("parent", "field"));
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(DocsApiConstants.LEAF_COLUMN_NAME, Values.of("whatever")));
 
@@ -370,7 +370,7 @@ public class FilterExpressionTest {
     @Test
     public void pathNotMatchingLongerPaths() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.LEAF_COLUMN_NAME,
@@ -390,7 +390,7 @@ public class FilterExpressionTest {
     @Test
     public void pathNotMatchingDifferent() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("parent", "field"));
-      ExtendedRow row =
+      RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
                   DocsApiConstants.LEAF_COLUMN_NAME,

@@ -17,9 +17,9 @@
 package io.stargate.sgv2.docsapi.service.query.condition.impl;
 
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
+import io.stargate.sgv2.docsapi.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.FilterOperationCode;
-import io.stargate.sgv2.docsapi.service.util.ExtendedRow;
 import java.util.Optional;
 import org.immutables.value.Value;
 
@@ -61,7 +61,7 @@ public abstract class ExistsCondition implements BaseCondition {
 
   /** {@inheritDoc} */
   @Override
-  public boolean test(ExtendedRow row) {
+  public boolean test(RowWrapper row) {
     // row must always be non-null here
     // if row exists then the test is true if query value is true
     return getQueryValue();

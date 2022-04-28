@@ -15,18 +15,18 @@
  */
 package io.stargate.sgv2.docsapi.service;
 
-import io.stargate.sgv2.docsapi.service.util.ExtendedRow;
+import io.stargate.sgv2.docsapi.model.RowWrapper;
 import java.util.List;
 
 public class RawDocument {
 
-  private final List<ExtendedRow> rows;
+  private final List<RowWrapper> rows;
 
-  public RawDocument(List<ExtendedRow> rows) {
+  public RawDocument(List<RowWrapper> rows) {
     this.rows = rows;
   }
 
-  public List<ExtendedRow> rows() {
+  public List<RowWrapper> rows() {
     return rows;
   }
 }

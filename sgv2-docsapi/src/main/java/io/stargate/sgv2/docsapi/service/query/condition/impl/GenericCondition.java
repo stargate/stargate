@@ -17,16 +17,16 @@
 package io.stargate.sgv2.docsapi.service.query.condition.impl;
 
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
+import io.stargate.sgv2.docsapi.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.FilterOperationCode;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.GenericFilterOperation;
-import io.stargate.sgv2.docsapi.service.util.ExtendedRow;
 import java.util.Optional;
 import org.immutables.value.Value;
 
 /**
  * Condition that works with the {@link GenericFilterOperation} in order to match a single {@link
- * ExtendedRow} against multiple database column values.
+ * RowWrapper} against multiple database column values.
  *
  * @param <V>
  */
@@ -76,7 +76,7 @@ public abstract class GenericCondition<V> implements BaseCondition {
 
   /** {@inheritDoc} */
   @Override
-  public boolean test(ExtendedRow row) {
+  public boolean test(RowWrapper row) {
     Boolean dbValueBoolean = getBoolean(row, isNumericBooleans());
     Double dbValueDouble = getDouble(row);
     String dbValueString = getString(row);

@@ -18,6 +18,7 @@ package io.stargate.sgv2.docsapi.service.util;
 import com.google.common.base.Strings;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
+import io.stargate.sgv2.docsapi.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.DocsApiConstants;
 import java.util.Arrays;
 import java.util.List;
@@ -132,19 +133,19 @@ public final class DocsApiUtils {
     return path.stream().map(DocsApiUtils::convertEscapedCharacters).collect(Collectors.toList());
   }
 
-  public static String getStringFromRow(ExtendedRow row) {
+  public static String getStringFromRow(RowWrapper row) {
     return row.isNull(DocsApiConstants.STRING_VALUE_COLUMN_NAME)
         ? null
         : row.getString(DocsApiConstants.STRING_VALUE_COLUMN_NAME);
   }
 
-  public static Double getDoubleFromRow(ExtendedRow row) {
+  public static Double getDoubleFromRow(RowWrapper row) {
     return row.isNull(DocsApiConstants.DOUBLE_VALUE_COLUMN_NAME)
         ? null
         : row.getDouble(DocsApiConstants.DOUBLE_VALUE_COLUMN_NAME);
   }
 
-  public static Boolean getBooleanFromRow(ExtendedRow row, boolean numericBooleans) {
+  public static Boolean getBooleanFromRow(RowWrapper row, boolean numericBooleans) {
     boolean nullValue = row.isNull(DocsApiConstants.BOOLEAN_VALUE_COLUMN_NAME);
     if (nullValue) {
       return null;
@@ -175,7 +176,7 @@ public final class DocsApiUtils {
    * @param path path as iterable strings
    * @return True if row is matching on the given path
    */
-  public static boolean isRowMatchingPath(ExtendedRow row, List<String> path) {
+  public static boolean isRowMatchingPath(RowWrapper row, List<String> path) {
     int targetPathSize = path.size();
 
     // short-circuit if the field is not matching
@@ -213,7 +214,7 @@ public final class DocsApiUtils {
    * @param pathIterable path as iterable strings
    * @return True if row is fully on the given path
    */
-  public static boolean isRowOnPath(ExtendedRow row, Iterable<String> pathIterable) {
+  public static boolean isRowOnPath(RowWrapper row, Iterable<String> pathIterable) {
     int p = 0;
     for (String target : pathIterable) {
       int index = p++;

@@ -17,15 +17,15 @@
 package io.stargate.sgv2.docsapi.service.query.condition;
 
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
+import io.stargate.sgv2.docsapi.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.FilterOperationCode;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
-import io.stargate.sgv2.docsapi.service.util.ExtendedRow;
 import java.util.Optional;
 import java.util.function.Predicate;
 import javax.validation.constraints.NotNull;
 
 /** Interface for the base filtering condition. */
-public interface BaseCondition extends Predicate<ExtendedRow> {
+public interface BaseCondition extends Predicate<RowWrapper> {
 
   /** Returns a {@link BaseCondition} that is the logical negation of this condition. */
   @Override
@@ -64,33 +64,33 @@ public interface BaseCondition extends Predicate<ExtendedRow> {
   boolean isEvaluateOnMissingFields();
 
   /**
-   * Resolves {@link String} value from the document {@link ExtendedRow}.
+   * Resolves {@link String} value from the document {@link RowWrapper}.
    *
    * @param row Row
    * @return Returns resolved value or <code>null</code>
    */
-  default String getString(ExtendedRow row) {
+  default String getString(RowWrapper row) {
     return DocsApiUtils.getStringFromRow(row);
   }
 
   /**
-   * Resolves {@link Double} value from the document {@link ExtendedRow}.
+   * Resolves {@link Double} value from the document {@link RowWrapper}.
    *
    * @param row Row
    * @return Returns resolved value or <code>null</code>
    */
-  default Double getDouble(ExtendedRow row) {
+  default Double getDouble(RowWrapper row) {
     return DocsApiUtils.getDoubleFromRow(row);
   }
 
   /**
-   * Resolves {@link Boolean} value from the document {@link ExtendedRow}.
+   * Resolves {@link Boolean} value from the document {@link RowWrapper}.
    *
    * @param row Row
    * @param numericBooleans If <code>true</code> assumes booleans are stored as numeric values.
    * @return Returns resolved value or <code>null</code>
    */
-  default Boolean getBoolean(ExtendedRow row, boolean numericBooleans) {
+  default Boolean getBoolean(RowWrapper row, boolean numericBooleans) {
     return DocsApiUtils.getBooleanFromRow(row, numericBooleans);
   }
 }

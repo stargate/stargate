@@ -22,10 +22,10 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
+import io.stargate.sgv2.docsapi.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.GenericFilterOperation;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.impl.InFilterOperation;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.impl.NotInFilterOperation;
-import io.stargate.sgv2.docsapi.service.util.ExtendedRow;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -42,7 +42,7 @@ class GenericConditionTest {
   @Mock GenericFilterOperation<Object> filterOperation;
   @Mock GenericFilterOperation<Object> filterOperation2;
 
-  @Mock ExtendedRow row;
+  @Mock RowWrapper row;
 
   @Nested
   class Constructor {
@@ -77,7 +77,7 @@ class GenericConditionTest {
   @Nested
   class RowTest {
 
-    @Mock ExtendedRow row;
+    @Mock RowWrapper row;
 
     @Test
     public void emptyRow() {
