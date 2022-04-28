@@ -29,9 +29,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.common.cql.builder.Literal;
 import io.stargate.sgv2.common.cql.builder.Predicate;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
-import io.stargate.sgv2.docsapi.service.DocsApiConfiguration;
 import io.stargate.sgv2.docsapi.service.query.condition.ConditionParser;
 import io.stargate.sgv2.docsapi.service.query.condition.impl.BooleanCondition;
 import io.stargate.sgv2.docsapi.service.query.condition.impl.GenericCondition;
@@ -67,11 +67,11 @@ class ExpressionParserIntTest {
 
   ObjectMapper mapper = new ObjectMapper();
 
-  @Mock DocsApiConfiguration configuration;
+  @Mock DocumentProperties documentProperties;
 
   @BeforeEach
   public void init() {
-    service = new ExpressionParser(new ConditionParser(), configuration);
+    service = new ExpressionParser(new ConditionParser(), documentProperties);
   }
 
   @Nested
@@ -479,7 +479,7 @@ class ExpressionParserIntTest {
 
     @Test
     public void singleFieldArrayIndex() throws Exception {
-      Mockito.when(configuration.getMaxArrayLength()).thenReturn(100000);
+      Mockito.when(documentProperties.maxArrayLength()).thenReturn(100000);
       String json = "{\"my.filters.[2].field\": {\"$eq\": \"some-value\"}}";
       JsonNode root = mapper.readTree(json);
 
@@ -513,7 +513,7 @@ class ExpressionParserIntTest {
 
     @Test
     public void singleFieldArraySplitIndex() throws Exception {
-      Mockito.when(configuration.getMaxArrayLength()).thenReturn(100000);
+      Mockito.when(documentProperties.maxArrayLength()).thenReturn(100000);
       String json = "{\"my.filters.[1],[2].field\": {\"$eq\": \"some-value\"}}";
       JsonNode root = mapper.readTree(json);
 

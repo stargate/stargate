@@ -24,9 +24,9 @@ import com.bpodgursky.jbool_expressions.Or;
 import com.bpodgursky.jbool_expressions.rules.RuleSet;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Streams;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
-import io.stargate.sgv2.docsapi.service.DocsApiConfiguration;
 import io.stargate.sgv2.docsapi.service.query.ImmutableFilterExpression.Builder;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
 import io.stargate.sgv2.docsapi.service.query.condition.ConditionParser;
@@ -55,12 +55,13 @@ public class ExpressionParser {
   private static final String AND_OPERATOR = "$and";
 
   private final ConditionParser conditionParser;
-  private final DocsApiConfiguration config;
+  private final DocumentProperties documentProperties;
 
   @Inject
-  public ExpressionParser(ConditionParser predicateProvider, DocsApiConfiguration config) {
+  public ExpressionParser(
+      ConditionParser predicateProvider, DocumentProperties documentProperties) {
     this.conditionParser = predicateProvider;
-    this.config = config;
+    this.documentProperties = documentProperties;
   }
 
   /**
@@ -308,13 +309,13 @@ public class ExpressionParser {
     String[] fieldNamePath = DocsApiUtils.PERIOD_PATTERN.split(fieldPath);
     List<String> convertedFieldNamePath =
         Arrays.stream(fieldNamePath)
-            .map(p -> DocsApiUtils.convertArrayPath(p, config.getMaxArrayLength()))
+            .map(p -> DocsApiUtils.convertArrayPath(p, documentProperties.maxArrayLength()))
             .collect(Collectors.toList());
 
     if (!prependedPath.isEmpty()) {
       List<String> prependedConverted =
           prependedPath.stream()
-              .map(path -> DocsApiUtils.convertArrayPath(path, config.getMaxArrayLength()))
+              .map(path -> DocsApiUtils.convertArrayPath(path, documentProperties.maxArrayLength()))
               .collect(Collectors.toList());
 
       convertedFieldNamePath.addAll(0, prependedConverted);
