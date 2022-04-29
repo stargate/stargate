@@ -29,7 +29,6 @@ import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.graphql.schema.cqlfirst.dml.NameMapping;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -43,7 +42,7 @@ public enum FilterOperator {
   LESS_THAN_EQUAL("lte", Predicate.LTE),
   IN("in", Predicate.IN) {
     @Override
-    protected Object conditionValue(TypeSpec type, Object graphCQLValue, NameMapping nameMapping) {
+    protected Value conditionValue(TypeSpec type, Object graphCQLValue, NameMapping nameMapping) {
       if (graphCQLValue instanceof Collection<?>) {
         Collection<?> values = (Collection<?>) graphCQLValue;
         Value[] elements =
@@ -52,8 +51,7 @@ public enum FilterOperator {
                 .toArray(Value[]::new);
         return Values.of(elements);
       }
-      return Collections.singletonList(
-          DataTypeMapping.toGrpcValue(type, graphCQLValue, nameMapping));
+      return Values.of(DataTypeMapping.toGrpcValue(type, graphCQLValue, nameMapping));
     }
 
     @Override
@@ -66,7 +64,7 @@ public enum FilterOperator {
   },
   CONTAINS("contains", Predicate.CONTAINS) {
     @Override
-    protected Object conditionValue(TypeSpec type, Object graphCQLValue, NameMapping nameMapping) {
+    protected Value conditionValue(TypeSpec type, Object graphCQLValue, NameMapping nameMapping) {
       TypeSpec elementType;
       switch (type.getSpecCase()) {
         case LIST:
@@ -87,7 +85,7 @@ public enum FilterOperator {
   },
   CONTAINS_KEY("containsKey", Predicate.CONTAINS_KEY) {
     @Override
-    protected Object conditionValue(TypeSpec type, Object graphCQLValue, NameMapping nameMapping) {
+    protected Value conditionValue(TypeSpec type, Object graphCQLValue, NameMapping nameMapping) {
       if (type.getSpecCase() != TypeSpec.SpecCase.MAP) {
         throw new AssertionError(
             "Should not attempt to use CONTAINS_KEY with type " + type.getSpecCase());
@@ -110,13 +108,13 @@ public enum FilterOperator {
             "Should not attempt to use CONTAINS_KEY with type " + type.getSpecCase());
       }
       TypeSpec keyType = type.getMap().getKey();
-      Object key =
+      Value key =
           DataTypeMapping.toGrpcValue(keyType, entry(graphCQLValue).get("key"), nameMapping);
       return LHS.mapAccess(column.getName(), key);
     }
 
     @Override
-    protected Object conditionValue(TypeSpec type, Object graphCQLValue, NameMapping nameMapping) {
+    protected Value conditionValue(TypeSpec type, Object graphCQLValue, NameMapping nameMapping) {
       // no assertion since we know conditionLHS is called first
       TypeSpec valueType = type.getMap().getValue();
       return DataTypeMapping.toGrpcValue(valueType, entry(graphCQLValue).get("value"), nameMapping);
@@ -153,7 +151,7 @@ public enum FilterOperator {
     return LHS.column(column.getName());
   }
 
-  protected Object conditionValue(TypeSpec type, Object graphCQLValue, NameMapping nameMapping) {
+  protected Value conditionValue(TypeSpec type, Object graphCQLValue, NameMapping nameMapping) {
     return DataTypeMapping.toGrpcValue(type, graphCQLValue, nameMapping);
   }
 

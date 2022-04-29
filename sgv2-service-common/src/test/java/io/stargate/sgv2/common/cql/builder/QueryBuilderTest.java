@@ -18,6 +18,7 @@ package io.stargate.sgv2.common.cql.builder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import io.stargate.bridge.grpc.Values;
 import java.util.LinkedHashMap;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -329,6 +330,21 @@ public class QueryBuilderTest {
       arguments(
           new QueryBuilder().select().count("a").from("ks", "tbl").build().getCql(),
           "SELECT COUNT(a) FROM ks.tbl"),
+      arguments(
+          new QueryBuilder().select().count("a").from("ks", "tbl").limit(1).build().getCql(),
+          "SELECT COUNT(a) FROM ks.tbl LIMIT 1"),
+      arguments(
+          new QueryBuilder()
+              .select()
+              .count("a")
+              .from("ks", "tbl")
+              .limit(Values.of(1))
+              .build()
+              .getCql(),
+          "SELECT COUNT(a) FROM ks.tbl LIMIT ?"),
+      arguments(
+          new QueryBuilder().select().count("a").from("ks", "tbl").limit().build().getCql(),
+          "SELECT COUNT(a) FROM ks.tbl LIMIT ?"),
     };
   }
 }

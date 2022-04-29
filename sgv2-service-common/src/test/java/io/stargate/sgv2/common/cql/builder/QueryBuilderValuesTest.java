@@ -16,6 +16,7 @@
 package io.stargate.sgv2.common.cql.builder;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
@@ -36,10 +37,9 @@ public class QueryBuilderValuesTest {
             .insertInto("ks", "tbl")
             .value("c1", INT_VALUE1)
             .value("c2", TEXT_VALUE)
-            .value("c3", 3)
             .build();
 
-    assertThat(query.getCql()).isEqualTo("INSERT INTO ks.tbl (c1, c2, c3) VALUES (?, ?, 3)");
+    assertThat(query.getCql()).isEqualTo("INSERT INTO ks.tbl (c1, c2) VALUES (?, ?)");
     assertThat(query.getValues().getValuesList()).containsExactly(INT_VALUE1, TEXT_VALUE);
   }
 
@@ -53,12 +53,13 @@ public class QueryBuilderValuesTest {
                 ValueModifier.of(
                     ValueModifier.Target.mapValue("c2", Term.of(TEXT_VALUE)),
                     ValueModifier.Operation.APPEND,
-                    Term.of(1)))
-            .where("k", Predicate.EQ, 1)
+                    INT_VALUE2))
+            .where("k", Predicate.EQ, INT_VALUE1)
             .build();
 
-    assertThat(query.getCql()).isEqualTo("UPDATE ks.tbl SET c1 = ?, c2[?] += 1 WHERE k = 1");
-    assertThat(query.getValues().getValuesList()).containsExactly(INT_VALUE1, TEXT_VALUE);
+    assertThat(query.getCql()).isEqualTo("UPDATE ks.tbl SET c1 = ?, c2[?] += ? WHERE k = ?");
+    assertThat(query.getValues().getValuesList())
+        .containsExactly(INT_VALUE1, TEXT_VALUE, INT_VALUE2, INT_VALUE1);
   }
 
   @Test
@@ -69,10 +70,9 @@ public class QueryBuilderValuesTest {
             .from("ks", "tbl")
             .where("c1", Predicate.EQ, INT_VALUE1)
             .where("c2", Predicate.EQ, TEXT_VALUE)
-            .where("c3", Predicate.EQ, 3)
             .build();
 
-    assertThat(query.getCql()).isEqualTo("SELECT * FROM ks.tbl WHERE c1 = ? AND c2 = ? AND c3 = 3");
+    assertThat(query.getCql()).isEqualTo("SELECT * FROM ks.tbl WHERE c1 = ? AND c2 = ?");
     assertThat(query.getValues().getValuesList()).containsExactly(INT_VALUE1, TEXT_VALUE);
   }
 
@@ -83,11 +83,12 @@ public class QueryBuilderValuesTest {
             .select()
             .from("ks", "tbl")
             .where(BuiltCondition.of("c1", Predicate.EQ, INT_VALUE1))
-            .where(BuiltCondition.of(LHS.mapAccess("c2", TEXT_VALUE), Predicate.GT, Term.of(1)))
+            .where(BuiltCondition.of(LHS.mapAccess("c2", TEXT_VALUE), Predicate.GT, INT_VALUE2))
             .build();
 
-    assertThat(query.getCql()).isEqualTo("SELECT * FROM ks.tbl WHERE c1 = ? AND c2[?] > 1");
-    assertThat(query.getValues().getValuesList()).containsExactly(INT_VALUE1, TEXT_VALUE);
+    assertThat(query.getCql()).isEqualTo("SELECT * FROM ks.tbl WHERE c1 = ? AND c2[?] > ?");
+    assertThat(query.getValues().getValuesList())
+        .containsExactly(INT_VALUE1, TEXT_VALUE, INT_VALUE2);
   }
 
   @Test
@@ -96,15 +97,14 @@ public class QueryBuilderValuesTest {
         new QueryBuilder()
             .delete()
             .from("ks", "tbl")
-            .where("k", Predicate.EQ, 1)
-            .ifs("c1", Predicate.EQ, INT_VALUE1)
+            .where("k", Predicate.EQ, INT_VALUE1)
+            .ifs("c1", Predicate.EQ, INT_VALUE2)
             .ifs("c2", Predicate.EQ, TEXT_VALUE)
-            .ifs("c3", Predicate.EQ, 3)
             .build();
 
-    assertThat(query.getCql())
-        .isEqualTo("DELETE FROM ks.tbl WHERE k = 1 IF c1 = ? AND c2 = ? AND c3 = 3");
-    assertThat(query.getValues().getValuesList()).containsExactly(INT_VALUE1, TEXT_VALUE);
+    assertThat(query.getCql()).isEqualTo("DELETE FROM ks.tbl WHERE k = ? IF c1 = ? AND c2 = ?");
+    assertThat(query.getValues().getValuesList())
+        .containsExactly(INT_VALUE1, INT_VALUE2, TEXT_VALUE);
   }
 
   @Test
@@ -113,13 +113,14 @@ public class QueryBuilderValuesTest {
         new QueryBuilder()
             .delete()
             .from("ks", "tbl")
-            .where("k", Predicate.EQ, 1)
-            .ifs(BuiltCondition.of("c1", Predicate.EQ, INT_VALUE1))
-            .ifs(BuiltCondition.of(LHS.mapAccess("c2", TEXT_VALUE), Predicate.GT, Term.of(1)))
+            .where("k", Predicate.EQ, INT_VALUE1)
+            .ifs(BuiltCondition.of("c1", Predicate.EQ, INT_VALUE2))
+            .ifs(BuiltCondition.of(LHS.mapAccess("c2", TEXT_VALUE), Predicate.GT, INT_VALUE1))
             .build();
 
-    assertThat(query.getCql()).isEqualTo("DELETE FROM ks.tbl WHERE k = 1 IF c1 = ? AND c2[?] > 1");
-    assertThat(query.getValues().getValuesList()).containsExactly(INT_VALUE1, TEXT_VALUE);
+    assertThat(query.getCql()).isEqualTo("DELETE FROM ks.tbl WHERE k = ? IF c1 = ? AND c2[?] > ?");
+    assertThat(query.getValues().getValuesList())
+        .containsExactly(INT_VALUE1, INT_VALUE2, TEXT_VALUE, INT_VALUE1);
   }
 
   @Test
@@ -147,5 +148,17 @@ public class QueryBuilderValuesTest {
 
     assertThat(query.getCql()).isEqualTo("SELECT * FROM ks.tbl WHERE c1 = ? LIMIT ?");
     assertThat(query.getValues().getValuesList()).containsExactly(INT_VALUE1, INT_VALUE2);
+  }
+
+  @Test
+  public void shouldFailIfMixingValuesAndExplicitMarkers() {
+    assertThatThrownBy(
+            () ->
+                new QueryBuilder()
+                    .select()
+                    .from("tbl")
+                    .where("a", Predicate.EQ, INT_VALUE1)
+                    .where("b", Predicate.EQ, Term.marker()))
+        .isInstanceOf(IllegalStateException.class);
   }
 }

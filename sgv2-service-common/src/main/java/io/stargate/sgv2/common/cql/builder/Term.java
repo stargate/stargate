@@ -15,8 +15,14 @@
  */
 package io.stargate.sgv2.common.cql.builder;
 
+import io.stargate.bridge.proto.QueryOuterClass.Value;
+
 public interface Term {
-  static Term of(Object value) {
+  static Term of(Value value) {
     return new Literal(value);
+  }
+
+  static Term marker() {
+    return new Marker();
   }
 }
