@@ -492,6 +492,10 @@ public class QueryBuilderImpl {
     where(column.name(), predicate, value);
   }
 
+  public void where(Column column, Predicate predicate) {
+    where(column.name(), predicate, Term.marker());
+  }
+
   public void where(String columnName, Predicate predicate, Object value) {
     where(BuiltCondition.of(columnName, predicate, termFor(value)));
   }
