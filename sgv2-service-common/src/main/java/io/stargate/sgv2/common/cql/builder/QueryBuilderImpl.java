@@ -633,7 +633,7 @@ public class QueryBuilderImpl {
 
   @DSLAction
   public void limit(Value limit) {
-    this.limitTerm = termFor(limit);
+    this.limitTerm = limit == null ? null : termFor(limit);
     this.limitInt = null;
   }
 
@@ -651,7 +651,7 @@ public class QueryBuilderImpl {
 
   @DSLAction
   public void perPartitionLimit(Value perPartitionLimit) {
-    this.perPartitionLimitTerm = termFor(perPartitionLimit);
+    this.perPartitionLimitTerm = perPartitionLimit == null ? null : termFor(perPartitionLimit);
     this.perPartitionLimitInt = null;
   }
 
@@ -700,7 +700,7 @@ public class QueryBuilderImpl {
 
   @DSLAction
   public void ttl(Value ttl) {
-    this.ttlTerm = termFor(ttl);
+    this.ttlTerm = ttl == null ? null : termFor(ttl);
     this.ttlInt = null;
   }
 
@@ -718,7 +718,7 @@ public class QueryBuilderImpl {
 
   @DSLAction
   public void timestamp(Value timestamp) {
-    this.timestampTerm = termFor(timestamp);
+    this.timestampTerm = timestamp == null ? null : termFor(timestamp);
     this.timestampLong = null;
   }
 
