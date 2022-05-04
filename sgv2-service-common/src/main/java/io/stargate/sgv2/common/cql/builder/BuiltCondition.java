@@ -15,6 +15,7 @@
  */
 package io.stargate.sgv2.common.cql.builder;
 
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.sgv2.common.cql.ColumnUtils;
 import java.util.List;
@@ -34,7 +35,7 @@ public interface BuiltCondition {
 
   Term value();
 
-  static BuiltCondition of(String columnName, Predicate predicate, Object value) {
+  static BuiltCondition of(String columnName, Predicate predicate, QueryOuterClass.Value value) {
     return of(columnName, predicate, Term.of(value));
   }
 
@@ -42,7 +43,7 @@ public interface BuiltCondition {
     return of(LHS.column(columnName), predicate, value);
   }
 
-  static BuiltCondition of(LHS lhs, Predicate predicate, Object value) {
+  static BuiltCondition of(LHS lhs, Predicate predicate, QueryOuterClass.Value value) {
     return of(lhs, predicate, Term.of(value));
   }
 
@@ -67,7 +68,7 @@ public interface BuiltCondition {
       return new ColumnName(columnName);
     }
 
-    public static LHS mapAccess(String columnName, Object key) {
+    public static LHS mapAccess(String columnName, QueryOuterClass.Value key) {
       return new MapElement(columnName, Term.of(key));
     }
 

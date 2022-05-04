@@ -47,15 +47,12 @@ import java.util.stream.Collectors;
 /** Provides the logic for adapting values from graphql to DB and vice versa. */
 class DataTypeMapping {
 
-  private static final Value NULL_VALUE =
-      Value.newBuilder().setNull(Value.Null.newBuilder()).build();
-
   /**
    * Converts a value coming from the GraphQL runtime into a value that can be sent to the bridge.
    */
   static Value toGrpcValue(TypeSpec type, Object graphQLValue, NameMapping nameMapping) {
     if (graphQLValue == null) {
-      return NULL_VALUE;
+      return Values.NULL;
     }
     switch (type.getSpecCase()) {
       case LIST:

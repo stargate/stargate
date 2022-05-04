@@ -15,15 +15,20 @@
  */
 package io.stargate.sgv2.common.cql.builder;
 
-class Literal implements Term {
+import io.stargate.bridge.proto.QueryOuterClass.Value;
+import java.util.Objects;
 
-  private final Object value;
+public class Literal implements Term {
 
-  public Literal(Object value) {
-    this.value = value;
+  static final String NULL_ERROR_MESSAGE = "Use Values.NULL to bind a null CQL value";
+
+  private final Value value;
+
+  public Literal(Value value) {
+    this.value = Objects.requireNonNull(value, NULL_ERROR_MESSAGE);
   }
 
-  public Object get() {
+  public Value get() {
     return value;
   }
 }
