@@ -1,4 +1,4 @@
-package io.stargate.sgv2.docsapi.api.service.json;
+package io.stargate.sgv2.docsapi.service.json;
 
 import java.util.HashMap;
 import java.util.HashSet;

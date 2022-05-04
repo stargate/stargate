@@ -1,4 +1,4 @@
-package io.stargate.sgv2.docsapi.api.service.json;
+package io.stargate.sgv2.docsapi.service.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -18,7 +18,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
+/** Responsible for turning gRPC Row values into JSON. */
+@Singleton
 public class JsonConverter {
   private final ObjectMapper mapper;
   private final DocumentProperties docsProperties;
@@ -30,15 +33,35 @@ public class JsonConverter {
     this.docsProperties = docsProperties;
   }
 
+  /**
+   * Converts a List of rows into a Jackson JsonNode.
+   *
+   * @param rows The List of rows
+   * @param columns The ColumnSpec values that are in the row (in the order they appear in the Row)
+   * @param writeAllPathsAsObjects `true` if array paths should be written as JSON objects instead
+   * @param numericBooleans `true` if booleans should be treated as numbers
+   * @return the JSON representation of the data
+   */
   public JsonNode convertToJsonDoc(
       List<QueryOuterClass.Row> rows,
       List<QueryOuterClass.ColumnSpec> columns,
       boolean writeAllPathsAsObjects,
       boolean numericBooleans) {
     return convertToJsonDoc(
-        rows, columns, ImmutableDeadLeafCollector.of(), writeAllPathsAsObjects, numericBooleans);
+        rows, columns, new NoOpDeadLeafCollector(), writeAllPathsAsObjects, numericBooleans);
   }
 
+  /**
+   * Converts a List of rows into a Jackson JsonNode.
+   *
+   * @param rows The List of rows
+   * @param columns The ColumnSpec values that are in the row (in the order they appear in the Row)
+   * @param collector a DeadLeafCollector that can be used to collect unreachable information that
+   *     can be deleted.
+   * @param writeAllPathsAsObjects `true` if array paths should be written as JSON objects instead
+   * @param numericBooleans `true` if booleans should be treated as numbers
+   * @return the JSON representation of the data
+   */
   public JsonNode convertToJsonDoc(
       List<QueryOuterClass.Row> rows,
       List<QueryOuterClass.ColumnSpec> columns,
@@ -229,6 +252,11 @@ public class JsonConverter {
     return doc;
   }
 
+  /**
+   * Given a reference to a JsonNode, turns the current data at that pointer to an ArrayNode. This
+   * is necessary if an older value in the data is an Object or scalar, but a newer representation
+   * is an Array.
+   */
   private JsonNode changeCurrentNodeToArray(
       QueryOuterClass.Row row,
       JsonNode parentRef,
@@ -246,6 +274,11 @@ public class JsonConverter {
     return ref;
   }
 
+  /**
+   * Given a reference to a JsonNode, turns the current data at that pointer to an ObjectNode. This
+   * is necessary if an older value in the data is an Array or scalar, but a newer representation is
+   * an Object.
+   */
   private JsonNode changeCurrentNodeToObject(
       QueryOuterClass.Row row,
       JsonNode parentRef,
@@ -263,11 +296,25 @@ public class JsonConverter {
     return ref;
   }
 
+  /**
+   * Adds a full path to the DeadLeafCollector.
+   *
+   * @param parentPath the parent path to mark for deletion.
+   * @param currentPath the current path to mark for deletion.
+   * @param collector the DeadLeafCollector
+   */
   private void markFullPathAsDead(
       String parentPath, String currentPath, DeadLeafCollector collector) {
     collector.addAll(parentPath + "." + currentPath);
   }
 
+  /**
+   * Adds an Object's paths to the DeadLeafCollector.
+   *
+   * @param ref the Object to mark for deletion.
+   * @param parentPath the parent path to mark for deletion.
+   * @param collector the DeadLeafCollector
+   */
   private void markObjectAtPathAsDead(
       JsonNode ref, String parentPath, DeadLeafCollector collector) {
     if (!ref.isObject()) { // it's a scalar
@@ -281,6 +328,13 @@ public class JsonConverter {
     }
   }
 
+  /**
+   * Adds an Array's paths to the DeadLeafCollector.
+   *
+   * @param ref the Array to mark for deletion.
+   * @param parentPath the parent path to mark for deletion.
+   * @param collector the DeadLeafCollector
+   */
   private void markArrayAtPathAsDead(JsonNode ref, String parentPath, DeadLeafCollector collector) {
     if (!ref.isArray()) { // it's a scalar
       collector.addLeaf(parentPath, ImmutableDeadLeaf.builder().name("").build());
@@ -289,6 +343,19 @@ public class JsonConverter {
     }
   }
 
+  /**
+   * Writes leaf data to the JsonNode in place, but only if the writetime of the leaf is newer than
+   * the current data at the path in the JsonNode.
+   *
+   * @param ref the JsonNode
+   * @param row the Row, for extraction of values
+   * @param leaf the path of the leaf
+   * @param parentPath the parent path to the leaf in the document
+   * @param pathWriteTimes a Map of all the path write times
+   * @param rowWriteTime the current row's write time
+   * @param columnNameToIndex The indexes of the columns in the row
+   * @param numericBooleans whether to treat boolean values should be treated as integers
+   */
   private void writeLeafIfNewer(
       JsonNode ref,
       QueryOuterClass.Row row,
@@ -332,7 +399,7 @@ public class JsonConverter {
       else n = new DoubleNode(dv);
     }
     if (ref == null)
-      throw new RuntimeException("Missing path @" + leaf + " v=" + n + " row=" + row);
+      throw new IllegalStateException("Missing path @" + leaf + " v=" + n + " row=" + row);
 
     boolean shouldWrite =
         !pathWriteTimes.containsKey(parentPath + "." + leaf)
@@ -342,7 +409,7 @@ public class JsonConverter {
         ((ObjectNode) ref).set(leaf, n);
       } else if (ref.isArray()) {
         if (!leaf.startsWith("["))
-          throw new RuntimeException("Trying to write object to array " + leaf);
+          throw new IllegalStateException("Trying to write object to array " + leaf);
 
         ArrayNode arrayRef = (ArrayNode) ref;
         int index = Integer.parseInt(leaf.substring(1, leaf.length() - 1));

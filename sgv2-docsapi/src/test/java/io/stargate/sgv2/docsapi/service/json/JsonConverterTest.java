@@ -1,4 +1,4 @@
-package io.stargate.sgv2.docsapi.api.service.json;
+package io.stargate.sgv2.docsapi.service.json;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -7,11 +7,13 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableMap;
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import io.quarkus.test.junit.TestProfile;
 import io.stargate.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.proto.QueryOuterClass.Row;
 import io.stargate.proto.QueryOuterClass.Value;
-import io.stargate.sgv2.docsapi.api.common.properties.document.impl.DocumentPropertiesImpl;
-import io.stargate.sgv2.docsapi.config.DocumentConfig;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -20,65 +22,23 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.junit.jupiter.api.BeforeEach;
+import javax.inject.Inject;
 import org.junit.jupiter.api.Test;
 
+@QuarkusTest
+@TestProfile(JsonConverterTest.Profile.class)
 public class JsonConverterTest {
-  private JsonConverter service;
+
+  public static class Profile implements QuarkusTestProfile {
+    @Override
+    public Map<String, String> getConfigOverrides() {
+      return ImmutableMap.<String, String>builder().put("stargate.document.max-depth", "6").build();
+    }
+  }
+
   private static final ObjectMapper mapper = new ObjectMapper();
 
-  @BeforeEach
-  public void setup() {
-    service =
-        new JsonConverter(
-            mapper,
-            new DocumentPropertiesImpl(
-                new DocumentConfig() {
-                  public int maxDepth() {
-                    return 6;
-                  }
-
-                  public int maxArrayLength() {
-                    return 1000000;
-                  }
-
-                  public int maxPageSize() {
-                    return 20;
-                  }
-
-                  public int searchPageSize() {
-                    return 1000;
-                  }
-
-                  public DocumentConfig.DocumentTableConfig table() {
-                    return new DocumentConfig.DocumentTableConfig() {
-                      public String keyColumnName() {
-                        return "key";
-                      }
-
-                      public String leafColumnName() {
-                        return "leaf";
-                      }
-
-                      public String stringValueColumnName() {
-                        return "text_value";
-                      }
-
-                      public String doubleValueColumnName() {
-                        return "dbl_value";
-                      }
-
-                      public String booleanValueColumnName() {
-                        return "bool_value";
-                      }
-
-                      public String pathColumnPrefix() {
-                        return "p";
-                      }
-                    };
-                  }
-                }));
-  }
+  @Inject private JsonConverter service;
 
   @Test
   public void convertToJsonDoc_testDeadLeaves() throws JsonProcessingException {
