@@ -72,7 +72,7 @@ EXPOSE 9080
 
 ENV STARGATE_BRIDGE_HOST=localhost
 ENV STARGATE_BRIDGE_PORT=8091
-ENV STARGATE_GRAPHQL_PORT=8080
+ENV STARGATE_GRAPHQL_PORT=9080
 
 COPY stargate-lib/graphql/sgv2*.jar stargate-lib/graphql/
 COPY ./starctl-service-graphql /starctl-service-graphql
