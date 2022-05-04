@@ -40,7 +40,7 @@ else
     fi
 fi
 
-eval declare -a JAVA_OPTS=("$REST_JAVA_OPTS")
+eval declare -a JAVA_OPTS=("$GRAPHQL_JAVA_OPTS")
 
 if [ ! "x$STARGATE_BRIDGE_HOST" == "x" ]; then
   JAVA_OPTS+=(-Ddw.stargate.bridge.host="$STARGATE_BRIDGE_HOST")
@@ -54,16 +54,16 @@ else
   JAVA_OPTS+=(-Ddw.stargate.bridge.port=8091)
 fi
 
-if [ ! "x$STARGATE_REST_PORT" == "x" ]; then
-  JAVA_OPTS+=(-Ddw.server.connector.port="$STARGATE_REST_PORT")
+if [ ! "x$STARGATE_GRAPHQL_PORT" == "x" ]; then
+  JAVA_OPTS+=(-Ddw.server.connector.port="$STARGATE_GRAPHQL_PORT")
 else
-  JAVA_OPTS+=(-Ddw.server.connector.port=8082)
+  JAVA_OPTS+=(-Ddw.server.connector.port=9080)
 fi
 
-echo "Starting REST API Service"
+echo "Starting GraphQL API Service"
 
 declare -a CMD=(java -server)
 CMD+=("${JAVA_OPTS[@]}")
-CMD+=(-jar $STARGATE_HOME/rest/sgv2-rest-service*.jar)
+CMD+=(-jar $STARGATE_HOME/graphql/sgv2-graphqlapi*.jar)
 echo "Running" "${CMD[@]}"
 exec "${CMD[@]}"

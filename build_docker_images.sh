@@ -69,4 +69,5 @@ rm -rf ${LIBDIR}
 #
 
 docker buildx build --target restapi -t stargateio/restapi:$SGTAG $DOCKER_FLAGS .
+docker buildx build --target graphqlapi -t stargateio/graphqlapi:$SGTAG $DOCKER_FLAGS .
 

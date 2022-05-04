@@ -16,6 +16,8 @@ echo $PWD
 # start REST API service
 ./starctl-service-rest &
 
+./starctl-service-graphql &
+
 # pass along same arguments to script to start coordinator
 ./starctl-coordinator "$@" &
 
