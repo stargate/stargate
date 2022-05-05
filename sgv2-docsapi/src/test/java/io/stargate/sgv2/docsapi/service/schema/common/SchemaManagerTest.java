@@ -37,6 +37,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.stargate.bridge.proto.Schema;
+import io.stargate.sgv2.common.grpc.UnauthorizedKeyspaceException;
 import io.stargate.sgv2.docsapi.BridgeTest;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import java.util.Optional;
@@ -532,7 +533,7 @@ class SchemaManagerTest extends BridgeTest {
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
 
-      result.awaitFailure().assertFailedWith(RuntimeException.class);
+      result.awaitFailure().assertFailedWith(UnauthorizedKeyspaceException.class);
       verify(bridgeService).authorizeSchemaReads(schemaReadsCaptor.capture(), any());
       verifyNoMoreInteractions(bridgeService);
 

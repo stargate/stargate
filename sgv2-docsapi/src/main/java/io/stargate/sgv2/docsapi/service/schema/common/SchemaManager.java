@@ -30,6 +30,7 @@ import io.quarkus.cache.CompositeCacheKey;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridge;
+import io.stargate.sgv2.common.grpc.UnauthorizedKeyspaceException;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.grpc.GrpcClients;
 import java.util.Objects;
@@ -73,8 +74,7 @@ public class SchemaManager {
               if (authorized) {
                 return getKeyspaceInternal(bridge, keyspace);
               } else {
-                // TODO correct exception and mapping
-                RuntimeException unauthorized = new RuntimeException("Unauthorized");
+                RuntimeException unauthorized = new UnauthorizedKeyspaceException(keyspace);
                 return Uni.createFrom().failure(unauthorized);
               }
             });
