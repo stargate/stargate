@@ -20,6 +20,7 @@ import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.bridge.proto.QueryOuterClass.Row;
 import io.stargate.bridge.proto.QueryOuterClass.Value;
 import java.util.List;
+import java.util.Objects;
 
 /** A wrapper around the protobuf-generated {@link Row}, to add the column metadata. */
 public class ExtendedRow {
@@ -30,6 +31,10 @@ public class ExtendedRow {
   public ExtendedRow(List<ColumnSpec> columns, Row row) {
     this.columns = columns;
     this.row = row;
+  }
+
+  public boolean columnExists(String columnName) {
+    return columns.stream().anyMatch(c -> Objects.equals(c.getName(), columnName));
   }
 
   public boolean isNull(String columnName) {
