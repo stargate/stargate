@@ -20,36 +20,69 @@ package io.stargate.sgv2.docsapi.service.schema.common;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.opentelemetry.extension.annotations.WithSpan;
+import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheInvalidate;
 import io.quarkus.cache.CacheKey;
+import io.quarkus.cache.CacheName;
 import io.quarkus.cache.CacheResult;
+import io.quarkus.cache.CaffeineCache;
+import io.quarkus.cache.CompositeCacheKey;
 import io.smallrye.mutiny.Uni;
-import io.stargate.proto.Schema;
-import io.stargate.proto.StargateBridge;
+import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.grpc.GrpcClients;
 import java.util.Objects;
+import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 @ApplicationScoped
 public class SchemaManager {
 
-  Schema.SchemaRead.SourceApi sourceApi;
+  @Inject
+  @CacheName("keyspace-cache")
+  Cache keyspaceCache;
 
-  @Inject GrpcClients clients;
+  @Inject GrpcClients grpcClients;
+
+  @Inject Schema.SchemaRead.SourceApi sourceApi;
 
   @Inject StargateRequestInfo requestInfo;
 
-  // TODO getKeyspaceAuthorized do we really need this?
-  // TODO keyspace name mapper
-  // TODO bridge in the request info
-  // TODO source API as the parameter
   @WithSpan
-  public Uni<Schema.CqlKeyspaceDescribe> getKeyspaceAuthorized(String keyspaceName) {
-    // first authorize read, then fetch
-    StargateBridge bridge = clients.bridgeClient(requestInfo);
+  public Uni<Schema.CqlKeyspaceDescribe> getKeyspace(String keyspace) {
+    StargateBridge bridge = grpcClients.bridgeClient(requestInfo);
+    return getKeyspaceInternal(bridge, keyspace);
+  }
 
+  @WithSpan
+  public Uni<Schema.CqlKeyspaceDescribe> getKeyspaceAuthorized(String keyspace) {
+    StargateBridge bridge = grpcClients.bridgeClient(requestInfo);
+
+    // call bridge to authorize
+    return authorizeKeyspaceInternal(bridge, keyspace)
+
+        // on result
+        .onItem()
+        .transformToUni(
+            authorized -> {
+
+              // if authorized, go fetch keyspace
+              // otherwise throw correct exception
+              if (authorized) {
+                return getKeyspaceInternal(bridge, keyspace);
+              } else {
+                // TODO correct exception and mapping
+                RuntimeException unauthorized = new RuntimeException("Unauthorized");
+                return Uni.createFrom().failure(unauthorized);
+              }
+            });
+  }
+
+  // authorizes a keyspace by provided name, no transformations applied
+  public Uni<Boolean> authorizeKeyspaceInternal(StargateBridge bridge, String keyspaceName) {
+    // first authorize read, then fetch
     Schema.SchemaRead build =
         Schema.SchemaRead.newBuilder()
             .setSourceApi(sourceApi)
@@ -64,35 +97,34 @@ public class SchemaManager {
         .authorizeSchemaReads(request)
 
         // on result
-        .onItem()
-        .transformToUni(
+        .map(
             response -> {
-
               // we have only one schema read request
-              Boolean authorized = response.getAuthorizedList().iterator().next();
-
-              // if authorized, go fetch keyspace
-              // otherwise throw correct exception
-              if (authorized) {
-                return getKeyspace(keyspaceName);
-              } else {
-                // TODO correct exception and mapping
-                RuntimeException unauthorized = new RuntimeException("Unauthorized");
-                return Uni.createFrom().failure(unauthorized);
-              }
+              return response.getAuthorizedList().iterator().next();
             });
   }
 
-  @WithSpan
-  public Uni<Schema.CqlKeyspaceDescribe> getKeyspace(String keyspaceName) {
-    StargateBridge bridge = clients.bridgeClient(requestInfo);
+  // gets a keyspace by provided name, no transformations applied
+  private Uni<Schema.CqlKeyspaceDescribe> getKeyspaceInternal(
+      StargateBridge bridge, String keyspaceName) {
+    Optional<String> tenantId = requestInfo.getTenantId();
+
+    // check if cached, if so we need to revalidate hash
+    CompositeCacheKey cacheKey = new CompositeCacheKey(keyspaceName, tenantId);
+    boolean cached = keyspaceCache.as(CaffeineCache.class).keySet().contains(cacheKey);
 
     // get keyspace from cache
-    return fetchKeyspace(keyspaceName, bridge)
+    return fetchKeyspace(keyspaceName, tenantId, bridge)
 
         // check hash still matches
         .flatMap(
             keyspace -> {
+              // if it was not cached before, we can simply return
+              // no need to check
+              if (!cached) {
+                return Uni.createFrom().item(keyspace);
+              }
+
               Schema.DescribeKeyspaceQuery request =
                   Schema.DescribeKeyspaceQuery.newBuilder()
                       .setKeyspaceName(keyspaceName)
@@ -108,8 +140,8 @@ public class SchemaManager {
                         // if we have updated keyspace cache and return
                         // otherwise return what we had in the cache already
                         if (null != updatedKeyspace && updatedKeyspace.hasCqlKeyspace()) {
-                          invalidateKeyspace(keyspaceName);
-                          return cacheKeyspace(keyspaceName, updatedKeyspace);
+                          invalidateKeyspace(keyspaceName, tenantId);
+                          return cacheKeyspace(keyspaceName, tenantId, updatedKeyspace);
                         } else {
                           return Uni.createFrom().item(keyspace);
                         }
@@ -123,7 +155,7 @@ public class SchemaManager {
             t -> {
               if (t instanceof StatusRuntimeException sre) {
                 if (Objects.equals(sre.getStatus().getCode(), Status.Code.NOT_FOUND)) {
-                  invalidateKeyspace(keyspaceName);
+                  invalidateKeyspace(keyspaceName, tenantId);
                   return Uni.createFrom().nullItem();
                 }
               }
@@ -135,7 +167,7 @@ public class SchemaManager {
   // fetches the keyspace from the bridge and caches it
   @CacheResult(cacheName = "keyspace-cache")
   protected Uni<Schema.CqlKeyspaceDescribe> fetchKeyspace(
-      @CacheKey String keyspaceName, StargateBridge bridge) {
+      @CacheKey String keyspaceName, @CacheKey Optional<String> tenantId, StargateBridge bridge) {
     // create request
     Schema.DescribeKeyspaceQuery request =
         Schema.DescribeKeyspaceQuery.newBuilder().setKeyspaceName(keyspaceName).build();
@@ -147,11 +179,14 @@ public class SchemaManager {
   // simple utility to cache given keyspace
   @CacheResult(cacheName = "keyspace-cache")
   protected Uni<Schema.CqlKeyspaceDescribe> cacheKeyspace(
-      @CacheKey String keyspaceName, Schema.CqlKeyspaceDescribe keyspace) {
+      @CacheKey String keyspaceName,
+      @CacheKey Optional<String> tenantId,
+      Schema.CqlKeyspaceDescribe keyspace) {
     return Uni.createFrom().item(keyspace);
   }
 
   // simple utility to invalidate keyspace
   @CacheInvalidate(cacheName = "keyspace-cache")
-  protected void invalidateKeyspace(@CacheKey String keyspaceName) {}
+  protected void invalidateKeyspace(
+      @CacheKey String keyspaceName, @CacheKey Optional<String> tenantId) {}
 }
