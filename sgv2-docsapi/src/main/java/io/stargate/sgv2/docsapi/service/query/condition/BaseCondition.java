@@ -17,6 +17,7 @@
 package io.stargate.sgv2.docsapi.service.query.condition;
 
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.FilterOperationCode;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
@@ -48,6 +49,9 @@ public interface BaseCondition extends Predicate<RowWrapper> {
   /** @return Returns the query value. */
   Object getQueryValue();
 
+  /** @return Reference to the document properties. */
+  DocumentProperties documentProperties();
+
   /**
    * Returns the most specific value type implied by this condition.
    *
@@ -70,7 +74,7 @@ public interface BaseCondition extends Predicate<RowWrapper> {
    * @return Returns resolved value or <code>null</code>
    */
   default String getString(RowWrapper row) {
-    return DocsApiUtils.getStringFromRow(row);
+    return DocsApiUtils.getStringFromRow(row, documentProperties());
   }
 
   /**
@@ -80,7 +84,7 @@ public interface BaseCondition extends Predicate<RowWrapper> {
    * @return Returns resolved value or <code>null</code>
    */
   default Double getDouble(RowWrapper row) {
-    return DocsApiUtils.getDoubleFromRow(row);
+    return DocsApiUtils.getDoubleFromRow(row, documentProperties());
   }
 
   /**
@@ -91,6 +95,6 @@ public interface BaseCondition extends Predicate<RowWrapper> {
    * @return Returns resolved value or <code>null</code>
    */
   default Boolean getBoolean(RowWrapper row, boolean numericBooleans) {
-    return DocsApiUtils.getBooleanFromRow(row, numericBooleans);
+    return DocsApiUtils.getBooleanFromRow(row, documentProperties(), numericBooleans);
   }
 }

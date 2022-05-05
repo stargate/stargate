@@ -17,6 +17,7 @@
 package io.stargate.sgv2.docsapi.service.query.condition.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -25,13 +26,16 @@ import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Literal;
 import io.stargate.sgv2.common.cql.builder.Predicate;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.ValueFilterOperation;
 import java.util.Optional;
 import org.apache.commons.lang3.RandomUtils;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -41,6 +45,16 @@ class NumberConditionTest {
   @Mock ValueFilterOperation filterOperation;
   @Mock ValueFilterOperation filterOperation2;
 
+  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+  DocumentProperties documentProperties;
+
+  @BeforeEach
+  public void init() {
+    lenient()
+        .when(documentProperties.tableProperties().doubleValueColumnName())
+        .thenReturn("dbl_value");
+  }
+
   @Nested
   class Constructor {
 
@@ -48,7 +62,8 @@ class NumberConditionTest {
     public void predicateValidated() {
       Number value = RandomUtils.nextLong();
 
-      NumberCondition condition = ImmutableNumberCondition.of(filterOperation, value);
+      NumberCondition condition =
+          ImmutableNumberCondition.of(filterOperation, value, documentProperties);
 
       assertThat(condition).isNotNull();
       verify(filterOperation).validateNumberFilterInput(value);
@@ -65,7 +80,8 @@ class NumberConditionTest {
       Number value = RandomUtils.nextLong();
       when(filterOperation.getQueryPredicate()).thenReturn(Optional.of(eq));
 
-      ImmutableNumberCondition condition = ImmutableNumberCondition.of(filterOperation, value);
+      ImmutableNumberCondition condition =
+          ImmutableNumberCondition.of(filterOperation, value, documentProperties);
       Optional<BuiltCondition> result = condition.getBuiltCondition();
 
       assertThat(result)
@@ -83,7 +99,8 @@ class NumberConditionTest {
       Number value = RandomUtils.nextLong();
       when(filterOperation.getQueryPredicate()).thenReturn(Optional.empty());
 
-      ImmutableNumberCondition condition = ImmutableNumberCondition.of(filterOperation, value);
+      ImmutableNumberCondition condition =
+          ImmutableNumberCondition.of(filterOperation, value, documentProperties);
       Optional<BuiltCondition> result = condition.getBuiltCondition();
 
       assertThat(result).isEmpty();
@@ -102,7 +119,7 @@ class NumberConditionTest {
       when(filterOperation.test(null, filterValue)).thenReturn(true);
 
       ImmutableNumberCondition condition =
-          ImmutableNumberCondition.of(filterOperation, filterValue);
+          ImmutableNumberCondition.of(filterOperation, filterValue, documentProperties);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -117,7 +134,7 @@ class NumberConditionTest {
       when(filterOperation.test(databaseValue, filterValue)).thenReturn(true);
 
       ImmutableNumberCondition condition =
-          ImmutableNumberCondition.of(filterOperation, filterValue);
+          ImmutableNumberCondition.of(filterOperation, filterValue, documentProperties);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -130,7 +147,8 @@ class NumberConditionTest {
     void simple() {
       when(filterOperation.negate()).thenReturn(filterOperation2);
 
-      NumberCondition condition = ImmutableNumberCondition.of(filterOperation, 123);
+      NumberCondition condition =
+          ImmutableNumberCondition.of(filterOperation, 123, documentProperties);
 
       assertThat(condition.negate())
           .isInstanceOfSatisfying(
@@ -138,6 +156,7 @@ class NumberConditionTest {
               negated -> {
                 assertThat(negated.getQueryValue()).isEqualTo(123);
                 assertThat(negated.getFilterOperation()).isEqualTo(filterOperation2);
+                assertThat(negated.documentProperties()).isEqualTo(documentProperties);
               });
     }
   }

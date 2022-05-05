@@ -19,8 +19,8 @@ package io.stargate.sgv2.docsapi.service.query.condition.impl;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
-import io.stargate.sgv2.docsapi.service.query.DocsApiConstants;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.FilterOperationCode;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.ValueFilterOperation;
@@ -47,6 +47,10 @@ public abstract class BooleanCondition implements BaseCondition {
     return Boolean.class;
   }
 
+  /** @return The reference to DocumentProperties */
+  @Value.Parameter
+  public abstract DocumentProperties documentProperties();
+
   /** @return If booleans should be considered as numeric values. */
   @Value.Parameter
   public abstract boolean isNumericBooleans();
@@ -60,6 +64,7 @@ public abstract class BooleanCondition implements BaseCondition {
   /** {@inheritDoc} */
   @Override
   public Optional<BuiltCondition> getBuiltCondition() {
+    String column = documentProperties().tableProperties().booleanValueColumnName();
     return getFilterOperation()
         .getQueryPredicate()
         .map(
@@ -67,8 +72,7 @@ public abstract class BooleanCondition implements BaseCondition {
               // note that if we have numeric booleans then we need to adapt the query value
               QueryOuterClass.Value value =
                   isNumericBooleans() ? (getQueryValue() ? ONE : ZERO) : Values.of(getQueryValue());
-              return BuiltCondition.of(
-                  DocsApiConstants.BOOLEAN_VALUE_COLUMN_NAME, predicate, value);
+              return BuiltCondition.of(column, predicate, value);
             });
   }
 
@@ -94,6 +98,6 @@ public abstract class BooleanCondition implements BaseCondition {
   @Override
   public BaseCondition negate() {
     return ImmutableBooleanCondition.of(
-        getFilterOperation().negate(), getQueryValue(), isNumericBooleans());
+        getFilterOperation().negate(), getQueryValue(), documentProperties(), isNumericBooleans());
   }
 }

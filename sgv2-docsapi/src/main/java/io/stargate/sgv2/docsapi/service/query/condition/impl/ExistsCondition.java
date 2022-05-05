@@ -17,6 +17,7 @@
 package io.stargate.sgv2.docsapi.service.query.condition.impl;
 
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.FilterOperationCode;
@@ -34,6 +35,10 @@ public abstract class ExistsCondition implements BaseCondition {
   /** @return Filter query value. */
   @Value.Parameter
   public abstract Boolean getQueryValue();
+
+  /** @return The reference to DocumentProperties */
+  @Value.Parameter
+  public abstract DocumentProperties documentProperties();
 
   /** {@inheritDoc} */
   @Override
@@ -69,6 +74,6 @@ public abstract class ExistsCondition implements BaseCondition {
 
   @Override
   public BaseCondition negate() {
-    return ImmutableExistsCondition.of(!getQueryValue());
+    return ImmutableExistsCondition.of(!getQueryValue(), documentProperties());
   }
 }

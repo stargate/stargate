@@ -24,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.quarkus.test.junit.QuarkusTest;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.service.query.condition.impl.ImmutableExistsCondition;
@@ -55,6 +56,8 @@ class ConditionParserTest {
   @Inject ConditionParser conditionParser;
 
   @Inject ObjectMapper objectMapper;
+
+  @Inject DocumentProperties documentProperties;
 
   @Nested
   class GetConditions {
@@ -106,7 +109,8 @@ class ConditionParserTest {
       Collection<BaseCondition> conditions = conditionParser.getConditions(node, NUMERIC_BOOLEANS);
 
       Assertions.assertThat(conditions)
-          .containsOnly(ImmutableStringCondition.of(EqFilterOperation.of(), value));
+          .containsOnly(
+              ImmutableStringCondition.of(EqFilterOperation.of(), value, documentProperties));
     }
 
     @Test
@@ -117,7 +121,8 @@ class ConditionParserTest {
       Collection<BaseCondition> conditions = conditionParser.getConditions(node, NUMERIC_BOOLEANS);
 
       Assertions.assertThat(conditions)
-          .containsOnly(ImmutableStringCondition.of(NeFilterOperation.of(), value));
+          .containsOnly(
+              ImmutableStringCondition.of(NeFilterOperation.of(), value, documentProperties));
     }
 
     @Test
@@ -128,7 +133,8 @@ class ConditionParserTest {
       Collection<BaseCondition> conditions = conditionParser.getConditions(node, NUMERIC_BOOLEANS);
 
       Assertions.assertThat(conditions)
-          .containsOnly(ImmutableStringCondition.of(GtFilterOperation.of(), value));
+          .containsOnly(
+              ImmutableStringCondition.of(GtFilterOperation.of(), value, documentProperties));
     }
 
     @Test
@@ -139,7 +145,8 @@ class ConditionParserTest {
       Collection<BaseCondition> conditions = conditionParser.getConditions(node, NUMERIC_BOOLEANS);
 
       Assertions.assertThat(conditions)
-          .containsOnly(ImmutableStringCondition.of(GteFilterOperation.of(), value));
+          .containsOnly(
+              ImmutableStringCondition.of(GteFilterOperation.of(), value, documentProperties));
     }
 
     @Test
@@ -150,7 +157,8 @@ class ConditionParserTest {
       Collection<BaseCondition> conditions = conditionParser.getConditions(node, NUMERIC_BOOLEANS);
 
       Assertions.assertThat(conditions)
-          .containsOnly(ImmutableStringCondition.of(LtFilterOperation.of(), value));
+          .containsOnly(
+              ImmutableStringCondition.of(LtFilterOperation.of(), value, documentProperties));
     }
 
     @Test
@@ -161,7 +169,8 @@ class ConditionParserTest {
       Collection<BaseCondition> conditions = conditionParser.getConditions(node, NUMERIC_BOOLEANS);
 
       Assertions.assertThat(conditions)
-          .containsOnly(ImmutableStringCondition.of(LteFilterOperation.of(), value));
+          .containsOnly(
+              ImmutableStringCondition.of(LteFilterOperation.of(), value, documentProperties));
     }
 
     @Test
@@ -170,7 +179,8 @@ class ConditionParserTest {
 
       Collection<BaseCondition> conditions = conditionParser.getConditions(node, NUMERIC_BOOLEANS);
 
-      Assertions.assertThat(conditions).containsOnly(ImmutableExistsCondition.of(true));
+      Assertions.assertThat(conditions)
+          .containsOnly(ImmutableExistsCondition.of(true, documentProperties));
     }
 
     @Test
@@ -184,7 +194,8 @@ class ConditionParserTest {
       expected.add(2);
       Assertions.assertThat(conditions)
           .containsOnly(
-              ImmutableGenericCondition.of(InFilterOperation.of(), expected, NUMERIC_BOOLEANS));
+              ImmutableGenericCondition.of(
+                  InFilterOperation.of(), expected, documentProperties, NUMERIC_BOOLEANS));
     }
 
     @Test
@@ -198,7 +209,8 @@ class ConditionParserTest {
       expected.add(2);
       Assertions.assertThat(conditions)
           .containsOnly(
-              ImmutableGenericCondition.of(NotInFilterOperation.of(), expected, NUMERIC_BOOLEANS));
+              ImmutableGenericCondition.of(
+                  NotInFilterOperation.of(), expected, documentProperties, NUMERIC_BOOLEANS));
     }
   }
 }

@@ -20,6 +20,7 @@ import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.options.ExprOptions;
 import com.bpodgursky.jbool_expressions.rules.RuleList;
 import com.bpodgursky.jbool_expressions.util.ExprFactory;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.FilterHintCode;
@@ -165,7 +166,8 @@ public abstract class FilterExpression extends Expression<FilterExpression>
   // if given row matches the filter path in the
   public boolean matchesFilterPath(RowWrapper row) {
     List<String> targetPath = getFilterPath().getPath();
-    return DocsApiUtils.isRowMatchingPath(row, targetPath);
+    DocumentProperties properties = getCondition().documentProperties();
+    return DocsApiUtils.isRowMatchingPath(row, targetPath, properties);
   }
 
   // below is Expression relevant implementation that targets this

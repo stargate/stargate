@@ -16,6 +16,7 @@
 
 package io.stargate.sgv2.docsapi.service.query;
 
+import io.stargate.sgv2.docsapi.config.constants.Constants;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -45,8 +46,8 @@ public interface FilterPath {
     return getParentPath().stream()
         .noneMatch(
             p ->
-                Objects.equals(p, DocsApiConstants.GLOB_VALUE)
-                    || Objects.equals(p, DocsApiConstants.GLOB_ARRAY_VALUE));
+                Objects.equals(p, Constants.GLOB_VALUE)
+                    || Objects.equals(p, Constants.GLOB_ARRAY_VALUE));
   }
 
   /** @return The name of the field. Effectively, the last element of {@link #getPath()}. */

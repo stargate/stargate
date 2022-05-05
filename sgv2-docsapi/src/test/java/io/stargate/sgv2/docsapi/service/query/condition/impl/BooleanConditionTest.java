@@ -17,6 +17,7 @@
 package io.stargate.sgv2.docsapi.service.query.condition.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -25,15 +26,18 @@ import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Literal;
 import io.stargate.sgv2.common.cql.builder.Predicate;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.ValueFilterOperation;
 import java.util.Optional;
 import org.apache.commons.lang3.RandomUtils;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -43,13 +47,24 @@ class BooleanConditionTest {
   @Mock ValueFilterOperation filterOperation;
   @Mock ValueFilterOperation filterOperation2;
 
+  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+  DocumentProperties documentProperties;
+
+  @BeforeEach
+  public void init() {
+    lenient()
+        .when(documentProperties.tableProperties().booleanValueColumnName())
+        .thenReturn("bool_value");
+  }
+
   @Nested
   class Constructor {
 
     @Test
     public void predicateValidated() {
 
-      BooleanCondition condition = ImmutableBooleanCondition.of(filterOperation, true, false);
+      BooleanCondition condition =
+          ImmutableBooleanCondition.of(filterOperation, true, documentProperties, false);
 
       assertThat(condition).isNotNull();
       verify(filterOperation).validateBooleanFilterInput(true);
@@ -67,7 +82,7 @@ class BooleanConditionTest {
       when(filterOperation.getQueryPredicate()).thenReturn(Optional.of(eq));
 
       ImmutableBooleanCondition condition =
-          ImmutableBooleanCondition.of(filterOperation, value, false);
+          ImmutableBooleanCondition.of(filterOperation, value, documentProperties, false);
       Optional<BuiltCondition> result = condition.getBuiltCondition();
 
       assertThat(result)
@@ -85,7 +100,7 @@ class BooleanConditionTest {
       when(filterOperation.getQueryPredicate()).thenReturn(Optional.of(eq));
 
       ImmutableBooleanCondition condition =
-          ImmutableBooleanCondition.of(filterOperation, true, true);
+          ImmutableBooleanCondition.of(filterOperation, true, documentProperties, true);
       Optional<BuiltCondition> result = condition.getBuiltCondition();
 
       assertThat(result)
@@ -103,7 +118,7 @@ class BooleanConditionTest {
       when(filterOperation.getQueryPredicate()).thenReturn(Optional.of(eq));
 
       ImmutableBooleanCondition condition =
-          ImmutableBooleanCondition.of(filterOperation, false, true);
+          ImmutableBooleanCondition.of(filterOperation, false, documentProperties, true);
       Optional<BuiltCondition> result = condition.getBuiltCondition();
 
       assertThat(result)
@@ -121,7 +136,7 @@ class BooleanConditionTest {
       when(filterOperation.getQueryPredicate()).thenReturn(Optional.empty());
 
       ImmutableBooleanCondition condition =
-          ImmutableBooleanCondition.of(filterOperation, value, true);
+          ImmutableBooleanCondition.of(filterOperation, value, documentProperties, true);
       Optional<BuiltCondition> result = condition.getBuiltCondition();
 
       assertThat(result).isEmpty();
@@ -140,7 +155,7 @@ class BooleanConditionTest {
       when(filterOperation.test(null, filterValue)).thenReturn(true);
 
       ImmutableBooleanCondition condition =
-          ImmutableBooleanCondition.of(filterOperation, filterValue, false);
+          ImmutableBooleanCondition.of(filterOperation, filterValue, documentProperties, false);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -155,7 +170,7 @@ class BooleanConditionTest {
       when(filterOperation.test(databaseValue, filterValue)).thenReturn(true);
 
       ImmutableBooleanCondition condition =
-          ImmutableBooleanCondition.of(filterOperation, filterValue, false);
+          ImmutableBooleanCondition.of(filterOperation, filterValue, documentProperties, false);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -170,7 +185,7 @@ class BooleanConditionTest {
       when(filterOperation.test(false, filterValue)).thenReturn(true);
 
       ImmutableBooleanCondition condition =
-          ImmutableBooleanCondition.of(filterOperation, filterValue, true);
+          ImmutableBooleanCondition.of(filterOperation, filterValue, documentProperties, true);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -185,7 +200,7 @@ class BooleanConditionTest {
       when(filterOperation.test(true, filterValue)).thenReturn(true);
 
       ImmutableBooleanCondition condition =
-          ImmutableBooleanCondition.of(filterOperation, filterValue, true);
+          ImmutableBooleanCondition.of(filterOperation, filterValue, documentProperties, true);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -199,7 +214,8 @@ class BooleanConditionTest {
     void simple(boolean queryValue) {
       when(filterOperation.negate()).thenReturn(filterOperation2);
 
-      BooleanCondition condition = ImmutableBooleanCondition.of(filterOperation, queryValue, true);
+      BooleanCondition condition =
+          ImmutableBooleanCondition.of(filterOperation, queryValue, documentProperties, true);
 
       assertThat(condition.negate())
           .isInstanceOfSatisfying(

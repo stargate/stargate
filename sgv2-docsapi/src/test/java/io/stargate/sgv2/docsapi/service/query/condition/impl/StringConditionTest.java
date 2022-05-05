@@ -17,6 +17,7 @@
 package io.stargate.sgv2.docsapi.service.query.condition.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
@@ -25,13 +26,16 @@ import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Literal;
 import io.stargate.sgv2.common.cql.builder.Predicate;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.ValueFilterOperation;
 import java.util.Optional;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -41,6 +45,16 @@ class StringConditionTest {
   @Mock ValueFilterOperation filterOperation;
   @Mock ValueFilterOperation filterOperation2;
 
+  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+  DocumentProperties documentProperties;
+
+  @BeforeEach
+  public void init() {
+    lenient()
+        .when(documentProperties.tableProperties().stringValueColumnName())
+        .thenReturn("text_value");
+  }
+
   @Nested
   class Constructor {
 
@@ -48,7 +62,8 @@ class StringConditionTest {
     public void predicateValidated() {
       String value = RandomStringUtils.randomAlphanumeric(16);
 
-      StringCondition condition = ImmutableStringCondition.of(filterOperation, value);
+      StringCondition condition =
+          ImmutableStringCondition.of(filterOperation, value, documentProperties);
 
       assertThat(condition).isNotNull();
       verify(filterOperation).validateStringFilterInput(value);
@@ -65,7 +80,8 @@ class StringConditionTest {
       String value = RandomStringUtils.randomAlphanumeric(16);
       when(filterOperation.getQueryPredicate()).thenReturn(Optional.of(eq));
 
-      ImmutableStringCondition condition = ImmutableStringCondition.of(filterOperation, value);
+      ImmutableStringCondition condition =
+          ImmutableStringCondition.of(filterOperation, value, documentProperties);
       Optional<BuiltCondition> result = condition.getBuiltCondition();
 
       assertThat(result)
@@ -82,7 +98,8 @@ class StringConditionTest {
       String value = RandomStringUtils.randomAlphanumeric(16);
       when(filterOperation.getQueryPredicate()).thenReturn(Optional.empty());
 
-      ImmutableStringCondition condition = ImmutableStringCondition.of(filterOperation, value);
+      ImmutableStringCondition condition =
+          ImmutableStringCondition.of(filterOperation, value, documentProperties);
       Optional<BuiltCondition> result = condition.getBuiltCondition();
 
       assertThat(result).isEmpty();
@@ -101,7 +118,7 @@ class StringConditionTest {
       when(filterOperation.test(null, filterValue)).thenReturn(true);
 
       ImmutableStringCondition condition =
-          ImmutableStringCondition.of(filterOperation, filterValue);
+          ImmutableStringCondition.of(filterOperation, filterValue, documentProperties);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -116,7 +133,7 @@ class StringConditionTest {
       when(filterOperation.test(databaseValue, filterValue)).thenReturn(true);
 
       ImmutableStringCondition condition =
-          ImmutableStringCondition.of(filterOperation, filterValue);
+          ImmutableStringCondition.of(filterOperation, filterValue, documentProperties);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -129,7 +146,8 @@ class StringConditionTest {
     void simple() {
       when(filterOperation.negate()).thenReturn(filterOperation2);
 
-      StringCondition condition = ImmutableStringCondition.of(filterOperation, "test123");
+      StringCondition condition =
+          ImmutableStringCondition.of(filterOperation, "test123", documentProperties);
 
       assertThat(condition.negate())
           .isInstanceOfSatisfying(
@@ -137,6 +155,7 @@ class StringConditionTest {
               negated -> {
                 assertThat(negated.getQueryValue()).isEqualTo("test123");
                 assertThat(negated.getFilterOperation()).isEqualTo(filterOperation2);
+                assertThat(negated.documentProperties()).isEqualTo(documentProperties);
               });
     }
   }

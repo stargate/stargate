@@ -25,19 +25,21 @@ import static org.mockito.Mockito.when;
 import com.google.common.collect.ImmutableMap;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
-import io.stargate.sgv2.docsapi.service.query.DocsApiConstants;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -204,13 +206,21 @@ class DocsApiUtilsTest {
 
     @Mock RowWrapper row;
 
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    DocumentProperties documentProperties;
+
+    @BeforeEach
+    public void init() {
+      when(documentProperties.tableProperties().stringValueColumnName()).thenReturn("text_value");
+    }
+
     @Test
     public void happyPath() {
       String value = RandomStringUtils.randomAlphanumeric(16);
       when(row.isNull("text_value")).thenReturn(false);
       when(row.getString("text_value")).thenReturn(value);
 
-      String result = DocsApiUtils.getStringFromRow(row);
+      String result = DocsApiUtils.getStringFromRow(row, documentProperties);
 
       assertThat(result).isEqualTo(value);
     }
@@ -219,7 +229,7 @@ class DocsApiUtilsTest {
     public void noValue() {
       when(row.isNull("text_value")).thenReturn(true);
 
-      String result = DocsApiUtils.getStringFromRow(row);
+      String result = DocsApiUtils.getStringFromRow(row, documentProperties);
 
       assertThat(result).isNull();
     }
@@ -230,13 +240,21 @@ class DocsApiUtilsTest {
 
     @Mock RowWrapper row;
 
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    DocumentProperties documentProperties;
+
+    @BeforeEach
+    public void init() {
+      when(documentProperties.tableProperties().doubleValueColumnName()).thenReturn("dbl_value");
+    }
+
     @Test
     public void happyPath() {
       Double value = RandomUtils.nextDouble();
       when(row.isNull("dbl_value")).thenReturn(false);
       when(row.getDouble("dbl_value")).thenReturn(value);
 
-      Double result = DocsApiUtils.getDoubleFromRow(row);
+      Double result = DocsApiUtils.getDoubleFromRow(row, documentProperties);
 
       assertThat(result).isEqualTo(value);
     }
@@ -245,7 +263,7 @@ class DocsApiUtilsTest {
     public void noValue() {
       when(row.isNull("dbl_value")).thenReturn(true);
 
-      Double result = DocsApiUtils.getDoubleFromRow(row);
+      Double result = DocsApiUtils.getDoubleFromRow(row, documentProperties);
 
       assertThat(result).isNull();
     }
@@ -256,13 +274,21 @@ class DocsApiUtilsTest {
 
     @Mock RowWrapper row;
 
+    @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+    DocumentProperties documentProperties;
+
+    @BeforeEach
+    public void init() {
+      when(documentProperties.tableProperties().booleanValueColumnName()).thenReturn("bool_value");
+    }
+
     @Test
     public void happyPath() {
       boolean value = RandomUtils.nextBoolean();
       when(row.isNull("bool_value")).thenReturn(false);
       when(row.getBoolean("bool_value")).thenReturn(value);
 
-      Boolean result = DocsApiUtils.getBooleanFromRow(row, false);
+      Boolean result = DocsApiUtils.getBooleanFromRow(row, documentProperties, false);
 
       assertThat(result).isEqualTo(value);
     }
@@ -272,7 +298,7 @@ class DocsApiUtilsTest {
       when(row.isNull("bool_value")).thenReturn(false);
       when(row.getByte("bool_value")).thenReturn((byte) 0);
 
-      Boolean result = DocsApiUtils.getBooleanFromRow(row, true);
+      Boolean result = DocsApiUtils.getBooleanFromRow(row, documentProperties, true);
 
       assertThat(result).isFalse();
     }
@@ -282,7 +308,7 @@ class DocsApiUtilsTest {
       when(row.isNull("bool_value")).thenReturn(false);
       when(row.getByte("bool_value")).thenReturn((byte) 1);
 
-      Boolean result = DocsApiUtils.getBooleanFromRow(row, true);
+      Boolean result = DocsApiUtils.getBooleanFromRow(row, documentProperties, true);
 
       assertThat(result).isTrue();
     }
@@ -291,7 +317,7 @@ class DocsApiUtilsTest {
     public void noValue() {
       when(row.isNull("bool_value")).thenReturn(true);
 
-      Boolean result = DocsApiUtils.getBooleanFromRow(row, false);
+      Boolean result = DocsApiUtils.getBooleanFromRow(row, documentProperties, false);
 
       assertThat(result).isNull();
     }
@@ -302,22 +328,29 @@ class DocsApiUtilsTest {
 
     private final DocsApiTestSchemaProvider SCHEMA_PROVIDER = new DocsApiTestSchemaProvider(4);
 
+    @Mock DocumentProperties documentProperties;
+
+    @BeforeEach
+    public void init() {
+      when(documentProperties.tableProperties()).thenReturn(SCHEMA_PROVIDER.getTableProperties());
+    }
+
     @Test
     public void matchingExact() {
       List<String> path = Arrays.asList("field", "value");
       RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
-                  DocsApiConstants.LEAF_COLUMN_NAME,
+                  SCHEMA_PROVIDER.getTableProperties().leafColumnName(),
                   Values.of("value"),
-                  DocsApiConstants.P_COLUMN_NAME.apply(0),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0),
                   Values.of("field"),
-                  DocsApiConstants.P_COLUMN_NAME.apply(1),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1),
                   Values.of("value"),
-                  DocsApiConstants.P_COLUMN_NAME.apply(2),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(2),
                   Values.of("")));
 
-      boolean result = DocsApiUtils.isRowMatchingPath(row, path);
+      boolean result = DocsApiUtils.isRowMatchingPath(row, path, documentProperties);
 
       assertThat(result).isTrue();
     }
@@ -328,16 +361,16 @@ class DocsApiUtilsTest {
       RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
-                  DocsApiConstants.LEAF_COLUMN_NAME,
+                  SCHEMA_PROVIDER.getTableProperties().leafColumnName(),
                   Values.of("commas."),
-                  DocsApiConstants.P_COLUMN_NAME.apply(0),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0),
                   Values.of("field,with"),
-                  DocsApiConstants.P_COLUMN_NAME.apply(1),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1),
                   Values.of("commas."),
-                  DocsApiConstants.P_COLUMN_NAME.apply(2),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(2),
                   Values.of("")));
 
-      boolean result = DocsApiUtils.isRowMatchingPath(row, path);
+      boolean result = DocsApiUtils.isRowMatchingPath(row, path, documentProperties);
 
       assertThat(result).isTrue();
     }
@@ -348,18 +381,18 @@ class DocsApiUtilsTest {
       RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
-                  DocsApiConstants.LEAF_COLUMN_NAME,
+                  SCHEMA_PROVIDER.getTableProperties().leafColumnName(),
                   Values.of("value"),
-                  DocsApiConstants.P_COLUMN_NAME.apply(0),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0),
                   Values.of("field"),
-                  DocsApiConstants.P_COLUMN_NAME.apply(1),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1),
                   Values.of("value"),
-                  DocsApiConstants.P_COLUMN_NAME.apply(2),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(2),
                   Values.of("value"),
-                  DocsApiConstants.P_COLUMN_NAME.apply(3),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(3),
                   Values.of("")));
 
-      boolean result = DocsApiUtils.isRowMatchingPath(row, path);
+      boolean result = DocsApiUtils.isRowMatchingPath(row, path, documentProperties);
 
       assertThat(result).isFalse();
     }
@@ -370,16 +403,16 @@ class DocsApiUtilsTest {
       RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
-                  DocsApiConstants.LEAF_COLUMN_NAME,
+                  SCHEMA_PROVIDER.getTableProperties().leafColumnName(),
                   Values.of("other"),
-                  DocsApiConstants.P_COLUMN_NAME.apply(0),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0),
                   Values.of("field"),
-                  DocsApiConstants.P_COLUMN_NAME.apply(1),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1),
                   Values.of("other"),
-                  DocsApiConstants.P_COLUMN_NAME.apply(2),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(2),
                   Values.of("")));
 
-      boolean result = DocsApiUtils.isRowMatchingPath(row, path);
+      boolean result = DocsApiUtils.isRowMatchingPath(row, path, documentProperties);
 
       assertThat(result).isFalse();
     }
@@ -390,16 +423,23 @@ class DocsApiUtilsTest {
 
     private final DocsApiTestSchemaProvider SCHEMA_PROVIDER = new DocsApiTestSchemaProvider(4);
 
+    @Mock DocumentProperties documentProperties;
+
+    @BeforeEach
+    public void init() {
+      when(documentProperties.tableProperties()).thenReturn(SCHEMA_PROVIDER.getTableProperties());
+    }
+
     @Test
     public void matchingExact() {
       List<String> path = Arrays.asList("field", "value");
       RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
-                  DocsApiConstants.P_COLUMN_NAME.apply(0), Values.of("field"),
-                  DocsApiConstants.P_COLUMN_NAME.apply(1), Values.of("value")));
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0), Values.of("field"),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1), Values.of("value")));
 
-      boolean result = DocsApiUtils.isRowOnPath(row, path);
+      boolean result = DocsApiUtils.isRowOnPath(row, path, documentProperties);
 
       assertThat(result).isTrue();
     }
@@ -410,10 +450,10 @@ class DocsApiUtilsTest {
       RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
-                  DocsApiConstants.P_COLUMN_NAME.apply(0), Values.of("field,with"),
-                  DocsApiConstants.P_COLUMN_NAME.apply(1), Values.of("commas.")));
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0), Values.of("field,with"),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1), Values.of("commas.")));
 
-      boolean result = DocsApiUtils.isRowOnPath(row, path);
+      boolean result = DocsApiUtils.isRowOnPath(row, path, documentProperties);
 
       assertThat(result).isTrue();
     }
@@ -424,10 +464,10 @@ class DocsApiUtilsTest {
       RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
-                  DocsApiConstants.P_COLUMN_NAME.apply(0), Values.of("field"),
-                  DocsApiConstants.P_COLUMN_NAME.apply(1), Values.of("more")));
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0), Values.of("field"),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1), Values.of("more")));
 
-      boolean result = DocsApiUtils.isRowOnPath(row, path);
+      boolean result = DocsApiUtils.isRowOnPath(row, path, documentProperties);
 
       assertThat(result).isTrue();
     }
@@ -438,10 +478,10 @@ class DocsApiUtilsTest {
       RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
-                  DocsApiConstants.P_COLUMN_NAME.apply(0), Values.of("field"),
-                  DocsApiConstants.P_COLUMN_NAME.apply(1), Values.of("value2")));
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0), Values.of("field"),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1), Values.of("value2")));
 
-      boolean result = DocsApiUtils.isRowOnPath(row, path);
+      boolean result = DocsApiUtils.isRowOnPath(row, path, documentProperties);
 
       assertThat(result).isTrue();
     }
@@ -452,10 +492,10 @@ class DocsApiUtilsTest {
       RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
-                  DocsApiConstants.P_COLUMN_NAME.apply(0), Values.of("field"),
-                  DocsApiConstants.P_COLUMN_NAME.apply(1), Values.of("[000001]")));
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0), Values.of("field"),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1), Values.of("[000001]")));
 
-      boolean result = DocsApiUtils.isRowOnPath(row, path);
+      boolean result = DocsApiUtils.isRowOnPath(row, path, documentProperties);
 
       assertThat(result).isTrue();
     }
@@ -466,10 +506,10 @@ class DocsApiUtilsTest {
       RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
-                  DocsApiConstants.P_COLUMN_NAME.apply(0), Values.of("field"),
-                  DocsApiConstants.P_COLUMN_NAME.apply(1), Values.of("parent")));
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0), Values.of("field"),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1), Values.of("parent")));
 
-      boolean result = DocsApiUtils.isRowOnPath(row, path);
+      boolean result = DocsApiUtils.isRowOnPath(row, path, documentProperties);
 
       assertThat(result).isFalse();
     }
@@ -480,10 +520,10 @@ class DocsApiUtilsTest {
       RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
-                  DocsApiConstants.P_COLUMN_NAME.apply(0), Values.of("parent"),
-                  DocsApiConstants.P_COLUMN_NAME.apply(1), Values.of("")));
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0), Values.of("parent"),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1), Values.of("")));
 
-      boolean result = DocsApiUtils.isRowOnPath(row, path);
+      boolean result = DocsApiUtils.isRowOnPath(row, path, documentProperties);
 
       assertThat(result).isFalse();
     }
@@ -494,10 +534,10 @@ class DocsApiUtilsTest {
       RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
-                  DocsApiConstants.P_COLUMN_NAME.apply(0), Values.of("field"),
-                  DocsApiConstants.P_COLUMN_NAME.apply(1), Values.of("noValue")));
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0), Values.of("field"),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1), Values.of("noValue")));
 
-      boolean result = DocsApiUtils.isRowOnPath(row, path);
+      boolean result = DocsApiUtils.isRowOnPath(row, path, documentProperties);
 
       assertThat(result).isFalse();
     }
@@ -508,10 +548,10 @@ class DocsApiUtilsTest {
       RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
-                  DocsApiConstants.P_COLUMN_NAME.apply(0), Values.of("field"),
-                  DocsApiConstants.P_COLUMN_NAME.apply(1), Values.of("[000001]")));
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0), Values.of("field"),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1), Values.of("[000001]")));
 
-      boolean result = DocsApiUtils.isRowOnPath(row, path);
+      boolean result = DocsApiUtils.isRowOnPath(row, path, documentProperties);
 
       assertThat(result).isTrue();
     }
@@ -522,12 +562,12 @@ class DocsApiUtilsTest {
       RowWrapper row =
           SCHEMA_PROVIDER.getRow(
               ImmutableMap.of(
-                  DocsApiConstants.P_COLUMN_NAME.apply(0),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0),
                   Values.of("field"),
-                  DocsApiConstants.P_COLUMN_NAME.apply(1),
+                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1),
                   Values.of("value")));
 
-      boolean result = DocsApiUtils.isRowOnPath(row, path);
+      boolean result = DocsApiUtils.isRowOnPath(row, path, documentProperties);
 
       assertThat(result).isFalse();
     }

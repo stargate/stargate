@@ -63,7 +63,8 @@ class ExpressionParserTest {
 
   @Inject ObjectMapper mapper;
 
-  @InjectMock DocumentProperties documentProperties;
+  @InjectMock(returnsDeepMocks = true)
+  DocumentProperties documentProperties;
 
   @Nested
   class ConstructFilterExpression {

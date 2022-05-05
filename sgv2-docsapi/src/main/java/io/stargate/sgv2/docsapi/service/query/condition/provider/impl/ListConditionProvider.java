@@ -17,6 +17,7 @@
 package io.stargate.sgv2.docsapi.service.query.condition.provider.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
@@ -48,12 +49,13 @@ public class ListConditionProvider implements ConditionProvider {
 
   /** {@inheritDoc} */
   @Override
-  public Optional<? extends BaseCondition> createCondition(JsonNode node, boolean numericBooleans) {
+  public Optional<? extends BaseCondition> createCondition(
+      JsonNode node, DocumentProperties documentProperties, boolean numericBooleans) {
     if (node.isArray()) {
       Iterator<JsonNode> iterator = node.iterator();
       List<?> input = getListConditionValues(iterator);
       GenericCondition<List<?>> condition =
-          ImmutableGenericCondition.of(filterOperation, input, numericBooleans);
+          ImmutableGenericCondition.of(filterOperation, input, documentProperties, numericBooleans);
       return Optional.of(condition);
     }
     return Optional.empty();

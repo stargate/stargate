@@ -2,6 +2,7 @@ package io.stargate.sgv2.docsapi.service.query.condition.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -14,12 +15,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 class ExistsConditionTest {
 
+  @Mock DocumentProperties documentProperties;
+
   @Nested
   class Constructor {
 
     @Test
     public void assertPropsTrue() {
-      ExistsCondition condition = ImmutableExistsCondition.of(true);
+      ExistsCondition condition = ImmutableExistsCondition.of(true, documentProperties);
 
       assertThat(condition.isPersistenceCondition()).isTrue();
       assertThat(condition.isEvaluateOnMissingFields()).isFalse();
@@ -28,7 +31,7 @@ class ExistsConditionTest {
 
     @Test
     public void assertPropsFalse() {
-      ExistsCondition condition = ImmutableExistsCondition.of(false);
+      ExistsCondition condition = ImmutableExistsCondition.of(false, documentProperties);
 
       assertThat(condition.isPersistenceCondition()).isFalse();
       assertThat(condition.isEvaluateOnMissingFields()).isTrue();
@@ -43,14 +46,14 @@ class ExistsConditionTest {
 
     @Test
     public void existsTrue() {
-      ExistsCondition condition = ImmutableExistsCondition.of(true);
+      ExistsCondition condition = ImmutableExistsCondition.of(true, documentProperties);
 
       assertThat(condition.test(row)).isTrue();
     }
 
     @Test
     public void assertPropsFalse() {
-      ExistsCondition condition = ImmutableExistsCondition.of(false);
+      ExistsCondition condition = ImmutableExistsCondition.of(false, documentProperties);
 
       assertThat(condition.test(row)).isFalse();
     }
@@ -61,13 +64,14 @@ class ExistsConditionTest {
     @ParameterizedTest
     @CsvSource({"true", "false"})
     void simple(boolean queryValue) {
-      ExistsCondition condition = ImmutableExistsCondition.of(queryValue);
+      ExistsCondition condition = ImmutableExistsCondition.of(queryValue, documentProperties);
 
       assertThat(condition.negate())
           .isInstanceOfSatisfying(
               ExistsCondition.class,
               negated -> {
                 assertThat(negated.getQueryValue()).isEqualTo(!queryValue);
+                assertThat(negated.documentProperties()).isEqualTo(documentProperties);
               });
     }
   }

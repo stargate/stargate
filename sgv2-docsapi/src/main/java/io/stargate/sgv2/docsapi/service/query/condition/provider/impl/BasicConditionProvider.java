@@ -17,6 +17,7 @@
 package io.stargate.sgv2.docsapi.service.query.condition.provider.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
 import io.stargate.sgv2.docsapi.service.query.condition.impl.BooleanCondition;
 import io.stargate.sgv2.docsapi.service.query.condition.impl.ImmutableBooleanCondition;
@@ -49,16 +50,20 @@ public class BasicConditionProvider<V extends ValueFilterOperation> implements C
 
   /** {@inheritDoc} */
   @Override
-  public Optional<? extends BaseCondition> createCondition(JsonNode node, boolean numericBooleans) {
+  public Optional<? extends BaseCondition> createCondition(
+      JsonNode node, DocumentProperties documentProperties, boolean numericBooleans) {
     if (node.isNumber()) {
-      NumberCondition condition = ImmutableNumberCondition.of(filterOperation, node.numberValue());
+      NumberCondition condition =
+          ImmutableNumberCondition.of(filterOperation, node.numberValue(), documentProperties);
       return Optional.of(condition);
     } else if (node.isBoolean()) {
       BooleanCondition condition =
-          ImmutableBooleanCondition.of(filterOperation, node.asBoolean(), numericBooleans);
+          ImmutableBooleanCondition.of(
+              filterOperation, node.asBoolean(), documentProperties, numericBooleans);
       return Optional.of(condition);
     } else if (node.isTextual()) {
-      StringCondition condition = ImmutableStringCondition.of(filterOperation, node.asText());
+      StringCondition condition =
+          ImmutableStringCondition.of(filterOperation, node.asText(), documentProperties);
       return Optional.of(condition);
     }
     return Optional.empty();

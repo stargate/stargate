@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
 import io.stargate.sgv2.docsapi.service.query.condition.impl.BooleanCondition;
 import io.stargate.sgv2.docsapi.service.query.condition.impl.NumberCondition;
@@ -41,6 +42,8 @@ class BasicConditionProviderTest {
 
   @Mock NotNullValueFilterOperation filterOperation;
 
+  @Mock DocumentProperties documentProperties;
+
   @Nested
   class CreateCondition {
 
@@ -50,7 +53,8 @@ class BasicConditionProviderTest {
     public void invalidNode() {
       JsonNode node = objectMapper.createObjectNode();
 
-      Optional<? extends BaseCondition> result = provider.createCondition(node, false);
+      Optional<? extends BaseCondition> result =
+          provider.createCondition(node, documentProperties, false);
 
       assertThat(result).isEmpty();
     }
@@ -60,7 +64,8 @@ class BasicConditionProviderTest {
       boolean numericBooleans = RandomUtils.nextBoolean();
       JsonNode node = objectMapper.createObjectNode().put("some", true).get("some");
 
-      Optional<? extends BaseCondition> result = provider.createCondition(node, numericBooleans);
+      Optional<? extends BaseCondition> result =
+          provider.createCondition(node, documentProperties, numericBooleans);
 
       assertThat(result)
           .hasValueSatisfying(
@@ -72,6 +77,7 @@ class BasicConditionProviderTest {
                           assertThat(bc.getQueryValue()).isEqualTo(true);
                           assertThat(bc.isNumericBooleans()).isEqualTo(numericBooleans);
                           assertThat(bc.getFilterOperation()).isEqualTo(filterOperation);
+                          assertThat(bc.documentProperties()).isEqualTo(documentProperties);
                         });
               });
     }
@@ -81,7 +87,8 @@ class BasicConditionProviderTest {
       String value = "value";
       JsonNode node = objectMapper.createObjectNode().put("some", value).get("some");
 
-      Optional<? extends BaseCondition> result = provider.createCondition(node, false);
+      Optional<? extends BaseCondition> result =
+          provider.createCondition(node, documentProperties, false);
 
       assertThat(result)
           .hasValueSatisfying(
@@ -92,6 +99,7 @@ class BasicConditionProviderTest {
                         bc -> {
                           assertThat(bc.getQueryValue()).isEqualTo(value);
                           assertThat(bc.getFilterOperation()).isEqualTo(filterOperation);
+                          assertThat(bc.documentProperties()).isEqualTo(documentProperties);
                         });
               });
     }
@@ -101,7 +109,8 @@ class BasicConditionProviderTest {
       int value = 23;
       JsonNode node = objectMapper.createObjectNode().put("some", value).get("some");
 
-      Optional<? extends BaseCondition> result = provider.createCondition(node, false);
+      Optional<? extends BaseCondition> result =
+          provider.createCondition(node, documentProperties, false);
 
       assertThat(result)
           .hasValueSatisfying(
@@ -112,6 +121,7 @@ class BasicConditionProviderTest {
                         bc -> {
                           assertThat(bc.getQueryValue()).isEqualTo(value);
                           assertThat(bc.getFilterOperation()).isEqualTo(filterOperation);
+                          assertThat(bc.documentProperties()).isEqualTo(documentProperties);
                         });
               });
     }

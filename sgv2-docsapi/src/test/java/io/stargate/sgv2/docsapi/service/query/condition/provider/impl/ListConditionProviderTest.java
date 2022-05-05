@@ -22,6 +22,7 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
@@ -44,6 +45,8 @@ class ListConditionProviderTest {
 
   @Mock GenericFilterOperation<List<?>> filterOperation;
 
+  @Mock DocumentProperties documentProperties;
+
   @Nested
   class CreateCondition {
 
@@ -53,7 +56,8 @@ class ListConditionProviderTest {
     public void invalidNode() {
       JsonNode node = objectMapper.createObjectNode();
 
-      Optional<? extends BaseCondition> result = provider.createCondition(node, false);
+      Optional<? extends BaseCondition> result =
+          provider.createCondition(node, documentProperties, false);
 
       assertThat(result).isEmpty();
     }
@@ -64,7 +68,8 @@ class ListConditionProviderTest {
       ArrayNode node = objectMapper.createArrayNode();
       node.add(objectMapper.createObjectNode());
 
-      Throwable throwable = catchThrowable(() -> provider.createCondition(node, numericBooleans));
+      Throwable throwable =
+          catchThrowable(() -> provider.createCondition(node, documentProperties, numericBooleans));
 
       assertThat(throwable)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -76,7 +81,8 @@ class ListConditionProviderTest {
       ArrayNode node =
           objectMapper.createArrayNode().add(true).add(23).add("Jordan").add((String) null);
 
-      Optional<? extends BaseCondition> result = provider.createCondition(node, false);
+      Optional<? extends BaseCondition> result =
+          provider.createCondition(node, documentProperties, false);
 
       assertThat(result)
           .hasValueSatisfying(
@@ -91,6 +97,7 @@ class ListConditionProviderTest {
                               .hasSize(4)
                               .contains(Boolean.TRUE, 23, "Jordan", null);
                           assertThat(bc.getFilterOperation()).isEqualTo(filterOperation);
+                          assertThat(bc.documentProperties()).isEqualTo(documentProperties);
                         });
               });
     }

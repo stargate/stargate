@@ -16,10 +16,12 @@
 package io.stargate.sgv2.docsapi.service.util;
 
 import com.google.common.base.Strings;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
+import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
-import io.stargate.sgv2.docsapi.service.query.DocsApiConstants;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -82,7 +84,7 @@ public final class DocsApiUtils {
     if (isArrayPath(path)) {
       String innerPath = path.substring(1, path.length() - 1);
       // if it's wildcard keep as it is
-      if (!Objects.equals(innerPath, DocsApiConstants.GLOB_VALUE)) {
+      if (!Objects.equals(innerPath, Constants.GLOB_VALUE)) {
         // otherwise try to parse int
         try {
           // this can fail, thus wrap in the try
@@ -133,28 +135,31 @@ public final class DocsApiUtils {
     return path.stream().map(DocsApiUtils::convertEscapedCharacters).collect(Collectors.toList());
   }
 
-  public static String getStringFromRow(RowWrapper row) {
-    return row.isNull(DocsApiConstants.STRING_VALUE_COLUMN_NAME)
-        ? null
-        : row.getString(DocsApiConstants.STRING_VALUE_COLUMN_NAME);
+  public static String getStringFromRow(RowWrapper row, DocumentProperties properties) {
+    String columnName = properties.tableProperties().stringValueColumnName();
+
+    return row.isNull(columnName) ? null : row.getString(columnName);
   }
 
-  public static Double getDoubleFromRow(RowWrapper row) {
-    return row.isNull(DocsApiConstants.DOUBLE_VALUE_COLUMN_NAME)
-        ? null
-        : row.getDouble(DocsApiConstants.DOUBLE_VALUE_COLUMN_NAME);
+  public static Double getDoubleFromRow(RowWrapper row, DocumentProperties properties) {
+    String columnName = properties.tableProperties().doubleValueColumnName();
+
+    return row.isNull(columnName) ? null : row.getDouble(columnName);
   }
 
-  public static Boolean getBooleanFromRow(RowWrapper row, boolean numericBooleans) {
-    boolean nullValue = row.isNull(DocsApiConstants.BOOLEAN_VALUE_COLUMN_NAME);
+  public static Boolean getBooleanFromRow(
+      RowWrapper row, DocumentProperties properties, boolean numericBooleans) {
+    String columnName = properties.tableProperties().booleanValueColumnName();
+
+    boolean nullValue = row.isNull(columnName);
     if (nullValue) {
       return null;
     } else {
       if (numericBooleans) {
-        byte value = row.getByte(DocsApiConstants.BOOLEAN_VALUE_COLUMN_NAME);
+        byte value = row.getByte(columnName);
         return value != 0;
       } else {
-        return row.getBoolean(DocsApiConstants.BOOLEAN_VALUE_COLUMN_NAME);
+        return row.getBoolean(columnName);
       }
     }
   }
@@ -174,28 +179,31 @@ public final class DocsApiUtils {
    *
    * @param row Row
    * @param path path as iterable strings
+   * @param properties {@link DocumentProperties}
    * @return True if row is matching on the given path
    */
-  public static boolean isRowMatchingPath(RowWrapper row, List<String> path) {
+  public static boolean isRowMatchingPath(
+      RowWrapper row, List<String> path, DocumentProperties properties) {
+    DocumentTableProperties tableProperties = properties.tableProperties();
     int targetPathSize = path.size();
 
     // short-circuit if the field is not matching
     // we expect leaf to be always fetched
     String field = path.get(targetPathSize - 1);
-    String leaf = row.getString(DocsApiConstants.LEAF_COLUMN_NAME);
+    String leaf = row.getString(tableProperties.leafColumnName());
     if (!Objects.equals(DocsApiUtils.convertEscapedCharacters(field), leaf)) {
       return false;
     }
 
     // short-circuit if p_n after path is not empty
-    String targetP = DocsApiConstants.P_COLUMN_NAME.apply(targetPathSize);
+    String targetP = tableProperties.pathColumnName(targetPathSize);
     boolean exists = row.columnExists(targetP);
     if (!exists || !Objects.equals(row.getString(targetP), "")) {
       return false;
     }
 
     // then as last resort confirm the path is matching
-    return DocsApiUtils.isRowOnPath(row, path);
+    return DocsApiUtils.isRowOnPath(row, path, properties);
   }
 
   /**
@@ -214,12 +222,15 @@ public final class DocsApiUtils {
    * @param pathIterable path as iterable strings
    * @return True if row is fully on the given path
    */
-  public static boolean isRowOnPath(RowWrapper row, Iterable<String> pathIterable) {
+  public static boolean isRowOnPath(
+      RowWrapper row, Iterable<String> pathIterable, DocumentProperties properties) {
+    DocumentTableProperties tableProperties = properties.tableProperties();
+
     int p = 0;
     for (String target : pathIterable) {
       int index = p++;
       // check that row has the request path depth
-      String targetP = DocsApiConstants.P_COLUMN_NAME.apply(index);
+      String targetP = tableProperties.pathColumnName(index);
       boolean exists = row.columnExists(targetP);
       if (!exists) {
         return false;
@@ -229,12 +240,12 @@ public final class DocsApiUtils {
       String path = row.getString(targetP);
 
       // skip any target path that is a wildcard
-      if (Objects.equals(target, DocsApiConstants.GLOB_VALUE)) {
+      if (Objects.equals(target, Constants.GLOB_VALUE)) {
         continue;
       }
 
       // skip any target path that is an array wildcard
-      if (Objects.equals(target, DocsApiConstants.GLOB_ARRAY_VALUE)) {
+      if (Objects.equals(target, Constants.GLOB_ARRAY_VALUE)) {
         // but make sure this is not an normal field
         if (!ARRAY_PATH_PATTERN.matcher(path).matches()) {
           return false;

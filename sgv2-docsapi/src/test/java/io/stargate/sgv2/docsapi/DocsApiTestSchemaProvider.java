@@ -25,9 +25,11 @@ import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.bridge.proto.Schema.ColumnOrderBy;
 import io.stargate.bridge.proto.Schema.CqlTable;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
+import io.stargate.sgv2.docsapi.api.common.properties.document.impl.DocumentTablePropertiesImpl;
+import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.service.common.model.ImmutableRowWrapper;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
-import io.stargate.sgv2.docsapi.service.query.DocsApiConstants;
 import java.util.List;
 import java.util.stream.Stream;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -37,40 +39,59 @@ public class DocsApiTestSchemaProvider {
 
   private final CqlTable table;
 
+  private final DocumentTableProperties tableProperties;
+
   public DocsApiTestSchemaProvider(int maxDepth) {
     this(
         maxDepth,
+        new DocumentTablePropertiesImpl(
+            Constants.KEY_COLUMN_NAME,
+            Constants.LEAF_COLUMN_NAME,
+            Constants.STRING_VALUE_COLUMN_NAME,
+            Constants.DOUBLE_VALUE_COLUMN_NAME,
+            Constants.BOOLEAN_VALUE_COLUMN_NAME,
+            Constants.PATH_COLUMN_PREFIX));
+  }
+
+  public DocsApiTestSchemaProvider(int maxDepth, DocumentTableProperties tableProperties) {
+    this(
+        maxDepth,
+        tableProperties,
         RandomStringUtils.randomAlphabetic(16).toLowerCase(),
         RandomStringUtils.randomAlphabetic(16).toLowerCase());
   }
 
-  public DocsApiTestSchemaProvider(int maxDepth, String keyspaceName, String collectionName) {
+  public DocsApiTestSchemaProvider(
+      int maxDepth,
+      DocumentTableProperties tableProperties,
+      String keyspaceName,
+      String collectionName) {
     CqlTable.Builder tableBuilder =
         CqlTable.newBuilder()
             .setName(collectionName)
             .addPartitionKeyColumns(
                 ColumnSpec.newBuilder()
-                    .setName(DocsApiConstants.KEY_COLUMN_NAME)
+                    .setName(tableProperties.keyColumnName())
                     .setType(TypeSpecs.VARCHAR))
             .addColumns(
                 ColumnSpec.newBuilder()
-                    .setName(DocsApiConstants.LEAF_COLUMN_NAME)
+                    .setName(tableProperties.leafColumnName())
                     .setType(TypeSpecs.VARCHAR))
             .addColumns(
                 ColumnSpec.newBuilder()
-                    .setName(DocsApiConstants.STRING_VALUE_COLUMN_NAME)
+                    .setName(tableProperties.stringValueColumnName())
                     .setType(TypeSpecs.VARCHAR))
             .addColumns(
                 ColumnSpec.newBuilder()
-                    .setName(DocsApiConstants.DOUBLE_VALUE_COLUMN_NAME)
+                    .setName(tableProperties.doubleValueColumnName())
                     .setType(TypeSpecs.DOUBLE))
             .addColumns(
                 ColumnSpec.newBuilder()
-                    .setName(DocsApiConstants.BOOLEAN_VALUE_COLUMN_NAME)
+                    .setName(tableProperties.booleanValueColumnName())
                     .setType(TypeSpecs.BOOLEAN));
 
     for (int i = 0; i < maxDepth; i++) {
-      String columnName = DocsApiConstants.P_COLUMN_NAME.apply(i);
+      String columnName = tableProperties.pathColumnName(i);
       tableBuilder
           .addClusteringKeyColumns(
               ColumnSpec.newBuilder().setName(columnName).setType(TypeSpecs.VARCHAR))
@@ -78,10 +99,15 @@ public class DocsApiTestSchemaProvider {
     }
 
     table = tableBuilder.build();
+    this.tableProperties = tableProperties;
   }
 
   public CqlTable getTable() {
     return table;
+  }
+
+  public DocumentTableProperties getTableProperties() {
+    return tableProperties;
   }
 
   public RowWrapper getRow(ImmutableMap<String, Value> valuesMap) {

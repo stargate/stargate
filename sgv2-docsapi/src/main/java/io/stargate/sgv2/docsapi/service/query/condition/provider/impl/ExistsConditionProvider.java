@@ -17,6 +17,7 @@
 package io.stargate.sgv2.docsapi.service.query.condition.provider.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
 import io.stargate.sgv2.docsapi.service.query.condition.impl.ExistsCondition;
 import io.stargate.sgv2.docsapi.service.query.condition.impl.ImmutableExistsCondition;
@@ -28,9 +29,11 @@ public class ExistsConditionProvider implements ConditionProvider {
 
   /** {@inheritDoc} */
   @Override
-  public Optional<? extends BaseCondition> createCondition(JsonNode node, boolean numericBooleans) {
+  public Optional<? extends BaseCondition> createCondition(
+      JsonNode node, DocumentProperties documentProperties, boolean numericBooleans) {
     if (node.isBoolean()) {
-      ExistsCondition condition = ImmutableExistsCondition.of(node.booleanValue());
+      ExistsCondition condition =
+          ImmutableExistsCondition.of(node.booleanValue(), documentProperties);
       return Optional.of(condition);
     } else {
       return Optional.empty();

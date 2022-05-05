@@ -17,11 +17,13 @@
 package io.stargate.sgv2.docsapi.service.query.condition.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.GenericFilterOperation;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.impl.InFilterOperation;
@@ -33,6 +35,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Answers;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -41,8 +44,23 @@ class GenericConditionTest {
 
   @Mock GenericFilterOperation<Object> filterOperation;
   @Mock GenericFilterOperation<Object> filterOperation2;
-
   @Mock RowWrapper row;
+
+  @Mock(answer = Answers.RETURNS_DEEP_STUBS)
+  DocumentProperties documentProperties;
+
+  @BeforeEach
+  public void init() {
+    lenient()
+        .when(documentProperties.tableProperties().stringValueColumnName())
+        .thenReturn("text_value");
+    lenient()
+        .when(documentProperties.tableProperties().doubleValueColumnName())
+        .thenReturn("dbl_value");
+    lenient()
+        .when(documentProperties.tableProperties().booleanValueColumnName())
+        .thenReturn("bool_value");
+  }
 
   @Nested
   class Constructor {
@@ -52,7 +70,7 @@ class GenericConditionTest {
       Object queryValue = new Object();
 
       GenericCondition<Object> condition =
-          ImmutableGenericCondition.of(filterOperation, queryValue, true);
+          ImmutableGenericCondition.of(filterOperation, queryValue, documentProperties, true);
 
       assertThat(condition).isNotNull();
       verify(filterOperation).validateFilterInput(queryValue);
@@ -67,7 +85,7 @@ class GenericConditionTest {
     public void alwaysEmpty() {
 
       GenericCondition<Object> condition =
-          ImmutableGenericCondition.of(filterOperation, new Object(), true);
+          ImmutableGenericCondition.of(filterOperation, new Object(), documentProperties, true);
       Optional<BuiltCondition> result = condition.getBuiltCondition();
 
       assertThat(result).isEmpty();
@@ -88,7 +106,7 @@ class GenericConditionTest {
       when(filterOperation.test((String) null, filterValue)).thenReturn(true);
 
       GenericCondition<Object> condition =
-          ImmutableGenericCondition.of(filterOperation, filterValue, false);
+          ImmutableGenericCondition.of(filterOperation, filterValue, documentProperties, false);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -104,7 +122,7 @@ class GenericConditionTest {
       when(filterOperation.test(false, filterValue)).thenReturn(true);
 
       GenericCondition<Object> condition =
-          ImmutableGenericCondition.of(filterOperation, filterValue, false);
+          ImmutableGenericCondition.of(filterOperation, filterValue, documentProperties, false);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -121,7 +139,7 @@ class GenericConditionTest {
       when(filterOperation.test(false, filterValue)).thenReturn(true);
 
       GenericCondition<Object> condition =
-          ImmutableGenericCondition.of(filterOperation, filterValue, true);
+          ImmutableGenericCondition.of(filterOperation, filterValue, documentProperties, true);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -137,7 +155,7 @@ class GenericConditionTest {
       when(filterOperation.test(22d, filterValue)).thenReturn(true);
 
       GenericCondition<Object> condition =
-          ImmutableGenericCondition.of(filterOperation, filterValue, false);
+          ImmutableGenericCondition.of(filterOperation, filterValue, documentProperties, false);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -153,7 +171,7 @@ class GenericConditionTest {
       when(filterOperation.test("Jordan", filterValue)).thenReturn(true);
 
       GenericCondition<Object> condition =
-          ImmutableGenericCondition.of(filterOperation, filterValue, false);
+          ImmutableGenericCondition.of(filterOperation, filterValue, documentProperties, false);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -177,7 +195,8 @@ class GenericConditionTest {
       List<?> queryValue = Collections.singletonList(findMe);
 
       GenericCondition<List<?>> condition =
-          ImmutableGenericCondition.of(InFilterOperation.of(), queryValue, false);
+          ImmutableGenericCondition.of(
+              InFilterOperation.of(), queryValue, documentProperties, false);
       boolean result = condition.test(row);
 
       assertThat(result).isFalse();
@@ -191,7 +210,8 @@ class GenericConditionTest {
       when(row.getString("text_value")).thenReturn(findMe);
 
       GenericCondition<List<?>> condition =
-          ImmutableGenericCondition.of(InFilterOperation.of(), queryValue, false);
+          ImmutableGenericCondition.of(
+              InFilterOperation.of(), queryValue, documentProperties, false);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -203,7 +223,8 @@ class GenericConditionTest {
       List<?> queryValue = Collections.singletonList(findMe);
 
       GenericCondition<List<?>> condition =
-          ImmutableGenericCondition.of(NotInFilterOperation.of(), queryValue, false);
+          ImmutableGenericCondition.of(
+              NotInFilterOperation.of(), queryValue, documentProperties, false);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -217,7 +238,8 @@ class GenericConditionTest {
       when(row.getString("text_value")).thenReturn(findMe);
 
       GenericCondition<List<?>> condition =
-          ImmutableGenericCondition.of(NotInFilterOperation.of(), queryValue, false);
+          ImmutableGenericCondition.of(
+              NotInFilterOperation.of(), queryValue, documentProperties, false);
       boolean result = condition.test(row);
 
       assertThat(result).isFalse();
@@ -231,7 +253,8 @@ class GenericConditionTest {
       when(row.getString("text_value")).thenReturn("something");
 
       GenericCondition<List<?>> condition =
-          ImmutableGenericCondition.of(NotInFilterOperation.of(), queryValue, false);
+          ImmutableGenericCondition.of(
+              NotInFilterOperation.of(), queryValue, documentProperties, false);
       boolean result = condition.test(row);
 
       assertThat(result).isTrue();
@@ -246,7 +269,7 @@ class GenericConditionTest {
       when(filterOperation.negate()).thenReturn(filterOperation2);
 
       GenericCondition<Object> condition =
-          ImmutableGenericCondition.of(filterOperation, queryValue, true);
+          ImmutableGenericCondition.of(filterOperation, queryValue, documentProperties, true);
 
       assertThat(condition.negate())
           .isInstanceOfSatisfying(

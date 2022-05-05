@@ -17,6 +17,7 @@
 package io.stargate.sgv2.docsapi.service.query.condition.provider;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
 import java.util.Optional;
 
@@ -29,8 +30,10 @@ public interface ConditionProvider {
    * <code>"Honda"</code>
    *
    * @param node Value node from the filter op.
-   * @param numericBooleans If booleans should be considered as numberic values.
+   * @param documentProperties {@link DocumentProperties}
+   * @param numericBooleans If booleans should be considered as numeric values.
    * @return Optionally {@link BaseCondition}
    */
-  Optional<? extends BaseCondition> createCondition(JsonNode node, boolean numericBooleans);
+  Optional<? extends BaseCondition> createCondition(
+      JsonNode node, DocumentProperties documentProperties, boolean numericBooleans);
 }

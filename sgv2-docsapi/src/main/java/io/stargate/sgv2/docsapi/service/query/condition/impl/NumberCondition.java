@@ -18,8 +18,8 @@ package io.stargate.sgv2.docsapi.service.query.condition.impl;
 
 import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
-import io.stargate.sgv2.docsapi.service.query.DocsApiConstants;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.FilterOperationCode;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.ValueFilterOperation;
@@ -38,6 +38,10 @@ public abstract class NumberCondition implements BaseCondition {
   @Value.Parameter
   public abstract Number getQueryValue();
 
+  /** @return The reference to DocumentProperties */
+  @Value.Parameter
+  public abstract DocumentProperties documentProperties();
+
   @Override
   public Class<?> getQueryValueType() {
     return Number.class;
@@ -52,14 +56,12 @@ public abstract class NumberCondition implements BaseCondition {
   /** {@inheritDoc} */
   @Override
   public Optional<BuiltCondition> getBuiltCondition() {
+    String column = documentProperties().tableProperties().doubleValueColumnName();
     return getFilterOperation()
         .getQueryPredicate()
         .map(
             predicate ->
-                BuiltCondition.of(
-                    DocsApiConstants.DOUBLE_VALUE_COLUMN_NAME,
-                    predicate,
-                    Values.of(getQueryValue().doubleValue())));
+                BuiltCondition.of(column, predicate, Values.of(getQueryValue().doubleValue())));
   }
 
   /** {@inheritDoc} */
@@ -83,6 +85,7 @@ public abstract class NumberCondition implements BaseCondition {
 
   @Override
   public BaseCondition negate() {
-    return ImmutableNumberCondition.of(getFilterOperation().negate(), getQueryValue());
+    return ImmutableNumberCondition.of(
+        getFilterOperation().negate(), getQueryValue(), documentProperties());
   }
 }

@@ -17,6 +17,7 @@
 package io.stargate.sgv2.docsapi.service.query.condition;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.service.query.condition.provider.ConditionProvider;
@@ -29,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 
 /**
  * Simple service that wraps all available raw filter values and connects them to a {@link
@@ -36,6 +38,13 @@ import javax.enterprise.context.ApplicationScoped;
  */
 @ApplicationScoped
 public class ConditionParser {
+
+  private final DocumentProperties documentProperties;
+
+  @Inject
+  public ConditionParser(DocumentProperties documentProperties) {
+    this.documentProperties = documentProperties;
+  }
 
   /**
    * Creates the conditions for the node containing the raw filter ops as the keys. For example:
@@ -68,7 +77,8 @@ public class ConditionParser {
             JsonNode valueNode = field.getValue();
             FilterOperationCode code = operationCode.get();
             Optional<? extends BaseCondition> condition =
-                code.getConditionProvider().createCondition(valueNode, numericBooleans);
+                code.getConditionProvider()
+                    .createCondition(valueNode, documentProperties, numericBooleans);
             if (condition.isPresent()) {
               results.add(condition.get());
             } else {
