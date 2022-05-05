@@ -31,4 +31,21 @@ public class Literal implements Term {
   public Value get() {
     return value;
   }
+
+  @Override
+  public boolean equals(Object other) {
+    if (other == this) {
+      return true;
+    } else if (other instanceof Literal) {
+      Literal that = (Literal) other;
+      return Objects.equals(this.value, that.value);
+    } else {
+      return false;
+    }
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(value);
+  }
 }
