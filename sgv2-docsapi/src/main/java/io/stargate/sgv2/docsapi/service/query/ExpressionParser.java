@@ -24,6 +24,7 @@ import com.bpodgursky.jbool_expressions.Or;
 import com.bpodgursky.jbool_expressions.rules.RuleSet;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.collect.Streams;
+import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
@@ -44,8 +45,10 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+@ApplicationScoped
 public class ExpressionParser {
 
   private static final String NOT_OPERATOR = "$not";
@@ -55,13 +58,19 @@ public class ExpressionParser {
   private static final String AND_OPERATOR = "$and";
 
   private final ConditionParser conditionParser;
+
   private final DocumentProperties documentProperties;
+
+  private final DataStoreProperties dataStoreProperties;
 
   @Inject
   public ExpressionParser(
-      ConditionParser predicateProvider, DocumentProperties documentProperties) {
+      ConditionParser predicateProvider,
+      DocumentProperties documentProperties,
+      DataStoreProperties dataStoreProperties) {
     this.conditionParser = predicateProvider;
     this.documentProperties = documentProperties;
+    this.dataStoreProperties = dataStoreProperties;
   }
 
   /**
@@ -76,12 +85,12 @@ public class ExpressionParser {
    *
    * @param prependedPath Given collection or document path segments
    * @param filterJson Filter JSON node
-   * @param numericBooleans If number booleans should be used when creating conditions.
    * @return Returns optimized joined {@link Expression<FilterExpression>} for filtering
    */
   public Expression<FilterExpression> constructFilterExpression(
-      List<String> prependedPath, JsonNode filterJson, boolean numericBooleans) {
-    List<Expression<FilterExpression>> parse = parse(prependedPath, filterJson, numericBooleans);
+      List<String> prependedPath, JsonNode filterJson) {
+    List<Expression<FilterExpression>> parse =
+        parse(prependedPath, filterJson, dataStoreProperties.treatBooleansAsNumeric());
 
     // if this is empty we can simply return true
     if (parse.isEmpty()) {

@@ -25,7 +25,8 @@ import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.bridge.proto.Schema.ColumnOrderBy;
 import io.stargate.bridge.proto.Schema.CqlTable;
-import io.stargate.sgv2.docsapi.model.RowWrapper;
+import io.stargate.sgv2.docsapi.service.common.model.ImmutableRowWrapper;
+import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.DocsApiConstants;
 import java.util.List;
 import java.util.stream.Stream;
@@ -97,6 +98,6 @@ public class DocsApiTestSchemaProvider {
             // Make sure the values are in the same order as the columns
             .addAllValues(columnsInRow.stream().map(c -> valuesMap.get(c.getName())).toList())
             .build();
-    return new RowWrapper(columnsInRow, row);
+    return ImmutableRowWrapper.of(columnsInRow, row);
   }
 }

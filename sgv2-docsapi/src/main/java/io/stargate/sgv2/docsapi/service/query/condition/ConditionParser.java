@@ -28,11 +28,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import javax.enterprise.context.ApplicationScoped;
 
 /**
  * Simple service that wraps all available raw filter values and connects them to a {@link
  * ConditionProvider}, enabling parsing of the filter nodes.
  */
+@ApplicationScoped
 public class ConditionParser {
 
   /**

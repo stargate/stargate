@@ -10,23 +10,21 @@
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
+ *  See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  */
-package io.stargate.sgv2.docsapi.service;
+package io.stargate.sgv2.docsapi.service.query.model;
 
-import io.stargate.sgv2.docsapi.model.RowWrapper;
+import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import java.util.List;
+import org.immutables.value.Value;
 
-public class RawDocument {
+/** Raw document constructed from the Bridge response that represents a partial or full document. */
+@Value.Immutable
+public interface RawDocument {
 
-  private final List<RowWrapper> rows;
-
-  public RawDocument(List<RowWrapper> rows) {
-    this.rows = rows;
-  }
-
-  public List<RowWrapper> rows() {
-    return rows;
-  }
+  /** @return List of rows belonging to this document. */
+  @Value.Parameter
+  List<RowWrapper> rows();
 }

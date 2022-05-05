@@ -27,7 +27,7 @@ import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
-import io.stargate.sgv2.docsapi.model.RowWrapper;
+import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.DocsApiConstants;
 import java.util.Arrays;
 import java.util.Collections;

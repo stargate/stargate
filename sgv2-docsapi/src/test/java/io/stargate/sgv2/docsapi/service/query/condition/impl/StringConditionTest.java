@@ -25,7 +25,7 @@ import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Literal;
 import io.stargate.sgv2.common.cql.builder.Predicate;
-import io.stargate.sgv2.docsapi.model.RowWrapper;
+import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.ValueFilterOperation;
 import java.util.Optional;
 import org.apache.commons.lang3.RandomStringUtils;

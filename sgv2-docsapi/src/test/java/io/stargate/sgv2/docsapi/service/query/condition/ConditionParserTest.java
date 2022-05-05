@@ -23,6 +23,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.quarkus.test.junit.QuarkusTest;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.service.query.condition.impl.ImmutableExistsCondition;
@@ -39,22 +40,24 @@ import io.stargate.sgv2.docsapi.service.query.filter.operation.impl.NotInFilterO
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.RandomUtils;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+@QuarkusTest
 class ConditionParserTest {
 
-  private static final boolean NUMERIC_BOOLEANS = RandomUtils.nextBoolean();
+  // false with the default implementation
+  private static final boolean NUMERIC_BOOLEANS = false;
 
-  ConditionParser conditionParser = new ConditionParser();
+  @Inject ConditionParser conditionParser;
+
+  @Inject ObjectMapper objectMapper;
 
   @Nested
   class GetConditions {
-
-    ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     public void invalidNode() {

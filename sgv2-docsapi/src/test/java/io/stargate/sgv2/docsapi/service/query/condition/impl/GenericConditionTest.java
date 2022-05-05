@@ -22,7 +22,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
-import io.stargate.sgv2.docsapi.model.RowWrapper;
+import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.GenericFilterOperation;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.impl.InFilterOperation;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.impl.NotInFilterOperation;

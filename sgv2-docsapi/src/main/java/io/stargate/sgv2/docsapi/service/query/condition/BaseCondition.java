@@ -17,7 +17,7 @@
 package io.stargate.sgv2.docsapi.service.query.condition;
 
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
-import io.stargate.sgv2.docsapi.model.RowWrapper;
+import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.FilterOperationCode;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
 import java.util.Optional;
