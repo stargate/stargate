@@ -624,11 +624,10 @@ class ExpressionParserTest {
                                       assertThat(sc.getFilterOperation())
                                           .isEqualTo(InFilterOperation.of());
                                       assertThat(sc.getQueryValue())
-                                          .isInstanceOfSatisfying(
-                                              List.class,
-                                              qv -> {
-                                                List<?> list = qv;
-                                                assertThat(list).hasSize(2);
+                                          .asList()
+                                          .hasSize(2)
+                                          .satisfies(
+                                              list -> {
                                                 assertThat(list).element(0).isEqualTo("array-one");
                                                 assertThat(list).element(1).isEqualTo("array-two");
                                               });
