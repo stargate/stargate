@@ -96,6 +96,7 @@ public class DefaultStargateBridgeClientTest {
   @AfterEach
   public void teardown() {
     server.shutdownNow();
+    channel.shutdownNow();
   }
 
   @Test
