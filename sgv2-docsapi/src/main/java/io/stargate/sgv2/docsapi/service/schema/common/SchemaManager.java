@@ -51,12 +51,33 @@ public class SchemaManager {
 
   @Inject StargateRequestInfo requestInfo;
 
+  /**
+   * Get the keyspace from the bridge. Note that this method is not doing any authorization.
+   *
+   * @param keyspace Keyspace name
+   * @return Uni containing Schema.CqlKeyspaceDescribe or <code>null</code> item in case keyspace
+   *     does not exist.
+   */
   @WithSpan
   public Uni<Schema.CqlKeyspaceDescribe> getKeyspace(String keyspace) {
     StargateBridge bridge = grpcClients.bridgeClient(requestInfo);
     return getKeyspaceInternal(bridge, keyspace);
   }
 
+  /**
+   * Get the keyspace from the bridge. Prior to getting the keyspace it will execute the schema
+   * authorization request.
+   *
+   * <p>Emits a failure in case:
+   *
+   * <ol>
+   *   <li>Not authorized, with {@link UnauthorizedKeyspaceException}
+   * </ol>
+   *
+   * @param keyspace Keyspace name
+   * @return Uni containing Schema.CqlKeyspaceDescribe or <code>null</code> item in case keyspace
+   *     does not exist.
+   */
   @WithSpan
   public Uni<Schema.CqlKeyspaceDescribe> getKeyspaceAuthorized(String keyspace) {
     StargateBridge bridge = grpcClients.bridgeClient(requestInfo);
