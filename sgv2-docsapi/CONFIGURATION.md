@@ -76,3 +76,4 @@ The complete list of Quarkus available properties can be found on [All configura
 However, here are some Stargate-relevant properties groups that are important for correct setup of the service:
 
 * `quarkus.grpc.clients.bridge` - group of properties for defining the Bridge gRPC client (see [gRPC Client configuration](https://quarkus.io/guides/grpc-service-consumption#client-configuration) for all options)
+* `quarkus.cache.caffeine.keyspace-cache` - group of properties for defining the keyspace cache used by [SchemaManager](src/main/java/io/stargate/sgv2/docsapi/service/schema/common/SchemaManager.java) (see [Caffeine cache configuration](https://quarkus.io/guides/cache#caffeine-configuration-properties) for all options)
