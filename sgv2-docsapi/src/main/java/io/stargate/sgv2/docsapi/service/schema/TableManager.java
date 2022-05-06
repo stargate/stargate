@@ -30,8 +30,6 @@ import io.stargate.sgv2.docsapi.service.schema.common.SchemaManager;
 import io.stargate.sgv2.docsapi.service.schema.query.CollectionQueryProvider;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
@@ -50,6 +48,17 @@ public class TableManager {
   @Inject GrpcClients grpcClients;
 
   @Inject StargateRequestInfo stargateRequestInfo;
+
+  /**
+   * Fetches a table from the schema manager. Subclasses can override to use the authorized version.
+   *
+   * @param keyspaceName Keyspace
+   * @param tableName Table
+   * @return Table from schema manager
+   */
+  protected Uni<Schema.CqlTable> getTable(String keyspaceName, String tableName) {
+    return schemaManager.getTable(keyspaceName, tableName);
+  }
 
   /**
    * Creates a document table. Consider using the {@link #ensureValidDocumentTable(String, String)},
@@ -222,35 +231,6 @@ public class TableManager {
                         ErrorCode.DOCS_API_GENERAL_TABLE_NOT_A_COLLECTION, format);
                 return Uni.createFrom().failure(exception);
               }
-            });
-  }
-
-  // gets the table from the schema manager, if exists
-  private Uni<Schema.CqlTable> getTable(String keyspaceName, String tableName) {
-    // get from schema manager
-    return schemaManager
-        .getKeyspace(keyspaceName)
-
-        // if keyspace not found fail always
-        .onItem()
-        .ifNull()
-        .switchTo(
-            () -> {
-              String message =
-                  String.format("Unknown namespace %s, you must create it first.", keyspaceName);
-              Exception exception =
-                  new ErrorCodeRuntimeException(
-                      ErrorCode.DATASTORE_KEYSPACE_DOES_NOT_EXIST, message);
-              return Uni.createFrom().failure(exception);
-            })
-
-        // otherwise try to find the wanted table
-        .flatMap(
-            keyspace -> {
-              List<Schema.CqlTable> tables = keyspace.getTablesList();
-              Optional<Schema.CqlTable> table =
-                  tables.stream().filter(t -> Objects.equals(t.getName(), tableName)).findFirst();
-              return Uni.createFrom().optional(table);
             });
   }
 
