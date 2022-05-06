@@ -61,11 +61,12 @@ public class TableManager {
     return schemaManager.getTable(keyspaceName, tableName, getMissingKeyspaceFailure(keyspaceName));
   }
 
-    /**
-     * Supplier for the correct failure in case of the missing keyspace.
-     * @param keyspaceName Keyspace
-     * @return Uni emitting failure with {@link ErrorCode#DATASTORE_KEYSPACE_DOES_NOT_EXIST}.
-     */
+  /**
+   * Supplier for the correct failure in case of the missing keyspace.
+   *
+   * @param keyspaceName Keyspace
+   * @return Uni emitting failure with {@link ErrorCode#DATASTORE_KEYSPACE_DOES_NOT_EXIST}.
+   */
   protected Supplier<Uni<? extends Schema.CqlKeyspaceDescribe>> getMissingKeyspaceFailure(
       String keyspaceName) {
     return () -> {
@@ -93,7 +94,9 @@ public class TableManager {
   public Uni<Boolean> createCollectionTable(String namespace, String collection) {
     // first check that table name is valid
     if (!collection.matches("^\\w+$")) {
-      String message = "Could not create collection %s, it has invalid characters. Valid characters are alphanumeric and underscores.".formatted(collection);
+      String message =
+          "Could not create collection %s, it has invalid characters. Valid characters are alphanumeric and underscores."
+              .formatted(collection);
       Exception exception =
           new ErrorCodeRuntimeException(ErrorCode.DATASTORE_TABLE_NAME_INVALID, message);
       return Uni.createFrom().failure(exception);
@@ -235,7 +238,9 @@ public class TableManager {
               if (isValidCollectionTable(table)) {
                 return Uni.createFrom().item(table);
               } else {
-                String format = "The database table %s.%s is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted.".formatted(keyspaceName, tableName);
+                String format =
+                    "The database table %s.%s is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted."
+                        .formatted(keyspaceName, tableName);
                 Exception exception =
                     new ErrorCodeRuntimeException(
                         ErrorCode.DOCS_API_GENERAL_TABLE_NOT_A_COLLECTION, format);
