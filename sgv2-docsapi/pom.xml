@@ -46,6 +46,17 @@
       </exclusions>
     </dependency>
     <dependency>
+      <groupId>io.stargate</groupId>
+      <artifactId>sgv2-service-common</artifactId>
+      <version>${project.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>*</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-arc</artifactId>
     </dependency>
@@ -94,6 +105,17 @@
       <artifactId>quarkus-opentelemetry-exporter-otlp</artifactId>
     </dependency>
     <dependency>
+      <groupId>org.immutables</groupId>
+      <artifactId>value</artifactId>
+      <version>2.9.0</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.bpodgursky</groupId>
+      <artifactId>jbool_expressions</artifactId>
+      <version>1.23</version>
+    </dependency>
+    <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-junit5</artifactId>
       <scope>test</scope>
@@ -134,6 +156,28 @@
               <goal>generate-code</goal>
               <goal>generate-code-tests</goal>
             </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <phase>process-resources</phase>
+            <goals>
+              <goal>run</goal>
+            </goals>
+            <configuration>
+              <target>
+                <delete>
+                  <fileset dir="${project.build.directory}/generated-sources/grpc/io/stargate/bridge/proto">
+                    <include name="QueryOuterClass.java"/>
+                    <include name="Schema.java"/>
+                  </fileset>
+                </delete>
+              </target>
+            </configuration>
           </execution>
         </executions>
       </plugin>

@@ -20,6 +20,7 @@ import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.sgv2.common.cql.ColumnUtils;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.immutables.value.Value.Immutable;
 import org.immutables.value.Value.Style;
@@ -108,6 +109,23 @@ public interface BuiltCondition {
           StringBuilder builder, Map<Marker, Value> markers, List<Value> boundValues) {
         builder.append(ColumnUtils.maybeQuote(columnName));
       }
+
+      @Override
+      public boolean equals(Object other) {
+        if (other == this) {
+          return true;
+        } else if (other instanceof ColumnName) {
+          ColumnName that = (ColumnName) other;
+          return Objects.equals(this.columnName, that.columnName);
+        } else {
+          return false;
+        }
+      }
+
+      @Override
+      public int hashCode() {
+        return Objects.hash(columnName);
+      }
     }
 
     static final class MapElement extends LHS {
@@ -141,6 +159,24 @@ public interface BuiltCondition {
             .append('[')
             .append(QueryBuilderImpl.formatValue(keyValue, markers, boundValues))
             .append(']');
+      }
+
+      @Override
+      public boolean equals(Object other) {
+        if (other == this) {
+          return true;
+        } else if (other instanceof MapElement) {
+          MapElement that = (MapElement) other;
+          return Objects.equals(this.columnName, that.columnName)
+              && Objects.equals(this.keyValue, that.keyValue);
+        } else {
+          return false;
+        }
+      }
+
+      @Override
+      public int hashCode() {
+        return Objects.hash(columnName, keyValue);
       }
     }
   }

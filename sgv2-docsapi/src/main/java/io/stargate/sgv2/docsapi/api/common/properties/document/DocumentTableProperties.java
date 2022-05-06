@@ -37,4 +37,16 @@ public interface DocumentTableProperties {
 
   /** @return The prefix of the column where JSON path part is saved. */
   String pathColumnPrefix();
+
+  /**
+   * @param index Index of the path column
+   * @return Returns path column name for the specific index
+   */
+  default String pathColumnName(int index) {
+    if (index < 0) {
+      throw new IllegalArgumentException("Index must not be negative.");
+    }
+
+    return pathColumnPrefix() + index;
+  }
 }
