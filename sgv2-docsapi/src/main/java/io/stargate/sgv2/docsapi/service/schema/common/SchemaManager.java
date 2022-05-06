@@ -34,12 +34,11 @@ import io.stargate.sgv2.common.grpc.SchemaReads;
 import io.stargate.sgv2.common.grpc.UnauthorizedKeyspaceException;
 import io.stargate.sgv2.common.grpc.UnauthorizedTableException;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
-import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
-import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.grpc.GrpcClients;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Supplier;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
@@ -72,21 +71,20 @@ public class SchemaManager {
   /**
    * Get the table from the bridge. Note that this method is not doing any authorization.
    *
-   * <p>Emits a failure in case:
-   *
-   * <ol>
-   *   <li>Keyspace does not exists, with {@link ErrorCode#DATASTORE_KEYSPACE_DOES_NOT_EXIST}
-   * </ol>
-   *
    * @param keyspace Keyspace name
    * @param table Table name
+   * @param missingKeyspace Supplier of the keyspace in case it's not existing. Usually there to
+   *     provide a failure.
    * @return Uni containing Schema.CqlTable or <code>null</code> item in case the table does not
    *     exist.
    */
   @WithSpan
-  public Uni<Schema.CqlTable> getTable(String keyspace, String table) {
+  public Uni<Schema.CqlTable> getTable(
+      String keyspace,
+      String table,
+      Supplier<Uni<? extends Schema.CqlKeyspaceDescribe>> missingKeyspace) {
     StargateBridge bridge = grpcClients.bridgeClient(requestInfo);
-    return getTableInternal(bridge, keyspace, table);
+    return getTableInternal(bridge, keyspace, table, missingKeyspace);
   }
 
   /**
@@ -133,17 +131,21 @@ public class SchemaManager {
    * <p>Emits a failure in case:
    *
    * <ol>
-   *   <li>Keyspace does not exists, with {@link ErrorCode#DATASTORE_KEYSPACE_DOES_NOT_EXIST}
-   *   <li>Not authorized, with {@link UnauthorizedKeyspaceException}
+   *   <li>Not authorized, with {@link UnauthorizedTableException}
    * </ol>
    *
    * @param keyspace Keyspace name
    * @param table Table name
+   * @param missingKeyspace Supplier of the keyspace in case it's not existing. Usually there to
+   *     provide a failure.
    * @return Uni containing Schema.CqlTable or <code>null</code> item in case the table does not
    *     exist.
    */
   @WithSpan
-  public Uni<Schema.CqlTable> getTableAuthorized(String keyspace, String table) {
+  public Uni<Schema.CqlTable> getTableAuthorized(
+      String keyspace,
+      String table,
+      Supplier<Uni<? extends Schema.CqlKeyspaceDescribe>> missingKeyspace) {
     StargateBridge bridge = grpcClients.bridgeClient(requestInfo);
 
     // first authorize read, then fetch
@@ -157,7 +159,7 @@ public class SchemaManager {
               // if authorized, go fetch keyspace
               // otherwise throw correct exception
               if (authorized) {
-                return getTableInternal(bridge, keyspace, table);
+                return getTableInternal(bridge, keyspace, table, missingKeyspace);
               } else {
                 RuntimeException unauthorized = new UnauthorizedTableException(keyspace, table);
                 return Uni.createFrom().failure(unauthorized);
@@ -257,22 +259,17 @@ public class SchemaManager {
 
   // gets a table by provided name in the given keyspace
   private Uni<Schema.CqlTable> getTableInternal(
-      StargateBridge bridge, String keyspaceName, String tableName) {
+      StargateBridge bridge,
+      String keyspaceName,
+      String tableName,
+      Supplier<Uni<? extends Schema.CqlKeyspaceDescribe>> missingKeyspace) {
     // get keyspace
     return getKeyspaceInternal(bridge, keyspaceName)
 
         // if keyspace not found fail always
         .onItem()
         .ifNull()
-        .switchTo(
-            () -> {
-              String message =
-                  String.format("Unknown namespace %s, you must create it first.", keyspaceName);
-              Exception exception =
-                  new ErrorCodeRuntimeException(
-                      ErrorCode.DATASTORE_KEYSPACE_DOES_NOT_EXIST, message);
-              return Uni.createFrom().failure(exception);
-            })
+        .switchTo(missingKeyspace)
 
         // otherwise try to find the wanted table
         .flatMap(

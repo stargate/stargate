@@ -31,6 +31,7 @@ import io.stargate.sgv2.docsapi.service.schema.query.CollectionQueryProvider;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -57,7 +58,22 @@ public class TableManager {
    * @return Table from schema manager
    */
   protected Uni<Schema.CqlTable> getTable(String keyspaceName, String tableName) {
-    return schemaManager.getTable(keyspaceName, tableName);
+    return schemaManager.getTable(keyspaceName, tableName, getMissingKeyspaceFailure(keyspaceName));
+  }
+
+    /**
+     * Supplier for the correct failure in case of the missing keyspace.
+     * @param keyspaceName Keyspace
+     * @return Uni emitting failure with {@link ErrorCode#DATASTORE_KEYSPACE_DOES_NOT_EXIST}.
+     */
+  protected Supplier<Uni<? extends Schema.CqlKeyspaceDescribe>> getMissingKeyspaceFailure(
+      String keyspaceName) {
+    return () -> {
+      String message = "Unknown namespace %s, you must create it first.".formatted(keyspaceName);
+      Exception exception =
+          new ErrorCodeRuntimeException(ErrorCode.DATASTORE_KEYSPACE_DOES_NOT_EXIST, message);
+      return Uni.createFrom().failure(exception);
+    };
   }
 
   /**
@@ -77,10 +93,7 @@ public class TableManager {
   public Uni<Boolean> createCollectionTable(String namespace, String collection) {
     // first check that table name is valid
     if (!collection.matches("^\\w+$")) {
-      String message =
-          String.format(
-              "Could not create collection %s, it has invalid characters. Valid characters are alphanumeric and underscores.",
-              collection);
+      String message = "Could not create collection %s, it has invalid characters. Valid characters are alphanumeric and underscores.".formatted(collection);
       Exception exception =
           new ErrorCodeRuntimeException(ErrorCode.DATASTORE_TABLE_NAME_INVALID, message);
       return Uni.createFrom().failure(exception);
@@ -169,7 +182,7 @@ public class TableManager {
         .ifNull()
         .switchTo(
             () -> {
-              String msg = String.format("Collection '%s' not found.", collection);
+              String msg = "Collection '%s' not found.".formatted(collection);
               Exception exception =
                   new ErrorCodeRuntimeException(ErrorCode.DATASTORE_TABLE_DOES_NOT_EXIST, msg);
               return Uni.createFrom().failure(exception);
@@ -222,10 +235,7 @@ public class TableManager {
               if (isValidCollectionTable(table)) {
                 return Uni.createFrom().item(table);
               } else {
-                String format =
-                    String.format(
-                        "The database table %s.%s is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted.",
-                        keyspaceName, tableName);
+                String format = "The database table %s.%s is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted.".formatted(keyspaceName, tableName);
                 Exception exception =
                     new ErrorCodeRuntimeException(
                         ErrorCode.DOCS_API_GENERAL_TABLE_NOT_A_COLLECTION, format);
