@@ -96,7 +96,8 @@ public class JsonConverterTest {
                         .compareTo(
                             Objects.requireNonNull(row2.getValues(indexOfCol("p3")).getString()))
                     * 100));
-    result = service.convertToJsonDoc(initial, columns(), collector, false, false);
+    rowWrappers = createRowWrappers(initial, columns());
+    result = service.convertToJsonDoc(rowWrappers, collector, false, false);
 
     assertThat(result.toString())
         .isEqualTo(
@@ -149,7 +150,8 @@ public class JsonConverterTest {
                         .compareTo(
                             Objects.requireNonNull(row2.getValues(indexOfCol("p3")).getString()))
                     * 100));
-    result = service.convertToJsonDoc(initial, columns(), collector, false, false);
+    rowWrappers = createRowWrappers(initial, columns());
+    result = service.convertToJsonDoc(rowWrappers, collector, false, false);
 
     assertThat(result.toString()).isEqualTo(mapper.readTree("[\"replaced\"]").toString());
 
@@ -197,7 +199,8 @@ public class JsonConverterTest {
                             Objects.requireNonNull(row2.getValues(indexOfCol("p3")).getString()))
                     * 100));
     DeadLeafCollectorImpl collector = new DeadLeafCollectorImpl();
-    JsonNode result = service.convertToJsonDoc(initial, columns(), collector, false, true);
+    List<RowWrapper> rowWrappers = createRowWrappers(initial, columns());
+    JsonNode result = service.convertToJsonDoc(rowWrappers, collector, false, true);
 
     assertThat(result.toString())
         .isEqualTo(
@@ -229,7 +232,8 @@ public class JsonConverterTest {
                         .compareTo(
                             Objects.requireNonNull(row2.getValues(indexOfCol("p3")).getString()))
                     * 100));
-    result = service.convertToJsonDoc(initial, columns(), collector, false, true);
+    rowWrappers = createRowWrappers(initial, columns());
+    result = service.convertToJsonDoc(rowWrappers, collector, false, true);
 
     assertThat(result.toString())
         .isEqualTo(
@@ -282,7 +286,8 @@ public class JsonConverterTest {
                         .compareTo(
                             Objects.requireNonNull(row2.getValues(indexOfCol("p3")).getString()))
                     * 100));
-    result = service.convertToJsonDoc(initial, columns(), collector, false, true);
+    rowWrappers = createRowWrappers(initial, columns());
+    result = service.convertToJsonDoc(rowWrappers, collector, false, true);
 
     assertThat(result.toString()).isEqualTo(mapper.readTree("[\"replaced\"]").toString());
 
@@ -329,7 +334,8 @@ public class JsonConverterTest {
                         .compareTo(
                             Objects.requireNonNull(row2.getValues(indexOfCol("p3")).getString()))
                     * 100));
-    JsonNode result = service.convertToJsonDoc(initial, columns(), false, false);
+    List<RowWrapper> rowWrappers = createRowWrappers(initial, columns());
+    JsonNode result = service.convertToJsonDoc(rowWrappers, false, false);
 
     assertThat(result.toString())
         .isEqualTo(
@@ -338,14 +344,15 @@ public class JsonConverterTest {
                     "{\"a\": {\"b\": {\"c\": true}}, \"d\": {\"e\": [3]}, \"f\": \"abc\",\"g\":{\"h\":\"something\"}}")
                 .toString());
 
-    result = service.convertToJsonDoc(new ArrayList<>(), columns(), false, false);
+    result = service.convertToJsonDoc(new ArrayList<>(), false, false);
     assertThat(result.toString()).isEqualTo(mapper.readTree("{}").toString());
   }
 
   @Test
   public void convertToJsonDoc_arrayConversion() throws JsonProcessingException {
     List<Row> initial = makeMultipleReplacements();
-    JsonNode result = service.convertToJsonDoc(initial, columns(), false, false);
+    List<RowWrapper> rowWrappers = createRowWrappers(initial, columns());
+    JsonNode result = service.convertToJsonDoc(rowWrappers, false, false);
 
     assertThat(result.toString())
         .isEqualTo(mapper.readTree("{\"a\":{\"b\":{\"c\":{}}}}").toString());
