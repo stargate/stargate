@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+/** Table manager provides basic operations on tables that are used for storing collections. */
 @ApplicationScoped
 public class TableManager {
 
@@ -255,6 +256,9 @@ public class TableManager {
 
   // checks that table contains expected columns
   private Boolean isValidCollectionTable(Schema.CqlTable table) {
+    // TODO Seems that proto is splitting the table columns per types
+    //  REVISIT!
+
     // all expected columns
     String[] expectedColumns = documentProperties.tableColumns().allColumnNames();
 

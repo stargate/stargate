@@ -7,6 +7,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.sgv2.docsapi.testprofiles.NumericBooleansTestProfile;
 import io.stargate.sgv2.docsapi.testprofiles.SaiEnabledTestProfile;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +52,39 @@ class CollectionQueryProviderTest {
       assertThat(result.getValues().getValuesCount()).isZero();
       assertThat(result.getParameters().getConsistency().getValue())
           .isEqualTo(QueryOuterClass.Consistency.ONE);
+    }
+  }
+
+  @Nested
+  @TestProfile(CreateCollectionQueryWithNumericBooleans.Profile.class)
+  class CreateCollectionQueryWithNumericBooleans {
+
+    public static class Profile extends NumericBooleansTestProfile {
+
+      @Override
+      public Map<String, String> getConfigOverrides() {
+        // adapt consistency, depth and column name(s)
+        return ImmutableMap.<String, String>builder()
+            .putAll(super.getConfigOverrides())
+            .put("stargate.document.max-depth", "4")
+            .build();
+      }
+    }
+
+    @Test
+    public void happyPath() {
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+
+      QueryOuterClass.Query result = queryProvider.createCollectionQuery(namespace, collection);
+
+      String cql =
+          "CREATE TABLE \"%s\".\"%s\" (key text, p0 text, p1 text, p2 text, p3 text, leaf text, text_value text, dbl_value double, bool_value tinyint, PRIMARY KEY ((key), p0, p1, p2, p3))"
+              .formatted(namespace, collection);
+      assertThat(result.getCql()).isEqualTo(cql);
+      assertThat(result.getValues().getValuesCount()).isZero();
+      assertThat(result.getParameters().getConsistency().getValue())
+          .isEqualTo(QueryOuterClass.Consistency.LOCAL_QUORUM);
     }
   }
 

@@ -17,6 +17,7 @@
 
 package io.stargate.sgv2.docsapi.api.common.properties.document.impl;
 
+import io.stargate.bridge.grpc.TypeSpecs;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableColumns;
@@ -91,9 +92,6 @@ public record DocumentTableColumnsImpl(
   }
 
   private static List<Column> allColumns(DocumentConfig config, boolean numberBooleans) {
-    // TODO adapt the TypeSpecs after https://github.com/stargate/stargate/pull/1771
-    // TODO add tests
-
     DocumentConfig.DocumentTableConfig table = config.table();
     int depth = config.maxDepth();
 
@@ -103,7 +101,7 @@ public record DocumentTableColumnsImpl(
     ImmutableColumn keyColumn =
         ImmutableColumn.builder()
             .name(table.keyColumnName())
-            .type("text")
+            .type(TypeSpecs.format(TypeSpecs.VARCHAR))
             .kind(Column.Kind.PARTITION_KEY)
             .build();
     result.add(keyColumn);
@@ -116,7 +114,7 @@ public record DocumentTableColumnsImpl(
                 pathName ->
                     ImmutableColumn.builder()
                         .name(pathName)
-                        .type("text")
+                        .type(TypeSpecs.format(TypeSpecs.VARCHAR))
                         .kind(Column.Kind.CLUSTERING)
                         .build())
             .toList();
@@ -124,27 +122,42 @@ public record DocumentTableColumnsImpl(
 
     // leaf column
     ImmutableColumn leaf =
-        ImmutableColumn.builder().name(table.leafColumnName()).type("text").build();
+        ImmutableColumn.builder()
+            .name(table.leafColumnName())
+            .type(TypeSpecs.format(TypeSpecs.VARCHAR))
+            .build();
     result.add(leaf);
 
     // string value
     ImmutableColumn stringValue =
-        ImmutableColumn.builder().name(table.stringValueColumnName()).type("text").build();
+        ImmutableColumn.builder()
+            .name(table.stringValueColumnName())
+            .type(TypeSpecs.format(TypeSpecs.VARCHAR))
+            .build();
     result.add(stringValue);
 
     // double value
     ImmutableColumn doubleValue =
-        ImmutableColumn.builder().name(table.doubleValueColumnName()).type("double").build();
+        ImmutableColumn.builder()
+            .name(table.doubleValueColumnName())
+            .type(TypeSpecs.format(TypeSpecs.DOUBLE))
+            .build();
     result.add(doubleValue);
 
     // boolean value
     ImmutableColumn booleanValue;
     if (numberBooleans) {
       booleanValue =
-          ImmutableColumn.builder().name(table.booleanValueColumnName()).type("tinyint").build();
+          ImmutableColumn.builder()
+              .name(table.booleanValueColumnName())
+              .type(TypeSpecs.format(TypeSpecs.TINYINT))
+              .build();
     } else {
       booleanValue =
-          ImmutableColumn.builder().name(table.booleanValueColumnName()).type("boolean").build();
+          ImmutableColumn.builder()
+              .name(table.booleanValueColumnName())
+              .type(TypeSpecs.format(TypeSpecs.BOOLEAN))
+              .build();
     }
     result.add(booleanValue);
 

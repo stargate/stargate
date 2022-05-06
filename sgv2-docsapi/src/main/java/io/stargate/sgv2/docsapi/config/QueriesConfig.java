@@ -10,7 +10,7 @@ import javax.validation.constraints.NotNull;
 @ConfigMapping(prefix = "stargate.queries")
 public interface QueriesConfig {
 
-  /** @return Specific settings for the <code>fixed</code> token resolver type. */
+  /** @return Settings for the consistency level. */
   @Valid
   QueriesConfig.ConsistencyConfig consistency();
 
