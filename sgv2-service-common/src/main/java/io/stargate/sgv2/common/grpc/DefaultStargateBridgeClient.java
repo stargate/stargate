@@ -60,7 +60,7 @@ import org.apache.commons.codec.binary.Hex;
 class DefaultStargateBridgeClient implements StargateBridgeClient {
 
   private static final int TIMEOUT_SECONDS = 5;
-  private static final Metadata.Key<String> HOST_KEY =
+  static final Metadata.Key<String> HOST_KEY =
       Metadata.Key.of("Host", Metadata.ASCII_STRING_MARSHALLER);
   static final Query SELECT_KEYSPACE_NAMES =
       Query.newBuilder().setCql("SELECT keyspace_name FROM system_schema.keyspaces").build();
@@ -69,6 +69,11 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
 
   private final Channel channel;
   private final CallOptions callOptions;
+  // A note on tenant handling: the tenant id is sent in the gRPC metadata, so the bridge will
+  // handle it transparently; client-facing methods like `executeQueryAsync()` and
+  // `authorizeSchemaReadsAsync()` use "undecorated" keyspace names.
+  // The only case where we need to decorate explicitly is the keyspace cache, because it is common
+  // to all clients, therefore it can contain keyspaces with the same name but different tenant ids.
   private final String tenantPrefix;
   private final Cache<String, CqlKeyspaceDescribe> keyspaceCache;
   private final LazyReference<CompletionStage<SupportedFeaturesResponse>> supportedFeaturesResponse;
@@ -130,7 +135,9 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
   private CompletionStage<CqlKeyspaceDescribe> getAuthorizedKeyspace(String keyspaceName) {
     CompletableFuture<CqlKeyspaceDescribe> result = new CompletableFuture<>();
 
-    CqlKeyspaceDescribe cached = keyspaceCache.getIfPresent(keyspaceName);
+    String decoratedKeyspaceName = decorateKeyspaceName(keyspaceName);
+
+    CqlKeyspaceDescribe cached = keyspaceCache.getIfPresent(decoratedKeyspaceName);
     Optional<Integer> cachedHash =
         Optional.ofNullable(cached)
             .filter(CqlKeyspaceDescribe::hasHash)
@@ -146,7 +153,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
                       == Status.Code.NOT_FOUND) {
                 // Keyspace does not exist. Update the cache if we previously thought it did.
                 if (cached != null) {
-                  keyspaceCache.invalidate(keyspaceName);
+                  keyspaceCache.invalidate(decoratedKeyspaceName);
                 }
                 result.complete(null);
               } else if (error != null) {
@@ -156,7 +163,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
                 // cached version.
                 result.complete(cached);
               } else {
-                keyspaceCache.put(keyspaceName, fetched);
+                keyspaceCache.put(decoratedKeyspaceName, fetched);
                 result.complete(fetched);
               }
             });
