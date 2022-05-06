@@ -69,6 +69,11 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
 
   private final Channel channel;
   private final CallOptions callOptions;
+  // A note on tenant handling: the tenant id is sent in the gRPC metadata, so the bridge will
+  // handle it transparently; client-facing methods like `executeQueryAsync()` and
+  // `authorizeSchemaReadsAsync()` use "undecorated" keyspace names.
+  // The only case where we need to decorate explicitly is the keyspace cache, because it is common
+  // to all clients, therefore it can contain keyspaces with the same name but different tenant ids.
   private final String tenantPrefix;
   private final Cache<String, CqlKeyspaceDescribe> keyspaceCache;
   private final LazyReference<CompletionStage<SupportedFeaturesResponse>> supportedFeaturesResponse;
