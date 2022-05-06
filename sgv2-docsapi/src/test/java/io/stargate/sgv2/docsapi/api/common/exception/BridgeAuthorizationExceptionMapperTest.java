@@ -37,6 +37,5 @@ class BridgeAuthorizationExceptionMapperTest {
       assertThat(response.getEntity().description())
           .isEqualTo("Unauthorized keyspace: my_keyspace");
     }
-    ;
   }
 }
