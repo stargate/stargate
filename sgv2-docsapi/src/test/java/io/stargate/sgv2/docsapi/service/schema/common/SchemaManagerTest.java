@@ -40,6 +40,7 @@ import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.common.grpc.UnauthorizedKeyspaceException;
 import io.stargate.sgv2.docsapi.BridgeTest;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
+import io.stargate.sgv2.docsapi.grpc.GrpcClients;
 import java.util.Optional;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -58,6 +59,8 @@ class SchemaManagerTest extends BridgeTest {
   @CacheName("keyspace-cache")
   Cache keyspaceCache;
 
+  @Inject GrpcClients grpcClients;
+
   @InjectMock StargateRequestInfo requestInfo;
 
   ArgumentCaptor<Schema.DescribeKeyspaceQuery> queryCaptor;
@@ -68,6 +71,9 @@ class SchemaManagerTest extends BridgeTest {
   public void initCaptor() {
     queryCaptor = ArgumentCaptor.forClass(Schema.DescribeKeyspaceQuery.class);
     schemaReadsCaptor = ArgumentCaptor.forClass(Schema.AuthorizeSchemaReadsRequest.class);
+    doAnswer(invocation -> grpcClients.bridgeClient(Optional.empty(), Optional.empty()))
+        .when(requestInfo)
+        .getStargateBridge();
   }
 
   @Nested

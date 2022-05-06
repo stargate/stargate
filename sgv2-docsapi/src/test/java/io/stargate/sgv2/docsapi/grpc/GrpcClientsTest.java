@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableMap;
 import io.grpc.Metadata;
@@ -12,12 +11,10 @@ import io.grpc.stub.StreamObserver;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
-import io.quarkus.test.junit.mockito.InjectMock;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.docsapi.BridgeTest;
-import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import java.util.Map;
 import java.util.Optional;
 import javax.inject.Inject;
@@ -42,8 +39,6 @@ class GrpcClientsTest extends BridgeTest {
   }
 
   @Inject GrpcClients grpcClients;
-
-  @InjectMock StargateRequestInfo requestInfo;
 
   ArgumentCaptor<Metadata> headersCaptor;
 
@@ -72,10 +67,8 @@ class GrpcClientsTest extends BridgeTest {
             })
         .when(bridgeService)
         .describeKeyspace(any(), any());
-    when(requestInfo.getCassandraToken()).thenReturn(Optional.of(token));
-    when(requestInfo.getTenantId()).thenReturn(Optional.of(tenant));
 
-    StargateBridge client = grpcClients.bridgeClient(requestInfo);
+    StargateBridge client = grpcClients.bridgeClient(Optional.of(tenant), Optional.of(token));
     UniAssertSubscriber<Schema.CqlKeyspaceDescribe> result =
         client.describeKeyspace(query).subscribe().withSubscriber(UniAssertSubscriber.create());
 
@@ -118,7 +111,7 @@ class GrpcClientsTest extends BridgeTest {
         .when(bridgeService)
         .describeKeyspace(any(), any());
 
-    StargateBridge client = grpcClients.bridgeClient(requestInfo);
+    StargateBridge client = grpcClients.bridgeClient(Optional.empty(), Optional.empty());
     UniAssertSubscriber<Schema.CqlKeyspaceDescribe> result =
         client.describeKeyspace(query).subscribe().withSubscriber(UniAssertSubscriber.create());
 
