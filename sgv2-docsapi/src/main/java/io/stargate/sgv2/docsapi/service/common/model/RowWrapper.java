@@ -67,6 +67,22 @@ public interface RowWrapper {
   }
 
   /**
+   * @return Value of the column as int.
+   * @throws IllegalArgumentException If column does not exist.
+   */
+  default Integer getInt(String columnName) {
+    return Values.int_(getValue(columnName));
+  }
+
+  /**
+   * @return Value of the column as long.
+   * @throws IllegalArgumentException If column does not exist.
+   */
+  default Long getLong(String columnName) {
+    return Values.bigint(getValue(columnName));
+  }
+
+  /**
    * @return Value of the column as byte.
    * @throws IllegalArgumentException If column does not exist.
    */

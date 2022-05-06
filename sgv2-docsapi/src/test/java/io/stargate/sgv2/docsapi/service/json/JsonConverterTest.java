@@ -15,6 +15,8 @@ import io.stargate.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.proto.QueryOuterClass.Row;
 import io.stargate.proto.QueryOuterClass.Value;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
+import io.stargate.sgv2.docsapi.service.common.model.ImmutableRowWrapper;
+import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -62,7 +64,8 @@ public class JsonConverterTest {
                             Objects.requireNonNull(row2.getValues(indexOfCol("p3")).getString()))
                     * 100));
     DeadLeafCollectorImpl collector = new DeadLeafCollectorImpl();
-    JsonNode result = service.convertToJsonDoc(initial, columns(), collector, false, false);
+    List<RowWrapper> rowWrappers = createRowWrappers(initial, columns());
+    JsonNode result = service.convertToJsonDoc(rowWrappers, collector, false, false);
 
     assertThat(result.toString())
         .isEqualTo(
@@ -652,5 +655,15 @@ public class JsonConverterTest {
       }
     }
     return -1;
+  }
+
+  public List<RowWrapper> createRowWrappers(List<Row> rows, List<ColumnSpec> columns) {
+    List<RowWrapper> rowWrappers = new ArrayList<>();
+    for (Row r : rows) {
+      ImmutableRowWrapper rowWrapper =
+          ImmutableRowWrapper.builder().row(r).columns(columns).build();
+      rowWrappers.add(rowWrapper);
+    }
+    return rowWrappers;
   }
 }
