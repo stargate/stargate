@@ -7,6 +7,7 @@ import com.datastax.bdp.db.nodes.Nodes;
 import com.datastax.bdp.db.util.ProductType;
 import com.datastax.bdp.db.util.ProductVersion;
 import com.datastax.bdp.node.transport.internode.InternodeClient;
+import com.datastax.bdp.snitch.EndpointStateTracker;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
@@ -156,6 +157,11 @@ public class DsePersistence
   @Override
   protected Iterable<KeyspaceMetadata> currentInternalSchema() {
     return Iterables.transform(org.apache.cassandra.db.Keyspace.all(), Keyspace::getMetadata);
+  }
+
+  @Override
+  public Map<String, Long> getStorageInfo() {
+    return EndpointStateTracker.instance.getAllKnownDatacenters();
   }
 
   @Override
