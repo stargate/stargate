@@ -146,6 +146,33 @@ public interface AuthorizationService {
       throws UnauthorizedException;
 
   /**
+   * Using the provided token will perform pre-authorization where possible and if not successful
+   * throws an exception.
+   *
+   * @param authenticationSubject The authenticated user to use for authorization.
+   * @param keyspace Either the keyspace containing the resource to be modified or the actual
+   *     resource being modified.
+   * @param table The table within the provided keyspace that is being modified.
+   * @param scope The {@link Scope} of the action to be performed.
+   * @param sourceAPI The source api which calls this method.
+   * @param resource The resource for which read authorization is being requested.
+   * @throws UnauthorizedException An exception relating to the failure to authorize.
+   */
+  default void authorizeAdvancedWorkloadSchemaWrite(
+      AuthenticationSubject authenticationSubject,
+      String keyspace,
+      String table,
+      Scope scope,
+      SourceAPI sourceAPI,
+      ResourceKind resource)
+      throws UnauthorizedException {
+    throw new UnauthorizedException(
+        String.format(
+            "Not authorized to access %s.%s for %s (from source api: %s)",
+            keyspace, table, scope.name(), sourceAPI.getName()));
+  }
+
+  /**
    * Using the provided token will perform pre-authorization of role management.
    *
    * @param authenticationSubject The authenticated user to use for authorization.
