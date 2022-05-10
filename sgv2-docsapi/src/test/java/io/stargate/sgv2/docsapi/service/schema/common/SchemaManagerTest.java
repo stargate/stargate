@@ -68,7 +68,7 @@ class SchemaManagerTest extends BridgeTest {
   ArgumentCaptor<Schema.AuthorizeSchemaReadsRequest> schemaReadsCaptor;
 
   @BeforeEach
-  public void initCaptor() {
+  public void init() {
     queryCaptor = ArgumentCaptor.forClass(Schema.DescribeKeyspaceQuery.class);
     schemaReadsCaptor = ArgumentCaptor.forClass(Schema.AuthorizeSchemaReadsRequest.class);
     doAnswer(invocation -> grpcClients.bridgeClient(Optional.empty(), Optional.empty()))

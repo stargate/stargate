@@ -20,8 +20,10 @@ import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
+import io.stargate.sgv2.docsapi.grpc.GrpcClients;
 import io.stargate.sgv2.docsapi.service.schema.query.CollectionQueryProvider;
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -40,13 +42,18 @@ class TableManagerTest extends BridgeTest {
 
   @Inject DocumentProperties documentProperties;
 
-  @InjectMock StargateRequestInfo stargateRequestInfo;
+  @Inject GrpcClients grpcClients;
+
+  @InjectMock StargateRequestInfo requestInfo;
 
   ArgumentCaptor<QueryOuterClass.Query> queryCaptor;
 
   @BeforeEach
   public void init() {
     queryCaptor = ArgumentCaptor.forClass(QueryOuterClass.Query.class);
+    doAnswer(invocation -> grpcClients.bridgeClient(Optional.empty(), Optional.empty()))
+        .when(requestInfo)
+        .getStargateBridge();
   }
 
   Schema.CqlKeyspaceDescribe getValidTableAndKeyspace(String namespace, String collection) {

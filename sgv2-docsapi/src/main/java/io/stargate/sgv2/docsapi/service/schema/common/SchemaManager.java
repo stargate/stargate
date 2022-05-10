@@ -83,7 +83,7 @@ public class SchemaManager {
       String keyspace,
       String table,
       Supplier<Uni<? extends Schema.CqlKeyspaceDescribe>> missingKeyspace) {
-    StargateBridge bridge = grpcClients.bridgeClient(requestInfo);
+    StargateBridge bridge = requestInfo.getStargateBridge();
     return getTableInternal(bridge, keyspace, table, missingKeyspace);
   }
 
@@ -146,7 +146,7 @@ public class SchemaManager {
       String keyspace,
       String table,
       Supplier<Uni<? extends Schema.CqlKeyspaceDescribe>> missingKeyspace) {
-    StargateBridge bridge = grpcClients.bridgeClient(requestInfo);
+    StargateBridge bridge = requestInfo.getStargateBridge();
 
     // first authorize read, then fetch
     return authorizeTableInternal(bridge, keyspace, table)

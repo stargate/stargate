@@ -48,7 +48,7 @@ public class TableManager {
 
   @Inject GrpcClients grpcClients;
 
-  @Inject StargateRequestInfo stargateRequestInfo;
+  @Inject StargateRequestInfo requestInfo;
 
   /**
    * Fetches a table from the schema manager. Subclasses can override to use the authorized version.
@@ -103,7 +103,7 @@ public class TableManager {
     }
 
     // get the client
-    StargateBridge bridge = grpcClients.bridgeClient(stargateRequestInfo);
+    StargateBridge bridge = requestInfo.getStargateBridge();
     QueryOuterClass.Query request =
         collectionQueryProvider.createCollectionQuery(namespace, collection);
 
@@ -152,7 +152,7 @@ public class TableManager {
         // if exists and valid docs table drop
         .flatMap(
             table -> {
-              StargateBridge bridge = grpcClients.bridgeClient(stargateRequestInfo);
+              StargateBridge bridge = requestInfo.getStargateBridge();
               QueryOuterClass.Query query =
                   collectionQueryProvider.deleteCollectionQuery(namespace, collection);
 
