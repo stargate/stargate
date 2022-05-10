@@ -27,7 +27,6 @@ import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStorePropert
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.v2.example.model.dto.KeyspaceExistsResponse;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
-import io.stargate.sgv2.docsapi.grpc.GrpcClients;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -53,8 +52,6 @@ import org.slf4j.LoggerFactory;
 public class ExampleResource {
 
   private static final Logger LOG = LoggerFactory.getLogger(ExampleResource.class);
-
-  @Inject GrpcClients grpcClients;
 
   @Inject StargateRequestInfo requestInfo;
 
@@ -102,8 +99,8 @@ public class ExampleResource {
     Schema.DescribeKeyspaceQuery describeKeyspaceQuery =
         Schema.DescribeKeyspaceQuery.newBuilder().setKeyspaceName(name).build();
 
-    return grpcClients
-        .bridgeClient(requestInfo)
+    return requestInfo
+        .getStargateBridge()
         .describeKeyspace(describeKeyspaceQuery)
         .map(r -> new KeyspaceExistsResponse(name, r.hasCqlKeyspace()))
         .onFailure()

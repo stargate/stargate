@@ -60,7 +60,7 @@ public class SchemaManager {
    */
   @WithSpan
   public Uni<Schema.CqlKeyspaceDescribe> getKeyspace(String keyspace) {
-    StargateBridge bridge = grpcClients.bridgeClient(requestInfo);
+    StargateBridge bridge = requestInfo.getStargateBridge();
     return getKeyspaceInternal(bridge, keyspace);
   }
 
@@ -80,7 +80,7 @@ public class SchemaManager {
    */
   @WithSpan
   public Uni<Schema.CqlKeyspaceDescribe> getKeyspaceAuthorized(String keyspace) {
-    StargateBridge bridge = grpcClients.bridgeClient(requestInfo);
+    StargateBridge bridge = requestInfo.getStargateBridge();
 
     // call bridge to authorize
     return authorizeKeyspaceInternal(bridge, keyspace)

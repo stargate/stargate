@@ -4,8 +4,8 @@ import io.grpc.Metadata;
 import io.quarkus.grpc.GrpcClient;
 import io.quarkus.grpc.GrpcClientUtils;
 import io.stargate.bridge.proto.StargateBridge;
-import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.config.GrpcMetadataConfig;
+import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 
 /**
@@ -32,20 +32,21 @@ public class GrpcClients {
   }
 
   /**
-   * Returns the reactive gRPC Bridge Client, with attached information from the {@link
-   * StargateRequestInfo}.
+   * Returns the reactive gRPC Bridge Client, with attached information about the tenant and C*
+   * token.
    *
-   * @param requestInfo {@link StargateRequestInfo}
+   * @param tenantId tenant id
+   * @param cassandraToken cassandra token
    * @return StargateBridge Reactive Bridge stub
    */
-  public StargateBridge bridgeClient(StargateRequestInfo requestInfo) {
-    if (requestInfo.getTenantId().isEmpty() && requestInfo.getCassandraToken().isEmpty()) {
+  public StargateBridge bridgeClient(Optional<String> tenantId, Optional<String> cassandraToken) {
+    if (tenantId.isEmpty() && cassandraToken.isEmpty()) {
       return bridge;
     }
 
     Metadata metadata = new Metadata();
-    requestInfo.getTenantId().ifPresent(t -> metadata.put(tenantIdKey, t));
-    requestInfo.getCassandraToken().ifPresent(t -> metadata.put(cassandraTokenKey, t));
+    tenantId.ifPresent(t -> metadata.put(tenantIdKey, t));
+    cassandraToken.ifPresent(t -> metadata.put(cassandraTokenKey, t));
     return GrpcClientUtils.attachHeaders(bridge, metadata);
   }
 }
