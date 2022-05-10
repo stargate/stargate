@@ -19,6 +19,7 @@ import io.stargate.db.datastore.DataStore;
 import io.stargate.db.schema.Schema;
 import io.stargate.db.schema.TableName;
 import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -48,6 +49,14 @@ public interface Persistence extends SchemaAgreementChecker {
    * persistence changes.
    */
   void registerEventListener(EventListener listener);
+
+  /*
+  Returns number of storage nodes based on data center name
+   */
+
+  default Map<String, Long> getStorageInfo() {
+    return new HashMap<>();
+  }
 
   Authenticator getAuthenticator();
 
