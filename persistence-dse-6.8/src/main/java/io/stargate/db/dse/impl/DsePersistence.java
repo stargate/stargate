@@ -6,11 +6,14 @@ import static io.stargate.db.dse.impl.Conversion.toResultMetadata;
 import com.datastax.bdp.db.nodes.Nodes;
 import com.datastax.bdp.db.util.ProductType;
 import com.datastax.bdp.db.util.ProductVersion;
+import com.datastax.bdp.node.transport.internode.InternodeClient;
+import com.datastax.bdp.snitch.EndpointStateTracker;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.datastax.oss.driver.shaded.guava.common.collect.Iterables;
 import com.datastax.oss.driver.shaded.guava.common.util.concurrent.Uninterruptibles;
+import com.google.inject.Inject;
 import io.reactivex.Completable;
 import io.reactivex.Single;
 import io.reactivex.disposables.Disposable;
@@ -37,14 +40,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -141,6 +137,7 @@ public class DsePersistence
   // C* listener that ensures that our Stargate schema remains up-to-date with the internal C* one.
   private SchemaChangeListener schemaChangeListener;
   private AtomicReference<AuthorizationService> authorizationService;
+  private AtomicReference<Persistence> advanceWorkloadProcessor;
 
   public DsePersistence() {
     super("DataStax Enterprise");
@@ -150,6 +147,8 @@ public class DsePersistence
     return (StargateQueryHandler) ClientState.getCQLQueryHandler();
   }
 
+  @Inject private volatile InternodeClient messagingClient;
+
   @Override
   protected SchemaConverter newSchemaConverter() {
     return new SchemaConverter();
@@ -158,6 +157,11 @@ public class DsePersistence
   @Override
   protected Iterable<KeyspaceMetadata> currentInternalSchema() {
     return Iterables.transform(org.apache.cassandra.db.Keyspace.all(), Keyspace::getMetadata);
+  }
+
+  @Override
+  public Map<String, Long> getStorageInfo() {
+    return EndpointStateTracker.instance.getAllKnownDatacenters();
   }
 
   @Override
@@ -235,7 +239,6 @@ public class DsePersistence
         ApplicationState.X10, StorageService.instance.valueFactory.dsefsState("stargate"));
 
     waitForSchema(STARTUP_DELAY_MS);
-
     interceptor = new DefaultQueryInterceptor();
     if (USE_PROXY_PROTOCOL) interceptor = new ProxyProtocolQueryInterceptor(interceptor);
 
@@ -437,13 +440,21 @@ public class DsePersistence
     this.authorizationService = authorizationService;
   }
 
+  public void setAdvanceWorkloadProcessor(AtomicReference<Persistence> advanceWorkloadProcessor) {
+    this.advanceWorkloadProcessor = advanceWorkloadProcessor;
+  }
+
   private class DseConnection extends AbstractConnection {
 
     private final StargateClientState clientState;
     private final ServerConnection fakeServerConnection;
+    private Persistence.Connection advanceWorkloadConnection;
 
     private DseConnection(@Nonnull ClientInfo clientInfo) {
       this(clientInfo, StargateClientState.forExternalCalls(clientInfo));
+      if (advanceWorkloadProcessor.get() != null) {
+        this.advanceWorkloadConnection = advanceWorkloadProcessor.get().newConnection(clientInfo);
+      }
     }
 
     private DseConnection() {
@@ -603,6 +614,15 @@ public class DsePersistence
     @Override
     public CompletableFuture<Result> execute(
         Statement statement, Parameters parameters, long queryStartNanoTime) {
+      Map<String, ByteBuffer> customPayload = parameters.customPayload().orElse(new HashMap<>());
+      if (customPayload.containsKey("graph-language")) {
+        if (advanceWorkloadConnection != null) {
+          return advanceWorkloadConnection.execute(statement, parameters, queryStartNanoTime);
+        } else {
+          throw new RuntimeException(
+              "Failed to find an Advanced Workload Service to execute request");
+        }
+      }
       return executeRequest(
           parameters,
           queryStartNanoTime,

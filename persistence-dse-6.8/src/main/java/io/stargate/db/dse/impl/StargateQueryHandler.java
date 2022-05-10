@@ -17,6 +17,8 @@
  */
 package io.stargate.db.dse.impl;
 
+import com.datastax.bdp.cassandra.cql3.QueryHandlerWithTokenAuth;
+import com.datastax.bdp.search.solr.statements.SearchIndexStatement;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import io.reactivex.Single;
 import io.stargate.auth.AuthenticationSubject;
@@ -38,52 +40,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.validation.constraints.NotNull;
 import org.apache.cassandra.auth.IResource;
 import org.apache.cassandra.auth.RoleResource;
-import org.apache.cassandra.cql3.BatchQueryOptions;
-import org.apache.cassandra.cql3.CQLStatement;
-import org.apache.cassandra.cql3.QueryHandler;
-import org.apache.cassandra.cql3.QueryOptions;
-import org.apache.cassandra.cql3.QueryProcessor;
-import org.apache.cassandra.cql3.statements.AlterRoleStatement;
-import org.apache.cassandra.cql3.statements.AuthenticationStatement;
-import org.apache.cassandra.cql3.statements.AuthorizationStatement;
-import org.apache.cassandra.cql3.statements.BatchStatement;
-import org.apache.cassandra.cql3.statements.CreateRoleStatement;
-import org.apache.cassandra.cql3.statements.DeleteStatement;
-import org.apache.cassandra.cql3.statements.DropRoleStatement;
-import org.apache.cassandra.cql3.statements.GrantPermissionsStatement;
-import org.apache.cassandra.cql3.statements.GrantRoleStatement;
-import org.apache.cassandra.cql3.statements.ListPermissionsStatement;
-import org.apache.cassandra.cql3.statements.ListRolesStatement;
-import org.apache.cassandra.cql3.statements.ListUsersStatement;
-import org.apache.cassandra.cql3.statements.ModificationStatement;
-import org.apache.cassandra.cql3.statements.PermissionsManagementStatement;
-import org.apache.cassandra.cql3.statements.PermissionsRelatedStatement;
-import org.apache.cassandra.cql3.statements.RevokePermissionsStatement;
-import org.apache.cassandra.cql3.statements.RevokeRoleStatement;
-import org.apache.cassandra.cql3.statements.SelectStatement;
-import org.apache.cassandra.cql3.statements.TruncateStatement;
-import org.apache.cassandra.cql3.statements.UseStatement;
-import org.apache.cassandra.cql3.statements.schema.AlterKeyspaceStatement;
-import org.apache.cassandra.cql3.statements.schema.AlterSchemaStatement;
-import org.apache.cassandra.cql3.statements.schema.AlterTableStatement;
-import org.apache.cassandra.cql3.statements.schema.AlterTypeStatement;
-import org.apache.cassandra.cql3.statements.schema.AlterViewStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateAggregateStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateFunctionStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateIndexStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateKeyspaceStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateTableStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateTriggerStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateTypeStatement;
-import org.apache.cassandra.cql3.statements.schema.CreateViewStatement;
-import org.apache.cassandra.cql3.statements.schema.DropAggregateStatement;
-import org.apache.cassandra.cql3.statements.schema.DropFunctionStatement;
-import org.apache.cassandra.cql3.statements.schema.DropIndexStatement;
-import org.apache.cassandra.cql3.statements.schema.DropKeyspaceStatement;
-import org.apache.cassandra.cql3.statements.schema.DropTableStatement;
-import org.apache.cassandra.cql3.statements.schema.DropTriggerStatement;
-import org.apache.cassandra.cql3.statements.schema.DropTypeStatement;
-import org.apache.cassandra.cql3.statements.schema.DropViewStatement;
+import org.apache.cassandra.cql3.*;
+import org.apache.cassandra.cql3.statements.*;
+import org.apache.cassandra.cql3.statements.schema.*;
 import org.apache.cassandra.exceptions.UnauthorizedException;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.transport.messages.ResultMessage;
@@ -91,8 +50,9 @@ import org.apache.cassandra.utils.MD5Digest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class StargateQueryHandler implements QueryHandler {
-
+public class StargateQueryHandler extends QueryHandlerWithTokenAuth {
+  private static final String ADV_WORKLOAD_QUERY =
+      System.getProperty("stargate.adv.workload.query");
   private static final Logger logger = LoggerFactory.getLogger(StargateQueryHandler.class);
   private final List<QueryInterceptor> interceptors = new CopyOnWriteArrayList<>();
   private AtomicReference<AuthorizationService> authorizationService;
@@ -110,24 +70,19 @@ public class StargateQueryHandler implements QueryHandler {
       long queryStartNanoTime) {
 
     QueryState state = queryState.cloneWithKeyspaceIfSet(options.getKeyspace());
-    CQLStatement statement;
+
     try {
-      statement = QueryProcessor.getStatement(query, state);
-      options.prepare(statement.getBindVariables());
+      return getStandardOperation(query, state, options, customPayload, queryStartNanoTime, false)
+          .process();
     } catch (Exception e) {
       return QueryProcessor.auditLogger.logFailedQuery(query, state, e).andThen(Single.error(e));
     }
-
-    if (!queryState.isSystem()) QueryProcessor.metrics.regularStatementsExecuted.inc();
-
-    return processStatement(statement, state, options, customPayload, queryStartNanoTime);
   }
 
   @Override
   public Single<ResultMessage.Prepared> prepare(
       String query, QueryState queryState, Map<String, ByteBuffer> customPayload) {
-    return QueryProcessor.instance
-        .prepare(query, queryState, customPayload)
+    return super.prepare(query, queryState, customPayload)
         .map(
             p -> {
               Prepared prepared = QueryProcessor.instance.getPrepared(p.statementId);
@@ -150,7 +105,7 @@ public class StargateQueryHandler implements QueryHandler {
       QueryOptions options,
       Map<String, ByteBuffer> customPayload,
       long queryStartNanoTime) {
-
+    options.prepare(statement.getBindVariables());
     for (QueryInterceptor interceptor : interceptors) {
       Single<ResultMessage> result =
           interceptor.interceptQuery(
@@ -184,7 +139,8 @@ public class StargateQueryHandler implements QueryHandler {
   }
 
   @VisibleForTesting
-  protected void authorizeByToken(Map<String, ByteBuffer> customPayload, CQLStatement statement) {
+  @Override
+  public void authorizeByToken(Map<String, ByteBuffer> customPayload, CQLStatement statement) {
     AuthenticationSubject authenticationSubject = loadAuthenticationSubject(customPayload);
 
     if (!getAuthorizationService().isPresent()) {
@@ -246,7 +202,11 @@ public class StargateQueryHandler implements QueryHandler {
           castStatement.keyspace(),
           castStatement.table());
     } else if (statement instanceof AlterSchemaStatement) {
-      authorizeAlterSchemaStatement(statement, authenticationSubject, authorization);
+      authorizeAlterSchemaStatement(
+          statement,
+          authenticationSubject,
+          authorization,
+          ADV_WORKLOAD_QUERY != null && customPayload.containsKey(ADV_WORKLOAD_QUERY));
     } else if (statement instanceof AuthorizationStatement) {
       authorizeAuthorizationStatement(statement, authenticationSubject, authorization);
     } else if (statement instanceof AuthenticationStatement) {
@@ -260,6 +220,8 @@ public class StargateQueryHandler implements QueryHandler {
       for (ModificationStatement stmt : statements) {
         authorizeModificationStatement(stmt, authenticationSubject, authorization);
       }
+    } else if (statement instanceof SearchIndexStatement) {
+      authorizeSearchIndexStatement(statement, authenticationSubject, authorization);
     } else {
       logger.warn("Tried to authorize unsupported statement");
       throw new UnsupportedOperationException(
@@ -440,7 +402,8 @@ public class StargateQueryHandler implements QueryHandler {
   private void authorizeAlterSchemaStatement(
       CQLStatement statement,
       AuthenticationSubject authenticationSubject,
-      AuthorizationService authorization) {
+      AuthorizationService authorization,
+      boolean advancedWorkload) {
     AlterSchemaStatement castStatement = (AlterSchemaStatement) statement;
     Scope scope = null;
     ResourceKind resource = null;
@@ -549,8 +512,14 @@ public class StargateQueryHandler implements QueryHandler {
         tableName);
 
     try {
-      authorization.authorizeSchemaWrite(
-          authenticationSubject, keyspaceName, tableName, scope, SourceAPI.CQL, resource);
+      if (advancedWorkload) {
+        authorization.authorizeAdvancedWorkloadSchemaWrite(
+            authenticationSubject, keyspaceName, tableName, scope, SourceAPI.CQL, resource);
+      } else {
+        authorization.authorizeSchemaWrite(
+            authenticationSubject, keyspaceName, tableName, scope, SourceAPI.CQL, resource);
+      }
+
     } catch (io.stargate.auth.UnauthorizedException e) {
       throw new UnauthorizedException(
           String.format(
@@ -563,6 +532,36 @@ public class StargateQueryHandler implements QueryHandler {
         castStatement.getClass(),
         keyspaceName,
         tableName);
+  }
+
+  private void authorizeSearchIndexStatement(
+      CQLStatement statement,
+      AuthenticationSubject authenticationSubject,
+      AuthorizationService authorization) {
+    Scope scope = Scope.ALTER;
+    ResourceKind resource = ResourceKind.TABLE;
+    QualifiedName qualifiedName = ((SearchIndexStatement) statement).getQualifiedName();
+    String keyspaceName = qualifiedName.getKeyspace();
+    String tableName = qualifiedName.getName();
+
+    logger.debug(
+        "preparing to authorize statement of type {} on {}.{}",
+        statement.getClass().toString(),
+        keyspaceName,
+        tableName);
+
+    try {
+      authorization.authorizeSchemaWrite(
+          authenticationSubject, keyspaceName, tableName, scope, SourceAPI.CQL, resource);
+    } catch (io.stargate.auth.UnauthorizedException e) {
+      throw new UnauthorizedException(
+          String.format(
+              "Missing correct permission on %s.%s",
+              keyspaceName, (tableName == null ? "" : tableName)));
+    }
+
+    logger.debug(
+        "authorized statement of type {} on {}.{}", statement.getClass(), keyspaceName, tableName);
   }
 
   private String getRoleResourceFromStatement(Object stmt, String fieldName) {
