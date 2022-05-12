@@ -97,8 +97,8 @@ public class JsonConverter {
     }
 
     for (RowWrapper row : rows) {
-      Long rowWriteTime = row.getLong("writetime(leaf)");
-      String rowLeaf = row.getString("leaf");
+      Long rowWriteTime = row.getLong(docsProperties.tableProperties().writetimeColumnName());
+      String rowLeaf = row.getString(docsProperties.tableProperties().leafColumnName());
       if (rowLeaf.equals(Constants.ROOT_DOC_MARKER)) {
         continue;
       }
@@ -110,8 +110,11 @@ public class JsonConverter {
       String parentPath = "$";
 
       for (int i = 0; i < maxDepth; i++) {
-        String p = row.getString("p" + i);
-        String nextP = i < maxDepth - 1 ? row.getString("p" + (i + 1)) : "";
+        String p = row.getString(docsProperties.tableProperties().pathColumnName(i));
+        String nextP =
+            i < maxDepth - 1
+                ? row.getString(docsProperties.tableProperties().pathColumnName(i + 1))
+                : "";
         boolean endOfPath = nextP.equals("");
         boolean isArray = p.startsWith("[");
         boolean nextIsArray = nextP.startsWith("[");
@@ -220,7 +223,7 @@ public class JsonConverter {
    * is an Array.
    */
   private JsonNode changeCurrentNodeToArray(RowWrapper row, JsonNode parentRef, int pathIndex) {
-    String pbefore = row.getString("p" + (pathIndex - 1));
+    String pbefore = row.getString(docsProperties.tableProperties().pathColumnName(pathIndex - 1));
     JsonNode ref = mapper.createArrayNode();
     if (pbefore.startsWith("[")) {
       int index = Integer.parseInt(pbefore.substring(1, pbefore.length() - 1));
@@ -239,7 +242,7 @@ public class JsonConverter {
    */
   private JsonNode changeCurrentNodeToObject(
       RowWrapper row, JsonNode parentRef, int pathIndex, boolean writeAllPathsAsObjects) {
-    String pbefore = row.getString("p" + (pathIndex - 1));
+    String pbefore = row.getString(docsProperties.tableProperties().pathColumnName(pathIndex - 1));
     JsonNode ref = mapper.createObjectNode();
     if (pbefore.startsWith("[") && !writeAllPathsAsObjects) {
       int index = Integer.parseInt(pbefore.substring(1, pbefore.length() - 1));
@@ -319,8 +322,8 @@ public class JsonConverter {
       boolean numericBooleans) {
     JsonNode n = NullNode.getInstance();
 
-    if (!row.isNull("text_value")) {
-      String value = row.getString("text_value");
+    if (!row.isNull(docsProperties.tableProperties().stringValueColumnName())) {
+      String value = row.getString(docsProperties.tableProperties().stringValueColumnName());
       if (value.equals(Constants.EMPTY_OBJECT_MARKER)) {
         n = mapper.createObjectNode();
       } else if (value.equals(Constants.EMPTY_ARRAY_MARKER)) {
@@ -328,19 +331,15 @@ public class JsonConverter {
       } else {
         n = new TextNode(value);
       }
-    } else if (!row.isNull("bool_value")) {
-      Boolean booleanFromRow;
-      if (numericBooleans) {
-        booleanFromRow = row.getInt("bool_value") != 0;
-      } else {
-        booleanFromRow = row.getBoolean("bool_value");
-      }
+    } else if (!row.isNull(docsProperties.tableProperties().booleanValueColumnName())) {
+      Boolean booleanFromRow =
+          row.getBoolean(docsProperties.tableProperties().booleanValueColumnName());
       n = BooleanNode.valueOf(booleanFromRow);
-    } else if (!row.isNull("dbl_value")) {
+    } else if (!row.isNull(docsProperties.tableProperties().doubleValueColumnName())) {
       // If not a fraction represent as a long to the user
       // This lets us handle queries of doubles and longs without
       // splitting them into separate columns
-      double dv = row.getDouble("dbl_value");
+      double dv = row.getDouble(docsProperties.tableProperties().doubleValueColumnName());
       long lv = (long) dv;
       if ((double) lv == dv) n = new LongNode(lv);
       else n = new DoubleNode(dv);
