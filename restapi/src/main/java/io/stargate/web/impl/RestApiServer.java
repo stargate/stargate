@@ -68,11 +68,19 @@ import org.osgi.framework.FrameworkUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** DropWizard {@code Application} that will serve both REST (v1, v2) and Document API endpoints. */
+/**
+ * DropWizard {@code Application} that will serve Stargate V1 REST (REST v1, v2) and Document API
+ * endpoints.
+ *
+ * <p>NOTE: Stargate V1 REST endpoints are only enabled if System property {@link
+ * #SYSPROP_ENABLE_SGV1_REST} is explicitly enabled (set to {@code "true"}).
+ */
 public class RestApiServer extends Application<RestApiServerConfiguration> {
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
   public static final String[] NON_API_URI_REGEX = new String[] {"^/$", "^/health$", "^/swagger.*"};
+
+  public static final String SYSPROP_ENABLE_SGV1_REST = "stargate.rest.enableV1";
 
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
@@ -143,12 +151,25 @@ public class RestApiServer extends Application<RestApiServerConfiguration> {
     // General healthcheck endpoint
     environment.jersey().register(HealthResource.class);
 
-    // 09-Feb-2021, tatu: as per [#1625] the old SGv1 REST API is to be disabled
+    // 09-Feb-2022, tatu: as per [#1625] the old SGv1 REST API is to be disabled
     //     when we have SGv2 -- leaving just the Documents API until it too gets extracted.
-    if (true) {
+    // 13-May-2022, tatu: Make inclusion of SGv1 REST endpoints configurable by system property.
+    //     Checked lazily to support setting value via tests.
+    final String enableSgv1RestStr = System.getProperty(SYSPROP_ENABLE_SGV1_REST);
+
+    if (!Boolean.parseBoolean(enableSgv1RestStr)) {
       logger.info(
-          "Will not register StargateV1 REST API endpoints for StargateV2: should have new endpoints from 'svg2-restapi'");
+          "Will not register StargateV1 REST API endpoints for StargateV2 (System property '{}' {}, enable with 'true')",
+          SYSPROP_ENABLE_SGV1_REST,
+          (enableSgv1RestStr == null)
+              ? "UNDEFINED"
+              : String.format("set to '%s'", enableSgv1RestStr));
     } else {
+      logger.info(
+          "Registering StargateV1 REST API endpoints (System property '{}' set to '{}')",
+          SYSPROP_ENABLE_SGV1_REST,
+          enableSgv1RestStr);
+
       // Rest API V1 endpoints (legacy):
       environment.jersey().register(ColumnResource.class);
       environment.jersey().register(KeyspaceResource.class);
