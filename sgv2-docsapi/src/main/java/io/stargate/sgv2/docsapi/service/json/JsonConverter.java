@@ -332,8 +332,14 @@ public class JsonConverter {
         n = new TextNode(value);
       }
     } else if (!row.isNull(docsProperties.tableProperties().booleanValueColumnName())) {
-      Boolean booleanFromRow =
-          row.getBoolean(docsProperties.tableProperties().booleanValueColumnName());
+      Boolean booleanFromRow;
+      if (numericBooleans) {
+        booleanFromRow =
+            (row.getByte(docsProperties.tableProperties().booleanValueColumnName()) != 0);
+      } else {
+        booleanFromRow = row.getBoolean(docsProperties.tableProperties().booleanValueColumnName());
+      }
+
       n = BooleanNode.valueOf(booleanFromRow);
     } else if (!row.isNull(docsProperties.tableProperties().doubleValueColumnName())) {
       // If not a fraction represent as a long to the user
