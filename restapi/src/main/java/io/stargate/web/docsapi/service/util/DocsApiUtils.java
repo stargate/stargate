@@ -226,6 +226,13 @@ public final class DocsApiUtils {
     return convertFieldsToPaths(fieldsJson, config.getMaxArrayLength());
   }
 
+  /**
+   * Returns true if the String contains illegal characters. Used during writes to ensure that all
+   * special characters are escaped.
+   *
+   * @param x A String
+   * @return true if the String has an illegal character
+   */
   public static boolean containsIllegalSequences(String x) {
     String replaced = ESCAPED_PATTERN.matcher(x).replaceAll("");
     return replaced.contains("[")
