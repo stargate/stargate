@@ -12,6 +12,7 @@
   <properties>
     <airline.version>2.8.2</airline.version>
     <swagger-ui.version>3.35.0</swagger-ui.version>
+    <antlr4.version>4.9.3</antlr4.version>
     <dynamodb.sdk.version>1.12.190</dynamodb.sdk.version>
   </properties>
   <dependencyManagement>
@@ -126,6 +127,13 @@
       </exclusions>
     </dependency>
 
+    <!-- Parser deps -->
+    <dependency>
+      <groupId>org.antlr</groupId>
+      <artifactId>antlr4-runtime</artifactId>
+      <version>${antlr4.version}</version>
+    </dependency>
+
     <!-- Other 3rd party deps -->
     <dependency>
       <groupId>ch.qos.logback</groupId>
@@ -180,6 +188,31 @@
   </dependencies>
   <build>
     <plugins>
+      <!-- Compile the g4 files -->
+      <plugin>
+        <groupId>org.antlr</groupId>
+        <artifactId>antlr4-maven-plugin</artifactId>
+        <version>${antlr4.version}</version>
+        <executions>
+          <execution>
+            <id>antlr</id>
+            <goals>
+              <goal>antlr4</goal>
+            </goals>
+            <configuration>
+              <arguments>
+                <argument>-package</argument>
+                <argument>io.stargate.sgv2.dynamosvc.parser</argument>
+                <argument>-encoding</argument>
+                <argument>utf-8</argument>
+              </arguments>
+              <visitor>true</visitor>
+              <outputDirectory>${project.build.directory}/generated-sources/antlr4/io/stargate/sgv2/dynamosvc/parser/</outputDirectory>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+
       <plugin>
         <!-- Download swagger-ui resources jar -->
         <artifactId>maven-dependency-plugin</artifactId>

@@ -12,8 +12,7 @@ import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.http.ApiServiceExtension;
 import io.stargate.it.http.ApiServiceSpec;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 import net.jcip.annotations.NotThreadSafe;
@@ -192,6 +191,128 @@ public class DynamoApiQueryTest extends BaseDynamoApiTest {
     assertEquals(collectResults(awsTable2.query(query)), collectResults(proxyTable2.query(query)));
   }
 
+  @Test
+  public void testFilterExpression() {
+    QuerySpec query =
+        new QuerySpec()
+            .withKeyConditionExpression("#N=:name")
+            .withFilterExpression("#D>:number")
+            .withNameMap(new NameMap().with("#N", "Username").with("#D", "Deposit"))
+            .withValueMap(new ValueMap().withString(":name", "alice").withNumber(":number", 100));
+    assertEquals(collectResults(awsTable.query(query)), collectResults(proxyTable.query(query)));
+    assertEquals(1, collectResults(proxyTable.query(query)).size());
+
+    query =
+        new QuerySpec()
+            .withKeyConditionExpression("#N=:name")
+            .withFilterExpression("#D>=:number")
+            .withNameMap(new NameMap().with("#N", "Username").with("#D", "Deposit"))
+            .withValueMap(new ValueMap().withString(":name", "alice").withNumber(":number", 100));
+    assertEquals(collectResults(awsTable.query(query)), collectResults(proxyTable.query(query)));
+    assertEquals(2, collectResults(proxyTable.query(query)).size());
+
+    query =
+        new QuerySpec()
+            .withKeyConditionExpression("#N=:name")
+            .withFilterExpression("#D.#OUTER = :number")
+            .withNameMap(
+                new NameMap().with("#N", "Username").with("#D", "dict").with("#OUTER", "outer"))
+            .withValueMap(new ValueMap().withString(":name", "Charlie").withNumber(":number", 2));
+    assertEquals(collectResults(awsTable.query(query)), collectResults(proxyTable.query(query)));
+    assertEquals(0, collectResults(proxyTable.query(query)).size());
+
+    query =
+        new QuerySpec()
+            .withKeyConditionExpression("#N=:name")
+            .withFilterExpression("#D.#OUTER <> :number")
+            .withNameMap(
+                new NameMap().with("#N", "Username").with("#D", "dict").with("#OUTER", "outer"))
+            .withValueMap(new ValueMap().withString(":name", "Charlie").withNumber(":number", 2));
+    assertEquals(collectResults(awsTable.query(query)), collectResults(proxyTable.query(query)));
+    assertEquals(1, collectResults(proxyTable.query(query)).size());
+
+    query =
+        new QuerySpec()
+            .withKeyConditionExpression("#N=:name")
+            .withFilterExpression("#D.#OUTER.lst[0].#INNER.nested[0][0][1] = :number")
+            .withNameMap(
+                new NameMap()
+                    .with("#N", "Username")
+                    .with("#D", "dict")
+                    .with("#OUTER", "outer")
+                    .with("#INNER", "inner"))
+            .withValueMap(new ValueMap().withString(":name", "Charlie").withNumber(":number", 2));
+    assertEquals(collectResults(awsTable.query(query)), collectResults(proxyTable.query(query)));
+    assertEquals(1, collectResults(proxyTable.query(query)).size());
+
+    query =
+        new QuerySpec()
+            .withKeyConditionExpression("#N=:name")
+            .withFilterExpression("#D.#OUTER.lst[0].#INNER.nested[0][0][1] = :number")
+            .withNameMap(
+                new NameMap()
+                    .with("#N", "Username")
+                    .with("#D", "dict")
+                    .with("#OUTER", "outer")
+                    .with("#INNER", "inner"))
+            .withValueMap(new ValueMap().withString(":name", "Charlie").withNumber(":number", 1));
+    assertEquals(collectResults(awsTable.query(query)), collectResults(proxyTable.query(query)));
+    assertEquals(0, collectResults(proxyTable.query(query)).size());
+
+    query =
+        new QuerySpec()
+            .withKeyConditionExpression("#N=:name")
+            .withFilterExpression("#D.#OUTER.lst[0].#INNER.nested[0][0] = :numberList")
+            .withNameMap(
+                new NameMap()
+                    .with("#N", "Username")
+                    .with("#D", "dict")
+                    .with("#OUTER", "outer")
+                    .with("#INNER", "inner"))
+            .withValueMap(
+                new ValueMap()
+                    .withString(":name", "Charlie")
+                    .withList(":numberList", Arrays.asList(1, 2, 3)));
+    assertEquals(collectResults(awsTable.query(query)), collectResults(proxyTable.query(query)));
+    assertEquals(1, collectResults(proxyTable.query(query)).size());
+
+    query =
+        new QuerySpec()
+            .withKeyConditionExpression("#N = :name")
+            .withFilterExpression("Deposit>:number AND NOT Loan >= :loan")
+            .withNameMap(new NameMap().with("#N", "Username"))
+            .withValueMap(
+                new ValueMap()
+                    .withString(":name", "alice")
+                    .withNumber(":number", 100)
+                    .withNumber(":loan", 199.9999));
+    assertEquals(collectResults(awsTable.query(query)), collectResults(proxyTable.query(query)));
+    assertEquals(1, collectResults(proxyTable.query(query)).size());
+
+    query =
+        new QuerySpec()
+            .withKeyConditionExpression("#N = :name")
+            .withFilterExpression("Deposit in (:n1)")
+            .withNameMap(new NameMap().with("#N", "Username"))
+            .withValueMap(new ValueMap().withString(":name", "alice").withNumber(":n1", 100));
+    assertEquals(collectResults(awsTable.query(query)), collectResults(proxyTable.query(query)));
+    assertEquals(1, collectResults(proxyTable.query(query)).size());
+
+    query =
+        new QuerySpec()
+            .withKeyConditionExpression("#N = :name")
+            .withFilterExpression("Deposit in (:n1, :n2, :n3)")
+            .withNameMap(new NameMap().with("#N", "Username"))
+            .withValueMap(
+                new ValueMap()
+                    .withString(":name", "alice")
+                    .withNumber(":n1", 100)
+                    .withNumber(":n2", 2000)
+                    .withNumber(":n3", 3000));
+    assertEquals(collectResults(awsTable.query(query)), collectResults(proxyTable.query(query)));
+    assertEquals(2, collectResults(proxyTable.query(query)).size());
+  }
+
   private Set<Item> collectResults(ItemCollection<QueryOutcome> outcomes) {
     return StreamSupport.stream(outcomes.spliterator(), false).collect(Collectors.toSet());
   }
@@ -202,7 +323,8 @@ public class DynamoApiQueryTest extends BaseDynamoApiTest {
         new Item()
             .withPrimaryKey("Username", "alice", "Birthday", 20000101)
             .withString("Sex", "F")
-            .withNumber("Deposit", 100));
+            .withNumber("Deposit", 100)
+            .withNumber("Loan", 200));
     items.add(
         new Item()
             .withPrimaryKey("Username", "alice", "Birthday", 19801231)
@@ -214,6 +336,22 @@ public class DynamoApiQueryTest extends BaseDynamoApiTest {
             .withString("Sex", "F"));
     items.add(
         new Item().withPrimaryKey("Username", "bob", "Birthday", 20000101).withString("Sex", "M"));
+
+    Map<String, Object> dict = new HashMap<>();
+    Map<String, Object> dict2 = new HashMap<>();
+    dict.put("outer", dict2);
+    List<Object> list = new ArrayList<>();
+    Map<String, Object> dict3 = new HashMap<>();
+    list.add(dict3);
+    dict2.put("lst", list);
+    Map<String, Object> dict4 = new HashMap<>();
+    dict3.put("inner", dict4);
+    dict4.put("nested", Arrays.asList(Arrays.asList(Arrays.asList(1, 2, 3))));
+
+    items.add(
+        new Item()
+            .withPrimaryKey("Username", "Charlie", "Birthday", 20100801)
+            .withMap("dict", dict));
     return items;
   }
 
