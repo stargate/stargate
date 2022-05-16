@@ -243,7 +243,7 @@ public class DefaultStargateBridgeClientTenantsTest {
     @Override
     public <ReqT, RespT> ServerCall.Listener<ReqT> interceptCall(
         ServerCall<ReqT, RespT> call, Metadata headers, ServerCallHandler<ReqT, RespT> next) {
-      String tenantId = headers.get(DefaultStargateBridgeClient.HOST_KEY);
+      String tenantId = headers.get(DefaultStargateBridgeClient.TENANT_ID_KEY);
       return Contexts.interceptCall(
           Context.current().withValue(TENANT_KEY, tenantId), call, headers, next);
     }

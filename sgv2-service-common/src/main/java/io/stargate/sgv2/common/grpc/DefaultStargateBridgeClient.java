@@ -60,8 +60,8 @@ import org.apache.commons.codec.binary.Hex;
 class DefaultStargateBridgeClient implements StargateBridgeClient {
 
   private static final int TIMEOUT_SECONDS = 5;
-  static final Metadata.Key<String> HOST_KEY =
-      Metadata.Key.of("Host", Metadata.ASCII_STRING_MARSHALLER);
+  static final Metadata.Key<String> TENANT_ID_KEY =
+      Metadata.Key.of("tenant-id", Metadata.ASCII_STRING_MARSHALLER);
   static final Query SELECT_KEYSPACE_NAMES =
       Query.newBuilder().setCql("SELECT keyspace_name FROM system_schema.keyspaces").build();
   private static final SupportedFeaturesRequest SUPPORTED_FEATURES_REQUEST =
@@ -325,7 +325,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
 
   private Channel addMetadata(Channel channel, String tenantId) {
     Metadata metadata = new Metadata();
-    metadata.put(HOST_KEY, tenantId);
+    metadata.put(TENANT_ID_KEY, tenantId);
     return ClientInterceptors.intercept(
         channel, MetadataUtils.newAttachHeadersInterceptor(metadata));
   }
