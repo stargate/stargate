@@ -24,16 +24,16 @@ import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableColumns;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.grpc.GrpcClients;
 import io.stargate.sgv2.docsapi.service.schema.common.SchemaManager;
 import io.stargate.sgv2.docsapi.service.schema.query.CollectionQueryProvider;
-import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
+import java.util.Objects;
 import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
@@ -255,26 +255,48 @@ public class TableManager {
   }
 
   // checks that table contains expected columns
-  private Boolean isValidCollectionTable(Schema.CqlTable table) {
-    // TODO Seems that proto is splitting the table columns per types
-    //  REVISIT!
+  // visible for testing
+  boolean isValidCollectionTable(Schema.CqlTable table) {
+    DocumentTableProperties tableProperties = documentProperties.tableProperties();
+    DocumentTableColumns tableColumns = documentProperties.tableColumns();
 
-    // all expected columns
-    String[] expectedColumns = documentProperties.tableColumns().allColumnNames();
+    // partition columns
+    // expect only one with the key column name
+    List<QueryOuterClass.ColumnSpec> partitionKeyColumnsList = table.getPartitionKeyColumnsList();
+    if (partitionKeyColumnsList.size() != 1) {
+      return false;
+    }
+    if (!Objects.equals(
+        partitionKeyColumnsList.get(0).getName(), tableProperties.keyColumnName())) {
+      return false;
+    }
 
-    // collect all table columns
-    Set<String> tableColumns =
+    // clustering columns
+    // expect max depth with path column names
+    List<QueryOuterClass.ColumnSpec> clusteringKeyColumnsList = table.getClusteringKeyColumnsList();
+    if (clusteringKeyColumnsList.size() != documentProperties.maxDepth()) {
+      return false;
+    }
+    boolean missingPathColumn =
+        clusteringKeyColumnsList.stream()
+            .map(QueryOuterClass.ColumnSpec::getName)
+            .anyMatch(c -> !tableColumns.pathColumnNames().contains(c));
+    if (missingPathColumn) {
+      return false;
+    }
+
+    // other columns
+    if (table.getColumnsList().size() != tableColumns.valueColumnNames().size()) {
+      return false;
+    }
+    boolean missingValueColumns =
         table.getColumnsList().stream()
             .map(QueryOuterClass.ColumnSpec::getName)
-            .collect(Collectors.toSet());
-
-    // if size don't match it's not the same
-    // otherwise make sure they all are contained
-    if (tableColumns.size() != expectedColumns.length) {
+            .anyMatch(c -> !tableColumns.valueColumnNames().contains(c));
+    if (missingValueColumns) {
       return false;
-    } else {
-      // TODO expectedColumns can be provided as a set in TableColumns
-      return tableColumns.containsAll(Arrays.asList(expectedColumns));
     }
+
+    return true;
   }
 }

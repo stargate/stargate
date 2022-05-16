@@ -18,14 +18,15 @@ import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.docsapi.BridgeTest;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.grpc.GrpcClients;
 import io.stargate.sgv2.docsapi.service.schema.query.CollectionQueryProvider;
-import java.util.Arrays;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,12 +58,24 @@ class TableManagerTest extends BridgeTest {
   }
 
   Schema.CqlKeyspaceDescribe getValidTableAndKeyspace(String namespace, String collection) {
-    Set<QueryOuterClass.ColumnSpec> columns =
-        Arrays.stream(documentProperties.tableColumns().allColumnNames())
+    QueryOuterClass.ColumnSpec.Builder partitionColumn =
+        QueryOuterClass.ColumnSpec.newBuilder()
+            .setName(documentProperties.tableProperties().keyColumnName());
+    Set<QueryOuterClass.ColumnSpec> clusteringColumns =
+        documentProperties.tableColumns().pathColumnNames().stream()
             .map(c -> QueryOuterClass.ColumnSpec.newBuilder().setName(c).build())
             .collect(Collectors.toSet());
+    Set<QueryOuterClass.ColumnSpec> valueColumns =
+        documentProperties.tableColumns().valueColumnNames().stream()
+            .map(c -> QueryOuterClass.ColumnSpec.newBuilder().setName(c).build())
+            .collect(Collectors.toSet());
+
     Schema.CqlTable.Builder table =
-        Schema.CqlTable.newBuilder().setName(collection).addAllColumns(columns);
+        Schema.CqlTable.newBuilder()
+            .setName(collection)
+            .addPartitionKeyColumns(partitionColumn)
+            .addAllClusteringKeyColumns(clusteringColumns)
+            .addAllColumns(valueColumns);
     return Schema.CqlKeyspaceDescribe.newBuilder()
         .setCqlKeyspace(Schema.CqlKeyspace.newBuilder().setName(namespace))
         .addTables(table)
@@ -411,6 +424,132 @@ class TableManagerTest extends BridgeTest {
       assertThat(queryCaptor.getAllValues())
           .singleElement()
           .isEqualTo(queryProvider.deleteCollectionQuery(namespace, collection));
+    }
+  }
+
+  @Nested
+  class IsValidCollectionTable {
+
+    @Test
+    public void wrongPartitionSize() {
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
+
+      boolean result = tableManager.isValidCollectionTable(table);
+
+      assertThat(result).isFalse();
+    }
+
+    @Test
+    public void wrongPartitionColumnName() {
+      Schema.CqlTable table =
+          Schema.CqlTable.newBuilder()
+              .addPartitionKeyColumns(
+                  QueryOuterClass.ColumnSpec.newBuilder().setName("my-name").build())
+              .build();
+
+      boolean result = tableManager.isValidCollectionTable(table);
+
+      assertThat(result).isFalse();
+    }
+
+    @Test
+    public void wrongClusteringColumnsSize() {
+      Schema.CqlTable table =
+          Schema.CqlTable.newBuilder()
+              .addPartitionKeyColumns(
+                  QueryOuterClass.ColumnSpec.newBuilder()
+                      .setName(documentProperties.tableProperties().keyColumnName())
+                      .build())
+              .build();
+
+      boolean result = tableManager.isValidCollectionTable(table);
+
+      assertThat(result).isFalse();
+    }
+
+    @Test
+    public void wrongClusteringColumnNames() {
+      Schema.CqlTable table =
+          Schema.CqlTable.newBuilder()
+              .addPartitionKeyColumns(
+                  QueryOuterClass.ColumnSpec.newBuilder()
+                      .setName(documentProperties.tableProperties().keyColumnName())
+                      .build())
+              .addAllClusteringKeyColumns(
+                  IntStream.range(0, documentProperties.maxDepth())
+                      .mapToObj(
+                          i ->
+                              QueryOuterClass.ColumnSpec.newBuilder()
+                                  .setName(String.valueOf(i))
+                                  .build())
+                      .collect(Collectors.toSet()))
+              .build();
+
+      boolean result = tableManager.isValidCollectionTable(table);
+
+      assertThat(result).isFalse();
+    }
+
+    @Test
+    public void wrongValueColumnsSize() {
+      DocumentTableProperties tableProperties = documentProperties.tableProperties();
+      Schema.CqlTable table =
+          Schema.CqlTable.newBuilder()
+              .addPartitionKeyColumns(
+                  QueryOuterClass.ColumnSpec.newBuilder()
+                      .setName(tableProperties.keyColumnName())
+                      .build())
+              .addAllClusteringKeyColumns(
+                  IntStream.range(0, documentProperties.maxDepth())
+                      .mapToObj(
+                          i ->
+                              QueryOuterClass.ColumnSpec.newBuilder()
+                                  .setName(tableProperties.pathColumnName(i))
+                                  .build())
+                      .collect(Collectors.toSet()))
+              .build();
+
+      boolean result = tableManager.isValidCollectionTable(table);
+
+      assertThat(result).isFalse();
+    }
+
+    @Test
+    public void wrongValueColumnsNames() {
+      DocumentTableProperties tableProperties = documentProperties.tableProperties();
+      Schema.CqlTable table =
+          Schema.CqlTable.newBuilder()
+              .addPartitionKeyColumns(
+                  QueryOuterClass.ColumnSpec.newBuilder()
+                      .setName(tableProperties.keyColumnName())
+                      .build())
+              .addAllClusteringKeyColumns(
+                  IntStream.range(0, documentProperties.maxDepth())
+                      .mapToObj(
+                          i ->
+                              QueryOuterClass.ColumnSpec.newBuilder()
+                                  .setName(tableProperties.pathColumnName(i))
+                                  .build())
+                      .collect(Collectors.toSet()))
+              .addColumns(
+                  QueryOuterClass.ColumnSpec.newBuilder()
+                      .setName(tableProperties.leafColumnName())
+                      .build())
+              .addColumns(
+                  QueryOuterClass.ColumnSpec.newBuilder()
+                      .setName(tableProperties.stringValueColumnName())
+                      .build())
+              .addColumns(
+                  QueryOuterClass.ColumnSpec.newBuilder()
+                      .setName(tableProperties.booleanValueColumnName())
+                      .build())
+              .addColumns(
+                  QueryOuterClass.ColumnSpec.newBuilder().setName("my-double-column").build())
+              .build();
+
+      boolean result = tableManager.isValidCollectionTable(table);
+
+      assertThat(result).isFalse();
     }
   }
 }

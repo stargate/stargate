@@ -17,6 +17,7 @@
 
 package io.stargate.sgv2.docsapi.api.common.properties.document.impl;
 
+import com.google.common.collect.ImmutableSet;
 import io.stargate.bridge.grpc.TypeSpecs;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
@@ -25,6 +26,8 @@ import io.stargate.sgv2.docsapi.config.DocumentConfig;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
@@ -35,13 +38,10 @@ import java.util.stream.Stream;
  */
 public record DocumentTableColumnsImpl(
     List<Column> allColumns,
-    String[] valueColumnNames,
-    String[] pathColumnNames,
-    String[] allColumnNames)
+    Set<String> valueColumnNames,
+    Set<String> pathColumnNames,
+    Set<String> allColumnNames)
     implements DocumentTableColumns {
-
-  // TODO check what we actually need and what data types are required
-  //  arrays seem not so easy to work with
 
   /**
    * Constructor that initializes all columns based on the {@link DocumentConfig}.
@@ -56,26 +56,26 @@ public record DocumentTableColumnsImpl(
         allColumnsNames(documentConfig));
   }
 
-  private static String[] valueColumns(DocumentConfig documentConfig) {
+  private static Set<String> valueColumns(DocumentConfig documentConfig) {
     DocumentConfig.DocumentTableConfig table = documentConfig.table();
-    return new String[] {
-      table.leafColumnName(),
-      table.stringValueColumnName(),
-      table.doubleValueColumnName(),
-      table.booleanValueColumnName()
-    };
+    return ImmutableSet.<String>builder()
+        .add(table.leafColumnName())
+        .add(table.stringValueColumnName())
+        .add(table.doubleValueColumnName())
+        .add(table.booleanValueColumnName())
+        .build();
   }
 
-  private static String[] pathColumns(DocumentConfig documentConfig) {
+  private static Set<String> pathColumns(DocumentConfig documentConfig) {
     DocumentConfig.DocumentTableConfig table = documentConfig.table();
     int depth = documentConfig.maxDepth();
 
     return IntStream.range(0, depth)
         .mapToObj(i -> table.pathColumnPrefix() + i)
-        .toArray(String[]::new);
+        .collect(Collectors.toUnmodifiableSet());
   }
 
-  private static String[] allColumnsNames(DocumentConfig properties) {
+  private static Set<String> allColumnsNames(DocumentConfig properties) {
     DocumentConfig.DocumentTableConfig table = properties.table();
     int depth = properties.maxDepth();
 
@@ -88,7 +88,7 @@ public record DocumentTableColumnsImpl(
             table.doubleValueColumnName(),
             table.booleanValueColumnName());
     Stream<String> firstConcat = Stream.concat(keyCol, pColumns);
-    return Stream.concat(firstConcat, fixedColumns).toArray(String[]::new);
+    return Stream.concat(firstConcat, fixedColumns).collect(Collectors.toUnmodifiableSet());
   }
 
   private static List<Column> allColumns(DocumentConfig config, boolean numberBooleans) {

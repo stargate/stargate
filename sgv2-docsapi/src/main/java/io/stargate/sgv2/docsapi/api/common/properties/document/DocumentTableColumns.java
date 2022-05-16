@@ -3,6 +3,7 @@ package io.stargate.sgv2.docsapi.api.common.properties.document;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
 import java.util.List;
+import java.util.Set;
 
 /** Helper for understanding the available document table columns. */
 public interface DocumentTableColumns {
@@ -11,11 +12,11 @@ public interface DocumentTableColumns {
   List<Column> allColumns();
 
   /** @return Value columns, including the leaf. */
-  String[] valueColumnNames();
+  Set<String> valueColumnNames();
 
   /** @return All the JSON path columns based on the max depth. */
-  String[] pathColumnNames();
+  Set<String> pathColumnNames();
 
   /** @return All the columns of the document table. */
-  String[] allColumnNames();
+  Set<String> allColumnNames();
 }
