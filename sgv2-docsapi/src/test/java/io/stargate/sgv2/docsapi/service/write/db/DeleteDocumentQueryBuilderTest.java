@@ -20,13 +20,12 @@ package io.stargate.sgv2.docsapi.service.write.db;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
-import java.util.Map;
+import io.stargate.sgv2.docsapi.testprofiles.MaxDepth4;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -34,23 +33,11 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@TestProfile(DeleteDocumentQueryBuilderTest.Config.class)
+@TestProfile(MaxDepth4.class)
 class DeleteDocumentQueryBuilderTest {
 
-  private static final int MAX_DEPTH = 4;
-  private static final DocsApiTestSchemaProvider SCHEMA_PROVIDER =
-      new DocsApiTestSchemaProvider(MAX_DEPTH);
-  private static final String KEYSPACE_NAME = SCHEMA_PROVIDER.getKeyspace().getName();
-  private static final String COLLECTION_NAME = SCHEMA_PROVIDER.getTable().getName();
-
-  public static class Config implements QuarkusTestProfile {
-    @Override
-    public Map<String, String> getConfigOverrides() {
-      return Map.of("stargate.document.max-depth", Integer.toString(MAX_DEPTH));
-    }
-  }
-
   @Inject DocumentProperties documentProperties;
+  @Inject DocsApiTestSchemaProvider schemaProvider;
 
   @Nested
   class BuildQuery {
@@ -59,11 +46,14 @@ class DeleteDocumentQueryBuilderTest {
     public void happyPath() {
       DeleteDocumentQueryBuilder queryBuilder = new DeleteDocumentQueryBuilder(documentProperties);
 
-      Query query = queryBuilder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME);
+      Query query =
+          queryBuilder.buildQuery(
+              schemaProvider.getKeyspace().getName(), schemaProvider.getTable().getName());
 
       String expected =
           String.format(
-              "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ?", KEYSPACE_NAME, COLLECTION_NAME);
+              "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ?",
+              schemaProvider.getKeyspace().getName(), schemaProvider.getTable().getName());
       assertThat(query.getCql()).isEqualTo(expected);
     }
   }
@@ -74,7 +64,9 @@ class DeleteDocumentQueryBuilderTest {
     @Test
     public void happyPath() {
       DeleteDocumentQueryBuilder queryBuilder = new DeleteDocumentQueryBuilder(documentProperties);
-      Query query = queryBuilder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME);
+      Query query =
+          queryBuilder.buildQuery(
+              schemaProvider.getKeyspace().getName(), schemaProvider.getTable().getName());
 
       long timestamp = RandomUtils.nextLong();
       String documentId = RandomStringUtils.randomAlphanumeric(16);
