@@ -52,6 +52,12 @@ public final class DocsApiUtils {
     // intentionally empty
   }
 
+  /**
+   * Given a path such as "a.b.c.[0]", converts into a JSON pointer for the JSON path "a.b.c.0"
+   *
+   * @param path
+   * @return A JsonPointer that points to the given JSON path, or empty if path is null
+   */
   public static Optional<JsonPointer> pathToJsonPointer(String path) {
     if (null == path) {
       return Optional.empty();
@@ -399,14 +405,14 @@ public final class DocsApiUtils {
       List<String> path, int maxDepth, DocumentProperties properties) {
     Map<String, Object> bindMap = new LinkedHashMap<>(maxDepth + 5);
 
-    bindMap.put("key", null);
+    bindMap.put(properties.tableProperties().keyColumnName(), null);
 
     for (int i = 0; i < maxDepth; i++) {
       String value = "";
       if (i < path.size()) {
         value = path.get(i);
       }
-      bindMap.put("p" + i, value);
+      bindMap.put(properties.tableProperties().pathColumnName(i), value);
     }
 
     bindMap.put(properties.tableProperties().leafColumnName(), null);
