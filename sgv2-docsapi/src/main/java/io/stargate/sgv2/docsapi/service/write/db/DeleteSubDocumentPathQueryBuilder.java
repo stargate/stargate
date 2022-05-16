@@ -58,7 +58,9 @@ public class DeleteSubDocumentPathQueryBuilder extends AbstractDeleteQueryBuilde
     int pathSize = exactPath ? maxDepth : subDocumentPath.size();
     // if we have the sub-document path add that as well
     for (int i = 0; i < pathSize; i++) {
-      whereConditions.add(BuiltCondition.of("p" + i, Predicate.EQ, Term.marker()));
+      whereConditions.add(
+          BuiltCondition.of(
+              documentProperties.tableProperties().pathColumnName(i), Predicate.EQ, Term.marker()));
     }
   }
 

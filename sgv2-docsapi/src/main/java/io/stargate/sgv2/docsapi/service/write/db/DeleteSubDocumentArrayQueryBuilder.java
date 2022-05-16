@@ -49,7 +49,7 @@ public class DeleteSubDocumentArrayQueryBuilder extends DeleteSubDocumentPathQue
       throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_DEPTH_EXCEEDED);
     }
 
-    String targetColumns = "p" + subPathSize;
+    String targetColumns = documentProperties.tableProperties().pathColumnName(subPathSize);
     whereConditions.add(BuiltCondition.of(targetColumns, Predicate.GTE, Term.marker()));
     whereConditions.add(BuiltCondition.of(targetColumns, Predicate.LTE, Term.marker()));
   }

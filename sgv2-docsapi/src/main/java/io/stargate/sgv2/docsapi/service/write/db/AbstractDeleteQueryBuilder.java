@@ -32,7 +32,7 @@ import java.util.List;
 /** Shared base class for all document query builder. */
 public abstract class AbstractDeleteQueryBuilder {
 
-  private final DocumentProperties documentProperties;
+  protected final DocumentProperties documentProperties;
 
   protected AbstractDeleteQueryBuilder(DocumentProperties documentProperties) {
     this.documentProperties = documentProperties;
