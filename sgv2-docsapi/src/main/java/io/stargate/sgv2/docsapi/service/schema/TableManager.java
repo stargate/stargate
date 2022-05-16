@@ -17,6 +17,7 @@
 
 package io.stargate.sgv2.docsapi.service.schema;
 
+import io.opentelemetry.extension.annotations.WithSpan;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
@@ -91,6 +92,7 @@ public class TableManager {
    * @param collection Collection name.
    * @return True if table was created successfully.
    */
+  @WithSpan
   public Uni<Boolean> createCollectionTable(String namespace, String collection) {
     // first check that table name is valid
     if (!collection.matches("^\\w+$")) {
@@ -145,6 +147,7 @@ public class TableManager {
    * @param collection Collection name.
    * @return Void item in case table deletion was executed.
    */
+  @WithSpan
   public Uni<Void> dropCollectionTable(String namespace, String collection) {
     // get table first
     return getValidCollectionTable(namespace, collection)
@@ -176,6 +179,7 @@ public class TableManager {
    * @param collection Collection name.
    * @return True if table exists and is a valid document table, failure otherwise.
    */
+  @WithSpan
   public Uni<Schema.CqlTable> getValidCollectionTable(String namespace, String collection) {
     // get the table
     return getValidDocumentTableInternal(namespace, collection)
@@ -208,6 +212,7 @@ public class TableManager {
    * @param collection Collection name.
    * @return True if table exists and is a valid document table, or it is created.
    */
+  @WithSpan
   public Uni<Boolean> ensureValidDocumentTable(String namespace, String collection) {
     // get the table
     return getValidDocumentTableInternal(namespace, collection)
