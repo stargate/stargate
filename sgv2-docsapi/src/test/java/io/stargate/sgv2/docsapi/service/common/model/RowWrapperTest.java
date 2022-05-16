@@ -183,6 +183,25 @@ class RowWrapperTest {
   }
 
   @Nested
+  class GetLong {
+
+    @Test
+    public void happyPath() {
+      String column = RandomStringUtils.randomAlphabetic(16);
+      long value = RandomUtils.nextLong();
+      QueryOuterClass.ColumnSpec columnSpec =
+          QueryOuterClass.ColumnSpec.newBuilder().setName(column).build();
+      QueryOuterClass.Row row =
+          QueryOuterClass.Row.newBuilder().addValues(Values.of(value)).build();
+
+      RowWrapper wrapper = ImmutableRowWrapper.of(Collections.singletonList(columnSpec), row);
+      long result = wrapper.getLong(column);
+
+      assertThat(result).isEqualTo(value);
+    }
+  }
+
+  @Nested
   class GetByte {
 
     @Test

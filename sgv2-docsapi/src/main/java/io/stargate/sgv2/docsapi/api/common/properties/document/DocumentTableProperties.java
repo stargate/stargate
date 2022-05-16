@@ -49,4 +49,9 @@ public interface DocumentTableProperties {
 
     return pathColumnPrefix() + index;
   }
+
+  /** @return The name of the column for the writetime of a row */
+  default String writetimeColumnName() {
+    return "writetime(" + leafColumnName() + ")";
+  }
 }
