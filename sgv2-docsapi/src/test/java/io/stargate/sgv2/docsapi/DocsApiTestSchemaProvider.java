@@ -43,11 +43,6 @@ public class DocsApiTestSchemaProvider {
   private final CqlTable table;
   private final CqlKeyspace keyspace;
 
-  @Deprecated
-  public DocsApiTestSchemaProvider(int maxDepth) {
-    throw new UnsupportedOperationException("temporarily preserved during migration, TODO remove");
-  }
-
   @Inject
   public DocsApiTestSchemaProvider(DocumentProperties documentProperties) {
     String keyspaceName = RandomStringUtils.randomAlphabetic(16).toLowerCase();
@@ -99,11 +94,6 @@ public class DocsApiTestSchemaProvider {
 
   public CqlKeyspace getKeyspace() {
     return keyspace;
-  }
-
-  @Deprecated
-  public DocumentTableProperties getTableProperties() {
-    throw new UnsupportedOperationException("Tests should inject documentProperties instead");
   }
 
   public RowWrapper getRow(ImmutableMap<String, Value> valuesMap) {
