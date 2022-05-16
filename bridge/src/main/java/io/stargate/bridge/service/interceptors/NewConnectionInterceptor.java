@@ -2,6 +2,7 @@ package io.stargate.bridge.service.interceptors;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
+import com.google.protobuf.Descriptors;
 import io.grpc.Context;
 import io.grpc.Contexts;
 import io.grpc.Grpc;
@@ -15,6 +16,7 @@ import io.grpc.Status;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.UnauthorizedException;
+import io.stargate.bridge.proto.Bridge;
 import io.stargate.bridge.service.BridgeService;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.ClientInfo;
@@ -35,6 +37,8 @@ import org.slf4j.LoggerFactory;
 public class NewConnectionInterceptor implements ServerInterceptor {
 
   private static final Logger logger = LoggerFactory.getLogger(NewConnectionInterceptor.class);
+  private static final String GET_SUPPORTED_FEATURES_NAME =
+      getFullMethodName("GetSupportedFeatures");
 
   public static final Key<String> TOKEN_KEY =
       Key.of("X-Cassandra-Token", Metadata.ASCII_STRING_MARSHALLER);
@@ -77,37 +81,38 @@ public class NewConnectionInterceptor implements ServerInterceptor {
     try {
       Context context = Context.current();
 
-      String token = headers.get(TOKEN_KEY);
-      if (token == null) {
-        call.close(Status.UNAUTHENTICATED.withDescription("No token provided"), new Metadata());
-        return new NopListener<>();
+      if (shouldCreateConnection(call)) {
+        String token = headers.get(TOKEN_KEY);
+        if (token == null) {
+          call.close(Status.UNAUTHENTICATED.withDescription("No token provided"), new Metadata());
+          return new NopListener<>();
+        }
+
+        Map<String, String> stringHeaders = convertAndFilterHeaders(headers);
+
+        // Some authentication service and persistence implementations depend on the "host" header
+        // being set. HTTP/2 uses the ":authority" pseudo-header for this purpose and the
+        // `grpc-netty-shaded` implementation will move the "host" header into the ":authority"
+        // value:
+        // https://github.com/grpc/grpc-java/commit/122b3b2f7cf2b50fe0a0cebc55a84133441a4348
+        String authority = call.getAuthority();
+        if (authority != null && !authority.isEmpty()) {
+          stringHeaders.put("host", authority);
+        }
+
+        RequestInfo info =
+            ImmutableRequestInfo.builder()
+                .token(token)
+                .headers(stringHeaders)
+                .remoteAddress(call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR))
+                .build();
+
+        Connection connection = connectionCache.get(info);
+        context =
+            context
+                .withValue(BridgeService.HEADERS_KEY, stringHeaders)
+                .withValue(BridgeService.CONNECTION_KEY, connection);
       }
-
-      Map<String, String> stringHeaders = convertAndFilterHeaders(headers);
-
-      // Some authentication service and persistence implementations depend on the "host" header
-      // being set. HTTP/2 uses the ":authority" pseudo-header for this purpose and the
-      // `grpc-netty-shaded` implementation will move the "host" header into the ":authority"
-      // value:
-      // https://github.com/grpc/grpc-java/commit/122b3b2f7cf2b50fe0a0cebc55a84133441a4348
-      String authority = call.getAuthority();
-      if (authority != null && !authority.isEmpty()) {
-        stringHeaders.put("host", authority);
-      }
-
-      RequestInfo info =
-          ImmutableRequestInfo.builder()
-              .token(token)
-              .headers(stringHeaders)
-              .remoteAddress(call.getAttributes().get(Grpc.TRANSPORT_ATTR_REMOTE_ADDR))
-              .build();
-
-      Connection connection = connectionCache.get(info);
-      context =
-          context
-              .withValue(BridgeService.HEADERS_KEY, stringHeaders)
-              .withValue(BridgeService.CONNECTION_KEY, connection);
-
       return Contexts.interceptCall(context, call, headers, next);
     } catch (Exception e) {
       Throwable cause = e;
@@ -126,6 +131,10 @@ public class NewConnectionInterceptor implements ServerInterceptor {
       }
     }
     return new NopListener<>();
+  }
+
+  private boolean shouldCreateConnection(ServerCall<?, ?> call) {
+    return !GET_SUPPORTED_FEATURES_NAME.equals(call.getMethodDescriptor().getFullMethodName());
   }
 
   protected Connection newConnection(RequestInfo info) throws UnauthorizedException {
@@ -165,6 +174,14 @@ public class NewConnectionInterceptor implements ServerInterceptor {
       stringHeaders.put(key, value);
     }
     return stringHeaders;
+  }
+
+  private static String getFullMethodName(String simpleName) {
+    Descriptors.MethodDescriptor fromProtobuf =
+        Bridge.getDescriptor().getServices().get(0).findMethodByName(simpleName);
+    // Can't use getFullName() here because it uses '.' as the separator between service and method,
+    // whereas ServerCall.getMethodDescriptor().getFullName() uses '/'.
+    return fromProtobuf.getService().getFullName() + '/' + fromProtobuf.getName();
   }
 
   private static class NopListener<ReqT> extends Listener<ReqT> {}
