@@ -9,9 +9,11 @@ import com.fasterxml.jackson.databind.node.LongNode;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
+import io.opentelemetry.extension.annotations.WithSpan;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
+import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -57,6 +59,7 @@ public class JsonConverter {
    * @param numericBooleans `true` if booleans should be treated as numbers
    * @return the JSON representation of the data
    */
+  @WithSpan
   public JsonNode convertToJsonDoc(
       List<RowWrapper> rows,
       DeadLeafCollector collector,
@@ -322,33 +325,30 @@ public class JsonConverter {
       boolean numericBooleans) {
     JsonNode n = NullNode.getInstance();
 
-    if (!row.isNull(docsProperties.tableProperties().stringValueColumnName())) {
-      String value = row.getString(docsProperties.tableProperties().stringValueColumnName());
-      if (value.equals(Constants.EMPTY_OBJECT_MARKER)) {
+    String stringValue = DocsApiUtils.getStringFromRow(row, docsProperties);
+    Boolean booleanValue = DocsApiUtils.getBooleanFromRow(row, docsProperties, numericBooleans);
+    Double doubleValue = DocsApiUtils.getDoubleFromRow(row, docsProperties);
+
+    if (stringValue != null) {
+      if (stringValue.equals(Constants.EMPTY_OBJECT_MARKER)) {
         n = mapper.createObjectNode();
-      } else if (value.equals(Constants.EMPTY_ARRAY_MARKER)) {
+      } else if (stringValue.equals(Constants.EMPTY_ARRAY_MARKER)) {
         n = mapper.createArrayNode();
       } else {
-        n = new TextNode(value);
+        n = new TextNode(stringValue);
       }
-    } else if (!row.isNull(docsProperties.tableProperties().booleanValueColumnName())) {
-      Boolean booleanFromRow;
-      if (numericBooleans) {
-        booleanFromRow =
-            (row.getByte(docsProperties.tableProperties().booleanValueColumnName()) != 0);
-      } else {
-        booleanFromRow = row.getBoolean(docsProperties.tableProperties().booleanValueColumnName());
-      }
-
-      n = BooleanNode.valueOf(booleanFromRow);
-    } else if (!row.isNull(docsProperties.tableProperties().doubleValueColumnName())) {
+    } else if (booleanValue != null) {
+      n = BooleanNode.valueOf(booleanValue);
+    } else if (doubleValue != null) {
       // If not a fraction represent as a long to the user
       // This lets us handle queries of doubles and longs without
       // splitting them into separate columns
-      double dv = row.getDouble(docsProperties.tableProperties().doubleValueColumnName());
-      long lv = (long) dv;
-      if ((double) lv == dv) n = new LongNode(lv);
-      else n = new DoubleNode(dv);
+      long lv = (long) doubleValue.doubleValue();
+      if ((double) lv == doubleValue) {
+        n = new LongNode(lv);
+      } else {
+        n = new DoubleNode(doubleValue);
+      }
     }
     if (ref == null)
       throw new IllegalStateException("Missing path @" + leaf + " v=" + n + " row=" + row);

@@ -52,6 +52,6 @@ public interface DocumentTableProperties {
 
   /** @return The name of the column for the writetime of a row */
   default String writetimeColumnName() {
-    return "writetime(leaf)";
+    return "writetime(" + leafColumnName() + ")";
   }
 }
