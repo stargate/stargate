@@ -19,9 +19,9 @@ package io.stargate.sgv2.docsapi.testprofiles;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import java.util.Map;
 
-public class MaxDepth8 implements QuarkusTestProfile {
+public class MaxDepth4TestProfile implements QuarkusTestProfile {
   @Override
   public Map<String, String> getConfigOverrides() {
-    return Map.of("stargate.document.max-depth", "8");
+    return Map.of("stargate.document.max-depth", "4");
   }
 }

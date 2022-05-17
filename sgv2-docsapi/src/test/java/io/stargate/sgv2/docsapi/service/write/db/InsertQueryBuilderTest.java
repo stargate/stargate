@@ -28,7 +28,7 @@ import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.ImmutableJsonShreddedRow;
 import io.stargate.sgv2.docsapi.service.JsonShreddedRow;
-import io.stargate.sgv2.docsapi.testprofiles.MaxDepth8;
+import io.stargate.sgv2.docsapi.testprofiles.MaxDepth8TestProfile;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -36,7 +36,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@TestProfile(MaxDepth8.class)
+@TestProfile(MaxDepth8TestProfile.class)
 class InsertQueryBuilderTest {
 
   @Inject DocumentProperties documentProperties;

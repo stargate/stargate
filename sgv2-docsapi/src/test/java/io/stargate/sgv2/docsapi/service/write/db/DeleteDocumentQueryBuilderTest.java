@@ -25,7 +25,7 @@ import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
-import io.stargate.sgv2.docsapi.testprofiles.MaxDepth4;
+import io.stargate.sgv2.docsapi.testprofiles.MaxDepth4TestProfile;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -33,7 +33,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@TestProfile(MaxDepth4.class)
+@TestProfile(MaxDepth4TestProfile.class)
 class DeleteDocumentQueryBuilderTest {
 
   @Inject DocumentProperties documentProperties;

@@ -25,7 +25,7 @@ import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
-import io.stargate.sgv2.docsapi.testprofiles.MaxDepth4;
+import io.stargate.sgv2.docsapi.testprofiles.MaxDepth4TestProfile;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -34,7 +34,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@TestProfile(MaxDepth4.class)
+@TestProfile(MaxDepth4TestProfile.class)
 class DocsApiUtilsQuarkusTest {
 
   @Inject DocsApiTestSchemaProvider schemaProvider;
