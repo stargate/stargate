@@ -38,10 +38,8 @@ public class CollectionQueryProvider {
     List<Column> columns = documentProperties.tableColumns().allColumns();
 
     // parameters for the local quorum
-    // TODO this was not existing before in DocumentDB
     QueryOuterClass.QueryParameters parameters = getQueryParameters();
 
-    // TODO can we utilize the ifNotExist
     return new QueryBuilder()
         .create()
         .table(namespace, collection)
@@ -59,7 +57,6 @@ public class CollectionQueryProvider {
    */
   public QueryOuterClass.Query deleteCollectionQuery(String namespace, String collection) {
     // parameters for the local quorum
-    // TODO this was not existing before in DocumentDB
     QueryOuterClass.QueryParameters parameters = getQueryParameters();
 
     // construct delete query
@@ -120,7 +117,6 @@ public class CollectionQueryProvider {
 
   private QueryOuterClass.Query createIndexQuery(
       String keyspaceName, String tableName, String indexedColumn, String customIndexClass) {
-    // TODO Do I need a quorum here as well?
     QueryOuterClass.QueryParameters parameters = getQueryParameters();
 
     return new QueryBuilder()

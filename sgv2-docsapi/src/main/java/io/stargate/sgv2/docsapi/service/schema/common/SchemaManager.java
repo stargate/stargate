@@ -34,7 +34,6 @@ import io.stargate.sgv2.common.grpc.SchemaReads;
 import io.stargate.sgv2.common.grpc.UnauthorizedKeyspaceException;
 import io.stargate.sgv2.common.grpc.UnauthorizedTableException;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
-import io.stargate.sgv2.docsapi.grpc.GrpcClients;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -48,8 +47,6 @@ public class SchemaManager {
   @Inject
   @CacheName("keyspace-cache")
   Cache keyspaceCache;
-
-  @Inject GrpcClients grpcClients;
 
   @Inject Schema.SchemaRead.SourceApi sourceApi;
 

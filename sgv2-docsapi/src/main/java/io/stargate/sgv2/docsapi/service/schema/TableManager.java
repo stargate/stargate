@@ -28,7 +28,6 @@ import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableColu
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
-import io.stargate.sgv2.docsapi.grpc.GrpcClients;
 import io.stargate.sgv2.docsapi.service.schema.common.SchemaManager;
 import io.stargate.sgv2.docsapi.service.schema.query.CollectionQueryProvider;
 import java.util.List;
@@ -46,8 +45,6 @@ public class TableManager {
   @Inject SchemaManager schemaManager;
 
   @Inject CollectionQueryProvider collectionQueryProvider;
-
-  @Inject GrpcClients grpcClients;
 
   @Inject StargateRequestInfo requestInfo;
 
@@ -293,10 +290,7 @@ public class TableManager {
         table.getColumnsList().stream()
             .map(QueryOuterClass.ColumnSpec::getName)
             .anyMatch(c -> !tableColumns.valueColumnNames().contains(c));
-    if (missingValueColumns) {
-      return false;
-    }
 
-    return true;
+    return !missingValueColumns;
   }
 }
