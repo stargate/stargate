@@ -7,7 +7,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.bridge.proto.QueryOuterClass;
-import io.stargate.sgv2.docsapi.testprofiles.NumericBooleansTestProfile;
 import io.stargate.sgv2.docsapi.testprofiles.SaiEnabledTestProfile;
 import java.util.List;
 import java.util.Map;
@@ -59,7 +58,7 @@ class CollectionQueryProviderTest {
   @TestProfile(CreateCollectionQueryWithNumericBooleans.Profile.class)
   class CreateCollectionQueryWithNumericBooleans {
 
-    public static class Profile extends NumericBooleansTestProfile {
+    public static class Profile extends SaiEnabledTestProfile {
 
       @Override
       public Map<String, String> getConfigOverrides() {
@@ -171,7 +170,7 @@ class CollectionQueryProviderTest {
               "CREATE CUSTOM INDEX IF NOT EXISTS ON \"%s\".\"%s\" (dbl_value) USING 'StorageAttachedIndex'"
                   .formatted(namespace, collection))
           .contains(
-              "CREATE INDEX IF NOT EXISTS ON \"%s\".\"%s\" (bool_value)"
+              "CREATE CUSTOM INDEX IF NOT EXISTS ON \"%s\".\"%s\" (bool_value) USING 'StorageAttachedIndex'"
                   .formatted(namespace, collection));
     }
   }

@@ -97,9 +97,13 @@ public class CollectionQueryProvider {
               collection,
               tableProperties.doubleValueColumnName(),
               STORAGE_ATTACHED_INDEX_CLASS));
-      // SAI doesn't support booleans, so add a non-SAI index here.
+      // note that SAI doesn't support booleans, but we are using numeric booleans
       indexQueries.add(
-          createIndexQuery(namespace, collection, tableProperties.booleanValueColumnName(), null));
+          createIndexQuery(
+              namespace,
+              collection,
+              tableProperties.booleanValueColumnName(),
+              STORAGE_ATTACHED_INDEX_CLASS));
     } else {
       indexQueries.add(
           createIndexQuery(namespace, collection, tableProperties.leafColumnName(), null));
