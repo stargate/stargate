@@ -233,8 +233,8 @@ public class SchemaManager {
                         // if we have updated keyspace cache and return
                         // otherwise return what we had in the cache already
                         if (null != updatedKeyspace && updatedKeyspace.hasCqlKeyspace()) {
-                          invalidateKeyspace(keyspaceName, tenantId);
-                          return cacheKeyspace(keyspaceName, tenantId, updatedKeyspace);
+                          return invalidateKeyspace(keyspaceName, tenantId)
+                              .flatMap(v -> cacheKeyspace(keyspaceName, tenantId, updatedKeyspace));
                         } else {
                           return Uni.createFrom().item(keyspace);
                         }
@@ -248,8 +248,8 @@ public class SchemaManager {
             t -> {
               if (t instanceof StatusRuntimeException sre) {
                 if (Objects.equals(sre.getStatus().getCode(), Status.Code.NOT_FOUND)) {
-                  invalidateKeyspace(keyspaceName, tenantId);
-                  return Uni.createFrom().nullItem();
+                  return invalidateKeyspace(keyspaceName, tenantId)
+                      .flatMap(v -> Uni.createFrom().nullItem());
                 }
               }
 
@@ -304,6 +304,8 @@ public class SchemaManager {
 
   // simple utility to invalidate keyspace
   @CacheInvalidate(cacheName = "keyspace-cache")
-  protected void invalidateKeyspace(
-      @CacheKey String keyspaceName, @CacheKey Optional<String> tenantId) {}
+  protected Uni<Void> invalidateKeyspace(
+      @CacheKey String keyspaceName, @CacheKey Optional<String> tenantId) {
+    return Uni.createFrom().nullItem();
+  }
 }
