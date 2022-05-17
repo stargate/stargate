@@ -15,8 +15,8 @@
  */
 package io.stargate.sgv2.graphql.schema.graphqlfirst.fetchers.deployed;
 
-import io.stargate.proto.QueryOuterClass.TypeSpec;
-import io.stargate.proto.QueryOuterClass.Value;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.proto.QueryOuterClass.Value;
 
 /**
  * A column definition and its value (used to represent primary keys in {@link MutationPayload}).

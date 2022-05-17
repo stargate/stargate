@@ -16,8 +16,8 @@
 package io.stargate.sgv2.graphql.schema.graphqlfirst.processor;
 
 import graphql.language.Type;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
-import io.stargate.proto.Schema.ColumnOrderBy;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.proto.Schema.ColumnOrderBy;
 import java.util.Optional;
 
 public class FieldModel {

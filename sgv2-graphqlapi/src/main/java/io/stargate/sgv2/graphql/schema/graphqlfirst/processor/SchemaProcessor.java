@@ -54,7 +54,7 @@ import graphql.schema.idl.errors.SchemaProblem;
 import graphql.util.TraversalControl;
 import graphql.util.TraverserContext;
 import graphql.util.TreeTransformerUtil;
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.graphql.schema.CassandraFetcherExceptionHandler;
 import io.stargate.sgv2.graphql.schema.SchemaConstants;

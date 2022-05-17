@@ -15,7 +15,7 @@
  */
 package io.stargate.sgv2.graphql.schema.graphqlfirst.fetchers.deployed;
 
-import io.stargate.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
 import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;

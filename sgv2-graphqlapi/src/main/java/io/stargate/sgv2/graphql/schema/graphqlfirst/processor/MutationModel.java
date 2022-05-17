@@ -16,7 +16,7 @@
 package io.stargate.sgv2.graphql.schema.graphqlfirst.processor;
 
 import graphql.language.FieldDefinition;
-import io.stargate.proto.QueryOuterClass.Consistency;
+import io.stargate.bridge.proto.QueryOuterClass.Consistency;
 import java.util.Optional;
 
 public abstract class MutationModel extends OperationModel {

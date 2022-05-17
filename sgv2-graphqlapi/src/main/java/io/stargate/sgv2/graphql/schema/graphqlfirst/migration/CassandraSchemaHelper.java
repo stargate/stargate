@@ -16,13 +16,13 @@
 package io.stargate.sgv2.graphql.schema.graphqlfirst.migration;
 
 import com.google.common.collect.Maps;
-import io.stargate.grpc.TypeSpecs;
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec.Udt;
-import io.stargate.proto.Schema.ColumnOrderBy;
-import io.stargate.proto.Schema.CqlIndex;
-import io.stargate.proto.Schema.CqlTable;
+import io.stargate.bridge.grpc.TypeSpecs;
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Udt;
+import io.stargate.bridge.proto.Schema.ColumnOrderBy;
+import io.stargate.bridge.proto.Schema.CqlIndex;
+import io.stargate.bridge.proto.Schema.CqlTable;
 import io.stargate.sgv2.common.cql.builder.Column;
 import java.util.ArrayList;
 import java.util.List;

@@ -18,7 +18,7 @@ package io.stargate.sgv2.graphql.schema.graphqlfirst.processor;
 import graphql.Scalars;
 import graphql.language.Directive;
 import graphql.language.FieldDefinition;
-import io.stargate.proto.QueryOuterClass.Consistency;
+import io.stargate.bridge.proto.QueryOuterClass.Consistency;
 import io.stargate.sgv2.graphql.schema.graphqlfirst.processor.ArgumentDirectiveModelsBuilder.OperationType;
 import io.stargate.sgv2.graphql.schema.graphqlfirst.processor.OperationModel.ReturnType;
 import java.util.List;

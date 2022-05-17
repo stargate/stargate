@@ -15,12 +15,12 @@
  */
 package io.stargate.sgv2.graphql.schema.graphqlfirst.migration;
 
-import io.stargate.proto.QueryOuterClass;
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec.Tuple;
-import io.stargate.proto.QueryOuterClass.TypeSpec.Udt;
-import io.stargate.proto.Schema;
+import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Tuple;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Udt;
+import io.stargate.bridge.proto.Schema;
 import java.util.List;
 
 /** A DDL query to be executed as part of a migration. */

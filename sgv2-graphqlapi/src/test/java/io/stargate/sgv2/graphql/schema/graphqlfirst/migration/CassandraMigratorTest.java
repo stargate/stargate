@@ -18,12 +18,12 @@ package io.stargate.sgv2.graphql.schema.graphqlfirst.migration;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
-import io.stargate.grpc.TypeSpecs;
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec.Udt;
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
-import io.stargate.proto.Schema.CqlTable;
+import io.stargate.bridge.grpc.TypeSpecs;
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Udt;
+import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.bridge.proto.Schema.CqlTable;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.graphql.schema.SampleKeyspaces;
 import io.stargate.sgv2.graphql.schema.graphqlfirst.migration.CassandraSchemaHelper.ExtendedColumn;

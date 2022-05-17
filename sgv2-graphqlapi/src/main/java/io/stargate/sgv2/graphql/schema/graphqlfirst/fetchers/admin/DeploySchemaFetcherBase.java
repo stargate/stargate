@@ -16,7 +16,7 @@
 package io.stargate.sgv2.graphql.schema.graphqlfirst.fetchers.admin;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.sgv2.graphql.persistence.graphqlfirst.SchemaSource;
 import io.stargate.sgv2.graphql.persistence.graphqlfirst.SchemaSourceDao;
 import io.stargate.sgv2.graphql.schema.CassandraFetcher;

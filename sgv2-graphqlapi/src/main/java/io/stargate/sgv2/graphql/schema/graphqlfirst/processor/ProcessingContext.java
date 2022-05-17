@@ -20,7 +20,7 @@ import com.google.errorprone.annotations.FormatString;
 import graphql.GraphQL;
 import graphql.language.SourceLocation;
 import graphql.schema.idl.TypeDefinitionRegistry;
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.graphql.schema.scalars.CqlScalar;
 import java.util.ArrayList;

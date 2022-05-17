@@ -36,7 +36,7 @@ import graphql.schema.GraphQLSchema;
 import graphql.schema.idl.SchemaParser;
 import graphql.schema.idl.SchemaPrinter;
 import graphql.schema.idl.TypeDefinitionRegistry;
-import io.stargate.proto.QueryOuterClass.Consistency;
+import io.stargate.bridge.proto.QueryOuterClass.Consistency;
 import io.stargate.sgv2.common.cql.builder.CollectionIndexingType;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import java.util.Set;

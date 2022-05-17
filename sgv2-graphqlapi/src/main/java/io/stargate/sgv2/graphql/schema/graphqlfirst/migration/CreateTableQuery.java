@@ -16,12 +16,12 @@
 package io.stargate.sgv2.graphql.schema.graphqlfirst.migration;
 
 import com.google.common.collect.ImmutableList;
-import io.stargate.grpc.TypeSpecs;
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.Schema;
-import io.stargate.proto.Schema.CqlIndex;
-import io.stargate.proto.Schema.CqlTable;
+import io.stargate.bridge.grpc.TypeSpecs;
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.Schema.CqlIndex;
+import io.stargate.bridge.proto.Schema.CqlTable;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;

@@ -16,8 +16,8 @@
 package io.stargate.sgv2.graphql.schema.graphqlfirst.processor;
 
 import com.google.common.collect.ImmutableList;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
-import io.stargate.proto.Schema.CqlTable;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.proto.Schema.CqlTable;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import java.util.Collection;
 import java.util.List;

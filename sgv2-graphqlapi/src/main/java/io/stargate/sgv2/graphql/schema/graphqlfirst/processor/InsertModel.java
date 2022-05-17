@@ -17,8 +17,8 @@ package io.stargate.sgv2.graphql.schema.graphqlfirst.processor;
 
 import graphql.language.FieldDefinition;
 import graphql.schema.DataFetcher;
-import io.stargate.proto.QueryOuterClass.Consistency;
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.bridge.proto.QueryOuterClass.Consistency;
+import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.sgv2.graphql.schema.graphqlfirst.fetchers.deployed.InsertFetcher;
 import java.util.Optional;
 

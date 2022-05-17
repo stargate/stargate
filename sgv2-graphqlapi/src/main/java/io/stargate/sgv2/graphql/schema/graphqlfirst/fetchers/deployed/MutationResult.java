@@ -15,10 +15,10 @@
  */
 package io.stargate.sgv2.graphql.schema.graphqlfirst.fetchers.deployed;
 
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.Response;
-import io.stargate.proto.QueryOuterClass.ResultSet;
-import io.stargate.proto.QueryOuterClass.Row;
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.Response;
+import io.stargate.bridge.proto.QueryOuterClass.ResultSet;
+import io.stargate.bridge.proto.QueryOuterClass.Row;
 import io.stargate.sgv2.common.grpc.proto.Rows;
 import java.util.List;
 import java.util.Optional;

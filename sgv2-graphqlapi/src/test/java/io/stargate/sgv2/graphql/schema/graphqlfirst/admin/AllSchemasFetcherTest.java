@@ -20,7 +20,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.graphql.persistence.graphqlfirst.SchemaSource;
 import io.stargate.sgv2.graphql.persistence.graphqlfirst.SchemaSourceDao;

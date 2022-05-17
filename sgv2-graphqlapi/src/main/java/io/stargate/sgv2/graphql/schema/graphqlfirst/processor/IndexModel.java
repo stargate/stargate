@@ -15,7 +15,7 @@
  */
 package io.stargate.sgv2.graphql.schema.graphqlfirst.processor;
 
-import io.stargate.proto.Schema.IndexingType;
+import io.stargate.bridge.proto.Schema.IndexingType;
 import java.util.Map;
 import java.util.Optional;
 

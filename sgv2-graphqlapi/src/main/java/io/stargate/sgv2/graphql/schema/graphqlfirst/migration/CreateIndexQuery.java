@@ -15,9 +15,9 @@
  */
 package io.stargate.sgv2.graphql.schema.graphqlfirst.migration;
 
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.Schema;
-import io.stargate.proto.Schema.CqlIndex;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.Schema.CqlIndex;
 import io.stargate.sgv2.common.cql.builder.CollectionIndexingType;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 

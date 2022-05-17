@@ -15,9 +15,9 @@
  */
 package io.stargate.sgv2.graphql.schema.graphqlfirst.migration;
 
-import io.stargate.grpc.TypeSpecs;
-import io.stargate.proto.QueryOuterClass;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.grpc.TypeSpecs;
+import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 
 public class AddUdtFieldQuery extends MigrationQuery {

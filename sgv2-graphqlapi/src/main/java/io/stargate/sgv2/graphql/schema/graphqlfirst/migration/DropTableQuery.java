@@ -15,8 +15,8 @@
  */
 package io.stargate.sgv2.graphql.schema.graphqlfirst.migration;
 
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.Schema.CqlTable;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.Schema.CqlTable;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 
 public class DropTableQuery extends MigrationQuery {

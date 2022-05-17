@@ -17,8 +17,8 @@ package io.stargate.sgv2.graphql.schema.graphqlfirst.fetchers.deployed;
 
 import graphql.execution.DataFetcherResult;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.graphql.schema.graphqlfirst.processor.DeleteModel;

@@ -15,9 +15,9 @@
  */
 package io.stargate.sgv2.graphql.schema.graphqlfirst.migration;
 
-import io.stargate.grpc.TypeSpecs;
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.QueryOuterClass.TypeSpec.Udt;
+import io.stargate.bridge.grpc.TypeSpecs;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Udt;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;

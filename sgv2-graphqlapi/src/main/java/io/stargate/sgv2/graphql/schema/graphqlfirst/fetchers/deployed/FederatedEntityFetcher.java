@@ -17,8 +17,8 @@ package io.stargate.sgv2.graphql.schema.graphqlfirst.fetchers.deployed;
 
 import com.apollographql.federation.graphqljava._Entity;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.proto.QueryOuterClass.ResultSet;
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.bridge.proto.QueryOuterClass.ResultSet;
+import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.graphql.schema.graphqlfirst.processor.EntityModel;
 import io.stargate.sgv2.graphql.schema.graphqlfirst.processor.MappingModel;

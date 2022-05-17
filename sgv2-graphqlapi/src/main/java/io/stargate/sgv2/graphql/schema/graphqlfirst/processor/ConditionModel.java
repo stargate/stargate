@@ -1,5 +1,6 @@
 package io.stargate.sgv2.graphql.schema.graphqlfirst.processor;
 
+import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 
@@ -29,7 +30,7 @@ public class ConditionModel {
     return argumentName;
   }
 
-  public BuiltCondition build(Object cqlValue) {
+  public BuiltCondition build(Value cqlValue) {
     return BuiltCondition.of(field.getCqlName(), predicate, cqlValue);
   }
 }

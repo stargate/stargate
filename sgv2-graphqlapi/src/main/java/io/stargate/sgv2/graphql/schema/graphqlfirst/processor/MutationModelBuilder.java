@@ -21,7 +21,7 @@ import graphql.language.InputValueDefinition;
 import graphql.language.ListType;
 import graphql.language.Type;
 import graphql.language.TypeName;
-import io.stargate.proto.QueryOuterClass.Consistency;
+import io.stargate.bridge.proto.QueryOuterClass.Consistency;
 import io.stargate.sgv2.graphql.schema.graphqlfirst.util.TypeHelper;
 import java.time.Duration;
 import java.time.format.DateTimeParseException;
