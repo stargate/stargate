@@ -25,6 +25,7 @@ import io.stargate.sgv2.common.cql.builder.Term;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
+import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
 import java.util.List;
 
 /** Deletes any array elements in the given document sub-path. */
@@ -58,7 +59,10 @@ public class DeleteSubDocumentArrayQueryBuilder extends DeleteSubDocumentPathQue
   protected void addBindValues(List<QueryOuterClass.Value> values) {
     super.addBindValues(values);
 
-    values.add(Values.of("[000000]"));
-    values.add(Values.of("[999999]"));
+    String beginIndex = DocsApiUtils.convertArrayPath("[0]", documentProperties.maxArrayLength());
+    String endIndex = String.format("[%d]", documentProperties.maxArrayLength() - 1);
+
+    values.add(Values.of(beginIndex));
+    values.add(Values.of(endIndex));
   }
 }
