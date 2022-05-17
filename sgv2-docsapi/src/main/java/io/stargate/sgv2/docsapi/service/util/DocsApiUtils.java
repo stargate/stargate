@@ -15,6 +15,8 @@
  */
 package io.stargate.sgv2.docsapi.service.util;
 
+import com.fasterxml.jackson.core.JsonPointer;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.google.common.base.Strings;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
@@ -22,8 +24,12 @@ import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -33,12 +39,37 @@ public final class DocsApiUtils {
 
   public static final Pattern PERIOD_PATTERN = Pattern.compile("(?<!\\\\)\\.");
   public static final Pattern COMMA_PATTERN = Pattern.compile("(?<!\\\\),");
+
+  // Make these public if needed in the future
   private static final Pattern ARRAY_PATH_PATTERN = Pattern.compile("\\[.*\\]");
+  private static final Pattern ARRAY_INDEX_PATTERN = Pattern.compile("\\[(\\d+)\\]");
+  private static final Pattern ESCAPED_PATTERN = Pattern.compile("(\\\\,|\\\\\\.|\\\\\\*)");
   private static final Pattern ESCAPED_PATTERN_INTERNAL_CAPTURE =
       Pattern.compile("\\\\(\\.|\\*|,)");
+  private static final Pattern BRACKET_SEPARATOR_PATTERN = Pattern.compile("\\]\\[");
 
   private DocsApiUtils() {
     // intentionally empty
+  }
+
+  /**
+   * Given a path such as "a.b.c.[0]", converts into a JSON pointer for the JSON path "a.b.c.0"
+   *
+   * @param path
+   * @return A JsonPointer that points to the given JSON path, or empty if path is null
+   */
+  public static Optional<JsonPointer> pathToJsonPointer(String path) {
+    if (null == path) {
+      return Optional.empty();
+    }
+
+    String separator = String.valueOf(JsonPointer.SEPARATOR);
+    String adaptedPath =
+        path.replaceAll(DocsApiUtils.PERIOD_PATTERN.pattern(), separator)
+            .replaceAll(ARRAY_INDEX_PATTERN.pattern(), "$1");
+
+    JsonPointer pointer = JsonPointer.compile(separator + adaptedPath);
+    return Optional.of(pointer);
   }
 
   /**
@@ -116,6 +147,102 @@ public final class DocsApiUtils {
 
   public static String leftPadTo6(String value) {
     return Strings.padStart(value, 6, '0');
+  }
+
+  /**
+   * Returns the collection of paths that are represented by each JsonNode in the #fieldsJson.
+   *
+   * <p>For each field a list of strings representing the path is returned. Note that for each path
+   * member, {@link #convertArrayPath(String, int)} will be called.
+   *
+   * @param fieldsJson array json node
+   * @param maxArrayLength the maximum allowed array length, from configuration
+   * @return collection of paths representing all fields
+   */
+  public static Collection<List<String>> convertFieldsToPaths(
+      JsonNode fieldsJson, int maxArrayLength) {
+    if (!fieldsJson.isArray()) {
+      String msg = String.format("`fields` must be a JSON array, found %s", fieldsJson);
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_FIELDS_INVALID, msg);
+    }
+
+    Collection<List<String>> results = new ArrayList<>();
+    for (JsonNode value : fieldsJson) {
+      if (!value.isTextual()) {
+        String msg = String.format("Each field must be a string, found %s", value);
+        throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_FIELDS_INVALID, msg);
+      }
+      String fieldValue = value.asText();
+      List<String> fieldPath =
+          Arrays.stream(PERIOD_PATTERN.split(fieldValue))
+              .map(p -> DocsApiUtils.convertArrayPath(p, maxArrayLength))
+              .map(DocsApiUtils::convertEscapedCharacters)
+              .collect(Collectors.toList());
+
+      results.add(fieldPath);
+    }
+
+    return results;
+  }
+
+  /**
+   * Returns true if the String contains illegal characters. Used during writes to ensure that all
+   * special characters are escaped.
+   *
+   * @param value A String
+   * @return true if the String has an illegal character
+   */
+  public static boolean containsIllegalSequences(String value) {
+    String replaced = ESCAPED_PATTERN.matcher(value).replaceAll("");
+    return replaced.contains("[")
+        || replaced.contains(".")
+        || replaced.contains("'")
+        || replaced.contains("\\");
+  }
+
+  /**
+   * Converts a JSON path string (e.g. "$.a.b.c[0]") into a JSON path string that only uses square
+   * brackets to denote pathing (e.g. "$['a']['b']['c'][0]". This is to allow escaping of certain
+   * characters, such as space, $, and @.
+   */
+  public static String convertJsonToBracketedPath(String path) {
+    String[] parts = PERIOD_PATTERN.split(path);
+    StringBuilder newPath = new StringBuilder();
+    for (int i = 0; i < parts.length; i++) {
+      String part = parts[i];
+      if (part.startsWith("$") && i == 0) {
+        newPath.append(part);
+      } else {
+        int indexOfBrace = part.indexOf('[');
+        if (indexOfBrace < 0) {
+          newPath.append("['").append(part).append("']");
+        } else {
+          String keyPart = part.substring(0, indexOfBrace);
+          String arrayPart = part.substring(indexOfBrace);
+          newPath.append("['").append(keyPart).append("']").append(arrayPart);
+        }
+      }
+    }
+    return newPath.toString();
+  }
+
+  /**
+   * Takes a bracketedPath as generated by DocsApiUtils#convertJsonToBracketedPath(java.lang.String)
+   * and converts it to an array where each element is a piece of the path.
+   *
+   * <p>E.g. if bracketedPath is $['a'][0]['b'], then the array generated is ['a', 0, 'b']
+   *
+   * @param bracketedPath A bracket-separated path generated from
+   *     DocsApiUtils#convertJsonToBracketedPath
+   * @return an array of Strings where each element is a piece of the path
+   */
+  public static String[] bracketedPathAsArray(String bracketedPath) {
+    // All bracketed paths start with $[ and end with ], so they must have at least length 3
+    if (bracketedPath.length() < 3) {
+      return new String[0];
+    }
+
+    return BRACKET_SEPARATOR_PATTERN.split(bracketedPath.substring(2, bracketedPath.length() - 1));
   }
 
   /**
@@ -262,5 +389,37 @@ public final class DocsApiUtils {
     }
 
     return true;
+  }
+
+  /**
+   * Creates a new Map with the path values (p0...pN) already filled in. Since it is backed by a
+   * LinkedHashMap, this can be used to preserve the data in the same order it was written, which
+   * can be useful for binding values to queries.
+   *
+   * @param path The path segments for the shredded row
+   * @param maxDepth
+   * @param properties DocumentProperties configuration object
+   * @return A Map (write order preserved upon iteration) of the bound data
+   */
+  public static Map<String, Object> newBindMap(
+      List<String> path, int maxDepth, DocumentProperties properties) {
+    Map<String, Object> bindMap = new LinkedHashMap<>(maxDepth + 5);
+
+    bindMap.put(properties.tableProperties().keyColumnName(), null);
+
+    for (int i = 0; i < maxDepth; i++) {
+      String value = "";
+      if (i < path.size()) {
+        value = path.get(i);
+      }
+      bindMap.put(properties.tableProperties().pathColumnName(i), value);
+    }
+
+    bindMap.put(properties.tableProperties().leafColumnName(), null);
+    bindMap.put(properties.tableProperties().stringValueColumnName(), null);
+    bindMap.put(properties.tableProperties().doubleValueColumnName(), null);
+    bindMap.put(properties.tableProperties().booleanValueColumnName(), null);
+
+    return bindMap;
   }
 }

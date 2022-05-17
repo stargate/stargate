@@ -22,6 +22,10 @@ import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.assertj.core.api.AssertionsForClassTypes.catchThrowable;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonPointer;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
@@ -30,11 +34,14 @@ import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
+import org.assertj.core.api.AssertionsForClassTypes;
+import org.assertj.core.api.AssertionsForInterfaceTypes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -45,6 +52,81 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
 class DocsApiUtilsTest {
+
+  @Nested
+  class PathToJsonPointer {
+
+    @Test
+    public void single() {
+      String input = "path";
+
+      Optional<JsonPointer> result = DocsApiUtils.pathToJsonPointer(input);
+
+      AssertionsForClassTypes.assertThat(result)
+          .hasValueSatisfying(
+              jsonPointer -> {
+                AssertionsForClassTypes.assertThat(jsonPointer.matchesProperty("path")).isTrue();
+              });
+    }
+
+    @Test
+    public void multi() {
+      String input = "path.to.field";
+
+      Optional<JsonPointer> result = DocsApiUtils.pathToJsonPointer(input);
+
+      AssertionsForClassTypes.assertThat(result)
+          .hasValueSatisfying(
+              jsonPointer -> {
+                AssertionsForClassTypes.assertThat(
+                        jsonPointer
+                            .matchProperty("path")
+                            .matchProperty("to")
+                            .matchesProperty("field"))
+                    .isTrue();
+              });
+    }
+
+    @Test
+    public void arrayElement() {
+      String input = "path.[115].field";
+
+      Optional<JsonPointer> result = DocsApiUtils.pathToJsonPointer(input);
+
+      AssertionsForClassTypes.assertThat(result)
+          .hasValueSatisfying(
+              jsonPointer -> {
+                AssertionsForClassTypes.assertThat(
+                        jsonPointer
+                            .matchProperty("path")
+                            .matchElement(115)
+                            .matchesProperty("field"))
+                    .isTrue();
+              });
+    }
+
+    @Test
+    public void arrayElementLiteral() {
+      String input = "path.[0]";
+
+      Optional<JsonPointer> result = DocsApiUtils.pathToJsonPointer(input);
+
+      AssertionsForClassTypes.assertThat(result)
+          .hasValueSatisfying(
+              jsonPointer -> {
+                AssertionsForClassTypes.assertThat(
+                        jsonPointer.matchProperty("path").matchesElement(0))
+                    .isTrue();
+              });
+    }
+
+    @Test
+    public void nullInput() {
+      Optional<JsonPointer> result = DocsApiUtils.pathToJsonPointer(null);
+
+      AssertionsForClassTypes.assertThat(result).isEmpty();
+    }
+  }
 
   @Nested
   class ConvertArrayPath {
@@ -125,6 +207,96 @@ class DocsApiUtilsTest {
   }
 
   @Nested
+  class ConvertFieldsToPaths {
+
+    ObjectMapper objectMapper = new ObjectMapper();
+
+    @Test
+    public void happyPath() {
+      ArrayNode input =
+          objectMapper.createArrayNode().add("path.to.the.field").add("path.to.different");
+
+      Collection<List<String>> result = DocsApiUtils.convertFieldsToPaths(input, 999999);
+      AssertionsForInterfaceTypes.assertThat(result)
+          .hasSize(2)
+          .anySatisfy(
+              l ->
+                  AssertionsForInterfaceTypes.assertThat(l)
+                      .containsExactly("path", "to", "the", "field"))
+          .anySatisfy(
+              l ->
+                  AssertionsForInterfaceTypes.assertThat(l)
+                      .containsExactly("path", "to", "different"));
+    }
+
+    @Test
+    public void arrays() {
+      ArrayNode input = objectMapper.createArrayNode().add("path.[*].any.[1].field");
+
+      Collection<List<String>> result = DocsApiUtils.convertFieldsToPaths(input, 999999);
+      AssertionsForInterfaceTypes.assertThat(result)
+          .singleElement()
+          .satisfies(
+              l ->
+                  AssertionsForInterfaceTypes.assertThat(l)
+                      .containsExactly("path", "[*]", "any", "[000001]", "field"));
+    }
+
+    @Test
+    public void segments() {
+      ArrayNode input = objectMapper.createArrayNode().add("path.one,two.[0],[1].field");
+
+      Collection<List<String>> result = DocsApiUtils.convertFieldsToPaths(input, 999999);
+      AssertionsForInterfaceTypes.assertThat(result)
+          .singleElement()
+          .satisfies(
+              l ->
+                  AssertionsForInterfaceTypes.assertThat(l)
+                      .containsExactly("path", "one,two", "[000000],[000001]", "field"));
+    }
+
+    @Test
+    public void notArrayInput() {
+      ObjectNode input = objectMapper.createObjectNode();
+
+      Throwable t = catchThrowable(() -> DocsApiUtils.convertFieldsToPaths(input, 999999));
+
+      AssertionsForClassTypes.assertThat(t)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_GENERAL_FIELDS_INVALID);
+    }
+
+    @Test
+    public void containsNotStringInInput() {
+      ArrayNode input = objectMapper.createArrayNode().add("path.one,two.[0],[1].field").add(15L);
+
+      Throwable t = catchThrowable(() -> DocsApiUtils.convertFieldsToPaths(input, 999999));
+
+      AssertionsForClassTypes.assertThat(t)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_GENERAL_FIELDS_INVALID);
+    }
+  }
+
+  @Nested
+  class ContainsIllegalSequences {
+    @Test
+    public void happyPath() {
+      AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("[012]")).isTrue();
+      AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("aaa[012]"))
+          .isTrue();
+      AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("]012[")).isTrue();
+      AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("[aaa]")).isTrue();
+      AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("[aaa")).isTrue();
+      AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("aaa]")).isFalse();
+      AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("a.2000")).isTrue();
+      AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("a\\.2000"))
+          .isFalse();
+      AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("a'2000")).isTrue();
+    }
+  }
+
+  @Nested
   class ExtractArrayPathIndex {
 
     @Test
@@ -142,6 +314,28 @@ class DocsApiUtilsTest {
       Optional<Integer> result = DocsApiUtils.extractArrayPathIndex("some", 999999);
 
       assertThat(result).isEmpty();
+    }
+  }
+
+  @Nested
+  class ConvertJsonToBracketedPath {
+
+    @Test
+    public void happyPath() {
+      String jsonPath = "$.a.b.c";
+
+      String result = DocsApiUtils.convertJsonToBracketedPath(jsonPath);
+
+      AssertionsForClassTypes.assertThat(result).isEqualTo("$['a']['b']['c']");
+    }
+
+    @Test
+    public void withArrayElements() {
+      String jsonPath = "$.a.b[2].c";
+
+      String result = DocsApiUtils.convertJsonToBracketedPath(jsonPath);
+
+      AssertionsForClassTypes.assertThat(result).isEqualTo("$['a']['b'][2]['c']");
     }
   }
 
@@ -198,6 +392,44 @@ class DocsApiUtilsTest {
               Arrays.asList("\\. is a period", "I can represent asterisks too: \\*"));
       assertThat(converted)
           .isEqualTo(Arrays.asList(". is a period", "I can represent asterisks too: *"));
+    }
+  }
+
+  @Nested
+  class BracketedPathAsArray {
+    @Test
+    public void happyPath() {
+      String bracketedPath = "$['a']['b']['c']";
+
+      String[] result = DocsApiUtils.bracketedPathAsArray(bracketedPath);
+
+      AssertionsForClassTypes.assertThat(result.length).isEqualTo(3);
+      AssertionsForClassTypes.assertThat(result[0]).isEqualTo("'a'");
+      AssertionsForClassTypes.assertThat(result[1]).isEqualTo("'b'");
+      AssertionsForClassTypes.assertThat(result[2]).isEqualTo("'c'");
+    }
+
+    @Test
+    public void withArrayElements() {
+      String bracketedPath = "$['a']['b'][2]['c']";
+
+      String[] result = DocsApiUtils.bracketedPathAsArray(bracketedPath);
+
+      AssertionsForClassTypes.assertThat(result.length).isEqualTo(4);
+      AssertionsForClassTypes.assertThat(result[0]).isEqualTo("'a'");
+      AssertionsForClassTypes.assertThat(result[1]).isEqualTo("'b'");
+      AssertionsForClassTypes.assertThat(result[2]).isEqualTo("2");
+      AssertionsForClassTypes.assertThat(result[3]).isEqualTo("'c'");
+    }
+
+    @Test
+    public void singlePath() {
+      String bracketedPath = "$['a']";
+
+      String[] result = DocsApiUtils.bracketedPathAsArray(bracketedPath);
+
+      AssertionsForClassTypes.assertThat(result.length).isEqualTo(1);
+      AssertionsForClassTypes.assertThat(result[0]).isEqualTo("'a'");
     }
   }
 
