@@ -22,6 +22,7 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.http.ApiServiceConnectionInfo;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.util.Collections;
@@ -53,9 +54,15 @@ public class FederationTest extends GraphqlFirstTestBase {
 
   @BeforeAll
   public static void setup(
-      StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspace, CqlSession session) {
-    String host = cluster.seedAddress();
-    CLIENT = new GraphqlFirstClient(host, RestUtils.getAuthToken(host));
+      StargateConnectionInfo stargateBackend,
+      ApiServiceConnectionInfo stargateGraphqlApi,
+      @TestKeyspace CqlIdentifier keyspace,
+      CqlSession session) {
+    CLIENT =
+        new GraphqlFirstClient(
+            stargateGraphqlApi.host(),
+            stargateGraphqlApi.port(),
+            RestUtils.getAuthToken(stargateBackend.seedAddress()));
     KEYSPACE = keyspace.asInternal();
 
     CLIENT.deploySchema(KEYSPACE, SCHEMA);

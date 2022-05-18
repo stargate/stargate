@@ -25,6 +25,7 @@ import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.http.ApiServiceConnectionInfo;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.util.Arrays;
@@ -54,11 +55,16 @@ public class UpdateIncrementalUpdatesTest extends GraphqlFirstTestBase {
 
   @BeforeAll
   public static void setup(
-      StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
+      StargateConnectionInfo stargateBackend,
+      ApiServiceConnectionInfo stargateGraphqlApi,
+      @TestKeyspace CqlIdentifier keyspaceId,
+      CqlSession session) {
     SESSION = session;
     CLIENT =
         new GraphqlFirstClient(
-            cluster.seedAddress(), RestUtils.getAuthToken(cluster.seedAddress()));
+            stargateGraphqlApi.host(),
+            stargateGraphqlApi.port(),
+            RestUtils.getAuthToken(stargateBackend.seedAddress()));
     KEYSPACE = keyspaceId.asInternal();
     // we need a dedicated table for counter because:
     // "Cannot mix counter and non counter columns in the same table"

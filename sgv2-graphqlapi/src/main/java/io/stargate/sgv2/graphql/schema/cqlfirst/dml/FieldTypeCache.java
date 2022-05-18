@@ -118,7 +118,7 @@ abstract class FieldTypeCache<GraphqlT> {
       case VARCHAR:
         return Scalars.GraphQLString;
       default:
-        return CqlScalar.fromCqlType(type)
+        return CqlScalar.fromBasicCqlType(type)
             .orElseThrow(() -> new IllegalArgumentException("Unsupported CQL type " + type))
             .getGraphqlType();
     }

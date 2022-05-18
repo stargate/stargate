@@ -50,6 +50,10 @@ public class StargateGraphqlContext {
     return bridge;
   }
 
+  public GraphqlCache getGraphqlCache() {
+    return graphqlCache;
+  }
+
   public BatchContext getBatchContext() {
     return batchContext;
   }

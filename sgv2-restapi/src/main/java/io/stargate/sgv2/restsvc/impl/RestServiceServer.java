@@ -69,14 +69,17 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   private final Metrics metrics;
   private final MetricsScraper metricsScraper;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
+  private final int timeoutSeconds;
 
   public RestServiceServer(
       Metrics metrics,
       MetricsScraper metricsScraper,
-      HttpMetricsTagProvider httpMetricsTagProvider) {
+      HttpMetricsTagProvider httpMetricsTagProvider,
+      int timeoutSeconds) {
     this.metrics = metrics;
     this.metricsScraper = metricsScraper;
     this.httpMetricsTagProvider = httpMetricsTagProvider;
+    this.timeoutSeconds = timeoutSeconds;
 
     BeanConfig beanConfig = new BeanConfig();
     beanConfig.setSchemes(new String[] {"http"});
@@ -107,7 +110,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
 
     StargateBridgeClientFactory clientFactory =
         StargateBridgeClientFactory.newInstance(
-            appConfig.stargate.bridge.buildChannel(), SchemaRead.SourceApi.REST);
+            appConfig.stargate.bridge.buildChannel(), timeoutSeconds, SchemaRead.SourceApi.REST);
     environment.jersey().register(buildClientFilter(clientFactory));
 
     environment

@@ -16,6 +16,7 @@
 package io.stargate.it.http;
 
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import org.immutables.value.Value;
 
@@ -71,6 +72,10 @@ public interface ApiServiceParameters {
   // example: "sgv2-rest-service"
   String serviceJarBase();
 
+  /** The arguments to pass to the service starter class. */
+  @Value.Parameter
+  List<String> serviceArguments();
+
   @Value.Parameter
   // example: "dw.stargate.bridge.host"
   String bridgeHostPropertyName();
@@ -100,6 +105,8 @@ public interface ApiServiceParameters {
     Builder serviceLibDirProperty(String serviceLibDirProperty);
 
     Builder serviceJarBase(String serviceJarBase);
+
+    Builder addServiceArguments(String... elements);
 
     Builder bridgeHostPropertyName(String bridgeHostPropertyName);
 

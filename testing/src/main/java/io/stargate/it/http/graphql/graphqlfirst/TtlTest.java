@@ -24,6 +24,7 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.http.ApiServiceConnectionInfo;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.util.List;
@@ -46,10 +47,15 @@ public class TtlTest extends GraphqlFirstTestBase {
   private static UUID SCHEMA_VERSION;
 
   @BeforeAll
-  public static void setup(StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceId) {
+  public static void setup(
+      StargateConnectionInfo stargateBackend,
+      ApiServiceConnectionInfo stargateGraphqlApi,
+      @TestKeyspace CqlIdentifier keyspaceId) {
     CLIENT =
         new GraphqlFirstClient(
-            cluster.seedAddress(), RestUtils.getAuthToken(cluster.seedAddress()));
+            stargateGraphqlApi.host(),
+            stargateGraphqlApi.port(),
+            RestUtils.getAuthToken(stargateBackend.seedAddress()));
     KEYSPACE = keyspaceId.asInternal();
     SCHEMA_VERSION =
         CLIENT.deploySchema(

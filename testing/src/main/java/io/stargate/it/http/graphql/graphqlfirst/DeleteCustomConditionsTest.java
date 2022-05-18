@@ -23,6 +23,7 @@ import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.jayway.jsonpath.JsonPath;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.http.ApiServiceConnectionInfo;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
 import org.junit.jupiter.api.BeforeAll;
@@ -39,10 +40,15 @@ public class DeleteCustomConditionsTest extends GraphqlFirstTestBase {
 
   @BeforeAll
   public static void setup(
-      StargateConnectionInfo cluster, @TestKeyspace CqlIdentifier keyspaceId, CqlSession session) {
+      StargateConnectionInfo stargateBackend,
+      ApiServiceConnectionInfo stargateGraphqlApi,
+      @TestKeyspace CqlIdentifier keyspaceId,
+      CqlSession session) {
     CLIENT =
         new GraphqlFirstClient(
-            cluster.seedAddress(), RestUtils.getAuthToken(cluster.seedAddress()));
+            stargateGraphqlApi.host(),
+            stargateGraphqlApi.port(),
+            RestUtils.getAuthToken(stargateBackend.seedAddress()));
     KEYSPACE = keyspaceId.asInternal();
     SESSION = session;
     CLIENT.deploySchema(
