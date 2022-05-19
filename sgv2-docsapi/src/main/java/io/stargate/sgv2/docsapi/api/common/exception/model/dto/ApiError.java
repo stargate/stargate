@@ -24,6 +24,7 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
  *
  * @param description A human-readable description of the error state.
  * @param code The internal number referencing the error state.
+ * @param grpcStatus Status of a GRPC call, if this fails.
  * @param internalTxId The internal tracking number of the request.
  */
 public record ApiError(
@@ -34,7 +35,12 @@ public record ApiError(
         String description,
     @Schema(description = "The internal number referencing the error state.", example = "22000")
         int code,
-    @Schema(description = "The gRPC response status", example = "ABORTED") String grpcStatus,
+    @Schema(
+            description =
+                "The gRPC response status in case a gRPC request to the datastore failed.",
+            nullable = true,
+            example = "ABORTED")
+        String grpcStatus,
 
     // TODO Is this still needed and used? This was not part of the public API.
     @Schema(hidden = true) String internalTxId) {

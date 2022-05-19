@@ -110,6 +110,34 @@ public class SchemaManager {
   }
 
   /**
+   * Get all tables of a keyspace from the bridge.
+   *
+   * @param keyspace Keyspace name
+   * @param missingKeyspace Function of the keyspace in case it's not existing. Usually there to
+   *     provide a failure.
+   * @return Multi of Schema.CqlTable
+   */
+  @WithSpan
+  public Multi<Schema.CqlTable> getTables(
+      String keyspaceName,
+      Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>> missingKeyspace) {
+    StargateBridge bridge = requestInfo.getStargateBridge();
+
+    // get keyspace
+    return getKeyspaceInternal(bridge, keyspaceName)
+
+        // if not there, switch to function
+        .onItem()
+        .ifNull()
+        .switchTo(missingKeyspace.apply(keyspaceName))
+
+        // otherwise get all tables
+        .onItem()
+        .ifNotNull()
+        .transformToMulti(keyspace -> Multi.createFrom().iterable(keyspace.getTablesList()));
+  }
+
+  /**
    * Get the keyspace from the bridge. Prior to getting the keyspace it will execute the schema
    * authorization request.
    *
@@ -247,6 +275,72 @@ public class SchemaManager {
                 RuntimeException unauthorized = new UnauthorizedTableException(keyspace, table);
                 return Uni.createFrom().failure(unauthorized);
               }
+            });
+  }
+
+  /**
+   * Get all authorized tables from the bridge.
+   *
+   * <p>Emits a failure in case:
+   *
+   * <ol>
+   *   <li>Not authorized, with {@link UnauthorizedTableException}
+   * </ol>
+   *
+   * @param keyspace Keyspace name
+   * @param missingKeyspace Function of the keyspace in case it's not existing. Usually there to
+   *     provide a failure.
+   * @return Multi of Schema.CqlTable
+   */
+  @WithSpan
+  public Multi<Schema.CqlTable> getTablesAuthorized(
+      String keyspace,
+      Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>> missingKeyspace) {
+    StargateBridge bridge = requestInfo.getStargateBridge();
+
+    // get keyspace
+    return getKeyspaceInternal(bridge, keyspace)
+
+        // if keyspace not found switch to function
+        .onItem()
+        .ifNull()
+        .switchTo(missingKeyspace.apply(keyspace))
+
+        // if it exists go forward
+        .onItem()
+        .ifNotNull()
+        .transformToMulti(
+            keyspaceDescribe -> {
+
+              // create schema reads for all tables
+              List<Schema.CqlTable> tables = keyspaceDescribe.getTablesList();
+              List<Schema.SchemaRead> reads =
+                  tables.stream()
+                      .map(t -> SchemaReads.table(keyspace, t.getName(), sourceApi))
+                      .collect(Collectors.toList());
+
+              Schema.AuthorizeSchemaReadsRequest request =
+                  Schema.AuthorizeSchemaReadsRequest.newBuilder().addAllSchemaReads(reads).build();
+
+              // execute request
+              return bridge
+                  .authorizeSchemaReads(request)
+
+                  // on response filter out
+                  .onItem()
+                  .ifNotNull()
+                  .transformToMulti(
+                      response -> {
+                        List<Schema.CqlTable> authorizedTables = new ArrayList<>(tables);
+                        authorizedTables.removeIf(
+                            table -> {
+                              int index = tables.indexOf(table);
+                              return !Boolean.TRUE.equals(response.getAuthorized(index));
+                            });
+
+                        // and return all authorized tables
+                        return Multi.createFrom().iterable(authorizedTables);
+                      });
             });
   }
 

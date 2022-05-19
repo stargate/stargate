@@ -26,7 +26,7 @@ import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.v2.example.model.dto.KeyspaceExistsResponse;
-import io.stargate.sgv2.docsapi.config.constants.Constants;
+import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -48,7 +48,7 @@ import org.slf4j.LoggerFactory;
 /** Example resource showcasing the OpenAPI v3 annotations and the reactive implementation. */
 @Path("/v2/example")
 @Produces(MediaType.APPLICATION_JSON)
-@SecurityRequirement(name = Constants.OPEN_API_DEFAULT_SECURITY_SCHEME)
+@SecurityRequirement(name = OpenApiConstants.SecuritySchemes.TOKEN)
 public class ExampleResource {
 
   private static final Logger LOG = LoggerFactory.getLogger(ExampleResource.class);

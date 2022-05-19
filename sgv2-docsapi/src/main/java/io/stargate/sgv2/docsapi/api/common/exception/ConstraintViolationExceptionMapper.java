@@ -18,6 +18,9 @@
 package io.stargate.sgv2.docsapi.api.common.exception;
 
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
+import java.util.Set;
+import java.util.stream.Collectors;
+import javax.validation.ConstraintViolation;
 import javax.validation.ConstraintViolationException;
 import javax.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;
@@ -30,8 +33,17 @@ public class ConstraintViolationExceptionMapper {
   @ServerExceptionMapper
   public RestResponse<ApiError> constraintViolationException(
       ConstraintViolationException exception) {
+    // figure out the message in the same way as V1
+    Set<ConstraintViolation<?>> violations = exception.getConstraintViolations();
+    String violationMessages =
+        violations.stream()
+            .map(ConstraintViolation::getMessage)
+            .distinct()
+            .collect(Collectors.joining(", "));
+    String message = String.format("Request invalid: %s.", violationMessages);
+
     int code = Response.Status.BAD_REQUEST.getStatusCode();
-    ApiError error = new ApiError(exception.getMessage(), code);
+    ApiError error = new ApiError(message, code);
     return ResponseBuilder.create(Response.Status.BAD_REQUEST, error).build();
   }
 }
