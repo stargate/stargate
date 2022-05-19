@@ -26,7 +26,6 @@ import io.stargate.sgv2.common.cql.builder.ValueModifier;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.service.JsonShreddedRow;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,8 +37,8 @@ public class InsertQueryBuilder {
   public InsertQueryBuilder(DocumentProperties documentProperties) {
     maxDepth = documentProperties.maxDepth();
     insertValueModifiers =
-        Arrays.stream(documentProperties.tableColumns().allColumnNames())
-            .map(ValueModifier::marker)
+        documentProperties.tableColumns().allColumns().stream()
+            .map(c -> ValueModifier.marker(c.name()))
             .collect(Collectors.toList());
   }
 
