@@ -50,10 +50,17 @@ mvn -B install verify --file pom.xml \
 -P default \
 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
+echoinfo "Building docker images"
+
+./build_docker_images.sh
+
 echoinfo "Testing Java 17 projects"
 
 cd sgv2-docsapi/
 JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./mvnw -B verify --file ./pom.xml \
+-P \${C3}cassandra-311 \
+-P \${C4}cassandra-40 \
+-P \${DSE}dse-68 \
 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 cd ../
 
