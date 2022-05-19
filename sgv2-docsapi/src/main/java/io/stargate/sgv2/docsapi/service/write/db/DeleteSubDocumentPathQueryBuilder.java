@@ -56,7 +56,6 @@ public class DeleteSubDocumentPathQueryBuilder extends AbstractDeleteQueryBuilde
     }
 
     int pathSize = exactPath ? maxDepth : subDocumentPath.size();
-    // if we have the sub-document path add that as well
     for (int i = 0; i < pathSize; i++) {
       whereConditions.add(
           BuiltCondition.of(
@@ -67,10 +66,6 @@ public class DeleteSubDocumentPathQueryBuilder extends AbstractDeleteQueryBuilde
   @Override
   protected void addBindValues(List<Value> values) {
     int pathSize = exactPath ? maxDepth : subDocumentPath.size();
-
-    // base (timestamp and document id) as first
-
-    // then sub-document paths based on the
     for (int i = 0; i < pathSize; i++) {
       if (i < subDocumentPath.size()) {
         values.add(Values.of(subDocumentPath.get(i)));

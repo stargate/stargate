@@ -26,8 +26,6 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface JsonShreddedRow {
 
-  // TODO Convert to abstract class, hide?
-
   @Value.Check
   default void validate() {
     if (getPath().size() > getMaxDepth()) {

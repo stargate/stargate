@@ -29,7 +29,6 @@ import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentPropertie
 import java.util.ArrayList;
 import java.util.List;
 
-/** Shared base class for all document query builder. */
 public abstract class AbstractDeleteQueryBuilder {
 
   protected final DocumentProperties documentProperties;
@@ -47,13 +46,6 @@ public abstract class AbstractDeleteQueryBuilder {
    */
   protected abstract void addBindValues(List<Value> values);
 
-  /**
-   * Builds the query for this query builder.
-   *
-   * @param keyspace keyspace
-   * @param table table
-   * @return BuiltQuery
-   */
   public final Query buildQuery(String keyspace, String table) {
     List<BuiltCondition> whereConditions = new ArrayList<>();
     whereConditions.add(
