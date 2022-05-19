@@ -161,7 +161,7 @@ if [[ ${#STARGATE_ARGS[@]} -eq 0 ]]; then
     fi
 
     if [[ ! -z "$HOST_ID" ]]; then
-        STARGATE_ARGS+=("--host-id", "$HOST_ID")
+        STARGATE_ARGS+=("--host-id" "$HOST_ID")
     fi
 fi
 
