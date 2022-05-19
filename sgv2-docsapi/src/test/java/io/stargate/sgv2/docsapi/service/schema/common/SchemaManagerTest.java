@@ -579,7 +579,7 @@ class SchemaManagerTest extends BridgeTest {
 
       UniAssertSubscriber<Schema.CqlTable> result =
           schemaManager
-              .getTable(keyspace, table, () -> Uni.createFrom().nothing())
+              .getTable(keyspace, table, (k) -> Uni.createFrom().nothing())
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
 
@@ -617,7 +617,7 @@ class SchemaManagerTest extends BridgeTest {
 
       UniAssertSubscriber<Schema.CqlTable> result =
           schemaManager
-              .getTable(keyspace, table, () -> Uni.createFrom().nothing())
+              .getTable(keyspace, table, (k) -> Uni.createFrom().nothing())
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
 
@@ -649,7 +649,7 @@ class SchemaManagerTest extends BridgeTest {
       Throwable exception = new RuntimeException("Missing keyspace test exception.");
       UniAssertSubscriber<Schema.CqlTable> result =
           schemaManager
-              .getTable(keyspace, table, () -> Uni.createFrom().failure(exception))
+              .getTable(keyspace, table, (k) -> Uni.createFrom().failure(exception))
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
 
@@ -705,7 +705,7 @@ class SchemaManagerTest extends BridgeTest {
 
       UniAssertSubscriber<Schema.CqlTable> result =
           schemaManager
-              .getTableAuthorized(keyspace, table, () -> Uni.createFrom().nothing())
+              .getTableAuthorized(keyspace, table, (k) -> Uni.createFrom().nothing())
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
 
@@ -773,7 +773,7 @@ class SchemaManagerTest extends BridgeTest {
 
       UniAssertSubscriber<Schema.CqlTable> result =
           schemaManager
-              .getTableAuthorized(keyspace, table, () -> Uni.createFrom().nothing())
+              .getTableAuthorized(keyspace, table, (k) -> Uni.createFrom().nothing())
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
 

@@ -17,7 +17,6 @@ public class AuthorizedTableManager extends TableManager {
 
   @Override
   protected Uni<Schema.CqlTable> getTable(String keyspaceName, String tableName) {
-    return schemaManager.getTableAuthorized(
-        keyspaceName, tableName, getMissingKeyspaceFailure(keyspaceName));
+    return schemaManager.getTableAuthorized(keyspaceName, tableName, getMissingKeyspaceFailure());
   }
 }

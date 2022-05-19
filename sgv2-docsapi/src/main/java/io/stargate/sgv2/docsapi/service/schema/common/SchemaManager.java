@@ -37,7 +37,7 @@ import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
-import java.util.function.Supplier;
+import java.util.function.Function;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
@@ -70,7 +70,7 @@ public class SchemaManager {
    *
    * @param keyspace Keyspace name
    * @param table Table name
-   * @param missingKeyspace Supplier of the keyspace in case it's not existing. Usually there to
+   * @param missingKeyspace Function of the keyspace in case it's not existing. Usually there to
    *     provide a failure.
    * @return Uni containing Schema.CqlTable or <code>null</code> item in case the table does not
    *     exist.
@@ -79,7 +79,7 @@ public class SchemaManager {
   public Uni<Schema.CqlTable> getTable(
       String keyspace,
       String table,
-      Supplier<Uni<? extends Schema.CqlKeyspaceDescribe>> missingKeyspace) {
+      Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>> missingKeyspace) {
     StargateBridge bridge = requestInfo.getStargateBridge();
     return getTableInternal(bridge, keyspace, table, missingKeyspace);
   }
@@ -133,7 +133,7 @@ public class SchemaManager {
    *
    * @param keyspace Keyspace name
    * @param table Table name
-   * @param missingKeyspace Supplier of the keyspace in case it's not existing. Usually there to
+   * @param missingKeyspace Function of the keyspace in case it's not existing. Usually there to
    *     provide a failure.
    * @return Uni containing Schema.CqlTable or <code>null</code> item in case the table does not
    *     exist.
@@ -142,7 +142,7 @@ public class SchemaManager {
   public Uni<Schema.CqlTable> getTableAuthorized(
       String keyspace,
       String table,
-      Supplier<Uni<? extends Schema.CqlKeyspaceDescribe>> missingKeyspace) {
+      Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>> missingKeyspace) {
     StargateBridge bridge = requestInfo.getStargateBridge();
 
     // first authorize read, then fetch
@@ -259,14 +259,14 @@ public class SchemaManager {
       StargateBridge bridge,
       String keyspaceName,
       String tableName,
-      Supplier<Uni<? extends Schema.CqlKeyspaceDescribe>> missingKeyspace) {
+      Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>> missingKeyspace) {
     // get keyspace
     return getKeyspaceInternal(bridge, keyspaceName)
 
         // if keyspace not found fail always
         .onItem()
         .ifNull()
-        .switchTo(missingKeyspace)
+        .switchTo(missingKeyspace.apply(keyspaceName))
 
         // otherwise try to find the wanted table
         .flatMap(

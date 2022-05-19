@@ -18,6 +18,7 @@
 package io.stargate.sgv2.docsapi.api.common.properties.document.impl;
 
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Streams;
 import io.stargate.bridge.grpc.TypeSpecs;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
@@ -51,12 +52,12 @@ public record DocumentTableColumnsImpl(
   public DocumentTableColumnsImpl(DocumentConfig documentConfig, boolean numberBooleans) {
     this(
         allColumns(documentConfig, numberBooleans),
-        valueColumns(documentConfig),
-        pathColumns(documentConfig),
+        valueColumnsNames(documentConfig),
+        pathColumnsNames(documentConfig),
         allColumnsNames(documentConfig));
   }
 
-  private static Set<String> valueColumns(DocumentConfig documentConfig) {
+  private static Set<String> valueColumnsNames(DocumentConfig documentConfig) {
     DocumentConfig.DocumentTableConfig table = documentConfig.table();
     return ImmutableSet.<String>builder()
         .add(table.leafColumnName())
@@ -66,7 +67,7 @@ public record DocumentTableColumnsImpl(
         .build();
   }
 
-  private static Set<String> pathColumns(DocumentConfig documentConfig) {
+  private static Set<String> pathColumnsNames(DocumentConfig documentConfig) {
     DocumentConfig.DocumentTableConfig table = documentConfig.table();
     int depth = documentConfig.maxDepth();
 
@@ -87,8 +88,8 @@ public record DocumentTableColumnsImpl(
             table.stringValueColumnName(),
             table.doubleValueColumnName(),
             table.booleanValueColumnName());
-    Stream<String> firstConcat = Stream.concat(keyCol, pColumns);
-    return Stream.concat(firstConcat, fixedColumns).collect(Collectors.toUnmodifiableSet());
+
+    return Streams.concat(keyCol, pColumns, fixedColumns).collect(Collectors.toUnmodifiableSet());
   }
 
   private static List<Column> allColumns(DocumentConfig config, boolean numberBooleans) {

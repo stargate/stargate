@@ -32,13 +32,22 @@ import io.stargate.sgv2.docsapi.service.schema.common.SchemaManager;
 import io.stargate.sgv2.docsapi.service.schema.query.CollectionQueryProvider;
 import java.util.List;
 import java.util.Objects;
-import java.util.function.Supplier;
+import java.util.function.Function;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 /** Table manager provides basic operations on tables that are used for storing collections. */
 @ApplicationScoped
 public class TableManager {
+
+  private static final Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>>
+      MISSING_KEYSPACE_FUNCTION =
+          keyspace -> {
+            String message = "Unknown namespace %s, you must create it first.".formatted(keyspace);
+            Exception exception =
+                new ErrorCodeRuntimeException(ErrorCode.DATASTORE_KEYSPACE_DOES_NOT_EXIST, message);
+            return Uni.createFrom().failure(exception);
+          };
 
   @Inject DocumentProperties documentProperties;
 
@@ -56,23 +65,17 @@ public class TableManager {
    * @return Table from schema manager
    */
   protected Uni<Schema.CqlTable> getTable(String keyspaceName, String tableName) {
-    return schemaManager.getTable(keyspaceName, tableName, getMissingKeyspaceFailure(keyspaceName));
+    return schemaManager.getTable(keyspaceName, tableName, getMissingKeyspaceFailure());
   }
 
   /**
-   * Supplier for the correct failure in case of the missing keyspace.
+   * Function for the correct failure in case of the missing keyspace.
    *
-   * @param keyspaceName Keyspace
    * @return Uni emitting failure with {@link ErrorCode#DATASTORE_KEYSPACE_DOES_NOT_EXIST}.
    */
-  protected Supplier<Uni<? extends Schema.CqlKeyspaceDescribe>> getMissingKeyspaceFailure(
-      String keyspaceName) {
-    return () -> {
-      String message = "Unknown namespace %s, you must create it first.".formatted(keyspaceName);
-      Exception exception =
-          new ErrorCodeRuntimeException(ErrorCode.DATASTORE_KEYSPACE_DOES_NOT_EXIST, message);
-      return Uni.createFrom().failure(exception);
-    };
+  protected Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>>
+      getMissingKeyspaceFailure() {
+    return MISSING_KEYSPACE_FUNCTION;
   }
 
   /**
