@@ -15,6 +15,7 @@
  */
 package io.stargate.sgv2.graphql.impl;
 
+import com.codahale.metrics.MetricRegistry;
 import io.dropwizard.Application;
 import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.forms.MultiPartBundle;
@@ -50,6 +51,7 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
   public static final String MODULE_NAME = "sgv2-graphqlapi";
 
   private final Metrics metrics;
+  private final MetricRegistry metricRegistry;
   private final MetricsScraper metricsScraper;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
   private final boolean disablePlayground;
@@ -62,6 +64,7 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
       boolean enableGraphqlPlayground,
       boolean disableDefaultKeyspace) {
     this.metrics = metrics;
+    this.metricRegistry = metrics.getRegistry(MODULE_NAME);
     this.metricsScraper = metricsScraper;
     this.httpMetricsTagProvider = httpMetricsTagProvider;
     this.disablePlayground = enableGraphqlPlayground;
@@ -75,7 +78,9 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
 
     StargateBridgeClientFactory clientFactory =
         StargateBridgeClientFactory.newInstance(
-            config.stargate.bridge.buildChannel(), Schema.SchemaRead.SourceApi.GRAPHQL);
+            config.stargate.bridge.buildChannel(),
+            Schema.SchemaRead.SourceApi.GRAPHQL,
+            metricRegistry);
     jersey.register(buildClientFilter(clientFactory));
 
     GraphqlCache graphqlCache = new GraphqlCache(disableDefaultKeyspace);
@@ -128,7 +133,7 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
   public void initialize(Bootstrap<GraphqlServiceServerConfiguration> bootstrap) {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
-    bootstrap.setMetricRegistry(metrics.getRegistry(MODULE_NAME));
+    bootstrap.setMetricRegistry(metricRegistry);
     bootstrap.addBundle(new MultiPartBundle());
   }
 

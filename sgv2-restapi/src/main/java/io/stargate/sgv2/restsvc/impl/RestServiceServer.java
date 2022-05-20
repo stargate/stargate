@@ -15,6 +15,7 @@
  */
 package io.stargate.sgv2.restsvc.impl;
 
+import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -33,6 +34,7 @@ import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.common.grpc.StargateBridgeClientFactory;
 import io.stargate.sgv2.common.http.CreateStargateBridgeClientFilter;
 import io.stargate.sgv2.common.http.StargateBridgeClientJerseyFactory;
+import io.stargate.sgv2.common.metrics.ApiTimingDiagnosticsFactory;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
 import io.stargate.sgv2.restsvc.resources.MetricsResource;
@@ -67,6 +69,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   public static final String[] NON_API_URI_REGEX = new String[] {"^/$", "^/health$", "^/swagger.*"};
 
   private final Metrics metrics;
+  private final MetricRegistry metricRegistry;
   private final MetricsScraper metricsScraper;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
 
@@ -75,6 +78,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
       MetricsScraper metricsScraper,
       HttpMetricsTagProvider httpMetricsTagProvider) {
     this.metrics = metrics;
+    this.metricRegistry = metrics.getRegistry(REST_SVC_MODULE_NAME);
     this.metricsScraper = metricsScraper;
     this.httpMetricsTagProvider = httpMetricsTagProvider;
 
@@ -107,7 +111,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
 
     StargateBridgeClientFactory clientFactory =
         StargateBridgeClientFactory.newInstance(
-            appConfig.stargate.bridge.buildChannel(), SchemaRead.SourceApi.REST);
+            appConfig.stargate.bridge.buildChannel(), SchemaRead.SourceApi.REST, metricRegistry);
     environment.jersey().register(buildClientFilter(clientFactory));
 
     environment
@@ -121,6 +125,8 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
                 bindFactory(StargateBridgeClientJerseyFactory.class)
                     .to(StargateBridgeClient.class)
                     .in(RequestScoped.class);
+                bind(ApiTimingDiagnosticsFactory.createFactory(metricRegistry, ""))
+                    .to(ApiTimingDiagnosticsFactory.class);
               }
             });
 
@@ -186,7 +192,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   public void initialize(final Bootstrap<RestServiceServerConfiguration> bootstrap) {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
-    bootstrap.setMetricRegistry(metrics.getRegistry(REST_SVC_MODULE_NAME));
+    bootstrap.setMetricRegistry(metricRegistry);
   }
 
   private void enableCors(Environment environment) {

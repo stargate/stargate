@@ -11,6 +11,7 @@ import com.google.protobuf.Int32Value;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
+import io.stargate.sgv2.common.metrics.ApiTimingDiagnostics;
 import io.stargate.sgv2.restsvc.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restsvc.grpc.FromProtoConverter;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
@@ -21,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.function.Function;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
@@ -39,6 +41,8 @@ public abstract class ResourceBase {
   protected static final QueryOuterClass.QueryParameters PARAMETERS_FOR_LOCAL_QUORUM =
       parametersBuilderForLocalQuorum().build();
 
+  protected ResourceBase() {}
+
   // // // Helper methods for Schema access
 
   /**
@@ -51,12 +55,18 @@ public abstract class ResourceBase {
    */
   protected Response callWithTable(
       StargateBridgeClient bridge,
+      ApiTimingDiagnostics timingDiagnostics,
       String keyspaceName,
       String tableName,
       boolean checkIfAuthorized,
       Function<Schema.CqlTable, Response> function) {
-    return bridge
-        .getTable(keyspaceName, tableName, checkIfAuthorized)
+    final Optional<Schema.CqlTable> table =
+        (timingDiagnostics == null)
+            ? bridge.getTable(keyspaceName, tableName, checkIfAuthorized)
+            : timingDiagnostics.timeTableSchemaAccess(
+                () -> bridge.getTable(keyspaceName, tableName, checkIfAuthorized));
+
+    return table
         .map(function)
         .orElseThrow(
             () ->

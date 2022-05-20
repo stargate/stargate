@@ -15,14 +15,16 @@
  */
 package io.stargate.sgv2.common.grpc;
 
+import com.codahale.metrics.MetricRegistry;
 import io.grpc.Channel;
 import io.stargate.bridge.proto.Schema.SchemaRead;
 import java.util.Optional;
 
 public interface StargateBridgeClientFactory {
 
-  static StargateBridgeClientFactory newInstance(Channel channel, SchemaRead.SourceApi sourceApi) {
-    return new DefaultStargateBridgeClientFactory(channel, sourceApi);
+  static StargateBridgeClientFactory newInstance(
+      Channel channel, SchemaRead.SourceApi sourceApi, MetricRegistry metricRegistry) {
+    return new DefaultStargateBridgeClientFactory(channel, sourceApi, metricRegistry);
   }
 
   StargateBridgeClient newClient(String authToken, Optional<String> tenantId);

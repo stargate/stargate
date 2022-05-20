@@ -11,6 +11,8 @@ import io.stargate.sgv2.common.cql.builder.Term;
 import io.stargate.sgv2.common.cql.builder.ValueModifier;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.common.http.CreateStargateBridgeClient;
+import io.stargate.sgv2.common.metrics.ApiTimingDiagnostics;
+import io.stargate.sgv2.common.metrics.ApiTimingDiagnosticsFactory;
 import io.stargate.sgv2.restsvc.grpc.ToProtoConverter;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import java.util.ArrayList;
@@ -23,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Path;
@@ -40,6 +43,14 @@ import javax.ws.rs.core.Response.Status;
 @Singleton
 @CreateStargateBridgeClient
 public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResourceApi {
+  private final ApiTimingDiagnosticsFactory timingDiagnostics;
+
+  @Inject
+  protected Sgv2RowsResourceImpl(ApiTimingDiagnosticsFactory timingDiagnostics) {
+    super();
+    this.timingDiagnostics = timingDiagnostics;
+  }
+
   /*
   /////////////////////////////////////////////////////////////////////////
   // REST API endpoint implementation methods
@@ -58,58 +69,63 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final boolean raw,
       final String sortJson,
       final HttpServletRequest request) {
-    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    if (isStringEmpty(where)) {
-      throw new WebApplicationException("where parameter is required", Status.BAD_REQUEST);
-    }
+    return timingDiagnostics.callWithDiagnostics(
+        "getRowWithWhere()",
+        diagnostics -> {
+          requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
+          if (isStringEmpty(where)) {
+            throw new WebApplicationException("where parameter is required", Status.BAD_REQUEST);
+          }
 
-    final List<Column> columns =
-        isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
-    final Map<String, Column.Order> sortOrder;
-    try {
-      sortOrder = decodeSortOrder(sortJson);
-    } catch (IllegalArgumentException e) {
-      throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
-    }
-
-    return callWithTable(
-        bridge,
-        keyspaceName,
-        tableName,
-        false,
-        (tableDef) -> {
-          final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
-
-          final List<BuiltCondition> whereConditions;
+          final List<Column> columns =
+              isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
+          final Map<String, Column.Order> sortOrder;
           try {
-            whereConditions = new WhereParser(tableDef, toProtoConverter).parseWhere(where);
+            sortOrder = decodeSortOrder(sortJson);
           } catch (IllegalArgumentException e) {
             throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
           }
 
-          final QueryOuterClass.Query query;
-          if (columns.isEmpty()) {
-            query =
-                new QueryBuilder()
-                    .select()
-                    .star()
-                    .from(keyspaceName, tableName)
-                    .where(whereConditions)
-                    .orderBy(sortOrder)
-                    .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
-                    .build();
-          } else {
-            query =
-                new QueryBuilder()
-                    .select()
-                    .column(columns)
-                    .from(keyspaceName, tableName)
-                    .where(whereConditions)
-                    .orderBy(sortOrder)
-                    .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
-                    .build();
-          }
-          return fetchRows(bridge, query, raw);
+          return callWithTable(
+              bridge,
+              diagnostics,
+              keyspaceName,
+              tableName,
+              false,
+              (tableDef) -> {
+                final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+
+                final List<BuiltCondition> whereConditions;
+                try {
+                  whereConditions = new WhereParser(tableDef, toProtoConverter).parseWhere(where);
+                } catch (IllegalArgumentException e) {
+                  throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
+                }
+
+                final QueryOuterClass.Query query;
+                if (columns.isEmpty()) {
+                  query =
+                      new QueryBuilder()
+                          .select()
+                          .star()
+                          .from(keyspaceName, tableName)
+                          .where(whereConditions)
+                          .orderBy(sortOrder)
+                          .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
+                          .build();
+                } else {
+                  query =
+                      new QueryBuilder()
+                          .select()
+                          .column(columns)
+                          .from(keyspaceName, tableName)
+                          .where(whereConditions)
+                          .orderBy(sortOrder)
+                          .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
+                          .build();
+                }
+                return fetchRows(bridge, query, raw);
+              });
         });
   }
 
@@ -125,35 +141,40 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final boolean raw,
       final String sortJson,
       final HttpServletRequest request) {
-    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    final List<Column> columns =
-        isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
-    final Map<String, Column.Order> sortOrder;
-    try {
-      sortOrder = decodeSortOrder(sortJson);
-    } catch (IllegalArgumentException e) {
-      throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
-    }
+    return timingDiagnostics.callWithDiagnostics(
+        "getRows()",
+        diagnostics -> {
+          requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
+          final List<Column> columns =
+              isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
+          final Map<String, Column.Order> sortOrder;
+          try {
+            sortOrder = decodeSortOrder(sortJson);
+          } catch (IllegalArgumentException e) {
+            throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
+          }
 
-    return callWithTable(
-        bridge,
-        keyspaceName,
-        tableName,
-        false,
-        (tableDef) -> {
-          final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
-          final QueryOuterClass.Query query =
-              buildGetRowsByPKQuery(
-                  keyspaceName,
-                  tableName,
-                  path,
-                  columns,
-                  sortOrder,
-                  tableDef,
-                  pageSizeParam,
-                  pageStateParam,
-                  toProtoConverter);
-          return fetchRows(bridge, query, raw);
+          return callWithTable(
+              bridge,
+              diagnostics,
+              keyspaceName,
+              tableName,
+              false,
+              (tableDef) -> {
+                final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+                final QueryOuterClass.Query query =
+                    buildGetRowsByPKQuery(
+                        keyspaceName,
+                        tableName,
+                        path,
+                        columns,
+                        sortOrder,
+                        tableDef,
+                        pageSizeParam,
+                        pageStateParam,
+                        toProtoConverter);
+                return fetchRows(bridge, query, raw);
+              });
         });
   }
 
@@ -168,35 +189,40 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final boolean raw,
       final String sortJson,
       final HttpServletRequest request) {
-    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    List<Column> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
-    Map<String, Column.Order> sortOrder;
-    try {
-      sortOrder = decodeSortOrder(sortJson);
-    } catch (IllegalArgumentException e) {
-      throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
-    }
-    final QueryOuterClass.Query query;
-    if (columns.isEmpty()) {
-      query =
-          new QueryBuilder()
-              .select()
-              .star()
-              .from(keyspaceName, tableName)
-              .orderBy(sortOrder)
-              .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
-              .build();
-    } else {
-      query =
-          new QueryBuilder()
-              .select()
-              .column(columns)
-              .from(keyspaceName, tableName)
-              .orderBy(sortOrder)
-              .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
-              .build();
-    }
-    return fetchRows(bridge, query, raw);
+    return timingDiagnostics.callWithDiagnostics(
+        "getAllRows()",
+        diagnostics -> {
+          requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
+          List<Column> columns =
+              isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
+          Map<String, Column.Order> sortOrder;
+          try {
+            sortOrder = decodeSortOrder(sortJson);
+          } catch (IllegalArgumentException e) {
+            throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
+          }
+          final QueryOuterClass.Query query;
+          if (columns.isEmpty()) {
+            query =
+                new QueryBuilder()
+                    .select()
+                    .star()
+                    .from(keyspaceName, tableName)
+                    .orderBy(sortOrder)
+                    .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
+                    .build();
+          } else {
+            query =
+                new QueryBuilder()
+                    .select()
+                    .column(columns)
+                    .from(keyspaceName, tableName)
+                    .orderBy(sortOrder)
+                    .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
+                    .build();
+          }
+          return fetchRows(bridge, query, raw);
+        });
   }
 
   @Override
@@ -206,33 +232,38 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final String tableName,
       final String payloadAsString,
       final HttpServletRequest request) {
-    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    Map<String, Object> payloadMap;
-    try {
-      payloadMap = parseJsonAsMap(payloadAsString);
-    } catch (Exception e) {
-      throw new WebApplicationException(
-          "Invalid JSON payload: " + e.getMessage(), Status.BAD_REQUEST);
-    }
-
-    return callWithTable(
-        bridge,
-        keyspaceName,
-        tableName,
-        false,
-        (tableDef) -> {
-          final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
-
-          final QueryOuterClass.Query query;
+    return timingDiagnostics.callWithDiagnostics(
+        "createRow()",
+        diagnostics -> {
+          requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
+          Map<String, Object> payloadMap;
           try {
-            query = buildAddRowQuery(keyspaceName, tableName, payloadMap, toProtoConverter);
-          } catch (IllegalArgumentException e) {
-            throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
+            payloadMap = parseJsonAsMap(payloadAsString);
+          } catch (Exception e) {
+            throw new WebApplicationException(
+                "Invalid JSON payload: " + e.getMessage(), Status.BAD_REQUEST);
           }
 
-          QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
-          // apparently no useful data in ResultSet, we should simply return payload we got:
-          return Response.status(Status.CREATED).entity(payloadAsString).build();
+          return callWithTable(
+              bridge,
+              diagnostics,
+              keyspaceName,
+              tableName,
+              false,
+              (tableDef) -> {
+                final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+
+                final QueryOuterClass.Query query;
+                try {
+                  query = buildAddRowQuery(keyspaceName, tableName, payloadMap, toProtoConverter);
+                } catch (IllegalArgumentException e) {
+                  throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
+                }
+
+                QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
+                // apparently no useful data in ResultSet, we should simply return payload we got:
+                return Response.status(Status.CREATED).entity(payloadAsString).build();
+              });
         });
   }
 
@@ -245,7 +276,10 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final boolean raw,
       final String payload,
       final HttpServletRequest request) {
-    return modifyRow(bridge, keyspaceName, tableName, path, raw, payload, request);
+    return timingDiagnostics.callWithDiagnostics(
+        "updateRows()",
+        diagnostics ->
+            modifyRow(bridge, diagnostics, keyspaceName, tableName, path, raw, payload, request));
   }
 
   @Override
@@ -255,21 +289,27 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final String tableName,
       final List<PathSegment> path,
       HttpServletRequest request) {
-    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    return callWithTable(
-        bridge,
-        keyspaceName,
-        tableName,
-        false,
-        (tableDef) -> {
-          final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+    return timingDiagnostics.callWithDiagnostics(
+        "deleteRows()",
+        diagnostics -> {
+          requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
+          return callWithTable(
+              bridge,
+              diagnostics,
+              keyspaceName,
+              tableName,
+              false,
+              (tableDef) -> {
+                final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
 
-          final QueryOuterClass.Query query =
-              buildDeleteRowsByPKCQuery(keyspaceName, tableName, path, tableDef, toProtoConverter);
+                final QueryOuterClass.Query query =
+                    buildDeleteRowsByPKCQuery(
+                        keyspaceName, tableName, path, tableDef, toProtoConverter);
 
-          /*QueryOuterClass.Response grpcResponse =*/
-          bridge.executeQuery(query);
-          return Response.status(Status.NO_CONTENT).build();
+                /*QueryOuterClass.Response grpcResponse =*/
+                bridge.executeQuery(query);
+                return Response.status(Status.NO_CONTENT).build();
+              });
         });
   }
 
@@ -282,12 +322,16 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final boolean raw,
       final String payload,
       final HttpServletRequest request) {
-    return modifyRow(bridge, keyspaceName, tableName, path, raw, payload, request);
+    return timingDiagnostics.callWithDiagnostics(
+        "patchRows()",
+        diagnostics ->
+            modifyRow(bridge, diagnostics, keyspaceName, tableName, path, raw, payload, request));
   }
 
   /** Implementation of POST/PATCH (update/patch rows) endpoints */
   private Response modifyRow(
       final StargateBridgeClient bridge,
+      final ApiTimingDiagnostics diagnostics,
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
@@ -304,6 +348,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     }
     return callWithTable(
         bridge,
+        diagnostics,
         keyspaceName,
         tableName,
         false,

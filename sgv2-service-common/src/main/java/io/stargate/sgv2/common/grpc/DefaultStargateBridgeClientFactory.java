@@ -15,12 +15,14 @@
  */
 package io.stargate.sgv2.common.grpc;
 
+import com.codahale.metrics.MetricRegistry;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import io.grpc.Channel;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.bridge.proto.Schema.SchemaRead;
+import io.stargate.sgv2.common.metrics.SchemaCacheStatsRecorder;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
@@ -29,14 +31,20 @@ class DefaultStargateBridgeClientFactory implements StargateBridgeClientFactory 
 
   private final Channel channel;
   private final SchemaRead.SourceApi sourceApi;
-  private final Cache<String, CqlKeyspaceDescribe> keyspaceCache =
-      Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(5, TimeUnit.MINUTES).build();
+  private final Cache<String, CqlKeyspaceDescribe> keyspaceCache;
   private final LazyReference<CompletionStage<Schema.SupportedFeaturesResponse>>
       supportedFeaturesResponse = new LazyReference<>();
 
-  DefaultStargateBridgeClientFactory(Channel channel, SchemaRead.SourceApi sourceApi) {
+  DefaultStargateBridgeClientFactory(
+      Channel channel, SchemaRead.SourceApi sourceApi, MetricRegistry metricRegistry) {
     this.channel = channel;
     this.sourceApi = sourceApi;
+    keyspaceCache =
+        Caffeine.newBuilder()
+            .maximumSize(1000)
+            .recordStats(() -> SchemaCacheStatsRecorder.create(metricRegistry, "keyspace-cache"))
+            .expireAfterAccess(5, TimeUnit.MINUTES)
+            .build();
   }
 
   @Override

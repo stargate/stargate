@@ -37,6 +37,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     return callWithTable(
         bridge,
+        null,
         keyspaceName,
         tableName,
         true,
@@ -61,6 +62,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
     }
     return callWithTable(
         bridge,
+        null,
         keyspaceName,
         tableName,
         false,
@@ -102,6 +104,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
     }
     return callWithTable(
         bridge,
+        null,
         keyspaceName,
         tableName,
         true,
@@ -131,6 +134,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
     }
     return callWithTable(
         bridge,
+        null,
         keyspaceName,
         tableName,
         false,
@@ -174,6 +178,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
     }
     return callWithTable(
         bridge,
+        null,
         keyspaceName,
         tableName,
         false,

@@ -132,6 +132,7 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     return callWithTable(
         bridge,
+        null,
         keyspaceName,
         tableName,
         false,
