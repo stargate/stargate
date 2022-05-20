@@ -26,6 +26,8 @@ public class ApiTimingDiagnosticsFactory {
       return function.apply(diagnostics);
     } finally {
       diagnostics.markEndTime();
+      // !!! TODO: configure with sampling frequency or minimum time between samples;
+      //   only printing all entries during development
       System.err.println("TIMING: " + diagnostics);
     }
   }
