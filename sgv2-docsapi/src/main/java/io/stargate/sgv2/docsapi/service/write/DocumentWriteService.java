@@ -92,7 +92,7 @@ public class DocumentWriteService {
                   .map(
                       row ->
                           insertQueryBuilder.bind(
-                              query, documentId, row, timestamp, numericBooleans))
+                              query, documentId, row, ttl, timestamp, numericBooleans))
                   .toList();
             })
         .flatMap(

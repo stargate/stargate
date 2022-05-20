@@ -48,7 +48,7 @@ public class InsertQueryBuilder {
       return new QueryBuilder()
           .insertInto(keyspace, table)
           .value(insertValueModifiers)
-          .ttl(ttl)
+          .ttl()
           .timestamp()
           .build();
     } else {
@@ -74,6 +74,7 @@ public class InsertQueryBuilder {
       Query builtQuery,
       String documentId,
       JsonShreddedRow row,
+      Integer ttl,
       long timestamp,
       boolean numericBooleans) {
     // sanity check
@@ -106,6 +107,9 @@ public class InsertQueryBuilder {
     values.addValues(row.getDoubleValue() == null ? Values.NULL : Values.of(row.getDoubleValue()));
     values.addValues(convertToBackendBooleanValue(row.getBooleanValue(), numericBooleans));
 
+    if (ttl != null) {
+      values.addValues(Values.of(ttl));
+    }
     // respect the timestamp
     values.addValues(Values.of(timestamp));
 

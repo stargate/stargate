@@ -145,8 +145,96 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
                         queryInfo -> {
                           assertThat(queryInfo.preparedCQL()).isEqualTo(insertCql);
                           assertThat(queryInfo.execCount()).isEqualTo(2);
-                          // TODO remove if we can't implement rowCount (see ProfilingContext)
-                          // assertThat(queryInfo.rowCount()).isEqualTo(2);
+                          assertThat(queryInfo.rowCount()).isEqualTo(2);
+                        });
+              });
+    }
+
+    @Test
+    public void happyPathWithTtl() {
+      String keyspaceName = schemaProvider.getKeyspace().getName();
+      String tableName = schemaProvider.getTable().getName();
+      Batch.Type expectedBatchType =
+          dataStoreProperties.loggedBatchesEnabled() ? Batch.Type.LOGGED : Batch.Type.UNLOGGED;
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addPath("key1")
+              .stringValue("value1")
+              .build();
+      JsonShreddedRow row2 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addPath("key2")
+              .addPath("nested")
+              .doubleValue(2.2d)
+              .build();
+      List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
+
+      long timestamp = RandomUtils.nextLong();
+      when(timeSource.currentTimeMicros()).thenReturn(timestamp);
+      int ttl = 100;
+
+      String insertCql =
+          String.format(
+              "INSERT INTO %s.%s "
+                  + "(key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value) "
+                  + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) USING TTL ? AND TIMESTAMP ?",
+              keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert row1QueryAssert =
+          withQuery(
+                  insertCql,
+                  Values.of(documentId),
+                  Values.of("key1"),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of("key1"),
+                  Values.of("value1"),
+                  Values.NULL,
+                  Values.NULL,
+                  Values.of(ttl),
+                  Values.of(timestamp))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+      ValidatingStargateBridge.QueryAssert row2QueryAssert =
+          withQuery(
+                  insertCql,
+                  Values.of(documentId),
+                  Values.of("key2"),
+                  Values.of("nested"),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of("nested"),
+                  Values.NULL,
+                  Values.of(2.2d),
+                  Values.NULL,
+                  Values.of(ttl),
+                  Values.of(timestamp))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      service
+          .writeDocument(keyspaceName, tableName, documentId, rows, ttl, false, context)
+          .await()
+          .atMost(Duration.ofSeconds(1));
+
+      row1QueryAssert.assertExecuteCount().isEqualTo(1);
+      row2QueryAssert.assertExecuteCount().isEqualTo(1);
+
+      assertThat(context.toProfile().nested())
+          .singleElement()
+          .satisfies(
+              nested -> {
+                assertThat(nested.description()).isEqualTo("ASYNC INSERT");
+                assertThat(nested.queries())
+                    .singleElement()
+                    .satisfies(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL()).isEqualTo(insertCql);
+                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.rowCount()).isEqualTo(2);
                         });
               });
     }

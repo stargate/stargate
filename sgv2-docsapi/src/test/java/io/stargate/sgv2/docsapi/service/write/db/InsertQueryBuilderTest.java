@@ -70,7 +70,7 @@ class InsertQueryBuilderTest {
 
       String expected =
           String.format(
-              "INSERT INTO %s.%s (key, p0, p1, p2, p3, p4, p5, p6, p7, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) USING TTL 1 AND TIMESTAMP ?",
+              "INSERT INTO %s.%s (key, p0, p1, p2, p3, p4, p5, p6, p7, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) USING TTL ? AND TIMESTAMP ?",
               schemaProvider.getKeyspace().getName(), schemaProvider.getTable().getName());
       assertThat(query.getCql()).isEqualTo(expected);
     }
@@ -97,7 +97,7 @@ class InsertQueryBuilderTest {
               .stringValue(value)
               .build();
 
-      query = queryBuilder.bind(query, documentId, row, timestamp, false);
+      query = queryBuilder.bind(query, documentId, row, null, timestamp, false);
       assertThat(query.getValues().getValuesList())
           .containsExactly(
               Values.of(documentId),
@@ -134,7 +134,7 @@ class InsertQueryBuilderTest {
               .doubleValue(value)
               .build();
 
-      query = queryBuilder.bind(query, documentId, row, timestamp, false);
+      query = queryBuilder.bind(query, documentId, row, null, timestamp, false);
       assertThat(query.getValues().getValuesList())
           .containsExactly(
               Values.of(documentId),
@@ -171,7 +171,7 @@ class InsertQueryBuilderTest {
               .booleanValue(value)
               .build();
 
-      query = queryBuilder.bind(query, documentId, row, timestamp, false);
+      query = queryBuilder.bind(query, documentId, row, null, timestamp, false);
       assertThat(query.getValues().getValuesList())
           .containsExactly(
               Values.of(documentId),
@@ -206,7 +206,7 @@ class InsertQueryBuilderTest {
               .booleanValue(true)
               .build();
 
-      assertThatThrownBy(() -> queryBuilder.bind(query, documentId, row, timestamp, true))
+      assertThatThrownBy(() -> queryBuilder.bind(query, documentId, row, null, timestamp, true))
           .isInstanceOf(IllegalArgumentException.class);
     }
   }
