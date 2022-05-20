@@ -19,7 +19,6 @@ package io.stargate.sgv2.docsapi.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
-import static org.mockito.Mockito.lenient;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -65,8 +64,6 @@ class JsonDocumentShredderTest {
 
   @BeforeEach
   public void init() {
-    lenient().when(configuration.maxArrayLength()).thenReturn(2);
-    lenient().when(configuration.maxDepth()).thenReturn(3);
     objectMapper = new ObjectMapper();
     shredder = new JsonDocumentShredder(configuration, objectMapper);
   }
