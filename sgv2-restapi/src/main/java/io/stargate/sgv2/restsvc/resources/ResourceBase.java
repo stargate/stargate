@@ -63,7 +63,7 @@ public abstract class ResourceBase {
     final Optional<Schema.CqlTable> table =
         (timingDiagnostics == null)
             ? bridge.getTable(keyspaceName, tableName, checkIfAuthorized)
-            : timingDiagnostics.timeTableSchemaAccess(
+            : timingDiagnostics.timedTableSchemaAccess(
                 () -> bridge.getTable(keyspaceName, tableName, checkIfAuthorized));
 
     return table
@@ -131,8 +131,12 @@ public abstract class ResourceBase {
   }
 
   protected Response fetchRows(
-      StargateBridgeClient bridge, QueryOuterClass.Query query, boolean raw) {
-    QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
+      StargateBridgeClient bridge,
+      ApiTimingDiagnostics diagnostics,
+      QueryOuterClass.Query query,
+      boolean raw) {
+    QueryOuterClass.Response grpcResponse =
+        diagnostics.timedDbRead(() -> bridge.executeQuery(query));
 
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
     final int count = rs.getRowsCount();

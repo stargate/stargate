@@ -69,7 +69,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final boolean raw,
       final String sortJson,
       final HttpServletRequest request) {
-    return timingDiagnostics.callWithDiagnostics(
+    return timingDiagnostics.withDiagnostics(
         "getRowWithWhere()",
         diagnostics -> {
           requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
@@ -124,7 +124,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
                           .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
                           .build();
                 }
-                return fetchRows(bridge, query, raw);
+                return fetchRows(bridge, diagnostics, query, raw);
               });
         });
   }
@@ -141,7 +141,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final boolean raw,
       final String sortJson,
       final HttpServletRequest request) {
-    return timingDiagnostics.callWithDiagnostics(
+    return timingDiagnostics.withDiagnostics(
         "getRows()",
         diagnostics -> {
           requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
@@ -173,7 +173,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
                         pageSizeParam,
                         pageStateParam,
                         toProtoConverter);
-                return fetchRows(bridge, query, raw);
+                return fetchRows(bridge, diagnostics, query, raw);
               });
         });
   }
@@ -189,7 +189,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final boolean raw,
       final String sortJson,
       final HttpServletRequest request) {
-    return timingDiagnostics.callWithDiagnostics(
+    return timingDiagnostics.withDiagnostics(
         "getAllRows()",
         diagnostics -> {
           requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
@@ -221,7 +221,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
                     .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
                     .build();
           }
-          return fetchRows(bridge, query, raw);
+          return fetchRows(bridge, diagnostics, query, raw);
         });
   }
 
@@ -232,7 +232,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final String tableName,
       final String payloadAsString,
       final HttpServletRequest request) {
-    return timingDiagnostics.callWithDiagnostics(
+    return timingDiagnostics.withDiagnostics(
         "createRow()",
         diagnostics -> {
           requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
@@ -260,9 +260,13 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
                   throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
                 }
 
-                QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
-                // apparently no useful data in ResultSet, we should simply return payload we got:
-                return Response.status(Status.CREATED).entity(payloadAsString).build();
+                return diagnostics.timedDbWrite(
+                    () -> {
+                      QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
+                      // apparently no useful data in ResultSet, we should simply return payload we
+                      // got:
+                      return Response.status(Status.CREATED).entity(payloadAsString).build();
+                    });
               });
         });
   }
@@ -276,7 +280,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final boolean raw,
       final String payload,
       final HttpServletRequest request) {
-    return timingDiagnostics.callWithDiagnostics(
+    return timingDiagnostics.withDiagnostics(
         "updateRows()",
         diagnostics ->
             modifyRow(bridge, diagnostics, keyspaceName, tableName, path, raw, payload, request));
@@ -289,7 +293,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final String tableName,
       final List<PathSegment> path,
       HttpServletRequest request) {
-    return timingDiagnostics.callWithDiagnostics(
+    return timingDiagnostics.withDiagnostics(
         "deleteRows()",
         diagnostics -> {
           requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
@@ -307,7 +311,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
                         keyspaceName, tableName, path, tableDef, toProtoConverter);
 
                 /*QueryOuterClass.Response grpcResponse =*/
-                bridge.executeQuery(query);
+                diagnostics.timedDbWrite(() -> bridge.executeQuery(query));
                 return Response.status(Status.NO_CONTENT).build();
               });
         });
@@ -322,7 +326,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final boolean raw,
       final String payload,
       final HttpServletRequest request) {
-    return timingDiagnostics.callWithDiagnostics(
+    return timingDiagnostics.withDiagnostics(
         "patchRows()",
         diagnostics ->
             modifyRow(bridge, diagnostics, keyspaceName, tableName, path, raw, payload, request));
@@ -364,7 +368,8 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
             throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
           }
 
-          QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
+          QueryOuterClass.Response grpcResponse =
+              diagnostics.timedDbWrite(() -> bridge.executeQuery(query));
           // apparently no useful data in ResultSet, we should simply return payload we got:
           final Object responsePayload = raw ? payloadMap : new Sgv2RESTResponse(payloadMap);
           return Response.status(Status.OK).entity(responsePayload).build();

@@ -12,20 +12,51 @@ public class ApiTimingDiagnostics {
   private int tableSchemaCount;
   private long tableSchemaNanos;
 
-  public ApiTimingDiagnostics(String operation, Timer tableSchemaTimer) {
+  private final Timer dbReadTimer;
+  private int dbReadCount;
+  private long dbReadNanos;
+
+  private final Timer dbWriteTimer;
+  private int dbWriteCount;
+  private long dbWriteNanos;
+
+  public ApiTimingDiagnostics(
+      String operation, Timer tableSchemaTimer, Timer dbReadTimer, Timer dbWriteTimer) {
     this.operation = operation;
     this.tableSchemaTimer = tableSchemaTimer;
+    this.dbReadTimer = dbReadTimer;
+    this.dbWriteTimer = dbWriteTimer;
 
     startTimeNanos = System.nanoTime();
   }
 
-  public <T> T timeTableSchemaAccess(Supplier<T> toCall) {
+  public <T> T timedTableSchemaAccess(Supplier<T> toCall) {
     final Timer.Context ctxt = tableSchemaTimer.time();
     try {
       return toCall.get();
     } finally {
       tableSchemaNanos += ctxt.stop();
       ++tableSchemaCount;
+    }
+  }
+
+  public <T> T timedDbRead(Supplier<T> toCall) {
+    final Timer.Context ctxt = dbReadTimer.time();
+    try {
+      return toCall.get();
+    } finally {
+      dbReadNanos += ctxt.stop();
+      ++dbReadCount;
+    }
+  }
+
+  public <T> T timedDbWrite(Supplier<T> toCall) {
+    final Timer.Context ctxt = dbWriteTimer.time();
+    try {
+      return toCall.get();
+    } finally {
+      dbWriteNanos += ctxt.stop();
+      ++dbWriteCount;
     }
   }
 
@@ -38,13 +69,31 @@ public class ApiTimingDiagnostics {
   public String toString() {
     final StringBuilder sb = new StringBuilder(100);
     sb.append("operation=").append(operation);
-    sb.append(" total-time=").append(nanosToMsecString(totalTimeNanos()));
+    final long totalNanos = totalTimeNanos();
+    sb.append(" total-time=").append(nanosToMsecString(totalNanos));
+    long otherNanos = totalNanos;
     if (tableSchemaCount > 0) {
-      sb.append(", table-schema-access(")
+      sb.append(",table-schema-access(")
           .append(tableSchemaCount)
           .append(")=")
           .append(nanosToMsecString(tableSchemaNanos));
+      otherNanos -= tableSchemaNanos;
     }
+    if (dbReadCount > 0) {
+      sb.append(",db-read(")
+          .append(dbReadCount)
+          .append(")=")
+          .append(nanosToMsecString(dbReadNanos));
+      otherNanos -= dbReadNanos;
+    }
+    if (dbWriteCount > 0) {
+      sb.append(",db-write(")
+          .append(dbWriteCount)
+          .append(")=")
+          .append(nanosToMsecString(dbWriteNanos));
+      otherNanos -= dbWriteNanos;
+    }
+    sb.append(",other=").append(nanosToMsecString(otherNanos));
     return sb.toString();
   }
 
@@ -54,8 +103,7 @@ public class ApiTimingDiagnostics {
   }
 
   static String nanosToMsecString(long nanos) {
-    // Ok so FP formatting is truly slow
-    // (see f.ex
+    // Ok so FP formatting is truly slow (see f.ex
     // https://stackoverflow.com/questions/10553710/fast-double-to-string-conversion-with-given-precision)
     // and we start with integral number so could consider optimizing.
     // But start with simple code for now; we are not to print out formatted numbers in production
@@ -63,9 +111,5 @@ public class ApiTimingDiagnostics {
 
     double msecs = nanos / 1_000_000.0;
     return String.format("%.2f msec", msecs);
-  }
-
-  private double nanosToMillis(long nanos) {
-    return nanos / 1000000.0;
   }
 }
