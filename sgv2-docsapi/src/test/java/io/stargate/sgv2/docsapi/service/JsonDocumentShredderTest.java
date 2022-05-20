@@ -47,7 +47,7 @@ import org.junit.jupiter.api.Test;
 @TestProfile(JsonDocumentShredderTest.Profile.class)
 class JsonDocumentShredderTest {
 
-  @Inject private JsonDocumentShredder shredder;
+  @Inject JsonDocumentShredder shredder;
 
   private ObjectMapper objectMapper;
 
