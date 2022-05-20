@@ -85,8 +85,7 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
         StargateBridgeClientFactory.newInstance(
             config.stargate.bridge.buildChannel(),
             timeoutSeconds,
-            Schema.SchemaRead.SourceApi.GRAPHQL,
-            metricRegistry);
+            Schema.SchemaRead.SourceApi.GRAPHQL);
     jersey.register(buildClientFilter(clientFactory));
 
     GraphqlCache graphqlCache = new GraphqlCache(disableDefaultKeyspace);

@@ -114,10 +114,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
 
     StargateBridgeClientFactory clientFactory =
         StargateBridgeClientFactory.newInstance(
-            appConfig.stargate.bridge.buildChannel(),
-            timeoutSeconds,
-            SchemaRead.SourceApi.REST,
-            metricRegistry);
+            appConfig.stargate.bridge.buildChannel(), timeoutSeconds, SchemaRead.SourceApi.REST);
     environment.jersey().register(buildClientFilter(clientFactory));
 
     environment

@@ -15,7 +15,6 @@
  */
 package io.stargate.sgv2.common.grpc;
 
-import com.codahale.metrics.MetricRegistry;
 import io.grpc.Channel;
 import io.stargate.bridge.proto.Schema.SchemaRead;
 import java.util.Optional;
@@ -28,12 +27,8 @@ public interface StargateBridgeClientFactory {
    *     same client is used for multiple queries, the timeout does not reset between each query).
    */
   static StargateBridgeClientFactory newInstance(
-      Channel channel,
-      int timeoutSeconds,
-      SchemaRead.SourceApi sourceApi,
-      MetricRegistry metricRegistry) {
-    return new DefaultStargateBridgeClientFactory(
-        channel, timeoutSeconds, sourceApi, metricRegistry);
+      Channel channel, int timeoutSeconds, SchemaRead.SourceApi sourceApi) {
+    return new DefaultStargateBridgeClientFactory(channel, timeoutSeconds, sourceApi);
   }
 
   StargateBridgeClient newClient(String authToken, Optional<String> tenantId);
