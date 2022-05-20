@@ -99,11 +99,11 @@ public abstract class ExecutionContext {
 
     @Override
     public void traceDeferredDml(Query query) {
-      int numRows = 0;
-
-      // TODO the query is already built, so we have no way of estimating the rows impacted
-
-      traceCqlResult(query, numRows);
+      // This method is invoked for batched DML queries. For INSERTS, we know the number of
+      // impacted rows is always 1. For DELETES, there's no way to estimate the exact number of rows
+      // (e.g. it could be a sub-document with an arbitrary number of fields), so count them as 1 as
+      // well.
+      traceCqlResult(query, 1);
     }
 
     @Override

@@ -15,6 +15,8 @@
  */
 package io.stargate.sgv2.docsapi.bridge;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
@@ -26,8 +28,6 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.regex.Pattern;
 import org.assertj.core.api.AbstractIntegerAssert;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /** A mock bridge implementation for unit tests. */
 public class ValidatingStargateBridge implements StargateBridge {
@@ -46,7 +46,7 @@ public class ValidatingStargateBridge implements StargateBridge {
   public Uni<QueryOuterClass.Response> executeQuery(QueryOuterClass.Query query) {
     QueryExpectation expectation =
         findQueryExpectation(query.getCql(), query.getValues().getValuesList());
-    return expectation.execute(null);
+    return expectation.execute(null, query.hasParameters() && query.getParameters().getEnriched());
   }
 
   @Override
@@ -56,7 +56,7 @@ public class ValidatingStargateBridge implements StargateBridge {
             query -> {
               QueryExpectation expectation =
                   findQueryExpectation(query.getCql(), query.getValues().getValuesList());
-              return expectation.execute(batch.getType());
+              return expectation.execute(batch.getType(), false);
             })
         // Return the last result
         .reduce((first, second) -> second)
@@ -118,6 +118,7 @@ public class ValidatingStargateBridge implements StargateBridge {
     private final Pattern cqlPattern;
     private final List<QueryOuterClass.Value> values;
     private QueryOuterClass.Batch.Type batchType;
+    private boolean enriched;
     private List<List<QueryOuterClass.Value>> rows;
 
     private QueryExpectation(String cqlRegex, List<QueryOuterClass.Value> values) {
@@ -134,7 +135,13 @@ public class ValidatingStargateBridge implements StargateBridge {
       return this;
     }
 
+    public QueryExpectation enriched() {
+      enriched = true;
+      return this;
+    }
+
     public QueryAssert returningNothing() {
+
       return returning(Collections.emptyList());
     }
 
@@ -147,10 +154,12 @@ public class ValidatingStargateBridge implements StargateBridge {
       return cqlPattern.matcher(expectedCql).matches() && expectedValues.equals(values);
     }
 
-    private Uni<QueryOuterClass.Response> execute(QueryOuterClass.Batch.Type expectedBatchType) {
+    private Uni<QueryOuterClass.Response> execute(
+        QueryOuterClass.Batch.Type actualBatchType, boolean actualEnriched) {
       assertThat(this.batchType)
           .as("Batch type for query %s", cqlPattern)
-          .isEqualTo(expectedBatchType);
+          .isEqualTo(actualBatchType);
+      assertThat(this.enriched).isEqualTo(actualEnriched);
 
       executed();
 

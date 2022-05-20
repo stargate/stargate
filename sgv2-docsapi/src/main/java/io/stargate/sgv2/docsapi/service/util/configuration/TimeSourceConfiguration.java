@@ -14,8 +14,9 @@
  * limitations under the License.
  *
  */
-package io.stargate.sgv2.docsapi.service.util;
+package io.stargate.sgv2.docsapi.service.util.configuration;
 
+import io.stargate.sgv2.docsapi.service.util.TimeSource;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 

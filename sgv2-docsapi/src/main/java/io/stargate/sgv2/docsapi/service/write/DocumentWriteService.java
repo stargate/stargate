@@ -17,6 +17,7 @@
 
 package io.stargate.sgv2.docsapi.service.write;
 
+import io.opentelemetry.extension.annotations.WithSpan;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.Batch;
@@ -25,6 +26,7 @@ import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
+import io.stargate.sgv2.docsapi.config.QueriesConfig;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.JsonShreddedRow;
 import io.stargate.sgv2.docsapi.service.util.TimeSource;
@@ -40,17 +42,20 @@ public class DocumentWriteService {
   private final TimeSource timeSource;
   private final InsertQueryBuilder insertQueryBuilder;
   private final boolean useLoggedBatches;
+  private final QueriesConfig queriesConfig;
 
   @Inject
   public DocumentWriteService(
       StargateRequestInfo requestInfo,
       TimeSource timeSource,
       DataStoreProperties dataStoreProperties,
-      DocumentProperties documentProperties) {
+      DocumentProperties documentProperties,
+      QueriesConfig queriesConfig) {
     this.requestInfo = requestInfo;
     this.insertQueryBuilder = new InsertQueryBuilder(documentProperties);
     this.timeSource = timeSource;
     this.useLoggedBatches = dataStoreProperties.loggedBatchesEnabled();
+    this.queriesConfig = queriesConfig;
   }
 
   /**
@@ -66,6 +71,7 @@ public class DocumentWriteService {
    * @param context Execution content for profiling.
    * @return Single containing the {@link ResultSet} of the batch execution.
    */
+  @WithSpan
   public Uni<ResultSet> writeDocument(
       String keyspace,
       String collection,
@@ -89,9 +95,8 @@ public class DocumentWriteService {
                               query, documentId, row, timestamp, numericBooleans))
                   .toList();
             })
-        .flatMap(boundQueries -> executeBatch(bridge, boundQueries, context.nested("ASYNC INSERT")))
-    // TODO reschedule outside of gRPC executor?
-    ;
+        .flatMap(
+            boundQueries -> executeBatch(bridge, boundQueries, context.nested("ASYNC INSERT")));
   }
 
   private Uni<ResultSet> executeBatch(
@@ -102,7 +107,14 @@ public class DocumentWriteService {
 
     // then execute batch
     Batch.Type type = useLoggedBatches ? Batch.Type.LOGGED : Batch.Type.UNLOGGED;
-    Batch.Builder batch = Batch.newBuilder().setType(type);
+    Batch.Builder batch =
+        Batch.newBuilder()
+            .setType(type)
+            .setParameters(
+                QueryOuterClass.BatchParameters.newBuilder()
+                    .setConsistency(
+                        QueryOuterClass.ConsistencyValue.newBuilder()
+                            .setValue(queriesConfig.consistency().reads())));
     boundQueries.forEach(
         query ->
             batch.addQueries(
