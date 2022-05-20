@@ -20,6 +20,7 @@ package io.stargate.sgv2.docsapi.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.opentelemetry.extension.annotations.WithSpan;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
@@ -28,8 +29,10 @@ import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Supplier;
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+@ApplicationScoped
 public class JsonDocumentShredder {
 
   private final DocumentProperties properties;
@@ -71,6 +74,7 @@ public class JsonDocumentShredder {
    *     are given, without any modifications.
    * @return List of shredded rows
    */
+  @WithSpan
   public List<JsonShreddedRow> shred(JsonNode node, List<String> subDocumentPath) {
     // check if this is a valid root node
     if (subDocumentPath.isEmpty()) {

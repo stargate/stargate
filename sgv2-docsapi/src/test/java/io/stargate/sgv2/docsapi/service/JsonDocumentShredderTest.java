@@ -26,6 +26,10 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableMap;
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
@@ -33,21 +37,31 @@ import io.stargate.sgv2.docsapi.config.constants.Constants;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import javax.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
 
-@ExtendWith(MockitoExtension.class)
+@QuarkusTest
+@TestProfile(JsonDocumentShredderTest.Profile.class)
 class JsonDocumentShredderTest {
 
-  private JsonDocumentShredder shredder;
+  @Inject private JsonDocumentShredder shredder;
 
   private ObjectMapper objectMapper;
 
-  @Mock DocumentProperties configuration;
+  @Inject DocumentProperties configuration;
+
+  public static class Profile implements QuarkusTestProfile {
+    @Override
+    public Map<String, String> getConfigOverrides() {
+      return ImmutableMap.<String, String>builder()
+          .put("stargate.document.max-depth", "3")
+          .put("stargate.document.max-array-length", "2")
+          .build();
+    }
+  }
 
   @BeforeEach
   public void init() {
