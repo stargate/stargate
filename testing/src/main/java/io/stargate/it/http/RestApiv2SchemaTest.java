@@ -317,6 +317,52 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
   }
 
   @Test
+  public void tableCreateWithMultClustering() throws IOException {
+    createTestKeyspace(keyspaceName);
+    TableAdd tableAdd = new TableAdd();
+    tableAdd.setName(tableName);
+
+    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
+
+    columnDefinitions.add(new ColumnDefinition("pk1", "int"));
+    columnDefinitions.add(new ColumnDefinition("ck1", "int"));
+    columnDefinitions.add(new ColumnDefinition("ck2", "int"));
+
+    tableAdd.setColumnDefinitions(columnDefinitions);
+
+    PrimaryKey primaryKey = new PrimaryKey();
+    primaryKey.setPartitionKey(Collections.singletonList("pk1"));
+    List<String> clusteringColumns = new ArrayList<>();
+    clusteringColumns.add("ck2");
+    clusteringColumns.add("ck1");
+    primaryKey.setClusteringKey(clusteringColumns);
+    tableAdd.setPrimaryKey(primaryKey);
+
+    tableAdd.setTableOptions(new TableOptions(0, null));
+
+    String body =
+        RestUtils.post(
+            authToken,
+            String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+            objectMapper.writeValueAsString(tableAdd),
+            HttpStatus.SC_CREATED);
+
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/schemas/keyspaces/%s/tables/%s?raw=true",
+                restUrlBase, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+
+    TableResponse table = objectMapper.readValue(body, TableResponse.class);
+    assertThat(table.getTableOptions().getClusteringExpression().get(0).getColumn())
+        .isEqualTo("ck2");
+    assertThat(table.getTableOptions().getClusteringExpression().get(1).getColumn())
+        .isEqualTo("ck1");
+  }
+
+  @Test
   public void tableUpdateSimple() throws IOException {
     createTestKeyspace(keyspaceName);
     createSimpleTestTable(keyspaceName, tableName);
