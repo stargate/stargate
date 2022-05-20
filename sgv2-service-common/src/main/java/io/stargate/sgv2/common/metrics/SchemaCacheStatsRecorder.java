@@ -57,13 +57,11 @@ public class SchemaCacheStatsRecorder implements StatsCounter {
 
   @Override
   public void recordLoadSuccess(long loadTime) {
-    System.err.println("CACHE-LOAD-SUCCESS: " + loadTime);
     loadTimes.update(loadTime, TimeUnit.NANOSECONDS);
   }
 
   @Override
   public void recordLoadFailure(long loadTime) {
-    System.err.println("CACHE-LOAD-FAIL: " + loadTime);
     loadTimes.update(loadTime, TimeUnit.NANOSECONDS);
   }
 
