@@ -24,48 +24,35 @@ import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.bridge.proto.Schema.ColumnOrderBy;
+import io.stargate.bridge.proto.Schema.CqlKeyspace;
 import io.stargate.bridge.proto.Schema.CqlTable;
+import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
-import io.stargate.sgv2.docsapi.api.common.properties.document.impl.DocumentTablePropertiesImpl;
-import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.service.common.model.ImmutableRowWrapper;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import java.util.List;
 import java.util.stream.Stream;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import org.apache.commons.lang3.RandomStringUtils;
 
 // utility class that can construct the schema for the docs api tests
+@Singleton
 public class DocsApiTestSchemaProvider {
 
   private final CqlTable table;
+  private final CqlKeyspace keyspace;
 
-  private final DocumentTableProperties tableProperties;
+  @Inject
+  public DocsApiTestSchemaProvider(DocumentProperties documentProperties) {
+    String keyspaceName = RandomStringUtils.randomAlphabetic(16).toLowerCase();
+    String collectionName = RandomStringUtils.randomAlphabetic(16).toLowerCase();
 
-  public DocsApiTestSchemaProvider(int maxDepth) {
-    this(
-        maxDepth,
-        new DocumentTablePropertiesImpl(
-            Constants.KEY_COLUMN_NAME,
-            Constants.LEAF_COLUMN_NAME,
-            Constants.STRING_VALUE_COLUMN_NAME,
-            Constants.DOUBLE_VALUE_COLUMN_NAME,
-            Constants.BOOLEAN_VALUE_COLUMN_NAME,
-            Constants.PATH_COLUMN_PREFIX));
-  }
+    int maxDepth = documentProperties.maxDepth();
+    DocumentTableProperties tableProperties = documentProperties.tableProperties();
 
-  public DocsApiTestSchemaProvider(int maxDepth, DocumentTableProperties tableProperties) {
-    this(
-        maxDepth,
-        tableProperties,
-        RandomStringUtils.randomAlphabetic(16).toLowerCase(),
-        RandomStringUtils.randomAlphabetic(16).toLowerCase());
-  }
+    keyspace = CqlKeyspace.newBuilder().setName(keyspaceName).build();
 
-  public DocsApiTestSchemaProvider(
-      int maxDepth,
-      DocumentTableProperties tableProperties,
-      String keyspaceName,
-      String collectionName) {
     CqlTable.Builder tableBuilder =
         CqlTable.newBuilder()
             .setName(collectionName)
@@ -99,15 +86,14 @@ public class DocsApiTestSchemaProvider {
     }
 
     table = tableBuilder.build();
-    this.tableProperties = tableProperties;
   }
 
   public CqlTable getTable() {
     return table;
   }
 
-  public DocumentTableProperties getTableProperties() {
-    return tableProperties;
+  public CqlKeyspace getKeyspace() {
+    return keyspace;
   }
 
   public RowWrapper getRow(ImmutableMap<String, Value> valuesMap) {

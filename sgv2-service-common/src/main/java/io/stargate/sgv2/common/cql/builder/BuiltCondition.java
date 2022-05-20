@@ -86,9 +86,9 @@ public interface BuiltCondition {
     abstract void appendToBuilder(
         StringBuilder builder, Map<Marker, Value> markers, List<Value> boundValues);
 
-    abstract String columnName();
+    public abstract String columnName();
 
-    Optional<Term> value() {
+    public Optional<Term> value() {
       return Optional.empty();
     }
 
@@ -100,7 +100,7 @@ public interface BuiltCondition {
       }
 
       @Override
-      String columnName() {
+      public String columnName() {
         return columnName;
       }
 
@@ -138,7 +138,7 @@ public interface BuiltCondition {
       }
 
       @Override
-      String columnName() {
+      public String columnName() {
         return columnName;
       }
 
@@ -147,7 +147,7 @@ public interface BuiltCondition {
       }
 
       @Override
-      Optional<Term> value() {
+      public Optional<Term> value() {
         return Optional.of(keyValue);
       }
 

@@ -7,7 +7,6 @@ import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStorePropert
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableColumns;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
-import java.util.Arrays;
 import javax.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -57,7 +56,7 @@ class DefaultDataStorePropertiesConfigurationTest {
     assertThat(columns.allColumnNames())
         .hasSize(69)
         .contains("key")
-        .containsAll(Arrays.asList(columns.valueColumnNames()))
-        .containsAll(Arrays.asList(columns.pathColumnNames()));
+        .containsAll(columns.valueColumnNames())
+        .containsAll(columns.pathColumnNames());
   }
 }

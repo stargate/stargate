@@ -171,6 +171,7 @@ public class DefaultStargateBridgeClientTenantsTest {
         channel,
         AUTH_TOKEN,
         Optional.of(tenantId),
+        5,
         keyspaceCache,
         new LazyReference<>(),
         SOURCE_API);

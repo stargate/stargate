@@ -45,6 +45,13 @@ public class RestServiceStarter {
       description = "address this service should listen on (default: 127.0.0.1)")
   protected String listenHostStr = "127.0.0.1";
 
+  @Order(value = 2)
+  @Option(
+      name = {"--timeout-seconds"},
+      title = "timeout-seconds",
+      description = "the timeout for gRPC queries to the Stargate bridge")
+  private int timeoutSeconds = 5;
+
   private HttpMetricsTagProvider httpMetricsTagProvider;
 
   /*
@@ -61,7 +68,8 @@ public class RestServiceStarter {
     final MetricsImpl metricsImpl = new MetricsImpl();
     final HttpMetricsTagProvider httpMetricsTags = new NoopHttpMetricsTagProvider();
 
-    RestServiceServer server = new RestServiceServer(metricsImpl, metricsImpl, httpMetricsTags);
+    RestServiceServer server =
+        new RestServiceServer(metricsImpl, metricsImpl, httpMetricsTags, timeoutSeconds);
     server.run("server", "config.yaml");
   }
 

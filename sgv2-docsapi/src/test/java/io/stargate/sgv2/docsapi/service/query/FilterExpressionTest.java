@@ -26,27 +26,32 @@ import static org.mockito.Mockito.when;
 import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Expression;
 import com.google.common.collect.ImmutableMap;
+import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
 import io.stargate.sgv2.docsapi.service.query.model.RawDocument;
+import io.stargate.sgv2.docsapi.testprofiles.MaxDepth4TestProfile;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
+import javax.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.MockitoAnnotations;
 
-@ExtendWith(MockitoExtension.class)
+@QuarkusTest
+@TestProfile(MaxDepth4TestProfile.class)
 public class FilterExpressionTest {
 
-  private static final DocsApiTestSchemaProvider SCHEMA_PROVIDER = new DocsApiTestSchemaProvider(4);
+  @Inject DocumentProperties documentProperties;
+  @Inject DocsApiTestSchemaProvider schemaProvider;
 
   @Mock FilterPath filterPath;
 
@@ -54,15 +59,11 @@ public class FilterExpressionTest {
 
   @Mock BaseCondition condition2;
 
-  @Mock DocumentProperties documentProperties;
-
   @BeforeEach
   public void init() {
+    MockitoAnnotations.openMocks(this);
     lenient().when(condition.documentProperties()).thenReturn(documentProperties);
     lenient().when(condition2.documentProperties()).thenReturn(documentProperties);
-    lenient()
-        .when(documentProperties.tableProperties())
-        .thenReturn(SCHEMA_PROVIDER.getTableProperties());
   }
 
   @Nested
@@ -87,19 +88,24 @@ public class FilterExpressionTest {
 
     @Mock RawDocument document;
 
+    @BeforeEach
+    public void init() {
+      MockitoAnnotations.openMocks(this);
+    }
+
     @Test
     public void singleRowMatch() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("parent", "field"));
       RowWrapper row =
-          SCHEMA_PROVIDER.getRow(
+          schemaProvider.getRow(
               ImmutableMap.of(
-                  SCHEMA_PROVIDER.getTableProperties().leafColumnName(),
+                  documentProperties.tableProperties().leafColumnName(),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0),
+                  documentProperties.tableProperties().pathColumnName(0),
                   Values.of("parent"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1),
+                  documentProperties.tableProperties().pathColumnName(1),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(2),
+                  documentProperties.tableProperties().pathColumnName(2),
                   Values.of("")));
       when(document.rows()).thenReturn(Collections.singletonList(row));
       when(condition.test(row)).thenReturn(true);
@@ -117,26 +123,26 @@ public class FilterExpressionTest {
     public void multipleRowsOneMatch() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("parent", "field"));
       RowWrapper row1 =
-          SCHEMA_PROVIDER.getRow(
+          schemaProvider.getRow(
               ImmutableMap.of(
-                  SCHEMA_PROVIDER.getTableProperties().leafColumnName(),
+                  documentProperties.tableProperties().leafColumnName(),
                   Values.of("other"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0),
+                  documentProperties.tableProperties().pathColumnName(0),
                   Values.of("parent"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1),
+                  documentProperties.tableProperties().pathColumnName(1),
                   Values.of("other"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(2),
+                  documentProperties.tableProperties().pathColumnName(2),
                   Values.of("")));
       RowWrapper row2 =
-          SCHEMA_PROVIDER.getRow(
+          schemaProvider.getRow(
               ImmutableMap.of(
-                  SCHEMA_PROVIDER.getTableProperties().leafColumnName(),
+                  documentProperties.tableProperties().leafColumnName(),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0),
+                  documentProperties.tableProperties().pathColumnName(0),
                   Values.of("parent"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1),
+                  documentProperties.tableProperties().pathColumnName(1),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(2),
+                  documentProperties.tableProperties().pathColumnName(2),
                   Values.of("")));
       when(document.rows()).thenReturn(Arrays.asList(row1, row2));
       when(condition.test(row2)).thenReturn(true);
@@ -154,15 +160,15 @@ public class FilterExpressionTest {
     public void singleRowConditionDoesMatch() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("parent", "field"));
       RowWrapper row =
-          SCHEMA_PROVIDER.getRow(
+          schemaProvider.getRow(
               ImmutableMap.of(
-                  SCHEMA_PROVIDER.getTableProperties().leafColumnName(),
+                  documentProperties.tableProperties().leafColumnName(),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0),
+                  documentProperties.tableProperties().pathColumnName(0),
                   Values.of("parent"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1),
+                  documentProperties.tableProperties().pathColumnName(1),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(2),
+                  documentProperties.tableProperties().pathColumnName(2),
                   Values.of("")));
       when(document.rows()).thenReturn(Collections.singletonList(row));
       when(condition.test(row)).thenReturn(false);
@@ -180,26 +186,26 @@ public class FilterExpressionTest {
     public void multipleRowsNoOneMatch() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("parent", "field"));
       RowWrapper row1 =
-          SCHEMA_PROVIDER.getRow(
+          schemaProvider.getRow(
               ImmutableMap.of(
-                  SCHEMA_PROVIDER.getTableProperties().leafColumnName(),
+                  documentProperties.tableProperties().leafColumnName(),
                   Values.of("other"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0),
+                  documentProperties.tableProperties().pathColumnName(0),
                   Values.of("parent"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1),
+                  documentProperties.tableProperties().pathColumnName(1),
                   Values.of("other"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(2),
+                  documentProperties.tableProperties().pathColumnName(2),
                   Values.of("")));
       RowWrapper row2 =
-          SCHEMA_PROVIDER.getRow(
+          schemaProvider.getRow(
               ImmutableMap.of(
-                  SCHEMA_PROVIDER.getTableProperties().leafColumnName(),
+                  documentProperties.tableProperties().leafColumnName(),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0),
+                  documentProperties.tableProperties().pathColumnName(0),
                   Values.of("parent"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1),
+                  documentProperties.tableProperties().pathColumnName(1),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(2),
+                  documentProperties.tableProperties().pathColumnName(2),
                   Values.of("")));
       when(document.rows()).thenReturn(Arrays.asList(row1, row2));
       when(condition.test(row2)).thenReturn(false);
@@ -217,26 +223,26 @@ public class FilterExpressionTest {
     public void noRowOnFilterPath() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("parent", "field"));
       RowWrapper row1 =
-          SCHEMA_PROVIDER.getRow(
+          schemaProvider.getRow(
               ImmutableMap.of(
-                  SCHEMA_PROVIDER.getTableProperties().leafColumnName(),
+                  documentProperties.tableProperties().leafColumnName(),
                   Values.of("other"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0),
+                  documentProperties.tableProperties().pathColumnName(0),
                   Values.of("parent"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1),
+                  documentProperties.tableProperties().pathColumnName(1),
                   Values.of("other"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(2),
+                  documentProperties.tableProperties().pathColumnName(2),
                   Values.of("")));
       RowWrapper row2 =
-          SCHEMA_PROVIDER.getRow(
+          schemaProvider.getRow(
               ImmutableMap.of(
-                  SCHEMA_PROVIDER.getTableProperties().leafColumnName(),
+                  documentProperties.tableProperties().leafColumnName(),
                   Values.of("extra"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0),
+                  documentProperties.tableProperties().pathColumnName(0),
                   Values.of("parent"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1),
+                  documentProperties.tableProperties().pathColumnName(1),
                   Values.of("extra"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(2),
+                  documentProperties.tableProperties().pathColumnName(2),
                   Values.of("")));
       when(document.rows()).thenReturn(Arrays.asList(row1, row2));
 
@@ -256,15 +262,15 @@ public class FilterExpressionTest {
     public void conditionTrue() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("parent", "field"));
       RowWrapper row =
-          SCHEMA_PROVIDER.getRow(
+          schemaProvider.getRow(
               ImmutableMap.of(
-                  SCHEMA_PROVIDER.getTableProperties().leafColumnName(),
+                  documentProperties.tableProperties().leafColumnName(),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0),
+                  documentProperties.tableProperties().pathColumnName(0),
                   Values.of("parent"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1),
+                  documentProperties.tableProperties().pathColumnName(1),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(2),
+                  documentProperties.tableProperties().pathColumnName(2),
                   Values.of("")));
       when(condition.test(row)).thenReturn(true);
 
@@ -281,15 +287,15 @@ public class FilterExpressionTest {
     public void conditionTrueGlob() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("*", "field"));
       RowWrapper row =
-          SCHEMA_PROVIDER.getRow(
+          schemaProvider.getRow(
               ImmutableMap.of(
-                  SCHEMA_PROVIDER.getTableProperties().leafColumnName(),
+                  documentProperties.tableProperties().leafColumnName(),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0),
+                  documentProperties.tableProperties().pathColumnName(0),
                   Values.of("parent"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1),
+                  documentProperties.tableProperties().pathColumnName(1),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(2),
+                  documentProperties.tableProperties().pathColumnName(2),
                   Values.of("")));
       when(condition.test(row)).thenReturn(true);
 
@@ -306,15 +312,15 @@ public class FilterExpressionTest {
     public void conditionTrueArrayGlob() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("[*]", "field"));
       RowWrapper row =
-          SCHEMA_PROVIDER.getRow(
+          schemaProvider.getRow(
               ImmutableMap.of(
-                  SCHEMA_PROVIDER.getTableProperties().leafColumnName(),
+                  documentProperties.tableProperties().leafColumnName(),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0),
+                  documentProperties.tableProperties().pathColumnName(0),
                   Values.of("[000001]"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1),
+                  documentProperties.tableProperties().pathColumnName(1),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(2),
+                  documentProperties.tableProperties().pathColumnName(2),
                   Values.of("")));
       when(condition.test(row)).thenReturn(true);
 
@@ -331,15 +337,15 @@ public class FilterExpressionTest {
     public void conditionFalse() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("parent", "field"));
       RowWrapper row =
-          SCHEMA_PROVIDER.getRow(
+          schemaProvider.getRow(
               ImmutableMap.of(
-                  SCHEMA_PROVIDER.getTableProperties().leafColumnName(),
+                  documentProperties.tableProperties().leafColumnName(),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0),
+                  documentProperties.tableProperties().pathColumnName(0),
                   Values.of("parent"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1),
+                  documentProperties.tableProperties().pathColumnName(1),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(2),
+                  documentProperties.tableProperties().pathColumnName(2),
                   Values.of("")));
       when(condition.test(row)).thenReturn(false);
 
@@ -357,15 +363,15 @@ public class FilterExpressionTest {
       ImmutableFilterPath filterPath =
           ImmutableFilterPath.of(Arrays.asList("parent,other", "field"));
       RowWrapper row =
-          SCHEMA_PROVIDER.getRow(
+          schemaProvider.getRow(
               ImmutableMap.of(
-                  SCHEMA_PROVIDER.getTableProperties().leafColumnName(),
+                  documentProperties.tableProperties().leafColumnName(),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0),
+                  documentProperties.tableProperties().pathColumnName(0),
                   Values.of("parent"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1),
+                  documentProperties.tableProperties().pathColumnName(1),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(2),
+                  documentProperties.tableProperties().pathColumnName(2),
                   Values.of("")));
       when(condition.test(row)).thenReturn(false);
 
@@ -382,9 +388,9 @@ public class FilterExpressionTest {
     public void pathNotMatchingLeafDoesNotMatchField() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("parent", "field"));
       RowWrapper row =
-          SCHEMA_PROVIDER.getRow(
+          schemaProvider.getRow(
               ImmutableMap.of(
-                  SCHEMA_PROVIDER.getTableProperties().leafColumnName(), Values.of("whatever")));
+                  documentProperties.tableProperties().leafColumnName(), Values.of("whatever")));
 
       FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
       boolean result = expression.test(row);
@@ -398,13 +404,13 @@ public class FilterExpressionTest {
     public void pathNotMatchingLongerPaths() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
       RowWrapper row =
-          SCHEMA_PROVIDER.getRow(
+          schemaProvider.getRow(
               ImmutableMap.of(
-                  SCHEMA_PROVIDER.getTableProperties().leafColumnName(),
+                  documentProperties.tableProperties().leafColumnName(),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0),
+                  documentProperties.tableProperties().pathColumnName(0),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1),
+                  documentProperties.tableProperties().pathColumnName(1),
                   Values.of("more")));
 
       FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);
@@ -419,15 +425,15 @@ public class FilterExpressionTest {
     public void pathNotMatchingDifferent() {
       ImmutableFilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("parent", "field"));
       RowWrapper row =
-          SCHEMA_PROVIDER.getRow(
+          schemaProvider.getRow(
               ImmutableMap.of(
-                  SCHEMA_PROVIDER.getTableProperties().leafColumnName(),
+                  documentProperties.tableProperties().leafColumnName(),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(0),
+                  documentProperties.tableProperties().pathColumnName(0),
                   Values.of("field"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(1),
+                  documentProperties.tableProperties().pathColumnName(1),
                   Values.of("parent"),
-                  SCHEMA_PROVIDER.getTableProperties().pathColumnName(2),
+                  documentProperties.tableProperties().pathColumnName(2),
                   Values.of("")));
 
       FilterExpression expression = ImmutableFilterExpression.of(filterPath, condition, 0);

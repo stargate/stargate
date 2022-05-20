@@ -32,8 +32,10 @@ import io.stargate.sgv2.common.http.CreateStargateBridgeClientFilter;
 import io.stargate.sgv2.common.http.StargateBridgeClientJerseyFactory;
 import io.stargate.sgv2.graphql.resources.HealthResource;
 import io.stargate.sgv2.graphql.resources.MetricsResource;
+import io.stargate.sgv2.graphql.web.resources.AdminResource;
 import io.stargate.sgv2.graphql.web.resources.DdlResource;
 import io.stargate.sgv2.graphql.web.resources.DmlResource;
+import io.stargate.sgv2.graphql.web.resources.FilesResource;
 import io.stargate.sgv2.graphql.web.resources.GraphqlCache;
 import io.stargate.sgv2.graphql.web.resources.PlaygroundResource;
 import java.util.Collections;
@@ -54,6 +56,7 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
   private final MetricRegistry metricRegistry;
   private final MetricsScraper metricsScraper;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
+  private final int timeoutSeconds;
   private final boolean disablePlayground;
   private final boolean disableDefaultKeyspace;
 
@@ -61,12 +64,14 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
       Metrics metrics,
       MetricsScraper metricsScraper,
       HttpMetricsTagProvider httpMetricsTagProvider,
+      int timeoutSeconds,
       boolean enableGraphqlPlayground,
       boolean disableDefaultKeyspace) {
     this.metrics = metrics;
     this.metricRegistry = metrics.getRegistry(MODULE_NAME);
     this.metricsScraper = metricsScraper;
     this.httpMetricsTagProvider = httpMetricsTagProvider;
+    this.timeoutSeconds = timeoutSeconds;
     this.disablePlayground = enableGraphqlPlayground;
     this.disableDefaultKeyspace = disableDefaultKeyspace;
   }
@@ -79,6 +84,7 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
     StargateBridgeClientFactory clientFactory =
         StargateBridgeClientFactory.newInstance(
             config.stargate.bridge.buildChannel(),
+            timeoutSeconds,
             Schema.SchemaRead.SourceApi.GRAPHQL,
             metricRegistry);
     jersey.register(buildClientFilter(clientFactory));
@@ -102,6 +108,8 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
         });
     environment.jersey().register(DdlResource.class);
     environment.jersey().register(DmlResource.class);
+    environment.jersey().register(AdminResource.class);
+    environment.jersey().register(FilesResource.class);
 
     if (!disablePlayground) {
       environment.jersey().register(PlaygroundResource.class);

@@ -20,11 +20,20 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import graphql.GraphQL;
 import graphql.execution.AsyncExecutionStrategy;
 import graphql.schema.GraphQLSchema;
+import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.sgv2.common.futures.Futures;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.common.grpc.UnauthorizedKeyspaceException;
+import io.stargate.sgv2.graphql.persistence.graphqlfirst.SchemaSource;
+import io.stargate.sgv2.graphql.persistence.graphqlfirst.SchemaSourceDao;
 import io.stargate.sgv2.graphql.schema.CassandraFetcherExceptionHandler;
 import io.stargate.sgv2.graphql.schema.cqlfirst.SchemaFactory;
+import io.stargate.sgv2.graphql.schema.graphqlfirst.AdminSchemaBuilder;
+import io.stargate.sgv2.graphql.schema.graphqlfirst.migration.CassandraMigrator;
+import io.stargate.sgv2.graphql.schema.graphqlfirst.processor.ProcessedSchema;
+import io.stargate.sgv2.graphql.schema.graphqlfirst.processor.SchemaProcessor;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -40,6 +49,7 @@ public class GraphqlCache {
 
   private final boolean disableDefaultKeyspace;
   private final GraphQL ddlGraphql;
+  private final GraphQL schemaFirstAdminGraphql;
   private volatile CompletionStage<Optional<String>> defaultKeyspaceName;
   private final Cache<String, GraphqlHolder> dmlGraphqlCache =
       Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(5, TimeUnit.MINUTES).build();
@@ -47,10 +57,15 @@ public class GraphqlCache {
   public GraphqlCache(boolean disableDefaultKeyspace) {
     this.disableDefaultKeyspace = disableDefaultKeyspace;
     this.ddlGraphql = newGraphql(SchemaFactory.newDdlSchema());
+    this.schemaFirstAdminGraphql = newGraphql(new AdminSchemaBuilder().build());
   }
 
   public GraphQL getDdl() {
     return ddlGraphql;
+  }
+
+  public GraphQL getSchemaFirstAdminGraphql() {
+    return schemaFirstAdminGraphql;
   }
 
   /**
@@ -69,6 +84,20 @@ public class GraphqlCache {
 
   public Optional<GraphQL> getDml(StargateBridgeClient bridge, String keyspaceName) {
     return Futures.getUninterruptibly(getDmlAsync(bridge, keyspaceName));
+  }
+
+  /**
+   * Fill the cache entry when it's been computed externally. This is used after a schema-first
+   * deployment: we already have the GraphQL since it's been generated in order to validate the
+   * deployment, so use it instead of having the cache recompute it.
+   */
+  public void putDml(
+      CqlKeyspaceDescribe keyspaceDescribe, SchemaSource newSource, GraphQL graphql) {
+    Schema.CqlKeyspace keyspace = keyspaceDescribe.getCqlKeyspace();
+    GraphqlHolder holder =
+        dmlGraphqlCache.get(keyspace.getGlobalName(), __ -> new GraphqlHolder(keyspace.getName()));
+    assert holder != null;
+    holder.putGraphql(graphql, keyspaceDescribe.getHash().getValue(), newSource);
   }
 
   public CompletionStage<Optional<String>> getDefaultKeyspaceNameAsync(
@@ -105,60 +134,121 @@ public class GraphqlCache {
   static class GraphqlHolder {
 
     private final String keyspaceName;
-    private final AtomicReference<GraphqlHolderState> stateRef =
-        new AtomicReference<>(GraphqlHolderState.EMPTY);
+    private final AtomicReference<GraphqlHolderState> stateRef = new AtomicReference<>(null);
 
     GraphqlHolder(String keyspaceName) {
       this.keyspaceName = keyspaceName;
     }
 
     CompletionStage<Optional<GraphQL>> getGraphql(StargateBridgeClient bridge) {
-      return bridge
-          .getKeyspaceAsync(keyspaceName, true)
-          .thenCompose(
-              maybeKeyspace -> {
-                Optional<Integer> hash =
-                    maybeKeyspace.map(describe -> describe.getHash().getValue());
-                while (true) {
-                  GraphqlHolderState state = stateRef.get();
-                  // If the hash matches, we already have the latest version
-                  if (state.hash.equals(hash)) {
-                    return state.graphqlFuture;
-                  }
-                  // Otherwise, record the new hash and recompute (accounting for concurrent calls)
-                  GraphqlHolderState newState =
-                      hash.map(GraphqlHolderState::new).orElse(GraphqlHolderState.EMPTY);
-                  if (stateRef.compareAndSet(state, newState)) {
-                    maybeKeyspace.ifPresent(
-                        keyspace -> {
-                          GraphQL graphql = newGraphql(SchemaFactory.newDmlSchema(keyspace));
-                          newState.graphqlFuture.complete(Optional.of(graphql));
-                        });
-                    return newState.graphqlFuture;
-                  }
-                }
-              });
+
+      CompletionStage<Optional<CqlKeyspaceDescribe>> keyspaceFuture =
+          bridge.getKeyspaceAsync(keyspaceName, true);
+
+      return keyspaceFuture.thenCompose(
+          maybeKeyspace ->
+              maybeKeyspace
+                  .map(keyspace -> handleExisting(keyspace, bridge))
+                  .orElse(handleMissing()));
+    }
+
+    // Handles a possible state change when we know the keyspace doesn't exist.
+    private CompletionStage<Optional<GraphQL>> handleMissing() {
+      stateRef.set(null);
+      return CompletableFuture.completedFuture(Optional.empty());
+    }
+
+    // Handles a possible state change when we know the keyspace exists.
+    private CompletionStage<Optional<GraphQL>> handleExisting(
+        CqlKeyspaceDescribe keyspace, StargateBridgeClient bridge) {
+
+      // Next step is to check if this is a GraphQL schema-first keyspace
+      CompletionStage<Optional<SchemaSource>> sourceFuture =
+          new SchemaSourceDao(bridge).getLatestVersionAsync(keyspaceName);
+
+      return sourceFuture.thenCompose(
+          maybeSource -> {
+            GraphqlHolderState newState =
+                new GraphqlHolderState(keyspace.getHash().getValue(), maybeSource);
+            GraphqlHolderState oldState = stateRef.get();
+            if (newState.equals(oldState)) {
+              // The state matches, we already have the latest version
+              return oldState.graphqlFuture;
+            } else if (stateRef.compareAndSet(oldState, newState)) {
+              // We installed our new state, it is our responsibility to recompute
+              compute(keyspace, maybeSource, bridge, newState.graphqlFuture);
+            } else {
+              // Another thread beat us to computing. Assume this is at least our keyspace
+              // hash (or even a more recent one).
+              newState = stateRef.get();
+            }
+            return newState.graphqlFuture;
+          });
+    }
+
+    private void compute(
+        CqlKeyspaceDescribe keyspace,
+        Optional<SchemaSource> maybeSource,
+        StargateBridgeClient bridge,
+        CompletableFuture<Optional<GraphQL>> toComplete) {
+      GraphQL graphql =
+          maybeSource
+              .map(source -> computeSchemaFirst(keyspace, bridge, source))
+              .orElseGet(() -> computeCqlFirst(keyspace));
+      toComplete.complete(Optional.of(graphql));
+    }
+
+    private GraphQL computeSchemaFirst(
+        CqlKeyspaceDescribe keyspace, StargateBridgeClient bridge, SchemaSource source) {
+      ProcessedSchema processedSchema =
+          new SchemaProcessor(bridge, true).process(source.getContents(), keyspace);
+      // Check that the data model still matches
+      CassandraMigrator.forPersisted().compute(processedSchema.getMappingModel(), keyspace);
+      return processedSchema.getGraphql();
+    }
+
+    private GraphQL computeCqlFirst(CqlKeyspaceDescribe keyspace) {
+      return newGraphql(SchemaFactory.newDmlSchema(keyspace));
+    }
+
+    void putGraphql(GraphQL graphql, int hash, SchemaSource newSource) {
+      GraphqlHolderState newState = new GraphqlHolderState(hash, Optional.of(newSource));
+      newState.graphqlFuture.complete(Optional.of(graphql));
+      stateRef.set(newState);
     }
   }
 
   static class GraphqlHolderState {
 
-    static GraphqlHolderState EMPTY =
-        new GraphqlHolderState(
-            Optional.empty(), CompletableFuture.completedFuture(Optional.empty()));
-
-    final Optional<Integer> hash;
+    // The hash of the CqlKeyspaceDescribe that this GraphQL is based on.
+    final int hash;
+    // If this is a schema-first GraphQL, the source that it is based on.
+    final Optional<SchemaSource> source;
+    // The result of the computation of this GraphQL (possibly still in progress).
     final CompletableFuture<Optional<GraphQL>> graphqlFuture;
 
-    GraphqlHolderState(Integer hash) {
-      this.hash = Optional.of(hash);
+    GraphqlHolderState(int hash, Optional<SchemaSource> source) {
+      this.hash = hash;
+      this.source = source;
       this.graphqlFuture = new CompletableFuture<>();
     }
 
-    private GraphqlHolderState(
-        Optional<Integer> hash, CompletableFuture<Optional<GraphQL>> graphqlFuture) {
-      this.hash = hash;
-      this.graphqlFuture = graphqlFuture;
+    @Override
+    public boolean equals(Object other) {
+      // Note: graphqlFuture deliberately omitted
+      if (other == this) {
+        return true;
+      } else if (other instanceof GraphqlHolderState) {
+        GraphqlHolderState that = (GraphqlHolderState) other;
+        return this.hash == that.hash && this.source.equals(that.source);
+      } else {
+        return false;
+      }
+    }
+
+    @Override
+    public int hashCode() {
+      return Objects.hash(hash, source);
     }
   }
 }

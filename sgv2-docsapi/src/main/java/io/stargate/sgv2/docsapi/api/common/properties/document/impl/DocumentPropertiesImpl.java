@@ -19,13 +19,13 @@ public record DocumentPropertiesImpl(
     DocumentTableColumns tableColumns)
     implements DocumentProperties {
 
-  public DocumentPropertiesImpl(DocumentConfig documentConfig) {
+  public DocumentPropertiesImpl(DocumentConfig documentConfig, boolean numericBooleans) {
     this(
         documentConfig.maxDepth(),
         documentConfig.maxArrayLength(),
         documentConfig.maxPageSize(),
         documentConfig.searchPageSize(),
         new DocumentTablePropertiesImpl(documentConfig),
-        new DocumentTableColumnsImpl(documentConfig));
+        new DocumentTableColumnsImpl(documentConfig, numericBooleans));
   }
 }

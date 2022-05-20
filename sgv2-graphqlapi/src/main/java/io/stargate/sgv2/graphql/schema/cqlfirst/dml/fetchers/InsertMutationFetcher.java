@@ -47,6 +47,7 @@ public class InsertMutationFetcher extends MutationFetcher {
         .value(buildInsertValues(environment))
         .ifNotExists(ifNotExists)
         .ttl(getTtl(environment))
+        .parameters(buildParameters(environment))
         .build();
   }
 

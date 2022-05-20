@@ -41,6 +41,10 @@ stargate:
   multi-tenancy:
     enabled: false
 
+  # queries settings (consistency level, etc)
+  # see io.stargate.sgv2.docsapi.config.QueriesConfig for all config properties and options
+  queries:
+
 quarkus:
 
   # general app properties

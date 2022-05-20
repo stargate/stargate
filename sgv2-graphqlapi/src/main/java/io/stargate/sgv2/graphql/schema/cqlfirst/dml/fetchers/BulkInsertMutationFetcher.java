@@ -51,6 +51,7 @@ public class BulkInsertMutationFetcher extends BulkMutationFetcher {
               .value(buildInsertValues(value))
               .ifNotExists(ifNotExists)
               .ttl(getTtl(environment))
+              .parameters(buildParameters(environment))
               .build();
 
       boundQueries.add(query);

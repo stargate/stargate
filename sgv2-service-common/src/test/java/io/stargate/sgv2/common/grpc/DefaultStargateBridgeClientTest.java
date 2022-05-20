@@ -409,7 +409,7 @@ public class DefaultStargateBridgeClientTest {
 
   private DefaultStargateBridgeClient newClient() {
     return new DefaultStargateBridgeClient(
-        channel, AUTH_TOKEN, Optional.empty(), keyspaceCache, new LazyReference<>(), SOURCE_API);
+        channel, AUTH_TOKEN, Optional.empty(), 5, keyspaceCache, new LazyReference<>(), SOURCE_API);
   }
 
   void mockAuthorizations(Map<SchemaRead, Boolean> authorizations) {

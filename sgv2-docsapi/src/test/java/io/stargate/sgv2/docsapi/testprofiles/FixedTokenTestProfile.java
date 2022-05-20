@@ -22,7 +22,7 @@ import io.quarkus.test.junit.QuarkusTestProfile;
 import java.util.Map;
 
 /**
- * Simple test profile to enable fixed Cassadnra token with value {@value #TOKEN}.
+ * Simple test profile to enable fixed Cassandra token with value {@value #TOKEN}.
  *
  * <p>Annotate test class with @TestProfile(FixedTokenTestProfile.class) to use.
  */

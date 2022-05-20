@@ -220,8 +220,7 @@ public class FieldTypeCachesTest extends TypeCacheTestBase {
             arguments(TEXT_TYPE, Scalars.GraphQLString));
     Stream<Arguments> cqlScalars =
         Arrays.stream(CqlScalar.values())
-            .map(
-                s -> arguments(TypeSpec.newBuilder().setBasic(s.getCqlType()), s.getGraphqlType()));
+            .map(s -> arguments(s.getCqlType().toBuilder(), s.getGraphqlType()));
     return Stream.concat(builtinScalars, cqlScalars);
   }
 

@@ -29,8 +29,11 @@ public interface DataStoreProperties {
   /** @return If logged batches are enabled. */
   boolean loggedBatchesEnabled();
 
-  /** @return If boolean values should be treated as the numeric in the data store. */
+  /**
+   * @return If boolean values should be treated as the numeric in the data store. By default <code>
+   *     true</code> when {@link #saiEnabled()} is <code>true</code>.
+   */
   default boolean treatBooleansAsNumeric() {
-    return !secondaryIndexesEnabled();
+    return saiEnabled();
   }
 }

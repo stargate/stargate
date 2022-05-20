@@ -47,7 +47,6 @@
 | `stargate.grpc-metadata.tenant-id-key`       | `String` | `X-Tenant-Id`       | Metadata key for passing the tenant-id to the Bridge.       |
 | `stargate.grpc-metadata.cassandra-token-key` | `String` | `X-Cassandra-Token` | Metadata key for passing the cassandra token to the Bridge. |
 
-
 ### [Metrics configuration](src/main/java/io/stargate/sgv2/docsapi/config/MetricsConfig.java)
 *Configuration mapping for the additional metrics properties.*
 
@@ -59,7 +58,6 @@
 | `stargate.metrics.tenant-request-counter.tenant-tag`  | `String`             | `tenant`                            | The tag key for tenant id.                                              |
 | `stargate.metrics.tenant-request-counter.error-tag`   | `String`             | `error`                             | The tag key for the request error flag (true/false).                    |
 
-
 ### [Multi-tenancy configuration](src/main/java/io/stargate/sgv2/docsapi/config/MultiTenancyConfig.java)
 *Configuration mapping for multi tenant operation mode.*
 
@@ -68,6 +66,15 @@
 | `stargate.multi-tenancy.enabled`                         | `boolean` | `false` | If multi-tenancy operation mode is enabled.                                                                          |
 | `stargate.multi-tenancy.tenant-resolver.type`            | `String`  | unset   | Tenant identifier resolver type if multi-tenancy is enabled. Possible options are `subdomain`, `fixed`, or `custom`. |
 | `stargate.multi-tenancy.tenant-resolver.fixed.tenant-id` | `String`  | unset   | Tenant identifier value if the `fixed` type is used.                                                                 |
+
+### [Queries configuration](src/main/java/io/stargate/sgv2/docsapi/config/QueriesConfig.java)
+*Configuration mapping for the query properties.*
+
+| Property                                      | Type     | Default        | Description                                                                      |
+|-----------------------------------------------|----------|----------------|----------------------------------------------------------------------------------|
+| `stargate.queries.consistency.schema-changes` | `String` | `LOCAL_QUORUM` | Consistency level to use for C* queries that are performing the schema changes.  |
+| `stargate.queries.consistency.writes`         | `String` | `LOCAL_QUORUM` | Consistency level to use for C* queries that are inserting or updating the data. |
+| `stargate.queries.consistency.reads`          | `String` | `LOCAL_QUORUM` | Consistency level to use for C* queries that are reading the data.               |
 
 ## Quarkus Configuration
 

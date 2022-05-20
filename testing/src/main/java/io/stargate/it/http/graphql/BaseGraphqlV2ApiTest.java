@@ -19,6 +19,7 @@ public abstract class BaseGraphqlV2ApiTest extends BaseIntegrationTest {
     builder.serviceStartedMessage("Started GraphqlServiceServer");
     builder.serviceLibDirProperty("stargate.graphql.libdir");
     builder.serviceJarBase("sgv2-graphqlapi");
+    builder.addServiceArguments("--timeout-seconds", "10");
     builder.bridgeHostPropertyName("dw.stargate.bridge.host");
     builder.bridgePortPropertyName("dw.stargate.bridge.port");
   }

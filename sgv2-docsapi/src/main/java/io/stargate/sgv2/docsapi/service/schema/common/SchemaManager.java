@@ -30,11 +30,14 @@ import io.quarkus.cache.CompositeCacheKey;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridge;
+import io.stargate.sgv2.common.grpc.SchemaReads;
 import io.stargate.sgv2.common.grpc.UnauthorizedKeyspaceException;
+import io.stargate.sgv2.common.grpc.UnauthorizedTableException;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
-import io.stargate.sgv2.docsapi.grpc.GrpcClients;
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
@@ -44,8 +47,6 @@ public class SchemaManager {
   @Inject
   @CacheName("keyspace-cache")
   Cache keyspaceCache;
-
-  @Inject GrpcClients grpcClients;
 
   @Inject Schema.SchemaRead.SourceApi sourceApi;
 
@@ -62,6 +63,25 @@ public class SchemaManager {
   public Uni<Schema.CqlKeyspaceDescribe> getKeyspace(String keyspace) {
     StargateBridge bridge = requestInfo.getStargateBridge();
     return getKeyspaceInternal(bridge, keyspace);
+  }
+
+  /**
+   * Get the table from the bridge. Note that this method is not doing any authorization.
+   *
+   * @param keyspace Keyspace name
+   * @param table Table name
+   * @param missingKeyspace Function of the keyspace in case it's not existing. Usually there to
+   *     provide a failure.
+   * @return Uni containing Schema.CqlTable or <code>null</code> item in case the table does not
+   *     exist.
+   */
+  @WithSpan
+  public Uni<Schema.CqlTable> getTable(
+      String keyspace,
+      String table,
+      Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>> missingKeyspace) {
+    StargateBridge bridge = requestInfo.getStargateBridge();
+    return getTableInternal(bridge, keyspace, table, missingKeyspace);
   }
 
   /**
@@ -82,7 +102,7 @@ public class SchemaManager {
   public Uni<Schema.CqlKeyspaceDescribe> getKeyspaceAuthorized(String keyspace) {
     StargateBridge bridge = requestInfo.getStargateBridge();
 
-    // call bridge to authorize
+    // first authorize read, then fetch
     return authorizeKeyspaceInternal(bridge, keyspace)
 
         // on result
@@ -101,17 +121,66 @@ public class SchemaManager {
             });
   }
 
-  // authorizes a keyspace by provided name, no transformations applied
-  public Uni<Boolean> authorizeKeyspaceInternal(StargateBridge bridge, String keyspaceName) {
+  /**
+   * Get the table from the bridge. Prior to getting the keyspace it will execute the schema
+   * authorization request.
+   *
+   * <p>Emits a failure in case:
+   *
+   * <ol>
+   *   <li>Not authorized, with {@link UnauthorizedTableException}
+   * </ol>
+   *
+   * @param keyspace Keyspace name
+   * @param table Table name
+   * @param missingKeyspace Function of the keyspace in case it's not existing. Usually there to
+   *     provide a failure.
+   * @return Uni containing Schema.CqlTable or <code>null</code> item in case the table does not
+   *     exist.
+   */
+  @WithSpan
+  public Uni<Schema.CqlTable> getTableAuthorized(
+      String keyspace,
+      String table,
+      Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>> missingKeyspace) {
+    StargateBridge bridge = requestInfo.getStargateBridge();
+
     // first authorize read, then fetch
-    Schema.SchemaRead build =
-        Schema.SchemaRead.newBuilder()
-            .setSourceApi(sourceApi)
-            .setKeyspaceName(keyspaceName)
-            .setElementType(Schema.SchemaRead.ElementType.KEYSPACE)
-            .build();
+    return authorizeTableInternal(bridge, keyspace, table)
+
+        // on result
+        .onItem()
+        .transformToUni(
+            authorized -> {
+
+              // if authorized, go fetch keyspace
+              // otherwise throw correct exception
+              if (authorized) {
+                return getTableInternal(bridge, keyspace, table, missingKeyspace);
+              } else {
+                RuntimeException unauthorized = new UnauthorizedTableException(keyspace, table);
+                return Uni.createFrom().failure(unauthorized);
+              }
+            });
+  }
+
+  // authorizes a keyspace by provided name
+  public Uni<Boolean> authorizeKeyspaceInternal(StargateBridge bridge, String keyspaceName) {
+    Schema.SchemaRead schemaRead = SchemaReads.keyspace(keyspaceName, sourceApi);
+    return authorizeInternal(bridge, schemaRead);
+  }
+
+  // authorizes a table by provided name and keyspace
+  public Uni<Boolean> authorizeTableInternal(
+      StargateBridge bridge, String keyspaceName, String tableName) {
+    Schema.SchemaRead schemaRead = SchemaReads.table(keyspaceName, tableName, sourceApi);
+    return authorizeInternal(bridge, schemaRead);
+  }
+
+  // authorizes a single schema read
+  public Uni<Boolean> authorizeInternal(StargateBridge bridge, Schema.SchemaRead schemaRead) {
     Schema.AuthorizeSchemaReadsRequest request =
-        Schema.AuthorizeSchemaReadsRequest.newBuilder().addSchemaReads(build).build();
+        Schema.AuthorizeSchemaReadsRequest.newBuilder().addSchemaReads(schemaRead).build();
 
     // call bridge to authorize
     return bridge
@@ -125,7 +194,7 @@ public class SchemaManager {
             });
   }
 
-  // gets a keyspace by provided name, no transformations applied
+  // gets a keyspace by provided name
   private Uni<Schema.CqlKeyspaceDescribe> getKeyspaceInternal(
       StargateBridge bridge, String keyspaceName) {
     Optional<String> tenantId = requestInfo.getTenantId();
@@ -161,8 +230,8 @@ public class SchemaManager {
                         // if we have updated keyspace cache and return
                         // otherwise return what we had in the cache already
                         if (null != updatedKeyspace && updatedKeyspace.hasCqlKeyspace()) {
-                          invalidateKeyspace(keyspaceName, tenantId);
-                          return cacheKeyspace(keyspaceName, tenantId, updatedKeyspace);
+                          return invalidateKeyspace(keyspaceName, tenantId)
+                              .flatMap(v -> cacheKeyspace(keyspaceName, tenantId, updatedKeyspace));
                         } else {
                           return Uni.createFrom().item(keyspace);
                         }
@@ -176,12 +245,36 @@ public class SchemaManager {
             t -> {
               if (t instanceof StatusRuntimeException sre) {
                 if (Objects.equals(sre.getStatus().getCode(), Status.Code.NOT_FOUND)) {
-                  invalidateKeyspace(keyspaceName, tenantId);
-                  return Uni.createFrom().nullItem();
+                  return invalidateKeyspace(keyspaceName, tenantId)
+                      .flatMap(v -> Uni.createFrom().nullItem());
                 }
               }
 
               return Uni.createFrom().failure(t);
+            });
+  }
+
+  // gets a table by provided name in the given keyspace
+  private Uni<Schema.CqlTable> getTableInternal(
+      StargateBridge bridge,
+      String keyspaceName,
+      String tableName,
+      Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>> missingKeyspace) {
+    // get keyspace
+    return getKeyspaceInternal(bridge, keyspaceName)
+
+        // if keyspace not found fail always
+        .onItem()
+        .ifNull()
+        .switchTo(missingKeyspace.apply(keyspaceName))
+
+        // otherwise try to find the wanted table
+        .flatMap(
+            keyspace -> {
+              List<Schema.CqlTable> tables = keyspace.getTablesList();
+              Optional<Schema.CqlTable> table =
+                  tables.stream().filter(t -> Objects.equals(t.getName(), tableName)).findFirst();
+              return Uni.createFrom().optional(table);
             });
   }
 
@@ -208,6 +301,8 @@ public class SchemaManager {
 
   // simple utility to invalidate keyspace
   @CacheInvalidate(cacheName = "keyspace-cache")
-  protected void invalidateKeyspace(
-      @CacheKey String keyspaceName, @CacheKey Optional<String> tenantId) {}
+  protected Uni<Void> invalidateKeyspace(
+      @CacheKey String keyspaceName, @CacheKey Optional<String> tenantId) {
+    return Uni.createFrom().nullItem();
+  }
 }
