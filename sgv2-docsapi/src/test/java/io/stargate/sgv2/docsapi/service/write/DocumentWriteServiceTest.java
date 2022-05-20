@@ -127,7 +127,7 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
               .returningNothing();
 
       service
-          .writeDocument(keyspaceName, tableName, documentId, rows, null, false, context)
+          .writeDocument(keyspaceName, tableName, documentId, rows, null, context)
           .await()
           .atMost(Duration.ofSeconds(1));
 
@@ -216,7 +216,7 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
               .returningNothing();
 
       service
-          .writeDocument(keyspaceName, tableName, documentId, rows, ttl, false, context)
+          .writeDocument(keyspaceName, tableName, documentId, rows, ttl, context)
           .await()
           .atMost(Duration.ofSeconds(1));
 

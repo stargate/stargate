@@ -42,6 +42,7 @@ public class DocumentWriteService {
   private final TimeSource timeSource;
   private final InsertQueryBuilder insertQueryBuilder;
   private final boolean useLoggedBatches;
+  private final boolean treatBooleansAsNumeric;
   private final QueriesConfig queriesConfig;
 
   @Inject
@@ -55,6 +56,7 @@ public class DocumentWriteService {
     this.insertQueryBuilder = new InsertQueryBuilder(documentProperties);
     this.timeSource = timeSource;
     this.useLoggedBatches = dataStoreProperties.loggedBatchesEnabled();
+    this.treatBooleansAsNumeric = dataStoreProperties.treatBooleansAsNumeric();
     this.queriesConfig = queriesConfig;
   }
 
@@ -67,7 +69,6 @@ public class DocumentWriteService {
    * @param documentId Document ID.
    * @param rows Rows of this document.
    * @param ttl the time-to-live of the rows (seconds)
-   * @param numericBooleans If numeric boolean should be stored.
    * @param context Execution content for profiling.
    * @return Single containing the {@link ResultSet} of the batch execution.
    */
@@ -78,7 +79,6 @@ public class DocumentWriteService {
       String documentId,
       List<JsonShreddedRow> rows,
       Integer ttl,
-      boolean numericBooleans,
       ExecutionContext context) {
 
     StargateBridge bridge = requestInfo.getStargateBridge();
@@ -92,7 +92,7 @@ public class DocumentWriteService {
                   .map(
                       row ->
                           insertQueryBuilder.bind(
-                              query, documentId, row, ttl, timestamp, numericBooleans))
+                              query, documentId, row, ttl, timestamp, treatBooleansAsNumeric))
                   .toList();
             })
         .flatMap(
