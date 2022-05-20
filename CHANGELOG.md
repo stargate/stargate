@@ -1,5 +1,15 @@
 # Changelog
 
+## [v1.0.56](https://github.com/stargate/stargate/tree/v1.0.56) (2022-05-20)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-10...v1.0.56)
+
+**Merged pull requests:**
+
+- Make test result uploads not break CI when fail [\#1832](https://github.com/stargate/stargate/pull/1832) ([EricBorczuk](https://github.com/EricBorczuk))
+- Remove invalid comma for HOST\_ID in `starctl` [\#1826](https://github.com/stargate/stargate/pull/1826) ([mpenick](https://github.com/mpenick))
+- Update `.github/CODEOWNERS` [\#1815](https://github.com/stargate/stargate/pull/1815) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v1.0.55](https://github.com/stargate/stargate/tree/v1.0.55) (2022-04-27)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.54...v1.0.55)
