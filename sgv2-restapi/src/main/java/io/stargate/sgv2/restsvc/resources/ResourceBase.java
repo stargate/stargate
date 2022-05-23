@@ -22,7 +22,6 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
@@ -55,24 +54,34 @@ public abstract class ResourceBase {
    */
   protected Response callWithTable(
       StargateBridgeClient bridge,
-      ApiTimingDiagnostics timingDiagnostics,
       String keyspaceName,
       String tableName,
       boolean checkIfAuthorized,
       Function<Schema.CqlTable, Response> function) {
-    final Optional<Schema.CqlTable> table =
-        (timingDiagnostics == null)
-            ? bridge.getTable(keyspaceName, tableName, checkIfAuthorized)
-            : timingDiagnostics.timedTableSchemaAccess(
-                () -> bridge.getTable(keyspaceName, tableName, checkIfAuthorized));
-
-    return table
+    return bridge
+        .getTable(keyspaceName, tableName, checkIfAuthorized)
         .map(function)
         .orElseThrow(
             () ->
                 new WebApplicationException(
                     String.format("Table '%s' not found (in keyspace %s)", tableName, keyspaceName),
                     Response.Status.BAD_REQUEST));
+  }
+
+  /**
+   * Similar to {@link #callWithTable} but handles additional performance diagnostics
+   *
+   * @param timingDiagnostics Object that handles collection of basic performance timing information
+   */
+  protected Response timedCallWithTable(
+      ApiTimingDiagnostics timingDiagnostics,
+      StargateBridgeClient bridge,
+      String keyspaceName,
+      String tableName,
+      boolean checkIfAuthorized,
+      Function<Schema.CqlTable, Response> function) {
+    return timingDiagnostics.timedTableSchemaAccess(
+        () -> callWithTable(bridge, keyspaceName, tableName, checkIfAuthorized, function));
   }
 
   // // // Helper methods for JSON decoding

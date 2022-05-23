@@ -86,9 +86,9 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
             throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
           }
 
-          return callWithTable(
-              bridge,
+          return timedCallWithTable(
               diagnostics,
+              bridge,
               keyspaceName,
               tableName,
               false,
@@ -154,9 +154,9 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
             throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
           }
 
-          return callWithTable(
-              bridge,
+          return timedCallWithTable(
               diagnostics,
+              bridge,
               keyspaceName,
               tableName,
               false,
@@ -244,9 +244,9 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
                 "Invalid JSON payload: " + e.getMessage(), Status.BAD_REQUEST);
           }
 
-          return callWithTable(
-              bridge,
+          return timedCallWithTable(
               diagnostics,
+              bridge,
               keyspaceName,
               tableName,
               false,
@@ -297,9 +297,9 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         "deleteRows()",
         diagnostics -> {
           requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-          return callWithTable(
-              bridge,
+          return timedCallWithTable(
               diagnostics,
+              bridge,
               keyspaceName,
               tableName,
               false,
@@ -350,9 +350,9 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       throw new WebApplicationException(
           "Invalid JSON payload: " + e.getMessage(), Status.BAD_REQUEST);
     }
-    return callWithTable(
-        bridge,
+    return timedCallWithTable(
         diagnostics,
+        bridge,
         keyspaceName,
         tableName,
         false,
