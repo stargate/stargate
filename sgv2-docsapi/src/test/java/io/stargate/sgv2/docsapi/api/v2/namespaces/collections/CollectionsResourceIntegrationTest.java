@@ -100,6 +100,16 @@ public class CollectionsResourceIntegrationTest {
     }
 
     @Test
+    public void tableExists() {
+      // TODO once we can create keyspace
+    }
+
+    @Test
+    public void tableNotExisting() {
+      // TODO once we can create keyspace
+    }
+
+    @Test
     public void keyspaceNotExisting() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
