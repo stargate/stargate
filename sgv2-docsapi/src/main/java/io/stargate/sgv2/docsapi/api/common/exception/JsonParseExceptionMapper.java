@@ -31,7 +31,7 @@ public class JsonParseExceptionMapper {
     // enrich the message with the exception message
     // this gives more details to the user
     int code = Response.Status.BAD_REQUEST.getStatusCode();
-    String msg = "Unable to process JSON: %s".formatted(exception.getMessage());
+    String msg = "Unable to process JSON: %s.".formatted(exception.getMessage());
     ApiError error = new ApiError(msg, code);
     return RestResponse.ResponseBuilder.create(Response.Status.BAD_REQUEST, error).build();
   }
