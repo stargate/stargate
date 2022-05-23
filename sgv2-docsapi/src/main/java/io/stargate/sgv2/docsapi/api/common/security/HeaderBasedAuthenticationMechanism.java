@@ -17,6 +17,8 @@
 
 package io.stargate.sgv2.docsapi.api.common.security;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.quarkus.security.identity.IdentityProviderManager;
 import io.quarkus.security.identity.SecurityIdentity;
@@ -26,10 +28,13 @@ import io.quarkus.vertx.http.runtime.security.HttpAuthenticationMechanism;
 import io.quarkus.vertx.http.runtime.security.HttpCredentialTransport;
 import io.quarkus.vertx.http.runtime.security.HttpSecurityUtils;
 import io.smallrye.mutiny.Uni;
+import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
+import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
 
 /**
  * Implementation of the {@link HttpAuthenticationMechanism} that authenticates on a header. If a
@@ -42,8 +47,12 @@ public class HeaderBasedAuthenticationMechanism implements HttpAuthenticationMec
   /** The name of the header to be used for the authentication. */
   private final String headerName;
 
-  public HeaderBasedAuthenticationMechanism(String headerName) {
+  /** Object mapper for custom response. */
+  private final ObjectMapper objectMapper;
+
+  public HeaderBasedAuthenticationMechanism(String headerName, ObjectMapper objectMapper) {
     this.headerName = headerName;
+    this.objectMapper = objectMapper;
   }
 
   /** {@inheritDoc} */
@@ -68,6 +77,51 @@ public class HeaderBasedAuthenticationMechanism implements HttpAuthenticationMec
   public Uni<ChallengeData> getChallenge(RoutingContext context) {
     return Uni.createFrom()
         .item(new ChallengeData(HttpResponseStatus.UNAUTHORIZED.code(), null, null));
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * <p>Writes a custom response.
+   */
+  @Override
+  public Uni<Boolean> sendChallenge(RoutingContext context) {
+    // keep the original flow, although I don't need the getChallenge
+    return getChallenge(context)
+        .flatMap(
+            challengeData -> {
+              int status = challengeData.status;
+              context.response().setStatusCode(status);
+
+              // create the response
+              String message =
+                  "Role unauthorized for operation: Missing token, expecting one in the %s header."
+                      .formatted(headerName);
+              ApiError apiError = new ApiError(message, status);
+              try {
+                // try to serialize
+                String response = objectMapper.writeValueAsString(apiError);
+
+                // set content type
+                context
+                    .response()
+                    .headers()
+                    .set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON);
+
+                // set content length
+                context
+                    .response()
+                    .headers()
+                    .set(HttpHeaders.CONTENT_LENGTH, String.valueOf(response.getBytes().length));
+
+                // write and map to true
+                return Uni.createFrom()
+                    .completionStage(
+                        context.response().write(response).map(true).toCompletionStage());
+              } catch (JsonProcessingException e) {
+                return Uni.createFrom().item(true);
+              }
+            });
   }
 
   /** {@inheritDoc} */
