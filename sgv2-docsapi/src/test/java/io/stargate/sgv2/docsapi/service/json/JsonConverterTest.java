@@ -38,9 +38,9 @@ public class JsonConverterTest {
     }
   }
 
-  private static final ObjectMapper mapper = new ObjectMapper();
+  @Inject ObjectMapper mapper;
 
-  @Inject private JsonConverter service;
+  @Inject JsonConverter service;
 
   @Test
   public void convertToJsonDoc_testDeadLeaves() throws JsonProcessingException {
