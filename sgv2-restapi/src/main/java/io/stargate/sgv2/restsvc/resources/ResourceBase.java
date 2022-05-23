@@ -136,7 +136,9 @@ public abstract class ResourceBase {
       QueryOuterClass.Query query,
       boolean raw) {
     QueryOuterClass.Response grpcResponse =
-        diagnostics.timedDbRead(() -> bridge.executeQuery(query));
+        (diagnostics == null)
+            ? bridge.executeQuery(query)
+            : diagnostics.timedDbRead(() -> bridge.executeQuery(query));
 
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
     final int count = rs.getRowsCount();

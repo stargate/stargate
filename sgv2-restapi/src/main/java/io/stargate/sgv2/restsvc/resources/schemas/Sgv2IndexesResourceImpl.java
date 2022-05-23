@@ -24,12 +24,10 @@ import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.common.grpc.SchemaReads;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.common.http.CreateStargateBridgeClient;
-import io.stargate.sgv2.common.metrics.ApiTimingDiagnosticsFactory;
 import io.stargate.sgv2.restsvc.models.Sgv2IndexAddRequest;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
 import java.util.Collections;
 import java.util.Map;
-import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Path;
@@ -44,46 +42,32 @@ import javax.ws.rs.core.Response.Status;
 @Singleton
 @CreateStargateBridgeClient
 public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2IndexesResourceApi {
-  private final ApiTimingDiagnosticsFactory timingDiagnostics;
-
-  @Inject
-  protected Sgv2IndexesResourceImpl(ApiTimingDiagnosticsFactory timingDiagnostics) {
-    this.timingDiagnostics = timingDiagnostics;
-  }
-
   @Override
   public Response getAllIndexesForTable(
       StargateBridgeClient bridge,
       String keyspaceName,
       String tableName,
       HttpServletRequest request) {
-    return timingDiagnostics.withDiagnostics(
-        "getAllIndexesForTable",
-        diagnostics -> {
-          if (isStringEmpty(keyspaceName)) {
-            throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
-          }
-          if (isStringEmpty(tableName)) {
-            throw new WebApplicationException("tableName must be provided", Status.BAD_REQUEST);
-          }
+    if (isStringEmpty(keyspaceName)) {
+      throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
+    }
+    if (isStringEmpty(tableName)) {
+      throw new WebApplicationException("tableName must be provided", Status.BAD_REQUEST);
+    }
 
-          // check that we're authorized for the table
-          diagnostics.timedDbRead(
-              () ->
-                  bridge.authorizeSchemaRead(
-                      SchemaReads.table(
-                          keyspaceName, tableName, Schema.SchemaRead.SourceApi.REST)));
+    // check that we're authorized for the table
+    bridge.authorizeSchemaRead(
+        SchemaReads.table(keyspaceName, tableName, Schema.SchemaRead.SourceApi.REST));
 
-          Query query =
-              new QueryBuilder()
-                  .select()
-                  .from("system_schema", "indexes")
-                  .where("keyspace_name", Predicate.EQ, Values.of(keyspaceName))
-                  .where("table_name", Predicate.EQ, Values.of(tableName))
-                  .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
-                  .build();
-          return fetchRows(bridge, diagnostics, query, true);
-        });
+    Query query =
+        new QueryBuilder()
+            .select()
+            .from("system_schema", "indexes")
+            .where("keyspace_name", Predicate.EQ, Values.of(keyspaceName))
+            .where("table_name", Predicate.EQ, Values.of(tableName))
+            .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
+            .build();
+    return fetchRows(bridge, null, query, true);
   }
 
   @Override
@@ -93,53 +77,43 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
       final String tableName,
       final Sgv2IndexAddRequest indexAdd,
       HttpServletRequest request) {
-    return timingDiagnostics.withDiagnostics(
-        "addIndex",
-        diagnostics -> {
-          if (isStringEmpty(keyspaceName)) {
-            throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
-          }
-          if (isStringEmpty(tableName)) {
-            throw new WebApplicationException("tableName must be provided", Status.BAD_REQUEST);
-          }
+    if (isStringEmpty(keyspaceName)) {
+      throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
+    }
+    if (isStringEmpty(tableName)) {
+      throw new WebApplicationException("tableName must be provided", Status.BAD_REQUEST);
+    }
 
-          String columnName = indexAdd.getColumn();
-          if (isStringEmpty(columnName)) {
-            throw new WebApplicationException("columnName must be provided", Status.BAD_REQUEST);
-          }
+    String columnName = indexAdd.getColumn();
+    if (isStringEmpty(columnName)) {
+      throw new WebApplicationException("columnName must be provided", Status.BAD_REQUEST);
+    }
 
-          diagnostics.timedTableSchemaAccess(
-              () ->
-                  bridge.getTable(keyspaceName, tableName, false)
-                      .orElseThrow(
-                          () -> new WebApplicationException("Table not found", Status.NOT_FOUND))
-                      .getColumnsList().stream()
-                      .filter(c -> columnName.equals(c.getName()))
-                      .findAny()
-                      .orElseThrow(
-                          () ->
-                              new WebApplicationException(
-                                  String.format("Column '%s' not found in table.", columnName),
-                                  Status.NOT_FOUND)));
+    bridge.getTable(keyspaceName, tableName, false)
+        .orElseThrow(() -> new WebApplicationException("Table not found", Status.NOT_FOUND))
+        .getColumnsList().stream()
+        .filter(c -> columnName.equals(c.getName()))
+        .findAny()
+        .orElseThrow(
+            () ->
+                new WebApplicationException(
+                    String.format("Column '%s' not found in table.", columnName),
+                    Status.NOT_FOUND));
 
-          diagnostics.timedDbWrite(
-              () -> {
-                Query query =
-                    new QueryBuilder()
-                        .create()
-                        .index(indexAdd.getName())
-                        .ifNotExists(indexAdd.getIfNotExists())
-                        .on(keyspaceName, tableName)
-                        .column(columnName)
-                        .indexingType(indexAdd.getKind())
-                        .custom(indexAdd.getType(), indexAdd.getOptions())
-                        .build();
-                return bridge.executeQuery(query);
-              });
+    Query query =
+        new QueryBuilder()
+            .create()
+            .index(indexAdd.getName())
+            .ifNotExists(indexAdd.getIfNotExists())
+            .on(keyspaceName, tableName)
+            .column(columnName)
+            .indexingType(indexAdd.getKind())
+            .custom(indexAdd.getType(), indexAdd.getOptions())
+            .build();
+    bridge.executeQuery(query);
 
-          Map<String, Object> responsePayload = Collections.singletonMap("success", true);
-          return Response.status(Status.CREATED).entity(responsePayload).build();
-        });
+    Map<String, Object> responsePayload = Collections.singletonMap("success", true);
+    return Response.status(Status.CREATED).entity(responsePayload).build();
   }
 
   @Override
@@ -150,46 +124,30 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
       String indexName,
       boolean ifExists,
       HttpServletRequest request) {
-    return timingDiagnostics.withDiagnostics(
-        "dropIndex",
-        diagnostics -> {
-          if (isStringEmpty(keyspaceName)) {
-            throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
-          }
-          if (isStringEmpty(tableName)) {
-            throw new WebApplicationException("tableName must be provided", Status.BAD_REQUEST);
-          }
-          if (isStringEmpty(indexName)) {
-            throw new WebApplicationException("columnName must be provided", Status.BAD_REQUEST);
-          }
+    if (isStringEmpty(keyspaceName)) {
+      throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
+    }
+    if (isStringEmpty(tableName)) {
+      throw new WebApplicationException("tableName must be provided", Status.BAD_REQUEST);
+    }
+    if (isStringEmpty(indexName)) {
+      throw new WebApplicationException("columnName must be provided", Status.BAD_REQUEST);
+    }
 
-          CqlTable table =
-              diagnostics.timedTableSchemaAccess(
-                  () ->
-                      bridge
-                          .getTable(keyspaceName, tableName, false)
-                          .orElseThrow(
-                              () ->
-                                  new WebApplicationException(
-                                      "Table not found", Status.NOT_FOUND)));
-          if (!ifExists
-              && table.getIndexesList().stream().noneMatch(i -> indexName.equals(i.getName()))) {
-            throw new WebApplicationException(
-                String.format("Index '%s' not found.", indexName), Status.NOT_FOUND);
-          }
+    CqlTable table =
+        bridge
+            .getTable(keyspaceName, tableName, false)
+            .orElseThrow(() -> new WebApplicationException("Table not found", Status.NOT_FOUND));
+    if (!ifExists
+        && table.getIndexesList().stream().noneMatch(i -> indexName.equals(i.getName()))) {
+      throw new WebApplicationException(
+          String.format("Index '%s' not found.", indexName), Status.NOT_FOUND);
+    }
 
-          diagnostics.timedDbWrite(
-              () -> {
-                Query query =
-                    new QueryBuilder()
-                        .drop()
-                        .index(keyspaceName, indexName)
-                        .ifExists(ifExists)
-                        .build();
-                return bridge.executeQuery(query);
-              });
+    Query query =
+        new QueryBuilder().drop().index(keyspaceName, indexName).ifExists(ifExists).build();
+    bridge.executeQuery(query);
 
-          return Response.status(Status.NO_CONTENT).build();
-        });
+    return Response.status(Status.NO_CONTENT).build();
   }
 }
