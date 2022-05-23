@@ -58,10 +58,22 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
   @Inject DocumentProperties documentProperties;
   @InjectMock TimeSource timeSource;
 
+  String keyspaceName;
+  String tableName;
+  Batch.Type expectedBatchType;
+  String documentId;
+  long timestamp;
   ExecutionContext context;
 
   @BeforeEach
   public void init() {
+    keyspaceName = schemaProvider.getKeyspace().getName();
+    tableName = schemaProvider.getTable().getName();
+    expectedBatchType =
+        dataStoreProperties.loggedBatchesEnabled() ? Batch.Type.LOGGED : Batch.Type.UNLOGGED;
+    documentId = RandomStringUtils.randomAlphanumeric(16);
+    timestamp = RandomUtils.nextLong();
+    when(timeSource.currentTimeMicros()).thenReturn(timestamp);
     context = ExecutionContext.create(true);
   }
 
@@ -70,11 +82,6 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
 
     @Test
     public void happyPath() {
-      String keyspaceName = schemaProvider.getKeyspace().getName();
-      String tableName = schemaProvider.getTable().getName();
-      Batch.Type expectedBatchType =
-          dataStoreProperties.loggedBatchesEnabled() ? Batch.Type.LOGGED : Batch.Type.UNLOGGED;
-      String documentId = RandomStringUtils.randomAlphanumeric(16);
       JsonShreddedRow row1 =
           ImmutableJsonShreddedRow.builder()
               .maxDepth(documentProperties.maxDepth())
@@ -89,9 +96,6 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
               .doubleValue(2.2d)
               .build();
       List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
-
-      long timestamp = RandomUtils.nextLong();
-      when(timeSource.currentTimeMicros()).thenReturn(timestamp);
 
       String insertCql =
           String.format(
@@ -156,11 +160,6 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
 
     @Test
     public void happyPathWithTtl() {
-      String keyspaceName = schemaProvider.getKeyspace().getName();
-      String tableName = schemaProvider.getTable().getName();
-      Batch.Type expectedBatchType =
-          dataStoreProperties.loggedBatchesEnabled() ? Batch.Type.LOGGED : Batch.Type.UNLOGGED;
-      String documentId = RandomStringUtils.randomAlphanumeric(16);
       JsonShreddedRow row1 =
           ImmutableJsonShreddedRow.builder()
               .maxDepth(documentProperties.maxDepth())
@@ -176,8 +175,6 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
               .build();
       List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
 
-      long timestamp = RandomUtils.nextLong();
-      when(timeSource.currentTimeMicros()).thenReturn(timestamp);
       int ttl = 100;
 
       String insertCql =
@@ -245,15 +242,10 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
   }
 
   @Nested
-  class PatchDocument {
+  class UpdateDocument {
 
     @Test
     public void happyPath() throws Exception {
-      String keyspaceName = schemaProvider.getKeyspace().getName();
-      String tableName = schemaProvider.getTable().getName();
-      Batch.Type expectedBatchType =
-          dataStoreProperties.loggedBatchesEnabled() ? Batch.Type.LOGGED : Batch.Type.UNLOGGED;
-      String documentId = RandomStringUtils.randomAlphanumeric(16);
       JsonShreddedRow row1 =
           ImmutableJsonShreddedRow.builder()
               .maxDepth(documentProperties.maxDepth())
@@ -269,8 +261,355 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
               .build();
       List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
 
-      long timestamp = RandomUtils.nextLong();
-      when(timeSource.currentTimeMicros()).thenReturn(timestamp);
+      String insertCql =
+          String.format(
+              "INSERT INTO %s.%s (key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value) "
+                  + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?",
+              keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert row1QueryAssert =
+          withQuery(
+                  insertCql,
+                  Values.of(documentId),
+                  Values.of("key1"),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of("key1"),
+                  Values.of("value1"),
+                  Values.NULL,
+                  Values.NULL,
+                  Values.of(timestamp))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+      ValidatingStargateBridge.QueryAssert row2QueryAssert =
+          withQuery(
+                  insertCql,
+                  Values.of(documentId),
+                  Values.of("key2"),
+                  Values.of("nested"),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of("nested"),
+                  Values.NULL,
+                  Values.of(2.2d),
+                  Values.NULL,
+                  Values.of(timestamp))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      String deleteCql =
+          String.format(
+              "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ?", keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert deleteQueryAssert =
+          withQuery(deleteCql, Values.of(timestamp - 1), Values.of(documentId))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      service
+          .updateDocument(keyspaceName, tableName, documentId, rows, null, context)
+          .await()
+          .atMost(Duration.ofSeconds(1));
+
+      row1QueryAssert.assertExecuteCount().isEqualTo(1);
+      row2QueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteQueryAssert.assertExecuteCount().isEqualTo(1);
+
+      // execution context
+      assertThat(context.toProfile().nested())
+          .singleElement()
+          .satisfies(
+              nested -> {
+                assertThat(nested.description()).isEqualTo("ASYNC UPDATE");
+                assertThat(nested.queries())
+                    .hasSize(2)
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(String.format(deleteCql, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(String.format(insertCql, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.rowCount()).isEqualTo(2);
+                        });
+              });
+    }
+
+    @Test
+    public void happyPathWithTtl() {
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addPath("key1")
+              .stringValue("value1")
+              .build();
+      JsonShreddedRow row2 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addPath("key2")
+              .addPath("nested")
+              .doubleValue(2.2d)
+              .build();
+      List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
+
+      String insertCql =
+          String.format(
+              "INSERT INTO %s.%s (key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value) "
+                  + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) USING TTL ? AND TIMESTAMP ?",
+              keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert row1QueryAssert =
+          withQuery(
+                  insertCql,
+                  Values.of(documentId),
+                  Values.of("key1"),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of("key1"),
+                  Values.of("value1"),
+                  Values.NULL,
+                  Values.NULL,
+                  Values.of(100),
+                  Values.of(timestamp))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+      ValidatingStargateBridge.QueryAssert row2QueryAssert =
+          withQuery(
+                  insertCql,
+                  Values.of(documentId),
+                  Values.of("key2"),
+                  Values.of("nested"),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of("nested"),
+                  Values.NULL,
+                  Values.of(2.2d),
+                  Values.NULL,
+                  Values.of(100),
+                  Values.of(timestamp))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      String deleteCql =
+          String.format(
+              "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ?", keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert deleteQueryAssert =
+          withQuery(deleteCql, Values.of(timestamp - 1), Values.of(documentId))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      service
+          .updateDocument(keyspaceName, tableName, documentId, rows, 100, context)
+          .await()
+          .atMost(Duration.ofSeconds(1));
+
+      row1QueryAssert.assertExecuteCount().isEqualTo(1);
+      row2QueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteQueryAssert.assertExecuteCount().isEqualTo(1);
+
+      // execution context
+      assertThat(context.toProfile().nested())
+          .singleElement()
+          .satisfies(
+              nested -> {
+                assertThat(nested.description()).isEqualTo("ASYNC UPDATE");
+                assertThat(nested.queries())
+                    .hasSize(2)
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(String.format(deleteCql, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(String.format(insertCql, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.rowCount()).isEqualTo(2);
+                        });
+              });
+    }
+
+    @Test
+    public void updateSubPath() {
+      List<String> subDocumentPath = Collections.singletonList("key1");
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addPath("key1")
+              .stringValue("value1")
+              .build();
+      JsonShreddedRow row2 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addPath("key1")
+              .addPath("nested")
+              .doubleValue(2.2d)
+              .build();
+      List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
+
+      String insertCql =
+          String.format(
+              "INSERT INTO %s.%s (key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value) "
+                  + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?",
+              keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert row1QueryAssert =
+          withQuery(
+                  insertCql,
+                  Values.of(documentId),
+                  Values.of("key1"),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of("key1"),
+                  Values.of("value1"),
+                  Values.NULL,
+                  Values.NULL,
+                  Values.of(timestamp))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+      ValidatingStargateBridge.QueryAssert row2QueryAssert =
+          withQuery(
+                  insertCql,
+                  Values.of(documentId),
+                  Values.of("key1"),
+                  Values.of("nested"),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of("nested"),
+                  Values.NULL,
+                  Values.of(2.2d),
+                  Values.NULL,
+                  Values.of(timestamp))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      String deleteCql =
+          String.format(
+              "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ? AND p0 = ?",
+              keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert deleteQueryAssert =
+          withQuery(deleteCql, Values.of(timestamp - 1), Values.of(documentId), Values.of("key1"))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      service
+          .updateDocument(keyspaceName, tableName, documentId, subDocumentPath, rows, null, context)
+          .await()
+          .atMost(Duration.ofSeconds(1));
+
+      row1QueryAssert.assertExecuteCount().isEqualTo(1);
+      row2QueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteQueryAssert.assertExecuteCount().isEqualTo(1);
+
+      // execution context
+      assertThat(context.toProfile().nested())
+          .singleElement()
+          .satisfies(
+              nested -> {
+                assertThat(nested.description()).isEqualTo("ASYNC UPDATE");
+                assertThat(nested.queries())
+                    .hasSize(2)
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(String.format(deleteCql, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(String.format(insertCql, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.rowCount()).isEqualTo(2);
+                        });
+              });
+    }
+
+    @Test
+    public void updateSubPathRowsNotMatching() {
+      List<String> subDocumentPath = Collections.singletonList("key1");
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addPath("key1")
+              .stringValue("value1")
+              .build();
+      JsonShreddedRow row2 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addPath("key2")
+              .addPath("nested")
+              .doubleValue(2.2d)
+              .build();
+      List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
+
+      Throwable throwable =
+          catchThrowable(
+              () ->
+                  service
+                      .updateDocument(
+                          keyspaceName, tableName, documentId, subDocumentPath, rows, null, context)
+                      .await()
+                      .atMost(Duration.ofSeconds(1)));
+
+      assertThat(throwable)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_UPDATE_PATH_NOT_MATCHING);
+    }
+
+    @Test
+    public void updateSubPathRowsNoPath() {
+      List<String> subDocumentPath = Collections.singletonList("key1");
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .stringValue("value1")
+              .build();
+
+      List<JsonShreddedRow> rows = Collections.singletonList(row1);
+
+      Throwable throwable =
+          catchThrowable(
+              () ->
+                  service
+                      .updateDocument(
+                          keyspaceName, tableName, documentId, subDocumentPath, rows, null, context)
+                      .await()
+                      .atMost(Duration.ofSeconds(1)));
+
+      assertThat(throwable)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_UPDATE_PATH_NOT_MATCHING);
+    }
+  }
+
+  @Nested
+  class PatchDocument {
+
+    @Test
+    public void happyPath() throws Exception {
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addPath("key1")
+              .stringValue("value1")
+              .build();
+      JsonShreddedRow row2 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addPath("key2")
+              .addPath("nested")
+              .doubleValue(2.2d)
+              .build();
+      List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
 
       String insertCql =
           String.format(
@@ -403,12 +742,7 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
     }
 
     @Test
-    public void happyPathWithTtl() throws Exception {
-      String keyspaceName = schemaProvider.getKeyspace().getName();
-      String tableName = schemaProvider.getTable().getName();
-      Batch.Type expectedBatchType =
-          dataStoreProperties.loggedBatchesEnabled() ? Batch.Type.LOGGED : Batch.Type.UNLOGGED;
-      String documentId = RandomStringUtils.randomAlphanumeric(16);
+    public void happyPathWithTtl() {
       JsonShreddedRow row1 =
           ImmutableJsonShreddedRow.builder()
               .maxDepth(documentProperties.maxDepth())
@@ -423,9 +757,6 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
               .doubleValue(2.2d)
               .build();
       List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
-
-      long timestamp = RandomUtils.nextLong();
-      when(timeSource.currentTimeMicros()).thenReturn(timestamp);
 
       String insertCql =
           String.format(
@@ -560,13 +891,8 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
     }
 
     @Test
-    public void happyPathSubDocument() throws Exception {
-      String keyspaceName = schemaProvider.getKeyspace().getName();
-      String tableName = schemaProvider.getTable().getName();
-      Batch.Type expectedBatchType =
-          dataStoreProperties.loggedBatchesEnabled() ? Batch.Type.LOGGED : Batch.Type.UNLOGGED;
+    public void happyPathSubDocument() {
       List<String> subPath = Collections.singletonList("path");
-      String documentId = RandomStringUtils.randomAlphanumeric(16);
       JsonShreddedRow row1 =
           ImmutableJsonShreddedRow.builder()
               .maxDepth(documentProperties.maxDepth())
@@ -583,9 +909,6 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
               .doubleValue(2.2d)
               .build();
       List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
-
-      long timestamp = RandomUtils.nextLong();
-      when(timeSource.currentTimeMicros()).thenReturn(timestamp);
 
       String insertCql =
           String.format(
@@ -719,7 +1042,6 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
 
     @Test
     public void subPathRowsNotMatching() {
-      String documentId = RandomStringUtils.randomAlphanumeric(16);
       List<String> subDocumentPath = Collections.singletonList("key1");
       JsonShreddedRow row1 =
           ImmutableJsonShreddedRow.builder()
@@ -741,13 +1063,7 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
               () ->
                   service
                       .patchDocument(
-                          schemaProvider.getKeyspace().getName(),
-                          schemaProvider.getTable().getName(),
-                          documentId,
-                          subDocumentPath,
-                          rows,
-                          null,
-                          context)
+                          keyspaceName, tableName, documentId, subDocumentPath, rows, null, context)
                       .await()
                       .atMost(Duration.ofSeconds(1)));
 
@@ -758,7 +1074,6 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
 
     @Test
     public void withArray() {
-      String documentId = RandomStringUtils.randomAlphanumeric(16);
       JsonShreddedRow row1 =
           ImmutableJsonShreddedRow.builder()
               .maxDepth(documentProperties.maxDepth())
@@ -771,13 +1086,7 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
           catchThrowable(
               () ->
                   service
-                      .patchDocument(
-                          schemaProvider.getKeyspace().getName(),
-                          schemaProvider.getTable().getName(),
-                          documentId,
-                          rows,
-                          null,
-                          context)
+                      .patchDocument(keyspaceName, tableName, documentId, rows, null, context)
                       .await()
                       .atMost(Duration.ofSeconds(1)));
 
@@ -788,20 +1097,13 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
 
     @Test
     public void withNoRows() {
-      String documentId = RandomStringUtils.randomAlphanumeric(16);
       List<JsonShreddedRow> rows = Collections.emptyList();
 
       Throwable throwable =
           catchThrowable(
               () ->
                   service
-                      .patchDocument(
-                          schemaProvider.getKeyspace().getName(),
-                          schemaProvider.getTable().getName(),
-                          documentId,
-                          rows,
-                          null,
-                          context)
+                      .patchDocument(keyspaceName, tableName, documentId, rows, null, context)
                       .await()
                       .atMost(Duration.ofSeconds(1)));
 

@@ -33,6 +33,8 @@ import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.JsonShreddedRow;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
 import io.stargate.sgv2.docsapi.service.util.TimeSource;
+import io.stargate.sgv2.docsapi.service.write.db.AbstractDeleteQueryBuilder;
+import io.stargate.sgv2.docsapi.service.write.db.DeleteDocumentQueryBuilder;
 import io.stargate.sgv2.docsapi.service.write.db.DeleteSubDocumentArrayQueryBuilder;
 import io.stargate.sgv2.docsapi.service.write.db.DeleteSubDocumentKeysQueryBuilder;
 import io.stargate.sgv2.docsapi.service.write.db.DeleteSubDocumentPathQueryBuilder;
@@ -109,6 +111,108 @@ public class DocumentWriteService {
             boundQueries ->
                 executeBatch(
                     requestInfo.getStargateBridge(), boundQueries, context.nested("ASYNC INSERT")));
+  }
+
+  /**
+   * Updates a single document, ensuring that existing document with the same key will be deleted
+   * first.
+   *
+   * @param keyspace Keyspace to store document in.
+   * @param collection Collection the document belongs to.
+   * @param documentId Document ID.
+   * @param rows Rows of this document.
+   * @param ttl the time-to-live of the rows (seconds)
+   * @param context Execution content for profiling.
+   * @return Uni containing the {@link ResultSet} of the batch execution.
+   */
+  @WithSpan
+  public Uni<ResultSet> updateDocument(
+      String keyspace,
+      String collection,
+      String documentId,
+      List<JsonShreddedRow> rows,
+      Integer ttl,
+      ExecutionContext context) {
+    List<String> subDocumentPath = Collections.emptyList();
+    return updateDocumentInternal(
+        keyspace, collection, documentId, subDocumentPath, rows, ttl, context);
+  }
+
+  /**
+   * Updates a single document, ensuring that existing document with the same key have the given
+   * sub-path deleted.
+   *
+   * @param keyspace Keyspace to store document in.
+   * @param collection Collection the document belongs to.
+   * @param documentId Document ID.
+   * @param subDocumentPath The sub-document path to delete.
+   * @param rows Rows of this document.
+   * @param ttl the time-to-live of the rows (seconds)
+   * @param context Execution content for profiling.
+   * @return Uni containing the {@link ResultSet} of the batch execution.
+   */
+  @WithSpan
+  public Uni<ResultSet> updateDocument(
+      String keyspace,
+      String collection,
+      String documentId,
+      List<String> subDocumentPath,
+      List<JsonShreddedRow> rows,
+      Integer ttl,
+      ExecutionContext context) {
+    return updateDocumentInternal(
+        keyspace, collection, documentId, subDocumentPath, rows, ttl, context);
+  }
+
+  private Uni<ResultSet> updateDocumentInternal(
+      String keyspace,
+      String collection,
+      String documentId,
+      List<String> subDocumentPath,
+      List<JsonShreddedRow> rows,
+      Integer ttl,
+      ExecutionContext context) {
+
+    return Uni.createFrom()
+        .item(
+            () -> {
+              // check that sub path matches the rows supplied
+              // TODO this smells like a bad design. Maybe not include sub-path during shredding,
+              //  and instead add it here as a wrapper
+              checkPathMatchesRows(subDocumentPath, rows);
+
+              long timestamp = timeSource.currentTimeMicros();
+              List<QueryOuterClass.Query> queries = new ArrayList<>(rows.size() + 1);
+
+              // delete existing subpath
+              AbstractDeleteQueryBuilder deleteQueryBuilder =
+                  subDocumentPath.isEmpty()
+                      ? new DeleteDocumentQueryBuilder(documentProperties)
+                      : new DeleteSubDocumentPathQueryBuilder(
+                          subDocumentPath, false, documentProperties);
+              QueryOuterClass.Query deleteQuery =
+                  deleteQueryBuilder.buildQuery(keyspace, collection);
+              queries.add(deleteQueryBuilder.bind(deleteQuery, documentId, timestamp - 1));
+
+              // then insert new one
+              QueryOuterClass.Query insertQuery =
+                  insertQueryBuilder.buildQuery(keyspace, collection, ttl);
+              rows.forEach(
+                  row ->
+                      queries.add(
+                          insertQueryBuilder.bind(
+                              insertQuery,
+                              documentId,
+                              row,
+                              ttl,
+                              timestamp,
+                              treatBooleansAsNumeric)));
+              return queries;
+            })
+        .flatMap(
+            boundQueries ->
+                executeBatch(
+                    requestInfo.getStargateBridge(), boundQueries, context.nested("ASYNC UPDATE")));
   }
 
   /**
@@ -229,13 +333,12 @@ public class DocumentWriteService {
               queries.add(deleteArrayBuilder.bind(deleteArrayQuery, documentId, timestamp - 1));
 
               // Finally, insert the new data.
-              InsertQueryBuilder insertBuilder = new InsertQueryBuilder(documentProperties);
               QueryOuterClass.Query insertQuery =
-                  insertBuilder.buildQuery(keyspace, collection, ttl);
+                  insertQueryBuilder.buildQuery(keyspace, collection, ttl);
               rows.forEach(
                   row ->
                       queries.add(
-                          insertBuilder.bind(
+                          insertQueryBuilder.bind(
                               insertQuery,
                               documentId,
                               row,
