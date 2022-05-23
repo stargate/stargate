@@ -137,11 +137,17 @@ public abstract class ResourceBase {
     return PROTO_CONVERTERS.toProtoConverter(tableDef);
   }
 
+  /**
+   * Helper method for executing given query and converting results into expected REST API row set
+   * into appropriate result set: either "raw" ({@code List&lt;Map&lt;String, Object>>}}) type, or
+   * wrapped as {@link Sgv2RowsResponse}.
+   */
   protected Response fetchRows(
       StargateBridgeClient bridge, QueryOuterClass.Query query, boolean raw) {
     return convertFetchedRows(bridge.executeQuery(query), raw);
   }
 
+  /** Same as {@link #fetchRows} but with additional timing diagnostics collection. */
   protected Response timedFetchRows(
       ApiTimingDiagnostics diagnostics,
       StargateBridgeClient bridge,
