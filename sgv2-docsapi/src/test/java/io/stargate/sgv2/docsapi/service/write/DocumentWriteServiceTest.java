@@ -52,6 +52,8 @@ import org.junit.jupiter.api.Test;
 @TestProfile(MaxDepth4TestProfile.class)
 class DocumentWriteServiceTest extends AbstractBridgeTest {
 
+  private static final Duration ASYNC_WAIT_DURATION = Duration.ofSeconds(1);
+
   @Inject DocumentWriteService service;
   @Inject DocsApiTestSchemaProvider schemaProvider;
   @Inject DataStoreProperties dataStoreProperties;
@@ -137,7 +139,7 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
       service
           .writeDocument(keyspaceName, tableName, documentId, rows, null, context)
           .await()
-          .atMost(Duration.ofSeconds(1));
+          .atMost(ASYNC_WAIT_DURATION);
 
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
       row2QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -219,7 +221,7 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
       service
           .writeDocument(keyspaceName, tableName, documentId, rows, ttl, context)
           .await()
-          .atMost(Duration.ofSeconds(1));
+          .atMost(ASYNC_WAIT_DURATION);
 
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
       row2QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -308,7 +310,7 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
       service
           .updateDocument(keyspaceName, tableName, documentId, rows, null, context)
           .await()
-          .atMost(Duration.ofSeconds(1));
+          .atMost(ASYNC_WAIT_DURATION);
 
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
       row2QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -405,7 +407,7 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
       service
           .updateDocument(keyspaceName, tableName, documentId, rows, 100, context)
           .await()
-          .atMost(Duration.ofSeconds(1));
+          .atMost(ASYNC_WAIT_DURATION);
 
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
       row2QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -502,7 +504,7 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
       service
           .updateDocument(keyspaceName, tableName, documentId, subDocumentPath, rows, null, context)
           .await()
-          .atMost(Duration.ofSeconds(1));
+          .atMost(ASYNC_WAIT_DURATION);
 
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
       row2QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -558,7 +560,7 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
                       .updateDocument(
                           keyspaceName, tableName, documentId, subDocumentPath, rows, null, context)
                       .await()
-                      .atMost(Duration.ofSeconds(1)));
+                      .atMost(ASYNC_WAIT_DURATION));
 
       assertThat(throwable)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -583,7 +585,7 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
                       .updateDocument(
                           keyspaceName, tableName, documentId, subDocumentPath, rows, null, context)
                       .await()
-                      .atMost(Duration.ofSeconds(1)));
+                      .atMost(ASYNC_WAIT_DURATION));
 
       assertThat(throwable)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -694,7 +696,7 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
       service
           .patchDocument(keyspaceName, tableName, documentId, rows, null, context)
           .await()
-          .atMost(Duration.ofSeconds(1));
+          .atMost(ASYNC_WAIT_DURATION);
 
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
       row2QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -843,7 +845,7 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
       service
           .patchDocument(keyspaceName, tableName, documentId, rows, 100, context)
           .await()
-          .atMost(Duration.ofSeconds(1));
+          .atMost(ASYNC_WAIT_DURATION);
 
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
       row2QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -993,7 +995,7 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
       service
           .patchDocument(keyspaceName, tableName, documentId, subPath, rows, null, context)
           .await()
-          .atMost(Duration.ofSeconds(1));
+          .atMost(ASYNC_WAIT_DURATION);
 
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
       row2QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -1065,7 +1067,7 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
                       .patchDocument(
                           keyspaceName, tableName, documentId, subDocumentPath, rows, null, context)
                       .await()
-                      .atMost(Duration.ofSeconds(1)));
+                      .atMost(ASYNC_WAIT_DURATION));
 
       assertThat(throwable)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -1088,7 +1090,7 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
                   service
                       .patchDocument(keyspaceName, tableName, documentId, rows, null, context)
                       .await()
-                      .atMost(Duration.ofSeconds(1)));
+                      .atMost(ASYNC_WAIT_DURATION));
 
       assertThat(throwable)
           .isInstanceOf(ErrorCodeRuntimeException.class)
@@ -1105,11 +1107,86 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
                   service
                       .patchDocument(keyspaceName, tableName, documentId, rows, null, context)
                       .await()
-                      .atMost(Duration.ofSeconds(1)));
+                      .atMost(ASYNC_WAIT_DURATION));
 
       assertThat(throwable)
           .isInstanceOf(ErrorCodeRuntimeException.class)
           .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_PATCH_EMPTY_NOT_ACCEPTED);
+    }
+  }
+
+  @Nested
+  class DeleteDocument {
+
+    @Test
+    public void happyPath() throws Exception {
+      String deleteCql =
+          String.format(
+              "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ?", keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert deleteQueryAssert =
+          withQuery(deleteCql, Values.of(timestamp), Values.of(documentId)).returningNothing();
+
+      service
+          .deleteDocument(keyspaceName, tableName, documentId, context)
+          .await()
+          .atMost(ASYNC_WAIT_DURATION);
+
+      deleteQueryAssert.assertExecuteCount().isEqualTo(1);
+
+      // execution context
+      assertThat(context.toProfile().nested())
+          .singleElement()
+          .satisfies(
+              nested -> {
+                assertThat(nested.description()).isEqualTo("ASYNC DELETE");
+                assertThat(nested.queries())
+                    .singleElement()
+                    .satisfies(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(String.format(deleteCql, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(1);
+                        });
+              });
+    }
+
+    @Test
+    public void deleteSubPath() {
+
+      List<String> subDocumentPath = Collections.singletonList("key1");
+
+      String deleteCql =
+          String.format(
+              "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ? AND p0 = ?",
+              keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert deleteQueryAssert =
+          withQuery(deleteCql, Values.of(timestamp), Values.of(documentId), Values.of("key1"))
+              .returningNothing();
+
+      service
+          .deleteDocument(keyspaceName, tableName, documentId, subDocumentPath, context)
+          .await()
+          .atMost(ASYNC_WAIT_DURATION);
+
+      deleteQueryAssert.assertExecuteCount().isEqualTo(1);
+
+      // execution context
+      assertThat(context.toProfile().nested())
+          .singleElement()
+          .satisfies(
+              nested -> {
+                assertThat(nested.description()).isEqualTo("ASYNC DELETE");
+                assertThat(nested.queries())
+                    .singleElement()
+                    .satisfies(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(String.format(deleteCql, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(1);
+                        });
+              });
     }
   }
 }

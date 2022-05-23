@@ -354,6 +354,69 @@ public class DocumentWriteService {
                     requestInfo.getStargateBridge(), boundQueries, context.nested("ASYNC PATCH")));
   }
 
+  /**
+   * Deletes a single whole document.
+   *
+   * @param keyspace Keyspace to delete a document from.
+   * @param collection Collection the document belongs to.
+   * @param documentId Document ID.
+   * @param context Execution content for profiling.
+   * @return Uni containing the {@link ResultSet} of the batch execution.
+   */
+  @WithSpan
+  public Uni<ResultSet> deleteDocument(
+      String keyspace, String collection, String documentId, ExecutionContext context) {
+    List<String> subDocumentPath = Collections.emptyList();
+    return deleteDocumentInternal(keyspace, collection, documentId, subDocumentPath, context);
+  }
+
+  /**
+   * Deletes a single (sub-)document, ensuring that existing document with the same key have the
+   * given sub-path deleted.
+   *
+   * @param keyspace Keyspace to delete a document from.
+   * @param collection Collection the document belongs to.
+   * @param documentId Document ID.
+   * @param subDocumentPath The sub-document path to delete.
+   * @param context Execution content for profiling.
+   * @return Single containing the {@link ResultSet} of the batch execution.
+   */
+  @WithSpan
+  public Uni<ResultSet> deleteDocument(
+      String keyspace,
+      String collection,
+      String documentId,
+      List<String> subDocumentPath,
+      ExecutionContext context) {
+    return deleteDocumentInternal(keyspace, collection, documentId, subDocumentPath, context);
+  }
+
+  private Uni<ResultSet> deleteDocumentInternal(
+      String keyspace,
+      String collection,
+      String documentId,
+      List<String> subDocumentPath,
+      ExecutionContext context) {
+
+    return Uni.createFrom()
+        .item(
+            () -> {
+              long timestamp = timeSource.currentTimeMicros();
+              AbstractDeleteQueryBuilder deleteQueryBuilder =
+                  subDocumentPath.isEmpty()
+                      ? new DeleteDocumentQueryBuilder(documentProperties)
+                      : new DeleteSubDocumentPathQueryBuilder(
+                          subDocumentPath, false, documentProperties);
+              QueryOuterClass.Query deleteQuery =
+                  deleteQueryBuilder.buildQuery(keyspace, collection);
+              return deleteQueryBuilder.bind(deleteQuery, documentId, timestamp);
+            })
+        .flatMap(
+            query ->
+                executeSingle(
+                    requestInfo.getStargateBridge(), query, context.nested("ASYNC DELETE")));
+  }
+
   private Uni<ResultSet> executeBatch(
       StargateBridge bridge, List<QueryOuterClass.Query> boundQueries, ExecutionContext context) {
 
@@ -369,7 +432,7 @@ public class DocumentWriteService {
                 QueryOuterClass.BatchParameters.newBuilder()
                     .setConsistency(
                         QueryOuterClass.ConsistencyValue.newBuilder()
-                            .setValue(queriesConfig.consistency().reads())));
+                            .setValue(queriesConfig.consistency().writes())));
     boundQueries.forEach(
         query ->
             batch.addQueries(
@@ -378,6 +441,23 @@ public class DocumentWriteService {
                     .setValues(query.getValues())));
 
     return bridge.executeBatch(batch.build()).map(QueryOuterClass.Response::getResultSet);
+  }
+
+  private Uni<ResultSet> executeSingle(
+      StargateBridge bridge, QueryOuterClass.Query boundQuery, ExecutionContext context) {
+
+    context.traceDeferredDml(boundQuery);
+
+    boundQuery =
+        QueryOuterClass.Query.newBuilder(boundQuery)
+            .setParameters(
+                QueryOuterClass.QueryParameters.newBuilder()
+                    .setConsistency(
+                        QueryOuterClass.ConsistencyValue.newBuilder()
+                            .setValue(queriesConfig.consistency().writes())))
+            .build();
+
+    return bridge.executeQuery(boundQuery).map(QueryOuterClass.Response::getResultSet);
   }
 
   // makes sure that any row starts with the given sub-document path
