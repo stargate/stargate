@@ -17,6 +17,7 @@
 package io.stargate.sgv2.docsapi.service.write;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.when;
 
 import io.quarkus.test.junit.QuarkusTest;
@@ -27,6 +28,8 @@ import io.stargate.bridge.proto.QueryOuterClass.Batch;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
 import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
+import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
+import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.bridge.AbstractBridgeTest;
 import io.stargate.sgv2.docsapi.bridge.ValidatingStargateBridge;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
@@ -36,6 +39,7 @@ import io.stargate.sgv2.docsapi.service.util.TimeSource;
 import io.stargate.sgv2.docsapi.testprofiles.MaxDepth4TestProfile;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -237,6 +241,573 @@ class DocumentWriteServiceTest extends AbstractBridgeTest {
                           assertThat(queryInfo.rowCount()).isEqualTo(2);
                         });
               });
+    }
+  }
+
+  @Nested
+  class PatchDocument {
+
+    @Test
+    public void happyPath() throws Exception {
+      String keyspaceName = schemaProvider.getKeyspace().getName();
+      String tableName = schemaProvider.getTable().getName();
+      Batch.Type expectedBatchType =
+          dataStoreProperties.loggedBatchesEnabled() ? Batch.Type.LOGGED : Batch.Type.UNLOGGED;
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addPath("key1")
+              .stringValue("value1")
+              .build();
+      JsonShreddedRow row2 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addPath("key2")
+              .addPath("nested")
+              .doubleValue(2.2d)
+              .build();
+      List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
+
+      long timestamp = RandomUtils.nextLong();
+      when(timeSource.currentTimeMicros()).thenReturn(timestamp);
+
+      String insertCql =
+          String.format(
+              "INSERT INTO %s.%s "
+                  + "(key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value) "
+                  + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?",
+              keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert row1QueryAssert =
+          withQuery(
+                  insertCql,
+                  Values.of(documentId),
+                  Values.of("key1"),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of("key1"),
+                  Values.of("value1"),
+                  Values.NULL,
+                  Values.NULL,
+                  Values.of(timestamp))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+      ValidatingStargateBridge.QueryAssert row2QueryAssert =
+          withQuery(
+                  insertCql,
+                  Values.of(documentId),
+                  Values.of("key2"),
+                  Values.of("nested"),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of("nested"),
+                  Values.NULL,
+                  Values.of(2.2d),
+                  Values.NULL,
+                  Values.of(timestamp))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      String deleteExactCql =
+          String.format(
+              "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ?",
+              keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert deleteExactQueryAssert =
+          withQuery(
+                  deleteExactCql,
+                  Values.of(timestamp - 1),
+                  Values.of(documentId),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of(""))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      String deletePatchedKeys =
+          String.format(
+              "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ? AND p0 IN ?",
+              keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert deleteKeysQueryAssert =
+          withQuery(
+                  deletePatchedKeys,
+                  Values.of(timestamp - 1),
+                  Values.of(documentId),
+                  Values.of(Values.of("key1"), Values.of("key2")))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      String deleteArray =
+          String.format(
+              "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ? AND p0 >= ? AND p0 <= ?",
+              keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert deleteArrayQueryAssert =
+          withQuery(
+                  deleteArray,
+                  Values.of(timestamp - 1),
+                  Values.of(documentId),
+                  Values.of("[000000]"),
+                  Values.of("[999999]"))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      service
+          .patchDocument(keyspaceName, tableName, documentId, rows, null, context)
+          .await()
+          .atMost(Duration.ofSeconds(1));
+
+      row1QueryAssert.assertExecuteCount().isEqualTo(1);
+      row2QueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteExactQueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteKeysQueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteArrayQueryAssert.assertExecuteCount().isEqualTo(1);
+
+      // execution context
+      assertThat(context.toProfile().nested())
+          .singleElement()
+          .satisfies(
+              nested -> {
+                assertThat(nested.description()).isEqualTo("ASYNC PATCH");
+                assertThat(nested.queries())
+                    .hasSize(4)
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(deleteExactCql, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(deletePatchedKeys, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(deleteArray, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(String.format(insertCql, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.rowCount()).isEqualTo(2);
+                        });
+              });
+    }
+
+    @Test
+    public void happyPathWithTtl() throws Exception {
+      String keyspaceName = schemaProvider.getKeyspace().getName();
+      String tableName = schemaProvider.getTable().getName();
+      Batch.Type expectedBatchType =
+          dataStoreProperties.loggedBatchesEnabled() ? Batch.Type.LOGGED : Batch.Type.UNLOGGED;
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addPath("key1")
+              .stringValue("value1")
+              .build();
+      JsonShreddedRow row2 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addPath("key2")
+              .addPath("nested")
+              .doubleValue(2.2d)
+              .build();
+      List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
+
+      long timestamp = RandomUtils.nextLong();
+      when(timeSource.currentTimeMicros()).thenReturn(timestamp);
+
+      String insertCql =
+          String.format(
+              "INSERT INTO %s.%s (key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value) "
+                  + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) "
+                  + "USING TTL ? AND TIMESTAMP ?",
+              keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert row1QueryAssert =
+          withQuery(
+                  insertCql,
+                  Values.of(documentId),
+                  Values.of("key1"),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of("key1"),
+                  Values.of("value1"),
+                  Values.NULL,
+                  Values.NULL,
+                  Values.of(100),
+                  Values.of(timestamp))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+      ValidatingStargateBridge.QueryAssert row2QueryAssert =
+          withQuery(
+                  insertCql,
+                  Values.of(documentId),
+                  Values.of("key2"),
+                  Values.of("nested"),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of("nested"),
+                  Values.NULL,
+                  Values.of(2.2d),
+                  Values.NULL,
+                  Values.of(100),
+                  Values.of(timestamp))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      String deleteExactCql =
+          String.format(
+              "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ?",
+              keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert deleteExactQueryAssert =
+          withQuery(
+                  deleteExactCql,
+                  Values.of(timestamp - 1),
+                  Values.of(documentId),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of(""))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      String deletePatchedKeys =
+          String.format(
+              "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ? AND p0 IN ?",
+              keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert deleteKeysQueryAssert =
+          withQuery(
+                  deletePatchedKeys,
+                  Values.of(timestamp - 1),
+                  Values.of(documentId),
+                  Values.of(Values.of("key1"), Values.of("key2")))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      String deleteArray =
+          String.format(
+              "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ? AND p0 >= ? AND p0 <= ?",
+              keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert deleteArrayQueryAssert =
+          withQuery(
+                  deleteArray,
+                  Values.of(timestamp - 1),
+                  Values.of(documentId),
+                  Values.of("[000000]"),
+                  Values.of("[999999]"))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      service
+          .patchDocument(keyspaceName, tableName, documentId, rows, 100, context)
+          .await()
+          .atMost(Duration.ofSeconds(1));
+
+      row1QueryAssert.assertExecuteCount().isEqualTo(1);
+      row2QueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteExactQueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteKeysQueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteArrayQueryAssert.assertExecuteCount().isEqualTo(1);
+
+      // execution context
+      assertThat(context.toProfile().nested())
+          .singleElement()
+          .satisfies(
+              nested -> {
+                assertThat(nested.description()).isEqualTo("ASYNC PATCH");
+                assertThat(nested.queries())
+                    .hasSize(4)
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(deleteExactCql, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(deletePatchedKeys, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(deleteArray, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(String.format(insertCql, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.rowCount()).isEqualTo(2);
+                        });
+              });
+    }
+
+    @Test
+    public void happyPathSubDocument() throws Exception {
+      String keyspaceName = schemaProvider.getKeyspace().getName();
+      String tableName = schemaProvider.getTable().getName();
+      Batch.Type expectedBatchType =
+          dataStoreProperties.loggedBatchesEnabled() ? Batch.Type.LOGGED : Batch.Type.UNLOGGED;
+      List<String> subPath = Collections.singletonList("path");
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addAllPath(subPath)
+              .addPath("key1")
+              .stringValue("value1")
+              .build();
+      JsonShreddedRow row2 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addAllPath(subPath)
+              .addPath("key2")
+              .addPath("nested")
+              .doubleValue(2.2d)
+              .build();
+      List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
+
+      long timestamp = RandomUtils.nextLong();
+      when(timeSource.currentTimeMicros()).thenReturn(timestamp);
+
+      String insertCql =
+          String.format(
+              "INSERT INTO %s.%s (key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?",
+              keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert row1QueryAssert =
+          withQuery(
+                  insertCql,
+                  Values.of(documentId),
+                  Values.of("path"),
+                  Values.of("key1"),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of("key1"),
+                  Values.of("value1"),
+                  Values.NULL,
+                  Values.NULL,
+                  Values.of(timestamp))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+      ValidatingStargateBridge.QueryAssert row2QueryAssert =
+          withQuery(
+                  insertCql,
+                  Values.of(documentId),
+                  Values.of("path"),
+                  Values.of("key2"),
+                  Values.of("nested"),
+                  Values.of(""),
+                  Values.of("nested"),
+                  Values.NULL,
+                  Values.of(2.2d),
+                  Values.NULL,
+                  Values.of(timestamp))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      String deleteExactCql =
+          String.format(
+              "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 = ? AND p3 = ?",
+              keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert deleteExactQueryAssert =
+          withQuery(
+                  deleteExactCql,
+                  Values.of(timestamp - 1),
+                  Values.of(documentId),
+                  Values.of("path"),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of(""))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      String deletePatchedKeys =
+          String.format(
+              "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 IN ?",
+              keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert deleteKeysQueryAssert =
+          withQuery(
+                  deletePatchedKeys,
+                  Values.of(timestamp - 1),
+                  Values.of(documentId),
+                  Values.of("path"),
+                  Values.of(Values.of("key1"), Values.of("key2")))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      String deleteArray =
+          String.format(
+              "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 >= ? AND p1 <= ?",
+              keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert deleteArrayQueryAssert =
+          withQuery(
+                  deleteArray,
+                  Values.of(timestamp - 1),
+                  Values.of(documentId),
+                  Values.of("path"),
+                  Values.of("[000000]"),
+                  Values.of("[999999]"))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      service
+          .patchDocument(keyspaceName, tableName, documentId, subPath, rows, null, context)
+          .await()
+          .atMost(Duration.ofSeconds(1));
+
+      row1QueryAssert.assertExecuteCount().isEqualTo(1);
+      row2QueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteExactQueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteKeysQueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteArrayQueryAssert.assertExecuteCount().isEqualTo(1);
+
+      // execution context
+      assertThat(context.toProfile().nested())
+          .singleElement()
+          .satisfies(
+              nested -> {
+                assertThat(nested.description()).isEqualTo("ASYNC PATCH");
+                assertThat(nested.queries())
+                    .hasSize(4)
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(deleteExactCql, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(deletePatchedKeys, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(
+                                  String.format(deleteArray, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL())
+                              .isEqualTo(String.format(insertCql, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.rowCount()).isEqualTo(2);
+                        });
+              });
+    }
+
+    @Test
+    public void subPathRowsNotMatching() {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      List<String> subDocumentPath = Collections.singletonList("key1");
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addPath("key1")
+              .stringValue("value1")
+              .build();
+      JsonShreddedRow row2 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addPath("key2")
+              .addPath("nested")
+              .doubleValue(2.2d)
+              .build();
+      List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
+
+      Throwable throwable =
+          catchThrowable(
+              () ->
+                  service
+                      .patchDocument(
+                          schemaProvider.getKeyspace().getName(),
+                          schemaProvider.getTable().getName(),
+                          documentId,
+                          subDocumentPath,
+                          rows,
+                          null,
+                          context)
+                      .await()
+                      .atMost(Duration.ofSeconds(1)));
+
+      assertThat(throwable)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_UPDATE_PATH_NOT_MATCHING);
+    }
+
+    @Test
+    public void withArray() {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addPath("[000000]")
+              .stringValue("value1")
+              .build();
+      List<JsonShreddedRow> rows = Arrays.asList(row1);
+
+      Throwable throwable =
+          catchThrowable(
+              () ->
+                  service
+                      .patchDocument(
+                          schemaProvider.getKeyspace().getName(),
+                          schemaProvider.getTable().getName(),
+                          documentId,
+                          rows,
+                          null,
+                          context)
+                      .await()
+                      .atMost(Duration.ofSeconds(1)));
+
+      assertThat(throwable)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED);
+    }
+
+    @Test
+    public void withNoRows() {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      List<JsonShreddedRow> rows = Collections.emptyList();
+
+      Throwable throwable =
+          catchThrowable(
+              () ->
+                  service
+                      .patchDocument(
+                          schemaProvider.getKeyspace().getName(),
+                          schemaProvider.getTable().getName(),
+                          documentId,
+                          rows,
+                          null,
+                          context)
+                      .await()
+                      .atMost(Duration.ofSeconds(1)));
+
+      assertThat(throwable)
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_PATCH_EMPTY_NOT_ACCEPTED);
     }
   }
 }
