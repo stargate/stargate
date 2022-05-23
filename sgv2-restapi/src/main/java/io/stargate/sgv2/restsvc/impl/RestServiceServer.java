@@ -34,6 +34,7 @@ import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.common.grpc.StargateBridgeClientFactory;
 import io.stargate.sgv2.common.http.CreateStargateBridgeClientFilter;
 import io.stargate.sgv2.common.http.StargateBridgeClientJerseyFactory;
+import io.stargate.sgv2.common.metrics.ApiTimingDiagnostics;
 import io.stargate.sgv2.common.metrics.ApiTimingDiagnosticsFactory;
 import io.stargate.sgv2.common.metrics.ApiTimingDiagnosticsSampler;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
@@ -74,12 +75,6 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
    * ApiTimingDiagnosticsSampler} for details
    */
   public static final String SYSPROP_DIAGNOSTICS_SAMPLER = "stargate.rest.diagnostics.sample";
-
-  /**
-   * Instead of relying on name of an arbitrary Java Class or Package, let's use explicit name
-   * instead. Could be made configurable if we wanted to, but hard-code at first.
-   */
-  public static final String LOGGER_NAME_FOR_REST_API_TIMINGS = "stargate.rest.diagnostics";
 
   public static final String[] NON_API_URI_REGEX = new String[] {"^/$", "^/health$", "^/swagger.*"};
 
@@ -217,7 +212,12 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
         "Constructing ApiTimingDiagnosticsFactory for REST API using sampler: {}",
         sampler.toString());
     return ApiTimingDiagnosticsFactory.createFactory(
-        metricRegistry, "", LoggerFactory.getLogger(LOGGER_NAME_FOR_REST_API_TIMINGS), sampler);
+        metricRegistry,
+        "",
+        // 23-May-2022, tatu: not 100% sure which logger would make most sense; for now create
+        //    one from value class
+        LoggerFactory.getLogger(ApiTimingDiagnostics.class),
+        sampler);
   }
 
   public static ObjectMapper configureObjectMapper(ObjectMapper objectMapper) {
