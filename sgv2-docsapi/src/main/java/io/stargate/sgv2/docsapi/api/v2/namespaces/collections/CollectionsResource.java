@@ -49,7 +49,6 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.openapi.annotations.Operation;
-import org.eclipse.microprofile.openapi.annotations.enums.ParameterIn;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.ExampleObject;
@@ -84,10 +83,9 @@ public class CollectionsResource {
   @Parameters(
       value = {
         @Parameter(
-            in = ParameterIn.PATH,
             name = "namespace",
-            description = "The namespace to fetch collections for.",
-            example = "cycling"),
+            ref = OpenApiConstants.Parameters.NAMESPACE,
+            description = "The namespace to fetch collections for."),
         @Parameter(name = "raw", ref = OpenApiConstants.Parameters.RAW),
       })
   @APIResponses(
@@ -154,14 +152,33 @@ public class CollectionsResource {
   @Parameters(
       value = {
         @Parameter(
-            in = ParameterIn.PATH,
             name = "namespace",
-            description = "The namespace to create the collection in.",
-            example = "cycling"),
+            ref = OpenApiConstants.Parameters.NAMESPACE,
+            description = "The namespace to create the collection in."),
       })
   @APIResponses(
       value = {
         @APIResponse(responseCode = "201", description = "Collection created."),
+        @APIResponse(
+            responseCode = "400",
+            description = "Bad request.",
+            content =
+                @Content(
+                    examples = {
+                      @ExampleObject(
+                          name = "Invalid collection name",
+                          value =
+                              """
+                              {
+                                  "code": 400,
+                                  "description": "Could not create collection events-collection, it has invalid characters. Valid characters are alphanumeric and underscores."
+                              }
+                              """),
+                      @ExampleObject(ref = OpenApiConstants.Examples.GENERAL_BAD_REQUEST)
+                    },
+                    schema =
+                        @org.eclipse.microprofile.openapi.annotations.media.Schema(
+                            implementation = ApiError.class))),
         @APIResponse(
             responseCode = "404",
             description = "Not found.",
@@ -188,7 +205,6 @@ public class CollectionsResource {
                                     "description": "Create failed: collection cycling already exists."
                                 }
                                 """))),
-        @APIResponse(ref = OpenApiConstants.Responses.GENERAL_400),
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_500),
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),

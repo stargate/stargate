@@ -19,6 +19,7 @@ package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.model.dto;
 
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
+/** DTO for specifying available collection upgrade possibility. */
 public enum CollectionUpgradeType {
   @Schema(description = "Upgrades a collection to use the SAI indexes.")
   SAI_INDEX_UPGRADE;

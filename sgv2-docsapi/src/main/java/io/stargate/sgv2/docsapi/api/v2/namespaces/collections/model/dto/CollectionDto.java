@@ -2,6 +2,13 @@ package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.model.dto;
 
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
+/**
+ * DTO for the get collections response.
+ *
+ * @param name Name of the collection.
+ * @param upgradeAvailable If upgrade is available.
+ * @param upgradeType Type of upgrade, if available.
+ */
 public record CollectionDto(
     @Schema(description = "The name of the collection.", pattern = "\\w+", example = "cycling")
         String name,

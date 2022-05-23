@@ -4,6 +4,11 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
+/**
+ * Request body when creating a new collection.
+ *
+ * @param name Name of the collection.
+ */
 public record CreateCollectionDto(
     @Schema(description = "The name of the collection.", pattern = "\\w+", example = "cycling")
         @NotNull(message = "`name` is required to create a collection")
