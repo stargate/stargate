@@ -35,6 +35,7 @@ import io.stargate.sgv2.common.grpc.StargateBridgeClientFactory;
 import io.stargate.sgv2.common.http.CreateStargateBridgeClientFilter;
 import io.stargate.sgv2.common.http.StargateBridgeClientJerseyFactory;
 import io.stargate.sgv2.common.metrics.ApiTimingDiagnosticsFactory;
+import io.stargate.sgv2.common.metrics.ApiTimingDiagnosticsSampler;
 import io.stargate.sgv2.restsvc.models.RestServiceError;
 import io.stargate.sgv2.restsvc.resources.HealthResource;
 import io.stargate.sgv2.restsvc.resources.MetricsResource;
@@ -61,12 +62,28 @@ import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.process.internal.RequestScoped;
 import org.glassfish.jersey.server.ServerProperties;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** DropWizard {@code Application} that will serve Stargate v2 REST service endpoints. */
 public class RestServiceServer extends Application<RestServiceServerConfiguration> {
   public static final String REST_SVC_MODULE_NAME = "sgv2-rest-service";
 
+  /**
+   * System property used to configure sampler logic for diagnostics; see {@link
+   * ApiTimingDiagnosticsSampler} for details
+   */
+  public static final String SYSPROP_DIAGNOSTICS_SAMPLER = "stargate.rest.diagnostics.sample";
+
+  /**
+   * Instead of relying on name of an arbitrary Java Class or Package, let's use explicit name
+   * instead. Could be made configurable if we wanted to, but hard-code at first.
+   */
+  public static final String LOGGER_NAME_FOR_REST_API_TIMINGS = "stargate.rest.diagnostics";
+
   public static final String[] NON_API_URI_REGEX = new String[] {"^/$", "^/health$", "^/swagger.*"};
+
+  private static final Logger LOGGER = LoggerFactory.getLogger(RestServiceServer.class);
 
   private final Metrics metrics;
   private final MetricRegistry metricRegistry;
@@ -128,8 +145,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
                 bindFactory(StargateBridgeClientJerseyFactory.class)
                     .to(StargateBridgeClient.class)
                     .in(RequestScoped.class);
-                bind(ApiTimingDiagnosticsFactory.createFactory(metricRegistry, ""))
-                    .to(ApiTimingDiagnosticsFactory.class);
+                bind(buildDiagnosticsFactory()).to(ApiTimingDiagnosticsFactory.class);
               }
             });
 
@@ -183,6 +199,25 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
             .build();
       }
     };
+  }
+
+  private ApiTimingDiagnosticsFactory buildDiagnosticsFactory() {
+    final String samplerDef = System.getProperty(SYSPROP_DIAGNOSTICS_SAMPLER, "");
+    ApiTimingDiagnosticsSampler sampler;
+
+    try {
+      sampler = ApiTimingDiagnosticsSampler.fromString(samplerDef);
+    } catch (IllegalArgumentException e) {
+      LOGGER.error(
+          "Unrecognized definition for ApiTimingDiagnosticsSampler; will default to 'none' sampler: {}",
+          e.getMessage());
+      sampler = ApiTimingDiagnosticsSampler.noneSampler();
+    }
+    LOGGER.info(
+        "Constructing ApiTimingDiagnosticsFactory for REST API using sampler: {}",
+        sampler.toString());
+    return ApiTimingDiagnosticsFactory.createFactory(
+        metricRegistry, "", LoggerFactory.getLogger(LOGGER_NAME_FOR_REST_API_TIMINGS), sampler);
   }
 
   public static ObjectMapper configureObjectMapper(ObjectMapper objectMapper) {
