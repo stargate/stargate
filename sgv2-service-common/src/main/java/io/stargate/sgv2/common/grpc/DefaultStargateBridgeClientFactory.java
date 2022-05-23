@@ -30,7 +30,8 @@ class DefaultStargateBridgeClientFactory implements StargateBridgeClientFactory 
   private final Channel channel;
   private final int timeoutSeconds;
   private final SchemaRead.SourceApi sourceApi;
-  private final Cache<String, CqlKeyspaceDescribe> keyspaceCache;
+  private final Cache<String, CqlKeyspaceDescribe> keyspaceCache =
+      Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(5, TimeUnit.MINUTES).build();
   private final LazyReference<CompletionStage<Schema.SupportedFeaturesResponse>>
       supportedFeaturesResponse = new LazyReference<>();
 
@@ -39,8 +40,6 @@ class DefaultStargateBridgeClientFactory implements StargateBridgeClientFactory 
     this.channel = channel;
     this.timeoutSeconds = timeoutSeconds;
     this.sourceApi = sourceApi;
-    keyspaceCache =
-        Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(5, TimeUnit.MINUTES).build();
   }
 
   @Override
