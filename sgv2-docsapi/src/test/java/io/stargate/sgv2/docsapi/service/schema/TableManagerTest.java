@@ -12,6 +12,7 @@ import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
+import io.smallrye.mutiny.helpers.test.AssertSubscriber;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
@@ -57,7 +58,8 @@ class TableManagerTest extends BridgeTest {
         .getStargateBridge();
   }
 
-  Schema.CqlKeyspaceDescribe getValidTableAndKeyspace(String namespace, String collection) {
+  Schema.CqlKeyspaceDescribe.Builder getValidTableAndKeyspaceBuilder(
+      String namespace, String collection) {
     QueryOuterClass.ColumnSpec.Builder partitionColumn =
         QueryOuterClass.ColumnSpec.newBuilder()
             .setName(documentProperties.tableProperties().keyColumnName());
@@ -78,8 +80,11 @@ class TableManagerTest extends BridgeTest {
             .addAllColumns(valueColumns);
     return Schema.CqlKeyspaceDescribe.newBuilder()
         .setCqlKeyspace(Schema.CqlKeyspace.newBuilder().setName(namespace))
-        .addTables(table)
-        .build();
+        .addTables(table);
+  }
+
+  Schema.CqlKeyspaceDescribe getValidTableAndKeyspace(String namespace, String collection) {
+    return getValidTableAndKeyspaceBuilder(namespace, collection).build();
   }
 
   @Nested
@@ -216,6 +221,44 @@ class TableManagerTest extends BridgeTest {
       assertThat(failure)
           .isInstanceOf(ErrorCodeRuntimeException.class)
           .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DATASTORE_KEYSPACE_DOES_NOT_EXIST);
+
+      verify(bridgeService).describeKeyspace(any(), any());
+      verifyNoMoreInteractions(bridgeService);
+    }
+  }
+
+  @Nested
+  class GetValidCollectionTables {
+
+    @Test
+    public void happyPath() {
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+
+      Schema.CqlKeyspaceDescribe keyspace =
+          getValidTableAndKeyspaceBuilder(namespace, collection)
+              .addTables(Schema.CqlTable.newBuilder().setName("other").build())
+              .build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.CqlKeyspaceDescribe> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(keyspace);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .describeKeyspace(any(), any());
+
+      tableManager
+          .getValidCollectionTables(namespace)
+          .subscribe()
+          .withSubscriber(AssertSubscriber.create(1))
+          .awaitNextItem()
+          .assertItems(keyspace.getTables(0))
+          .awaitCompletion()
+          .assertCompleted();
 
       verify(bridgeService).describeKeyspace(any(), any());
       verifyNoMoreInteractions(bridgeService);
