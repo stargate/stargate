@@ -38,7 +38,7 @@ public class JsonConverterTest {
     }
   }
 
-  private static final ObjectMapper mapper = new ObjectMapper();
+  @Inject ObjectMapper mapper;
 
   @Inject JsonConverter service;
 

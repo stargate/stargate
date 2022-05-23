@@ -48,7 +48,7 @@ class JsonDocumentShredderTest {
 
   @Inject JsonDocumentShredder shredder;
 
-  private ObjectMapper objectMapper;
+  @Inject ObjectMapper objectMapper;
 
   @Inject DocumentProperties configuration;
 
