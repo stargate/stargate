@@ -67,7 +67,7 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
             .where("table_name", Predicate.EQ, Values.of(tableName))
             .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
             .build();
-    return fetchRows(bridge, null, query, true);
+    return fetchRows(bridge, query, true);
   }
 
   @Override

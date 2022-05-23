@@ -40,8 +40,6 @@ public abstract class ResourceBase {
   protected static final QueryOuterClass.QueryParameters PARAMETERS_FOR_LOCAL_QUORUM =
       parametersBuilderForLocalQuorum().build();
 
-  protected ResourceBase() {}
-
   // // // Helper methods for Schema access
 
   /**
@@ -140,15 +138,19 @@ public abstract class ResourceBase {
   }
 
   protected Response fetchRows(
-      StargateBridgeClient bridge,
+      StargateBridgeClient bridge, QueryOuterClass.Query query, boolean raw) {
+    return convertFetchedRows(bridge.executeQuery(query), raw);
+  }
+
+  protected Response timedFetchRows(
       ApiTimingDiagnostics diagnostics,
+      StargateBridgeClient bridge,
       QueryOuterClass.Query query,
       boolean raw) {
-    QueryOuterClass.Response grpcResponse =
-        (diagnostics == null)
-            ? bridge.executeQuery(query)
-            : diagnostics.timedDbRead(() -> bridge.executeQuery(query));
+    return convertFetchedRows(diagnostics.timedDbRead(() -> bridge.executeQuery(query)), raw);
+  }
 
+  private Response convertFetchedRows(QueryOuterClass.Response grpcResponse, boolean raw) {
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
     final int count = rs.getRowsCount();
 

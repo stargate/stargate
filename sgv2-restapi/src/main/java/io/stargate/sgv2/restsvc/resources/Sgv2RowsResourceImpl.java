@@ -124,7 +124,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
                           .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
                           .build();
                 }
-                return fetchRows(bridge, diagnostics, query, raw);
+                return timedFetchRows(diagnostics, bridge, query, raw);
               });
         });
   }
@@ -173,7 +173,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
                         pageSizeParam,
                         pageStateParam,
                         toProtoConverter);
-                return fetchRows(bridge, diagnostics, query, raw);
+                return timedFetchRows(diagnostics, bridge, query, raw);
               });
         });
   }
@@ -221,7 +221,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
                     .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
                     .build();
           }
-          return fetchRows(bridge, diagnostics, query, raw);
+          return timedFetchRows(diagnostics, bridge, query, raw);
         });
   }
 
