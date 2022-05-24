@@ -30,7 +30,7 @@ import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStorePropert
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
-import io.stargate.sgv2.docsapi.bridge.AbstractBridgeTest;
+import io.stargate.sgv2.docsapi.bridge.AbstractValidatingStargateBridgeTest;
 import io.stargate.sgv2.docsapi.bridge.ValidatingStargateBridge;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.ImmutableJsonShreddedRow;
@@ -50,7 +50,7 @@ import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 @TestProfile(MaxDepth4TestProfile.class)
-class DocumentWriteServiceTest extends AbstractBridgeTest {
+class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
 
   private static final Duration ASYNC_WAIT_DURATION = Duration.ofSeconds(1);
 

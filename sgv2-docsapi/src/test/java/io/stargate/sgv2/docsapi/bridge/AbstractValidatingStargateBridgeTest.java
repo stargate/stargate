@@ -30,7 +30,7 @@ import org.junit.jupiter.api.BeforeEach;
  *
  * <p>Subclasses must be annotated with {@link QuarkusTest}.
  */
-public abstract class AbstractBridgeTest {
+public abstract class AbstractValidatingStargateBridgeTest {
 
   private ValidatingStargateBridge bridge;
   @InjectMock protected StargateRequestInfo requestInfo;
