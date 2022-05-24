@@ -17,12 +17,12 @@
 package io.stargate.sgv2.docsapi.service.write;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.Mockito.when;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.junit.mockito.InjectMock;
+import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass.Batch;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
@@ -37,7 +37,6 @@ import io.stargate.sgv2.docsapi.service.ImmutableJsonShreddedRow;
 import io.stargate.sgv2.docsapi.service.JsonShreddedRow;
 import io.stargate.sgv2.docsapi.service.util.TimeSource;
 import io.stargate.sgv2.docsapi.testprofiles.MaxDepth4TestProfile;
-import java.time.Duration;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -51,8 +50,6 @@ import org.junit.jupiter.api.Test;
 @QuarkusTest
 @TestProfile(MaxDepth4TestProfile.class)
 class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
-
-  private static final Duration ASYNC_WAIT_DURATION = Duration.ofSeconds(1);
 
   @Inject DocumentWriteService service;
   @Inject DocsApiTestSchemaProvider schemaProvider;
@@ -138,8 +135,10 @@ class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
 
       service
           .writeDocument(keyspaceName, tableName, documentId, rows, null, context)
-          .await()
-          .atMost(ASYNC_WAIT_DURATION);
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitItem()
+          .assertCompleted();
 
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
       row2QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -220,8 +219,10 @@ class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
 
       service
           .writeDocument(keyspaceName, tableName, documentId, rows, ttl, context)
-          .await()
-          .atMost(ASYNC_WAIT_DURATION);
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitItem()
+          .assertCompleted();
 
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
       row2QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -309,8 +310,10 @@ class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
 
       service
           .updateDocument(keyspaceName, tableName, documentId, rows, null, context)
-          .await()
-          .atMost(ASYNC_WAIT_DURATION);
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitItem()
+          .assertCompleted();
 
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
       row2QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -406,8 +409,10 @@ class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
 
       service
           .updateDocument(keyspaceName, tableName, documentId, rows, 100, context)
-          .await()
-          .atMost(ASYNC_WAIT_DURATION);
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitItem()
+          .assertCompleted();
 
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
       row2QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -503,8 +508,10 @@ class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
 
       service
           .updateDocument(keyspaceName, tableName, documentId, subDocumentPath, rows, null, context)
-          .await()
-          .atMost(ASYNC_WAIT_DURATION);
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitItem()
+          .assertCompleted();
 
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
       row2QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -553,18 +560,16 @@ class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
               .build();
       List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
 
-      Throwable throwable =
-          catchThrowable(
-              () ->
-                  service
-                      .updateDocument(
-                          keyspaceName, tableName, documentId, subDocumentPath, rows, null, context)
-                      .await()
-                      .atMost(ASYNC_WAIT_DURATION));
-
-      assertThat(throwable)
-          .isInstanceOf(ErrorCodeRuntimeException.class)
-          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_UPDATE_PATH_NOT_MATCHING);
+      service
+          .updateDocument(keyspaceName, tableName, documentId, subDocumentPath, rows, null, context)
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitFailure(
+              throwable ->
+                  assertThat(throwable)
+                      .isInstanceOf(ErrorCodeRuntimeException.class)
+                      .hasFieldOrPropertyWithValue(
+                          "errorCode", ErrorCode.DOCS_API_UPDATE_PATH_NOT_MATCHING));
     }
 
     @Test
@@ -578,18 +583,16 @@ class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
 
       List<JsonShreddedRow> rows = Collections.singletonList(row1);
 
-      Throwable throwable =
-          catchThrowable(
-              () ->
-                  service
-                      .updateDocument(
-                          keyspaceName, tableName, documentId, subDocumentPath, rows, null, context)
-                      .await()
-                      .atMost(ASYNC_WAIT_DURATION));
-
-      assertThat(throwable)
-          .isInstanceOf(ErrorCodeRuntimeException.class)
-          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_UPDATE_PATH_NOT_MATCHING);
+      service
+          .updateDocument(keyspaceName, tableName, documentId, subDocumentPath, rows, null, context)
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitFailure(
+              throwable ->
+                  assertThat(throwable)
+                      .isInstanceOf(ErrorCodeRuntimeException.class)
+                      .hasFieldOrPropertyWithValue(
+                          "errorCode", ErrorCode.DOCS_API_UPDATE_PATH_NOT_MATCHING));
     }
   }
 
@@ -695,8 +698,10 @@ class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
 
       service
           .patchDocument(keyspaceName, tableName, documentId, rows, null, context)
-          .await()
-          .atMost(ASYNC_WAIT_DURATION);
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitItem()
+          .assertCompleted();
 
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
       row2QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -844,8 +849,10 @@ class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
 
       service
           .patchDocument(keyspaceName, tableName, documentId, rows, 100, context)
-          .await()
-          .atMost(ASYNC_WAIT_DURATION);
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitItem()
+          .assertCompleted();
 
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
       row2QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -994,8 +1001,10 @@ class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
 
       service
           .patchDocument(keyspaceName, tableName, documentId, subPath, rows, null, context)
-          .await()
-          .atMost(ASYNC_WAIT_DURATION);
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitItem()
+          .assertCompleted();
 
       row1QueryAssert.assertExecuteCount().isEqualTo(1);
       row2QueryAssert.assertExecuteCount().isEqualTo(1);
@@ -1060,18 +1069,16 @@ class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
               .build();
       List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
 
-      Throwable throwable =
-          catchThrowable(
-              () ->
-                  service
-                      .patchDocument(
-                          keyspaceName, tableName, documentId, subDocumentPath, rows, null, context)
-                      .await()
-                      .atMost(ASYNC_WAIT_DURATION));
-
-      assertThat(throwable)
-          .isInstanceOf(ErrorCodeRuntimeException.class)
-          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_UPDATE_PATH_NOT_MATCHING);
+      service
+          .patchDocument(keyspaceName, tableName, documentId, subDocumentPath, rows, null, context)
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitFailure(
+              throwable ->
+                  assertThat(throwable)
+                      .isInstanceOf(ErrorCodeRuntimeException.class)
+                      .hasFieldOrPropertyWithValue(
+                          "errorCode", ErrorCode.DOCS_API_UPDATE_PATH_NOT_MATCHING));
     }
 
     @Test
@@ -1083,35 +1090,31 @@ class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
               .stringValue("value1")
               .build();
       List<JsonShreddedRow> rows = Arrays.asList(row1);
-
-      Throwable throwable =
-          catchThrowable(
-              () ->
-                  service
-                      .patchDocument(keyspaceName, tableName, documentId, rows, null, context)
-                      .await()
-                      .atMost(ASYNC_WAIT_DURATION));
-
-      assertThat(throwable)
-          .isInstanceOf(ErrorCodeRuntimeException.class)
-          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED);
+      service
+          .patchDocument(keyspaceName, tableName, documentId, rows, null, context)
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitFailure(
+              throwable ->
+                  assertThat(throwable)
+                      .isInstanceOf(ErrorCodeRuntimeException.class)
+                      .hasFieldOrPropertyWithValue(
+                          "errorCode", ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED));
     }
 
     @Test
     public void withNoRows() {
       List<JsonShreddedRow> rows = Collections.emptyList();
-
-      Throwable throwable =
-          catchThrowable(
-              () ->
-                  service
-                      .patchDocument(keyspaceName, tableName, documentId, rows, null, context)
-                      .await()
-                      .atMost(ASYNC_WAIT_DURATION));
-
-      assertThat(throwable)
-          .isInstanceOf(ErrorCodeRuntimeException.class)
-          .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_PATCH_EMPTY_NOT_ACCEPTED);
+      service
+          .patchDocument(keyspaceName, tableName, documentId, rows, null, context)
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitFailure(
+              throwable ->
+                  assertThat(throwable)
+                      .isInstanceOf(ErrorCodeRuntimeException.class)
+                      .hasFieldOrPropertyWithValue(
+                          "errorCode", ErrorCode.DOCS_API_PATCH_EMPTY_NOT_ACCEPTED));
     }
   }
 
@@ -1128,8 +1131,10 @@ class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
 
       service
           .deleteDocument(keyspaceName, tableName, documentId, context)
-          .await()
-          .atMost(ASYNC_WAIT_DURATION);
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitItem()
+          .assertCompleted();
 
       deleteQueryAssert.assertExecuteCount().isEqualTo(1);
 
@@ -1166,8 +1171,10 @@ class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
 
       service
           .deleteDocument(keyspaceName, tableName, documentId, subDocumentPath, context)
-          .await()
-          .atMost(ASYNC_WAIT_DURATION);
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitItem()
+          .assertCompleted();
 
       deleteQueryAssert.assertExecuteCount().isEqualTo(1);
 
