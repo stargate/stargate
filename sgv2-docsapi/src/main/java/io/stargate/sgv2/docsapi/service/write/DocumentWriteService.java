@@ -96,15 +96,20 @@ public class DocumentWriteService {
       ExecutionContext context) {
 
     return Uni.createFrom()
-        .item(() -> insertQueryBuilder.buildQuery(keyspace, collection, ttl))
-        .map(
-            query -> {
+        .item(
+            () -> {
               long timestamp = timeSource.currentTimeMicros();
               return rows.stream()
                   .map(
                       row ->
-                          insertQueryBuilder.bind(
-                              query, documentId, row, ttl, timestamp, treatBooleansAsNumeric))
+                          insertQueryBuilder.buildAndBind(
+                              keyspace,
+                              collection,
+                              ttl,
+                              documentId,
+                              row,
+                              timestamp,
+                              treatBooleansAsNumeric))
                   .toList();
             })
         .flatMap(
@@ -190,21 +195,19 @@ public class DocumentWriteService {
                       ? new DeleteDocumentQueryBuilder(documentProperties)
                       : new DeleteSubDocumentPathQueryBuilder(
                           subDocumentPath, false, documentProperties);
-              QueryOuterClass.Query deleteQuery =
-                  deleteQueryBuilder.buildQuery(keyspace, collection);
-              queries.add(deleteQueryBuilder.bind(deleteQuery, documentId, timestamp - 1));
+              queries.add(
+                  deleteQueryBuilder.buildAndBind(keyspace, collection, documentId, timestamp - 1));
 
               // then insert new one
-              QueryOuterClass.Query insertQuery =
-                  insertQueryBuilder.buildQuery(keyspace, collection, ttl);
               rows.forEach(
                   row ->
                       queries.add(
-                          insertQueryBuilder.bind(
-                              insertQuery,
+                          insertQueryBuilder.buildAndBind(
+                              keyspace,
+                              collection,
+                              ttl,
                               documentId,
                               row,
-                              ttl,
                               timestamp,
                               treatBooleansAsNumeric)));
               return queries;
@@ -305,44 +308,35 @@ public class DocumentWriteService {
               // keys that we are about to patch, for example:
               // {"a": 1, "b": {"c": {d": 3, "f": 4}}} => {"a": 1, "b": {"c": {"f": 4}}}
               List<String> patchedKeys = firstLevelPatchedKeys(subDocumentPath, rows);
-              DeleteSubDocumentKeysQueryBuilder deletePatchedKeysBuilder =
-                  new DeleteSubDocumentKeysQueryBuilder(
-                      subDocumentPath, patchedKeys, documentProperties);
-              QueryOuterClass.Query deletePatchedKeysQuery =
-                  deletePatchedKeysBuilder.buildQuery(keyspace, collection);
               queries.add(
-                  deletePatchedKeysBuilder.bind(deletePatchedKeysQuery, documentId, timestamp - 1));
+                  new DeleteSubDocumentKeysQueryBuilder(
+                          subDocumentPath, patchedKeys, documentProperties)
+                      .buildAndBind(keyspace, collection, documentId, timestamp - 1));
 
               // If the existing document contains a primitive, empty array or empty object at this
               // subpath, delete it, for example:
               // {"a": 1, "b": {"c": 2, "f": 4}} => {"a": 1, "b": {"f": 4}}
-              DeleteSubDocumentPathQueryBuilder deleteExactPathBuilder =
-                  new DeleteSubDocumentPathQueryBuilder(subDocumentPath, true, documentProperties);
-              QueryOuterClass.Query deleteExactPathQuery =
-                  deleteExactPathBuilder.buildQuery(keyspace, collection);
               queries.add(
-                  deleteExactPathBuilder.bind(deleteExactPathQuery, documentId, timestamp - 1));
+                  new DeleteSubDocumentPathQueryBuilder(subDocumentPath, true, documentProperties)
+                      .buildAndBind(keyspace, collection, documentId, timestamp - 1));
 
               // If the existing document contains a non-empty array at this subpath, delete it, for
               // example:
               // {"a": 1, "b": {"c": [1,2,3], "f": 4}} => {"a": 1, "b": {"f": 4}}
-              DeleteSubDocumentArrayQueryBuilder deleteArrayBuilder =
-                  new DeleteSubDocumentArrayQueryBuilder(subDocumentPath, documentProperties);
-              QueryOuterClass.Query deleteArrayQuery =
-                  deleteArrayBuilder.buildQuery(keyspace, collection);
-              queries.add(deleteArrayBuilder.bind(deleteArrayQuery, documentId, timestamp - 1));
+              queries.add(
+                  new DeleteSubDocumentArrayQueryBuilder(subDocumentPath, documentProperties)
+                      .buildAndBind(keyspace, collection, documentId, timestamp - 1));
 
               // Finally, insert the new data.
-              QueryOuterClass.Query insertQuery =
-                  insertQueryBuilder.buildQuery(keyspace, collection, ttl);
               rows.forEach(
                   row ->
                       queries.add(
-                          insertQueryBuilder.bind(
-                              insertQuery,
+                          insertQueryBuilder.buildAndBind(
+                              keyspace,
+                              collection,
+                              ttl,
                               documentId,
                               row,
-                              ttl,
                               timestamp,
                               treatBooleansAsNumeric)));
 
@@ -407,9 +401,7 @@ public class DocumentWriteService {
                       ? new DeleteDocumentQueryBuilder(documentProperties)
                       : new DeleteSubDocumentPathQueryBuilder(
                           subDocumentPath, false, documentProperties);
-              QueryOuterClass.Query deleteQuery =
-                  deleteQueryBuilder.buildQuery(keyspace, collection);
-              return deleteQueryBuilder.bind(deleteQuery, documentId, timestamp);
+              return deleteQueryBuilder.buildAndBind(keyspace, collection, documentId, timestamp);
             })
         .flatMap(
             query ->

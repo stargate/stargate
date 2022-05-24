@@ -42,6 +42,17 @@ public class InsertQueryBuilder {
             .collect(Collectors.toList());
   }
 
+  public Query buildAndBind(
+      String keyspace,
+      String table,
+      Integer ttl,
+      String documentId,
+      JsonShreddedRow row,
+      long timestamp,
+      boolean numericBooleans) {
+    return bind(buildQuery(keyspace, table, ttl), documentId, row, ttl, timestamp, numericBooleans);
+  }
+
   /** Builds the query for inserting one row of a document data. */
   public Query buildQuery(String keyspace, String table, Integer ttl) {
     if (ttl != null) {

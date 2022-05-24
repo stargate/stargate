@@ -46,6 +46,11 @@ public abstract class AbstractDeleteQueryBuilder {
    */
   protected abstract void addBindValues(List<Value> values);
 
+  public final Query buildAndBind(
+      String keyspace, String table, String documentId, long timestamp) {
+    return bind(buildQuery(keyspace, table), documentId, timestamp);
+  }
+
   public final Query buildQuery(String keyspace, String table) {
     List<BuiltCondition> whereConditions = new ArrayList<>();
     whereConditions.add(
