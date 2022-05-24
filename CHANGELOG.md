@@ -1,5 +1,36 @@
 # Changelog
 
+## [v2.0.0-ALPHA-10](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-10) (2022-05-19)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-9...v2.0.0-ALPHA-10)
+
+**Closed issues:**
+
+- REST API should log ERROR for failure to contact Bridge gRPC service [\#1818](https://github.com/stargate/stargate/issues/1818)
+- Re-enable old Stargate V1 REST API in v2.0.0 branch [\#1813](https://github.com/stargate/stargate/issues/1813)
+- Adapt Document API JSON converter to gRPC based types [\#1727](https://github.com/stargate/stargate/issues/1727)
+- Adapt Document API condition model to gRPC based types  [\#1726](https://github.com/stargate/stargate/issues/1726)
+- Implement `TableManager` based on Stargate V2 common schema handling [\#1720](https://github.com/stargate/stargate/issues/1720)
+
+**Merged pull requests:**
+
+- Skip bridge authentication for GetSupportedFeatures \(fixes \#1821\) [\#1822](https://github.com/stargate/stargate/pull/1822) ([olim7t](https://github.com/olim7t))
+- Change grpc bridge tenant header [\#1820](https://github.com/stargate/stargate/pull/1820) ([mpenick](https://github.com/mpenick))
+- Log server-side Bridge/gRPC exceptions that are not client-induced [\#1819](https://github.com/stargate/stargate/pull/1819) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Port DocsApiUtils and tests [\#1816](https://github.com/stargate/stargate/pull/1816) ([EricBorczuk](https://github.com/EricBorczuk))
+- Allow re-enabling of SGv1 REST API for SGv2 via system property [\#1814](https://github.com/stargate/stargate/pull/1814) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Migrate write query builders to Document API v2 [\#1810](https://github.com/stargate/stargate/pull/1810) ([olim7t](https://github.com/olim7t))
+- eager creation of the stargate bridge for the request [\#1809](https://github.com/stargate/stargate/pull/1809) ([ivansenic](https://github.com/ivansenic))
+- closes \#1720: table manager for creating, validating and deleting collections [\#1808](https://github.com/stargate/stargate/pull/1808) ([ivansenic](https://github.com/ivansenic))
+- Use decorated name to cache keyspaces in bridge client [\#1807](https://github.com/stargate/stargate/pull/1807) ([olim7t](https://github.com/olim7t))
+- relates to \#1720: simple cached schema management  [\#1806](https://github.com/stargate/stargate/pull/1806) ([ivansenic](https://github.com/ivansenic))
+- Revisit value handling in the query builder [\#1805](https://github.com/stargate/stargate/pull/1805) ([olim7t](https://github.com/olim7t))
+- Bumping version for next v2 release [\#1803](https://github.com/stargate/stargate/pull/1803) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Migrate JsonConverter to V2 [\#1797](https://github.com/stargate/stargate/pull/1797) ([EricBorczuk](https://github.com/EricBorczuk))
+- Adapt Document API condition model to gRPC based types \(fixes \#1726\) [\#1796](https://github.com/stargate/stargate/pull/1796) ([olim7t](https://github.com/olim7t))
+- Update startup and Docker scripts for GraphQL [\#1793](https://github.com/stargate/stargate/pull/1793) ([olim7t](https://github.com/olim7t))
+- Port GraphQL schema-first to v2 architecture [\#1771](https://github.com/stargate/stargate/pull/1771) ([olim7t](https://github.com/olim7t))
+
 ## [v2.0.0-ALPHA-9](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-9) (2022-04-27)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.55...v2.0.0-ALPHA-9)
