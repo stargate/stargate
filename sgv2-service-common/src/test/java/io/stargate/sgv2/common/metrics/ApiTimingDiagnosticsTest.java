@@ -23,15 +23,21 @@ public class ApiTimingDiagnosticsTest {
 
   @Test
   public void testSamplerDefParsingForProbability() {
-    assertThat(ApiTimingDiagnosticsSampler.fromString("50%").toString()).isEqualTo("for 50% of events");
-    assertThat(ApiTimingDiagnosticsSampler.fromString("15%").toString()).isEqualTo("for 15% of events");
-    assertThat(ApiTimingDiagnosticsSampler.fromString("15.00%").toString()).isEqualTo("for 15% of events");
-    assertThat(ApiTimingDiagnosticsSampler.fromString("0.25%").toString()).isEqualTo("for 0.25% of events");
+    assertThat(ApiTimingDiagnosticsSampler.fromString("50%").toString())
+        .isEqualTo("for 50% of events");
+    assertThat(ApiTimingDiagnosticsSampler.fromString("15%").toString())
+        .isEqualTo("for 15% of events");
+    assertThat(ApiTimingDiagnosticsSampler.fromString("15.00%").toString())
+        .isEqualTo("for 15% of events");
+    assertThat(ApiTimingDiagnosticsSampler.fromString("0.25%").toString())
+        .isEqualTo("for 0.25% of events");
   }
 
   @Test
   public void testSamplerDefParsingForNone() {
-    assertThat(ApiTimingDiagnosticsSampler.fromString("").toString()).isEqualTo("for none of events");
-    assertThat(ApiTimingDiagnosticsSampler.fromString("none").toString()).isEqualTo("for none of events");
+    assertThat(ApiTimingDiagnosticsSampler.fromString("").toString())
+        .isEqualTo("for none of events");
+    assertThat(ApiTimingDiagnosticsSampler.fromString("none").toString())
+        .isEqualTo("for none of events");
   }
 }
