@@ -34,7 +34,12 @@ public interface QueryInfo {
   @JsonProperty("executionCount")
   int execCount();
 
-  @Schema(description = "The total number of rows fetched by this query")
+  @Schema(
+      description =
+          "The total number of rows fetched or modified by this query. "
+              + "Note that this is underestimated when the query involves deletions: there is no "
+              + "efficient way (without a read-before-write) to count how many rows a CQL DELETE will "
+              + "remove, so it's always counted as 1.")
   @JsonProperty("rowCount")
   int rowCount();
 
