@@ -15,7 +15,6 @@
  */
 package io.stargate.sgv2.graphql.impl;
 
-import com.codahale.metrics.MetricRegistry;
 import io.dropwizard.Application;
 import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.forms.MultiPartBundle;
@@ -53,7 +52,6 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
   public static final String MODULE_NAME = "sgv2-graphqlapi";
 
   private final Metrics metrics;
-  private final MetricRegistry metricRegistry;
   private final MetricsScraper metricsScraper;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
   private final int timeoutSeconds;
@@ -68,7 +66,6 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
       boolean enableGraphqlPlayground,
       boolean disableDefaultKeyspace) {
     this.metrics = metrics;
-    this.metricRegistry = metrics.getRegistry(MODULE_NAME);
     this.metricsScraper = metricsScraper;
     this.httpMetricsTagProvider = httpMetricsTagProvider;
     this.timeoutSeconds = timeoutSeconds;
@@ -140,7 +137,7 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
   public void initialize(Bootstrap<GraphqlServiceServerConfiguration> bootstrap) {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
-    bootstrap.setMetricRegistry(metricRegistry);
+    bootstrap.setMetricRegistry(metrics.getRegistry(MODULE_NAME));
     bootstrap.addBundle(new MultiPartBundle());
   }
 

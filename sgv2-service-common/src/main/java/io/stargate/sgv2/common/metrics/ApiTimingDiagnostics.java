@@ -1,6 +1,7 @@
 package io.stargate.sgv2.common.metrics;
 
-import com.codahale.metrics.Timer;
+import io.micrometer.core.instrument.Timer;
+import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 public class ApiTimingDiagnostics {
@@ -31,31 +32,31 @@ public class ApiTimingDiagnostics {
   }
 
   public <T> T timedTableSchemaAccess(Supplier<T> toCall) {
-    final Timer.Context ctxt = tableSchemaTimer.time();
+    final long startTimeNanos = currentNanos();
     try {
       return toCall.get();
     } finally {
-      tableSchemaNanos += ctxt.stop();
+      tableSchemaNanos += updateTimer(tableSchemaTimer, startTimeNanos);
       ++tableSchemaCount;
     }
   }
 
   public <T> T timedDbRead(Supplier<T> toCall) {
-    final Timer.Context ctxt = dbReadTimer.time();
+    final long startTimeNanos = currentNanos();
     try {
       return toCall.get();
     } finally {
-      dbReadNanos += ctxt.stop();
+      dbReadNanos += updateTimer(dbReadTimer, startTimeNanos);
       ++dbReadCount;
     }
   }
 
   public <T> T timedDbWrite(Supplier<T> toCall) {
-    final Timer.Context ctxt = dbWriteTimer.time();
+    final long startTimeNanos = currentNanos();
     try {
       return toCall.get();
     } finally {
-      dbWriteNanos += ctxt.stop();
+      dbWriteNanos += updateTimer(dbWriteTimer, startTimeNanos);
       ++dbWriteCount;
     }
   }
@@ -97,9 +98,19 @@ public class ApiTimingDiagnostics {
     return sb.toString();
   }
 
+  private long currentNanos() {
+    return System.nanoTime();
+  }
+
   private long totalTimeNanos() {
     long lapsed = endTimeNanos - startTimeNanos;
     return Math.max(lapsed, 0L);
+  }
+
+  private long updateTimer(Timer timer, long startTimeNanos) {
+    final long nanosElapsed = currentNanos() - startTimeNanos;
+    timer.record(nanosElapsed, TimeUnit.NANOSECONDS);
+    return nanosElapsed;
   }
 
   static String nanosToMsecString(long nanos) {

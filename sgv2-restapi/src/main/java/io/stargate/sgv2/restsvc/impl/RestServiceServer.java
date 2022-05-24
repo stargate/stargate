@@ -15,7 +15,6 @@
  */
 package io.stargate.sgv2.restsvc.impl;
 
-import com.codahale.metrics.MetricRegistry;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -81,7 +80,6 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   private static final Logger LOGGER = LoggerFactory.getLogger(RestServiceServer.class);
 
   private final Metrics metrics;
-  private final MetricRegistry metricRegistry;
   private final MetricsScraper metricsScraper;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
   private final int timeoutSeconds;
@@ -92,7 +90,6 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
       HttpMetricsTagProvider httpMetricsTagProvider,
       int timeoutSeconds) {
     this.metrics = metrics;
-    this.metricRegistry = metrics.getRegistry(REST_SVC_MODULE_NAME);
     this.metricsScraper = metricsScraper;
     this.httpMetricsTagProvider = httpMetricsTagProvider;
     this.timeoutSeconds = timeoutSeconds;
@@ -209,11 +206,12 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
       sampler = ApiTimingDiagnosticsSampler.noneSampler();
     }
     LOGGER.info(
-        "Constructing ApiTimingDiagnosticsFactory for REST API using sampler: {}",
-        sampler.toString());
+        "Constructing `ApiTimingDiagnosticsFactory` for REST API using sampler '{}' which will output timings: {}",
+        sampler.getClass().getSimpleName(),
+        sampler);
     return ApiTimingDiagnosticsFactory.createFactory(
-        metricRegistry,
-        "",
+        metrics.getMeterRegistry(),
+        REST_SVC_MODULE_NAME + ".timing.",
         // 23-May-2022, tatu: not 100% sure which logger would make most sense; for now create
         //    one from value class
         LoggerFactory.getLogger(ApiTimingDiagnostics.class),
@@ -230,7 +228,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   public void initialize(final Bootstrap<RestServiceServerConfiguration> bootstrap) {
     super.initialize(bootstrap);
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
-    bootstrap.setMetricRegistry(metricRegistry);
+    bootstrap.setMetricRegistry(metrics.getRegistry(REST_SVC_MODULE_NAME));
   }
 
   private void enableCors(Environment environment) {

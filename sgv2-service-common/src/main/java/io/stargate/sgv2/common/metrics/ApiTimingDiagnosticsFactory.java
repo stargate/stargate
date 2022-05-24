@@ -1,7 +1,7 @@
 package io.stargate.sgv2.common.metrics;
 
-import com.codahale.metrics.MetricRegistry;
-import com.codahale.metrics.Timer;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Timer;
 import java.util.function.Function;
 import org.slf4j.Logger;
 
@@ -24,17 +24,16 @@ public class ApiTimingDiagnosticsFactory {
     this.dbWriteTimer = dbWriteTimer;
   }
 
+  // Note: we must pass "MeterRegistry" to export metrics to Prometheus; this does
+  // not use the global default registry
   public static ApiTimingDiagnosticsFactory createFactory(
-      MetricRegistry metricsRegistry,
-      String prefix,
-      Logger logger,
-      ApiTimingDiagnosticsSampler sampler) {
+      MeterRegistry mmMeters, String prefix, Logger logger, ApiTimingDiagnosticsSampler sampler) {
     return new ApiTimingDiagnosticsFactory(
         logger,
         sampler,
-        metricsRegistry.timer(prefix + "bridge-table-access"),
-        metricsRegistry.timer(prefix + "bridge-db-read"),
-        metricsRegistry.timer(prefix + "bridge-db-write"));
+        mmMeters.timer(prefix + "bridge-table-access"),
+        mmMeters.timer(prefix + "bridge-db-read"),
+        mmMeters.timer(prefix + "bridge-db-write"));
   }
 
   public ApiTimingDiagnostics createDiagnostics(String operation) {

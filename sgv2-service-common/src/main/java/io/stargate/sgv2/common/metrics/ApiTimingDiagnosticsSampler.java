@@ -82,7 +82,7 @@ public abstract class ApiTimingDiagnosticsSampler {
 
     @Override
     public String toString() {
-      return "none";
+      return "for none of events";
     }
   }
 
@@ -96,7 +96,7 @@ public abstract class ApiTimingDiagnosticsSampler {
       this.probability = pct.divide(BigDecimal.valueOf(100L)).doubleValue();
       // choice does not matter a lot but keep it reproducible
       rnd = new Random(Double.hashCode(probability));
-      desc = String.format("%s%%", pct.stripTrailingZeros().toPlainString());
+      desc = String.format("for %s%% of events", pct.stripTrailingZeros().toPlainString());
     }
 
     @Override
@@ -121,7 +121,9 @@ public abstract class ApiTimingDiagnosticsSampler {
     public IntervalBased(BigDecimal secs) {
       this.msecsBetween = secs.multiply(BigDecimal.valueOf(1000L)).longValue();
       noSamplesUntil = new AtomicLong(System.currentTimeMillis() + msecsBetween);
-      desc = String.format("at most every %s seconds", secs.stripTrailingZeros().toPlainString());
+      desc =
+          String.format(
+              "for event at most every %s seconds", secs.stripTrailingZeros().toPlainString());
     }
 
     // Since we have state, need to synchronize. Should not be called often enough
