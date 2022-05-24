@@ -40,11 +40,11 @@ import java.util.List;
  * That gets stored as the following rows:
  *
  * <pre>
- * key | p0 | p1    | p2 | dbl_value
- * --- +----+-------+----+-----------
- * xyz |  a |       |    |         1
- * xyz |  b | [000] |    |         2
- * xyz |  b | [001] |    |         3
+ * key | p0 | p1       | p2 | dbl_value
+ * --- +----+----------+----+-----------
+ * xyz |  a |          |    |         1
+ * xyz |  b | [000000] |    |         2
+ * xyz |  b | [000001] |    |         3
  * </pre>
  *
  * The subpath ["b"] will generate the DELETE conditions:
@@ -52,8 +52,8 @@ import java.util.List;
  * <pre>
  * WHERE key = 'xyz'
  *   AND p0 = 'b'
- *   AND p1 >= '[000]'
- *   AND p1 <= '[999]'
+ *   AND p1 >= '[000000]'
+ *   AND p1 <= '[999999]'
  * </pre>
  */
 public class DeleteSubDocumentArrayQueryBuilder extends DeleteSubDocumentPathQueryBuilder {
