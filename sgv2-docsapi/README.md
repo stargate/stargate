@@ -83,6 +83,8 @@ See [Debugging](https://quarkus.io/guides/maven-tooling#debugging) for more info
 
 ### Running integration tests
 
+> **_PREREQUISITES:_**  You need to build the coordinator docker image(s) first. In the root Stargate repo directory run `./mvnw clean install -P dse -DskipTests && ./build_docker_images.sh`
+
 Integration tests are using the [Testcontainers](https://www.testcontainers.org/) library in order to set up all needed dependencies, a Stargate coordinator and a Cassandra data store. 
 They are separated from the unit tests and are running as part of the `integration-test` and `verify` Maven phases:
 ```shell script
@@ -105,6 +107,9 @@ The required profile can be activated using the `-P` option:
 ```
 
 #### Running from IDE
+
+> **_PREREQUISITES:_**  You need to build the coordinator docker image(s) first and tag them with `latest` tag. In the root Stargate repo directory run `./mvnw clean install -P dse -DskipTests && ./build_docker_images.sh -t latest`
+
 
 Running integration tests from IDE is supported out of the box.
 The tests will use the Cassandra 4.0 as the data store by default.
