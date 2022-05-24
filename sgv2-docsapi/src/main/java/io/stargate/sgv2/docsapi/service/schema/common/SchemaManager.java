@@ -17,6 +17,7 @@
 
 package io.stargate.sgv2.docsapi.service.schema.common;
 
+import com.google.protobuf.BytesValue;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.opentelemetry.extension.annotations.WithSpan;
@@ -27,17 +28,23 @@ import io.quarkus.cache.CacheName;
 import io.quarkus.cache.CacheResult;
 import io.quarkus.cache.CaffeineCache;
 import io.quarkus.cache.CompositeCacheKey;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.common.grpc.SchemaReads;
 import io.stargate.sgv2.common.grpc.UnauthorizedKeyspaceException;
 import io.stargate.sgv2.common.grpc.UnauthorizedTableException;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
@@ -63,6 +70,23 @@ public class SchemaManager {
   public Uni<Schema.CqlKeyspaceDescribe> getKeyspace(String keyspace) {
     StargateBridge bridge = requestInfo.getStargateBridge();
     return getKeyspaceInternal(bridge, keyspace);
+  }
+
+  /**
+   * Get all keyspace from the bridge. Note that this method is not doing any authorization.
+   *
+   * @return Multi containing Schema.CqlKeyspaceDescribe
+   */
+  @WithSpan
+  public Multi<Schema.CqlKeyspaceDescribe> getKeyspaces() {
+    StargateBridge bridge = requestInfo.getStargateBridge();
+
+    // get all names
+    return getKeyspaceNames(bridge)
+
+        // then fetch each keyspace
+        .onItem()
+        .transformToUniAndMerge(keyspace -> getKeyspaceInternal(bridge, keyspace));
   }
 
   /**
@@ -119,6 +143,63 @@ public class SchemaManager {
                 return Uni.createFrom().failure(unauthorized);
               }
             });
+  }
+
+  /**
+   * Get all keyspace from the bridge. Prior to getting each keyspace it will execute the schema
+   * authorization request (single request for all available keyspace).
+   *
+   * @return Multi containing Schema.CqlKeyspaceDescribe
+   */
+  @WithSpan
+  public Multi<Schema.CqlKeyspaceDescribe> getKeyspacesAuthorized() {
+    StargateBridge bridge = requestInfo.getStargateBridge();
+
+    // get all keyspace names
+    return getKeyspaceNames(bridge)
+
+        // collect list
+        .collect()
+        .asList()
+
+        // then go for the schema read
+        .onItem()
+        .transformToMulti(
+            keyspaceNames -> {
+
+              // create schema reads for all keyspaces
+              List<Schema.SchemaRead> reads =
+                  keyspaceNames.stream()
+                      .map(n -> SchemaReads.keyspace(n, sourceApi))
+                      .collect(Collectors.toList());
+
+              Schema.AuthorizeSchemaReadsRequest request =
+                  Schema.AuthorizeSchemaReadsRequest.newBuilder().addAllSchemaReads(reads).build();
+
+              // execute request
+              return bridge
+                  .authorizeSchemaReads(request)
+
+                  // on response filter out
+                  .onItem()
+                  .ifNotNull()
+                  .transformToMulti(
+                      response -> {
+                        List<String> authorizedKeyspace = new ArrayList<>(keyspaceNames);
+                        authorizedKeyspace.removeIf(
+                            keyspace -> {
+                              int index = keyspaceNames.indexOf(keyspace);
+                              return !Boolean.TRUE.equals(response.getAuthorized(index));
+                            });
+
+                        // and return all authorized tables
+                        return Multi.createFrom().iterable(authorizedKeyspace);
+                      });
+            })
+
+        // then fetch each authorized keyspace
+        .onItem()
+        .transformToUniAndMerge(keyspace -> getKeyspaceInternal(bridge, keyspace));
   }
 
   /**
@@ -278,6 +359,59 @@ public class SchemaManager {
             });
   }
 
+  // returns all keyspace names
+  private Multi<String> getKeyspaceNames(StargateBridge bridge) {
+    // repeated multi to achieve paging
+    return Multi.createBy()
+        .repeating()
+
+        // start with the optimistic state
+        .uni(
+            () -> new AtomicReference<>(new Paging(true, null)),
+            state -> {
+              // if we don't have more, short circuit
+              Paging paging = state.get();
+              if (!paging.hasMore()) {
+                return Uni.createFrom().item(Collections.<String>emptyList());
+              }
+
+              // otherwise execute the query
+              QueryOuterClass.Query.Builder queryBuilder =
+                  QueryOuterClass.Query.newBuilder()
+                      .setCql("SELECT keyspace_name FROM system_schema.keyspaces");
+              if (null != paging.pageState()) {
+                QueryOuterClass.QueryParameters.Builder params =
+                    QueryOuterClass.QueryParameters.newBuilder().setPagingState(paging.pageState());
+                queryBuilder.setParameters(params);
+              }
+
+              return bridge
+                  .executeQuery(queryBuilder.build())
+                  .flatMap(
+                      response -> {
+                        // update the state for the next repetition
+                        QueryOuterClass.ResultSet resultSet = response.getResultSet();
+                        state.set(
+                            new Paging(resultSet.hasPagingState(), resultSet.getPagingState()));
+
+                        // collect all names in a list
+                        List<String> keyspaceNames =
+                            resultSet.getRowsList().stream()
+                                .map(r -> r.getValues(0).getString())
+                                .collect(Collectors.toList());
+
+                        return Uni.createFrom().item(keyspaceNames);
+                      });
+            })
+
+        // do repeat until we get an empty list
+        .until(List::isEmpty)
+
+        // then transform list to multi and merge
+        .onItem()
+        .transformToMultiAndMerge(l -> Multi.createFrom().iterable(l));
+  }
+
   // fetches the keyspace from the bridge and caches it
   @CacheResult(cacheName = "keyspace-cache")
   protected Uni<Schema.CqlKeyspaceDescribe> fetchKeyspace(
@@ -305,4 +439,7 @@ public class SchemaManager {
       @CacheKey String keyspaceName, @CacheKey Optional<String> tenantId) {
     return Uni.createFrom().nullItem();
   }
+
+  // small utility for paging queries
+  private record Paging(boolean hasMore, BytesValue pageState) {}
 }
