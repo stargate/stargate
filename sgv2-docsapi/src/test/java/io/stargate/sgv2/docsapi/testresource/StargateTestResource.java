@@ -26,9 +26,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
-import java.util.Collections;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -83,8 +81,6 @@ public class StargateTestResource
 
   private static final Logger LOG = LoggerFactory.getLogger(StargateTestResource.class);
 
-  private boolean enabled;
-
   private Optional<String> containerNetworkId;
 
   private Network network;
@@ -104,24 +100,8 @@ public class StargateTestResource
     containerNetworkId = context.containerNetworkId();
   }
 
-  /**
-   * {@inheritDoc}
-   *
-   * <p><i>Note: only enable if IntegrationTestProfile is active profile</i>
-   */
-  @Override
-  public void setContext(Context context) {
-    String testProfile = context.testProfile();
-    String expectedProfile = IntegrationTestProfile.class.getName();
-    this.enabled = Objects.equals(testProfile, expectedProfile);
-  }
-
   @Override
   public Map<String, String> start() {
-    if (!enabled) {
-      return Collections.emptyMap();
-    }
-
     // TODO make reusable after https://github.com/testcontainers/testcontainers-java/pull/4777
     // boolean reuse = containerNetworkId.isEmpty();
     boolean reuse = false;

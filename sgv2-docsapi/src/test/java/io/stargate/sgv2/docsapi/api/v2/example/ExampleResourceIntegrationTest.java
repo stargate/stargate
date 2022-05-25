@@ -17,15 +17,12 @@
 
 package io.stargate.sgv2.docsapi.api.v2.example;
 
-import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.docsapi.testprofiles.IntegrationTestProfile;
-import io.stargate.sgv2.docsapi.testresource.StargateTestResource;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
-@QuarkusTestResource(StargateTestResource.class)
 @TestProfile(IntegrationTestProfile.class)
 class ExampleResourceIntegrationTest {
 

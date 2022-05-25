@@ -352,7 +352,6 @@
                   </systemPropertyVariables>
                   <includes>
                     <include>**/*IntegrationTest.*</include>
-                    <include>**/*EndToEndTest.*</include>
                   </includes>
                 </configuration>
               </execution>
