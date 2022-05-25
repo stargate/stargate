@@ -64,10 +64,9 @@ import org.glassfish.jersey.server.ServerProperties;
 public class RestServiceServer extends Application<RestServiceServerConfiguration> {
   /**
    * Module name is used for example as the prefix for metrics export.
-   *<p>
-   * Note that Stargate V1 had module name of {@code "restapi"}: for V2 we use different
-   * name to allow separating metrics during upgrade process.
-   *</p>
+   *
+   * <p>Note that Stargate V1 had module name of {@code "restapi"}: for V2 we use different name to
+   * allow separating metrics during upgrade process.
    */
   public static final String REST_SVC_MODULE_NAME = "sgv2-restapi";
 
