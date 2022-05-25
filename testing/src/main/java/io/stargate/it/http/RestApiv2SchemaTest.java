@@ -322,32 +322,33 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
     TableAdd tableAdd = new TableAdd();
     tableAdd.setName(tableName);
 
-    List<ColumnDefinition> columnDefinitions = new ArrayList<>();
-
-    columnDefinitions.add(new ColumnDefinition("pk1", "int"));
-    columnDefinitions.add(new ColumnDefinition("ck1", "int"));
-    columnDefinitions.add(new ColumnDefinition("ck2", "int"));
+    // Add columns in sort of reverse order wrt primary key columns
+    List<ColumnDefinition> columnDefinitions =
+        Arrays.asList(
+            new ColumnDefinition("value", "int"),
+            new ColumnDefinition("ck2", "int"),
+            new ColumnDefinition("ck1", "int"),
+            new ColumnDefinition("pk2", "int"),
+            new ColumnDefinition("pk1", "int"));
 
     tableAdd.setColumnDefinitions(columnDefinitions);
 
+    // Create partition and clustering keys in order different from that of all-columns
+    // definitions
     PrimaryKey primaryKey = new PrimaryKey();
-    primaryKey.setPartitionKey(Collections.singletonList("pk1"));
-    List<String> clusteringColumns = new ArrayList<>();
-    clusteringColumns.add("ck2");
-    clusteringColumns.add("ck1");
-    primaryKey.setClusteringKey(clusteringColumns);
+    primaryKey.setPartitionKey(Arrays.asList("pk1", "pk2"));
+    primaryKey.setClusteringKey(Arrays.asList("ck1", "ck2"));
     tableAdd.setPrimaryKey(primaryKey);
 
     tableAdd.setTableOptions(new TableOptions(0, null));
 
-    String body =
-        RestUtils.post(
-            authToken,
-            String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
-            objectMapper.writeValueAsString(tableAdd),
-            HttpStatus.SC_CREATED);
+    RestUtils.post(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+        objectMapper.writeValueAsString(tableAdd),
+        HttpStatus.SC_CREATED);
 
-    body =
+    String body =
         RestUtils.get(
             authToken,
             String.format(
@@ -356,10 +357,20 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
             HttpStatus.SC_OK);
 
     TableResponse table = objectMapper.readValue(body, TableResponse.class);
+
+    // First, verify that partition key ordering is like we expect
+    assertThat(table.getTableOptions().getClusteringExpression().size()).isEqualTo(2);
     assertThat(table.getTableOptions().getClusteringExpression().get(0).getColumn())
-        .isEqualTo("ck2");
-    assertThat(table.getTableOptions().getClusteringExpression().get(1).getColumn())
         .isEqualTo("ck1");
+    assertThat(table.getTableOptions().getClusteringExpression().get(1).getColumn())
+        .isEqualTo("ck2");
+
+    // And then the same wrt full primary key definition
+    PrimaryKey pk = table.getPrimaryKey();
+    assertThat(pk.getPartitionKey().size()).isEqualTo(2);
+    assertThat(pk.getPartitionKey()).isEqualTo(Arrays.asList("pk1", "pk2"));
+    assertThat(pk.getClusteringKey().size()).isEqualTo(2);
+    assertThat(pk.getClusteringKey()).isEqualTo(Arrays.asList("ck1", "ck2"));
   }
 
   @Test
