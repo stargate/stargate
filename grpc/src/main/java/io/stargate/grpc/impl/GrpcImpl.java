@@ -18,6 +18,7 @@ package io.stargate.grpc.impl;
 import io.grpc.Server;
 import io.grpc.internal.GrpcUtil;
 import io.grpc.netty.shaded.io.grpc.netty.NettyServerBuilder;
+import io.grpc.protobuf.services.ProtoReflectionService;
 import io.micrometer.core.instrument.binder.grpc.TaggingMetricCollectingServerInterceptor;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.core.metrics.api.Metrics;
@@ -77,6 +78,7 @@ public class GrpcImpl {
             .intercept(
                 new TaggingMetricCollectingServerInterceptor(
                     metrics.getMeterRegistry(), grpcMetricsTagProvider))
+            .addService(ProtoReflectionService.newInstance())
             .addService(new GrpcService(persistence, executor))
             .build();
   }
