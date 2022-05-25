@@ -29,7 +29,7 @@ import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 
-@Command(name = "sgv2-rest-service")
+@Command(name = "sgv2-restapi")
 public class RestServiceStarter {
   @Retention(RetentionPolicy.RUNTIME)
   public @interface Order {

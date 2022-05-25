@@ -1,5 +1,5 @@
 server:
-  type: sgv2-rest-service
+  type: sgv2-restapi
   applicationContextPath: /
   connector:
     type: http
