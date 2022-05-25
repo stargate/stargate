@@ -202,7 +202,7 @@ public class CollectionsResource {
                                 """
                                 {
                                     "code": 409,
-                                    "description": "Create failed: collection cycling already exists."
+                                    "description": "Create failed: collection events already exists."
                                 }
                                 """))),
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_401),
