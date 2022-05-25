@@ -67,7 +67,7 @@ import org.slf4j.LoggerFactory;
 
 /** DropWizard {@code Application} that will serve Stargate v2 REST service endpoints. */
 public class RestServiceServer extends Application<RestServiceServerConfiguration> {
-  public static final String REST_SVC_MODULE_NAME = "sgv2-rest-service";
+  public static final String REST_SVC_MODULE_NAME = "sgv2-restapi";
 
   /**
    * System property used to configure sampler logic for diagnostics; see {@link
