@@ -61,7 +61,12 @@ import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
 public class StargateTestResource
     implements QuarkusTestResourceLifecycleManager, DevServicesContext.ContextAware {
 
-  /** Set of defaults for the integration tests, usually used when running from IDE. */
+  /**
+   * Set of defaults for the integration tests, usually used when running from IDE.
+   *
+   * <p><b>IMPORTANT:</b> If changing defaults please update the default properties in the pom.xml
+   * for the cassandra-40 profile.
+   */
   interface Defaults {
 
     String CASSANDRA_IMAGE = "cassandra";
@@ -135,18 +140,18 @@ public class StargateTestResource
             .waitingFor(Wait.forLogMessage(".*Created default superuser role.*\\n", 1))
             .withStartupTimeout(Duration.ofMinutes(2))
             .withReuse(reuse);
+    // note that cluster name props differ in case of DSE
     if (isDse()) {
       cassandraContainer.withEnv("CLUSTER_NAME", getClusterName()).withEnv("DS_LICENSE", "accept");
-
     } else {
       cassandraContainer.withEnv("CASSANDRA_CLUSTER_NAME", getClusterName());
     }
+    // resolve the network based on the mode
     if (containerNetworkId.isPresent()) {
       cassandraContainer.withNetworkMode(containerNetworkId.get());
     } else {
       cassandraContainer.withNetwork(network());
     }
-    // resolve the network based on the mode
     cassandraContainer.start();
 
     stargateContainer =
@@ -182,6 +187,7 @@ public class StargateTestResource
     String token = getAuthToken("localhost", authPort);
     LOG.info("Using auth token %s for integration tests.".formatted(token));
 
+    // TODO if no end-to-end tests, inject the token instead of fixing it
     // return a map containing the configuration the application needs to use the service
     ImmutableMap.Builder<String, String> propsBuilder = ImmutableMap.builder();
     propsBuilder.put("stargate.auth.token-resolver.type", "fixed");
