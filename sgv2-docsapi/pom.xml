@@ -140,6 +140,11 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
       <version>${assertj.version}</version>
@@ -202,6 +207,10 @@
             <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
             <maven.home>${maven.home}</maven.home>
           </systemPropertyVariables>
+          <excludes>
+            <exclude>**/*IntegrationTest.*</exclude>
+            <exclude>**/*EndToEndTest.*</exclude>
+          </excludes>
         </configuration>
       </plugin>
       <plugin>
@@ -274,6 +283,82 @@
         <quarkus.package.type>native</quarkus.package.type>
         <quarkus.native.native-image-xmx>6G</quarkus.native.native-image-xmx>
       </properties>
+    </profile>
+    <profile>
+      <id>cassandra-40</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <properties>
+        <!-- Please maintain default values for int-test in sync with io.stargate.sgv2.docsapi.testresource.StargateTestResource.Defaults -->
+        <stargate.int-test.cassandra.image>cassandra</stargate.int-test.cassandra.image>
+        <stargate.int-test.cassandra.image-tag>4.0.3</stargate.int-test.cassandra.image-tag>
+        <stargate.int-test.coordinator.image>stargateio/coordinator-4_0</stargate.int-test.coordinator.image>
+        <stargate.int-test.coordinator.image-tag>v${project.version}</stargate.int-test.coordinator.image-tag>
+        <stargate.int-test.cluster.name>cass-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>
+        <stargate.int-test.cluster.version>4.0</stargate.int-test.cluster.version>
+        <stargate.int-test.cluster.dse>false</stargate.int-test.cluster.dse>
+      </properties>
+    </profile>
+    <profile>
+      <id>cassandra-311</id>
+      <properties>
+        <stargate.int-test.cassandra.image>cassandra</stargate.int-test.cassandra.image>
+        <stargate.int-test.cassandra.image-tag>3.11.12</stargate.int-test.cassandra.image-tag>
+        <stargate.int-test.coordinator.image>stargateio/coordinator-3_11</stargate.int-test.coordinator.image>
+        <stargate.int-test.coordinator.image-tag>v${project.version}</stargate.int-test.coordinator.image-tag>
+        <stargate.int-test.cluster.name>cass-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>
+        <stargate.int-test.cluster.version>3.11</stargate.int-test.cluster.version>
+        <stargate.int-test.cluster.dse>false</stargate.int-test.cluster.dse>
+      </properties>
+    </profile>
+    <profile>
+      <id>dse-68</id>
+      <properties>
+        <stargate.int-test.cassandra.image>datastax/dse-server</stargate.int-test.cassandra.image>
+        <stargate.int-test.cassandra.image-tag>6.8.21</stargate.int-test.cassandra.image-tag>
+        <stargate.int-test.coordinator.image>stargateio/coordinator-dse-68</stargate.int-test.coordinator.image>
+        <stargate.int-test.coordinator.image-tag>v${project.version}</stargate.int-test.coordinator.image-tag>
+        <stargate.int-test.cluster.name>dse-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>
+        <stargate.int-test.cluster.version>6.8</stargate.int-test.cluster.version>
+        <stargate.int-test.cluster.dse>true</stargate.int-test.cluster.dse>
+      </properties>
+    </profile>
+    <profile>
+      <id>int-tests</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <version>${surefire-plugin.version}</version>
+            <executions>
+              <execution>
+                <goals>
+                  <goal>integration-test</goal>
+                  <goal>verify</goal>
+                </goals>
+                <configuration>
+                  <systemPropertyVariables>
+                    <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                    <maven.home>${maven.home}</maven.home>
+                    <testing.containers.cassandra-image>${stargate.int-test.cassandra.image}:${stargate.int-test.cassandra.image-tag}</testing.containers.cassandra-image>
+                    <testing.containers.stargate-image>${stargate.int-test.coordinator.image}:${stargate.int-test.coordinator.image-tag}</testing.containers.stargate-image>
+                    <testing.containers.cluster-name>${stargate.int-test.cluster.name}</testing.containers.cluster-name>
+                    <testing.containers.cluster-version>${stargate.int-test.cluster.version}</testing.containers.cluster-version>
+                    <testing.containers.cluster-dse>${stargate.int-test.cluster.dse}</testing.containers.cluster-dse>
+                  </systemPropertyVariables>
+                  <includes>
+                    <include>**/*IntegrationTest.*</include>
+                  </includes>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 </project>
