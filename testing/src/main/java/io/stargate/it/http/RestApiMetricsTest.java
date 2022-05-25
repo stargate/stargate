@@ -217,7 +217,7 @@ public class RestApiMetricsTest extends BaseRestApiTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"sgv2_rest_service"})
+  @ValueSource(strings = {"sgv2_restapi"})
   public void dropwizardMetricsModule(String module) throws IOException {
     String[] expectedMetricGroups =
         new String[] {"TimeBoundHealthCheck", "io_dropwizard_jersey", "org_eclipse_jetty"};
