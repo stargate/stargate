@@ -1,5 +1,6 @@
 package io.stargate.sgv2.docsapi.service.schema;
 
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
@@ -8,20 +9,17 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.grpc.stub.StreamObserver;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
+import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.docsapi.BridgeTest;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
-import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
+import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.grpc.GrpcClients;
-import io.stargate.sgv2.docsapi.service.schema.query.JsonSchemaQueryProvider;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,20 +29,15 @@ import org.mockito.ArgumentCaptor;
 
 @QuarkusTest
 class JsonSchemaManagerTest extends BridgeTest {
-
-  @Inject TableManager tableManager;
-
   @Inject JsonSchemaManager jsonSchemaManager;
 
-  @Inject JsonSchemaQueryProvider queryProvider;
-
   @Inject ObjectMapper objectMapper;
-
-  @Inject DocumentProperties documentProperties;
 
   @Inject GrpcClients grpcClients;
 
   @InjectMock StargateRequestInfo requestInfo;
+
+  Schema.CqlTable table;
 
   ArgumentCaptor<QueryOuterClass.Query> queryCaptor;
 
@@ -56,32 +49,6 @@ class JsonSchemaManagerTest extends BridgeTest {
         .getStargateBridge();
   }
 
-  Schema.CqlKeyspaceDescribe getValidTableAndKeyspace(String namespace, String collection) {
-    QueryOuterClass.ColumnSpec.Builder partitionColumn =
-        QueryOuterClass.ColumnSpec.newBuilder()
-            .setName(documentProperties.tableProperties().keyColumnName());
-    Set<QueryOuterClass.ColumnSpec> clusteringColumns =
-        documentProperties.tableColumns().pathColumnNames().stream()
-            .map(c -> QueryOuterClass.ColumnSpec.newBuilder().setName(c).build())
-            .collect(Collectors.toSet());
-    Set<QueryOuterClass.ColumnSpec> valueColumns =
-        documentProperties.tableColumns().valueColumnNames().stream()
-            .map(c -> QueryOuterClass.ColumnSpec.newBuilder().setName(c).build())
-            .collect(Collectors.toSet());
-
-    Schema.CqlTable.Builder table =
-        Schema.CqlTable.newBuilder()
-            .setName(collection)
-            .putOptions("comment", "{\"schema\": {}}")
-            .addPartitionKeyColumns(partitionColumn)
-            .addAllClusteringKeyColumns(clusteringColumns)
-            .addAllColumns(valueColumns);
-    return Schema.CqlKeyspaceDescribe.newBuilder()
-        .setCqlKeyspace(Schema.CqlKeyspace.newBuilder().setName(namespace))
-        .addTables(table)
-        .build();
-  }
-
   @Nested
   class AttachJsonSchema {
     @Test
@@ -89,20 +56,13 @@ class JsonSchemaManagerTest extends BridgeTest {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
 
-      QueryOuterClass.Response response = QueryOuterClass.Response.newBuilder().build();
-
-      doAnswer(
-              invocationOnMock -> {
-                StreamObserver<QueryOuterClass.Response> observer = invocationOnMock.getArgument(1);
-                observer.onNext(response);
-                observer.onCompleted();
-                return null;
-              })
+      doAnswer(invocationOnMock -> QueryOuterClass.Query.getDefaultInstance())
           .when(bridgeService)
           .executeQuery(any(), any());
 
       JsonNode schema =
           objectMapper.readTree("{\"$schema\": \"https://json-schema.org/draft/2019-09/schema\"}");
+
       jsonSchemaManager
           .attachJsonSchema(namespace, collection, schema)
           .subscribe()
@@ -112,6 +72,33 @@ class JsonSchemaManagerTest extends BridgeTest {
       verify(bridgeService).executeQuery(any(), any());
       verifyNoMoreInteractions(bridgeService);
     }
+
+    @Test
+    public void malformedSchema() throws JsonProcessingException {
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+
+      doAnswer(invocationOnMock -> null).when(bridgeService).executeQuery(any(), any());
+
+      JsonNode schema =
+          objectMapper.readTree(
+              "{\n"
+                  + "  \"$schema\": \"https://json-schema.org/draft/2019-09/schema\",\n"
+                  + "  \"type\": \"object\",\n"
+                  + "  \"properties\": {\n"
+                  + "    \"something\": { \"type\": \"strin\" }\n"
+                  + "  }\n"
+                  + "}");
+
+      jsonSchemaManager
+          .attachJsonSchema(namespace, collection, schema)
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitFailure()
+          .assertFailedWith(ErrorCodeRuntimeException.class);
+
+      verifyNoMoreInteractions(bridgeService);
+    }
   }
 
   @Nested
@@ -119,35 +106,41 @@ class JsonSchemaManagerTest extends BridgeTest {
 
     @Test
     public void happyPath() throws JsonProcessingException {
-      String namespace = RandomStringUtils.randomAlphanumeric(16);
-      String collection = RandomStringUtils.randomAlphanumeric(16);
-
-      Schema.CqlKeyspaceDescribe keyspace = getValidTableAndKeyspace(namespace, collection);
-
-      doAnswer(
-              invocationOnMock -> {
-                StreamObserver<Schema.CqlKeyspaceDescribe> observer =
-                    invocationOnMock.getArgument(1);
-                observer.onNext(keyspace);
-                observer.onCompleted();
-                return null;
-              })
-          .when(bridgeService)
-          .describeKeyspace(any(), any());
+      table = Schema.CqlTable.newBuilder().putOptions("comment", "{\"schema\": {}}").build();
 
       UniAssertSubscriber<JsonNode> result =
           jsonSchemaManager
-              .getJsonSchema(tableManager, namespace, collection)
+              .getJsonSchema(Uni.createFrom().item(table))
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
 
-      result
-          .awaitItem()
-          .assertItem(objectMapper.readTree(keyspace.getTables(0).getOptionsMap().get("comment")))
-          .assertCompleted();
+      result.awaitItem().assertItem(objectMapper.readTree("{\"schema\": {}}")).assertCompleted();
+    }
 
-      verify(bridgeService).describeKeyspace(any(), any());
-      verifyNoMoreInteractions(bridgeService);
+    @Test
+    public void noSchema() {
+      table = Schema.CqlTable.newBuilder().build();
+
+      UniAssertSubscriber<JsonNode> result =
+          jsonSchemaManager
+              .getJsonSchema(Uni.createFrom().item(table))
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+
+      result.awaitItem().assertItem(null).assertCompleted();
+    }
+
+    @Test
+    public void malformedJsonSchema() {
+      table = Schema.CqlTable.newBuilder().putOptions("comment", "lorem ipsum").build();
+
+      UniAssertSubscriber<JsonNode> result =
+          jsonSchemaManager
+              .getJsonSchema(Uni.createFrom().item(table))
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+
+      result.awaitItem().assertItem(null).assertCompleted();
     }
   }
 
@@ -155,34 +148,60 @@ class JsonSchemaManagerTest extends BridgeTest {
   class ValidateJsonSchema {
     @Test
     public void happyPath() throws JsonProcessingException {
-      String namespace = RandomStringUtils.randomAlphanumeric(16);
-      String collection = RandomStringUtils.randomAlphanumeric(16);
-
-      Schema.CqlKeyspaceDescribe keyspace = getValidTableAndKeyspace(namespace, collection);
-
-      doAnswer(
-              invocationOnMock -> {
-                StreamObserver<Schema.CqlKeyspaceDescribe> observer =
-                    invocationOnMock.getArgument(1);
-                observer.onNext(keyspace);
-                observer.onCompleted();
-                return null;
-              })
-          .when(bridgeService)
-          .describeKeyspace(any(), any());
+      table = Schema.CqlTable.newBuilder().putOptions("comment", "{\"schema\": {}}").build();
 
       JsonNode document = objectMapper.readTree("{\"something\": \"json\"}");
 
       UniAssertSubscriber<Boolean> result =
           jsonSchemaManager
-              .validateJsonSchema(tableManager, namespace, collection, document)
+              .validateJsonDocument(Uni.createFrom().item(table), document)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
 
       result.awaitItem().assertItem(true).assertCompleted();
-
-      verify(bridgeService).describeKeyspace(any(), any());
-      verifyNoMoreInteractions(bridgeService);
     }
+
+    @Test
+    public void noSchemaAvailable() throws JsonProcessingException {
+      table = Schema.CqlTable.newBuilder().build();
+
+      JsonNode document = objectMapper.readTree("{\"something\": \"json\"}");
+
+      UniAssertSubscriber<Boolean> result =
+          jsonSchemaManager
+              .validateJsonDocument(Uni.createFrom().item(table), document)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+
+      result.awaitItem().assertItem(true).assertCompleted();
+    }
+  }
+
+  @Test
+  public void documentSchemaMismatch() throws JsonProcessingException {
+    table =
+        Schema.CqlTable.newBuilder()
+            .putOptions(
+                "comment",
+                "{ \"schema\": {\n"
+                    + "  \"$schema\": \"https://json-schema.org/draft/2019-09/schema\",\n"
+                    + "  \"type\": \"object\",\n"
+                    + "  \"properties\": {\n"
+                    + "    \"something\": { \"type\": \"string\" }\n"
+                    + "  }\n"
+                    + "}}")
+            .build();
+
+    System.out.println("the value: " + table.getOptionsMap().get("comment"));
+
+    JsonNode document = objectMapper.readTree("{\"something\": 1}");
+
+    assertThatThrownBy(
+        () -> {
+          jsonSchemaManager
+              .validateJsonDocument(Uni.createFrom().item(table), document)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+        });
   }
 }
