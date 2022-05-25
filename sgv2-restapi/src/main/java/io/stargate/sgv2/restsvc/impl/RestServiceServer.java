@@ -62,7 +62,14 @@ import org.glassfish.jersey.server.ServerProperties;
 
 /** DropWizard {@code Application} that will serve Stargate v2 REST service endpoints. */
 public class RestServiceServer extends Application<RestServiceServerConfiguration> {
-  public static final String REST_SVC_MODULE_NAME = "sgv2-rest-service";
+  /**
+   * Module name is used for example as the prefix for metrics export.
+   *<p>
+   * Note that Stargate V1 had module name of {@code "restapi"}: for V2 we use different
+   * name to allow separating metrics during upgrade process.
+   *</p>
+   */
+  public static final String REST_SVC_MODULE_NAME = "sgv2-restapi";
 
   public static final String[] NON_API_URI_REGEX = new String[] {"^/$", "^/health$", "^/swagger.*"};
 
