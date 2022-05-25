@@ -21,6 +21,7 @@ import com.github.misberner.apcommons.util.AFModifier;
 import com.github.misberner.duzzt.annotations.DSLAction;
 import com.github.misberner.duzzt.annotations.GenerateEmbeddedDSL;
 import com.github.misberner.duzzt.annotations.SubExpr;
+import io.stargate.bridge.proto.QueryOuterClass.BatchQuery;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.QueryOuterClass.QueryParameters;
 import io.stargate.bridge.proto.QueryOuterClass.Value;
@@ -53,7 +54,7 @@ import java.util.stream.Stream;
     autoVarArgs = false,
     name = "QueryBuilder",
     syntax =
-        "(<keyspace>|<table>|<insert>|<update>|<delete>|<select>|<index>|<type>) parameters? build",
+        "(<keyspace>|<table>|<insert>|<update>|<delete>|<select>|<index>|<type>) parameters? (build|buildForBatch)",
     where = {
       @SubExpr(
           name = "keyspace",
@@ -745,6 +746,18 @@ public class QueryBuilderImpl {
     }
     if (parameters != null) {
       query.setParameters(parameters);
+    }
+    return query.build();
+  }
+
+  @DSLAction
+  public BatchQuery buildForBatch() {
+    if (parameters != null) {
+      throw new IllegalStateException("Parameters aren't supported for a batched query");
+    }
+    BatchQuery.Builder query = BatchQuery.newBuilder().setCql(buildCql());
+    if (!generatedBoundValues.isEmpty()) {
+      query.setValues(Values.newBuilder().addAllValues(generatedBoundValues).build());
     }
     return query.build();
   }

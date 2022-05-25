@@ -15,7 +15,6 @@
  */
 package io.stargate.sgv2.docsapi.service;
 
-import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.sgv2.docsapi.models.ExecutionProfile;
 import io.stargate.sgv2.docsapi.models.ImmutableExecutionProfile;
 import io.stargate.sgv2.docsapi.models.QueryInfo;
@@ -43,24 +42,24 @@ public abstract class ExecutionContext {
   public abstract ExecutionContext nested(String description);
 
   /** Records information about a query when its results are retrieved. */
-  public abstract void traceCqlResult(Query query, int numRows);
+  public abstract void traceCqlResult(String cql, int numRows);
 
   /**
    * Immediately records information about a DML query that is scheduled to be executed at a later
    * time.
    */
-  public abstract void traceDeferredDml(Query query);
+  public abstract void traceDeferredDml(String cql);
 
   public abstract ExecutionProfile toProfile();
 
   private static class NoOpContext extends ExecutionContext {
     @Override
-    public void traceCqlResult(Query query, int numRows) {
+    public void traceCqlResult(String cql, int numRows) {
       // nop
     }
 
     @Override
-    public void traceDeferredDml(Query query) {
+    public void traceDeferredDml(String cql) {
       // nop
     }
 
@@ -92,18 +91,17 @@ public abstract class ExecutionContext {
     }
 
     @Override
-    public void traceCqlResult(Query query, int numRows) {
-      String cql = query.getCql();
+    public void traceCqlResult(String cql, int numRows) {
       executionInfoMap.merge(cql, QueryInfo.of(cql, numRows), QueryInfo::combine);
     }
 
     @Override
-    public void traceDeferredDml(Query query) {
+    public void traceDeferredDml(String cql) {
       // This method is invoked for batched DML queries. For INSERTS, we know the number of
       // impacted rows is always 1. For DELETES, there's no way to estimate the exact number of rows
       // (e.g. it could be a sub-document with an arbitrary number of fields), so count them as 1 as
       // well.
-      traceCqlResult(query, 1);
+      traceCqlResult(cql, 1);
     }
 
     @Override

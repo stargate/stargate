@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.bridge.grpc.Values;
-import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.QueryOuterClass.BatchQuery;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.testprofiles.MaxDepth4TestProfile;
@@ -46,7 +46,7 @@ class DeleteDocumentQueryBuilderTest {
     public void happyPath() {
       DeleteDocumentQueryBuilder queryBuilder = new DeleteDocumentQueryBuilder(documentProperties);
 
-      Query query =
+      BatchQuery query =
           queryBuilder.buildQuery(
               schemaProvider.getKeyspace().getName(), schemaProvider.getTable().getName());
 
@@ -64,14 +64,14 @@ class DeleteDocumentQueryBuilderTest {
     @Test
     public void happyPath() {
       DeleteDocumentQueryBuilder queryBuilder = new DeleteDocumentQueryBuilder(documentProperties);
-      Query query =
+      BatchQuery query =
           queryBuilder.buildQuery(
               schemaProvider.getKeyspace().getName(), schemaProvider.getTable().getName());
 
       long timestamp = RandomUtils.nextLong();
       String documentId = RandomStringUtils.randomAlphanumeric(16);
 
-      Query boundQuery = queryBuilder.bind(query, documentId, timestamp);
+      BatchQuery boundQuery = queryBuilder.bind(query, documentId, timestamp);
 
       assertThat(boundQuery.getValues().getValuesList())
           .containsExactly(Values.of(timestamp), Values.of(documentId));

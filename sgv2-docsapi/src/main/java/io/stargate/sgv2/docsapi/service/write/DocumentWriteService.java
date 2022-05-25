@@ -187,7 +187,7 @@ public class DocumentWriteService {
               checkPathMatchesRows(subDocumentPath, rows);
 
               long timestamp = timeSource.currentTimeMicros();
-              List<QueryOuterClass.Query> queries = new ArrayList<>(rows.size() + 1);
+              List<QueryOuterClass.BatchQuery> queries = new ArrayList<>(rows.size() + 1);
 
               // delete existing subpath
               AbstractDeleteQueryBuilder deleteQueryBuilder =
@@ -300,7 +300,7 @@ public class DocumentWriteService {
               checkPathMatchesRows(subDocumentPath, rows);
 
               long timestamp = timeSource.currentTimeMicros();
-              List<QueryOuterClass.Query> queries = new ArrayList<>(rows.size() + 3);
+              List<QueryOuterClass.BatchQuery> queries = new ArrayList<>(rows.size() + 3);
 
               // Example: we are patching the object {"d": 2, "e": 3} at path ["b","c"]
 
@@ -410,10 +410,12 @@ public class DocumentWriteService {
   }
 
   private Uni<ResultSet> executeBatch(
-      StargateBridge bridge, List<QueryOuterClass.Query> boundQueries, ExecutionContext context) {
+      StargateBridge bridge,
+      List<QueryOuterClass.BatchQuery> batchQueries,
+      ExecutionContext context) {
 
     // trace queries in context
-    boundQueries.forEach(context::traceDeferredDml);
+    batchQueries.forEach(q -> context.traceDeferredDml(q.getCql()));
 
     // then execute batch
     Batch.Type type = useLoggedBatches ? Batch.Type.LOGGED : Batch.Type.UNLOGGED;
@@ -425,23 +427,20 @@ public class DocumentWriteService {
                     .setConsistency(
                         QueryOuterClass.ConsistencyValue.newBuilder()
                             .setValue(queriesConfig.consistency().writes())));
-    boundQueries.forEach(
-        query ->
-            batch.addQueries(
-                QueryOuterClass.BatchQuery.newBuilder()
-                    .setCql(query.getCql())
-                    .setValues(query.getValues())));
+    batchQueries.forEach(batch::addQueries);
 
     return bridge.executeBatch(batch.build()).map(QueryOuterClass.Response::getResultSet);
   }
 
   private Uni<ResultSet> executeSingle(
-      StargateBridge bridge, QueryOuterClass.Query boundQuery, ExecutionContext context) {
+      StargateBridge bridge, QueryOuterClass.BatchQuery batchQuery, ExecutionContext context) {
 
-    context.traceDeferredDml(boundQuery);
+    context.traceDeferredDml(batchQuery.getCql());
 
-    boundQuery =
-        QueryOuterClass.Query.newBuilder(boundQuery)
+    QueryOuterClass.Query singleQuery =
+        QueryOuterClass.Query.newBuilder()
+            .setCql(batchQuery.getCql())
+            .setValues(batchQuery.getValues())
             .setParameters(
                 QueryOuterClass.QueryParameters.newBuilder()
                     .setConsistency(
@@ -449,7 +448,7 @@ public class DocumentWriteService {
                             .setValue(queriesConfig.consistency().writes())))
             .build();
 
-    return bridge.executeQuery(boundQuery).map(QueryOuterClass.Response::getResultSet);
+    return bridge.executeQuery(singleQuery).map(QueryOuterClass.Response::getResultSet);
   }
 
   // makes sure that any row starts with the given sub-document path

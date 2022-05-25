@@ -19,7 +19,7 @@ package io.stargate.sgv2.docsapi.service.write.db;
 
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
-import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.QueryOuterClass.BatchQuery;
 import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.common.cql.builder.ValueModifier;
@@ -42,7 +42,7 @@ public class InsertQueryBuilder {
             .collect(Collectors.toList());
   }
 
-  public Query buildAndBind(
+  public BatchQuery buildAndBind(
       String keyspace,
       String table,
       Integer ttl,
@@ -54,20 +54,20 @@ public class InsertQueryBuilder {
   }
 
   /** Builds the query for inserting one row of a document data. */
-  public Query buildQuery(String keyspace, String table, Integer ttl) {
+  public BatchQuery buildQuery(String keyspace, String table, Integer ttl) {
     if (ttl != null) {
       return new QueryBuilder()
           .insertInto(keyspace, table)
           .value(insertValueModifiers)
           .ttl()
           .timestamp()
-          .build();
+          .buildForBatch();
     } else {
       return new QueryBuilder()
           .insertInto(keyspace, table)
           .value(insertValueModifiers)
           .timestamp()
-          .build();
+          .buildForBatch();
     }
   }
 
@@ -81,8 +81,8 @@ public class InsertQueryBuilder {
    * @param numericBooleans If number booleans should be used
    * @return Bound query.
    */
-  public Query bind(
-      Query builtQuery,
+  public BatchQuery bind(
+      BatchQuery builtQuery,
       String documentId,
       JsonShreddedRow row,
       Integer ttl,
@@ -124,7 +124,7 @@ public class InsertQueryBuilder {
     // respect the timestamp
     values.addValues(Values.of(timestamp));
 
-    return Query.newBuilder(builtQuery).setValues(values).build();
+    return BatchQuery.newBuilder(builtQuery).setValues(values).build();
   }
 
   private Value convertToBackendBooleanValue(Boolean value, boolean numericBooleans) {
