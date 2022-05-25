@@ -8,7 +8,7 @@
     <version>2.0.0-ALPHA-11-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.web</groupId>
-  <artifactId>sgv2-rest-service</artifactId>
+  <artifactId>sgv2-restapi</artifactId>
   <properties>
     <airline.version>2.8.2</airline.version>
     <swagger-ui.version>3.35.0</swagger-ui.version>
