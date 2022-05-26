@@ -82,12 +82,13 @@ quarkus:
     port: 8180
     non-application-root-path: stargate
 
-    # every /api/v2 path is authenticated by default
+    # every /v2 path is authenticated by default
     # adapt if changing the authentication mechanism
     auth:
+      proactive: false
       permission:
         default:
-          paths: /api/v2/*
+          paths: /v2/*
           policy: authenticated
 
   # built-in micrometer properties
@@ -100,7 +101,7 @@ quarkus:
 
         # due to the https://github.com/quarkusio/quarkus/issues/24938
         # we need to define uri templating on our own for now
-        match-patterns: /api/v2/example/keyspace-exists/[a-z]+=/api/v2/example/keyspace-exists/{name}
+        match-patterns: /v2/example/keyspace-exists/[a-z]+=/v2/example/keyspace-exists/{name}
     # exports at prometheus default path
     export:
       prometheus:
