@@ -167,6 +167,10 @@ public class SchemaManager {
         .onItem()
         .transformToMulti(
             keyspaceNames -> {
+              // if we have no keyspace return immediately
+              if (null == keyspaceNames || 0 == keyspaceNames.size()) {
+                return Multi.createFrom().empty();
+              }
 
               // create schema reads for all keyspaces
               List<Schema.SchemaRead> reads =

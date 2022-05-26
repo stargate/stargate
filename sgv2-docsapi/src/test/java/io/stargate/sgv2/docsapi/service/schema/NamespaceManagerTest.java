@@ -35,12 +35,14 @@ import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.common.cql.builder.Replication;
+import io.stargate.sgv2.common.grpc.UnauthorizedKeyspaceException;
 import io.stargate.sgv2.docsapi.BridgeTest;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.grpc.GrpcClients;
 import io.stargate.sgv2.docsapi.service.schema.query.NamespaceQueryProvider;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import javax.inject.Inject;
@@ -51,9 +53,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 @QuarkusTest
-class KeyspaceManagerTest extends BridgeTest {
+class NamespaceManagerTest extends BridgeTest {
 
-  @Inject KeyspaceManager keyspaceManager;
+  @Inject NamespaceManager namespaceManager;
 
   @Inject NamespaceQueryProvider queryProvider;
 
@@ -79,6 +81,20 @@ class KeyspaceManagerTest extends BridgeTest {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       Schema.CqlKeyspaceDescribe keyspace = Schema.CqlKeyspaceDescribe.newBuilder().build();
 
+      Schema.AuthorizeSchemaReadsResponse authResponse =
+          Schema.AuthorizeSchemaReadsResponse.newBuilder().addAuthorized(true).build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.AuthorizeSchemaReadsResponse> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(authResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .authorizeSchemaReads(any(), any());
+
       doAnswer(
               invocationOnMock -> {
                 StreamObserver<Schema.CqlKeyspaceDescribe> observer =
@@ -90,7 +106,7 @@ class KeyspaceManagerTest extends BridgeTest {
           .when(bridgeService)
           .describeKeyspace(any(), any());
 
-      keyspaceManager
+      namespaceManager
           .getNamespace(namespace)
           .subscribe()
           .withSubscriber(UniAssertSubscriber.create())
@@ -98,6 +114,7 @@ class KeyspaceManagerTest extends BridgeTest {
           .assertItem(keyspace)
           .assertCompleted();
 
+      verify(bridgeService).authorizeSchemaReads(any(), any());
       verify(bridgeService).describeKeyspace(any(), any());
       verifyNoMoreInteractions(bridgeService);
     }
@@ -105,6 +122,20 @@ class KeyspaceManagerTest extends BridgeTest {
     @Test
     public void notExisting() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
+
+      Schema.AuthorizeSchemaReadsResponse authResponse =
+          Schema.AuthorizeSchemaReadsResponse.newBuilder().addAuthorized(true).build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.AuthorizeSchemaReadsResponse> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(authResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .authorizeSchemaReads(any(), any());
 
       doAnswer(
               invocationOnMock -> {
@@ -117,7 +148,7 @@ class KeyspaceManagerTest extends BridgeTest {
           .describeKeyspace(any(), any());
 
       Throwable failure =
-          keyspaceManager
+          namespaceManager
               .getNamespace(namespace)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
@@ -128,7 +159,40 @@ class KeyspaceManagerTest extends BridgeTest {
           .isInstanceOf(ErrorCodeRuntimeException.class)
           .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DATASTORE_KEYSPACE_DOES_NOT_EXIST);
 
+      verify(bridgeService).authorizeSchemaReads(any(), any());
       verify(bridgeService).describeKeyspace(any(), any());
+      verifyNoMoreInteractions(bridgeService);
+    }
+
+    @Test
+    public void notAuthorized() {
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+
+      Schema.AuthorizeSchemaReadsResponse authResponse =
+          Schema.AuthorizeSchemaReadsResponse.newBuilder().addAuthorized(false).build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.AuthorizeSchemaReadsResponse> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(authResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .authorizeSchemaReads(any(), any());
+
+      Throwable failure =
+          namespaceManager
+              .getNamespace(namespace)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create())
+              .awaitFailure()
+              .getFailure();
+
+      assertThat(failure).isInstanceOf(UnauthorizedKeyspaceException.class);
+
+      verify(bridgeService).authorizeSchemaReads(any(), any());
       verifyNoMoreInteractions(bridgeService);
     }
   }
@@ -147,6 +211,11 @@ class KeyspaceManagerTest extends BridgeTest {
       QueryOuterClass.Response queryResponse =
           QueryOuterClass.Response.newBuilder().setResultSet(resultSet).build();
 
+      Schema.AuthorizeSchemaReadsResponse authResponse =
+          Schema.AuthorizeSchemaReadsResponse.newBuilder()
+              .addAllAuthorized(Arrays.asList(true, false))
+              .build();
+
       doAnswer(
               invocationOnMock -> {
                 Schema.DescribeKeyspaceQuery query = invocationOnMock.getArgument(0);
@@ -163,6 +232,18 @@ class KeyspaceManagerTest extends BridgeTest {
               })
           .when(bridgeService)
           .describeKeyspace(any(), any());
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.AuthorizeSchemaReadsResponse> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(authResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .authorizeSchemaReads(any(), any());
+
       doAnswer(
               invocationOnMock -> {
                 StreamObserver<QueryOuterClass.Response> observer = invocationOnMock.getArgument(1);
@@ -174,25 +255,25 @@ class KeyspaceManagerTest extends BridgeTest {
           .executeQuery(any(), any());
 
       List<Schema.CqlKeyspaceDescribe> result =
-          keyspaceManager
+          namespaceManager
               .getNamespaces()
               .subscribe()
               .withSubscriber(AssertSubscriber.create())
-              .awaitNextItems(2)
+              .awaitNextItems(1)
               .awaitCompletion()
               .assertCompleted()
               .getItems();
 
-      verify(bridgeService, times(2)).describeKeyspace(any(), any());
       verify(bridgeService).executeQuery(queryCaptor.capture(), any());
+      verify(bridgeService).authorizeSchemaReads(any(), any());
+      verify(bridgeService, times(1)).describeKeyspace(any(), any());
       verifyNoMoreInteractions(bridgeService);
 
       // assert result
       assertThat(result)
-          .hasSize(2)
-          .extracting(Schema.CqlKeyspaceDescribe::getCqlKeyspace)
-          .flatExtracting(Schema.CqlKeyspace::getName)
-          .contains(keyspace1, keyspace2);
+          .hasSize(1)
+          .singleElement()
+          .satisfies(k -> assertThat(k.getCqlKeyspace().getName()).isEqualTo(keyspace1));
     }
 
     @Test
@@ -211,10 +292,10 @@ class KeyspaceManagerTest extends BridgeTest {
           .when(bridgeService)
           .executeQuery(any(), any());
 
-      keyspaceManager
+      namespaceManager
           .getNamespaces()
           .subscribe()
-          .withSubscriber(AssertSubscriber.create())
+          .withSubscriber(AssertSubscriber.create(1))
           .awaitCompletion()
           .assertCompleted()
           .assertHasNotReceivedAnyItem();
@@ -258,7 +339,7 @@ class KeyspaceManagerTest extends BridgeTest {
           .when(bridgeService)
           .executeQuery(any(), any());
 
-      keyspaceManager
+      namespaceManager
           .createNamespace(namespace, replication)
           .subscribe()
           .withSubscriber(UniAssertSubscriber.create())
@@ -282,6 +363,20 @@ class KeyspaceManagerTest extends BridgeTest {
     public void happyPath() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       Schema.CqlKeyspaceDescribe keyspaceDescribe = Schema.CqlKeyspaceDescribe.newBuilder().build();
+
+      Schema.AuthorizeSchemaReadsResponse authResponse =
+          Schema.AuthorizeSchemaReadsResponse.newBuilder().addAuthorized(true).build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.AuthorizeSchemaReadsResponse> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(authResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .authorizeSchemaReads(any(), any());
 
       QueryOuterClass.Response response =
           QueryOuterClass.Response.newBuilder()
@@ -312,13 +407,14 @@ class KeyspaceManagerTest extends BridgeTest {
           .when(bridgeService)
           .executeQuery(any(), any());
 
-      keyspaceManager
+      namespaceManager
           .dropNamespace(namespace)
           .subscribe()
           .withSubscriber(UniAssertSubscriber.create())
           .awaitItem()
           .assertCompleted();
 
+      verify(bridgeService).authorizeSchemaReads(any(), any());
       verify(bridgeService).describeKeyspace(any(), any());
       verify(bridgeService).executeQuery(queryCaptor.capture(), any());
       verifyNoMoreInteractions(bridgeService);
@@ -333,6 +429,20 @@ class KeyspaceManagerTest extends BridgeTest {
     public void notExisting() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
 
+      Schema.AuthorizeSchemaReadsResponse authResponse =
+          Schema.AuthorizeSchemaReadsResponse.newBuilder().addAuthorized(true).build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.AuthorizeSchemaReadsResponse> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(authResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .authorizeSchemaReads(any(), any());
+
       doAnswer(
               invocationOnMock -> {
                 StreamObserver<Schema.CqlKeyspaceDescribe> observer =
@@ -344,7 +454,7 @@ class KeyspaceManagerTest extends BridgeTest {
           .describeKeyspace(any(), any());
 
       Throwable failure =
-          keyspaceManager
+          namespaceManager
               .dropNamespace(namespace)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
@@ -355,6 +465,7 @@ class KeyspaceManagerTest extends BridgeTest {
           .isInstanceOf(ErrorCodeRuntimeException.class)
           .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DATASTORE_KEYSPACE_DOES_NOT_EXIST);
 
+      verify(bridgeService).authorizeSchemaReads(any(), any());
       verify(bridgeService).describeKeyspace(any(), any());
       verifyNoMoreInteractions(bridgeService);
     }

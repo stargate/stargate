@@ -33,9 +33,12 @@ import java.util.function.Function;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-/** Keyspace manager provides basic operations on keyspaces. */
+/**
+ * Namespace manager provides basic operations on namespace (CQL keyspaces). Note that this manager
+ * always uses authorized operations on the {@link SchemaManager}
+ */
 @ApplicationScoped
-public class KeyspaceManager {
+public class NamespaceManager {
 
   private static final Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>>
       MISSING_KEYSPACE_FUNCTION =
@@ -51,27 +54,6 @@ public class KeyspaceManager {
   @Inject StargateRequestInfo requestInfo;
 
   @Inject NamespaceQueryProvider queryProvider;
-
-  /**
-   * Fetches a keyspace from the schema manager. Subclasses can override to use the authorized
-   * version.
-   *
-   * @param keyspaceName Keyspace
-   * @return Keyspace from schema manager
-   */
-  protected Uni<Schema.CqlKeyspaceDescribe> getKeyspace(String keyspaceName) {
-    return schemaManager.getKeyspace(keyspaceName);
-  }
-
-  /**
-   * Fetches all keyspaces from the schema manager. Subclasses can override to use the authorized
-   * version.
-   *
-   * @return Keyspace from schema manager
-   */
-  protected Multi<Schema.CqlKeyspaceDescribe> getKeyspaces() {
-    return schemaManager.getKeyspaces();
-  }
 
   /**
    * Creates a namespace with specified replication using the ifNotExists strategy.
@@ -154,13 +136,14 @@ public class KeyspaceManager {
    */
   @WithSpan
   public Multi<Schema.CqlKeyspaceDescribe> getNamespaces() {
-    return getKeyspaces();
+    return schemaManager.getKeyspacesAuthorized();
   }
 
   private Uni<Schema.CqlKeyspaceDescribe> getNamespaceInternal(String namespace) {
 
     // get the keyspace
-    return getKeyspace(namespace)
+    return schemaManager
+        .getKeyspaceAuthorized(namespace)
 
         // if not there error
         .onItem()

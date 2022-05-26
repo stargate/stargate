@@ -640,6 +640,42 @@ class SchemaManagerTest extends BridgeTest {
     }
 
     @Test
+    public void noneExists() {
+      QueryOuterClass.ResultSet.Builder resultSet = QueryOuterClass.ResultSet.newBuilder();
+      QueryOuterClass.Response queryResponse =
+          QueryOuterClass.Response.newBuilder().setResultSet(resultSet).build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<QueryOuterClass.Response> observer = invocationOnMock.getArgument(1);
+                observer.onNext(queryResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .executeQuery(any(), any());
+
+      schemaManager
+          .getKeyspaces()
+          .subscribe()
+          .withSubscriber(AssertSubscriber.create())
+          .awaitCompletion()
+          .assertCompleted()
+          .assertHasNotReceivedAnyItem();
+
+      verify(bridgeService).executeQuery(queryCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
+
+      // assert queries
+      assertThat(queryCaptor.getAllValues())
+          .singleElement()
+          .satisfies(
+              query ->
+                  assertThat(query.getCql())
+                      .isEqualTo("SELECT keyspace_name FROM system_schema.keyspaces"));
+    }
+
+    @Test
     public void deletedBetweenCalls() {
       String keyspace1 = RandomStringUtils.randomAlphanumeric(16);
       String keyspace2 = RandomStringUtils.randomAlphanumeric(16);
