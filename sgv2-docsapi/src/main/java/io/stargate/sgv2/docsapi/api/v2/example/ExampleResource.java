@@ -46,7 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Example resource showcasing the OpenAPI v3 annotations and the reactive implementation. */
-@Path("/api/v2/example")
+@Path("/v2/example")
 @Produces(MediaType.APPLICATION_JSON)
 @SecurityRequirement(name = Constants.OPEN_API_DEFAULT_SECURITY_SCHEME)
 public class ExampleResource {

@@ -80,7 +80,7 @@ public class ExampleResourceTest extends BridgeTest {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, token)
           .when()
-          .get("/api/v2/example/keyspace-exists/{name}", keyspaceName)
+          .get("/v2/example/keyspace-exists/{name}", keyspaceName)
           .then()
           .statusCode(200)
           .body("name", is(equalTo(keyspaceName)))
@@ -102,11 +102,7 @@ public class ExampleResourceTest extends BridgeTest {
     public void noToken() {
       String keyspaceName = RandomStringUtils.randomAlphanumeric(16);
 
-      given()
-          .when()
-          .get("/api/v2/example/keyspace-exists/{name}", keyspaceName)
-          .then()
-          .statusCode(401);
+      given().when().get("/v2/example/keyspace-exists/{name}", keyspaceName).then().statusCode(401);
 
       verifyNoInteractions(bridgeInterceptor, bridgeService);
     }
