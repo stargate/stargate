@@ -30,7 +30,7 @@ import org.eclipse.jetty.util.thread.ThreadPool;
  * @see "META-INF/services/io.dropwizard.server.ServerFactory"
  * @see "config.yaml"
  */
-@JsonTypeName("sgv2-rest-service")
+@JsonTypeName("sgv2-restapi")
 public class RestServiceServerFactory extends SimpleServerFactory {
 
   @Override

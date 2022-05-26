@@ -14,11 +14,11 @@ and uses standard DropWizard configuration approach.
 
 Project produces a single runnable uber/fat jar like:
 
-    sgv2-restapi/target/sgv2-rest-service-2.0.0-ALPHA-3-SNAPSHOT.jar
+    sgv2-restapi/target/sgv2-restapi-2.0.0-ALPHA-3-SNAPSHOT.jar
 
 which can be run with something like:
 
-    java -jar sgv2-rest-service-2.0.0-ALPHA-3-SNAPSHOT.jar
+    java -jar sgv2-restapi-2.0.0-ALPHA-3-SNAPSHOT.jar
 
 and assumes existence of an already running Stargate V1 instance (to use its gRPC API).
 Jar contains everything needed for running including DropWizard platform
@@ -38,14 +38,14 @@ While the first two are usually packaged into the uber-jar, system properties ar
 ```
 java -Ddw.server.connector.port=8085 \
    -Ddw.stargate.bridge.host=127.0.0.2 -Ddw.stargate.bridge.port=8091 \
-   -jar sgv2-rest-service-2.0.0-ALPHA-3-SNAPSHOT.jar
+   -jar sgv2-restapi-2.0.0-ALPHA-3-SNAPSHOT.jar
 ```
 
 Also note that file `sgv2-restapi/src/main/resources/config.yaml` contains
 explicit values for many things that have defaults in DropWizard default
 `Configuration` or our `RestServiceServerConfiguration`.
 
-Finally, note that linkage between server type "sgv2-rest-service" and actual
+Finally, note that linkage between server type "sgv2-restapi" and actual
 service implementation class is defined by resource file at:
 
     sgv2-restapi/src/main/resources/META-INF/services/io.dropwizard.server.ServerFactory
@@ -66,7 +66,7 @@ For example:
 
 ```
 java -Ddw.server.connector.port=8082 \
-   -jar sgv2-rest-service-v2.0.0-ALPHA-3.jar
+   -jar sgv2-restapi-v2.0.0-ALPHA-3.jar
 
 ```
 
