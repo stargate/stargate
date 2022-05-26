@@ -17,6 +17,7 @@
 
 package io.stargate.sgv2.docsapi.api.common.security.configuration;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.arc.lookup.LookupIfProperty;
 import io.quarkus.security.identity.IdentityProvider;
 import io.quarkus.vertx.http.runtime.security.HttpAuthenticationMechanism;
@@ -33,9 +34,10 @@ public class HeaderBasedSecurityConfiguration {
   @Produces
   @ApplicationScoped
   @LookupIfProperty(name = "stargate.auth.header-based.enabled", stringValue = "true")
-  HttpAuthenticationMechanism httpAuthenticationMechanism(AuthConfig config) {
+  HttpAuthenticationMechanism httpAuthenticationMechanism(
+      AuthConfig config, ObjectMapper objectMapper) {
     String headerName = config.headerBased().headerName();
-    return new HeaderBasedAuthenticationMechanism(headerName);
+    return new HeaderBasedAuthenticationMechanism(headerName, objectMapper);
   }
 
   @Produces
