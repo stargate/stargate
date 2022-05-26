@@ -22,7 +22,30 @@ import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import java.util.List;
 
-/** Delete query builder that deletes a complete document. */
+/**
+ * Delete query builder that deletes a complete document.
+ *
+ * <p>For example, given the document:
+ *
+ * <pre>
+ * { "a": 1, "b": 2 }
+ * </pre>
+ *
+ * That gets stored as the following rows:
+ *
+ * <pre>
+ * key | p0 | p1 | p2 | dbl_value
+ * --- +----+----+----+-----------
+ * xyz |  a |    |    |         1
+ * xyz |  b |    |    |         2
+ * </pre>
+ *
+ * The following DELETE conditions will be generated:
+ *
+ * <pre>
+ * WHERE key = 'xyz'
+ * </pre>
+ */
 public class DeleteDocumentQueryBuilder extends AbstractDeleteQueryBuilder {
 
   public DeleteDocumentQueryBuilder(DocumentProperties documentProperties) {

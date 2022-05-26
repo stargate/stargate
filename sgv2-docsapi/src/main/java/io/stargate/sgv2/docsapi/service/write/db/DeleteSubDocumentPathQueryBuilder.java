@@ -27,7 +27,41 @@ import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import java.util.List;
 
-/** Delete query builder that targets a sub-path of a document. */
+/**
+ * Delete query builder that targets a sub-path of a document.
+ *
+ * <p>For example, given the document:
+ *
+ * <pre>
+ * { "a": 1, "b": { "c": 2, "d": 3} }
+ * </pre>
+ *
+ * That gets stored as the following rows:
+ *
+ * <pre>
+ * key | p0 | p1 | p2 | dbl_value
+ * --- +----+----+----+-----------
+ * xyz |  a |    |    |         1
+ * xyz |  b |  c |    |         2
+ * xyz |  b |  d |    |         3
+ * </pre>
+ *
+ * The subpath ["b","c"] with exact=true will generate the DELETE conditions:
+ *
+ * <pre>
+ * WHERE key = 'xyz'
+ *   AND p0 = 'b'
+ *   AND p1 = 'c'
+ *   AND p2 = ''
+ * </pre>
+ *
+ * The subpath ["b"] with exact=false will generate the DELETE conditions:
+ *
+ * <pre>
+ * WHERE key = 'xyz'
+ *   AND p0 = 'b'
+ * </pre>
+ */
 public class DeleteSubDocumentPathQueryBuilder extends AbstractDeleteQueryBuilder {
 
   protected final List<String> subDocumentPath;

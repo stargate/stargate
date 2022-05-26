@@ -27,7 +27,33 @@ import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import java.util.List;
 
-/** Deletes given keys in the given document sub-path. */
+/**
+ * Deletes given keys in the given document sub-path.
+ *
+ * <p>For example, given the document:
+ *
+ * <pre>
+ * { "a": 1, "b": { "c": 2, "d": 3} }
+ * </pre>
+ *
+ * That gets stored as the following rows:
+ *
+ * <pre>
+ * key | p0 | p1 | p2 | dbl_value
+ * --- +----+----+----+-----------
+ * xyz |  a |    |    |         1
+ * xyz |  b |  c |    |         2
+ * xyz |  b |  d |    |         3
+ * </pre>
+ *
+ * The subpath ["b"] with keys ["d", "e"] will generate the DELETE conditions:
+ *
+ * <pre>
+ * WHERE key = 'xyz'
+ *   AND p0 = 'b'
+ *   AND p1 IN ('d', 'e')
+ * </pre>
+ */
 public class DeleteSubDocumentKeysQueryBuilder extends DeleteSubDocumentPathQueryBuilder {
 
   private final List<String> keys;
