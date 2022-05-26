@@ -35,6 +35,8 @@ import java.util.Optional;
 import java.util.Set;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Implementation of the {@link HttpAuthenticationMechanism} that authenticates on a header. If a
@@ -43,6 +45,9 @@ import javax.ws.rs.core.MediaType;
  * @see HeaderIdentityProvider
  */
 public class HeaderBasedAuthenticationMechanism implements HttpAuthenticationMechanism {
+
+  private static final Logger LOG =
+      LoggerFactory.getLogger(HeaderBasedAuthenticationMechanism.class);
 
   /** The name of the header to be used for the authentication. */
   private final String headerName;
@@ -119,6 +124,7 @@ public class HeaderBasedAuthenticationMechanism implements HttpAuthenticationMec
                     .completionStage(
                         context.response().write(response).map(true).toCompletionStage());
               } catch (JsonProcessingException e) {
+                LOG.error("Unable to serialize API error instance {} to JSON.", apiError, e);
                 return Uni.createFrom().item(true);
               }
             });
