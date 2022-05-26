@@ -211,7 +211,6 @@ public class CollectionsResourceIntegrationTest {
 
     @Test
     public void happyPath() {
-
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
@@ -225,7 +224,16 @@ public class CollectionsResourceIntegrationTest {
 
     @Test
     public void happyPathRaw() {
-      // TODO once we can create keyspace
+      given()
+          .param("raw", true)
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE)
+          .then()
+          .statusCode(200)
+          .body("[0].name", is(DEFAULT_COLLECTION))
+          .body("[0].upgradeAvailable", is(false))
+          .body("[0].upgradeType", is(nullValue()));
     }
 
     @Test
