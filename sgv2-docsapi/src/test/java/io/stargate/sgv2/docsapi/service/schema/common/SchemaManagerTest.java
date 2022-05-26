@@ -1021,7 +1021,7 @@ class SchemaManagerTest extends BridgeTest {
           .awaitCompletion()
           .assertCompleted();
 
-      verify(bridgeService).describeKeyspace(queryCaptor.capture(), any());
+      verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
       verifyNoMoreInteractions(bridgeService);
 
       // assert keyspace in cache
@@ -1055,7 +1055,7 @@ class SchemaManagerTest extends BridgeTest {
           .assertHasNotReceivedAnyItem()
           .assertCompleted();
 
-      verify(bridgeService).describeKeyspace(queryCaptor.capture(), any());
+      verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
       verifyNoMoreInteractions(bridgeService);
 
       // assert keyspace still in cache
@@ -1088,7 +1088,7 @@ class SchemaManagerTest extends BridgeTest {
               .getFailure();
 
       assertThat(failure).isEqualTo(exception);
-      verify(bridgeService).describeKeyspace(queryCaptor.capture(), any());
+      verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
       verifyNoMoreInteractions(bridgeService);
 
       // assert keyspace not in cache
@@ -1270,7 +1270,7 @@ class SchemaManagerTest extends BridgeTest {
           .assertCompleted();
 
       verify(bridgeService).authorizeSchemaReads(schemaReadsCaptor.capture(), any());
-      verify(bridgeService).describeKeyspace(queryCaptor.capture(), any());
+      verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
       verifyNoMoreInteractions(bridgeService);
 
       // assert keyspace in cache
