@@ -21,6 +21,8 @@ import java.util.Iterator;
 import java.util.List;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Json Schema manager provides basic operations to store, retrieve, and use the JSON schema for a
@@ -28,6 +30,8 @@ import javax.inject.Inject;
  */
 @ApplicationScoped
 public class JsonSchemaManager {
+  private static final Logger logger = LoggerFactory.getLogger(JsonSchemaManager.class);
+
   @Inject ObjectMapper objectMapper;
 
   @Inject JsonSchemaQueryProvider jsonSchemaQueryProvider;
@@ -57,6 +61,7 @@ public class JsonSchemaManager {
               try {
                 return objectMapper.readTree(comment);
               } catch (JsonProcessingException e) {
+                logger.warn("Document table has comment, but it's not a valid JSON.");
                 return null;
               }
             });
@@ -105,28 +110,19 @@ public class JsonSchemaManager {
    * @return a Uni with Boolean detailing whether or not the document complies with the schema.
    */
   public Uni<Boolean> validateJsonDocument(Uni<Schema.CqlTable> table, JsonNode document) {
-    return table
-        .onItem()
-        .ifNotNull()
-        .transform(
-            t -> {
-              String comment = t.getOptionsMap().getOrDefault("comment", null);
-              if (comment == null) {
-                // If there is no valid schema, then the document is valid
-                return true;
-              }
-              JsonNode jsonSchema;
-              try {
-                jsonSchema = objectMapper.readTree(comment);
-              } catch (JsonProcessingException e) {
-                // If there is no valid schema, then the document is valid
+    return getJsonSchema(table)
+        .map(
+            jsonSchema -> {
+              if (jsonSchema == null) {
+                // If there is no valid JSON schema, then the document is valid
                 return true;
               }
 
               try {
                 validate(jsonSchema.get("schema"), document);
               } catch (ProcessingException e) {
-                return true;
+                throw new ErrorCodeRuntimeException(
+                    ErrorCode.DOCS_API_JSON_SCHEMA_PROCESSING_FAILED);
               }
               return true;
             });

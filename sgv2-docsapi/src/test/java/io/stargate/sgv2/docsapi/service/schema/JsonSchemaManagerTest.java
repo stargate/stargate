@@ -8,6 +8,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.grpc.stub.StreamObserver;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.smallrye.mutiny.Uni;
@@ -55,7 +56,13 @@ class JsonSchemaManagerTest extends BridgeTest {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
 
-      doAnswer(invocationOnMock -> QueryOuterClass.Query.getDefaultInstance())
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<QueryOuterClass.Query> observer = invocationOnMock.getArgument(1);
+                observer.onNext(QueryOuterClass.Query.getDefaultInstance());
+                observer.onCompleted();
+                return null;
+              })
           .when(bridgeService)
           .executeQuery(any(), any());
 
@@ -65,7 +72,8 @@ class JsonSchemaManagerTest extends BridgeTest {
       jsonSchemaManager
           .attachJsonSchema(namespace, collection, schema)
           .subscribe()
-          .withSubscriber(UniAssertSubscriber.create());
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitItem();
 
       verify(bridgeService).executeQuery(any(), any());
       verifyNoMoreInteractions(bridgeService);
