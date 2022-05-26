@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.bridge.grpc.Values;
-import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.QueryOuterClass.BatchQuery;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.ImmutableJsonShreddedRow;
@@ -49,7 +49,7 @@ class InsertQueryBuilderTest {
     public void happyPath() {
       InsertQueryBuilder queryBuilder = new InsertQueryBuilder(documentProperties);
 
-      Query query =
+      BatchQuery query =
           queryBuilder.buildQuery(
               schemaProvider.getKeyspace().getName(), schemaProvider.getTable().getName(), null);
 
@@ -64,7 +64,7 @@ class InsertQueryBuilderTest {
     public void happyPathWithTtl() {
       InsertQueryBuilder queryBuilder = new InsertQueryBuilder(documentProperties);
 
-      Query query =
+      BatchQuery query =
           queryBuilder.buildQuery(
               schemaProvider.getKeyspace().getName(), schemaProvider.getTable().getName(), 1);
 
@@ -82,7 +82,7 @@ class InsertQueryBuilderTest {
     @Test
     public void stringValue() {
       InsertQueryBuilder queryBuilder = new InsertQueryBuilder(documentProperties);
-      Query query =
+      BatchQuery query =
           queryBuilder.buildQuery(
               schemaProvider.getKeyspace().getName(), schemaProvider.getTable().getName(), null);
 
@@ -119,7 +119,7 @@ class InsertQueryBuilderTest {
     @Test
     public void doubleValue() {
       InsertQueryBuilder queryBuilder = new InsertQueryBuilder(documentProperties);
-      Query query =
+      BatchQuery query =
           queryBuilder.buildQuery(
               schemaProvider.getKeyspace().getName(), schemaProvider.getTable().getName(), null);
 
@@ -156,7 +156,7 @@ class InsertQueryBuilderTest {
     @Test
     public void booleanValue() {
       InsertQueryBuilder queryBuilder = new InsertQueryBuilder(documentProperties);
-      Query query =
+      BatchQuery query =
           queryBuilder.buildQuery(
               schemaProvider.getKeyspace().getName(), schemaProvider.getTable().getName(), null);
 
@@ -193,7 +193,7 @@ class InsertQueryBuilderTest {
     @Test
     public void maxDepthDifferent() {
       InsertQueryBuilder queryBuilder = new InsertQueryBuilder(documentProperties);
-      Query query =
+      BatchQuery query =
           queryBuilder.buildQuery(
               schemaProvider.getKeyspace().getName(), schemaProvider.getTable().getName(), null);
 
