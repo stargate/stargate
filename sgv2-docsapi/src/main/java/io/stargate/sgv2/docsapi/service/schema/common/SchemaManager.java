@@ -18,6 +18,7 @@
 package io.stargate.sgv2.docsapi.service.schema.common;
 
 import com.google.protobuf.BytesValue;
+import com.google.protobuf.Int32Value;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.opentelemetry.extension.annotations.WithSpan;
@@ -185,15 +186,15 @@ public class SchemaManager {
                   .ifNotNull()
                   .transformToMulti(
                       response -> {
-                        List<String> authorizedKeyspace = new ArrayList<>(keyspaceNames);
-                        authorizedKeyspace.removeIf(
-                            keyspace -> {
-                              int index = keyspaceNames.indexOf(keyspace);
-                              return !Boolean.TRUE.equals(response.getAuthorized(index));
-                            });
-
+                        List<String> authorizedKeyspaces = new ArrayList<>(keyspaceNames.size());
+                        List<Boolean> authorizedList = response.getAuthorizedList();
+                        for (int i = 0; i < authorizedList.size(); i++) {
+                          if (authorizedList.get(i)) {
+                            authorizedKeyspaces.add(keyspaceNames.get(i));
+                          }
+                        }
                         // and return all authorized tables
-                        return Multi.createFrom().iterable(authorizedKeyspace);
+                        return Multi.createFrom().iterable(authorizedKeyspaces);
                       });
             })
 
@@ -379,11 +380,13 @@ public class SchemaManager {
               QueryOuterClass.Query.Builder queryBuilder =
                   QueryOuterClass.Query.newBuilder()
                       .setCql("SELECT keyspace_name FROM system_schema.keyspaces");
+
+              QueryOuterClass.QueryParameters.Builder params =
+                  QueryOuterClass.QueryParameters.newBuilder().setPageSize(Int32Value.of(100));
               if (null != paging.pageState()) {
-                QueryOuterClass.QueryParameters.Builder params =
-                    QueryOuterClass.QueryParameters.newBuilder().setPagingState(paging.pageState());
-                queryBuilder.setParameters(params);
+                params.setPagingState(paging.pageState());
               }
+              queryBuilder.setParameters(params);
 
               return bridge
                   .executeQuery(queryBuilder.build())

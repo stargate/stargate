@@ -95,7 +95,7 @@ public class KeyspaceManager {
   }
 
   /**
-   * Deletes a namespace with specified replication.
+   * Deletes a namespace.
    *
    * <p>Emits a failure in case:
    *
