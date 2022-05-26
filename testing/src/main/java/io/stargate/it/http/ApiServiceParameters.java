@@ -69,7 +69,7 @@ public interface ApiServiceParameters {
   String serviceLibDirProperty();
 
   @Value.Parameter
-  // example: "sgv2-rest-service"
+  // example: "sgv2-restapi"
   String serviceJarBase();
 
   /** The arguments to pass to the service starter class. */

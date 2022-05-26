@@ -107,7 +107,7 @@ public class RestApiMetricsTest extends BaseRestApiTest {
                           assertThat(metric)
                               .contains("method=\"GET\"")
                               // NOTE! Hyphens remain and are NOT converted to underscores
-                              .contains("module=\"sgv2-rest-service\"")
+                              .contains("module=\"sgv2-restapi\"")
                               .contains("uri=\"/v2/schemas/keyspaces\"")
                               .contains(String.format("status=\"%d\"", status))
                               // 13-Jan-2022, tatu: As mentioned above, no tags yet
@@ -119,7 +119,7 @@ public class RestApiMetricsTest extends BaseRestApiTest {
                       metric ->
                           assertThat(metric)
                               .contains("method=\"GET\"")
-                              .contains("module=\"sgv2-rest-service\"")
+                              .contains("module=\"sgv2-restapi\"")
                               .contains("uri=\"/v2/schemas/keyspaces\"")
                               .contains(String.format("status=\"%d\"", status))
                               // 13-Jan-2022, tatu: As mentioned above, no tags yet
@@ -139,7 +139,7 @@ public class RestApiMetricsTest extends BaseRestApiTest {
                       metric ->
                           assertThat(metric)
                               .contains("error=\"false\"")
-                              .contains("module=\"sgv2-rest-service\"")
+                              .contains("module=\"sgv2-restapi\"")
                               .doesNotContain("method=\"GET\"")
                               .doesNotContain("uri=\"/v2/schemas/keyspaces\"")
                               .doesNotContain(String.format("status=\"%d\"", status))
@@ -179,7 +179,7 @@ public class RestApiMetricsTest extends BaseRestApiTest {
                       metric ->
                           assertThat(metric)
                               .contains("method=\"GET\"")
-                              .contains("module=\"sgv2-rest-service-other\"")
+                              .contains("module=\"sgv2-restapi-other\"")
                               .contains("uri=\"root\"")
                               .contains(String.format("status=\"%d\"", status))
                               // 13-Jan-2022, tatu: As mentioned above, no tags yet
@@ -190,7 +190,7 @@ public class RestApiMetricsTest extends BaseRestApiTest {
                       metric ->
                           assertThat(metric)
                               .contains("method=\"GET\"")
-                              .contains("module=\"sgv2-rest-service-other\"")
+                              .contains("module=\"sgv2-restapi-other\"")
                               .contains("uri=\"root\"")
                               .contains(String.format("status=\"%d\"", status))
                               // 13-Jan-2022, tatu: As mentioned above, no tags yet
@@ -209,7 +209,7 @@ public class RestApiMetricsTest extends BaseRestApiTest {
                       metric ->
                           assertThat(metric)
                               .contains("error=\"false\"")
-                              .contains("module=\"sgv2-rest-service-other\"")
+                              .contains("module=\"sgv2-restapi-other\"")
                               .doesNotContain("method=\"GET\"")
                               .doesNotContain("uri=\"root\"")
                               .doesNotContain(String.format("status=\"%d\"", status)));
@@ -217,7 +217,7 @@ public class RestApiMetricsTest extends BaseRestApiTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"sgv2_rest_service"})
+  @ValueSource(strings = {"sgv2_restapi"})
   public void dropwizardMetricsModule(String module) throws IOException {
     String[] expectedMetricGroups =
         new String[] {"TimeBoundHealthCheck", "io_dropwizard_jersey", "org_eclipse_jetty"};

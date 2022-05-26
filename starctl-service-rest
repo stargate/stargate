@@ -64,6 +64,6 @@ echo "Starting REST API Service"
 
 declare -a CMD=(java -server)
 CMD+=("${JAVA_OPTS[@]}")
-CMD+=(-jar $STARGATE_HOME/rest/sgv2-rest-service*.jar)
+CMD+=(-jar $STARGATE_HOME/rest/sgv2-rest*.jar)
 echo "Running" "${CMD[@]}"
 exec "${CMD[@]}"
