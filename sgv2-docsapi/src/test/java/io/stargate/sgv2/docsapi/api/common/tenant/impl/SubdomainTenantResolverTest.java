@@ -20,10 +20,14 @@ package io.stargate.sgv2.docsapi.api.common.tenant.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.stargate.sgv2.docsapi.api.common.tenant.TenantResolver;
 import io.vertx.ext.web.RoutingContext;
+import java.util.Map;
 import java.util.Optional;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
@@ -31,7 +35,19 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
+@TestProfile(SubdomainTenantResolverTest.Profile.class)
 class SubdomainTenantResolverTest {
+
+  public static class Profile implements QuarkusTestProfile {
+
+    @Override
+    public Map<String, String> getConfigOverrides() {
+      return ImmutableMap.<String, String>builder()
+          .put("stargate.multi-tenancy.enabled", "true")
+          .put("stargate.multi-tenancy.tenant-resolver.type", "subdomain")
+          .build();
+    }
+  }
 
   @Inject // enabled by default
   Instance<TenantResolver> tenantResolver;

@@ -17,8 +17,10 @@
 
 package io.stargate.sgv2.docsapi.api.common;
 
+import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.docsapi.api.common.tenant.TenantResolver;
 import io.stargate.sgv2.docsapi.api.common.token.CassandraTokenResolver;
+import io.stargate.sgv2.docsapi.grpc.GrpcClients;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Optional;
 import javax.enterprise.context.RequestScoped;
@@ -27,8 +29,8 @@ import javax.inject.Inject;
 import javax.ws.rs.core.SecurityContext;
 
 /**
- * The request information containing the tenant ID and the Cassandra key. This bean is @{@link
- * RequestScoped}.
+ * The request information containing the tenant ID and the Cassandra key, and the eagrly created
+ * {@link StargateBridge} to be used in this request. This bean is @{@link RequestScoped}.
  *
  * <p>Uses the registered {@link TenantResolver} and {@link CassandraTokenResolver} to optionally
  * resolve the tenant ID and the Cassandra token.
@@ -40,14 +42,18 @@ public class StargateRequestInfo {
 
   private final Optional<String> cassandraToken;
 
+  private final StargateBridge stargateBridge;
+
   @Inject
   public StargateRequestInfo(
       RoutingContext routingContext,
       SecurityContext securityContext,
+      GrpcClients grpcClients,
       Instance<TenantResolver> tenantResolver,
       Instance<CassandraTokenResolver> tokenResolver) {
     this.tenantId = tenantResolver.get().resolve(routingContext, securityContext);
     this.cassandraToken = tokenResolver.get().resolve(routingContext, securityContext);
+    this.stargateBridge = grpcClients.bridgeClient(tenantId, cassandraToken);
   }
 
   public Optional<String> getTenantId() {
@@ -56,5 +62,9 @@ public class StargateRequestInfo {
 
   public Optional<String> getCassandraToken() {
     return cassandraToken;
+  }
+
+  public StargateBridge getStargateBridge() {
+    return stargateBridge;
   }
 }

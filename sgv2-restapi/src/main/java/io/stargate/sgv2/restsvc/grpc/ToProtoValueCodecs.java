@@ -1,9 +1,9 @@
 package io.stargate.sgv2.restsvc.grpc;
 
+import io.stargate.bridge.grpc.CqlDuration;
+import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.core.util.ByteBufferUtils;
-import io.stargate.grpc.CqlDuration;
-import io.stargate.grpc.Values;
-import io.stargate.proto.QueryOuterClass;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;

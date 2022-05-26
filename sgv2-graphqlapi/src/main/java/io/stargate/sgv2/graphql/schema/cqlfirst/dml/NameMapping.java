@@ -17,9 +17,9 @@ package io.stargate.sgv2.graphql.schema.cqlfirst.dml;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec.Udt;
-import io.stargate.proto.Schema.CqlTable;
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Udt;
+import io.stargate.bridge.proto.Schema.CqlTable;
 import io.stargate.sgv2.graphql.schema.cqlfirst.dml.NameConversions.IdentifierType;
 import java.util.HashMap;
 import java.util.List;

@@ -36,15 +36,22 @@ public class GraphqlFirstClient extends GraphqlClient {
   private static final String FILES = "/graphql-files";
 
   private final String host;
+  private final int port;
   private final String authToken;
   private final String adminUri;
   private final String cqlDirectivesUri;
 
   public GraphqlFirstClient(String host, String authToken) {
+    this(host, 8080, authToken);
+  }
+
+  public GraphqlFirstClient(String host, int port, String authToken) {
     this.host = host;
+    this.port = port;
     this.authToken = authToken;
-    this.adminUri = String.format("http://%s:8080%s", host, ADMIN);
-    this.cqlDirectivesUri = String.format("http://%s:8080%s/cql_directives.graphql", host, FILES);
+    this.adminUri = String.format("http://%s:%d%s", host, port, ADMIN);
+    this.cqlDirectivesUri =
+        String.format("http://%s:%d%s/cql_directives.graphql", host, port, FILES);
   }
 
   /**
@@ -210,7 +217,7 @@ public class GraphqlFirstClient extends GraphqlClient {
 
   private String buildSchemaFileUri(String keyspace, String version) {
     String url =
-        String.format("http://%s:8080%s/keyspace/%s.graphql", host, FILES, urlEncode(keyspace));
+        String.format("http://%s:%d%s/keyspace/%s.graphql", host, port, FILES, urlEncode(keyspace));
     if (version != null) {
       url = url + "?version=" + urlEncode(version);
     }
@@ -218,6 +225,6 @@ public class GraphqlFirstClient extends GraphqlClient {
   }
 
   private String buildKeyspaceUri(String keyspace) {
-    return String.format("http://%s:8080%s/%s", host, KEYSPACES, keyspace);
+    return String.format("http://%s:%d%s/%s", host, port, KEYSPACES, keyspace);
   }
 }

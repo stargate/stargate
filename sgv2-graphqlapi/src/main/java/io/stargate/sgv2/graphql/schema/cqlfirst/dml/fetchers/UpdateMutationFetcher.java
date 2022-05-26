@@ -1,10 +1,10 @@
 package io.stargate.sgv2.graphql.schema.cqlfirst.dml.fetchers;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.proto.QueryOuterClass;
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
-import io.stargate.proto.Schema.CqlTable;
+import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.proto.Schema.CqlTable;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
@@ -37,6 +37,7 @@ public class UpdateMutationFetcher extends MutationFetcher {
         .where(buildPrimaryKeyWhere(environment))
         .ifs(buildConditions(environment.getArgument("ifCondition")))
         .ifExists(ifExists)
+        .parameters(buildParameters(environment))
         .build();
   }
 

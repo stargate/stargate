@@ -16,9 +16,9 @@
 package io.stargate.sgv2.graphql.schema.cqlfirst.dml.fetchers;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.Schema;
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.common.cql.builder.ValueModifier;
 import io.stargate.sgv2.graphql.schema.cqlfirst.dml.NameMapping;
@@ -51,6 +51,7 @@ public class BulkInsertMutationFetcher extends BulkMutationFetcher {
               .value(buildInsertValues(value))
               .ifNotExists(ifNotExists)
               .ttl(getTtl(environment))
+              .parameters(buildParameters(environment))
               .build();
 
       boundQueries.add(query);

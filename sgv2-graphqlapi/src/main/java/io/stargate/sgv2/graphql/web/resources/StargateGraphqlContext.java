@@ -16,11 +16,11 @@
 package io.stargate.sgv2.graphql.web.resources;
 
 import com.google.common.base.MoreObjects;
-import io.stargate.proto.QueryOuterClass.BatchParameters;
-import io.stargate.proto.QueryOuterClass.BatchQuery;
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.QueryOuterClass.QueryParameters;
-import io.stargate.proto.QueryOuterClass.Response;
+import io.stargate.bridge.proto.QueryOuterClass.BatchParameters;
+import io.stargate.bridge.proto.QueryOuterClass.BatchQuery;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.QueryOuterClass.QueryParameters;
+import io.stargate.bridge.proto.QueryOuterClass.Response;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.graphql.schema.CassandraFetcher;
 import java.util.ArrayList;
@@ -48,6 +48,10 @@ public class StargateGraphqlContext {
 
   public StargateBridgeClient getBridge() {
     return bridge;
+  }
+
+  public GraphqlCache getGraphqlCache() {
+    return graphqlCache;
   }
 
   public BatchContext getBatchContext() {

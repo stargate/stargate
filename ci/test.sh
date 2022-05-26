@@ -54,6 +54,7 @@ echoinfo "Testing Java 17 projects"
 
 cd sgv2-docsapi/
 JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./mvnw -B verify --file ./pom.xml \
+-P \!int-tests \
 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 cd ../
 
@@ -61,6 +62,9 @@ echoinfo "Test complete"
 
 echoinfo "Uploading test results"
 
+# We don't care too much if this intermittently fails,
+# so don't fail the entirety of CI if anything below this line fails using set +e
+set +e
 # Determine CODACY_REPORTER_VERSION once to avoid hitting the "get latest" API too frequently
 # in the get.sh commands below. Note: the sed command was copied from get.sh
 export CODACY_REPORTER_VERSION="$(curl https://artifacts.codacy.com/bin/codacy-coverage-reporter/latest)"

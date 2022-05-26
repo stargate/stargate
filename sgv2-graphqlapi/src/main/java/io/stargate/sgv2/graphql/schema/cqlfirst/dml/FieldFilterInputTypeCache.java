@@ -20,7 +20,7 @@ import graphql.schema.GraphQLInputType;
 import graphql.schema.GraphQLList;
 import graphql.schema.GraphQLNonNull;
 import graphql.schema.GraphQLScalarType;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
 import io.stargate.sgv2.graphql.schema.cqlfirst.dml.fetchers.FilterOperator;
 
 /**

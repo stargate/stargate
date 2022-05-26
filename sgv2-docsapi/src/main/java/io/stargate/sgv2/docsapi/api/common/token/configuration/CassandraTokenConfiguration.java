@@ -22,7 +22,7 @@ import io.stargate.sgv2.docsapi.api.common.token.CassandraTokenResolver;
 import io.stargate.sgv2.docsapi.api.common.token.impl.FixedTokenResolver;
 import io.stargate.sgv2.docsapi.api.common.token.impl.HeaderTokenResolver;
 import io.stargate.sgv2.docsapi.api.common.token.impl.PrincipalTokenResolver;
-import io.stargate.sgv2.docsapi.config.TokenResolverConfig;
+import io.stargate.sgv2.docsapi.config.AuthConfig;
 import java.util.Optional;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
@@ -32,30 +32,30 @@ public class CassandraTokenConfiguration {
 
   @Produces
   @ApplicationScoped
-  @LookupIfProperty(name = "stargate.token-resolver.type", stringValue = "header")
-  CassandraTokenResolver headerTokenResolver(TokenResolverConfig config) {
-    String headerName = config.header().headerName();
+  @LookupIfProperty(name = "stargate.auth.token-resolver.type", stringValue = "header")
+  CassandraTokenResolver headerTokenResolver(AuthConfig config) {
+    String headerName = config.tokenResolver().header().headerName();
     return new HeaderTokenResolver(headerName);
   }
 
   @Produces
   @ApplicationScoped
-  @LookupIfProperty(name = "stargate.token-resolver.type", stringValue = "principal")
+  @LookupIfProperty(name = "stargate.auth.token-resolver.type", stringValue = "principal")
   CassandraTokenResolver principalTokenResolver() {
     return new PrincipalTokenResolver();
   }
 
   @Produces
   @ApplicationScoped
-  @LookupIfProperty(name = "stargate.token-resolver.type", stringValue = "fixed")
-  CassandraTokenResolver fixedTokenResolver(TokenResolverConfig config) {
-    return new FixedTokenResolver(config.fixed());
+  @LookupIfProperty(name = "stargate.auth.token-resolver.type", stringValue = "fixed")
+  CassandraTokenResolver fixedTokenResolver(AuthConfig config) {
+    return new FixedTokenResolver(config.tokenResolver().fixed());
   }
 
   @Produces
   @ApplicationScoped
   @LookupIfProperty(
-      name = "stargate.token-resolver.type",
+      name = "stargate.auth.token-resolver.type",
       stringValue = "noop",
       lookupIfMissing = true)
   CassandraTokenResolver noopCassandraTokenResolver() {

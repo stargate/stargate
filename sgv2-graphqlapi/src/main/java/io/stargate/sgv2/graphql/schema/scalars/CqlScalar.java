@@ -16,8 +16,8 @@
 package io.stargate.sgv2.graphql.schema.scalars;
 
 import graphql.schema.GraphQLScalarType;
-import io.stargate.grpc.CqlDuration;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.grpc.CqlDuration;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -222,23 +222,25 @@ public enum CqlScalar {
           .build()),
   ;
 
-  private static final Map<TypeSpec.Basic, CqlScalar> FROM_CQL =
-      Arrays.stream(values()).collect(Collectors.toMap(CqlScalar::getCqlType, Function.identity()));
+  private static final Map<TypeSpec.Basic, CqlScalar> FROM_BASIC =
+      Arrays.stream(values()).collect(Collectors.toMap(s -> s.basicCqlType, Function.identity()));
   private static final Map<String, CqlScalar> FROM_GRAPHQL_NAME =
       Arrays.stream(values())
           .collect(Collectors.toMap(s -> s.getGraphqlType().getName(), Function.identity()));
 
-  private final TypeSpec.Basic cqlType;
+  private final TypeSpec.Basic basicCqlType;
+  private final TypeSpec cqlType;
   private final Class<?> cqlValueClass;
   private final GraphQLScalarType graphqlType;
 
-  CqlScalar(TypeSpec.Basic cqlType, Class<?> cqlValueClass, GraphQLScalarType graphqlType) {
-    this.cqlType = cqlType;
+  CqlScalar(TypeSpec.Basic basicCqlType, Class<?> cqlValueClass, GraphQLScalarType graphqlType) {
+    this.basicCqlType = basicCqlType;
+    this.cqlType = TypeSpec.newBuilder().setBasic(basicCqlType).build();
     this.cqlValueClass = cqlValueClass;
     this.graphqlType = graphqlType;
   }
 
-  public TypeSpec.Basic getCqlType() {
+  public TypeSpec getCqlType() {
     return cqlType;
   }
 
@@ -251,8 +253,8 @@ public enum CqlScalar {
     return graphqlType;
   }
 
-  public static Optional<CqlScalar> fromCqlType(TypeSpec.Basic cqlType) {
-    return Optional.ofNullable(FROM_CQL.get(cqlType));
+  public static Optional<CqlScalar> fromBasicCqlType(TypeSpec.Basic cqlType) {
+    return Optional.ofNullable(FROM_BASIC.get(cqlType));
   }
 
   public static Optional<CqlScalar> fromGraphqlName(String graphqlName) {

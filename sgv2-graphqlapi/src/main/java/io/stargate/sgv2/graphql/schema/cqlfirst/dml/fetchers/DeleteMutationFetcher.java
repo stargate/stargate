@@ -1,8 +1,8 @@
 package io.stargate.sgv2.graphql.schema.cqlfirst.dml.fetchers;
 
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.Schema.CqlTable;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.Schema.CqlTable;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.graphql.schema.cqlfirst.dml.NameMapping;
 import io.stargate.sgv2.graphql.web.resources.StargateGraphqlContext;
@@ -27,6 +27,7 @@ public class DeleteMutationFetcher extends MutationFetcher {
         .where(buildClause(table, environment))
         .ifs(buildConditions(environment.getArgument("ifCondition")))
         .ifExists(ifExists)
+        .parameters(buildParameters(environment))
         .build();
   }
 }

@@ -24,11 +24,11 @@ import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
+import io.stargate.bridge.proto.Schema.SchemaRead;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
 import io.stargate.metrics.jersey.MetricsBinder;
-import io.stargate.proto.Schema.SchemaRead;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.common.grpc.StargateBridgeClientFactory;
 import io.stargate.sgv2.common.http.CreateStargateBridgeClientFilter;
@@ -62,21 +62,30 @@ import org.glassfish.jersey.server.ServerProperties;
 
 /** DropWizard {@code Application} that will serve Stargate v2 REST service endpoints. */
 public class RestServiceServer extends Application<RestServiceServerConfiguration> {
-  public static final String REST_SVC_MODULE_NAME = "sgv2-rest-service";
+  /**
+   * Module name is used for example as the prefix for metrics export.
+   *
+   * <p>Note that Stargate V1 had module name of {@code "restapi"}: for V2 we use different name to
+   * allow separating metrics during upgrade process.
+   */
+  public static final String REST_SVC_MODULE_NAME = "sgv2-restapi";
 
   public static final String[] NON_API_URI_REGEX = new String[] {"^/$", "^/health$", "^/swagger.*"};
 
   private final Metrics metrics;
   private final MetricsScraper metricsScraper;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
+  private final int timeoutSeconds;
 
   public RestServiceServer(
       Metrics metrics,
       MetricsScraper metricsScraper,
-      HttpMetricsTagProvider httpMetricsTagProvider) {
+      HttpMetricsTagProvider httpMetricsTagProvider,
+      int timeoutSeconds) {
     this.metrics = metrics;
     this.metricsScraper = metricsScraper;
     this.httpMetricsTagProvider = httpMetricsTagProvider;
+    this.timeoutSeconds = timeoutSeconds;
 
     BeanConfig beanConfig = new BeanConfig();
     beanConfig.setSchemes(new String[] {"http"});
@@ -107,7 +116,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
 
     StargateBridgeClientFactory clientFactory =
         StargateBridgeClientFactory.newInstance(
-            appConfig.stargate.bridge.buildChannel(), SchemaRead.SourceApi.REST);
+            appConfig.stargate.bridge.buildChannel(), timeoutSeconds, SchemaRead.SourceApi.REST);
     environment.jersey().register(buildClientFilter(clientFactory));
 
     environment

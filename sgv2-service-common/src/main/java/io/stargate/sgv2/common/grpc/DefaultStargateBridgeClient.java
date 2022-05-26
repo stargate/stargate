@@ -27,23 +27,23 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.ClientCalls;
 import io.grpc.stub.MetadataUtils;
-import io.stargate.grpc.StargateBearerToken;
-import io.stargate.proto.QueryOuterClass.Batch;
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.QueryOuterClass.QueryParameters;
-import io.stargate.proto.QueryOuterClass.Response;
-import io.stargate.proto.QueryOuterClass.ResultSet;
-import io.stargate.proto.QueryOuterClass.Row;
-import io.stargate.proto.Schema;
-import io.stargate.proto.Schema.AuthorizeSchemaReadsRequest;
-import io.stargate.proto.Schema.AuthorizeSchemaReadsResponse;
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
-import io.stargate.proto.Schema.DescribeKeyspaceQuery;
-import io.stargate.proto.Schema.SchemaRead;
-import io.stargate.proto.Schema.SchemaRead.SourceApi;
-import io.stargate.proto.Schema.SupportedFeaturesRequest;
-import io.stargate.proto.Schema.SupportedFeaturesResponse;
-import io.stargate.proto.StargateBridgeGrpc;
+import io.stargate.bridge.grpc.StargateBearerToken;
+import io.stargate.bridge.proto.QueryOuterClass.Batch;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.QueryOuterClass.QueryParameters;
+import io.stargate.bridge.proto.QueryOuterClass.Response;
+import io.stargate.bridge.proto.QueryOuterClass.ResultSet;
+import io.stargate.bridge.proto.QueryOuterClass.Row;
+import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.Schema.AuthorizeSchemaReadsRequest;
+import io.stargate.bridge.proto.Schema.AuthorizeSchemaReadsResponse;
+import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.bridge.proto.Schema.DescribeKeyspaceQuery;
+import io.stargate.bridge.proto.Schema.SchemaRead;
+import io.stargate.bridge.proto.Schema.SchemaRead.SourceApi;
+import io.stargate.bridge.proto.Schema.SupportedFeaturesRequest;
+import io.stargate.bridge.proto.Schema.SupportedFeaturesResponse;
+import io.stargate.bridge.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.common.futures.Futures;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -59,9 +59,9 @@ import org.apache.commons.codec.binary.Hex;
 
 class DefaultStargateBridgeClient implements StargateBridgeClient {
 
-  private static final int TIMEOUT_SECONDS = 5;
-  private static final Metadata.Key<String> HOST_KEY =
-      Metadata.Key.of("Host", Metadata.ASCII_STRING_MARSHALLER);
+  private static final int TIMEOUT_SECONDS = 10;
+  static final Metadata.Key<String> TENANT_ID_KEY =
+      Metadata.Key.of("x-tenant-id", Metadata.ASCII_STRING_MARSHALLER);
   static final Query SELECT_KEYSPACE_NAMES =
       Query.newBuilder().setCql("SELECT keyspace_name FROM system_schema.keyspaces").build();
   private static final SupportedFeaturesRequest SUPPORTED_FEATURES_REQUEST =
@@ -69,6 +69,11 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
 
   private final Channel channel;
   private final CallOptions callOptions;
+  // A note on tenant handling: the tenant id is sent in the gRPC metadata, so the bridge will
+  // handle it transparently; client-facing methods like `executeQueryAsync()` and
+  // `authorizeSchemaReadsAsync()` use "undecorated" keyspace names.
+  // The only case where we need to decorate explicitly is the keyspace cache, because it is common
+  // to all clients, therefore it can contain keyspaces with the same name but different tenant ids.
   private final String tenantPrefix;
   private final Cache<String, CqlKeyspaceDescribe> keyspaceCache;
   private final LazyReference<CompletionStage<SupportedFeaturesResponse>> supportedFeaturesResponse;
@@ -78,13 +83,14 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
       Channel channel,
       String authToken,
       Optional<String> tenantId,
+      int timeoutSeconds,
       Cache<String, CqlKeyspaceDescribe> keyspaceCache,
       LazyReference<CompletionStage<SupportedFeaturesResponse>> supportedFeaturesResponse,
       SourceApi sourceApi) {
     this.channel = tenantId.map(i -> addMetadata(channel, i)).orElse(channel);
     this.callOptions =
         CallOptions.DEFAULT
-            .withDeadlineAfter(TIMEOUT_SECONDS, TimeUnit.SECONDS)
+            .withDeadlineAfter(timeoutSeconds, TimeUnit.SECONDS)
             .withCallCredentials(new StargateBearerToken(authToken));
     this.tenantPrefix = tenantId.map(this::encodeKeyspacePrefix).orElse("");
     this.keyspaceCache = keyspaceCache;
@@ -130,7 +136,9 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
   private CompletionStage<CqlKeyspaceDescribe> getAuthorizedKeyspace(String keyspaceName) {
     CompletableFuture<CqlKeyspaceDescribe> result = new CompletableFuture<>();
 
-    CqlKeyspaceDescribe cached = keyspaceCache.getIfPresent(keyspaceName);
+    String decoratedKeyspaceName = decorateKeyspaceName(keyspaceName);
+
+    CqlKeyspaceDescribe cached = keyspaceCache.getIfPresent(decoratedKeyspaceName);
     Optional<Integer> cachedHash =
         Optional.ofNullable(cached)
             .filter(CqlKeyspaceDescribe::hasHash)
@@ -146,7 +154,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
                       == Status.Code.NOT_FOUND) {
                 // Keyspace does not exist. Update the cache if we previously thought it did.
                 if (cached != null) {
-                  keyspaceCache.invalidate(keyspaceName);
+                  keyspaceCache.invalidate(decoratedKeyspaceName);
                 }
                 result.complete(null);
               } else if (error != null) {
@@ -156,7 +164,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
                 // cached version.
                 result.complete(cached);
               } else {
-                keyspaceCache.put(keyspaceName, fetched);
+                keyspaceCache.put(decoratedKeyspaceName, fetched);
                 result.complete(fetched);
               }
             });
@@ -318,7 +326,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
 
   private Channel addMetadata(Channel channel, String tenantId) {
     Metadata metadata = new Metadata();
-    metadata.put(HOST_KEY, tenantId);
+    metadata.put(TENANT_ID_KEY, tenantId);
     return ClientInterceptors.intercept(
         channel, MetadataUtils.newAttachHeadersInterceptor(metadata));
   }

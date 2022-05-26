@@ -1,7 +1,7 @@
 package io.stargate.sgv2.graphql.schema.cqlfirst.dml;
 
-import io.stargate.proto.QueryOuterClass.TypeSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec.Tuple;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Tuple;
 import java.util.Arrays;
 
 abstract class TypeCacheTestBase {

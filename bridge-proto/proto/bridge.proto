@@ -1,0 +1,47 @@
+/*
+ * Copyright The Stargate Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+syntax = "proto3";
+
+option java_package = "io.stargate.bridge.proto";
+option go_package = "stargate/bridge/proto";
+
+package stargate;
+
+import "query.proto";
+import "schema.proto";
+
+// The gPRC API used by Stargate services to interact with the persistence backend.
+service StargateBridge {
+  // Executes a single CQL query.
+  rpc ExecuteQuery(Query) returns (Response) {}
+
+  // Executes a batch of CQL queries.
+  rpc ExecuteBatch(Batch) returns (Response) {}
+
+  // Similar to CQL "DESCRIBE KEYSPACE".
+  // Note that this operation does not perform any authorization check. The rationale is that, most
+  // of the time, client services use schema metadata to build another query that will be
+  // immediately executed with `ExecuteQuery` (which does check authorization).
+  // If that is not the case (e.g. you return the metadata directly to the client), you can check
+  // authorization explicitly with `AuthorizeSchemaReads`.
+  rpc DescribeKeyspace(DescribeKeyspaceQuery) returns (CqlKeyspaceDescribe) {}
+
+  // Checks whether the client is authorized to describe one or more schema elements.
+  rpc AuthorizeSchemaReads(AuthorizeSchemaReadsRequest) returns (AuthorizeSchemaReadsResponse) {}
+
+  // Checks which features are supported by the persistence backend.
+  rpc GetSupportedFeatures(SupportedFeaturesRequest) returns (SupportedFeaturesResponse) {}
+}

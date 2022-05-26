@@ -17,9 +17,9 @@ package io.stargate.sgv2.graphql.schema.cqlfirst.dml.fetchers;
 
 import com.google.common.base.Preconditions;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.Schema.CqlTable;
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.Schema.CqlTable;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.common.cql.builder.ValueModifier;
 import io.stargate.sgv2.graphql.schema.cqlfirst.dml.NameMapping;
@@ -47,6 +47,7 @@ public class InsertMutationFetcher extends MutationFetcher {
         .value(buildInsertValues(environment))
         .ifNotExists(ifNotExists)
         .ttl(getTtl(environment))
+        .parameters(buildParameters(environment))
         .build();
   }
 

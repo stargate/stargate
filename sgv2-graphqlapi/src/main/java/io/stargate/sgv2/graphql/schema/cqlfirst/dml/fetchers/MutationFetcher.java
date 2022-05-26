@@ -21,10 +21,10 @@ import static io.stargate.sgv2.graphql.schema.SchemaConstants.ATOMIC_DIRECTIVE;
 import graphql.GraphQLException;
 import graphql.language.OperationDefinition;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.proto.QueryOuterClass.Batch;
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.QueryOuterClass.QueryParameters;
-import io.stargate.proto.Schema.CqlTable;
+import io.stargate.bridge.proto.QueryOuterClass.Batch;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.QueryOuterClass.QueryParameters;
+import io.stargate.bridge.proto.Schema.CqlTable;
 import io.stargate.sgv2.common.futures.Futures;
 import io.stargate.sgv2.graphql.schema.cqlfirst.dml.NameMapping;
 import io.stargate.sgv2.graphql.web.resources.StargateGraphqlContext;
@@ -90,7 +90,7 @@ public abstract class MutationFetcher extends DmlFetcher<CompletionStage<Map<Str
     StargateGraphqlContext.BatchContext batchContext = context.getBatchContext();
 
     if (environment.getArgument("options") != null
-        && !batchContext.setParameters(buildParameters(environment))) {
+        && !batchContext.setParameters(query.getParameters())) {
       buildException =
           new GraphQLException("options can only de defined once in an @atomic mutation selection");
     }

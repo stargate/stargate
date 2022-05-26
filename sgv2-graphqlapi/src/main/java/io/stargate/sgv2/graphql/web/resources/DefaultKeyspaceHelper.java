@@ -16,12 +16,12 @@
 package io.stargate.sgv2.graphql.web.resources;
 
 import com.google.protobuf.BytesValue;
-import io.stargate.grpc.Values;
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.QueryOuterClass.QueryParameters;
-import io.stargate.proto.QueryOuterClass.ResultSet;
-import io.stargate.proto.QueryOuterClass.Row;
-import io.stargate.proto.QueryOuterClass.Value;
+import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.QueryOuterClass.QueryParameters;
+import io.stargate.bridge.proto.QueryOuterClass.ResultSet;
+import io.stargate.bridge.proto.QueryOuterClass.Row;
+import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import java.util.ArrayList;

@@ -21,18 +21,20 @@ import io.dropwizard.forms.MultiPartBundle;
 import io.dropwizard.jersey.setup.JerseyEnvironment;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
+import io.stargate.bridge.proto.Schema;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
-import io.stargate.proto.Schema;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.common.grpc.StargateBridgeClientFactory;
 import io.stargate.sgv2.common.http.CreateStargateBridgeClientFilter;
 import io.stargate.sgv2.common.http.StargateBridgeClientJerseyFactory;
 import io.stargate.sgv2.graphql.resources.HealthResource;
 import io.stargate.sgv2.graphql.resources.MetricsResource;
+import io.stargate.sgv2.graphql.web.resources.AdminResource;
 import io.stargate.sgv2.graphql.web.resources.DdlResource;
 import io.stargate.sgv2.graphql.web.resources.DmlResource;
+import io.stargate.sgv2.graphql.web.resources.FilesResource;
 import io.stargate.sgv2.graphql.web.resources.GraphqlCache;
 import io.stargate.sgv2.graphql.web.resources.PlaygroundResource;
 import java.util.Collections;
@@ -52,6 +54,7 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
   private final Metrics metrics;
   private final MetricsScraper metricsScraper;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
+  private final int timeoutSeconds;
   private final boolean disablePlayground;
   private final boolean disableDefaultKeyspace;
 
@@ -59,11 +62,13 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
       Metrics metrics,
       MetricsScraper metricsScraper,
       HttpMetricsTagProvider httpMetricsTagProvider,
+      int timeoutSeconds,
       boolean enableGraphqlPlayground,
       boolean disableDefaultKeyspace) {
     this.metrics = metrics;
     this.metricsScraper = metricsScraper;
     this.httpMetricsTagProvider = httpMetricsTagProvider;
+    this.timeoutSeconds = timeoutSeconds;
     this.disablePlayground = enableGraphqlPlayground;
     this.disableDefaultKeyspace = disableDefaultKeyspace;
   }
@@ -75,7 +80,9 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
 
     StargateBridgeClientFactory clientFactory =
         StargateBridgeClientFactory.newInstance(
-            config.stargate.bridge.buildChannel(), Schema.SchemaRead.SourceApi.GRAPHQL);
+            config.stargate.bridge.buildChannel(),
+            timeoutSeconds,
+            Schema.SchemaRead.SourceApi.GRAPHQL);
     jersey.register(buildClientFilter(clientFactory));
 
     GraphqlCache graphqlCache = new GraphqlCache(disableDefaultKeyspace);
@@ -97,6 +104,8 @@ public class GraphqlServiceServer extends Application<GraphqlServiceServerConfig
         });
     environment.jersey().register(DdlResource.class);
     environment.jersey().register(DmlResource.class);
+    environment.jersey().register(AdminResource.class);
+    environment.jersey().register(FilesResource.class);
 
     if (!disablePlayground) {
       environment.jersey().register(PlaygroundResource.class);

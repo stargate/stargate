@@ -13,8 +13,9 @@ All issues related to the Docs API V2 are marked with the `stargate-v2` and `doc
    * [Multi-tenancy](#multi-tenancy) 
 * [Configuration properties](#configuration-properties)  
 * [Development guide](#development-guide)  
-   * [Running the application in dev mode](#running-the-application-in-dev-mode) 
-   * [Running the application in dev mode](#packaging-and-running-the-application) 
+   * [Running the application in dev mode](#running-the-application-in-dev-mode)
+   * [Running integration tests](#running-integration-tests)
+   * [Packaging and running the application](#packaging-and-running-the-application) 
    * [Creating a native executable](#creating-a-native-executable) 
    * [Creating a docker image](#creating-a-docker-image) 
 * [Quarkus Extensions](#quarkus-extensions)  
@@ -50,51 +51,7 @@ In addition, the related guide of each [Quarkus extension](#quarkus-extensions) 
 
 The `stargate.` properties are defined by this project itself.
 The properties are defined by dedicated config classes annotated with the `@ConfigMapping`.
-Below is the list of currently available properties.
-
-#### [gRPC metadata configuration](src/main/java/io/stargate/sgv2/docsapi/config/GrpcMetadataConfig.java)
-*Configuration for the gRPC metadata passed to the Bridge.*
-
-| Property                                     | Type     | Default             | Description                                                 |
-|----------------------------------------------|----------|---------------------|-------------------------------------------------------------|
-| `stargate.grpc-metadata.tenant-id-key`       | `String` | `X-Tenant-Id`       | Metadata key for passing the tenant-id to the Bridge.       |
-| `stargate.grpc-metadata.cassandra-token-key` | `String` | `X-Cassandra-Token` | Metadata key for passing the cassandra token to the Bridge. |
-
-#### [Header-based authentication configuration](src/main/java/io/stargate/sgv2/docsapi/config/HeaderBasedAuthConfig.java)
-*Configuration for the header based authentication.*
-
-| Property                                 | Type      | Default             | Description                          |
-|------------------------------------------|-----------|---------------------|--------------------------------------|
-| `stargate.header-based-auth.enabled`     | `boolean` | `true`              | If the header based auth is enabled. |
-| `stargate.header-based-auth.header-name` | `String`  | `X-Cassandra-Token` | Name of the authentication header.   |
-
-#### [Metrics configuration](src/main/java/io/stargate/sgv2/docsapi/config/MetricsConfig.java)
-*Configuration mapping for the additional metrics properties.*
-
-| Property                                              | Type                 | Default                        | Description                                                             |
-|-------------------------------------------------------|----------------------|--------------------------------|-------------------------------------------------------------------------|
-| `stargate.metrics.global-tags`                        | `Map<String,String>` | unset                          | Map of global tags that will be applied to every meter.                 |
-| `stargate.metrics.tenant-request-counter.enabled`     | `boolean`            | `true`                         | If extra metric for counting the request per tenant should be recorded. |
-| `stargate.metrics.tenant-request-counter.metric-name` | `String`             | `http.server.requests.counter` | Name of the metric.                                                     |
-| `stargate.metrics.tenant-request-counter.tenant-tag`  | `String`             | `tenant`                       | The tag key for tenant id.                                              |
-| `stargate.metrics.tenant-request-counter.error-tag`   | `String`             | `error`                        | The tag key for the request error flag (true/false).                    |
-
-#### [Multi-tenancy configuration](src/main/java/io/stargate/sgv2/docsapi/config/TenantResolverConfig.java)
-*Configuration mapping for the tenant resolving.*
-
-| Property                                   | Type     | Default     | Description                                                                                                                         |
-|--------------------------------------------|----------|-------------|-------------------------------------------------------------------------------------------------------------------------------------|
-| `stargate.tenant-resolver.type`            | `String` | `subdomain` | Tenant identifier resolver type. If unset, multi-tenancy is disabled. Possible options are `subdomain`, `fixed`, `custom` or unset. |
-| `stargate.tenant-resolver.fixed.tenant-id` | `String` | unset       | Tenant identifier value if the `fixed` type is used.                                                                                |
-
-#### [Cassandra token configuration](src/main/java/io/stargate/sgv2/docsapi/config/TokenResolverConfig.java)
-*Configuration mapping for the Cassandra token resolving.*
-
-| Property                                     | Type     | Default             | Description                                                                                                                |
-|----------------------------------------------|----------|---------------------|----------------------------------------------------------------------------------------------------------------------------|
-| `stargate.token-resolver.type`               | `String` | `principal`         | Token resolver type. If unset, empty token is used. Possible options are `header`, `principal` `fixed`, `custom` or unset. |
-| `stargate.token-resolver.header.header-name` | `String` | `X-Cassandra-Token` | Header to get the token from if the `header` type is used.                                                                 |
-| `stargate.token-resolver.fixed.token`        | `String` | unset               | Tenant identifier value if the `fixed` type is used.                                                                       |
+The list of currently available properties is documented in the [Configuration Guide](CONFIGURATION.md).
 
 ## Development guide
 
@@ -123,6 +80,58 @@ You can attach the debugger at any point, the simplest option would be from Inte
 If you wish to debug from the start of the application, start with `-Ddebug=client` and create a debug configuration in a *Listen to remote JVM* mode.
 
 See [Debugging](https://quarkus.io/guides/maven-tooling#debugging) for more information.
+
+### Running integration tests
+
+> **_PREREQUISITES:_**  You need to build the coordinator docker image(s) first. In the root Stargate repo directory run:
+> ```
+> ./mvnw clean install -P dse -DskipTests && ./build_docker_images.sh
+> ```
+
+Integration tests are using the [Testcontainers](https://www.testcontainers.org/) library in order to set up all needed dependencies, a Stargate coordinator and a Cassandra data store. 
+They are separated from the unit tests and are running as part of the `integration-test` and `verify` Maven phases:
+```shell script
+./mvnw integration-test
+```
+
+#### Data store selection
+
+Depending on the active profile, integration tests will target different Cassandra version as the data store.
+The available profiles are:
+
+* `cassandra-40` (enabled by default) - runs integration tests with [Cassandra 4.0](https://cassandra.apache.org/doc/4.0/index.html) as the data store
+* `cassandra-311` - runs integration tests with [Cassandra 3.11](https://cassandra.apache.org/doc/3.11/index.html) as the data store
+* `dse-68` - runs integration tests with [DataStax Enterprise (DSE) 6.8](https://docs.datastax.com/en/dse/6.8/dse-dev/index.html) as the data store
+
+The required profile can be activated using the `-P` option:
+
+```shell script
+./mvnw integration-test -P cassandra-311
+```
+
+#### Running from IDE
+
+> **_PREREQUISITES:_**  You need to build the coordinator docker image(s) first and tag them with `latest` tag. In the root Stargate repo directory run:
+> ```
+> ./mvnw clean install -P dse -DskipTests && ./build_docker_images.sh -t latest
+> ```
+
+Running integration tests from IDE is supported out of the box.
+The tests will use the Cassandra 4.0 as the data store by default.
+Running a test with a different version of the data store or the Stargate coordinator, requires changing the run configuration and specifying the following system properties:
+
+* `testing.containers.cassandra-image` - version of the Cassandra docker image to use, for example: `cassandra:4.0.3`
+* `testing.containers.stargate-image` - version of the Stargate coordinator docker image to use, for example: `stargateio/coordinator-4_0:v2.0.0-ALPHA-10-SNAPSHOT` (must be V2 coordinator for the target data store)
+* `testing.containers.cluster-version` - version of the cluster, for example: `4.0` (should be one of `3.11`, `4.0` or `6.8`)
+* `testing.containers.cluster-dse` - optional and only needed if DSE is used
+
+#### Skipping integration tests
+
+You can skip the integration tests during the maven build by disabling the `int-tests` profile:
+
+```shell script
+./mvnw verify -P \!int-tests
+```
 
 ### Packaging and running the application
 

@@ -1,7 +1,7 @@
 package io.stargate.sgv2.restsvc.resources.schemas;
 
-import io.stargate.proto.QueryOuterClass;
-import io.stargate.proto.Schema;
+import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;

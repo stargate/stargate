@@ -26,7 +26,7 @@ import com.google.common.collect.ImmutableMap;
 import graphql.ExecutionInput;
 import graphql.GraphQL;
 import graphql.GraphqlErrorException;
-import io.stargate.proto.Schema.SchemaRead.SourceApi;
+import io.stargate.bridge.proto.Schema.SchemaRead.SourceApi;
 import io.stargate.sgv2.common.grpc.SchemaReads;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.graphql.web.models.GraphqlJsonBody;

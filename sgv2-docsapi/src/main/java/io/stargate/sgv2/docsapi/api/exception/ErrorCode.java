@@ -162,7 +162,7 @@ public enum ErrorCode {
   }
 
   /** @return Returns {@link Response} using the ErrorCode default message. */
-  public RestResponse toResponse() {
+  public RestResponse<ApiError> toResponse() {
     return toResponse(defaultMessage);
   }
 
@@ -170,7 +170,7 @@ public enum ErrorCode {
    * @param message message or <code>null</code> to use the default error code message
    * @return Returns {@link Response} using the custom message.
    */
-  public RestResponse toResponse(String message) {
+  public RestResponse<ApiError> toResponse(String message) {
     return toResponseBuilder(message).build();
   }
 

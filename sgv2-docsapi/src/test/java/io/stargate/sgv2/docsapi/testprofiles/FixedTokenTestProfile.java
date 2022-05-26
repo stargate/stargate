@@ -22,7 +22,7 @@ import io.quarkus.test.junit.QuarkusTestProfile;
 import java.util.Map;
 
 /**
- * Simple test profile to enable fixed Cassadnra token with value {@value #TOKEN}.
+ * Simple test profile to enable fixed Cassandra token with value {@value #TOKEN}.
  *
  * <p>Annotate test class with @TestProfile(FixedTokenTestProfile.class) to use.
  */
@@ -33,8 +33,8 @@ public class FixedTokenTestProfile implements QuarkusTestProfile {
   @Override
   public Map<String, String> getConfigOverrides() {
     return ImmutableMap.<String, String>builder()
-        .put("stargate.token-resolver.type", "fixed")
-        .put("stargate.token-resolver.fixed.token", TOKEN)
+        .put("stargate.auth.token-resolver.type", "fixed")
+        .put("stargate.auth.token-resolver.fixed.token", TOKEN)
         .build();
   }
 }

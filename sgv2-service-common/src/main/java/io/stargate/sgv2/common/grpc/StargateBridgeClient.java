@@ -15,14 +15,14 @@
  */
 package io.stargate.sgv2.common.grpc;
 
-import io.stargate.proto.QueryOuterClass.Batch;
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.QueryOuterClass.Response;
-import io.stargate.proto.Schema;
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
-import io.stargate.proto.Schema.CqlTable;
-import io.stargate.proto.Schema.SchemaRead;
-import io.stargate.proto.Schema.SupportedFeaturesResponse;
+import io.stargate.bridge.proto.QueryOuterClass.Batch;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.QueryOuterClass.Response;
+import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.bridge.proto.Schema.CqlTable;
+import io.stargate.bridge.proto.Schema.SchemaRead;
+import io.stargate.bridge.proto.Schema.SupportedFeaturesResponse;
 import io.stargate.sgv2.common.futures.Futures;
 import java.util.Collections;
 import java.util.List;

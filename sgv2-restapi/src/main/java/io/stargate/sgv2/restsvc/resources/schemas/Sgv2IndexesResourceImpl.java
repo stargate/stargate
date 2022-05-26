@@ -15,9 +15,10 @@
  */
 package io.stargate.sgv2.restsvc.resources.schemas;
 
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.Schema;
-import io.stargate.proto.Schema.CqlTable;
+import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.Schema.CqlTable;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.common.grpc.SchemaReads;
@@ -63,8 +64,8 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
         new QueryBuilder()
             .select()
             .from("system_schema", "indexes")
-            .where("keyspace_name", Predicate.EQ, keyspaceName)
-            .where("table_name", Predicate.EQ, tableName)
+            .where("keyspace_name", Predicate.EQ, Values.of(keyspaceName))
+            .where("table_name", Predicate.EQ, Values.of(tableName))
             .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
             .build();
     return fetchRows(bridge, query, true);

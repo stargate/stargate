@@ -19,7 +19,7 @@ import graphql.schema.GraphQLOutputType;
 import graphql.schema.GraphQLScalarType;
 import graphql.schema.GraphQLSchemaElement;
 import graphql.schema.GraphQLType;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
 import io.stargate.sgv2.graphql.schema.SchemaAssertions;
 import io.stargate.sgv2.graphql.schema.scalars.CqlScalar;
 import java.util.ArrayList;
@@ -220,8 +220,7 @@ public class FieldTypeCachesTest extends TypeCacheTestBase {
             arguments(TEXT_TYPE, Scalars.GraphQLString));
     Stream<Arguments> cqlScalars =
         Arrays.stream(CqlScalar.values())
-            .map(
-                s -> arguments(TypeSpec.newBuilder().setBasic(s.getCqlType()), s.getGraphqlType()));
+            .map(s -> arguments(s.getCqlType().toBuilder(), s.getGraphqlType()));
     return Stream.concat(builtinScalars, cqlScalars);
   }
 

@@ -25,6 +25,7 @@ import com.datastax.oss.driver.api.core.metadata.schema.IndexKind;
 import com.datastax.oss.driver.api.core.metadata.schema.IndexMetadata;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.http.ApiServiceConnectionInfo;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
 import java.util.UUID;
@@ -44,9 +45,13 @@ public class CreateIndexTest extends GraphqlFirstTestBase {
   private static final CqlIdentifier USER_TABLE_ID = CqlIdentifier.fromInternal("User");
 
   @BeforeAll
-  public static void setup(StargateConnectionInfo cluster) {
-    String host = cluster.seedAddress();
-    CLIENT = new GraphqlFirstClient(host, RestUtils.getAuthToken(host));
+  public static void setup(
+      StargateConnectionInfo stargateBackend, ApiServiceConnectionInfo stargateGraphqlApi) {
+    CLIENT =
+        new GraphqlFirstClient(
+            stargateGraphqlApi.host(),
+            stargateGraphqlApi.port(),
+            RestUtils.getAuthToken(stargateBackend.seedAddress()));
   }
 
   @AfterEach

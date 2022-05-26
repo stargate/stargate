@@ -17,16 +17,16 @@ package io.stargate.sgv2.graphql.schema.cqlfirst.dml.fetchers;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Maps;
-import io.stargate.grpc.CqlDuration;
-import io.stargate.grpc.Values;
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.Row;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec.Tuple;
-import io.stargate.proto.QueryOuterClass.TypeSpec.Udt;
-import io.stargate.proto.QueryOuterClass.UdtValue;
-import io.stargate.proto.QueryOuterClass.Value;
-import io.stargate.proto.Schema.CqlTable;
+import io.stargate.bridge.grpc.CqlDuration;
+import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.Row;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Tuple;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Udt;
+import io.stargate.bridge.proto.QueryOuterClass.UdtValue;
+import io.stargate.bridge.proto.QueryOuterClass.Value;
+import io.stargate.bridge.proto.Schema.CqlTable;
 import io.stargate.sgv2.graphql.schema.cqlfirst.dml.NameMapping;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -47,15 +47,12 @@ import java.util.stream.Collectors;
 /** Provides the logic for adapting values from graphql to DB and vice versa. */
 class DataTypeMapping {
 
-  private static final Value NULL_VALUE =
-      Value.newBuilder().setNull(Value.Null.newBuilder()).build();
-
   /**
    * Converts a value coming from the GraphQL runtime into a value that can be sent to the bridge.
    */
   static Value toGrpcValue(TypeSpec type, Object graphQLValue, NameMapping nameMapping) {
     if (graphQLValue == null) {
-      return NULL_VALUE;
+      return Values.NULL;
     }
     switch (type.getSpecCase()) {
       case LIST:

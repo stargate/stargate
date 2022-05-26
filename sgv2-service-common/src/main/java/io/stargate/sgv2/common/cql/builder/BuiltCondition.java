@@ -15,10 +15,12 @@
  */
 package io.stargate.sgv2.common.cql.builder;
 
-import io.stargate.proto.QueryOuterClass.Value;
+import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.sgv2.common.cql.ColumnUtils;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.immutables.value.Value.Immutable;
 import org.immutables.value.Value.Style;
@@ -34,7 +36,7 @@ public interface BuiltCondition {
 
   Term value();
 
-  static BuiltCondition of(String columnName, Predicate predicate, Object value) {
+  static BuiltCondition of(String columnName, Predicate predicate, QueryOuterClass.Value value) {
     return of(columnName, predicate, Term.of(value));
   }
 
@@ -42,7 +44,7 @@ public interface BuiltCondition {
     return of(LHS.column(columnName), predicate, value);
   }
 
-  static BuiltCondition of(LHS lhs, Predicate predicate, Object value) {
+  static BuiltCondition of(LHS lhs, Predicate predicate, QueryOuterClass.Value value) {
     return of(lhs, predicate, Term.of(value));
   }
 
@@ -67,7 +69,7 @@ public interface BuiltCondition {
       return new ColumnName(columnName);
     }
 
-    public static LHS mapAccess(String columnName, Object key) {
+    public static LHS mapAccess(String columnName, QueryOuterClass.Value key) {
       return new MapElement(columnName, Term.of(key));
     }
 
@@ -84,9 +86,9 @@ public interface BuiltCondition {
     abstract void appendToBuilder(
         StringBuilder builder, Map<Marker, Value> markers, List<Value> boundValues);
 
-    abstract String columnName();
+    public abstract String columnName();
 
-    Optional<Term> value() {
+    public Optional<Term> value() {
       return Optional.empty();
     }
 
@@ -98,7 +100,7 @@ public interface BuiltCondition {
       }
 
       @Override
-      String columnName() {
+      public String columnName() {
         return columnName;
       }
 
@@ -106,6 +108,23 @@ public interface BuiltCondition {
       void appendToBuilder(
           StringBuilder builder, Map<Marker, Value> markers, List<Value> boundValues) {
         builder.append(ColumnUtils.maybeQuote(columnName));
+      }
+
+      @Override
+      public boolean equals(Object other) {
+        if (other == this) {
+          return true;
+        } else if (other instanceof ColumnName) {
+          ColumnName that = (ColumnName) other;
+          return Objects.equals(this.columnName, that.columnName);
+        } else {
+          return false;
+        }
+      }
+
+      @Override
+      public int hashCode() {
+        return Objects.hash(columnName);
       }
     }
 
@@ -119,7 +138,7 @@ public interface BuiltCondition {
       }
 
       @Override
-      String columnName() {
+      public String columnName() {
         return columnName;
       }
 
@@ -128,7 +147,7 @@ public interface BuiltCondition {
       }
 
       @Override
-      Optional<Term> value() {
+      public Optional<Term> value() {
         return Optional.of(keyValue);
       }
 
@@ -140,6 +159,24 @@ public interface BuiltCondition {
             .append('[')
             .append(QueryBuilderImpl.formatValue(keyValue, markers, boundValues))
             .append(']');
+      }
+
+      @Override
+      public boolean equals(Object other) {
+        if (other == this) {
+          return true;
+        } else if (other instanceof MapElement) {
+          MapElement that = (MapElement) other;
+          return Objects.equals(this.columnName, that.columnName)
+              && Objects.equals(this.keyValue, that.keyValue);
+        } else {
+          return false;
+        }
+      }
+
+      @Override
+      public int hashCode() {
+        return Objects.hash(columnName, keyValue);
       }
     }
   }

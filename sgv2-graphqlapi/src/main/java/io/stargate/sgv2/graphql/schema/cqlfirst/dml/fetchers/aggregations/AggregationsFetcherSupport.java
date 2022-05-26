@@ -17,9 +17,9 @@ package io.stargate.sgv2.graphql.schema.cqlfirst.dml.fetchers.aggregations;
 
 import graphql.schema.DataFetchingEnvironment;
 import graphql.schema.SelectedField;
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.Row;
-import io.stargate.proto.Schema.CqlTable;
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.Row;
+import io.stargate.bridge.proto.Schema.CqlTable;
 import io.stargate.sgv2.common.cql.builder.QueryBuilderImpl;
 import io.stargate.sgv2.graphql.schema.cqlfirst.dml.NameMapping;
 import io.stargate.sgv2.graphql.schema.cqlfirst.dml.fetchers.DbColumnGetter;

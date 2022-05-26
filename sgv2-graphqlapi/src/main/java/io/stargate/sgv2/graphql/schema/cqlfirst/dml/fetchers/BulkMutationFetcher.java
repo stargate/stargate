@@ -22,10 +22,10 @@ import static java.util.stream.Stream.concat;
 import graphql.GraphQLException;
 import graphql.language.OperationDefinition;
 import graphql.schema.DataFetchingEnvironment;
-import io.stargate.proto.QueryOuterClass;
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.QueryOuterClass.QueryParameters;
-import io.stargate.proto.Schema;
+import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.QueryOuterClass.QueryParameters;
+import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.graphql.schema.cqlfirst.dml.NameMapping;
 import io.stargate.sgv2.graphql.web.resources.StargateGraphqlContext;
 import java.util.ArrayList;
@@ -105,12 +105,15 @@ public abstract class BulkMutationFetcher
     int selections = environment.getOperationDefinition().getSelectionSet().getSelections().size();
     StargateGraphqlContext.BatchContext batchContext = context.getBatchContext();
 
-    if (environment.getArgument("options") != null
-        && !batchContext.setParameters(buildParameters(environment))) {
-      buildException =
-          new GraphQLException("options can only de defined once in an @atomic mutation selection");
+    for (Query query : queries) {
+      if (environment.getArgument("options") != null
+          && !batchContext.setParameters(query.getParameters())) {
+        buildException =
+            new GraphQLException(
+                "options can only de defined once in an @atomic mutation selection");
+        break;
+      }
     }
-
     if (buildException != null) {
       batchContext.setExecutionResult(buildException);
     } else if (batchContext.add(queries) == selections) {

@@ -22,9 +22,9 @@ import io.micrometer.core.instrument.binder.grpc.MetricCollectingServerIntercept
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.bridge.service.BridgeService;
+import io.stargate.bridge.service.interceptors.NewConnectionInterceptor;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
-import io.stargate.grpc.service.interceptors.NewConnectionInterceptor;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.InetAddress;
