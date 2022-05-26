@@ -101,41 +101,6 @@ public class JsonSchemaManager {
    * Validates a JSON document against a given table's schema
    *
    * @param table the table that has a schema
-   * @param document the document, as stringified JSON
-   * @return a Uni with Boolean detailing whether or not the document complies with the schema.
-   */
-  public Uni<Boolean> validateJsonDocument(Uni<Schema.CqlTable> table, String document) {
-    return table
-        .onItem()
-        .ifNotNull()
-        .transform(
-            t -> {
-              String comment = t.getOptionsMap().getOrDefault("comment", null);
-              if (comment == null) {
-                // If there is no valid schema, then the document is valid
-                return true;
-              }
-              JsonNode jsonSchema;
-              try {
-                jsonSchema = objectMapper.readTree(comment);
-              } catch (JsonProcessingException e) {
-                // If there is no valid schema, then the document is valid
-                return true;
-              }
-
-              try {
-                validate(jsonSchema, document);
-              } catch (ProcessingException e) {
-                return true;
-              }
-              return true;
-            });
-  }
-
-  /**
-   * Validates a JSON document against a given table's schema
-   *
-   * @param table the table that has a schema
    * @param document the document, as JsonNode
    * @return a Uni with Boolean detailing whether or not the document complies with the schema.
    */
@@ -145,7 +110,6 @@ public class JsonSchemaManager {
         .ifNotNull()
         .transform(
             t -> {
-              System.out.println("the value2: " + t.getOptionsMap().get("comment"));
               String comment = t.getOptionsMap().getOrDefault("comment", null);
               if (comment == null) {
                 // If there is no valid schema, then the document is valid
@@ -166,17 +130,6 @@ public class JsonSchemaManager {
               }
               return true;
             });
-  }
-
-  private void validate(JsonNode schema, String value) throws ProcessingException {
-    final JsonNode tree;
-    try {
-      tree = objectMapper.readTree(value);
-    } catch (JsonProcessingException e) {
-      throw new ErrorCodeRuntimeException(
-          ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Malformed JSON object found during read: " + e);
-    }
-    validate(schema, tree);
   }
 
   private void validate(JsonNode schema, JsonNode jsonValue) throws ProcessingException {

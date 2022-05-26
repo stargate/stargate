@@ -1,6 +1,5 @@
 package io.stargate.sgv2.docsapi.service.schema;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
@@ -66,8 +65,7 @@ class JsonSchemaManagerTest extends BridgeTest {
       jsonSchemaManager
           .attachJsonSchema(namespace, collection, schema)
           .subscribe()
-          .withSubscriber(UniAssertSubscriber.create())
-          .awaitItem();
+          .withSubscriber(UniAssertSubscriber.create());
 
       verify(bridgeService).executeQuery(any(), any());
       verifyNoMoreInteractions(bridgeService);
@@ -148,9 +146,9 @@ class JsonSchemaManagerTest extends BridgeTest {
   class ValidateJsonSchema {
     @Test
     public void happyPath() throws JsonProcessingException {
-      table = Schema.CqlTable.newBuilder().putOptions("comment", "{\"schema\": {}}").build();
+      table = Schema.CqlTable.newBuilder().putOptions("comment", testJsonSchema()).build();
 
-      JsonNode document = objectMapper.readTree("{\"something\": \"json\"}");
+      JsonNode document = objectMapper.readTree("{\"id\":1, \"name\": \"Eric\", \"price\":1}");
 
       UniAssertSubscriber<Boolean> result =
           jsonSchemaManager
@@ -179,29 +177,40 @@ class JsonSchemaManagerTest extends BridgeTest {
 
   @Test
   public void documentSchemaMismatch() throws JsonProcessingException {
-    table =
-        Schema.CqlTable.newBuilder()
-            .putOptions(
-                "comment",
-                "{ \"schema\": {\n"
-                    + "  \"$schema\": \"https://json-schema.org/draft/2019-09/schema\",\n"
-                    + "  \"type\": \"object\",\n"
-                    + "  \"properties\": {\n"
-                    + "    \"something\": { \"type\": \"string\" }\n"
-                    + "  }\n"
-                    + "}}")
-            .build();
+    table = Schema.CqlTable.newBuilder().putOptions("comment", testJsonSchema()).build();
 
-    System.out.println("the value: " + table.getOptionsMap().get("comment"));
+    JsonNode document = objectMapper.readTree("{\"id\":1, \"price\":1}");
+    jsonSchemaManager
+        .validateJsonDocument(Uni.createFrom().item(table), document)
+        .subscribe()
+        .withSubscriber(UniAssertSubscriber.create())
+        .awaitFailure()
+        .assertFailedWith(ErrorCodeRuntimeException.class);
+  }
 
-    JsonNode document = objectMapper.readTree("{\"something\": 1}");
-
-    assertThatThrownBy(
-        () -> {
-          jsonSchemaManager
-              .validateJsonDocument(Uni.createFrom().item(table), document)
-              .subscribe()
-              .withSubscriber(UniAssertSubscriber.create());
-        });
+  private String testJsonSchema() {
+    return "{\"schema\": {\n"
+        + "  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n"
+        + "  \"title\": \"Product\",\n"
+        + "  \"description\": \"A product from the catalog\",\n"
+        + "  \"type\": \"object\",\n"
+        + "  \"properties\": {\n"
+        + "    \"id\": {\n"
+        + "      \"description\": \"The unique identifier for a product\",\n"
+        + "      \"type\": \"integer\"\n"
+        + "    },\n"
+        + "    \"name\": {\n"
+        + "      \"description\": \"Name of the product\",\n"
+        + "      \"type\": \"string\"\n"
+        + "    },\n"
+        + "    \"price\": {\n"
+        + "      \"type\": \"number\",\n"
+        + "      \"minimum\": 0,\n"
+        + "      \"exclusiveMinimum\": true,\n"
+        + "      \"description\": \"Product's price\"\n"
+        + "    }\n"
+        + "  },\n"
+        + "  \"required\": [\"id\", \"name\", \"price\"]\n"
+        + "}}";
   }
 }
