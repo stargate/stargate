@@ -28,12 +28,12 @@ import org.immutables.value.Value;
 @Value.Immutable(lazyhash = true)
 public interface ExecutionProfile {
 
-  @Schema(description = "Brief information about this execution step")
+  @Schema(description = "Brief information about this execution step.")
   String description();
 
-  @Schema(description = "A set of CQL queries performed under this execution step")
+  @Schema(description = "A set of CQL queries performed under this execution step.")
   List<QueryInfo> queries();
 
-  @Schema(description = "Nested execution steps")
+  @Schema(description = "Nested execution steps.", nullable = true)
   List<ExecutionProfile> nested();
 }

@@ -119,22 +119,22 @@ public class SchemaManager {
    */
   @WithSpan
   public Multi<Schema.CqlTable> getTables(
-      String keyspaceName,
+      String keyspace,
       Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>> missingKeyspace) {
     StargateBridge bridge = requestInfo.getStargateBridge();
 
     // get keyspace
-    return getKeyspaceInternal(bridge, keyspaceName)
+    return getKeyspaceInternal(bridge, keyspace)
 
         // if not there, switch to function
         .onItem()
         .ifNull()
-        .switchTo(missingKeyspace.apply(keyspaceName))
+        .switchTo(missingKeyspace.apply(keyspace))
 
         // otherwise get all tables
         .onItem()
         .ifNotNull()
-        .transformToMulti(keyspace -> Multi.createFrom().iterable(keyspace.getTablesList()));
+        .transformToMulti(k -> Multi.createFrom().iterable(k.getTablesList()));
   }
 
   /**
@@ -196,7 +196,7 @@ public class SchemaManager {
         .transformToMulti(
             keyspaceNames -> {
               // if we have no keyspace return immediately
-              if (null == keyspaceNames || 0 == keyspaceNames.size()) {
+              if (null == keyspaceNames || keyspaceNames.isEmpty()) {
                 return Multi.createFrom().empty();
               }
 
@@ -314,6 +314,12 @@ public class SchemaManager {
 
               // create schema reads for all tables
               List<Schema.CqlTable> tables = keyspaceDescribe.getTablesList();
+
+              // if empty break immediately
+              if (tables.isEmpty()) {
+                return Multi.createFrom().empty();
+              }
+
               List<Schema.SchemaRead> reads =
                   tables.stream()
                       .map(t -> SchemaReads.table(keyspace, t.getName(), sourceApi))
@@ -331,12 +337,13 @@ public class SchemaManager {
                   .ifNotNull()
                   .transformToMulti(
                       response -> {
-                        List<Schema.CqlTable> authorizedTables = new ArrayList<>(tables);
-                        authorizedTables.removeIf(
-                            table -> {
-                              int index = tables.indexOf(table);
-                              return !Boolean.TRUE.equals(response.getAuthorized(index));
-                            });
+                        List<Schema.CqlTable> authorizedTables = new ArrayList<>(tables.size());
+                        List<Boolean> authorizedList = response.getAuthorizedList();
+                        for (int i = 0; i < authorizedList.size(); i++) {
+                          if (authorizedList.get(i)) {
+                            authorizedTables.add(tables.get(i));
+                          }
+                        }
 
                         // and return all authorized tables
                         return Multi.createFrom().iterable(authorizedTables);

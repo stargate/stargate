@@ -1,5 +1,6 @@
 package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 /**
@@ -9,6 +10,7 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
  * @param upgradeAvailable If upgrade is available.
  * @param upgradeType Type of upgrade, if available.
  */
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record CollectionDto(
     @Schema(description = "The name of the collection.", pattern = "\\w+", example = "cycling")
         String name,
