@@ -91,6 +91,12 @@ quarkus:
           paths: /v2/*
           policy: authenticated
 
+  # Jandex index properties
+  index-dependency:
+    google-guava:
+      group-id: com.google.guava
+      artifact-id: guava
+
   # built-in micrometer properties
   micrometer:
     binder:
