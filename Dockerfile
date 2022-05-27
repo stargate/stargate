@@ -20,7 +20,7 @@ EXPOSE 8080
 EXPOSE 8081
 
 # Document API (until extracted to separate service)
-EXPOSE 8083
+EXPOSE 8082
 
 # Health
 EXPOSE 8084
