@@ -18,31 +18,25 @@
 package io.stargate.sgv2.docsapi.api.common.exception;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
-import java.util.Collections;
-import javax.validation.ConstraintViolation;
-import javax.validation.ConstraintViolationException;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.junit.jupiter.api.Test;
 
-public class ConstraintViolationExceptionMapperTest {
+class JsonParseExceptionMapperTest {
+
   @Test
   public void happyPath() {
-    String message = "Email must not be empty";
-    ConstraintViolation<?> violation = mock(ConstraintViolation.class);
-    when(violation.getMessage()).thenReturn(message);
-    ConstraintViolationException error =
-        new ConstraintViolationException(Collections.singleton(violation));
+    String message = "Parsing exception";
+    JsonParseException exception = new JsonParseException(null, message);
 
-    ConstraintViolationExceptionMapper mapper = new ConstraintViolationExceptionMapper();
+    JsonParseExceptionMapper mapper = new JsonParseExceptionMapper();
 
-    try (RestResponse<ApiError> response = mapper.constraintViolationException(error)) {
+    try (RestResponse<ApiError> response = mapper.jsonParseException(exception)) {
       assertThat(response.getStatus()).isEqualTo(400);
       assertThat(response.getEntity().description())
-          .isEqualTo("Request invalid: %s.".formatted(message));
+          .isEqualTo("Unable to process JSON: %s.".formatted(message));
     }
   }
 }

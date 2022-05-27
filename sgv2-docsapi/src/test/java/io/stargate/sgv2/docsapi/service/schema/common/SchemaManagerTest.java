@@ -984,6 +984,120 @@ class SchemaManagerTest extends BridgeTest {
   }
 
   @Nested
+  class GetTables {
+
+    @Test
+    public void happyPath() {
+      String keyspace = RandomStringUtils.randomAlphanumeric(16);
+      String table1 = RandomStringUtils.randomAlphanumeric(16);
+      String table2 = RandomStringUtils.randomAlphanumeric(16);
+      Schema.CqlKeyspace cqlKeyspace = Schema.CqlKeyspace.newBuilder().setName(keyspace).build();
+      Schema.CqlTable cqlTable1 = Schema.CqlTable.newBuilder().setName(table1).build();
+      Schema.CqlTable cqlTable2 = Schema.CqlTable.newBuilder().setName(table2).build();
+      Schema.CqlKeyspaceDescribe response =
+          Schema.CqlKeyspaceDescribe.newBuilder()
+              .setCqlKeyspace(cqlKeyspace)
+              .addTables(cqlTable1)
+              .addTables(cqlTable2)
+              .build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.CqlKeyspaceDescribe> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(response);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .describeKeyspace(any(), any());
+
+      schemaManager
+          .getTables(keyspace, (k) -> Uni.createFrom().nothing())
+          .subscribe()
+          .withSubscriber(AssertSubscriber.create())
+          .awaitNextItems(2)
+          .assertItems(cqlTable1, cqlTable2)
+          .awaitCompletion()
+          .assertCompleted();
+
+      verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
+
+      // assert keyspace in cache
+      assertThat(keyspaceCache.as(CaffeineCache.class).keySet())
+          .contains(new CompositeCacheKey(keyspace, Optional.empty()));
+    }
+
+    @Test
+    public void noTables() {
+      String keyspace = RandomStringUtils.randomAlphanumeric(16);
+      Schema.CqlKeyspace cqlKeyspace = Schema.CqlKeyspace.newBuilder().setName(keyspace).build();
+      Schema.CqlKeyspaceDescribe response =
+          Schema.CqlKeyspaceDescribe.newBuilder().setCqlKeyspace(cqlKeyspace).build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.CqlKeyspaceDescribe> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(response);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .describeKeyspace(any(), any());
+
+      schemaManager
+          .getTables(keyspace, (k) -> Uni.createFrom().nothing())
+          .subscribe()
+          .withSubscriber(AssertSubscriber.create())
+          .awaitCompletion()
+          .assertHasNotReceivedAnyItem()
+          .assertCompleted();
+
+      verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
+
+      // assert keyspace still in cache
+      assertThat(keyspaceCache.as(CaffeineCache.class).keySet())
+          .contains(new CompositeCacheKey(keyspace, Optional.empty()));
+    }
+
+    @Test
+    public void missingKeyspace() {
+      String keyspace = RandomStringUtils.randomAlphanumeric(16);
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.CqlKeyspaceDescribe> observer =
+                    invocationOnMock.getArgument(1);
+                Status status = Status.NOT_FOUND;
+                observer.onError(new StatusRuntimeException(status));
+                return null;
+              })
+          .when(bridgeService)
+          .describeKeyspace(any(), any());
+
+      Throwable exception = new RuntimeException("Missing keyspace test exception.");
+      Throwable failure =
+          schemaManager
+              .getTables(keyspace, (k) -> Uni.createFrom().failure(exception))
+              .subscribe()
+              .withSubscriber(AssertSubscriber.create())
+              .awaitFailure()
+              .getFailure();
+
+      assertThat(failure).isEqualTo(exception);
+      verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
+
+      // assert keyspace not in cache
+      assertThat(keyspaceCache.as(CaffeineCache.class).keySet())
+          .doesNotContain(new CompositeCacheKey(keyspace, Optional.empty()));
+    }
+  }
+
+  @Nested
   class GetTableAuthorized {
 
     @Test
@@ -1099,6 +1213,92 @@ class SchemaManagerTest extends BridgeTest {
       result.awaitFailure().assertFailedWith(UnauthorizedTableException.class);
       verify(bridgeService).authorizeSchemaReads(schemaReadsCaptor.capture(), any());
       verifyNoMoreInteractions(bridgeService);
+    }
+  }
+
+  @Nested
+  class GetTablesAuthorized {
+
+    @Test
+    public void happyPath() {
+      String keyspace = RandomStringUtils.randomAlphanumeric(16);
+      String table1 = RandomStringUtils.randomAlphanumeric(16);
+      String table2 = RandomStringUtils.randomAlphanumeric(16);
+      Schema.AuthorizeSchemaReadsResponse authResponse =
+          Schema.AuthorizeSchemaReadsResponse.newBuilder()
+              .addAllAuthorized(Arrays.asList(false, true))
+              .build();
+      Schema.CqlKeyspace cqlKeyspace = Schema.CqlKeyspace.newBuilder().setName(keyspace).build();
+      Schema.CqlTable cqlTable1 = Schema.CqlTable.newBuilder().setName(table1).build();
+      Schema.CqlTable cqlTable2 = Schema.CqlTable.newBuilder().setName(table2).build();
+      Schema.CqlKeyspaceDescribe response =
+          Schema.CqlKeyspaceDescribe.newBuilder()
+              .setCqlKeyspace(cqlKeyspace)
+              .addTables(cqlTable1)
+              .addTables(cqlTable2)
+              .build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.AuthorizeSchemaReadsResponse> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(authResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .authorizeSchemaReads(any(), any());
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.CqlKeyspaceDescribe> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(response);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .describeKeyspace(any(), any());
+
+      schemaManager
+          .getTablesAuthorized(keyspace, (k) -> Uni.createFrom().nothing())
+          .subscribe()
+          .withSubscriber(AssertSubscriber.create())
+          .awaitNextItem()
+          .assertItems(cqlTable2)
+          .awaitCompletion()
+          .assertCompleted();
+
+      verify(bridgeService).authorizeSchemaReads(schemaReadsCaptor.capture(), any());
+      verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
+
+      // assert keyspace in cache
+      assertThat(keyspaceCache.as(CaffeineCache.class).keySet())
+          .contains(new CompositeCacheKey(keyspace, Optional.empty()));
+
+      // asert auth request
+      assertThat(schemaReadsCaptor.getAllValues())
+          .singleElement()
+          .extracting(Schema.AuthorizeSchemaReadsRequest::getSchemaReadsList)
+          .satisfies(
+              reads ->
+                  assertThat(reads)
+                      .hasSize(2)
+                      .anySatisfy(
+                          read -> {
+                            assertThat(read.getKeyspaceName()).isEqualTo(keyspace);
+                            assertThat(read.getElementName().getValue()).isEqualTo(table1);
+                            assertThat(read.getElementType())
+                                .isEqualTo(Schema.SchemaRead.ElementType.TABLE);
+                          })
+                      .anySatisfy(
+                          read -> {
+                            assertThat(read.getKeyspaceName()).isEqualTo(keyspace);
+                            assertThat(read.getElementName().getValue()).isEqualTo(table2);
+                            assertThat(read.getElementType())
+                                .isEqualTo(Schema.SchemaRead.ElementType.TABLE);
+                          }));
     }
   }
 }
