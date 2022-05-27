@@ -15,9 +15,12 @@ import io.stargate.sgv2.restsvc.models.Sgv2TableAddRequest;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.Path;
@@ -77,7 +80,9 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
     final String tableName = tableAdd.getName();
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
 
-    List<Column> columns = new ArrayList<>();
+    // Need to create name-accessible Map of column objects to make
+    // it easier to sort PK columns
+    Map<String, Column> columnsByName = new LinkedHashMap<>();
     final Sgv2Table.PrimaryKey primaryKeys = tableAdd.getPrimaryKey();
     final List<Sgv2Table.ClusteringExpression> clusterings = tableAdd.findClusteringExpressions();
     for (Sgv2ColumnDefinition columnDef : tableAdd.getColumnDefinitions()) {
@@ -103,8 +108,19 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
           }
         }
       }
-      columns.add(column.build());
+      columnsByName.put(columnName, column.build());
     }
+
+    // Columns are all fine, but we must ensure that PK columns are properly sorted
+    // so that QueryBuilder will create partition and clustering keys (if any) in
+    // correct order, as per "primary key" definition and NOT order of columns passed
+    final List<Column> columns = new ArrayList<>(columnsByName.size());
+    Stream.concat(primaryKeys.getPartitionKey().stream(), primaryKeys.getClusteringKey().stream())
+        .map(key -> columnsByName.remove(key))
+        .filter(Objects::nonNull) // should never happen but let QueryBuilder catch, not NPE
+        .forEach(column -> columns.add(column));
+    // and after PK columns just append remaining columns in the order they were given
+    columns.addAll(columnsByName.values());
 
     QueryOuterClass.Query query =
         new QueryBuilder()
