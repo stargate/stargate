@@ -29,7 +29,7 @@ class DefaultDataStorePropertiesConfigurationTest {
     assertThat(properties.maxDepth()).isEqualTo(64);
     assertThat(properties.maxArrayLength()).isEqualTo(1_000_000);
     assertThat(properties.maxPageSize()).isEqualTo(20);
-    assertThat(properties.searchPageSize()).isEqualTo(1_000);
+    assertThat(properties.maxSearchPageSize()).isEqualTo(1_000);
   }
 
   @Test

@@ -52,13 +52,14 @@ public interface DocumentConfig {
   int maxPageSize();
 
   /**
-   * @return Defines the Cassandra search page size when fetching documents, defaults to <code>1000
+   * @return Defines the maximum Cassandra search page size when fetching documents, defaults to
+   *     <code>1000
    *     </code>.
    */
   @Max(10000)
   @Positive
   @WithDefault("1000")
-  int searchPageSize();
+  int maxSearchPageSize();
 
   /** {@inheritDoc} */
   DocumentTableConfig table();

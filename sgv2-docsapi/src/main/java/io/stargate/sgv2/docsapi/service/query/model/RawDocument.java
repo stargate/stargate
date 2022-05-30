@@ -17,6 +17,9 @@
 package io.stargate.sgv2.docsapi.service.query.model;
 
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
+import io.stargate.sgv2.docsapi.service.query.model.paging.PagingStateSupplier;
+import io.stargate.sgv2.docsapi.service.query.model.paging.ResumeMode;
+import java.nio.ByteBuffer;
 import java.util.List;
 import org.immutables.value.Value;
 
@@ -24,7 +27,37 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface RawDocument {
 
+  /** @return The id of the document. */
+  @Value.Parameter
+  String id();
+
+  /** @return The keys being considered when creating a document. */
+  @Value.Parameter
+  List<String> docKey();
+
+  /** @return The page state supplier to use. */
+  @Value.Parameter
+  PagingStateSupplier pagingState();
+
   /** @return List of rows belonging to this document. */
   @Value.Parameter
   List<RowWrapper> rows();
+
+  /** @return If the document has paging state. */
+  default boolean hasPagingState() {
+    return makePagingState() != null;
+  }
+
+  /** @return The paging state of the document. */
+  @Value.Lazy
+  default ByteBuffer makePagingState() {
+    ResumeMode resumeMode;
+    if (docKey().size() > 1) {
+      resumeMode = ResumeMode.NEXT_ROW;
+    } else {
+      resumeMode = ResumeMode.NEXT_PARTITION;
+    }
+
+    return pagingState().makePagingState(resumeMode);
+  }
 }

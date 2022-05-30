@@ -19,7 +19,7 @@ class DefaultDocumentPropertiesConfigurationTest {
     assertThat(documentProperties.maxDepth()).isEqualTo(64);
     assertThat(documentProperties.maxArrayLength()).isEqualTo(1_000_000);
     assertThat(documentProperties.maxPageSize()).isEqualTo(20);
-    assertThat(documentProperties.searchPageSize()).isEqualTo(1_000);
+    assertThat(documentProperties.maxSearchPageSize()).isEqualTo(1_000);
   }
 
   @Test

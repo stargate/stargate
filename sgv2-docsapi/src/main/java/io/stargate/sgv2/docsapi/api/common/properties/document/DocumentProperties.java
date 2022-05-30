@@ -29,8 +29,8 @@ public interface DocumentProperties {
   /** @return Defines the maximum document page size. */
   int maxPageSize();
 
-  /** @return Defines the Cassandra search page size when fetching documents.. */
-  int searchPageSize();
+  /** @return Defines the Cassandra search page size when fetching documents. */
+  int maxSearchPageSize();
 
   /** @return Properties for a table where documents are stored. */
   DocumentTableProperties tableProperties();
@@ -44,6 +44,6 @@ public interface DocumentProperties {
    *     fields.
    */
   default int getApproximateStoragePageSize(int numberOfDocuments) {
-    return Math.min(numberOfDocuments * 16, searchPageSize());
+    return Math.min(numberOfDocuments * 16, maxSearchPageSize());
   }
 }
