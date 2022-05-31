@@ -17,6 +17,7 @@ package io.stargate.web.impl;
 
 import com.fasterxml.jackson.annotation.JsonTypeName;
 import io.dropwizard.jetty.ContextRoutingHandler;
+import io.dropwizard.jetty.HttpConnectorFactory;
 import io.dropwizard.server.SimpleServerFactory;
 import io.dropwizard.setup.Environment;
 import java.util.Collections;
@@ -25,6 +26,8 @@ import org.eclipse.jetty.server.Connector;
 import org.eclipse.jetty.server.Handler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.util.thread.ThreadPool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * @see "META-INF/services/io.dropwizard.server.ServerFactory"
@@ -32,6 +35,10 @@ import org.eclipse.jetty.util.thread.ThreadPool;
  */
 @JsonTypeName("rest-api")
 public class RestApiServerFactory extends SimpleServerFactory {
+
+  private final Logger logger = LoggerFactory.getLogger(getClass());
+
+  public static final String SYSPROP_PORT_OVERRIDE_REST = "stargate.rest.portOverride";
 
   @Override
   public Server build(Environment environment) {
@@ -51,8 +58,19 @@ public class RestApiServerFactory extends SimpleServerFactory {
             environment.getJerseyServletContainer(),
             environment.metrics());
 
+    HttpConnectorFactory connectorFactory = (HttpConnectorFactory) getConnector();
+
+    String portOverrideStr = System.getProperty(SYSPROP_PORT_OVERRIDE_REST);
+    if (portOverrideStr != null && !portOverrideStr.isEmpty()) {
+      logger.info(
+          "Overriding restapi and docsapi port. System property '{}' set to {}",
+          SYSPROP_PORT_OVERRIDE_REST,
+          portOverrideStr);
+      connectorFactory.setPort(Integer.parseInt(portOverrideStr));
+    }
+
     final Connector conn =
-        getConnector().build(server, environment.metrics(), environment.getName(), null);
+        connectorFactory.build(server, environment.metrics(), environment.getName(), null);
 
     server.addConnector(conn);
 
