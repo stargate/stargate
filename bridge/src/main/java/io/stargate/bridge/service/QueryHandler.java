@@ -154,14 +154,25 @@ public class QueryHandler extends MessageHandler<Query, Prepared> {
   }
 
   private ByteBuffer getPagingStateFromRow(
-      ByteBuffer resultSetPagingState, Row row, boolean lastInPage) {
+      ByteBuffer resultSetPagingState,
+      Row row,
+      QueryOuterClass.ResumeMode resumeMode,
+      boolean lastInPage) {
     if (lastInPage && resultSetPagingState == null) {
       return EXHAUSTED_PAGE_STATE;
     }
 
+    if (resumeMode == null) {
+      return null;
+    }
+
+    PagingPosition.ResumeMode internalResumeMode = PagingPosition.ResumeMode.NEXT_ROW;
+    if (resumeMode == QueryOuterClass.ResumeMode.NEXT_PARTITION) {
+      internalResumeMode = PagingPosition.ResumeMode.NEXT_PARTITION;
+    }
+
     return connection.makePagingState(
-        PagingPosition.ofCurrentRow(row).resumeFrom(PagingPosition.ResumeMode.NEXT_ROW).build(),
-        this.parameters);
+        PagingPosition.ofCurrentRow(row).resumeFrom(internalResumeMode).build(), this.parameters);
   }
 
   private Row makeRow(List<Column> columns, List<ByteBuffer> row) {

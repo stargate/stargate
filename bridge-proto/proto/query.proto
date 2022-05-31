@@ -38,6 +38,11 @@ enum Consistency {
   LOCAL_ONE = 0x0A;
 }
 
+enum ResumeMode {
+  NEXT_ROW = 0x00;
+  NEXT_PARTITION = 0x01;
+}
+
 // A wrapper message for Consistency, for cases where the consistency level can be unset.
 message ConsistencyValue {
   Consistency value = 1;
@@ -226,6 +231,9 @@ message QueryParameters {
 
   // Whether to decorate the result set with comparable byte data and per-row paging states.
   bool enriched = 11;
+
+  // Configurable resume mode for page state creation; only used when enriched = true.
+  ResumeMode resumeMode = 12;
 }
 
 // A CQL column type.
