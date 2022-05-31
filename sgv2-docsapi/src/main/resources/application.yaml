@@ -91,6 +91,12 @@ quarkus:
           paths: /v2/*
           policy: authenticated
 
+  # Jandex index properties
+  index-dependency:
+    google-guava:
+      group-id: com.google.guava
+      artifact-id: guava
+
   # built-in micrometer properties
   micrometer:
     binder:
@@ -101,7 +107,9 @@ quarkus:
 
         # due to the https://github.com/quarkusio/quarkus/issues/24938
         # we need to define uri templating on our own for now
-        match-patterns: /v2/example/keyspace-exists/[a-z]+=/v2/example/keyspace-exists/{name}
+        match-patterns: |
+          /v2/namespaces/[\\w]+/collections=/v2/namespaces/{namespace}/collections,
+          /v2/namespaces/[\\w]+/collections/\w+=/v2/namespaces/{namespace}/collections/{collection}
     # exports at prometheus default path
     export:
       prometheus:

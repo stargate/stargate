@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.bridge.grpc.Values;
-import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.QueryOuterClass.BatchQuery;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
@@ -53,7 +53,7 @@ class DeleteSubDocumentPathQueryBuilderTest {
       DeleteSubDocumentPathQueryBuilder queryBuilder =
           new DeleteSubDocumentPathQueryBuilder(subDocumentPath, false, documentProperties);
 
-      Query query =
+      BatchQuery query =
           queryBuilder.buildQuery(
               schemaProvider.getKeyspace().getName(), schemaProvider.getTable().getName());
 
@@ -70,7 +70,7 @@ class DeleteSubDocumentPathQueryBuilderTest {
       DeleteSubDocumentPathQueryBuilder queryBuilder =
           new DeleteSubDocumentPathQueryBuilder(subDocumentPath, true, documentProperties);
 
-      Query query =
+      BatchQuery query =
           queryBuilder.buildQuery(
               schemaProvider.getKeyspace().getName(), schemaProvider.getTable().getName());
 
@@ -107,7 +107,7 @@ class DeleteSubDocumentPathQueryBuilderTest {
       List<String> subDocumentPath = Arrays.asList("one", "two");
       DeleteSubDocumentPathQueryBuilder queryBuilder =
           new DeleteSubDocumentPathQueryBuilder(subDocumentPath, false, documentProperties);
-      Query query =
+      BatchQuery query =
           queryBuilder.buildQuery(
               schemaProvider.getKeyspace().getName(), schemaProvider.getTable().getName());
       assertThat(query.getCql())
@@ -119,7 +119,7 @@ class DeleteSubDocumentPathQueryBuilderTest {
       long timestamp = RandomUtils.nextLong();
       String documentId = RandomStringUtils.randomAlphanumeric(16);
 
-      Query boundQuery = queryBuilder.bind(query, documentId, timestamp);
+      BatchQuery boundQuery = queryBuilder.bind(query, documentId, timestamp);
 
       assertThat(boundQuery.getValues().getValuesList())
           .containsExactly(
@@ -131,7 +131,7 @@ class DeleteSubDocumentPathQueryBuilderTest {
       List<String> subDocumentPath = Arrays.asList("one", "two");
       DeleteSubDocumentPathQueryBuilder queryBuilder =
           new DeleteSubDocumentPathQueryBuilder(subDocumentPath, true, documentProperties);
-      Query query =
+      BatchQuery query =
           queryBuilder.buildQuery(
               schemaProvider.getKeyspace().getName(), schemaProvider.getTable().getName());
       assertThat(query.getCql())
@@ -143,7 +143,7 @@ class DeleteSubDocumentPathQueryBuilderTest {
       long timestamp = RandomUtils.nextLong();
       String documentId = RandomStringUtils.randomAlphanumeric(16);
 
-      Query boundQuery = queryBuilder.bind(query, documentId, timestamp);
+      BatchQuery boundQuery = queryBuilder.bind(query, documentId, timestamp);
       assertThat(boundQuery.getValues().getValuesList())
           .containsExactly(
               Values.of(timestamp),
@@ -159,7 +159,7 @@ class DeleteSubDocumentPathQueryBuilderTest {
       List<String> subDocumentPath = Arrays.asList("one", "two", "three", "four");
       DeleteSubDocumentPathQueryBuilder queryBuilder =
           new DeleteSubDocumentPathQueryBuilder(subDocumentPath, true, documentProperties);
-      Query query =
+      BatchQuery query =
           queryBuilder.buildQuery(
               schemaProvider.getKeyspace().getName(), schemaProvider.getTable().getName());
       assertThat(query.getCql())
@@ -171,7 +171,7 @@ class DeleteSubDocumentPathQueryBuilderTest {
       long timestamp = RandomUtils.nextLong();
       String documentId = RandomStringUtils.randomAlphanumeric(16);
 
-      Query boundQuery = queryBuilder.bind(query, documentId, timestamp);
+      BatchQuery boundQuery = queryBuilder.bind(query, documentId, timestamp);
       assertThat(boundQuery.getValues().getValuesList())
           .containsExactly(
               Values.of(timestamp),

@@ -110,6 +110,34 @@ public class SchemaManager {
   }
 
   /**
+   * Get all tables of a keyspace from the bridge.
+   *
+   * @param keyspace Keyspace name
+   * @param missingKeyspace Function of the keyspace in case it's not existing. Usually there to
+   *     provide a failure.
+   * @return Multi of Schema.CqlTable
+   */
+  @WithSpan
+  public Multi<Schema.CqlTable> getTables(
+      String keyspace,
+      Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>> missingKeyspace) {
+    StargateBridge bridge = requestInfo.getStargateBridge();
+
+    // get keyspace
+    return getKeyspaceInternal(bridge, keyspace)
+
+        // if not there, switch to function
+        .onItem()
+        .ifNull()
+        .switchTo(missingKeyspace.apply(keyspace))
+
+        // otherwise get all tables
+        .onItem()
+        .ifNotNull()
+        .transformToMulti(k -> Multi.createFrom().iterable(k.getTablesList()));
+  }
+
+  /**
    * Get the keyspace from the bridge. Prior to getting the keyspace it will execute the schema
    * authorization request.
    *
@@ -168,7 +196,7 @@ public class SchemaManager {
         .transformToMulti(
             keyspaceNames -> {
               // if we have no keyspace return immediately
-              if (null == keyspaceNames || 0 == keyspaceNames.size()) {
+              if (null == keyspaceNames || keyspaceNames.isEmpty()) {
                 return Multi.createFrom().empty();
               }
 
@@ -247,6 +275,79 @@ public class SchemaManager {
                 RuntimeException unauthorized = new UnauthorizedTableException(keyspace, table);
                 return Uni.createFrom().failure(unauthorized);
               }
+            });
+  }
+
+  /**
+   * Get all authorized tables from the bridge.
+   *
+   * <p>Emits a failure in case:
+   *
+   * <ol>
+   *   <li>Not authorized, with {@link UnauthorizedTableException}
+   * </ol>
+   *
+   * @param keyspace Keyspace name
+   * @param missingKeyspace Function of the keyspace in case it's not existing. Usually there to
+   *     provide a failure.
+   * @return Multi of Schema.CqlTable
+   */
+  @WithSpan
+  public Multi<Schema.CqlTable> getTablesAuthorized(
+      String keyspace,
+      Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>> missingKeyspace) {
+    StargateBridge bridge = requestInfo.getStargateBridge();
+
+    // get keyspace
+    return getKeyspaceInternal(bridge, keyspace)
+
+        // if keyspace not found switch to function
+        .onItem()
+        .ifNull()
+        .switchTo(missingKeyspace.apply(keyspace))
+
+        // if it exists go forward
+        .onItem()
+        .ifNotNull()
+        .transformToMulti(
+            keyspaceDescribe -> {
+
+              // create schema reads for all tables
+              List<Schema.CqlTable> tables = keyspaceDescribe.getTablesList();
+
+              // if empty break immediately
+              if (tables.isEmpty()) {
+                return Multi.createFrom().empty();
+              }
+
+              List<Schema.SchemaRead> reads =
+                  tables.stream()
+                      .map(t -> SchemaReads.table(keyspace, t.getName(), sourceApi))
+                      .collect(Collectors.toList());
+
+              Schema.AuthorizeSchemaReadsRequest request =
+                  Schema.AuthorizeSchemaReadsRequest.newBuilder().addAllSchemaReads(reads).build();
+
+              // execute request
+              return bridge
+                  .authorizeSchemaReads(request)
+
+                  // on response filter out
+                  .onItem()
+                  .ifNotNull()
+                  .transformToMulti(
+                      response -> {
+                        List<Schema.CqlTable> authorizedTables = new ArrayList<>(tables.size());
+                        List<Boolean> authorizedList = response.getAuthorizedList();
+                        for (int i = 0; i < authorizedList.size(); i++) {
+                          if (authorizedList.get(i)) {
+                            authorizedTables.add(tables.get(i));
+                          }
+                        }
+
+                        // and return all authorized tables
+                        return Multi.createFrom().iterable(authorizedTables);
+                      });
             });
   }
 

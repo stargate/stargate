@@ -23,7 +23,7 @@ import static org.assertj.core.api.Assertions.catchThrowable;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.bridge.grpc.Values;
-import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.QueryOuterClass.BatchQuery;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
@@ -55,7 +55,7 @@ class DeleteSubDocumentKeysQueryBuilderTest {
       DeleteSubDocumentKeysQueryBuilder queryBuilder =
           new DeleteSubDocumentKeysQueryBuilder(subDocumentPath, keys, documentProperties);
 
-      Query query =
+      BatchQuery query =
           queryBuilder.buildQuery(
               schemaProvider.getKeyspace().getName(), schemaProvider.getTable().getName());
 
@@ -73,7 +73,7 @@ class DeleteSubDocumentKeysQueryBuilderTest {
       DeleteSubDocumentKeysQueryBuilder queryBuilder =
           new DeleteSubDocumentKeysQueryBuilder(subDocumentPath, keys, documentProperties);
 
-      Query query =
+      BatchQuery query =
           queryBuilder.buildQuery(
               schemaProvider.getKeyspace().getName(), schemaProvider.getTable().getName());
 
@@ -113,7 +113,7 @@ class DeleteSubDocumentKeysQueryBuilderTest {
       List<String> keys = Arrays.asList("key1", "key2");
       DeleteSubDocumentKeysQueryBuilder queryBuilder =
           new DeleteSubDocumentKeysQueryBuilder(subDocumentPath, keys, documentProperties);
-      Query query =
+      BatchQuery query =
           queryBuilder.buildQuery(
               schemaProvider.getKeyspace().getName(), schemaProvider.getTable().getName());
       assertThat(query.getCql())
@@ -125,7 +125,7 @@ class DeleteSubDocumentKeysQueryBuilderTest {
       long timestamp = RandomUtils.nextLong();
       String documentId = RandomStringUtils.randomAlphanumeric(16);
 
-      Query boundQuery = queryBuilder.bind(query, documentId, timestamp);
+      BatchQuery boundQuery = queryBuilder.bind(query, documentId, timestamp);
       assertThat(boundQuery.getValues().getValuesList())
           .containsExactly(
               Values.of(timestamp),

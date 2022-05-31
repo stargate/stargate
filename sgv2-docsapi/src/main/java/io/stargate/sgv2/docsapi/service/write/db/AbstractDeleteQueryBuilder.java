@@ -19,7 +19,7 @@ package io.stargate.sgv2.docsapi.service.write.db;
 
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
-import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.QueryOuterClass.BatchQuery;
 import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Predicate;
@@ -46,12 +46,12 @@ public abstract class AbstractDeleteQueryBuilder {
    */
   protected abstract void addBindValues(List<Value> values);
 
-  public final Query buildAndBind(
+  public final BatchQuery buildAndBind(
       String keyspace, String table, String documentId, long timestamp) {
     return bind(buildQuery(keyspace, table), documentId, timestamp);
   }
 
-  public final Query buildQuery(String keyspace, String table) {
+  public final BatchQuery buildQuery(String keyspace, String table) {
     List<BuiltCondition> whereConditions = new ArrayList<>();
     whereConditions.add(
         BuiltCondition.of(
@@ -64,7 +64,7 @@ public abstract class AbstractDeleteQueryBuilder {
         .from(keyspace, table)
         .timestamp()
         .where(whereConditions)
-        .build();
+        .buildForBatch();
   }
 
   /**
@@ -75,14 +75,14 @@ public abstract class AbstractDeleteQueryBuilder {
    * @param timestamp Timestamp
    * @return Bound query.
    */
-  public final Query bind(Query builtQuery, String documentId, long timestamp) {
+  public final BatchQuery bind(BatchQuery builtQuery, String documentId, long timestamp) {
     List<Value> values = new ArrayList<>();
     values.add(Values.of(timestamp));
     values.add(Values.of(documentId));
 
     addBindValues(values);
 
-    return Query.newBuilder(builtQuery)
+    return BatchQuery.newBuilder(builtQuery)
         .setValues(QueryOuterClass.Values.newBuilder().addAllValues(values))
         .build();
   }

@@ -18,6 +18,7 @@
 package io.stargate.sgv2.docsapi.service.schema;
 
 import io.opentelemetry.extension.annotations.WithSpan;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
@@ -66,6 +67,17 @@ public class TableManager {
    */
   protected Uni<Schema.CqlTable> getTable(String keyspaceName, String tableName) {
     return schemaManager.getTable(keyspaceName, tableName, getMissingKeyspaceFailure());
+  }
+
+  /**
+   * Fetches all tables of a keyspace from the schema manager. Subclasses can override to use the
+   * authorized version.
+   *
+   * @param keyspaceName Keyspace
+   * @return Multi of {@link io.stargate.bridge.proto.Schema.CqlTable}
+   */
+  protected Multi<Schema.CqlTable> getAllTables(String keyspaceName) {
+    return schemaManager.getTables(keyspaceName, getMissingKeyspaceFailure());
   }
 
   /**
@@ -162,6 +174,27 @@ public class TableManager {
               // exec and return
               return bridge.executeQuery(query).map(any -> null);
             });
+  }
+
+  /**
+   * Returns all valid collection tables from a given keyspace.
+   *
+   * <p>Emits a failure in case:
+   *
+   * <ol>
+   *   <li>Keyspace does not exists, with {@link ErrorCode#DATASTORE_KEYSPACE_DOES_NOT_EXIST}
+   * </ol>
+   *
+   * @param namespace Namespace.
+   * @return Multi of {@link io.stargate.bridge.proto.Schema.CqlTable}s.
+   */
+  @WithSpan
+  public Multi<Schema.CqlTable> getValidCollectionTables(String namespace) {
+    // get all tables
+    return getAllTables(namespace)
+
+        // filter for valid collections
+        .filter(this::isValidCollectionTable);
   }
 
   /**

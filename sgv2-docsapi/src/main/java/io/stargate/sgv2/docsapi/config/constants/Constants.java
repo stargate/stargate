@@ -23,9 +23,6 @@ import io.stargate.bridge.proto.QueryOuterClass.Value;
 /** Static constants. */
 public interface Constants {
 
-  /** Name for the Open API default security scheme. */
-  String OPEN_API_DEFAULT_SECURITY_SCHEME = "Token";
-
   /** Authentication token header name. */
   String AUTHENTICATION_TOKEN_HEADER_NAME = "X-Cassandra-Token";
 
