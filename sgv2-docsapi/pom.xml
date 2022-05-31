@@ -332,7 +332,10 @@
     <profile>
       <id>int-tests</id>
       <activation>
-        <activeByDefault>true</activeByDefault>
+        <property>
+          <name>skipIntTests</name>
+          <value>!true</value>
+        </property>
       </activation>
       <build>
         <plugins>
