@@ -38,7 +38,7 @@ public class RestApiServerFactory extends SimpleServerFactory {
 
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
-  public static final String SYSPROP_PORT_OVERRIDE_REST = "stargate.rest.portOverride";
+  public static final String SYSPROP_PORT_OVERRIDE_SGV1_REST = "stargate.rest.portOverrideV1";
 
   @Override
   public Server build(Environment environment) {
@@ -60,11 +60,11 @@ public class RestApiServerFactory extends SimpleServerFactory {
 
     HttpConnectorFactory connectorFactory = (HttpConnectorFactory) getConnector();
 
-    String portOverrideStr = System.getProperty(SYSPROP_PORT_OVERRIDE_REST);
+    String portOverrideStr = System.getProperty(SYSPROP_PORT_OVERRIDE_SGV1_REST);
     if (portOverrideStr != null && !portOverrideStr.isEmpty()) {
       logger.info(
-          "Overriding restapi and docsapi port. System property '{}' set to {}",
-          SYSPROP_PORT_OVERRIDE_REST,
+          "Overriding StargateV1 restapi and docsapi port. System property '{}' set to {}",
+          SYSPROP_PORT_OVERRIDE_SGV1_REST,
           portOverrideStr);
       connectorFactory.setPort(Integer.parseInt(portOverrideStr));
     }
