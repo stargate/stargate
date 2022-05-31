@@ -15,17 +15,17 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api.v2.example;
+package io.stargate.sgv2.docsapi.api.v2.model.dto;
 
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
-import io.stargate.sgv2.docsapi.testprofiles.IntegrationTestProfile;
-import org.junit.jupiter.api.Test;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
-@QuarkusTest
-@TestProfile(IntegrationTestProfile.class)
-class ExampleResourceIntegrationTest {
-
-  @Test
-  public void resourceLoads() {}
-}
+/**
+ * Response wrapper used for those Document API endpoints that do not need information provided by
+ * {@link DocumentResponseWrapper}.
+ *
+ * @param <T> Type of response wrapped
+ */
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record SimpleResponseWrapper<T>(
+    @Schema(description = "Response data returned by the request.") T data) {}

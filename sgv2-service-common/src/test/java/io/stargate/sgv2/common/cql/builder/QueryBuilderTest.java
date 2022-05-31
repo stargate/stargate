@@ -16,11 +16,15 @@
 package io.stargate.sgv2.common.cql.builder;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.bridge.proto.QueryOuterClass.BatchQuery;
 import java.util.LinkedHashMap;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -346,5 +350,29 @@ public class QueryBuilderTest {
           new QueryBuilder().select().count("a").from("ks", "tbl").limit().build().getCql(),
           "SELECT COUNT(a) FROM ks.tbl LIMIT ?"),
     };
+  }
+
+  @Test
+  public void generateBatchQuery() {
+    BatchQuery batchQuery =
+        new QueryBuilder()
+            .select()
+            .from("ks", "tbl")
+            .where("id", Predicate.EQ, Values.of(1))
+            .buildForBatch();
+    assertThat(batchQuery.getCql()).isEqualTo("SELECT * FROM ks.tbl WHERE id = ?");
+    assertThat(batchQuery.getValues().getValuesList()).containsOnly(Values.of(1));
+  }
+
+  @Test
+  public void failWhenBatchQueryHasParameters() {
+    assertThatThrownBy(
+            () ->
+                new QueryBuilder()
+                    .select()
+                    .from("ks", "tbl")
+                    .parameters(QueryOuterClass.QueryParameters.newBuilder().build())
+                    .buildForBatch())
+        .isInstanceOf(IllegalStateException.class);
   }
 }
