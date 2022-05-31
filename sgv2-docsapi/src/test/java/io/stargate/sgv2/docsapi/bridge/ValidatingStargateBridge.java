@@ -17,15 +17,20 @@ package io.stargate.sgv2.docsapi.bridge;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.BytesValue;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridge;
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import java.util.regex.Pattern;
 import org.assertj.core.api.AbstractIntegerAssert;
 
@@ -46,7 +51,8 @@ public class ValidatingStargateBridge implements StargateBridge {
   public Uni<QueryOuterClass.Response> executeQuery(QueryOuterClass.Query query) {
     QueryExpectation expectation =
         findQueryExpectation(query.getCql(), query.getValues().getValuesList());
-    return expectation.execute(null, query.hasParameters() && query.getParameters().getEnriched());
+    return expectation.execute(
+        query.getParameters(), null, query.hasParameters() && query.getParameters().getEnriched());
   }
 
   @Override
@@ -56,7 +62,7 @@ public class ValidatingStargateBridge implements StargateBridge {
             query -> {
               QueryExpectation expectation =
                   findQueryExpectation(query.getCql(), query.getValues().getValuesList());
-              return expectation.execute(batch.getType(), false);
+              return expectation.execute(null, batch.getType(), false);
             })
         // Return the last result
         .reduce((first, second) -> second)
@@ -117,9 +123,13 @@ public class ValidatingStargateBridge implements StargateBridge {
 
     private final Pattern cqlPattern;
     private final List<QueryOuterClass.Value> values;
+    private int pageSize = Integer.MAX_VALUE;
     private QueryOuterClass.Batch.Type batchType;
     private boolean enriched;
     private List<List<QueryOuterClass.Value>> rows;
+    private Iterable<? extends QueryOuterClass.ColumnSpec> columnSpec;
+
+    private Function<List<QueryOuterClass.Value>, ByteBuffer> comparableKey;
 
     private QueryExpectation(String cqlRegex, List<QueryOuterClass.Value> values) {
       this.cqlPattern = Pattern.compile(cqlRegex);
@@ -130,6 +140,11 @@ public class ValidatingStargateBridge implements StargateBridge {
       this(cqlRegex, Collections.emptyList());
     }
 
+    public QueryExpectation withPageSize(int pageSize) {
+      this.pageSize = pageSize;
+      return this;
+    }
+
     public QueryExpectation inBatch(QueryOuterClass.Batch.Type batchType) {
       this.batchType = batchType;
       return this;
@@ -137,6 +152,18 @@ public class ValidatingStargateBridge implements StargateBridge {
 
     public QueryExpectation enriched() {
       enriched = true;
+      return this;
+    }
+
+    public QueryExpectation withColumnSpec(
+        Iterable<? extends QueryOuterClass.ColumnSpec> columnSpec) {
+      this.columnSpec = columnSpec;
+      return this;
+    }
+
+    public QueryExpectation withComparableKey(
+        Function<List<QueryOuterClass.Value>, ByteBuffer> comparableKey) {
+      this.comparableKey = comparableKey;
       return this;
     }
 
@@ -155,16 +182,91 @@ public class ValidatingStargateBridge implements StargateBridge {
     }
 
     private Uni<QueryOuterClass.Response> execute(
-        QueryOuterClass.Batch.Type actualBatchType, boolean actualEnriched) {
+        QueryOuterClass.QueryParameters parameters,
+        QueryOuterClass.Batch.Type actualBatchType,
+        boolean actualEnriched) {
+
+      // assert batch type
       assertThat(this.batchType)
           .as("Batch type for query %s", cqlPattern)
           .isEqualTo(actualBatchType);
+
+      // assert enriched
       assertThat(this.enriched).isEqualTo(actualEnriched);
 
+      // resolve and assert page size
+      int pageSize;
+      if (this.pageSize < Integer.MAX_VALUE) {
+        pageSize = this.pageSize;
+        int actual = parameters.getPageSize().getValue();
+        assertThat(parameters)
+            .isNotNull()
+            .withFailMessage(
+                "Page size of %d expected, but query parameters are null.".formatted(pageSize));
+        assertThat(actual)
+            .isEqualTo(pageSize)
+            .withFailMessage(
+                "Page size mismatch, expected %d but actual was %d".formatted(pageSize, actual));
+      } else {
+        pageSize =
+            Optional.ofNullable(parameters)
+                .map(p -> p.getPageSize().getValue())
+                .orElse(this.pageSize);
+      }
+
+      // resolve the paging state
+      Optional<ByteBuffer> pagingState =
+          Optional.ofNullable(parameters)
+              .flatMap(
+                  p -> {
+                    if (p.hasPagingState()) {
+                      ByteBuffer byteBuffer = p.getPagingState().getValue().asReadOnlyByteBuffer();
+                      return Optional.of(byteBuffer);
+                    } else {
+                      return Optional.empty();
+                    }
+                  });
+      ValidatingPaginator paginator = ValidatingPaginator.of(pageSize, pagingState);
+
+      // mark as executed
       executed();
 
       QueryOuterClass.ResultSet.Builder resultSet = QueryOuterClass.ResultSet.newBuilder();
-      rows.forEach(row -> resultSet.addRows(QueryOuterClass.Row.newBuilder().addAllValues(row)));
+
+      // filter rows in order to respect the page size
+      // and get next paging state
+      List<List<QueryOuterClass.Value>> filterRows = paginator.filter(rows);
+      ByteBuffer nextPagingState = paginator.pagingState();
+      if (null != nextPagingState) {
+        resultSet.setPagingState(
+            BytesValue.newBuilder().setValue(ByteString.copyFrom(nextPagingState)).build());
+      }
+      // for each filtered row
+      for (int i = 0; i < filterRows.size(); i++) {
+        // figure out the row and add all items
+        List<QueryOuterClass.Value> row = filterRows.get(i);
+        QueryOuterClass.Row.Builder builder = QueryOuterClass.Row.newBuilder().addAllValues(row);
+
+        // make the page state for a row
+        ByteBuffer rowPageState = paginator.pagingStateForRow(i);
+        if (null != rowPageState) {
+          builder.setPagingState(
+              BytesValue.newBuilder().setValue(ByteString.copyFrom(rowPageState)).build());
+        }
+
+        if (null != comparableKey) {
+          ByteString value = ByteString.copyFrom(comparableKey.apply(row));
+          builder.setComparableBytes(BytesValue.newBuilder().setValue(value));
+        }
+
+        resultSet.addRows(builder);
+      }
+
+      // if columns spec was defined, pass
+      if (null != columnSpec) {
+        resultSet.addAllColumns(columnSpec);
+      }
+
       return Uni.createFrom()
           .item(QueryOuterClass.Response.newBuilder().setResultSet(resultSet).build());
     }

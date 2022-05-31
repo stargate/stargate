@@ -16,10 +16,13 @@
  */
 package io.stargate.sgv2.docsapi.service.query.model;
 
+import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.model.paging.PagingStateSupplier;
 import io.stargate.sgv2.docsapi.service.query.model.paging.ResumeMode;
 import java.nio.ByteBuffer;
+import java.util.Collections;
 import java.util.List;
 import org.immutables.value.Value;
 
@@ -43,13 +46,57 @@ public interface RawDocument {
   @Value.Parameter
   List<RowWrapper> rows();
 
+  /**
+   * Populate rows from documents stream. Use query state of current doc, but rows from the first
+   * other doc.
+   *
+   * @param doc Stream
+   * @return New document
+   */
+  default Uni<RawDocument> populateFrom(Multi<RawDocument> docs) {
+    return docs
+
+        // select first and map to uni
+        .select()
+        .first()
+        .toUni()
+        .onItem()
+        .transform(
+            doc -> {
+              if (null != doc) {
+                return populateFrom(doc);
+              } else {
+                return replaceRows(Collections.emptyList());
+              }
+            });
+  }
+
+  /**
+   * Populate rows from other document. Use query state of current doc, but rows from the other doc.
+   *
+   * @param doc Other doc
+   * @return New document
+   */
+  default RawDocument populateFrom(RawDocument doc) {
+    if (!id().equals(doc.id())) {
+      throw new IllegalStateException(
+          String.format("Document ID mismatch. Expecting %s, got %s", id(), doc.id()));
+    }
+
+    // Use query state of current doc, but rows from the other doc
+    return replaceRows(doc.rows());
+  }
+
+  private RawDocument replaceRows(List<RowWrapper> newRows) {
+    return ImmutableRawDocument.of(id(), docKey(), pagingState(), newRows);
+  }
+
   /** @return If the document has paging state. */
   default boolean hasPagingState() {
     return makePagingState() != null;
   }
 
   /** @return The paging state of the document. */
-  @Value.Lazy
   default ByteBuffer makePagingState() {
     ResumeMode resumeMode;
     if (docKey().size() > 1) {

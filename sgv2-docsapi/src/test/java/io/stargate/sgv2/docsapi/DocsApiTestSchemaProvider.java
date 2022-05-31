@@ -97,12 +97,7 @@ public class DocsApiTestSchemaProvider {
   }
 
   public RowWrapper getRow(ImmutableMap<String, Value> valuesMap) {
-    Stream<ColumnSpec> allColumns =
-        Streams.concat(
-            table.getPartitionKeyColumnsList().stream(),
-            table.getClusteringKeyColumnsList().stream(),
-            table.getColumnsList().stream(),
-            table.getStaticColumnsList().stream());
+    Stream<ColumnSpec> allColumns = allColumnSpecStream();
     List<ColumnSpec> columnsInRow =
         allColumns.filter(c -> valuesMap.containsKey(c.getName())).toList();
     QueryOuterClass.Row row =
@@ -111,5 +106,19 @@ public class DocsApiTestSchemaProvider {
             .addAllValues(columnsInRow.stream().map(c -> valuesMap.get(c.getName())).toList())
             .build();
     return ImmutableRowWrapper.of(columnsInRow, row);
+  }
+
+  public Stream<ColumnSpec> allColumnSpecStream() {
+    Stream<ColumnSpec> allColumns =
+        Streams.concat(
+            table.getPartitionKeyColumnsList().stream(),
+            table.getClusteringKeyColumnsList().stream(),
+            table.getColumnsList().stream(),
+            table.getStaticColumnsList().stream());
+    return allColumns;
+  }
+
+  public List<ColumnSpec> allColumnSpec() {
+    return allColumnSpecStream().toList();
   }
 }

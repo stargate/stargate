@@ -22,9 +22,13 @@ import com.google.common.collect.Streams;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
 import com.google.protobuf.Int32Value;
+import hu.akarnokd.rxjava3.operators.Flowables;
+import io.reactivex.rxjava3.core.Flowable;
 import io.smallrye.mutiny.Multi;
+import io.smallrye.mutiny.converters.multi.MultiRx3Converters;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.StargateBridge;
+import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
@@ -46,8 +50,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.validation.constraints.Min;
-import javax.validation.constraints.Size;
 import org.immutables.value.Value;
 
 /** Executes pre-built document queries, groups document rows and manages document pagination. */
@@ -57,6 +59,56 @@ public class QueryExecutor {
   public final Accumulator TERM = new Accumulator();
 
   @Inject DocumentProperties documentProperties;
+
+  @Inject StargateRequestInfo requestInfo;
+
+  /**
+   * Runs the provided query, then groups the rows into {@link RawDocument} objects with key depth
+   * of 1.
+   *
+   * @see #queryDocs(int, List, int, boolean, ByteBuffer, ExecutionContext)
+   */
+  public Multi<RawDocument> queryDocs(
+      QueryOuterClass.Query query,
+      int pageSize,
+      boolean exponentPageSize,
+      ByteBuffer pagingState,
+      ExecutionContext context) {
+    return queryDocs(1, query, pageSize, exponentPageSize, pagingState, context);
+  }
+
+  /**
+   * Runs the provided query, then groups the rows into {@link RawDocument} objects according to
+   * {@code keyDepth} primary key values.
+   *
+   * @see #queryDocs(int, List, int, boolean, ByteBuffer, ExecutionContext)
+   */
+  public Multi<RawDocument> queryDocs(
+      int keyDepth,
+      QueryOuterClass.Query query,
+      int pageSize,
+      boolean exponentPageSize,
+      ByteBuffer pagingState,
+      ExecutionContext context) {
+    return queryDocs(
+        keyDepth, ImmutableList.of(query), pageSize, exponentPageSize, pagingState, context);
+  }
+
+  /**
+   * Runs the provided queries in parallel and merges their result sets according to the selected
+   * primary key columns, then groups the merged rows into {@link RawDocument} objects with key
+   * depth of 1.
+   *
+   * @see #queryDocs(int, List, int, boolean, ByteBuffer, ExecutionContext)
+   */
+  public Multi<RawDocument> queryDocs(
+      List<QueryOuterClass.Query> queries,
+      int pageSize,
+      boolean exponentPageSize,
+      ByteBuffer pagingState,
+      ExecutionContext context) {
+    return queryDocs(1, queries, pageSize, exponentPageSize, pagingState, context);
+  }
 
   /**
    * Runs the provided queries in parallel and merges their result sets according to the selected
@@ -86,48 +138,64 @@ public class QueryExecutor {
    *     key and default order on clustering keys).
    */
   public Multi<RawDocument> queryDocs(
-      @Min(1) int keyDepth,
-      @Size(min = 1) List<QueryOuterClass.Query> queries,
-      @Min(1) int pageSize,
+      int keyDepth,
+      List<QueryOuterClass.Query> queries,
+      int pageSize,
       boolean exponentPageSize,
       ByteBuffer pagingState,
       ExecutionContext context) {
 
-    // construct query data and id columns based on depth
-    QueryData queryData = ImmutableQueryData.of(queries, documentProperties);
-    List<String> idColumns = queryData.docIdColumns(keyDepth);
+    // deffer to wrap failures
+    return Multi.createFrom()
+        .deferred(
+            () -> {
 
-    // create comparator
-    Comparator<DocProperty> comparator = rowComparator(queryData);
+              // construct query data and id columns based on depth
+              QueryData queryData = ImmutableQueryData.of(queries, documentProperties);
+              List<String> idColumns = queryData.docIdColumns(keyDepth);
 
-    // init the given paging states
-    List<ByteBuffer> pagingStates = CombinedPagingState.deserialize(queries.size(), pagingState);
-    PagingStateTracker tracker = new PagingStateTracker(pagingStates);
+              // create comparator
+              Comparator<DocProperty> comparator = rowComparator(queryData);
 
-    // execute all queries
-    Multi<Accumulator> accumulatorMulti =
-        executeQueries(queries, comparator, pageSize, exponentPageSize, pagingStates, context)
+              // init the given paging states
+              List<ByteBuffer> pagingStates =
+                  CombinedPagingState.deserialize(queries.size(), pagingState);
+              PagingStateTracker tracker = new PagingStateTracker(pagingStates);
 
-            // map to seed
-            .map(p -> toSeed(p, comparator, idColumns));
+              // execute all queries
+              StargateBridge bridge = requestInfo.getStargateBridge();
+              Multi<Accumulator> accumulatorMulti =
+                  executeQueries(
+                          bridge,
+                          queries,
+                          comparator,
+                          pageSize,
+                          exponentPageSize,
+                          pagingStates,
+                          context)
 
-    // then add the TERM to the end
-    return Multi.createBy()
-        .concatenating()
-        .streams(accumulatorMulti, Multi.createFrom().items(TERM))
+                      // map to seed
+                      .map(p -> toSeed(p, comparator, idColumns));
 
-        // can with tracker combine
-        .onItem()
-        .scan(tracker::combine)
+              // then add the TERM to the end
+              return Multi.createBy()
+                  .concatenating()
+                  .streams(accumulatorMulti, Multi.createFrom().items(TERM))
 
-        // filter only complete elements
-        .filter(Accumulator::isComplete)
+                  // can with tracker combine
+                  .onItem()
+                  .scan(tracker::combine)
 
-        // and map to the document
-        .map(Accumulator::toDoc);
+                  // filter only complete elements
+                  .filter(Accumulator::isComplete)
+
+                  // and map to the document
+                  .map(Accumulator::toDoc);
+            });
   }
 
   private Multi<DocProperty> executeQueries(
+      StargateBridge stargateBridge,
       List<QueryOuterClass.Query> queries,
       Comparator<DocProperty> comparator,
       int pageSize,
@@ -135,28 +203,42 @@ public class QueryExecutor {
       List<ByteBuffer> pagingStates,
       ExecutionContext context) {
 
-    List<Multi<DocProperty>> allDocuments =
+    // for each query
+    List<Flowable<DocProperty>> allDocuments =
         Streams.mapWithIndex(
                 queries.stream(),
                 (query, index) -> {
+
+                  // get the initial paging state for the query
                   int intIndex = (int) index;
                   ByteBuffer queryPagingState = pagingStates.get(intIndex);
                   if (queryPagingState != null) {
                     queryPagingState = queryPagingState.slice();
                   }
 
-                  return executeQuery(null, query, pageSize, exponentPageSize, queryPagingState)
+                  // execute that query
+                  return executeQuery(
+                          stargateBridge, query, pageSize, exponentPageSize, queryPagingState)
+
+                      // for each result set, transform to doc property
                       .onItem()
                       .transformToMultiAndConcatenate(
                           rs ->
-                              Multi.createFrom()
-                                  .iterable(properties(intIndex, query, rs, context)));
+                              Multi.createFrom().iterable(properties(intIndex, query, rs, context)))
+
+                      // convert to rx-java3, as mutiny does not support ordered merge
+                      // see https://github.com/smallrye/smallrye-mutiny/discussions/938
+                      .convert()
+                      .with(MultiRx3Converters.toFlowable());
                 })
             .toList();
 
-    return null;
+    // do order merge with prefetch 1
+    Flowable<DocProperty> orderedPublisher =
+        Flowables.orderedMerge(allDocuments, comparator, false, 1);
 
-    // return Flowables.orderedMerge(flows, comparator, false, 1); // prefetch 1
+    // transform back to the multi
+    return Multi.createFrom().publisher(orderedPublisher);
   }
 
   private Multi<QueryOuterClass.ResultSet> executeQuery(
@@ -218,7 +300,7 @@ public class QueryExecutor {
 
         // and do fetch results until we have a paging state
         // if necessary of course, handled by the down stream
-        .until(QueryOuterClass.ResultSet::hasPagingState);
+        .whilst(QueryOuterClass.ResultSet::hasPagingState);
   }
 
   /**
@@ -279,8 +361,6 @@ public class QueryExecutor {
 
     // always first compare by the comparable bytes
     comparators.add(DocProperty.COMPARABLE_BYTES_COMPARATOR);
-
-    // TODO when could we actually go here???
 
     for (String column : queries.docPathColumns()) {
       comparators.add(Comparator.comparing(p -> p.keyValue(column)));
@@ -368,7 +448,10 @@ public class QueryExecutor {
     }
 
     String keyValue(String column) {
-      return rowWrapper().getString(column);
+      if (rowWrapper().columnExists(column)) {
+        return rowWrapper().getString(column);
+      }
+      return null;
     }
 
     @Override
@@ -380,9 +463,15 @@ public class QueryExecutor {
         return CombinedPagingState.EXHAUSTED_PAGE_STATE;
       }
 
+      // ensure we have a row page state
+      QueryOuterClass.Row row = rowWrapper().row();
+      if (!row.hasPagingState()) {
+        return CombinedPagingState.EXHAUSTED_PAGE_STATE;
+      }
+
       // TODO handle resume mode, now only supports NEXT_ROW
-      BytesValue pagingState = rowWrapper().row().getPagingState();
-      return pagingState.toByteString().asReadOnlyByteBuffer();
+      BytesValue pagingState = row.getPagingState();
+      return pagingState.getValue().asReadOnlyByteBuffer();
     }
 
     @Value.Lazy
@@ -407,7 +496,7 @@ public class QueryExecutor {
      * It's based purely in key-depth.
      */
     List<String> docIdColumns(int keyDepth) {
-      if (keyDepth < 1) {
+      if (keyDepth < 1 || keyDepth > documentProperties().maxDepth() + 1) {
         throw new IllegalArgumentException("Invalid document identity depth: " + keyDepth);
       }
 
@@ -425,8 +514,9 @@ public class QueryExecutor {
 
     @Value.Lazy
     public List<String> docPathColumns() {
-      // TODO not implemented at the moment
-      return Collections.emptyList();
+      // TODO we push all columns as we can not know what's selected
+      //  make cached or smth
+      return documentProperties().tableColumns().pathColumnNames().stream().sorted().toList();
     }
   }
 

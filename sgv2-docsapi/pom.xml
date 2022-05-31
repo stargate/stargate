@@ -113,6 +113,16 @@
       <artifactId>commons-lang3</artifactId>
     </dependency>
     <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>mutiny-rxjava3</artifactId>
+      <version>1.5.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.akarnokd</groupId>
+      <artifactId>rxjava3-extensions</artifactId>
+      <version>3.1.1</version>
+    </dependency>
+    <dependency>
       <groupId>org.immutables</groupId>
       <artifactId>value</artifactId>
       <version>2.9.0</version>
