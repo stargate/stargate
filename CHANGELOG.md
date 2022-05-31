@@ -203,9 +203,23 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
 
+## [v1.0.57](https://github.com/stargate/stargate/tree/v1.0.57) (2022-05-26)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.56...v1.0.57)
+
+**Closed issues:**
+
+- Update Stargate "org.json" dependency version [\#1848](https://github.com/stargate/stargate/issues/1848)
+- Table creation via REST API does not enforce requested order of clustering columns [\#1841](https://github.com/stargate/stargate/issues/1841)
+
+**Merged pull requests:**
+
+- Upgrade org.json version to latest (to avoid CVE in deps) [\#1849](https://github.com/stargate/stargate/pull/1849) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Enforce requested clustering column order on REST API [\#1842](https://github.com/stargate/stargate/pull/1842) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+
 ## [v1.0.56](https://github.com/stargate/stargate/tree/v1.0.56) (2022-05-20)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-10...v1.0.56)
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.55...v1.0.56)
 
 **Merged pull requests:**
 
