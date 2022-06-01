@@ -9,7 +9,6 @@ import com.github.fge.jsonschema.core.report.ProcessingMessage;
 import com.github.fge.jsonschema.core.report.ProcessingReport;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
 import io.smallrye.mutiny.Uni;
-import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
@@ -67,6 +66,11 @@ public class JsonSchemaManager {
             });
   }
 
+  public Uni<JsonNode> attachJsonSchema(String keyspace, String table, String schema)
+      throws JsonProcessingException {
+    return attachJsonSchema(keyspace, table, objectMapper.readTree(schema));
+  }
+
   /**
    * Assigns a JSON schema to a table.
    *
@@ -75,8 +79,7 @@ public class JsonSchemaManager {
    * @param schema the JSON schema to assign
    * @return a Uni with a success boolean
    */
-  public Uni<QueryOuterClass.Response> attachJsonSchema(
-      String keyspace, String table, JsonNode schema) {
+  public Uni<JsonNode> attachJsonSchema(String keyspace, String table, JsonNode schema) {
     return Uni.createFrom()
         .item(() -> jsonSchemaFactory.getSyntaxValidator().validateSchema(schema))
         .flatMap(
@@ -85,9 +88,11 @@ public class JsonSchemaManager {
                 ObjectNode wrappedSchema = objectMapper.createObjectNode();
                 wrappedSchema.set("schema", schema);
                 StargateBridge bridge = requestInfo.getStargateBridge();
-                return bridge.executeQuery(
-                    jsonSchemaQueryProvider.attachSchemaQuery(
-                        keyspace, table, wrappedSchema.toString()));
+                return bridge
+                    .executeQuery(
+                        jsonSchemaQueryProvider.attachSchemaQuery(
+                            keyspace, table, wrappedSchema.toString()))
+                    .map(r -> schema);
               } else {
                 String msgs = "";
                 Iterator<ProcessingMessage> it = report.iterator();
