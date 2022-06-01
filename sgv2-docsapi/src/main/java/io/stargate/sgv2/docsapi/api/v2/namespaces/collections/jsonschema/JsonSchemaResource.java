@@ -15,9 +15,9 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api.v2.namespaces.jsonschema;
+package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.jsonschema;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
 import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.model.dto.JsonSchemaDto;
@@ -26,7 +26,6 @@ import io.stargate.sgv2.docsapi.service.schema.JsonSchemaManager;
 import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.service.schema.qualifier.Authorized;
 import javax.inject.Inject;
-import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -98,8 +97,7 @@ public class JsonSchemaResource {
   public Uni<RestResponse<Object>> putJsonSchema(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
-      @NotNull(message = "json schema not provided") @Valid String body)
-      throws JsonProcessingException {
+      @NotNull(message = "json schema not provided") JsonNode body) {
     return jsonSchemaManager
         .attachJsonSchema(namespace, collection, body)
         .map(schema -> RestResponse.ok(new JsonSchemaDto(schema)));
