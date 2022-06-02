@@ -18,8 +18,12 @@
 package io.stargate.sgv2.docsapi.api.v2.schemas.namespaces;
 
 import static io.restassured.RestAssured.given;
+import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.endsWith;
+import static org.hamcrest.Matchers.greaterThan;
 import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
@@ -29,6 +33,7 @@ import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.testprofiles.IntegrationTestProfile;
+import javax.ws.rs.core.HttpHeaders;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
@@ -118,11 +123,10 @@ class NamespacesResourceIntegrationTest {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String json =
           """
-              {
-                  "name": "%s"
-              }
-              """
-              .formatted(namespace);
+          {
+              "name": "%s"
+          }
+          """.formatted(namespace);
 
       // create
       given()
@@ -131,6 +135,7 @@ class NamespacesResourceIntegrationTest {
           .body(json)
           .post(BASE_PATH)
           .then()
+          .header(HttpHeaders.LOCATION, endsWith("/v2/schemas/namespaces/%s".formatted(namespace)))
           .statusCode(201);
 
       // assert
@@ -141,6 +146,7 @@ class NamespacesResourceIntegrationTest {
           .then()
           .statusCode(200)
           .body("data.name", is(namespace))
+          .body("data.replicas", is(1))
           .body("data.datacenters", is(nullValue()));
     }
 
@@ -149,11 +155,11 @@ class NamespacesResourceIntegrationTest {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String json =
           """
-              {
-                  "name": "%s",
-                  "replicas": 3
-              }
-              """
+          {
+              "name": "%s",
+              "replicas": 3
+          }
+          """
               .formatted(namespace);
 
       // create
@@ -166,6 +172,8 @@ class NamespacesResourceIntegrationTest {
           .statusCode(201);
 
       // assert
+      // note that in the tests, we only have a single node,
+      // so we can not expect 3 replicas
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
@@ -173,6 +181,7 @@ class NamespacesResourceIntegrationTest {
           .then()
           .statusCode(200)
           .body("data.name", is(namespace))
+          .body("data.replicas", allOf(greaterThan(0), lessThanOrEqualTo(3)))
           .body("data.datacenters", is(nullValue()));
     }
   }
@@ -185,11 +194,10 @@ class NamespacesResourceIntegrationTest {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String json =
           """
-                      {
-                          "name": "%s"
-                      }
-                      """
-              .formatted(namespace);
+          {
+              "name": "%s"
+          }
+          """.formatted(namespace);
 
       // create
       given()

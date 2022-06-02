@@ -93,7 +93,7 @@ public class CollectionsResource {
         @APIResponse(
             responseCode = "200",
             description =
-                "Call successful. Note that in case of unwrapping (`raw=true`), the response contains only the contents fof the `data` property.",
+                "Call successful. Note that in case of unwrapping (`raw=true`), the response contains only the contents of the `data` property.",
             content = {
               @Content(
                   schema =
@@ -246,7 +246,12 @@ public class CollectionsResource {
                     .createCollectionTable(namespace, collection)
                     .map(
                         created -> {
-                          URI location = uriInfo.getBaseUriBuilder().path(collection).build();
+                          URI location =
+                              uriInfo
+                                  .getBaseUriBuilder()
+                                  .path(uriInfo.getPath())
+                                  .path(collection)
+                                  .build();
                           return RestResponse.created(location);
                         }));
   }

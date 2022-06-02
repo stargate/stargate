@@ -18,23 +18,31 @@
 package io.stargate.sgv2.docsapi.api.v2.schemas.namespaces.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import java.util.List;
+import java.util.Collection;
+import javax.validation.Valid;
+import javax.validation.constraints.Min;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
+/** DTO for a namespace. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
-/** DTO for namespace datacenter. */
 public record NamespaceDto(
-
-    // TODO should we return replicas count in case of the simple strategy
-    //  that's not included in V1, but could be added here as non-breaking change
-
-    // name
     @Schema(description = "The name of the namespace.", pattern = "\\w+", example = "cycling")
+        @NotNull(message = "`name` is required to create a namespace")
+        @NotBlank(message = "`name` is required to create a namespace")
         String name,
-
-    // replicas
     @Schema(
             description =
-                "The datacenters within a keyspace. Only applies for those keyspaces created with `NetworkTopologyStrategy`.",
+                "The amount of replicas to use with the `SimpleStrategy`. Ignored if `datacenters` is set.",
+            nullable = true,
+            defaultValue = "1",
+            example = "1")
+        @Min(value = 1, message = "minimum amount of `replicas` for `SimpleStrategy` is one")
+        Integer replicas,
+    @Schema(
+            description =
+                "The datacenters within a namespace. Only applies for those namespaces created with `NetworkTopologyStrategy`.",
             nullable = true)
-        List<Datacenter> datacenters) {}
+        @Valid
+        Collection<Datacenter> datacenters) {}

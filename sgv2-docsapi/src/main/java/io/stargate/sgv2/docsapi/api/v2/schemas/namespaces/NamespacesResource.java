@@ -27,7 +27,6 @@ import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.api.v2.model.dto.SimpleResponseWrapper;
-import io.stargate.sgv2.docsapi.api.v2.schemas.namespaces.model.dto.CreateNamespaceDto;
 import io.stargate.sgv2.docsapi.api.v2.schemas.namespaces.model.dto.Datacenter;
 import io.stargate.sgv2.docsapi.api.v2.schemas.namespaces.model.dto.NamespaceDto;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
@@ -99,7 +98,7 @@ public class NamespacesResource {
         @APIResponse(
             responseCode = "200",
             description =
-                "Call successful. Note that in case of unwrapping (`raw=true`), the response contains only the contents fof the `data` property.",
+                "Call successful. Note that in case of unwrapping (`raw=true`), the response contains only the contents of the `data` property.",
             content = {
               @Content(
                   schema =
@@ -155,7 +154,7 @@ public class NamespacesResource {
         @APIResponse(
             responseCode = "200",
             description =
-                "Call successful. Note that in case of unwrapping (`raw=true`), the response contains only the contents fof the `data` property.",
+                "Call successful. Note that in case of unwrapping (`raw=true`), the response contains only the contents of the `data` property.",
             content = {
               @Content(
                   schema =
@@ -265,7 +264,7 @@ public class NamespacesResource {
   @POST
   public Uni<RestResponse<Object>> createNamespace(
       @Context UriInfo uriInfo,
-      @NotNull(message = "payload not provided") @Valid CreateNamespaceDto body) {
+      @NotNull(message = "payload not provided") @Valid NamespaceDto body) {
     String namespaceName = body.name();
 
     // check existing
@@ -298,10 +297,14 @@ public class NamespacesResource {
                     .createNamespace(namespaceName, getReplication(body))
                     .map(
                         created -> {
-                          // TODO should we also ship back the datacenters?
-                          //  v1 only ships the name
-                          URI location = uriInfo.getBaseUriBuilder().path(namespaceName).build();
-                          NamespaceDto entity = new NamespaceDto(namespaceName, null);
+                          URI location =
+                              uriInfo
+                                  .getBaseUriBuilder()
+                                  .path(BASE_PATH)
+                                  .path(namespaceName)
+                                  .build();
+                          NamespaceDto entity =
+                              new NamespaceDto(namespaceName, body.replicas(), body.datacenters());
                           return RestResponse.ResponseBuilder.created(location)
                               .entity(entity)
                               .build();
@@ -346,7 +349,33 @@ public class NamespacesResource {
     Schema.CqlKeyspace keyspace = keyspaceDescribe.getCqlKeyspace();
     String name = keyspace.getName();
     List<Datacenter> datacenters = buildDatacenters(keyspace);
-    return new NamespaceDto(name, datacenters);
+    Integer replicas = getSimpleStrategyReplicas(keyspace).orElse(null);
+    return new NamespaceDto(name, replicas, datacenters);
+  }
+
+  private Optional<Integer> getSimpleStrategyReplicas(Schema.CqlKeyspace keyspace) {
+    Map<String, String> options = keyspace.getOptionsMap();
+    String replication = options.get("replication");
+
+    // null if no replication or is not NetworkTopologyStrategy
+    if (null == replication || !replication.contains("SimpleStrategy")) {
+      return Optional.empty();
+    }
+
+    // there's no easy way to do this, so a bit of hacking
+    String replicationJson = replication.replace('\'', '"');
+    try {
+      // read tree
+      JsonNode replicationNode = objectMapper.readTree(replicationJson);
+
+      // then try to get replication_factor
+      return Optional.ofNullable(replicationNode.get("replication_factor"))
+          .filter(JsonNode::isNumber)
+          .map(JsonNode::intValue);
+    } catch (JsonProcessingException e) {
+      LOG.warn("Error parsing the keyspace replication from {}.", replicationJson, e);
+      return Optional.empty();
+    }
   }
 
   // figure out data centers
@@ -387,10 +416,10 @@ public class NamespacesResource {
   }
 
   // extracts replication from the CreateNamespaceDto
-  public Replication getReplication(CreateNamespaceDto createNamespaceDto) {
-    Collection<Datacenter> datacenters = createNamespaceDto.datacenters();
+  public Replication getReplication(NamespaceDto namespaceDto) {
+    Collection<Datacenter> datacenters = namespaceDto.datacenters();
     if (null == datacenters || datacenters.isEmpty()) {
-      int replicas = Optional.ofNullable(createNamespaceDto.replicas()).orElse(1);
+      int replicas = Optional.ofNullable(namespaceDto.replicas()).orElse(1);
       return Replication.simpleStrategy(replicas);
     } else {
       Map<String, Integer> datacenterMap =

@@ -19,6 +19,7 @@ package io.stargate.sgv2.docsapi.api.v2.namespaces.collections;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.empty;
+import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
@@ -34,6 +35,7 @@ import io.stargate.sgv2.docsapi.testprofiles.IntegrationTestProfile;
 import java.time.Duration;
 import javax.enterprise.context.control.ActivateRequestContext;
 import javax.inject.Inject;
+import javax.ws.rs.core.HttpHeaders;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.ClassOrderer;
@@ -85,10 +87,10 @@ public class CollectionsResourceIntegrationTest {
     public void happyPath() {
       String body =
           """
-              {
-                  "name": "%s"
-              }
-              """
+          {
+              "name": "%s"
+          }
+          """
               .formatted(DEFAULT_COLLECTION);
 
       given()
@@ -97,6 +99,11 @@ public class CollectionsResourceIntegrationTest {
           .body(body)
           .post(BASE_PATH, DEFAULT_NAMESPACE)
           .then()
+          .header(
+              HttpHeaders.LOCATION,
+              endsWith(
+                  "/v2/namespaces/%s/collections/%s"
+                      .formatted(DEFAULT_NAMESPACE, DEFAULT_COLLECTION)))
           .statusCode(201);
     }
 
@@ -105,10 +112,10 @@ public class CollectionsResourceIntegrationTest {
     public void tableExists() {
       String body =
           """
-              {
-                  "name": "%s"
-              }
-              """
+          {
+              "name": "%s"
+          }
+          """
               .formatted(DEFAULT_COLLECTION);
 
       given()
@@ -130,11 +137,10 @@ public class CollectionsResourceIntegrationTest {
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String body =
           """
-                  {
-                    "name": "%s"
-                  }
-                  """
-              .formatted(collection);
+          {
+            "name": "%s"
+          }
+          """.formatted(collection);
 
       given()
           .contentType(ContentType.JSON)
@@ -168,12 +174,11 @@ public class CollectionsResourceIntegrationTest {
     @Test
     public void malformedPayload() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
-      String body =
-          """
-                    {
-                      "malformed":
-                    }
-                  """;
+      String body = """
+          {
+            "malformed":
+          }
+          """;
 
       given()
           .contentType(ContentType.JSON)
