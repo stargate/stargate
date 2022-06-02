@@ -37,8 +37,10 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.ExampleObject;
+import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameters;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
@@ -78,7 +80,16 @@ public class JsonSchemaResource {
       })
   @APIResponses(
       value = {
-        @APIResponse(responseCode = "200", description = "Call successful."),
+        @APIResponse(
+            responseCode = "200",
+            description = "Call successful.",
+            content = {
+              @Content(
+                  schema =
+                      @org.eclipse.microprofile.openapi.annotations.media.Schema(
+                          implementation = JsonSchemaDto.class,
+                          properties = @SchemaProperty(name = "schema", type = SchemaType.OBJECT)))
+            }),
         @APIResponse(
             responseCode = "400",
             description = "Bad request.",
@@ -88,8 +99,19 @@ public class JsonSchemaResource {
                     schema =
                         @org.eclipse.microprofile.openapi.annotations.media.Schema(
                             implementation = ApiError.class))),
-        @APIResponse(ref = OpenApiConstants.Responses.GENERAL_400),
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_401),
+        @APIResponse(
+            responseCode = "404",
+            description = "Not found.",
+            content =
+                @Content(
+                    examples = {
+                      @ExampleObject(ref = OpenApiConstants.Examples.NAMESPACE_DOES_NOT_EXIST),
+                      @ExampleObject(ref = OpenApiConstants.Examples.COLLECTION_DOES_NOT_EXIST)
+                    },
+                    schema =
+                        @org.eclipse.microprofile.openapi.annotations.media.Schema(
+                            implementation = ApiError.class))),
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_500),
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
@@ -99,7 +121,8 @@ public class JsonSchemaResource {
       @PathParam("collection") String collection,
       @NotNull(message = "json schema not provided") JsonNode body) {
     return jsonSchemaManager
-        .attachJsonSchema(namespace, collection, body)
+        .attachJsonSchema(
+            namespace, tableManager.getValidCollectionTable(namespace, collection), body)
         .map(schema -> RestResponse.ok(new JsonSchemaDto(schema)));
   }
 
@@ -117,14 +140,24 @@ public class JsonSchemaResource {
       })
   @APIResponses(
       value = {
-        @APIResponse(responseCode = "200", description = "Fetch successful."),
+        @APIResponse(
+            responseCode = "200",
+            description = "Fetch successful.",
+            content = {
+              @Content(
+                  schema =
+                      @org.eclipse.microprofile.openapi.annotations.media.Schema(
+                          implementation = JsonSchemaDto.class,
+                          properties = @SchemaProperty(name = "schema", type = SchemaType.OBJECT)))
+            }),
         @APIResponse(
             responseCode = "404",
             description = "Not found.",
             content =
                 @Content(
                     examples = {
-                      @ExampleObject(ref = OpenApiConstants.Examples.NAMESPACE_DOES_NOT_EXIST)
+                      @ExampleObject(ref = OpenApiConstants.Examples.NAMESPACE_DOES_NOT_EXIST),
+                      @ExampleObject(ref = OpenApiConstants.Examples.COLLECTION_DOES_NOT_EXIST)
                     },
                     schema =
                         @org.eclipse.microprofile.openapi.annotations.media.Schema(

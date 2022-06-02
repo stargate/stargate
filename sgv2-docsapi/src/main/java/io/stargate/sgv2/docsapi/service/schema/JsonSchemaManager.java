@@ -66,45 +66,40 @@ public class JsonSchemaManager {
             });
   }
 
-  public Uni<JsonNode> attachJsonSchema(String keyspace, String table, String schema)
-      throws JsonProcessingException {
-    return attachJsonSchema(keyspace, table, objectMapper.readTree(schema));
-  }
-
   /**
    * Assigns a JSON schema to a table.
    *
-   * @param keyspace the keyspace of the table
-   * @param table the table
+   * @param namespace the namespace of the collection
+   * @param collection the collection to attach JSON schema to
    * @param schema the JSON schema to assign
    * @return a Uni with a success boolean
    */
-  public Uni<JsonNode> attachJsonSchema(String keyspace, String table, JsonNode schema) {
-    return Uni.createFrom()
-        .item(() -> jsonSchemaFactory.getSyntaxValidator().validateSchema(schema))
-        .flatMap(
-            report -> {
-              if (report.isSuccess()) {
-                ObjectNode wrappedSchema = objectMapper.createObjectNode();
-                wrappedSchema.set("schema", schema);
-                StargateBridge bridge = requestInfo.getStargateBridge();
-                return bridge
-                    .executeQuery(
-                        jsonSchemaQueryProvider.attachSchemaQuery(
-                            keyspace, table, wrappedSchema.toString()))
-                    .map(r -> schema);
-              } else {
-                String msgs = "";
-                Iterator<ProcessingMessage> it = report.iterator();
-                while (it.hasNext()) {
-                  ProcessingMessage msg = it.next();
-                  msgs += String.format("[%s]: %s; ", msg.getLogLevel(), msg.getMessage());
-                }
-                Throwable failure =
-                    new ErrorCodeRuntimeException(ErrorCode.DOCS_API_JSON_SCHEMA_INVALID, msgs);
-                return Uni.createFrom().failure(failure);
-              }
-            });
+  public Uni<JsonNode> attachJsonSchema(
+      String namespace, Uni<Schema.CqlTable> collection, JsonNode schema) {
+    return collection.flatMap(
+        c -> {
+          ProcessingReport report = jsonSchemaFactory.getSyntaxValidator().validateSchema(schema);
+          if (report.isSuccess()) {
+            ObjectNode wrappedSchema = objectMapper.createObjectNode();
+            wrappedSchema.set("schema", schema);
+            StargateBridge bridge = requestInfo.getStargateBridge();
+            return bridge
+                .executeQuery(
+                    jsonSchemaQueryProvider.attachSchemaQuery(
+                        namespace, c.getName(), wrappedSchema.toString()))
+                .map(r -> schema);
+          } else {
+            String msgs = "";
+            Iterator<ProcessingMessage> it = report.iterator();
+            while (it.hasNext()) {
+              ProcessingMessage msg = it.next();
+              msgs += String.format("[%s]: %s; ", msg.getLogLevel(), msg.getMessage());
+            }
+            Throwable failure =
+                new ErrorCodeRuntimeException(ErrorCode.DOCS_API_JSON_SCHEMA_INVALID, msgs);
+            return Uni.createFrom().failure(failure);
+          }
+        });
   }
 
   /**

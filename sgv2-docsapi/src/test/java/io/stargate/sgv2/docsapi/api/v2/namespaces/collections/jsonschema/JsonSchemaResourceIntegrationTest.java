@@ -35,6 +35,7 @@ import java.time.Duration;
 import javax.enterprise.context.control.ActivateRequestContext;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.MethodOrderer;
@@ -119,16 +120,32 @@ public class JsonSchemaResourceIntegrationTest {
           .body(body)
           .put(BASE_PATH, DEFAULT_NAMESPACE, "notatable")
           .then()
-          .statusCode(400)
-          .body("code", is(400))
-          .body(
-              "description",
-              is(
-                  "Invalid argument for gRPC operation (INVALID_ARGUMENT->Bad Request): INVALID_ARGUMENT: unconfigured table notatable"));
-      ;
+          .statusCode(404)
+          .body("code", is(404))
+          .body("description", is("Collection 'notatable' not found."));
     }
 
     @Test
+    @Order(3)
+    public void keyspaceDoesNotExist() {
+      String body =
+          """
+                {\"$schema\": \"https://json-schema.org/draft/2019-09/schema\"}
+              """;
+
+      given()
+          .contentType(ContentType.JSON)
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .body(body)
+          .put(BASE_PATH, "notexist", DEFAULT_COLLECTION)
+          .then()
+          .statusCode(404)
+          .body("code", is(404))
+          .body("description", is("Unknown namespace notexist, you must create it first."));
+    }
+
+    @Test
+    @Order(4)
     public void invalidJsonSchema() {
       String body =
           "{\n"
@@ -155,6 +172,7 @@ public class JsonSchemaResourceIntegrationTest {
     }
 
     @Test
+    @Order(5)
     public void noPayload() {
       given()
           .contentType(ContentType.JSON)
@@ -166,6 +184,24 @@ public class JsonSchemaResourceIntegrationTest {
           .body("code", is(400))
           .body("description", is("Request invalid: json schema not provided."));
     }
+
+    @Test
+    @Order(6)
+    public void notDocumentTable() {
+      given()
+          .contentType(ContentType.JSON)
+          .body("{}")
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .when()
+          .put(BASE_PATH, "system", "peers")
+          .then()
+          .statusCode(400)
+          .body("code", is(400))
+          .body(
+              "description",
+              is(
+                  "The database table system.peers is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted."));
+    }
   }
 
   @Nested
@@ -173,16 +209,19 @@ public class JsonSchemaResourceIntegrationTest {
   class GetJsonSchema {
 
     @Test
+    @Order(1)
     public void happyPath() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
           .then()
-          .statusCode(200);
+          .statusCode(200)
+          .body("schema", Matchers.nullValue());
     }
 
     @Test
+    @Order(2)
     public void tableNotExisting() {
 
       given()
@@ -193,6 +232,36 @@ public class JsonSchemaResourceIntegrationTest {
           .statusCode(404)
           .body("code", is(404))
           .body("description", is("Collection 'notatable' not found."));
+    }
+
+    @Test
+    @Order(3)
+    public void keyspaceNotExisting() {
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .when()
+          .get(BASE_PATH, "notexist", DEFAULT_COLLECTION)
+          .then()
+          .statusCode(404)
+          .body("code", is(404))
+          .body("description", is("Unknown namespace notexist, you must create it first."));
+    }
+
+    @Test
+    @Order(4)
+    public void notDocumentTable() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .when()
+          .get(BASE_PATH, "system", "peers")
+          .then()
+          .statusCode(400)
+          .body("code", is(400))
+          .body(
+              "description",
+              is(
+                  "The database table system.peers is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted."));
     }
   }
 }
