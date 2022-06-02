@@ -56,10 +56,25 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.commons.codec.binary.Hex;
+import org.slf4j.LoggerFactory;
 
 class DefaultStargateBridgeClient implements StargateBridgeClient {
+  public static final String SYSPROP_DISABLE_SCHEMA_FRESHNESS_CHECK =
+      "stargate.bridge.client.disableSchemaFreshnessCheck";
 
-  private static final int TIMEOUT_SECONDS = 10;
+  private static final boolean DISABLE_FRESHNESS_CHECK;
+
+  static {
+    final String checkStr = System.getProperty(SYSPROP_DISABLE_SCHEMA_FRESHNESS_CHECK, "");
+    DISABLE_FRESHNESS_CHECK = "true".equalsIgnoreCase(checkStr) || "1".equals(checkStr);
+    if (DISABLE_FRESHNESS_CHECK) {
+      LoggerFactory.getLogger(DefaultStargateBridgeClient.class)
+          .warn(
+              "Schema Cache freshness check by DefaultStargateBridgeClient DISABLED (via system property '{}')! Schemas will only expire via fixed timeout",
+              SYSPROP_DISABLE_SCHEMA_FRESHNESS_CHECK);
+    }
+  }
+
   static final Metadata.Key<String> TENANT_ID_KEY =
       Metadata.Key.of("x-tenant-id", Metadata.ASCII_STRING_MARSHALLER);
   static final Query SELECT_KEYSPACE_NAMES =
@@ -134,11 +149,15 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
   }
 
   private CompletionStage<CqlKeyspaceDescribe> getAuthorizedKeyspace(String keyspaceName) {
-    CompletableFuture<CqlKeyspaceDescribe> result = new CompletableFuture<>();
-
     String decoratedKeyspaceName = decorateKeyspaceName(keyspaceName);
 
     CqlKeyspaceDescribe cached = keyspaceCache.getIfPresent(decoratedKeyspaceName);
+    // 01-Jun-2022, tatu: For testing we may want to simply return cached Keyspace no matter what:
+    //    local Cache will still expire entries but no call made to server for hash verification
+    if (DISABLE_FRESHNESS_CHECK && (cached != null)) {
+      return CompletableFuture.completedFuture(cached);
+    }
+
     Optional<Integer> cachedHash =
         Optional.ofNullable(cached)
             .filter(CqlKeyspaceDescribe::hasHash)
@@ -146,6 +165,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
 
     // The result is cached locally, but we always hit the bridge anyway, to check if it has a more
     // recent version.
+    CompletableFuture<CqlKeyspaceDescribe> result = new CompletableFuture<>();
     fetchKeyspaceFromBridge(keyspaceName, cachedHash)
         .whenComplete(
             (fetched, error) -> {
