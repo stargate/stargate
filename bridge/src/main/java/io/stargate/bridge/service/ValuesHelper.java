@@ -123,12 +123,26 @@ public class ValuesHelper {
 
   public static ResultSet processResult(Rows rows, QueryParameters parameters)
       throws StatusException {
-    return processResult(rows, parameters.getSkipMetadata(), null, null, null, null, null);
+    return processResult(
+        rows,
+        parameters.getSkipMetadata(),
+        null,
+        null,
+        null,
+        null,
+        QueryOuterClass.ResumeMode.UNRECOGNIZED);
   }
 
   public static ResultSet processResult(Rows rows, BatchParameters parameters)
       throws StatusException {
-    return processResult(rows, parameters.getSkipMetadata(), null, null, null, null, null);
+    return processResult(
+        rows,
+        parameters.getSkipMetadata(),
+        null,
+        null,
+        null,
+        null,
+        QueryOuterClass.ResumeMode.UNRECOGNIZED);
   }
 
   public interface GetComparableBytesFromRow {

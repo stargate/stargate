@@ -162,7 +162,7 @@ public class QueryHandler extends MessageHandler<Query, Prepared> {
       return EXHAUSTED_PAGE_STATE;
     }
 
-    if (resumeMode == null) {
+    if (resumeMode == QueryOuterClass.ResumeMode.UNRECOGNIZED) {
       return null;
     }
 

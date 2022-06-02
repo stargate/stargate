@@ -38,6 +38,8 @@ enum Consistency {
   LOCAL_ONE = 0x0A;
 }
 
+// The type of resume mode (either next row, or next partition) that should
+// be used when generating per-row paging states for enriched queries.
 enum ResumeMode {
   NEXT_ROW = 0x00;
   NEXT_PARTITION = 0x01;
@@ -233,6 +235,8 @@ message QueryParameters {
   bool enriched = 11;
 
   // Configurable resume mode for page state creation; only used when enriched = true.
+  // Changes the way that paging state is generated on each row of the result set, during enrichment.
+  // If unset, the paging state will not be populated for each row.
   ResumeMode resumeMode = 12;
 }
 
