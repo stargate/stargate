@@ -127,10 +127,10 @@ Running a test with a different version of the data store or the Stargate coordi
 
 #### Skipping integration tests
 
-You can skip the integration tests during the maven build by disabling the `int-tests` profile using the `-DskipIntTests` property:
+You can skip the integration tests during the maven build by disabling the `int-tests` profile using the `-DskipITs` property:
 
 ```shell script
-./mvnw verify -DskipIntTests
+./mvnw verify -DskipITs
 ```
 
 ### Packaging and running the application
