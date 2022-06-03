@@ -72,6 +72,9 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
           .warn(
               "Schema Cache freshness check by DefaultStargateBridgeClient DISABLED (via system property '{}')! Schemas will only expire via fixed timeout",
               SYSPROP_DISABLE_SCHEMA_FRESHNESS_CHECK);
+    } else {
+      LoggerFactory.getLogger(DefaultStargateBridgeClient.class)
+          .info("Schema Cache freshness check by DefaultStargateBridgeClient ENABLED");
     }
   }
 
