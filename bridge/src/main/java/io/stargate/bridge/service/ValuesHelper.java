@@ -25,6 +25,7 @@ import io.grpc.Status;
 import io.grpc.StatusException;
 import io.stargate.bridge.codec.ValueCodec;
 import io.stargate.bridge.codec.ValueCodecs;
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.BatchParameters;
 import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.bridge.proto.QueryOuterClass.QueryParameters;
@@ -122,12 +123,26 @@ public class ValuesHelper {
 
   public static ResultSet processResult(Rows rows, QueryParameters parameters)
       throws StatusException {
-    return processResult(rows, parameters.getSkipMetadata(), null, null, null, null);
+    return processResult(
+        rows,
+        parameters.getSkipMetadata(),
+        null,
+        null,
+        null,
+        null,
+        QueryOuterClass.ResumeMode.UNRECOGNIZED);
   }
 
   public static ResultSet processResult(Rows rows, BatchParameters parameters)
       throws StatusException {
-    return processResult(rows, parameters.getSkipMetadata(), null, null, null, null);
+    return processResult(
+        rows,
+        parameters.getSkipMetadata(),
+        null,
+        null,
+        null,
+        null,
+        QueryOuterClass.ResumeMode.UNRECOGNIZED);
   }
 
   public interface GetComparableBytesFromRow {
@@ -137,7 +152,10 @@ public class ValuesHelper {
 
   public interface GetPagingStateFromRow {
     ByteBuffer apply(
-        ByteBuffer resultSetPagingState, io.stargate.db.datastore.Row row, boolean lastInPage);
+        ByteBuffer resultSetPagingState,
+        io.stargate.db.datastore.Row row,
+        QueryOuterClass.ResumeMode resumeMode,
+        boolean lastInPage);
   }
 
   public static ResultSet processResult(
@@ -154,7 +172,8 @@ public class ValuesHelper {
         getComparableBytes,
         getPagingState,
         makeRow,
-        rowDecorator);
+        rowDecorator,
+        parameters.getResumeMode());
   }
 
   private static ResultSet processResult(
@@ -163,7 +182,8 @@ public class ValuesHelper {
       GetComparableBytesFromRow getComparableBytes,
       GetPagingStateFromRow getPagingState,
       BiFunction<List<Column>, List<ByteBuffer>, io.stargate.db.datastore.Row> makeRow,
-      RowDecorator rowDecorator)
+      RowDecorator rowDecorator,
+      QueryOuterClass.ResumeMode resumeMode)
       throws StatusException {
     final List<Column> columns = rows.resultMetadata.columns;
     final int columnCount = columns.size();
@@ -189,7 +209,10 @@ public class ValuesHelper {
         comparableBytes = getComparableBytes.apply(columns, arrayListRow, rowDecorator);
         rowPagingState =
             getPagingState.apply(
-                rows.resultMetadata.pagingState, arrayListRow, count == rows.rows.size() - 1);
+                rows.resultMetadata.pagingState,
+                arrayListRow,
+                resumeMode,
+                count == rows.rows.size() - 1);
       }
       Row.Builder rowBuilder = Row.newBuilder();
       for (int i = 0; i < columnCount; ++i) {
