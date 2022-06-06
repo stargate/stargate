@@ -54,7 +54,7 @@ public class JsonSchemaManager {
             t -> {
               String comment = t.getOptionsMap().getOrDefault("comment", null);
               if (comment == null) {
-                return null;
+                throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_JSON_SCHEMA_DOES_NOT_EXIST);
               }
 
               try {
@@ -83,6 +83,10 @@ public class JsonSchemaManager {
             ObjectNode wrappedSchema = objectMapper.createObjectNode();
             wrappedSchema.set("schema", schema);
             StargateBridge bridge = requestInfo.getStargateBridge();
+            System.out.println(
+                "Wha? "
+                    + jsonSchemaQueryProvider.attachSchemaQuery(
+                        namespace, c.getName(), wrappedSchema.toString()));
             return bridge
                 .executeQuery(
                     jsonSchemaQueryProvider.attachSchemaQuery(
@@ -111,8 +115,15 @@ public class JsonSchemaManager {
    */
   public Uni<Boolean> validateJsonDocument(Uni<Schema.CqlTable> table, JsonNode document) {
     return getJsonSchema(table)
-        .map(
-            jsonSchema -> {
+        .onItemOrFailure()
+        .transform(
+            (jsonSchema, failure) -> {
+              if (failure instanceof ErrorCodeRuntimeException
+                  && ((ErrorCodeRuntimeException) failure).getErrorCode()
+                      == ErrorCode.DOCS_API_JSON_SCHEMA_DOES_NOT_EXIST) {
+                // If there is no valid JSON schema, then the document is valid
+                return true;
+              }
               if (jsonSchema == null) {
                 // If there is no valid JSON schema, then the document is valid
                 return true;

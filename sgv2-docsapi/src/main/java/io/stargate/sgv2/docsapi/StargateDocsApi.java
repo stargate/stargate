@@ -187,6 +187,12 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
     tags = {
       @Tag(
           name = OpenApiConstants.Tags.COLLECTIONS,
-          description = "Collection management operations.")
+          description = "Collection management operations."),
+      @Tag(
+          name = OpenApiConstants.Tags.NAMESPACES,
+          description = "Namespace management operations."),
+      @Tag(
+          name = OpenApiConstants.Tags.JSON_SCHEMAS,
+          description = "Json schema management operations.")
     })
 public class StargateDocsApi extends Application {}

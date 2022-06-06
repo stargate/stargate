@@ -43,6 +43,7 @@ import org.eclipse.microprofile.openapi.annotations.media.ExampleObject;
 import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameters;
+import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
@@ -119,10 +120,26 @@ public class JsonSchemaResource {
   public Uni<RestResponse<Object>> putJsonSchema(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
-      @NotNull(message = "json schema not provided") JsonNode body) {
+      @NotNull(message = "json schema not provided")
+          @RequestBody(
+              required = true,
+              description = "The JSON schema to attach",
+              content = {
+                @Content(
+                    mediaType = "application/json",
+                    examples =
+                        @ExampleObject(
+                            ref =
+                                "{\"$schema\": \"https://json-schema.org/draft/2019-09/schema\"}"))
+              })
+          JsonNode body) {
     return jsonSchemaManager
         .attachJsonSchema(
             namespace, tableManager.getValidCollectionTable(namespace, collection), body)
+        .flatMap(
+            __ ->
+                jsonSchemaManager.getJsonSchema(
+                    tableManager.getValidCollectionTable(namespace, collection)))
         .map(schema -> RestResponse.ok(new JsonSchemaDto(schema)));
   }
 

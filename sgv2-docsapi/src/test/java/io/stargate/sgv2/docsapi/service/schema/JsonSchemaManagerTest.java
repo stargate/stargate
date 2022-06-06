@@ -53,9 +53,9 @@ class JsonSchemaManagerTest extends BridgeTest {
   class AttachJsonSchema {
     @Test
     public void happyPath() throws JsonProcessingException {
-      table = Schema.CqlTable.newBuilder().build();
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
+      table = Schema.CqlTable.newBuilder().setName(collection).putOptions("comment", "{}").build();
 
       doAnswer(
               invocationOnMock -> {
@@ -135,7 +135,7 @@ class JsonSchemaManagerTest extends BridgeTest {
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
 
-      result.awaitItem().assertItem(null).assertCompleted();
+      result.awaitFailure().assertFailedWith(ErrorCodeRuntimeException.class);
     }
 
     @Test

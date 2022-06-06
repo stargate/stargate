@@ -35,7 +35,6 @@ import java.time.Duration;
 import javax.enterprise.context.control.ActivateRequestContext;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.MethodOrderer;
@@ -103,6 +102,7 @@ public class JsonSchemaResourceIntegrationTest {
           .body(body)
           .put(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
           .then()
+          .statusCode(200)
           .body("schema.$schema", is("https://json-schema.org/draft/2019-09/schema"));
     }
 
@@ -217,7 +217,7 @@ public class JsonSchemaResourceIntegrationTest {
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
           .then()
           .statusCode(200)
-          .body("schema", Matchers.nullValue());
+          .body("schema", is("{\"$schema\": \"https://json-schema.org/draft/2019-09/schema\"}"));
     }
 
     @Test

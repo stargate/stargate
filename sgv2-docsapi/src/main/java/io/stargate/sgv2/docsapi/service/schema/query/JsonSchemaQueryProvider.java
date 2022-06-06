@@ -33,7 +33,7 @@ public class JsonSchemaQueryProvider {
 
   // constructs parameters for the queries in this provider
   private QueryOuterClass.QueryParameters getQueryParameters() {
-    QueryOuterClass.Consistency consistency = queriesConfig.consistency().schemaChanges();
+    QueryOuterClass.Consistency consistency = queriesConfig.consistency().writes();
 
     return QueryOuterClass.QueryParameters.newBuilder()
         .setConsistency(QueryOuterClass.ConsistencyValue.newBuilder().setValue(consistency))
