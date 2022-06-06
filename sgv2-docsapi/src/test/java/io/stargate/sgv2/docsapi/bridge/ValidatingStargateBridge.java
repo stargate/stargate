@@ -51,8 +51,7 @@ public class ValidatingStargateBridge implements StargateBridge {
   public Uni<QueryOuterClass.Response> executeQuery(QueryOuterClass.Query query) {
     QueryExpectation expectation =
         findQueryExpectation(query.getCql(), query.getValues().getValuesList());
-    return expectation.execute(
-        query.getParameters(), null, query.hasParameters() && query.getParameters().getEnriched());
+    return expectation.execute(query.getParameters(), null);
   }
 
   @Override
@@ -62,7 +61,7 @@ public class ValidatingStargateBridge implements StargateBridge {
             query -> {
               QueryExpectation expectation =
                   findQueryExpectation(query.getCql(), query.getValues().getValuesList());
-              return expectation.execute(null, batch.getType(), false);
+              return expectation.execute(null, batch.getType());
             })
         // Return the last result
         .reduce((first, second) -> second)
@@ -126,6 +125,7 @@ public class ValidatingStargateBridge implements StargateBridge {
     private int pageSize = Integer.MAX_VALUE;
     private QueryOuterClass.Batch.Type batchType;
     private boolean enriched;
+    private QueryOuterClass.ResumeMode resumeMode;
     private List<List<QueryOuterClass.Value>> rows;
     private Iterable<? extends QueryOuterClass.ColumnSpec> columnSpec;
 
@@ -152,6 +152,11 @@ public class ValidatingStargateBridge implements StargateBridge {
 
     public QueryExpectation enriched() {
       enriched = true;
+      return this;
+    }
+
+    public QueryExpectation withResumeMode(QueryOuterClass.ResumeMode resumeMode) {
+      this.resumeMode = resumeMode;
       return this;
     }
 
@@ -182,9 +187,7 @@ public class ValidatingStargateBridge implements StargateBridge {
     }
 
     private Uni<QueryOuterClass.Response> execute(
-        QueryOuterClass.QueryParameters parameters,
-        QueryOuterClass.Batch.Type actualBatchType,
-        boolean actualEnriched) {
+        QueryOuterClass.QueryParameters parameters, QueryOuterClass.Batch.Type actualBatchType) {
 
       // assert batch type
       assertThat(this.batchType)
@@ -192,7 +195,23 @@ public class ValidatingStargateBridge implements StargateBridge {
           .isEqualTo(actualBatchType);
 
       // assert enriched
-      assertThat(this.enriched).isEqualTo(actualEnriched);
+      Boolean actualEnriched =
+          Optional.ofNullable(parameters)
+              .map(QueryOuterClass.QueryParameters::getEnriched)
+              .orElse(false);
+      assertThat(this.enriched)
+          .as("Enriched flag for the query %s", cqlPattern)
+          .isEqualTo(actualEnriched);
+
+      // assert resume mode
+      QueryOuterClass.ResumeMode actualResumeMode =
+          Optional.ofNullable(parameters)
+              .filter(QueryOuterClass.QueryParameters::hasResumeMode)
+              .map(p -> p.getResumeMode().getValue())
+              .orElse(null);
+      assertThat(this.resumeMode)
+          .as("Resume mode for the query %s", cqlPattern)
+          .isEqualTo(actualResumeMode);
 
       // resolve and assert page size
       int pageSize;

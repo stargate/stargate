@@ -24,16 +24,15 @@ import java.nio.ByteBuffer;
  * <p>In general a paging state may come from:
  * <li>a byte buffer, which in turn is a paging state returned from the previous query execution
  *     that was not utilized during the current processing round and hence can be reused "as is"
- *     regardless of {@link ResumeMode ResumeMode}.
  * <li>a row that was received from the current (fresh) result set page.
  */
 public interface PagingStateSupplier {
 
-  /** Constructs paging state for the specified {@link ResumeMode ResumeMode}. */
-  ByteBuffer makePagingState(ResumeMode resumeMode);
+  /** Constructs paging state. */
+  ByteBuffer makePagingState();
 
   /** Creates a {@link PagingStateSupplier} for a pre-built, fixed paging state buffer. */
   static PagingStateSupplier fixed(ByteBuffer pagingState) {
-    return resumeMode -> pagingState;
+    return () -> pagingState;
   }
 }

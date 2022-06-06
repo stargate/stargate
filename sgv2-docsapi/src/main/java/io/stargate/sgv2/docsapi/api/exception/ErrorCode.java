@@ -108,6 +108,10 @@ public enum ErrorCode {
       Response.Status.BAD_REQUEST,
       "The results as requested must fit in one page, try increasing the `page-size` parameter."),
 
+  DOCS_API_SEARCH_ROW_PAGE_STATE_MISSING(
+      Response.Status.INTERNAL_SERVER_ERROR,
+      "Internal processing error. Make page state called on the document property that was fetched without row page state."),
+
   DOCS_API_JSON_SCHEMA_INVALID(
       Response.Status.BAD_REQUEST, "The provided JSON schema is invalid or malformed."),
 
@@ -142,8 +146,10 @@ public enum ErrorCode {
   DOCS_API_UPDATE_PATH_NOT_MATCHING(
       Response.Status.INTERNAL_SERVER_ERROR,
       "Updating a document failed as internally shredded rows did not match the update path."),
+
   DOCS_API_INVALID_TTL_NUMBER(
       Response.Status.BAD_REQUEST, "TTL on a full document must be a positive integer"),
+
   DOCS_API_INVALID_TTL_AUTO(
       Response.Status.BAD_REQUEST, "TTL on a sub-document must be set to 'auto'");
 

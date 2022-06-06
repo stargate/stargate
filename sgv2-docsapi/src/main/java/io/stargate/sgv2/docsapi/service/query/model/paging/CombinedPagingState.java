@@ -53,9 +53,9 @@ public class CombinedPagingState implements PagingStateSupplier {
   }
 
   @Override
-  public ByteBuffer makePagingState(ResumeMode resumeMode) {
+  public ByteBuffer makePagingState() {
     List<ByteBuffer> pagingStateBuffers =
-        pagingState.stream().map(s -> s.makePagingState(resumeMode)).collect(Collectors.toList());
+        pagingState.stream().map(PagingStateSupplier::makePagingState).collect(Collectors.toList());
 
     // An empty paging state means the query was exhausted during previous execution.
     // A null paging state mean the query has not been executed yet.

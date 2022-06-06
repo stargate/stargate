@@ -31,6 +31,8 @@ import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
+import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
+import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.common.model.ImmutableRowWrapper;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
@@ -38,7 +40,6 @@ import io.stargate.sgv2.docsapi.service.query.model.ImmutableRawDocument;
 import io.stargate.sgv2.docsapi.service.query.model.RawDocument;
 import io.stargate.sgv2.docsapi.service.query.model.paging.CombinedPagingState;
 import io.stargate.sgv2.docsapi.service.query.model.paging.PagingStateSupplier;
-import io.stargate.sgv2.docsapi.service.query.model.paging.ResumeMode;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -51,10 +52,14 @@ import javax.annotation.Nullable;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import org.immutables.value.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Executes pre-built document queries, groups document rows and manages document pagination. */
 @ApplicationScoped
 public class QueryExecutor {
+
+  private static final Logger LOG = LoggerFactory.getLogger(QueryExecutor.class);
 
   public final Accumulator TERM = new Accumulator();
 
@@ -66,22 +71,23 @@ public class QueryExecutor {
    * Runs the provided query, then groups the rows into {@link RawDocument} objects with key depth
    * of 1.
    *
-   * @see #queryDocs(int, List, int, boolean, ByteBuffer, ExecutionContext)
+   * @see #queryDocs(int, List, int, boolean, ByteBuffer, boolean, ExecutionContext)
    */
   public Multi<RawDocument> queryDocs(
       QueryOuterClass.Query query,
       int pageSize,
       boolean exponentPageSize,
       ByteBuffer pagingState,
+      boolean fetchRowPaging,
       ExecutionContext context) {
-    return queryDocs(1, query, pageSize, exponentPageSize, pagingState, context);
+    return queryDocs(1, query, pageSize, exponentPageSize, pagingState, fetchRowPaging, context);
   }
 
   /**
    * Runs the provided query, then groups the rows into {@link RawDocument} objects according to
    * {@code keyDepth} primary key values.
    *
-   * @see #queryDocs(int, List, int, boolean, ByteBuffer, ExecutionContext)
+   * @see #queryDocs(int, List, int, boolean, ByteBuffer, boolean, ExecutionContext)
    */
   public Multi<RawDocument> queryDocs(
       int keyDepth,
@@ -89,9 +95,16 @@ public class QueryExecutor {
       int pageSize,
       boolean exponentPageSize,
       ByteBuffer pagingState,
+      boolean fetchRowPaging,
       ExecutionContext context) {
     return queryDocs(
-        keyDepth, ImmutableList.of(query), pageSize, exponentPageSize, pagingState, context);
+        keyDepth,
+        ImmutableList.of(query),
+        pageSize,
+        exponentPageSize,
+        pagingState,
+        fetchRowPaging,
+        context);
   }
 
   /**
@@ -99,15 +112,16 @@ public class QueryExecutor {
    * primary key columns, then groups the merged rows into {@link RawDocument} objects with key
    * depth of 1.
    *
-   * @see #queryDocs(int, List, int, boolean, ByteBuffer, ExecutionContext)
+   * @see #queryDocs(int, List, int, boolean, ByteBuffer, boolean, ExecutionContext)
    */
   public Multi<RawDocument> queryDocs(
       List<QueryOuterClass.Query> queries,
       int pageSize,
       boolean exponentPageSize,
       ByteBuffer pagingState,
+      boolean fetchRowPaging,
       ExecutionContext context) {
-    return queryDocs(1, queries, pageSize, exponentPageSize, pagingState, context);
+    return queryDocs(1, queries, pageSize, exponentPageSize, pagingState, fetchRowPaging, context);
   }
 
   /**
@@ -132,6 +146,9 @@ public class QueryExecutor {
    * @param exponentPageSize if the storage-level page size should be exponentially increase with
    *     every next hop to the data store
    * @param pagingState the storage-level page state to use (may be {@code null}).
+   * @param fetchRowPaging if the paging state for each row should be fetched, this should be <code>
+   *     true</code> when queries will be reference ones for generating a user-facing document
+   *     paging state
    * @param context the query execution context for profiling.
    * @return a flow of documents grouped by the primary key values up to {@code keyDepth} and
    *     ordered according to the natural Cassandra result set order (ring order on the partition
@@ -143,6 +160,7 @@ public class QueryExecutor {
       int pageSize,
       boolean exponentPageSize,
       ByteBuffer pagingState,
+      boolean fetchRowPaging,
       ExecutionContext context) {
 
     // deffer to wrap failures
@@ -153,6 +171,17 @@ public class QueryExecutor {
               // construct query data and id columns based on depth
               QueryData queryData = ImmutableQueryData.of(queries, documentProperties);
               List<String> idColumns = queryData.docIdColumns(keyDepth);
+
+              // if row page should be fetched
+              // then NEXT_ROW is used when we have more than one keys,
+              // otherwise NEXT_PARTITION
+              QueryOuterClass.ResumeMode resumeMode = null;
+              if (fetchRowPaging) {
+                resumeMode =
+                    idColumns.size() > 1
+                        ? QueryOuterClass.ResumeMode.NEXT_ROW
+                        : QueryOuterClass.ResumeMode.NEXT_PARTITION;
+              }
 
               // create comparator
               Comparator<DocProperty> comparator = rowComparator(queryData);
@@ -172,6 +201,7 @@ public class QueryExecutor {
                           pageSize,
                           exponentPageSize,
                           pagingStates,
+                          resumeMode,
                           context)
 
                       // map to seed
@@ -201,6 +231,7 @@ public class QueryExecutor {
       int pageSize,
       boolean exponentPageSize,
       List<ByteBuffer> pagingStates,
+      QueryOuterClass.ResumeMode resumeMode,
       ExecutionContext context) {
 
     // for each query
@@ -218,7 +249,12 @@ public class QueryExecutor {
 
                   // execute that query
                   return executeQuery(
-                          stargateBridge, query, pageSize, exponentPageSize, queryPagingState)
+                          stargateBridge,
+                          query,
+                          pageSize,
+                          exponentPageSize,
+                          queryPagingState,
+                          resumeMode)
 
                       // for each result set, transform to doc property
                       .onItem()
@@ -246,7 +282,8 @@ public class QueryExecutor {
       QueryOuterClass.Query query,
       int pageSize,
       boolean exponentPageSize,
-      ByteBuffer pagingState) {
+      ByteBuffer pagingState,
+      QueryOuterClass.ResumeMode resumeMode) {
     // An empty paging state means the query was exhausted during previous execution
     if (pagingState != null && pagingState.remaining() == 0) {
       return Multi.createFrom().empty();
@@ -269,11 +306,16 @@ public class QueryExecutor {
               QueryState state = stateRef.get();
 
               // create params
-              // TODO enriched as param?
               QueryOuterClass.QueryParameters.Builder params =
                   QueryOuterClass.QueryParameters.newBuilder()
                       .setPageSize(Int32Value.of(state.pageSize()))
                       .setEnriched(true);
+
+              // set resume mode if not null
+              if (null != resumeMode) {
+                params.setResumeMode(
+                    QueryOuterClass.ResumeModeValue.newBuilder().setValue(resumeMode).build());
+              }
 
               // if we have paging state, set
               if (null != state.pagingState()) {
@@ -326,7 +368,7 @@ public class QueryExecutor {
     int count = rows.size();
     for (QueryOuterClass.Row row : rows) {
       boolean last = --count <= 0;
-      ImmutableRowWrapper rowWrapper = ImmutableRowWrapper.of(columnsList, row);
+      RowWrapper rowWrapper = ImmutableRowWrapper.of(columnsList, row);
       properties.add(
           ImmutableDocProperty.builder()
               .queryIndex(queryIndex)
@@ -455,7 +497,7 @@ public class QueryExecutor {
     }
 
     @Override
-    public ByteBuffer makePagingState(ResumeMode resumeMode) {
+    public ByteBuffer makePagingState() {
       // Note: is current row was not the last one in its page the higher-level request may
       // choose to resume fetching from the next row in current page even if the page itself does
       // not have a paging state. Therefore, in this case we cannot return EXHAUSTED_PAGE_STATE.
@@ -466,10 +508,9 @@ public class QueryExecutor {
       // ensure we have a row page state
       QueryOuterClass.Row row = rowWrapper().row();
       if (!row.hasPagingState()) {
-        return CombinedPagingState.EXHAUSTED_PAGE_STATE;
+        throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_ROW_PAGE_STATE_MISSING);
       }
 
-      // TODO handle resume mode, now only supports NEXT_ROW
       BytesValue pagingState = row.getPagingState();
       return pagingState.getValue().asReadOnlyByteBuffer();
     }

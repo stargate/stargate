@@ -20,7 +20,6 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.model.paging.PagingStateSupplier;
-import io.stargate.sgv2.docsapi.service.query.model.paging.ResumeMode;
 import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.List;
@@ -98,13 +97,6 @@ public interface RawDocument {
 
   /** @return The paging state of the document. */
   default ByteBuffer makePagingState() {
-    ResumeMode resumeMode;
-    if (docKey().size() > 1) {
-      resumeMode = ResumeMode.NEXT_ROW;
-    } else {
-      resumeMode = ResumeMode.NEXT_PARTITION;
-    }
-
-    return pagingState().makePagingState(resumeMode);
+    return pagingState().makePagingState();
   }
 }

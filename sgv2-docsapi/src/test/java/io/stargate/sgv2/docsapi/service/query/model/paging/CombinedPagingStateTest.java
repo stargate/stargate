@@ -59,30 +59,29 @@ class CombinedPagingStateTest {
 
     @Test
     void oneNull() {
-      CombinedPagingState combined = new CombinedPagingState(ImmutableList.of(resumeMode -> null));
-      assertThat(combined.makePagingState(ResumeMode.NEXT_PARTITION)).isNull();
+      CombinedPagingState combined = new CombinedPagingState(ImmutableList.of(() -> null));
+      assertThat(combined.makePagingState()).isNull();
     }
 
     @Test
     void allNull() {
       CombinedPagingState combined =
-          new CombinedPagingState(ImmutableList.of(resumeMode -> null, resumeMode -> null));
-      assertThat(combined.makePagingState(ResumeMode.NEXT_PARTITION)).isNull();
+          new CombinedPagingState(ImmutableList.of(() -> null, () -> null));
+      assertThat(combined.makePagingState()).isNull();
     }
 
     @Test
     void mixed() {
       CombinedPagingState combined =
-          new CombinedPagingState(
-              ImmutableList.of(resumeMode -> null, resumeMode -> EXHAUSTED_PAGE_STATE));
-      assertThat(combined.makePagingState(ResumeMode.NEXT_PARTITION)).isNotNull();
+          new CombinedPagingState(ImmutableList.of(() -> null, () -> EXHAUSTED_PAGE_STATE));
+      assertThat(combined.makePagingState()).isNotNull();
     }
 
     @Test
     void exhausted() {
       CombinedPagingState combined =
-          new CombinedPagingState(ImmutableList.of(resumeMode -> EXHAUSTED_PAGE_STATE));
-      assertThat(combined.makePagingState(ResumeMode.NEXT_PARTITION)).isNull();
+          new CombinedPagingState(ImmutableList.of(() -> EXHAUSTED_PAGE_STATE));
+      assertThat(combined.makePagingState()).isNull();
     }
   }
 

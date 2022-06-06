@@ -105,9 +105,11 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
         Values.of(value));
   }
 
-  void withFiveTestDocs(QueryOuterClass.Query query, int pageSize) {
+  void withFiveTestDocs(
+      QueryOuterClass.Query query, int pageSize, QueryOuterClass.ResumeMode resumeMode) {
     withQuery(query.getCql())
         .enriched()
+        .withResumeMode(resumeMode)
         .withPageSize(pageSize)
         .withColumnSpec(columnSpec)
         .returning(
@@ -148,7 +150,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
       List<RawDocument> result =
           queryExecutor
-              .queryDocs(allDocsQuery, 100, false, null, context)
+              .queryDocs(allDocsQuery, 100, false, null, false, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create())
               .awaitNextItems(2)
@@ -178,11 +180,11 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
       QueryOuterClass.Query query =
           new QueryBuilder().select().star().from(schemaProvider.getTable().getName()).build();
 
-      withFiveTestDocs(query, pageSize);
+      withFiveTestDocs(query, pageSize, QueryOuterClass.ResumeMode.NEXT_PARTITION);
 
       List<RawDocument> result =
           queryExecutor
-              .queryDocs(query, pageSize, false, null, context)
+              .queryDocs(query, pageSize, false, null, true, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(5))
               .awaitCompletion()
@@ -197,7 +199,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
         ByteBuffer ps1 = result.get(i - 1).makePagingState();
         List<RawDocument> subResult =
             queryExecutor
-                .queryDocs(query, pageSize, false, ps1, context)
+                .queryDocs(query, pageSize, false, ps1, true, context)
                 .subscribe()
                 .withSubscriber(AssertSubscriber.create(5))
                 .awaitCompletion()
@@ -231,7 +233,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
       // Testing potential stack overflow in reactive pipelines
       queryExecutor
-          .queryDocs(query, pageSize, false, null, context)
+          .queryDocs(query, pageSize, false, null, false, context)
           .subscribe()
           .withSubscriber(AssertSubscriber.create(N))
           .awaitItems(N)
@@ -254,13 +256,14 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
       ValidatingStargateBridge.QueryAssert queryAssert =
           withQuery(query.getCql())
               .withPageSize(pageSize)
+              .withResumeMode(QueryOuterClass.ResumeMode.NEXT_PARTITION)
               .enriched()
               .withColumnSpec(columnSpec)
               .returning(rows.build());
 
       AssertSubscriber<RawDocument> assertSubscriber =
           queryExecutor
-              .queryDocs(query, pageSize, false, null, context)
+              .queryDocs(query, pageSize, false, null, true, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(1));
 
@@ -293,11 +296,11 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
       QueryOuterClass.Query query =
           new QueryBuilder().select().star().from(schemaProvider.getTable().getName()).build();
 
-      withFiveTestDocs(query, pageSize);
+      withFiveTestDocs(query, pageSize, QueryOuterClass.ResumeMode.NEXT_PARTITION);
 
       List<RawDocument> result =
           queryExecutor
-              .queryDocs(query, pageSize, false, null, context)
+              .queryDocs(query, pageSize, false, null, true, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(5))
               .awaitCompletion()
@@ -312,7 +315,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
       if (pagingState != null) {
         queryExecutor
-            .queryDocs(query, pageSize, false, pagingState, context)
+            .queryDocs(query, pageSize, false, pagingState, true, context)
             .subscribe()
             .withSubscriber(AssertSubscriber.create(1))
             .awaitCompletion()
@@ -358,7 +361,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
       List<RawDocument> result =
           queryExecutor
-              .queryDocs(selectAllQuery, pageSize, false, null, context)
+              .queryDocs(selectAllQuery, pageSize, false, null, false, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(5))
               .awaitCompletion()
@@ -376,7 +379,8 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
           QueryOuterClass.Query.newBuilder(selectDocQuery).setValues(doc2Values).build();
       RawDocument doc2 =
           doc2NotPopulated
-              .populateFrom(queryExecutor.queryDocs(doc2Query, pageSize, false, null, context))
+              .populateFrom(
+                  queryExecutor.queryDocs(doc2Query, pageSize, false, null, false, context))
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -397,7 +401,8 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
           QueryOuterClass.Query.newBuilder(selectDocQuery).setValues(doc5Values).build();
       RawDocument doc5 =
           doc5NotPopulated
-              .populateFrom(queryExecutor.queryDocs(doc5Query, pageSize, false, null, context))
+              .populateFrom(
+                  queryExecutor.queryDocs(doc5Query, pageSize, false, null, false, context))
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -444,7 +449,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
           QueryOuterClass.Query.newBuilder(query).setValues(queryValues).build();
       List<RawDocument> result =
           queryExecutor
-              .queryDocs(3, finalQuery, 3, false, null, context)
+              .queryDocs(3, finalQuery, 3, false, null, false, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(3))
               .awaitItems(3)
@@ -481,7 +486,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
     @ParameterizedTest
     @CsvSource({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "100"})
-    void subDocumentsPaged(int pageSize) throws Exception {
+    void subDocumentsPaged(int pageSize) {
       BuiltCondition keyCondition =
           BuiltCondition.of(
               documentProperties.tableProperties().keyColumnName(), Predicate.EQ, Term.marker());
@@ -497,6 +502,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
       QueryOuterClass.Value[] values = {Values.of("a")};
       withQuery(query.getCql(), values)
           .enriched()
+          .withResumeMode(QueryOuterClass.ResumeMode.NEXT_ROW)
           .withPageSize(pageSize)
           .withColumnSpec(columnSpec)
           .returning(
@@ -517,7 +523,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
           QueryOuterClass.Query.newBuilder(query).setValues(queryValues).build();
       List<RawDocument> result =
           queryExecutor
-              .queryDocs(3, finalQuery, pageSize, false, null, context)
+              .queryDocs(3, finalQuery, pageSize, false, null, true, context)
               .select()
               .first(2)
               .subscribe()
@@ -534,7 +540,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
       ByteBuffer ps2 = result.get(1).makePagingState();
       List<RawDocument> pagedResult =
           queryExecutor
-              .queryDocs(3, finalQuery, pageSize, false, ps2, context)
+              .queryDocs(3, finalQuery, pageSize, false, ps2, true, context)
               .select()
               .first(2)
               .subscribe()
@@ -567,7 +573,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
       ByteBuffer lastPagingState = pagedResult.get(1).makePagingState();
       if (lastPagingState != null) {
         queryExecutor
-            .queryDocs(3, finalQuery, pageSize, false, lastPagingState, context)
+            .queryDocs(3, finalQuery, pageSize, false, lastPagingState, true, context)
             .select()
             .first(2)
             .subscribe()
@@ -629,7 +635,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
       List<RawDocument> result =
           queryExecutor
-              .queryDocs(ImmutableList.of(q1, q2), pageSize, false, null, context)
+              .queryDocs(ImmutableList.of(q1, q2), pageSize, false, null, false, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(4))
               .awaitItems(4)
@@ -695,7 +701,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
       List<RawDocument> result =
           queryExecutor
-              .queryDocs(2, ImmutableList.of(q1, q2), pageSize, false, null, context)
+              .queryDocs(2, ImmutableList.of(q1, q2), pageSize, false, null, false, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(4))
               .awaitItems(4)
@@ -725,7 +731,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
     // not supported as we don't know the selected clustering columns
     // @ParameterizedTest
     @CsvSource({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "100"})
-    public void mergeWithPartialPath(int pageSize) throws Exception {
+    public void mergeWithPartialPath(int pageSize) {
       BuiltCondition pathCondition =
           BuiltCondition.of(
               documentProperties.tableProperties().pathColumnName(0), Predicate.GT, Term.marker());
@@ -775,7 +781,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
       List<RawDocument> result =
           queryExecutor
-              .queryDocs(2, ImmutableList.of(q1, q2), pageSize, false, null, context)
+              .queryDocs(2, ImmutableList.of(q1, q2), pageSize, false, null, false, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(4))
               .awaitItems(4)
@@ -863,7 +869,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
       List<RawDocument> result =
           queryExecutor
-              .queryDocs(ImmutableList.of(q1, q2, q3), pageSize, false, null, context)
+              .queryDocs(ImmutableList.of(q1, q2, q3), pageSize, false, null, false, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(4))
               .awaitItems(4)
@@ -879,7 +885,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
       ByteBuffer pageState1 = result.get(0).makePagingState();
       List<RawDocument> resultPaged1 =
           queryExecutor
-              .queryDocs(ImmutableList.of(q1, q2, q3), pageSize, false, pageState1, context)
+              .queryDocs(ImmutableList.of(q1, q2, q3), pageSize, false, pageState1, false, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(3))
               .awaitItems(3)
@@ -895,7 +901,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
       ByteBuffer pageState2 = resultPaged1.get(0).makePagingState();
       List<RawDocument> resultPaged2 =
           queryExecutor
-              .queryDocs(ImmutableList.of(q1, q2, q3), pageSize, false, pageState2, context)
+              .queryDocs(ImmutableList.of(q1, q2, q3), pageSize, false, pageState2, false, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(2))
               .awaitItems(2)
@@ -909,7 +915,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
       ByteBuffer pageState3 = resultPaged2.get(0).makePagingState();
       List<RawDocument> resultPaged3 =
           queryExecutor
-              .queryDocs(ImmutableList.of(q1, q2, q3), pageSize, false, pageState3, context)
+              .queryDocs(ImmutableList.of(q1, q2, q3), pageSize, false, pageState3, false, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(1))
               .awaitItems(1)
@@ -929,7 +935,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
       if (shouldHasPagingState) {
         ByteBuffer pageState4 = resultPaged3.get(0).makePagingState();
         queryExecutor
-            .queryDocs(ImmutableList.of(q1, q2, q3), pageSize, false, pageState4, context)
+            .queryDocs(ImmutableList.of(q1, q2, q3), pageSize, false, pageState4, false, context)
             .subscribe()
             .withSubscriber(AssertSubscriber.create(1))
             .awaitCompletion()
@@ -939,7 +945,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
     @ParameterizedTest
     @CsvSource({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "100"})
-    public void mergeResultPaginationWithExcludedRows(int pageSize) throws Exception {
+    public void mergeResultPaginationWithExcludedRows(int pageSize) {
       BuiltCondition pathCondition =
           BuiltCondition.of(
               documentProperties.tableProperties().pathColumnName(0), Predicate.GT, Term.marker());
@@ -988,7 +994,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
       List<RawDocument> result =
           queryExecutor
-              .queryDocs(ImmutableList.of(q1, q2), pageSize, false, null, context)
+              .queryDocs(ImmutableList.of(q1, q2), pageSize, false, null, false, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(2))
               .awaitItems(2)
@@ -1002,7 +1008,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
       ByteBuffer pageState1 = result.get(0).makePagingState();
       List<RawDocument> pagedResult =
           queryExecutor
-              .queryDocs(ImmutableList.of(q1, q2), pageSize, false, pageState1, context)
+              .queryDocs(ImmutableList.of(q1, q2), pageSize, false, pageState1, false, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(1))
               .awaitItems(1)
@@ -1014,7 +1020,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
     }
 
     @Test
-    void testExhaustedQueryReExecution() throws Exception {
+    void testExhaustedQueryReExecution() {
       int pageSize = 1000;
       BuiltCondition pathCondition =
           BuiltCondition.of(
@@ -1057,7 +1063,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
       List<RawDocument> result =
           queryExecutor
-              .queryDocs(ImmutableList.of(q1, q2), pageSize, false, null, context)
+              .queryDocs(ImmutableList.of(q1, q2), pageSize, false, null, false, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(2))
               .awaitItems(2)
@@ -1071,7 +1077,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
       ByteBuffer pageState1 = result.get(0).makePagingState();
       List<RawDocument> pagedResult =
           queryExecutor
-              .queryDocs(ImmutableList.of(q1, q2), pageSize, false, pageState1, context)
+              .queryDocs(ImmutableList.of(q1, q2), pageSize, false, pageState1, false, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(1))
               .awaitItems(1)
@@ -1089,7 +1095,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
     public void identityDepthValidation() {
       Throwable failureUnderMin =
           queryExecutor
-              .queryDocs(-123, allDocsQuery, 1, false, null, context)
+              .queryDocs(-123, allDocsQuery, 1, false, null, false, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(1))
               .awaitFailure()
@@ -1101,7 +1107,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
       Throwable failureOverMax =
           queryExecutor
-              .queryDocs(6, allDocsQuery, 1, false, null, context)
+              .queryDocs(6, allDocsQuery, 1, false, null, false, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(1))
               .awaitFailure()
