@@ -219,6 +219,32 @@
         </configuration>
       </plugin>
       <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <version>${surefire-plugin.version}</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+            <configuration>
+              <systemPropertyVariables>
+                <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                <maven.home>${maven.home}</maven.home>
+                <testing.containers.cassandra-image>${stargate.int-test.cassandra.image}:${stargate.int-test.cassandra.image-tag}</testing.containers.cassandra-image>
+                <testing.containers.stargate-image>${stargate.int-test.coordinator.image}:${stargate.int-test.coordinator.image-tag}</testing.containers.stargate-image>
+                <testing.containers.cluster-name>${stargate.int-test.cluster.name}</testing.containers.cluster-name>
+                <testing.containers.cluster-version>${stargate.int-test.cluster.version}</testing.containers.cluster-version>
+                <testing.containers.cluster-dse>${stargate.int-test.cluster.dse}</testing.containers.cluster-dse>
+              </systemPropertyVariables>
+              <includes>
+                <include>**/*IntegrationTest.*</include>
+              </includes>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
         <groupId>com.coveo</groupId>
         <artifactId>fmt-maven-plugin</artifactId>
         <version>2.13</version>
@@ -328,45 +354,6 @@
         <stargate.int-test.cluster.version>6.8</stargate.int-test.cluster.version>
         <stargate.int-test.cluster.dse>true</stargate.int-test.cluster.dse>
       </properties>
-    </profile>
-    <profile>
-      <id>int-tests</id>
-      <activation>
-        <property>
-          <name>skipIntTests</name>
-          <value>!true</value>
-        </property>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <version>${surefire-plugin.version}</version>
-            <executions>
-              <execution>
-                <goals>
-                  <goal>integration-test</goal>
-                  <goal>verify</goal>
-                </goals>
-                <configuration>
-                  <systemPropertyVariables>
-                    <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-                    <maven.home>${maven.home}</maven.home>
-                    <testing.containers.cassandra-image>${stargate.int-test.cassandra.image}:${stargate.int-test.cassandra.image-tag}</testing.containers.cassandra-image>
-                    <testing.containers.stargate-image>${stargate.int-test.coordinator.image}:${stargate.int-test.coordinator.image-tag}</testing.containers.stargate-image>
-                    <testing.containers.cluster-name>${stargate.int-test.cluster.name}</testing.containers.cluster-name>
-                    <testing.containers.cluster-version>${stargate.int-test.cluster.version}</testing.containers.cluster-version>
-                    <testing.containers.cluster-dse>${stargate.int-test.cluster.dse}</testing.containers.cluster-dse>
-                  </systemPropertyVariables>
-                  <includes>
-                    <include>**/*IntegrationTest.*</include>
-                  </includes>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
     </profile>
   </profiles>
 </project>
