@@ -15,7 +15,7 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.service.query;
+package io.stargate.sgv2.docsapi.service.query.executor;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Streams;
@@ -31,8 +31,6 @@ import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
-import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
-import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.common.model.ImmutableRowWrapper;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
@@ -48,24 +46,29 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
-import javax.annotation.Nullable;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import org.immutables.value.Value;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /** Executes pre-built document queries, groups document rows and manages document pagination. */
 @ApplicationScoped
 public class QueryExecutor {
 
-  private static final Logger LOG = LoggerFactory.getLogger(QueryExecutor.class);
+  public static final Accumulator TERM = new Accumulator();
 
-  public final Accumulator TERM = new Accumulator();
+  private final DocumentProperties documentProperties;
 
-  @Inject DocumentProperties documentProperties;
+  private final StargateRequestInfo requestInfo;
 
-  @Inject StargateRequestInfo requestInfo;
+  private final Comparator<DocumentProperty> comparator;
+
+  @Inject
+  public QueryExecutor(DocumentProperties documentProperties, StargateRequestInfo requestInfo) {
+    this.documentProperties = documentProperties;
+    this.requestInfo = requestInfo;
+
+    // create reusable comparator
+    this.comparator = rowComparator();
+  }
 
   /**
    * Runs the provided query, then groups the rows into {@link RawDocument} objects with key depth
@@ -163,14 +166,15 @@ public class QueryExecutor {
       boolean fetchRowPaging,
       ExecutionContext context) {
 
+    StargateBridge bridge = requestInfo.getStargateBridge();
+
     // deffer to wrap failures
     return Multi.createFrom()
         .deferred(
             () -> {
 
               // construct query data and id columns based on depth
-              QueryData queryData = ImmutableQueryData.of(queries, documentProperties);
-              List<String> idColumns = queryData.docIdColumns(keyDepth);
+              List<String> idColumns = docIdColumns(keyDepth);
 
               // if row page should be fetched
               // then NEXT_ROW is used when we have more than one keys,
@@ -183,16 +187,12 @@ public class QueryExecutor {
                         : QueryOuterClass.ResumeMode.NEXT_PARTITION;
               }
 
-              // create comparator
-              Comparator<DocProperty> comparator = rowComparator(queryData);
-
               // init the given paging states
               List<ByteBuffer> pagingStates =
                   CombinedPagingState.deserialize(queries.size(), pagingState);
               PagingStateTracker tracker = new PagingStateTracker(pagingStates);
 
               // execute all queries
-              StargateBridge bridge = requestInfo.getStargateBridge();
               Multi<Accumulator> accumulatorMulti =
                   executeQueries(
                           bridge,
@@ -224,10 +224,13 @@ public class QueryExecutor {
             });
   }
 
-  private Multi<DocProperty> executeQueries(
+  // executes all queries and provides Multi of DocumentProperty
+  // this means that each item represents one value of a single document
+  // these are ordered, first by partition, then by the value of the included sub-paths
+  private Multi<DocumentProperty> executeQueries(
       StargateBridge stargateBridge,
       List<QueryOuterClass.Query> queries,
-      Comparator<DocProperty> comparator,
+      Comparator<DocumentProperty> comparator,
       int pageSize,
       boolean exponentPageSize,
       List<ByteBuffer> pagingStates,
@@ -235,7 +238,7 @@ public class QueryExecutor {
       ExecutionContext context) {
 
     // for each query
-    List<Flowable<DocProperty>> allDocuments =
+    List<Flowable<DocumentProperty>> allDocuments =
         Streams.mapWithIndex(
                 queries.stream(),
                 (query, index) -> {
@@ -270,13 +273,15 @@ public class QueryExecutor {
             .toList();
 
     // do order merge with prefetch 1
-    Flowable<DocProperty> orderedPublisher =
+    Flowable<DocumentProperty> orderedPublisher =
         Flowables.orderedMerge(allDocuments, comparator, false, 1);
 
     // transform back to the multi
     return Multi.createFrom().publisher(orderedPublisher);
   }
 
+  // executes a single query and returns Multi of the ResultSet
+  // each result set represents a result of a single trip to the data store
   private Multi<QueryOuterClass.ResultSet> executeQuery(
       StargateBridge stargateBridge,
       QueryOuterClass.Query query,
@@ -294,9 +299,7 @@ public class QueryExecutor {
         pagingState != null
             ? BytesValue.newBuilder().setValue(ByteString.copyFrom(pagingState)).build()
             : null;
-    QueryState initialState =
-        ImmutableQueryState.of(
-            pageSize, documentProperties.maxSearchPageSize(), exponentPageSize, pagingStateValue);
+    QueryState initialState = ImmutableQueryState.of(pageSize, pagingStateValue);
 
     return Multi.createBy()
         .repeating()
@@ -333,7 +336,11 @@ public class QueryExecutor {
                       response -> {
                         // update next state
                         QueryOuterClass.ResultSet resultSet = response.getResultSet();
-                        QueryState nextState = state.next(resultSet.getPagingState());
+                        QueryState nextState =
+                            state.next(
+                                resultSet.getPagingState(),
+                                exponentPageSize,
+                                documentProperties.maxSearchPageSize());
                         stateRef.set(nextState);
 
                         return resultSet;
@@ -346,11 +353,12 @@ public class QueryExecutor {
   }
 
   /**
-   * Converts a single page of results into {@link DocProperty} objects to maintain an association
-   * of rows to their respective {@link io.stargate.bridge.proto.QueryOuterClass.ResultSet} objects
-   * and queries (the latter is needed for tracking the combined paging state).
+   * Converts a single page of results into {@link DocumentProperty} objects to maintain an
+   * association of rows to their respective {@link
+   * io.stargate.bridge.proto.QueryOuterClass.ResultSet} objects and queries (the latter is needed
+   * for tracking the combined paging state).
    */
-  private Iterable<DocProperty> properties(
+  private Iterable<DocumentProperty> properties(
       int queryIndex,
       QueryOuterClass.Query query,
       QueryOuterClass.ResultSet rs,
@@ -359,20 +367,19 @@ public class QueryExecutor {
     List<QueryOuterClass.Row> rows = rs.getRowsList();
     context.traceCqlResult(query.getCql(), rows.size());
 
-    // construct page
-    Page page = ImmutablePage.builder().resultSet(rs).build();
-
     // then convert each row to row wrapper and construct doc prop
     List<QueryOuterClass.ColumnSpec> columnsList = rs.getColumnsList();
-    List<DocProperty> properties = new ArrayList<>(rows.size());
+    List<DocumentProperty> properties = new ArrayList<>(rows.size());
     int count = rows.size();
     for (QueryOuterClass.Row row : rows) {
       boolean last = --count <= 0;
+
+      // TODO this needs to be optimised, otherwise we are making a new columns map for each row
       RowWrapper rowWrapper = ImmutableRowWrapper.of(columnsList, row);
       properties.add(
-          ImmutableDocProperty.builder()
+          ImmutableDocumentProperty.builder()
               .queryIndex(queryIndex)
-              .page(page)
+              .page(rs)
               .rowWrapper(rowWrapper)
               .lastInPage(last)
               .build());
@@ -380,8 +387,9 @@ public class QueryExecutor {
     return properties;
   }
 
+  // creates a new Accumulator for a single DocumentProperty
   private Accumulator toSeed(
-      DocProperty property, Comparator<DocProperty> comparator, List<String> keyColumns) {
+      DocumentProperty property, Comparator<DocumentProperty> comparator, List<String> keyColumns) {
     DocumentTableProperties tableProperties = documentProperties.tableProperties();
     RowWrapper row = property.rowWrapper();
 
@@ -395,23 +403,23 @@ public class QueryExecutor {
   }
 
   /**
-   * Builds a comparator that follows the natural order of rows in document tables, but limited to
-   * the selected clustering columns (i.e., "path" columns).
+   * Builds a comparator that follows the natural order of rows in document tables, including all
+   * clustering columns (i.e., "path" columns).
    */
-  private Comparator<DocProperty> rowComparator(QueryData queries) {
-    List<Comparator<DocProperty>> comparators = new ArrayList<>();
+  private Comparator<DocumentProperty> rowComparator() {
+    List<Comparator<DocumentProperty>> comparators = new ArrayList<>();
 
     // always first compare by the comparable bytes
-    comparators.add(DocProperty.COMPARABLE_BYTES_COMPARATOR);
+    comparators.add(DocumentProperty.COMPARABLE_BYTES_COMPARATOR);
 
-    for (String column : queries.docPathColumns()) {
+    for (String column : docPathColumns()) {
       comparators.add(Comparator.comparing(p -> p.keyValue(column)));
     }
 
     return (p1, p2) -> {
       // Avoid recursion because the number of "path" columns can be quite large.
       int result = 0;
-      for (Comparator<DocProperty> comparator : comparators) {
+      for (Comparator<DocumentProperty> comparator : comparators) {
         result = comparator.compare(p1, p2);
         if (result != 0) {
           return result;
@@ -421,151 +429,43 @@ public class QueryExecutor {
     };
   }
 
-  @Value.Immutable
-  public interface QueryState {
-
-    @Value.Parameter
-    int pageSize();
-
-    @Value.Parameter
-    int maxPageSize();
-
-    @Value.Parameter
-    boolean exponentPageSize();
-
-    @Value.Parameter
-    @Nullable
-    BytesValue pagingState();
-
-    default QueryState next(BytesValue nextPagingState) {
-      int nextPageSize = exponentPageSize() ? Math.min(pageSize() * 2, maxPageSize()) : pageSize();
-
-      return ImmutableQueryState.of(
-          nextPageSize, maxPageSize(), exponentPageSize(), nextPagingState);
+  // resolves what columns will be considered as keys for the document aggregation
+  // always includes the document id,
+  // plus set of path columns based on the key depth
+  // for example, having keyDepth=3 would return [key, p0, p1]
+  private List<String> docIdColumns(int keyDepth) {
+    if (keyDepth < 1 || keyDepth > documentProperties.maxDepth() + 1) {
+      throw new IllegalArgumentException("Invalid document identity depth: " + keyDepth);
     }
+
+    DocumentTableProperties tableProperties = documentProperties.tableProperties();
+
+    // returns the key column always
+    // plus keyDepth - 1 path columns
+    List<String> result = new ArrayList<>(keyDepth);
+    result.add(tableProperties.keyColumnName());
+    for (int i = 0; i < keyDepth - 1; i++) {
+      result.add(tableProperties.pathColumnName(i));
+    }
+    return result;
   }
 
-  /** A thin wrapper around {@link QueryOuterClass.ResultSet}. */
-  @Value.Immutable(lazyhash = true)
-  public abstract static class Page {
-
-    abstract QueryOuterClass.ResultSet resultSet();
+  // all the doc path columns
+  // note that this differs from V1,
+  // as we can not know what clustering columns are selected
+  private List<String> docPathColumns() {
+    // TODO we push all columns as we can not know what's selected
+    //  make cached or smth
+    return documentProperties.tableColumns().pathColumnNames().stream().sorted().toList();
   }
 
-  /**
-   * Represents individual rows that provide values for document properties.
-   *
-   * <p>This class links a {@link RowWrapper} to its source {@link Page} and the {@link
-   * #queryIndex() query} that produced it.
-   */
-  @Value.Immutable(lazyhash = true)
-  public abstract static class DocProperty implements PagingStateSupplier {
-
-    public static final Comparator<DocProperty> COMPARABLE_BYTES_COMPARATOR =
-        (docProperty1, docProperty2) ->
-            ByteString.unsignedLexicographicalComparator()
-                .compare(docProperty1.comparableKey(), docProperty2.comparableKey());
-
-    /** Page where the row that describes this document property originates from. */
-    abstract Page page();
-
-    /** A single row wrapper in {@link RowWrapper}. */
-    abstract RowWrapper rowWrapper();
-
-    /** Indicates whether the associated row was the last row in its page. */
-    abstract boolean lastInPage();
-
-    /**
-     * The index of the query that produced this row in the list of executed queries.
-     *
-     * <p>This index corresponds to the position of the query's paging state in the combined paging
-     * state.
-     */
-    abstract int queryIndex();
-
-    @Value.Lazy
-    ByteString comparableKey() {
-      QueryOuterClass.Row row = rowWrapper().row();
-      return row.getComparableBytes().getValue();
-    }
-
-    String keyValue(String column) {
-      if (rowWrapper().columnExists(column)) {
-        return rowWrapper().getString(column);
-      }
-      return null;
-    }
-
-    @Override
-    public ByteBuffer makePagingState() {
-      // Note: is current row was not the last one in its page the higher-level request may
-      // choose to resume fetching from the next row in current page even if the page itself does
-      // not have a paging state. Therefore, in this case we cannot return EXHAUSTED_PAGE_STATE.
-      if (lastInPage() && !page().resultSet().hasPagingState()) {
-        return CombinedPagingState.EXHAUSTED_PAGE_STATE;
-      }
-
-      // ensure we have a row page state
-      QueryOuterClass.Row row = rowWrapper().row();
-      if (!row.hasPagingState()) {
-        throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_ROW_PAGE_STATE_MISSING);
-      }
-
-      BytesValue pagingState = row.getPagingState();
-      return pagingState.getValue().asReadOnlyByteBuffer();
-    }
-
-    @Value.Lazy
-    @Override
-    public String toString() {
-      return rowWrapper().toString();
-    }
-  }
-
-  /** A helper class for dealing with a list of related queries. */
-  @Value.Immutable(lazyhash = true)
-  public abstract static class QueryData {
-
-    @Value.Parameter
-    abstract List<QueryOuterClass.Query> queries();
-
-    @Value.Parameter
-    abstract DocumentProperties documentProperties();
-
-    /**
-     * Returns the list of columns whose values are used to distinguish one document from another.
-     * It's based purely in key-depth.
-     */
-    List<String> docIdColumns(int keyDepth) {
-      if (keyDepth < 1 || keyDepth > documentProperties().maxDepth() + 1) {
-        throw new IllegalArgumentException("Invalid document identity depth: " + keyDepth);
-      }
-
-      DocumentTableProperties tableProperties = documentProperties().tableProperties();
-
-      // returns the key column always
-      // plus keyDepth - 1 path columns
-      List<String> result = new ArrayList<>(keyDepth);
-      result.add(tableProperties.keyColumnName());
-      for (int i = 0; i < keyDepth - 1; i++) {
-        result.add(tableProperties.pathColumnName(i));
-      }
-      return result;
-    }
-
-    @Value.Lazy
-    public List<String> docPathColumns() {
-      // TODO we push all columns as we can not know what's selected
-      //  make cached or smth
-      return documentProperties().tableColumns().pathColumnNames().stream().sorted().toList();
-    }
-  }
-
-  private class Accumulator {
+  // knows how to accumulate a set of document properties
+  // into a RawDocument
+  private static class Accumulator {
     private final String id;
-    private final Comparator<DocProperty> rowComparator;
+    private final Comparator<DocumentProperty> rowComparator;
     private final List<String> docKey;
-    private final List<DocProperty> rows;
+    private final List<DocumentProperty> rows;
     private final List<PagingStateSupplier> pagingState;
     private final boolean complete;
     private final Accumulator next;
@@ -587,9 +487,9 @@ public class QueryExecutor {
 
     private Accumulator(
         String id,
-        Comparator<DocProperty> rowComparator,
+        Comparator<DocumentProperty> rowComparator,
         List<String> docKey,
-        DocProperty seedRow) {
+        DocumentProperty seedRow) {
       this.id = id;
       this.rowComparator = rowComparator;
       this.docKey = docKey;
@@ -603,7 +503,7 @@ public class QueryExecutor {
 
     private Accumulator(
         Accumulator complete,
-        List<DocProperty> rows,
+        List<DocumentProperty> rows,
         List<PagingStateSupplier> pagingState,
         Accumulator next) {
       this.id = complete.id;
@@ -625,7 +525,7 @@ public class QueryExecutor {
       }
 
       List<RowWrapper> docRows =
-          this.rows.stream().map(DocProperty::rowWrapper).collect(Collectors.toList());
+          this.rows.stream().map(DocumentProperty::rowWrapper).collect(Collectors.toList());
 
       CombinedPagingState combinedPagingState = new CombinedPagingState(pagingState);
 
@@ -635,9 +535,9 @@ public class QueryExecutor {
     private Accumulator complete(PagingStateTracker tracker, Accumulator next) {
       // Deduplicate included rows and run them through the paging state tracker.
       // Note: the `rows` should already be in the order consistent with `rowComparator`.
-      List<DocProperty> finalRows = new ArrayList<>(rows.size());
-      DocProperty last = null;
-      for (DocProperty row : rows) {
+      List<DocumentProperty> finalRows = new ArrayList<>(rows.size());
+      DocumentProperty last = null;
+      for (DocumentProperty row : rows) {
         tracker.track(row);
 
         if (last == null || rowComparator.compare(last, row) != 0) {
@@ -695,6 +595,8 @@ public class QueryExecutor {
     }
   }
 
+  // knows how to track paging states from a collection of queries
+  // by saving the PagingStateSupplier in the same index as the query index
   private static class PagingStateTracker {
     private final ArrayList<PagingStateSupplier> states;
 
@@ -707,7 +609,7 @@ public class QueryExecutor {
       return prev.combine(this, next);
     }
 
-    public void track(DocProperty row) {
+    public void track(DocumentProperty row) {
       states.set(row.queryIndex(), row);
     }
 
