@@ -108,6 +108,24 @@ public class JsonSchemaResourceIntegrationTest {
 
     @Test
     @Order(2)
+    public void updateExisting() throws JsonProcessingException {
+      String body =
+          """
+                            {\"$schema\": \"https://json-schema.org/draft/2020-09/schema\"}
+                        """;
+
+      given()
+          .contentType(ContentType.JSON)
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .body(body)
+          .put(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .then()
+          .statusCode(200)
+          .body("schema.$schema", is("https://json-schema.org/draft/2020-09/schema"));
+    }
+
+    @Test
+    @Order(3)
     public void tableDoesNotExist() {
       String body =
           """
@@ -126,7 +144,7 @@ public class JsonSchemaResourceIntegrationTest {
     }
 
     @Test
-    @Order(3)
+    @Order(4)
     public void keyspaceDoesNotExist() {
       String body =
           """
@@ -145,7 +163,7 @@ public class JsonSchemaResourceIntegrationTest {
     }
 
     @Test
-    @Order(4)
+    @Order(5)
     public void invalidJsonSchema() {
       String body =
           "{\n"
@@ -172,7 +190,7 @@ public class JsonSchemaResourceIntegrationTest {
     }
 
     @Test
-    @Order(5)
+    @Order(6)
     public void noPayload() {
       given()
           .contentType(ContentType.JSON)
@@ -186,7 +204,7 @@ public class JsonSchemaResourceIntegrationTest {
     }
 
     @Test
-    @Order(6)
+    @Order(7)
     public void notDocumentTable() {
       given()
           .contentType(ContentType.JSON)
@@ -217,7 +235,7 @@ public class JsonSchemaResourceIntegrationTest {
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
           .then()
           .statusCode(200)
-          .body("schema", is("{\"$schema\": \"https://json-schema.org/draft/2019-09/schema\"}"));
+          .body("schema.$schema", is("https://json-schema.org/draft/2020-09/schema"));
     }
 
     @Test

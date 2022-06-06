@@ -136,10 +136,6 @@ public class JsonSchemaResource {
     return jsonSchemaManager
         .attachJsonSchema(
             namespace, tableManager.getValidCollectionTable(namespace, collection), body)
-        .flatMap(
-            __ ->
-                jsonSchemaManager.getJsonSchema(
-                    tableManager.getValidCollectionTable(namespace, collection)))
         .map(schema -> RestResponse.ok(new JsonSchemaDto(schema)));
   }
 
@@ -192,6 +188,6 @@ public class JsonSchemaResource {
     // go get the existing table
     return jsonSchemaManager
         .getJsonSchema(tableManager.getValidCollectionTable(namespace, collection))
-        .map(schema -> RestResponse.ok(new JsonSchemaDto(schema)));
+        .map(schema -> RestResponse.ok(new JsonSchemaDto(schema.requiredAt("/schema"))));
   }
 }

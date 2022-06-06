@@ -83,10 +83,6 @@ public class JsonSchemaManager {
             ObjectNode wrappedSchema = objectMapper.createObjectNode();
             wrappedSchema.set("schema", schema);
             StargateBridge bridge = requestInfo.getStargateBridge();
-            System.out.println(
-                "Wha? "
-                    + jsonSchemaQueryProvider.attachSchemaQuery(
-                        namespace, c.getName(), wrappedSchema.toString()));
             return bridge
                 .executeQuery(
                     jsonSchemaQueryProvider.attachSchemaQuery(

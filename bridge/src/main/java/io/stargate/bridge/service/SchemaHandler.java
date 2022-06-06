@@ -154,8 +154,9 @@ class SchemaHandler {
       }
     }
 
-    // TODO: no table options in Table?
-    // cqlTableBuilder.putOptions(...);
+    if (table.comment() != null) {
+      cqlTableBuilder.putOptions("comment", table.comment());
+    }
 
     for (Index index : table.indexes()) {
       if (index instanceof SecondaryIndex) {
