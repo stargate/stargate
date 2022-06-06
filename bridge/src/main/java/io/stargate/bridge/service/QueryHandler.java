@@ -158,14 +158,18 @@ public class QueryHandler extends MessageHandler<Query, Prepared> {
       Row row,
       QueryOuterClass.ResumeMode resumeMode,
       boolean lastInPage) {
-    if (lastInPage && resultSetPagingState == null) {
-      return EXHAUSTED_PAGE_STATE;
-    }
 
+    // if we don't have resume mode, return null
     if (resumeMode == QueryOuterClass.ResumeMode.UNRECOGNIZED) {
       return null;
     }
 
+    // otherwise, if last and no paging state exhausted
+    if (lastInPage && resultSetPagingState == null) {
+      return EXHAUSTED_PAGE_STATE;
+    }
+
+    // otherwise resolve to internal and make
     PagingPosition.ResumeMode internalResumeMode = PagingPosition.ResumeMode.NEXT_ROW;
     if (resumeMode == QueryOuterClass.ResumeMode.NEXT_PARTITION) {
       internalResumeMode = PagingPosition.ResumeMode.NEXT_PARTITION;
