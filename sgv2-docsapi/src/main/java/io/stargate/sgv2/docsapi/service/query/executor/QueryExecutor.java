@@ -32,7 +32,6 @@ import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
-import io.stargate.sgv2.docsapi.service.common.model.ImmutableRowWrapper;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.model.ImmutableRawDocument;
 import io.stargate.sgv2.docsapi.service.query.model.RawDocument;
@@ -45,6 +44,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -369,13 +369,12 @@ public class QueryExecutor {
 
     // then convert each row to row wrapper and construct doc prop
     List<QueryOuterClass.ColumnSpec> columnsList = rs.getColumnsList();
+    Function<QueryOuterClass.Row, RowWrapper> wrapperFunction = RowWrapper.forColumns(columnsList);
     List<DocumentProperty> properties = new ArrayList<>(rows.size());
     int count = rows.size();
     for (QueryOuterClass.Row row : rows) {
       boolean last = --count <= 0;
-
-      // TODO this needs to be optimised, otherwise we are making a new columns map for each row
-      RowWrapper rowWrapper = ImmutableRowWrapper.of(columnsList, row);
+      RowWrapper rowWrapper = wrapperFunction.apply(row);
       properties.add(
           ImmutableDocumentProperty.builder()
               .queryIndex(queryIndex)

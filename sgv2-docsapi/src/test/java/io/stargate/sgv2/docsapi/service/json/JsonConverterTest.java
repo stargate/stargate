@@ -15,7 +15,6 @@ import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.bridge.proto.QueryOuterClass.Row;
 import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
-import io.stargate.sgv2.docsapi.service.common.model.ImmutableRowWrapper;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -23,6 +22,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.junit.jupiter.api.Test;
@@ -666,9 +666,9 @@ public class JsonConverterTest {
 
   public List<RowWrapper> createRowWrappers(List<Row> rows, List<ColumnSpec> columns) {
     List<RowWrapper> rowWrappers = new ArrayList<>();
+    Function<Row, RowWrapper> wrapper = RowWrapper.forColumns(columns);
     for (Row r : rows) {
-      ImmutableRowWrapper rowWrapper =
-          ImmutableRowWrapper.builder().row(r).columns(columns).build();
+      RowWrapper rowWrapper = wrapper.apply(r);
       rowWrappers.add(rowWrapper);
     }
     return rowWrappers;
