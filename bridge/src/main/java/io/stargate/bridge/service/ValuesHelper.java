@@ -166,6 +166,11 @@ public class ValuesHelper {
       BiFunction<List<Column>, List<ByteBuffer>, io.stargate.db.datastore.Row> makeRow,
       RowDecorator rowDecorator)
       throws StatusException {
+
+    QueryOuterClass.ResumeMode resumeMode =
+        parameters.hasResumeMode()
+            ? parameters.getResumeMode().getValue()
+            : QueryOuterClass.ResumeMode.UNRECOGNIZED;
     return processResult(
         rows,
         parameters.getSkipMetadata(),
@@ -173,7 +178,7 @@ public class ValuesHelper {
         getPagingState,
         makeRow,
         rowDecorator,
-        parameters.getResumeMode());
+        resumeMode);
   }
 
   private static ResultSet processResult(
