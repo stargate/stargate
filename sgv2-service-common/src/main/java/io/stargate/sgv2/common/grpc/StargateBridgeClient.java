@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 /**
  * The client that allows Stargate services to communicate with the "bridge" to the persistence
@@ -45,6 +46,27 @@ public interface StargateBridgeClient {
   /** @see #executeQueryAsync(Query) */
   default Response executeQuery(Query query) {
     return Futures.getUninterruptibly(executeQueryAsync(query));
+  }
+
+  default Response executeQuery(
+      String keyspaceName, Function<Optional<CqlKeyspaceDescribe>, Query> queryProducer) {
+    // TODO replace naive implementation with optimistic retry
+    return executeQuery(queryProducer.apply(getKeyspace(keyspaceName, false)));
+  }
+
+  default Response executeQuery(
+      String keyspaceName, String tableName, Function<Optional<CqlTable>, Query> queryProducer) {
+    return executeQuery(
+        keyspaceName,
+        maybeKeyspace -> {
+          Optional<CqlTable> maybeTable =
+              maybeKeyspace.flatMap(
+                  keyspace ->
+                      keyspace.getTablesList().stream()
+                          .filter(t -> t.getName().equals(tableName))
+                          .findFirst());
+          return queryProducer.apply(maybeTable);
+        });
   }
 
   /**
