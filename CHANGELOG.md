@@ -1,5 +1,34 @@
 # Changelog
 
+## [v2.0.0-ALPHA-11](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-11) (2022-05-31)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-10...v2.0.0-ALPHA-11)
+
+**Closed issues:**
+
+- Use BatchQuery in document v2 write service [\#1846](https://github.com/stargate/stargate/issues/1846)
+- Missing token should provide a response with body [\#1839](https://github.com/stargate/stargate/issues/1839)
+- Collection REST Controller for the Document API V2 [\#1722](https://github.com/stargate/stargate/issues/1722)
+- Implement `KeyspaceManager` based on the Stargate V2 common schema handling [\#1721](https://github.com/stargate/stargate/issues/1721)
+
+**Merged pull requests:**
+
+- relates to \#1737: proper way to skip integration tests [\#1861](https://github.com/stargate/stargate/pull/1861) ([ivansenic](https://github.com/ivansenic))
+- removed example endpoint from the Docs V2 [\#1860](https://github.com/stargate/stargate/pull/1860) ([ivansenic](https://github.com/ivansenic))
+- fixing dependency index for the guava usage [\#1857](https://github.com/stargate/stargate/pull/1857) ([ivansenic](https://github.com/ivansenic))
+- Fix for \#1841 \(separate from SGv1\) [\#1856](https://github.com/stargate/stargate/pull/1856) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Allow overriding SGv1 REST and docsapi port via system property [\#1855](https://github.com/stargate/stargate/pull/1855) ([mpenick](https://github.com/mpenick))
+- Change REST API module and artifact names to "sgv2-restapi" for Stargate V2 [\#1854](https://github.com/stargate/stargate/pull/1854) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- closes \#1839: api error response in case of a missing token [\#1852](https://github.com/stargate/stargate/pull/1852) ([ivansenic](https://github.com/ivansenic))
+- Use BatchQuery in document v2 write service \(fixes \#1846\) [\#1851](https://github.com/stargate/stargate/pull/1851) ([olim7t](https://github.com/olim7t))
+- Add JsonSchemaManager [\#1847](https://github.com/stargate/stargate/pull/1847) ([EricBorczuk](https://github.com/EricBorczuk))
+- closes \#1721: keyspace manager for Docs API v2 [\#1844](https://github.com/stargate/stargate/pull/1844) ([ivansenic](https://github.com/ivansenic))
+- update quarkus to 2.9.1.Final [\#1843](https://github.com/stargate/stargate/pull/1843) ([ivansenic](https://github.com/ivansenic))
+- closes \#1722: collection resource impl [\#1840](https://github.com/stargate/stargate/pull/1840) ([ivansenic](https://github.com/ivansenic))
+- Implement WriteDocumentService in Document API v2 \(fixes \#1728\) [\#1833](https://github.com/stargate/stargate/pull/1833) ([olim7t](https://github.com/olim7t))
+- Add JsonDocShredder, with tests [\#1831](https://github.com/stargate/stargate/pull/1831) ([EricBorczuk](https://github.com/EricBorczuk))
+- relates to \#1737: setup for the integration tests in docs api v2  [\#1825](https://github.com/stargate/stargate/pull/1825) ([ivansenic](https://github.com/ivansenic))
+
 ## [v2.0.0-ALPHA-10](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-10) (2022-05-19)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-9...v2.0.0-ALPHA-10)
