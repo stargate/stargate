@@ -36,8 +36,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
- * Leftover test class from Stargate V1 which contains tests against modules that have not yet been
- * extracted out of the Coordinator monolith.
+ * Tests from Stargate V1 that exercise refactored REST API metrics; refactored from earlier
+ * monolithic {@code MetricsTest}.
  */
 @NotThreadSafe
 @StargateSpec()
