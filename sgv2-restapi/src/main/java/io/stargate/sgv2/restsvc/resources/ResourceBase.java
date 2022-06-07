@@ -42,27 +42,41 @@ public abstract class ResourceBase {
   // // // Helper methods for Schema access
 
   /**
-   * Method to call to try to access Table metadata and call given Function with it (if successful),
-   * or, create and return an appropriate error Response if access fails.
+   * Gets the metadata of a table, when no additional data is needed to build the HTTP response.
    *
-   * @param checkIfAuthorized whether to check if the caller is authorized to read this table (not
-   *     needed if {@code function} executes a CQL query, see explanations in {@link
-   *     StargateBridgeClient#getKeyspaceAsync(String, boolean)}).
+   * <p>This should be used for "schema" resources. If you are going to build and run another query
+   * based on the metadata, use {@link #queryWithTable} instead.
    */
-  protected Response callWithTable(
-      StargateBridgeClient bridge,
-      String keyspaceName,
-      String tableName,
-      boolean checkIfAuthorized,
-      Function<Schema.CqlTable, Response> function) {
+  protected Schema.CqlTable getTable(
+      StargateBridgeClient bridge, String keyspaceName, String tableName) {
     return bridge
-        .getTable(keyspaceName, tableName, checkIfAuthorized)
-        .map(function)
+        .getTable(keyspaceName, tableName, true)
         .orElseThrow(
             () ->
                 new WebApplicationException(
                     String.format("Table '%s' not found (in keyspace %s)", tableName, keyspaceName),
                     Response.Status.BAD_REQUEST));
+  }
+
+  /** Gets the metadata of a table, then uses it to build another CQL query and executes it. */
+  protected QueryOuterClass.Response queryWithTable(
+      StargateBridgeClient bridge,
+      String keyspaceName,
+      String tableName,
+      Function<Schema.CqlTable, QueryOuterClass.Query> queryProducer) {
+    return bridge.executeQuery(
+        keyspaceName,
+        tableName,
+        maybeTable -> {
+          Schema.CqlTable table =
+              maybeTable.orElseThrow(
+                  () ->
+                      new WebApplicationException(
+                          String.format(
+                              "Table '%s' not found (in keyspace %s)", tableName, keyspaceName),
+                          Response.Status.BAD_REQUEST));
+          return queryProducer.apply(table);
+        });
   }
 
   // // // Helper methods for JSON decoding
@@ -123,7 +137,10 @@ public abstract class ResourceBase {
   protected Response fetchRows(
       StargateBridgeClient bridge, QueryOuterClass.Query query, boolean raw) {
     QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
+    return toHttpResponse(grpcResponse, raw);
+  }
 
+  protected Response toHttpResponse(QueryOuterClass.Response grpcResponse, boolean raw) {
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
     final int count = rs.getRowsCount();
 

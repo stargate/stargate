@@ -146,11 +146,10 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
       final Sgv2TableAddRequest tableUpdate,
       final HttpServletRequest request) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    return callWithTable(
+    queryWithTable(
         bridge,
         keyspaceName,
         tableName,
-        false,
         (tableDef) -> {
           Sgv2Table.TableOptions options = tableUpdate.getTableOptions();
           List<?> clusteringExpressions = options.getClusteringExpression();
@@ -165,18 +164,14 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
             throw new WebApplicationException(
                 "No update provided for defaultTTL", Status.BAD_REQUEST);
           }
-          QueryOuterClass.Query query =
-              new QueryBuilder()
-                  .alter()
-                  .table(keyspaceName, tableName)
-                  .withDefaultTTL(options.getDefaultTimeToLive())
-                  .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
-                  .build();
-          bridge.executeQuery(query);
-          return Response.status(Status.OK)
-              .entity(Collections.singletonMap("name", tableName))
+          return new QueryBuilder()
+              .alter()
+              .table(keyspaceName, tableName)
+              .withDefaultTTL(options.getDefaultTimeToLive())
+              .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
               .build();
         });
+    return Response.status(Status.OK).entity(Collections.singletonMap("name", tableName)).build();
   }
 
   @Override

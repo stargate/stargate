@@ -90,28 +90,30 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
       throw new WebApplicationException("columnName must be provided", Status.BAD_REQUEST);
     }
 
-    bridge.getTable(keyspaceName, tableName, false)
-        .orElseThrow(() -> new WebApplicationException("Table not found", Status.NOT_FOUND))
-        .getColumnsList().stream()
-        .filter(c -> columnName.equals(c.getName()))
-        .findAny()
-        .orElseThrow(
-            () ->
-                new WebApplicationException(
-                    String.format("Column '%s' not found in table.", columnName),
-                    Status.NOT_FOUND));
-
-    Query query =
-        new QueryBuilder()
-            .create()
-            .index(indexAdd.getName())
-            .ifNotExists(indexAdd.getIfNotExists())
-            .on(keyspaceName, tableName)
-            .column(columnName)
-            .indexingType(indexAdd.getKind())
-            .custom(indexAdd.getType(), indexAdd.getOptions())
-            .build();
-    bridge.executeQuery(query);
+    bridge.executeQuery(
+        keyspaceName,
+        tableName,
+        maybeTable -> {
+          maybeTable
+              .orElseThrow(() -> new WebApplicationException("Table not found", Status.NOT_FOUND))
+              .getColumnsList().stream()
+              .filter(c -> columnName.equals(c.getName()))
+              .findAny()
+              .orElseThrow(
+                  () ->
+                      new WebApplicationException(
+                          String.format("Column '%s' not found in table.", columnName),
+                          Status.NOT_FOUND));
+          return new QueryBuilder()
+              .create()
+              .index(indexAdd.getName())
+              .ifNotExists(indexAdd.getIfNotExists())
+              .on(keyspaceName, tableName)
+              .column(columnName)
+              .indexingType(indexAdd.getKind())
+              .custom(indexAdd.getType(), indexAdd.getOptions())
+              .build();
+        });
 
     Map<String, Object> responsePayload = Collections.singletonMap("success", true);
     return Response.status(Status.CREATED).entity(responsePayload).build();
@@ -135,20 +137,24 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
       throw new WebApplicationException("columnName must be provided", Status.BAD_REQUEST);
     }
 
-    CqlTable table =
-        bridge
-            .getTable(keyspaceName, tableName, false)
-            .orElseThrow(() -> new WebApplicationException("Table not found", Status.NOT_FOUND));
-    if (!ifExists
-        && table.getIndexesList().stream().noneMatch(i -> indexName.equals(i.getName()))) {
-      throw new WebApplicationException(
-          String.format("Index '%s' not found.", indexName), Status.NOT_FOUND);
-    }
-
-    Query query =
-        new QueryBuilder().drop().index(keyspaceName, indexName).ifExists(ifExists).build();
-    bridge.executeQuery(query);
-
+    bridge.executeQuery(
+        keyspaceName,
+        tableName,
+        maybeTable -> {
+          CqlTable table =
+              maybeTable.orElseThrow(
+                  () -> new WebApplicationException("Table not found", Status.NOT_FOUND));
+          if (!ifExists
+              && table.getIndexesList().stream().noneMatch(i -> indexName.equals(i.getName()))) {
+            throw new WebApplicationException(
+                String.format("Index '%s' not found.", indexName), Status.NOT_FOUND);
+          }
+          return new QueryBuilder()
+              .drop()
+              .index(keyspaceName, indexName)
+              .ifExists(ifExists)
+              .build();
+        });
     return Response.status(Status.NO_CONTENT).build();
   }
 }
