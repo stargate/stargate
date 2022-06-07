@@ -160,7 +160,7 @@ public class QueryHandler extends MessageHandler<Query, Prepared> {
       boolean lastInPage) {
 
     // if we don't have resume mode, return null
-    if (resumeMode == QueryOuterClass.ResumeMode.UNRECOGNIZED) {
+    if (resumeMode == null || resumeMode == QueryOuterClass.ResumeMode.UNRECOGNIZED) {
       return null;
     }
 

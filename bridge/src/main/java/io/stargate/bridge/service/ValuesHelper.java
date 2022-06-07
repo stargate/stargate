@@ -123,26 +123,12 @@ public class ValuesHelper {
 
   public static ResultSet processResult(Rows rows, QueryParameters parameters)
       throws StatusException {
-    return processResult(
-        rows,
-        parameters.getSkipMetadata(),
-        null,
-        null,
-        null,
-        null,
-        QueryOuterClass.ResumeMode.UNRECOGNIZED);
+    return processResult(rows, parameters.getSkipMetadata(), null, null, null, null, null);
   }
 
   public static ResultSet processResult(Rows rows, BatchParameters parameters)
       throws StatusException {
-    return processResult(
-        rows,
-        parameters.getSkipMetadata(),
-        null,
-        null,
-        null,
-        null,
-        QueryOuterClass.ResumeMode.UNRECOGNIZED);
+    return processResult(rows, parameters.getSkipMetadata(), null, null, null, null, null);
   }
 
   public interface GetComparableBytesFromRow {
@@ -168,9 +154,7 @@ public class ValuesHelper {
       throws StatusException {
 
     QueryOuterClass.ResumeMode resumeMode =
-        parameters.hasResumeMode()
-            ? parameters.getResumeMode().getValue()
-            : QueryOuterClass.ResumeMode.UNRECOGNIZED;
+        parameters.hasResumeMode() ? parameters.getResumeMode().getValue() : null;
     return processResult(
         rows,
         parameters.getSkipMetadata(),
