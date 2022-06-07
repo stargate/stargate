@@ -1523,6 +1523,14 @@ public class QueryBuilderImpl {
       return function(columnName, alias, "SUM");
     }
 
+    public static FunctionCall ttl(String columnName) {
+      return ttl(columnName, null);
+    }
+
+    public static FunctionCall ttl(String columnName, String alias) {
+      return function(columnName, alias, "TTL");
+    }
+
     public static FunctionCall writeTime(String columnName) {
       return writeTime(columnName, null);
     }
