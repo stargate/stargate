@@ -3,12 +3,20 @@ package io.stargate.metrics.jersey.sgv2;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.jersey2.server.JerseyTagsProvider;
-import java.util.Collections;
+import java.util.Objects;
+import java.util.Optional;
 import javax.ws.rs.core.MultivaluedMap;
 import org.glassfish.jersey.server.ContainerRequest;
 import org.glassfish.jersey.server.monitoring.RequestEvent;
 
-/** Specialized {@link JerseyTagsProvider} used to extract Tenant Id from "Host" HTTP header. */
+/**
+ * Specialized {@link JerseyTagsProvider} used to extract Tenant Id from "Host" HTTP header.
+ *
+ * <p>NOTE: there is slight duplication with this class and {@code CreateStargateBridgeClientFilter}
+ * in "sgv2-service-common" as both extract "tenant" information from "Host" header. When converting
+ * to the next-gen framework (probably Quarkus) we can hopefully merge or extract shared logic (it's
+ * not a lot of code but should be unified).
+ */
 public class TenantIdFromHostHeaderTagsProvider implements JerseyTagsProvider {
   private static final String DEFAULT_TENANT_TAG_KEY = "tenant";
 
@@ -21,34 +29,23 @@ public class TenantIdFromHostHeaderTagsProvider implements JerseyTagsProvider {
     this(DEFAULT_TENANT_TAG_KEY);
   }
 
-  /**
-   * @param tenantTagName Tag name to use for Tenant Id, if any; {@code null} or empty String to
-   *     disable extraction
-   */
+  /** @param tenantTagName Tag name to use for Tenant Id */
   public TenantIdFromHostHeaderTagsProvider(String tenantTagName) {
-    if (tenantTagName == null || tenantTagName.isEmpty()) {
-      this.tenantTagName = null;
-      tagsForUnknown = null;
-    } else {
-      this.tenantTagName = tenantTagName;
-      tagsForUnknown = Tags.of(tenantTagName, "unknown");
-    }
+    this.tenantTagName = Objects.requireNonNull(tenantTagName);
+    tagsForUnknown = Tags.of(tenantTagName, "unknown");
   }
 
   @Override
   public Iterable<Tag> httpRequestTags(RequestEvent event) {
-    return findHostTag(event);
+    return extractTenantFromHost(event);
   }
 
   @Override
   public Iterable<Tag> httpLongRequestTags(RequestEvent event) {
-    return findHostTag(event);
+    return extractTenantFromHost(event);
   }
 
-  protected Iterable<Tag> findHostTag(RequestEvent event) {
-    if (tenantTagName == null) {
-      return Collections.emptyList();
-    }
+  protected Iterable<Tag> extractTenantFromHost(RequestEvent event) {
     ContainerRequest request = event.getContainerRequest();
     MultivaluedMap<String, String> headers = request.getHeaders();
 
@@ -58,20 +55,15 @@ public class TenantIdFromHostHeaderTagsProvider implements JerseyTagsProvider {
     if (value == null) {
       value = headers.getFirst("host");
     }
-    if (value != null) {
-      if (isValidTenantId(value)) {
-        return Tags.of(tenantTagName, trimTenantId(value));
-      }
+    return extractTenantId(value).map(t -> Tags.of(tenantTagName, t)).orElse(tagsForUnknown);
+  }
+
+  protected Optional<String> extractTenantId(String host) {
+    if (host == null || host.length() < 36) {
+      return Optional.empty();
     }
-    return tagsForUnknown;
-  }
-
-  protected boolean isValidTenantId(String id) {
-    // Should we enforce minimum 36-character length?
-    return id.length() > 0;
-  }
-
-  protected String trimTenantId(String id) {
-    return (id.length() <= 36) ? id : id.substring(0, 36);
+    // Could further check structure with regex but seems like length is enough
+    // to weed out most invalid cases. Can add regex if necessary.
+    return Optional.of(host.substring(0, 36));
   }
 }
