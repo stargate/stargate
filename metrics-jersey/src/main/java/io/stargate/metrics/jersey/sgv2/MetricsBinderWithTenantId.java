@@ -31,7 +31,7 @@ public class MetricsBinderWithTenantId extends MetricsBinder {
     List<JerseyTagsProvider> providers =
         super.getMeterTagsProviders(
             config, metrics, httpMetricsTagProvider, module, nonApiUriRegexes);
-    //      providers.add(new MyTagsProvider());
+    providers.add(new TenantIdFromHostHeaderTagsProvider());
     return providers;
   }
 
@@ -45,7 +45,7 @@ public class MetricsBinderWithTenantId extends MetricsBinder {
     List<JerseyTagsProvider> providers =
         super.getCounterTagsProviders(
             config, metrics, httpMetricsTagProvider, module, nonApiUriRegexes);
-    //      providers.add(new MyTagsProvider());
+    providers.add(new TenantIdFromHostHeaderTagsProvider());
     return providers;
   }
 }

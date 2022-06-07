@@ -51,13 +51,7 @@ public class RestApiMetricsTest extends BaseRestApiTest {
   @SuppressWarnings("unused") // referenced in @StargateSpec
   public static void buildApiServiceParameters(ApiServiceParameters.Builder builder) {
     BaseRestApiTest.buildApiServiceParameters(builder);
-    // 13-Jan-2022, tatu: In StargateV1 HTTP Tag Provider is registered using OSGi.
-    //    SGv2 does not have equivalent mechanism implemented yet, so tag functionality
-    //    NOT verified currently.
-    /*builder.putSystemProperties(
-    TestingServicesActivator.HTTP_TAG_PROVIDER_PROPERTY,
-    TestingServicesActivator.TAG_ME_HTTP_TAG_PROVIDER); */
-    // This does not seem to do anything (triggered at wrong point)?
+    // These are still needed:
     builder.putSystemProperties("stargate.metrics.http_server_requests_percentiles", "0.95,0.99");
     builder.putSystemProperties(
         "stargate.metrics.http_server_requests_path_param_tags", "keyspaceName");
