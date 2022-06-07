@@ -20,6 +20,8 @@ package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.jsonschema;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
+import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
+import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.model.dto.JsonSchemaDto;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
 import io.stargate.sgv2.docsapi.service.schema.JsonSchemaManager;
@@ -180,7 +182,7 @@ public class JsonSchemaResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @GET
-  public Uni<RestResponse<Object>> getJsonSchema(
+  public Uni<RestResponse<JsonSchemaDto>> getJsonSchema(
       @Context UriInfo uriInfo,
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection) {
@@ -188,6 +190,14 @@ public class JsonSchemaResource {
     // go get the existing table
     return jsonSchemaManager
         .getJsonSchema(tableManager.getValidCollectionTable(namespace, collection))
-        .map(schema -> RestResponse.ok(new JsonSchemaDto(schema.requiredAt("/schema"))));
+        .map(schema -> RestResponse.ok(new JsonSchemaDto(schema.requiredAt("/schema"))))
+        .onItem()
+        .ifNull()
+        .switchTo(
+            () ->
+                Uni.createFrom()
+                    .failure(
+                        new ErrorCodeRuntimeException(
+                            ErrorCode.DOCS_API_JSON_SCHEMA_DOES_NOT_EXIST)));
   }
 }

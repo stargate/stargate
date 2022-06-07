@@ -54,7 +54,7 @@ public class JsonSchemaManager {
             t -> {
               String comment = t.getOptionsMap().getOrDefault("comment", null);
               if (comment == null) {
-                throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_JSON_SCHEMA_DOES_NOT_EXIST);
+                return null;
               }
 
               try {
@@ -111,15 +111,9 @@ public class JsonSchemaManager {
    */
   public Uni<Boolean> validateJsonDocument(Uni<Schema.CqlTable> table, JsonNode document) {
     return getJsonSchema(table)
-        .onItemOrFailure()
+        .onItem()
         .transform(
-            (jsonSchema, failure) -> {
-              if (failure instanceof ErrorCodeRuntimeException
-                  && ((ErrorCodeRuntimeException) failure).getErrorCode()
-                      == ErrorCode.DOCS_API_JSON_SCHEMA_DOES_NOT_EXIST) {
-                // If there is no valid JSON schema, then the document is valid
-                return true;
-              }
+            jsonSchema -> {
               if (jsonSchema == null) {
                 // If there is no valid JSON schema, then the document is valid
                 return true;

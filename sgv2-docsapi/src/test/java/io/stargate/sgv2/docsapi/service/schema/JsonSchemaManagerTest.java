@@ -135,7 +135,7 @@ class JsonSchemaManagerTest extends BridgeTest {
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
 
-      result.awaitFailure().assertFailedWith(ErrorCodeRuntimeException.class);
+      result.awaitItem().assertItem(null).assertCompleted();
     }
 
     @Test

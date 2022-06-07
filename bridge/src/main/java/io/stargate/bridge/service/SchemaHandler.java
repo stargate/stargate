@@ -154,6 +154,7 @@ class SchemaHandler {
       }
     }
 
+    // TODO Add any other table options here
     if (table.comment() != null) {
       cqlTableBuilder.putOptions("comment", table.comment());
     }
