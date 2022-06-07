@@ -17,6 +17,7 @@
 
 package io.stargate.sgv2.docsapi.service.query.search.db.impl;
 
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.query.FilterExpression;
@@ -24,6 +25,7 @@ import io.stargate.sgv2.docsapi.service.query.FilterPath;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import org.apache.commons.lang3.tuple.Pair;
 
 /**
  * The builder that extends the {@link FilterPathSearchQueryBuilder} and adds predicates based on
@@ -50,7 +52,6 @@ public class FilterExpressionSearchQueryBuilder extends FilterPathSearchQueryBui
       DocumentProperties documentProperties, FilterPath filterPath) {
     super(documentProperties, filterPath, true);
     this.expressions = Collections.emptyList();
-    System.out.println("here3");
   }
 
   /**
@@ -59,12 +60,22 @@ public class FilterExpressionSearchQueryBuilder extends FilterPathSearchQueryBui
    * <p>Adds predicates for each expression.
    */
   @Override
-  public Collection<BuiltCondition> getPredicates() {
-    Collection<BuiltCondition> predicates = super.getPredicates();
+  protected Pair<List<BuiltCondition>, List<QueryOuterClass.Value>> resolve() {
+    Pair<List<BuiltCondition>, List<QueryOuterClass.Value>> resolve = super.resolve();
+    List<BuiltCondition> predicates = resolve.getLeft();
+    List<QueryOuterClass.Value> values = resolve.getRight();
 
-    expressions.forEach(e -> e.getCondition().getBuiltCondition().ifPresent(predicates::add));
+    expressions.forEach(
+        e ->
+            e.getCondition()
+                .getBuiltCondition()
+                .ifPresent(
+                    builtCondition -> {
+                      predicates.add(builtCondition.getLeft());
+                      values.add(builtCondition.getRight());
+                    }));
 
-    return predicates;
+    return Pair.of(predicates, values);
   }
 
   // confirms we have single filter path and extracts it

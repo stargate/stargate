@@ -26,7 +26,6 @@ import io.stargate.sgv2.common.cql.builder.Term;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
 import io.stargate.sgv2.docsapi.service.query.search.db.AbstractSearchQueryBuilder;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
@@ -53,13 +52,18 @@ public class DocumentTtlQueryBuilder extends AbstractSearchQueryBuilder {
 
   /** {@inheritDoc} */
   @Override
-  public Collection<BuiltCondition> getPredicates() {
+  public List<BuiltCondition> getPredicates() {
+    return Collections.emptyList();
+  }
+
+  @Override
+  protected List<QueryOuterClass.Value> getValues() {
     return Collections.emptyList();
   }
 
   /** {@inheritDoc} */
   @Override
-  protected Collection<BuiltCondition> getBindPredicates() {
+  protected List<BuiltCondition> getBindPredicates() {
     DocumentTableProperties tableProps = documentProperties.tableProperties();
 
     BuiltCondition condition =

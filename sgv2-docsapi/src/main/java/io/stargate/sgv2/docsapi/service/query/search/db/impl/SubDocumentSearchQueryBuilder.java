@@ -18,12 +18,14 @@
 package io.stargate.sgv2.docsapi.service.query.search.db.impl;
 
 import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Predicate;
+import io.stargate.sgv2.common.cql.builder.Term;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
-import java.util.Collection;
 import java.util.List;
+import org.apache.commons.lang3.tuple.Pair;
 
 /**
  * Search query builder that matches all rows on the given #subDocumentsPath for a single document.
@@ -39,14 +41,17 @@ public class SubDocumentSearchQueryBuilder extends PathSearchQueryBuilder {
     this.documentId = documentId;
   }
 
-  /** {@inheritDoc} */
   @Override
-  public Collection<BuiltCondition> getPredicates() {
-    DocumentTableProperties tableProps = documentProperties.tableProperties();
+  protected Pair<List<BuiltCondition>, List<QueryOuterClass.Value>> resolve() {
+    Pair<List<BuiltCondition>, List<QueryOuterClass.Value>> resolve = super.resolve();
 
-    Collection<BuiltCondition> predicates = super.getPredicates();
-    predicates.add(
-        BuiltCondition.of(tableProps.keyColumnName(), Predicate.EQ, Values.of(documentId)));
-    return predicates;
+    List<BuiltCondition> predicates = resolve.getLeft();
+    List<QueryOuterClass.Value> values = resolve.getRight();
+
+    DocumentTableProperties tableProps = documentProperties.tableProperties();
+    predicates.add(BuiltCondition.of(tableProps.keyColumnName(), Predicate.EQ, Term.marker()));
+    values.add(Values.of(documentId));
+
+    return Pair.of(predicates, values);
   }
 }

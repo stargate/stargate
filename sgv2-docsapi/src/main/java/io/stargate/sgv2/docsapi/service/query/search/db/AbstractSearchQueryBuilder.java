@@ -22,7 +22,7 @@ import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.common.cql.builder.QueryBuilderImpl;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
-import java.util.Collection;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -36,11 +36,21 @@ public abstract class AbstractSearchQueryBuilder {
     this.documentProperties = documentProperties;
   }
 
-  /** @return All fixed predicates. */
-  protected abstract Collection<BuiltCondition> getPredicates();
+  /**
+   * @return All fixed predicates. Note that each predicate here, a proper bind value should be
+   *     defined in the {@link #getValues()}
+   */
+  protected abstract List<BuiltCondition> getPredicates();
 
   /** @return Predicates that depends on the binding value. */
-  protected abstract Collection<BuiltCondition> getBindPredicates();
+  protected abstract List<BuiltCondition> getBindPredicates();
+
+  /**
+   * @return Returns bind values that are used for the conditions provided by the {@link
+   *     #getPredicates()}. The index of the bind value should be the same as the target index in
+   *     the {@link #getPredicates()}.
+   */
+  protected abstract List<QueryOuterClass.Value> getValues();
 
   /** @return Should <code>ALLOW FILTERING</code> be used. */
   protected abstract boolean allowFiltering();
@@ -98,5 +108,36 @@ public abstract class AbstractSearchQueryBuilder {
     } else {
       return builder.build();
     }
+  }
+
+  /**
+   * Simple bind with no extra bind values except the {@link #getValues()}.
+   *
+   * @param builtQuery Query that was built using this query builder.
+   * @return Query populated with bind values.
+   */
+  public QueryOuterClass.Query bind(QueryOuterClass.Query builtQuery) {
+    List<QueryOuterClass.Value> bindValues = getValues();
+    return QueryOuterClass.Query.newBuilder(builtQuery)
+        .setValues(QueryOuterClass.Values.newBuilder().addAllValues(bindValues).build())
+        .buildPartial();
+  }
+
+  /**
+   * Advanced bind allowing extra bind values to be added after the {@link #getValues()}.
+   *
+   * @param builtQuery Query that was built using this query builder.
+   * @return Query populated with bind values.
+   */
+  public QueryOuterClass.Query bindWithValues(
+      QueryOuterClass.Query builtQuery, QueryOuterClass.Value... extraValues) {
+    List<QueryOuterClass.Value> bindValues = new ArrayList<>(getValues());
+    for (QueryOuterClass.Value extraValue : extraValues) {
+      bindValues.add(extraValue);
+    }
+
+    return QueryOuterClass.Query.newBuilder(builtQuery)
+        .setValues(QueryOuterClass.Values.newBuilder().addAllValues(bindValues).build())
+        .buildPartial();
   }
 }

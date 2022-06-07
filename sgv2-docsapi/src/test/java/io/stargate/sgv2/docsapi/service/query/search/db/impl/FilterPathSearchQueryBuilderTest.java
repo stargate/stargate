@@ -59,7 +59,8 @@ class FilterPathSearchQueryBuilderTest {
 
       FilterPathSearchQueryBuilder builder =
           new FilterPathSearchQueryBuilder(documentProperties, filterPath, true);
-      QueryOuterClass.Query query = builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME);
+      QueryOuterClass.Query query =
+          builder.bind(builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME));
 
       String expected =
           String.format(
@@ -78,10 +79,11 @@ class FilterPathSearchQueryBuilderTest {
       FilterPathSearchQueryBuilder builder =
           new FilterPathSearchQueryBuilder(documentProperties, filterPath, true);
       QueryOuterClass.Query query =
-          builder.buildQuery(
-              KEYSPACE_NAME,
-              COLLECTION_NAME,
-              documentProperties.tableProperties().pathColumnName(0));
+          builder.bind(
+              builder.buildQuery(
+                  KEYSPACE_NAME,
+                  COLLECTION_NAME,
+                  documentProperties.tableProperties().pathColumnName(0)));
 
       String expected =
           String.format(
@@ -99,7 +101,8 @@ class FilterPathSearchQueryBuilderTest {
 
       FilterPathSearchQueryBuilder builder =
           new FilterPathSearchQueryBuilder(documentProperties, filterPath, true);
-      QueryOuterClass.Query query = builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME, 5);
+      QueryOuterClass.Query query =
+          builder.bind(builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME, 5));
 
       String expected =
           String.format(
@@ -117,7 +120,8 @@ class FilterPathSearchQueryBuilderTest {
 
       FilterPathSearchQueryBuilder builder =
           new FilterPathSearchQueryBuilder(documentProperties, filterPath, true);
-      QueryOuterClass.Query query = builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME);
+      QueryOuterClass.Query query =
+          builder.bind(builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME));
 
       String expected =
           String.format(
@@ -140,7 +144,8 @@ class FilterPathSearchQueryBuilderTest {
 
       FilterPathSearchQueryBuilder builder =
           new FilterPathSearchQueryBuilder(documentProperties, filterPath, true);
-      QueryOuterClass.Query query = builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME);
+      QueryOuterClass.Query query =
+          builder.bind(builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME));
 
       String expected =
           String.format(
@@ -163,7 +168,8 @@ class FilterPathSearchQueryBuilderTest {
 
       FilterPathSearchQueryBuilder builder =
           new FilterPathSearchQueryBuilder(documentProperties, filterPath, true);
-      QueryOuterClass.Query query = builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME);
+      QueryOuterClass.Query query =
+          builder.bind(builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME));
 
       String expected =
           String.format(
@@ -186,7 +192,8 @@ class FilterPathSearchQueryBuilderTest {
 
       FilterPathSearchQueryBuilder builder =
           new FilterPathSearchQueryBuilder(documentProperties, filterPath, true);
-      QueryOuterClass.Query query = builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME);
+      QueryOuterClass.Query query =
+          builder.bind(builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME));
 
       String expected =
           String.format(
@@ -209,7 +216,8 @@ class FilterPathSearchQueryBuilderTest {
 
       FilterPathSearchQueryBuilder builder =
           new FilterPathSearchQueryBuilder(documentProperties, filterPath, true);
-      QueryOuterClass.Query query = builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME);
+      QueryOuterClass.Query query =
+          builder.bind(builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME));
 
       String expected =
           String.format(

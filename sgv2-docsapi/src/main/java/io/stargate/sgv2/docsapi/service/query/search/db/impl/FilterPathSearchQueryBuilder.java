@@ -18,18 +18,18 @@
 package io.stargate.sgv2.docsapi.service.query.search.db.impl;
 
 import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Predicate;
+import io.stargate.sgv2.common.cql.builder.Term;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.service.query.FilterPath;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
+import org.apache.commons.lang3.tuple.Pair;
 
 /** The search query builder that creates all needed predicates for a {@link FilterPath}. */
 public class FilterPathSearchQueryBuilder extends PathSearchQueryBuilder {
@@ -49,31 +49,33 @@ public class FilterPathSearchQueryBuilder extends PathSearchQueryBuilder {
     this.matchField = matchField;
   }
 
+  /** {@inheritDoc} */
   @Override
   protected boolean allowFiltering() {
     return true;
   }
 
+  /** {@inheritDoc} */
   @Override
-  protected Collection<BuiltCondition> getBindPredicates() {
-    return Collections.emptyList();
-  }
+  protected Pair<List<BuiltCondition>, List<QueryOuterClass.Value>> resolve() {
+    Pair<List<BuiltCondition>, List<QueryOuterClass.Value>> resolve = super.resolve();
 
-  @Override
-  public Collection<BuiltCondition> getPredicates() {
-    Collection<BuiltCondition> predicates = super.getPredicates();
+    List<BuiltCondition> predicates = resolve.getLeft();
+    List<QueryOuterClass.Value> values = resolve.getRight();
 
     int maxDepth = documentProperties.maxDepth();
-    predicates.addAll(getFieldPredicates(maxDepth));
-    predicates.addAll(getRemainingPathPredicates(maxDepth));
-    return predicates;
+    addFields(predicates, values, maxDepth);
+    addRemainingPathPredicates(predicates, values, maxDepth);
+
+    return Pair.of(predicates, values);
   }
 
   public FilterPath getFilterPath() {
     return filterPath;
   }
 
-  private List<BuiltCondition> getFieldPredicates(int maxDepth) {
+  private void addFields(
+      List<BuiltCondition> predicates, List<QueryOuterClass.Value> values, int maxDepth) {
     int parentSize = filterPath.getParentPath().size();
     if (parentSize >= maxDepth) {
       throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_DEPTH_EXCEEDED);
@@ -82,27 +84,32 @@ public class FilterPathSearchQueryBuilder extends PathSearchQueryBuilder {
       String field = DocsApiUtils.convertEscapedCharacters(filterPath.getField());
       if (matchField) {
         // apply to p and leaf, as index is on leaf, and we want it kicking in
-        return Arrays.asList(
-            BuiltCondition.of(
-                tableProps.pathColumnName(parentSize), Predicate.EQ, Values.of(field)),
-            BuiltCondition.of(tableProps.leafColumnName(), Predicate.EQ, Values.of(field)));
+        QueryOuterClass.Value fieldValue = Values.of(field);
+        predicates.add(
+            BuiltCondition.of(tableProps.pathColumnName(parentSize), Predicate.EQ, Term.marker()));
+        predicates.add(BuiltCondition.of(tableProps.leafColumnName(), Predicate.EQ, Term.marker()));
+        values.add(fieldValue);
+        values.add(fieldValue);
       } else {
         // TODO confirm this is really needed
         //  confirm this could be needed only on non-empty path
-        return Collections.singletonList(
-            BuiltCondition.of(tableProps.pathColumnName(parentSize), Predicate.GT, Values.of("")));
+        predicates.add(
+            BuiltCondition.of(tableProps.pathColumnName(parentSize), Predicate.GT, Term.marker()));
+        values.add(Values.of(""));
       }
     }
   }
 
-  private List<BuiltCondition> getRemainingPathPredicates(int maxDepth) {
+  private void addRemainingPathPredicates(
+      List<BuiltCondition> predicates, List<QueryOuterClass.Value> values, int maxDepth) {
     int fullSize = filterPath.getPath().size();
     if (fullSize >= maxDepth) {
-      return Collections.emptyList();
+      return;
     } else {
       DocumentTableProperties tableProps = documentProperties.tableProperties();
-      return Collections.singletonList(
-          BuiltCondition.of(tableProps.pathColumnName(fullSize), Predicate.EQ, Values.of("")));
+      predicates.add(
+          BuiltCondition.of(tableProps.pathColumnName(fullSize), Predicate.EQ, Term.marker()));
+      values.add(Values.of(""));
     }
   }
 }

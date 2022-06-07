@@ -50,7 +50,8 @@ class PathSearchQueryBuilderTest {
       List<String> path = Arrays.asList("path", "to", "something");
 
       PathSearchQueryBuilder builder = new PathSearchQueryBuilder(documentProperties, path);
-      QueryOuterClass.Query query = builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME);
+      QueryOuterClass.Query query =
+          builder.bind(builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME));
 
       String expected =
           String.format(
@@ -66,7 +67,8 @@ class PathSearchQueryBuilderTest {
       List<String> path = Arrays.asList("path", "*", "something");
 
       PathSearchQueryBuilder builder = new PathSearchQueryBuilder(documentProperties, path);
-      QueryOuterClass.Query query = builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME);
+      QueryOuterClass.Query query =
+          builder.bind(builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME));
 
       String expected =
           String.format(
@@ -82,7 +84,8 @@ class PathSearchQueryBuilderTest {
       List<String> path = Arrays.asList("path", "[*]", "something");
 
       PathSearchQueryBuilder builder = new PathSearchQueryBuilder(documentProperties, path);
-      QueryOuterClass.Query query = builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME);
+      QueryOuterClass.Query query =
+          builder.bind(builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME));
 
       String expected =
           String.format(
@@ -98,7 +101,8 @@ class PathSearchQueryBuilderTest {
       List<String> path = Arrays.asList("path", "one,two,three", "something");
 
       PathSearchQueryBuilder builder = new PathSearchQueryBuilder(documentProperties, path);
-      QueryOuterClass.Query query = builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME);
+      QueryOuterClass.Query query =
+          builder.bind(builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME));
 
       String expected =
           String.format(
@@ -117,7 +121,8 @@ class PathSearchQueryBuilderTest {
       List<String> path = Arrays.asList("path", "[000000],[000001],[000002]", "something");
 
       PathSearchQueryBuilder builder = new PathSearchQueryBuilder(documentProperties, path);
-      QueryOuterClass.Query query = builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME);
+      QueryOuterClass.Query query =
+          builder.bind(builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME));
 
       String expected =
           String.format(
@@ -136,12 +141,14 @@ class PathSearchQueryBuilderTest {
       List<String> path = Collections.emptyList();
 
       PathSearchQueryBuilder builder = new PathSearchQueryBuilder(documentProperties, path);
-      QueryOuterClass.Query query = builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME);
+      QueryOuterClass.Query query =
+          builder.bind(builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME));
 
       String expected =
           String.format(
               "SELECT WRITETIME(leaf) FROM \"%s\".\"%s\"", KEYSPACE_NAME, COLLECTION_NAME);
       assertThat(query.getCql()).isEqualTo(expected);
+      assertThat(query.getValues().getValuesList()).isEmpty();
     }
   }
 }

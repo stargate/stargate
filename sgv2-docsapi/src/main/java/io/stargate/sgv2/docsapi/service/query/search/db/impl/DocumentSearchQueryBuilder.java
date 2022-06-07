@@ -26,6 +26,7 @@ import io.stargate.sgv2.docsapi.service.query.FilterExpression;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * The query builder that extends the {@link FilterExpressionSearchQueryBuilder} and adds predicate
@@ -44,10 +45,10 @@ public class DocumentSearchQueryBuilder extends FilterExpressionSearchQueryBuild
   }
 
   @Override
-  protected Collection<BuiltCondition> getBindPredicates() {
+  protected List<BuiltCondition> getBindPredicates() {
     DocumentTableProperties tableProps = documentProperties.tableProperties();
 
-    Collection<BuiltCondition> bindPredicates = new ArrayList<>(super.getBindPredicates());
+    List<BuiltCondition> bindPredicates = new ArrayList<>(super.getBindPredicates());
     BuiltCondition condition =
         BuiltCondition.of(tableProps.keyColumnName(), Predicate.EQ, Term.marker());
     bindPredicates.add(condition);

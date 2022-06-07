@@ -17,11 +17,12 @@
 
 package io.stargate.sgv2.docsapi.service.query.search.db.impl;
 
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.query.search.db.AbstractSearchQueryBuilder;
-import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 
 /** Simple query builder for document population. */
 public class FullSearchQueryBuilder extends AbstractSearchQueryBuilder {
@@ -36,12 +37,17 @@ public class FullSearchQueryBuilder extends AbstractSearchQueryBuilder {
   }
 
   @Override
-  protected Collection<BuiltCondition> getPredicates() {
+  protected List<BuiltCondition> getPredicates() {
     return Collections.emptyList();
   }
 
   @Override
-  protected Collection<BuiltCondition> getBindPredicates() {
+  protected List<QueryOuterClass.Value> getValues() {
+    return Collections.emptyList();
+  }
+
+  @Override
+  protected List<BuiltCondition> getBindPredicates() {
     return Collections.emptyList();
   }
 }

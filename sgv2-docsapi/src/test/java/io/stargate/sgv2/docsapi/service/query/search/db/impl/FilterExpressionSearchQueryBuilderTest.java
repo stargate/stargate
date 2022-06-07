@@ -27,6 +27,7 @@ import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Predicate;
+import io.stargate.sgv2.common.cql.builder.Term;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.query.FilterExpression;
 import io.stargate.sgv2.docsapi.service.query.FilterPath;
@@ -38,6 +39,7 @@ import java.util.Collections;
 import java.util.Optional;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -96,12 +98,14 @@ class FilterExpressionSearchQueryBuilderTest {
     @Test
     public void happyPath() {
       QueryOuterClass.Value textValue = Values.of("value");
-      BuiltCondition builtCondition = BuiltCondition.of("text_value", Predicate.EQ, textValue);
-      when(condition.getBuiltCondition()).thenReturn(Optional.of(builtCondition));
+      BuiltCondition builtCondition = BuiltCondition.of("text_value", Predicate.EQ, Term.marker());
+      when(condition.getBuiltCondition())
+          .thenReturn(Optional.of(Pair.of(builtCondition, textValue)));
 
       FilterExpressionSearchQueryBuilder builder =
           new FilterExpressionSearchQueryBuilder(documentProperties, filterExpression);
-      QueryOuterClass.Query query = builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME);
+      QueryOuterClass.Query query =
+          builder.bind(builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME));
 
       String expected =
           String.format(
@@ -118,7 +122,8 @@ class FilterExpressionSearchQueryBuilderTest {
 
       FilterExpressionSearchQueryBuilder builder =
           new FilterExpressionSearchQueryBuilder(documentProperties, filterExpression);
-      QueryOuterClass.Query query = builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME);
+      QueryOuterClass.Query query =
+          builder.bind(builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME));
 
       String expected =
           String.format(

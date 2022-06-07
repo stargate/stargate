@@ -51,7 +51,8 @@ class SubDocumentSearchQueryBuilderTest {
 
       SubDocumentSearchQueryBuilder builder =
           new SubDocumentSearchQueryBuilder(documentProperties, docId, path);
-      QueryOuterClass.Query query = builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME);
+      QueryOuterClass.Query query =
+          builder.bind(builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME));
 
       String expected =
           String.format(

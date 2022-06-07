@@ -89,6 +89,8 @@ class DocumentsSearchQueryBuilderTest {
 
     @Test
     public void happyPath() {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      QueryOuterClass.Value documentIdValue = Values.of(documentId);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
       when(filterExpression.getFilterPath()).thenReturn(filterPath);
       when(filterExpression.getCondition()).thenReturn(condition);
@@ -96,7 +98,9 @@ class DocumentsSearchQueryBuilderTest {
 
       FilterExpressionSearchQueryBuilder builder =
           new DocumentSearchQueryBuilder(documentProperties, filterExpression);
-      QueryOuterClass.Query query = builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME);
+      QueryOuterClass.Query query =
+          builder.bindWithValues(
+              builder.buildQuery(KEYSPACE_NAME, COLLECTION_NAME), documentIdValue);
 
       String expected =
           String.format(
@@ -104,7 +108,7 @@ class DocumentsSearchQueryBuilderTest {
               KEYSPACE_NAME, COLLECTION_NAME);
       assertThat(query.getCql()).isEqualTo(expected);
       assertThat(query.getValues().getValuesList())
-          .containsExactly(Values.of("field"), Values.of("field"), Values.of(""));
+          .containsExactly(Values.of("field"), Values.of("field"), Values.of(""), documentIdValue);
     }
   }
 }
