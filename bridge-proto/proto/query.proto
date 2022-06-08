@@ -50,6 +50,11 @@ message ConsistencyValue {
   Consistency value = 1;
 }
 
+// A wrapper message for ResumeMode, for cases where the mode can be unset.
+message ResumeModeValue {
+  ResumeMode value = 1;
+}
+
 // A CQL value for a collection type.
 // For lists, sets and tuples, this contains the collection elements.
 // For maps, this contains the key and values in order (e.g. key1, value1, key2, value2...)
@@ -237,7 +242,7 @@ message QueryParameters {
   // Configurable resume mode for page state creation; only used when enriched = true.
   // Changes the way that paging state is generated on each row of the result set, during enrichment.
   // If unset, the paging state will not be populated for each row.
-  ResumeMode resumeMode = 12;
+  ResumeModeValue resumeMode = 12;
 }
 
 // A CQL column type.
