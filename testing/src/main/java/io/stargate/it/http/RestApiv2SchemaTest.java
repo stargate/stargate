@@ -1154,19 +1154,38 @@ public class RestApiv2SchemaTest extends BaseRestApiTest {
   @Test
   public void indexListAll() throws IOException {
     createTestKeyspace(keyspaceName);
+    final String altKeyspaceName = "alt_" + System.currentTimeMillis();
+    createTestKeyspace(altKeyspaceName);
     tableName = "tbl_createtable_" + System.currentTimeMillis();
-    createTestTable(
+    createTestTableIn(
+        keyspaceName,
+        tableName,
+        Arrays.asList("id text", "firstName text", "email list<text>"),
+        Collections.singletonList("id"),
+        null);
+    // We'll need another table in another keyspace to test [stargate#1463]
+    createTestTableIn(
+        altKeyspaceName,
         tableName,
         Arrays.asList("id text", "firstName text", "email list<text>"),
         Collections.singletonList("id"),
         null);
 
+    // Verify that neither keyspace (primary test; alt) have no indexes defined:
     String body =
         RestUtils.get(
             authToken,
             String.format(
                 "%s/v2/schemas/keyspaces/%s/tables/%s/indexes",
                 restUrlBase, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+    assertThat(body).isEqualTo("[]");
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/schemas/keyspaces/%s/tables/%s/indexes",
+                restUrlBase, altKeyspaceName, tableName),
             HttpStatus.SC_OK);
     assertThat(body).isEqualTo("[]");
 
@@ -1182,6 +1201,7 @@ public class RestApiv2SchemaTest extends BaseRestApiTest {
         objectMapper.writeValueAsString(indexAdd),
         HttpStatus.SC_CREATED);
 
+    // Then first verify that actual test table (in main keyspace) has the index
     body =
         RestUtils.get(
             authToken,
@@ -1194,6 +1214,17 @@ public class RestApiv2SchemaTest extends BaseRestApiTest {
         objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
 
     assertThat(data.stream().anyMatch(m -> "test_idx".equals(m.get("index_name")))).isTrue();
+
+    // but also that the other table with same name (but in diff keyspace) does not
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/schemas/keyspaces/%s/tables/%s/indexes",
+                restUrlBase, altKeyspaceName, tableName),
+            HttpStatus.SC_OK);
+    data = objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(data).isEqualTo(Arrays.asList());
   }
 
   @Test
@@ -1649,6 +1680,16 @@ public class RestApiv2SchemaTest extends BaseRestApiTest {
   private void createTestTable(
       String tableName, List<String> columns, List<String> partitionKey, List<String> clusteringKey)
       throws IOException {
+    createTestTableIn(keyspaceName, tableName, columns, partitionKey, clusteringKey);
+  }
+
+  private void createTestTableIn(
+      String keyspaceForTable,
+      String tableName,
+      List<String> columns,
+      List<String> partitionKey,
+      List<String> clusteringKey)
+      throws IOException {
     TableAdd tableAdd = new TableAdd();
     tableAdd.setName(tableName);
 
@@ -1669,7 +1710,7 @@ public class RestApiv2SchemaTest extends BaseRestApiTest {
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+            String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceForTable),
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 
