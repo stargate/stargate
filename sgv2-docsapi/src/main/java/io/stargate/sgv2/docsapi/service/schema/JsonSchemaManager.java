@@ -5,7 +5,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
-import com.github.fge.jsonschema.core.report.ProcessingMessage;
 import com.github.fge.jsonschema.core.report.ProcessingReport;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
 import io.smallrye.mutiny.Uni;
@@ -16,8 +15,9 @@ import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.service.schema.query.JsonSchemaQueryProvider;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import org.slf4j.Logger;
@@ -89,12 +89,10 @@ public class JsonSchemaManager {
                         namespace, c.getName(), wrappedSchema.toString()))
                 .map(r -> schema);
           } else {
-            String msgs = "";
-            Iterator<ProcessingMessage> it = report.iterator();
-            while (it.hasNext()) {
-              ProcessingMessage msg = it.next();
-              msgs += String.format("[%s]: %s; ", msg.getLogLevel(), msg.getMessage());
-            }
+            String msgs =
+                StreamSupport.stream(report.spliterator(), false)
+                    .map(msg -> String.format("[%s]: %s; ", msg.getLogLevel(), msg.getMessage()))
+                    .collect(Collectors.joining());
             Throwable failure =
                 new ErrorCodeRuntimeException(ErrorCode.DOCS_API_JSON_SCHEMA_INVALID, msgs);
             return Uni.createFrom().failure(failure);
