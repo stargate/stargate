@@ -186,15 +186,17 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
     assertThat(keyspace).usingRecursiveComparison().isEqualTo(new Keyspace(keyspaceName, null));
   }
 
-  // for [stargate#1817]
+  // For [stargate#1817]. Unfortunately our current CI set up only has single DC ("dc1")
+  // configured, with a single node. But this is only about constructing keyspace anyway,
+  // including handling of variant request structure; as long as that maps to query builder
+  // we should be good.
   @Test
-  public void keyspaceCreateMultiDC() throws IOException {
+  public void keyspaceCreateWithExplicitDC() throws IOException {
     String keyspaceName = "ks_createkeyspace_" + System.currentTimeMillis();
     String createKeyspaceRequest =
         String.format(
             "{\"name\": \"%s\", \"datacenters\" : [\n"
-                + "       { \"name\":\"dc1\" },\n"
-                + "       { \"name\":\"dc2\", \"replicas\":5}\n"
+                + "       { \"name\":\"dc1\", \"replicas\":1}\n"
                 + "]}",
             keyspaceName);
 
@@ -215,9 +217,7 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
     assertThat(keyspace.getName()).isEqualTo(keyspaceName);
 
     Map<String, Keyspace.Datacenter> expectedDCs = new HashMap<>();
-    // Note that for non-simple case, default for replicas is 3, not 1 (as with "simple" strategy).
-    expectedDCs.put("dc1", new Keyspace.Datacenter("dc1", 3));
-    expectedDCs.put("dc2", new Keyspace.Datacenter("dc2", 5));
+    expectedDCs.put("dc1", new Keyspace.Datacenter("dc1", 1));
     Map<String, Keyspace.Datacenter> actualDCs =
         keyspace.getDatacenters().stream()
             .collect(Collectors.toMap(Keyspace.Datacenter::getName, Function.identity()));
