@@ -117,13 +117,17 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
     CqlKeyspaceDescribe keyspace = keyspaceCache.getIfPresent(decoratedKeyspaceName);
     if (keyspace == null) {
       // Nothing in our local cache, check if the bridge has a more recent version
-      Optional<CqlKeyspaceDescribe> newKeyspace = getKeyspace(keyspaceName, false);
-      newKeyspace.ifPresent(ks -> keyspaceCache.put(decoratedKeyspaceName, ks));
-      // Execute with that version
-      return executeQuery(queryProducer.apply(newKeyspace));
+      return forceFetchAndExecute(keyspaceName, decoratedKeyspaceName, queryProducer);
     } else {
       // Build the query with our local version
-      Query query = queryProducer.apply(Optional.of(keyspace));
+      Query query;
+      try {
+        query = queryProducer.apply(Optional.of(keyspace));
+      } catch (Throwable t) {
+        // Always retry with the latest version, in case the error is caused by stale metadata
+        // (e.g. using a table that has not yet replicated to our local cache)
+        return forceFetchAndExecute(keyspaceName, decoratedKeyspaceName, queryProducer);
+      }
       // Execute optimistically
       ClientCall<QueryWithSchema, QueryWithSchemaResponse> call =
           channel.newCall(StargateBridgeGrpc.getExecuteQueryWithSchemaMethod(), callOptions);
@@ -153,6 +157,15 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
         return executeQuery(queryProducer.apply(newKeyspace));
       }
     }
+  }
+
+  private Response forceFetchAndExecute(
+      String keyspaceName,
+      String decoratedKeyspaceName,
+      Function<Optional<CqlKeyspaceDescribe>, Query> queryProducer) {
+    Optional<CqlKeyspaceDescribe> newKeyspace = getKeyspace(keyspaceName, false);
+    newKeyspace.ifPresent(ks -> keyspaceCache.put(decoratedKeyspaceName, ks));
+    return executeQuery(queryProducer.apply(newKeyspace));
   }
 
   @Override
