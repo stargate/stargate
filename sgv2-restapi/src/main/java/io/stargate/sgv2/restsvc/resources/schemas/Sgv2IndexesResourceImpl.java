@@ -89,13 +89,12 @@ public class Sgv2IndexesResourceImpl extends ResourceBase implements Sgv2Indexes
       throw new WebApplicationException("columnName must be provided", Status.BAD_REQUEST);
     }
 
-    bridge.executeQuery(
+    queryWithTable(
+        bridge,
         keyspaceName,
         tableName,
-        maybeTable -> {
-          maybeTable
-              .orElseThrow(() -> new WebApplicationException("Table not found", Status.NOT_FOUND))
-              .getColumnsList().stream()
+        table -> {
+          table.getColumnsList().stream()
               .filter(c -> columnName.equals(c.getName()))
               .findAny()
               .orElseThrow(
