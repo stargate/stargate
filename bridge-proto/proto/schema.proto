@@ -158,3 +158,15 @@ message SupportedFeaturesResponse {
   // Whether the persistence backend supports logged CQL batches.
   bool logged_batches = 3;
 }
+
+
+message QueryWithSchema {
+  Query query = 1;
+  string keyspace_name = 2;
+  sint32 keyspace_hash = 3;
+}
+
+message QueryWithSchemaResponse {
+  Response response = 1;
+  CqlKeyspaceDescribe new_keyspace = 2;
+}

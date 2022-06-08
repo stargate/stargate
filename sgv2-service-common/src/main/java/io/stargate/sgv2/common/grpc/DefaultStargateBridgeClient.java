@@ -39,6 +39,8 @@ import io.stargate.bridge.proto.Schema.AuthorizeSchemaReadsRequest;
 import io.stargate.bridge.proto.Schema.AuthorizeSchemaReadsResponse;
 import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.bridge.proto.Schema.DescribeKeyspaceQuery;
+import io.stargate.bridge.proto.Schema.QueryWithSchema;
+import io.stargate.bridge.proto.Schema.QueryWithSchemaResponse;
 import io.stargate.bridge.proto.Schema.SchemaRead;
 import io.stargate.bridge.proto.Schema.SchemaRead.SourceApi;
 import io.stargate.bridge.proto.Schema.SupportedFeaturesRequest;
@@ -54,6 +56,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.codec.binary.Hex;
 
@@ -105,6 +108,51 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
     UnaryStreamObserver<Response> observer = new UnaryStreamObserver<>();
     ClientCalls.asyncUnaryCall(call, query, observer);
     return observer.asFuture();
+  }
+
+  @Override
+  public Response executeQuery(
+      String keyspaceName, Function<Optional<CqlKeyspaceDescribe>, Query> queryProducer) {
+    String decoratedKeyspaceName = addTenantPrefix(keyspaceName);
+    CqlKeyspaceDescribe keyspace = keyspaceCache.getIfPresent(decoratedKeyspaceName);
+    if (keyspace == null) {
+      // Nothing in our local cache, check if the bridge has a more recent version
+      Optional<CqlKeyspaceDescribe> newKeyspace = getKeyspace(keyspaceName, false);
+      newKeyspace.ifPresent(ks -> keyspaceCache.put(decoratedKeyspaceName, ks));
+      // Execute with that version
+      return executeQuery(queryProducer.apply(newKeyspace));
+    } else {
+      // Build the query with our local version
+      Query query = queryProducer.apply(Optional.of(keyspace));
+      // Execute optimistically
+      ClientCall<QueryWithSchema, QueryWithSchemaResponse> call =
+          channel.newCall(StargateBridgeGrpc.getExecuteQueryWithSchemaMethod(), callOptions);
+      QueryWithSchemaResponse withSchemaResponse =
+          ClientCalls.blockingUnaryCall(
+              call,
+              QueryWithSchema.newBuilder()
+                  .setQuery(query)
+                  .setKeyspaceName(keyspaceName)
+                  .setKeyspaceHash(keyspace.getHash().getValue())
+                  .build());
+      if (withSchemaResponse.hasResponse()) {
+        // Success, the keyspace hadn't changed on the bridge
+        return withSchemaResponse.getResponse();
+      } else {
+        // The bridge has a new version
+        Optional<CqlKeyspaceDescribe> newKeyspace;
+        if (withSchemaResponse.hasNewKeyspace()) {
+          CqlKeyspaceDescribe ks = withSchemaResponse.getNewKeyspace();
+          newKeyspace = Optional.of(ks);
+          keyspaceCache.put(decoratedKeyspaceName, ks);
+        } else {
+          newKeyspace = Optional.empty();
+          keyspaceCache.invalidate(decoratedKeyspaceName);
+        }
+        // Execute with that version
+        return executeQuery(queryProducer.apply(newKeyspace));
+      }
+    }
   }
 
   @Override

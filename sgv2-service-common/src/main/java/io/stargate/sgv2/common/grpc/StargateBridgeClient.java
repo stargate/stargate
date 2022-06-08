@@ -48,11 +48,9 @@ public interface StargateBridgeClient {
     return Futures.getUninterruptibly(executeQueryAsync(query));
   }
 
-  default Response executeQuery(
-      String keyspaceName, Function<Optional<CqlKeyspaceDescribe>, Query> queryProducer) {
-    // TODO replace naive implementation with optimistic retry
-    return executeQuery(queryProducer.apply(getKeyspace(keyspaceName, false)));
-  }
+  // TODO create async variant?
+  Response executeQuery(
+      String keyspaceName, Function<Optional<CqlKeyspaceDescribe>, Query> queryProducer);
 
   default Response executeQuery(
       String keyspaceName, String tableName, Function<Optional<CqlTable>, Query> queryProducer) {

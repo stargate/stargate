@@ -28,6 +28,10 @@ service StargateBridge {
   // Executes a single CQL query.
   rpc ExecuteQuery(Query) returns (Response) {}
 
+  // Executes a single CQL query, assuming that the client has the latest metadata of a particular
+  // keyspace.
+  rpc ExecuteQueryWithSchema(QueryWithSchema) returns (QueryWithSchemaResponse) {}
+
   // Executes a batch of CQL queries.
   rpc ExecuteBatch(Batch) returns (Response) {}
 
