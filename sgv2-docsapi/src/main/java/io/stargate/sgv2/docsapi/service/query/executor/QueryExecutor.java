@@ -72,7 +72,11 @@ public class QueryExecutor {
     this.requestInfo = requestInfo;
 
     // create reusable comparator
-    this.comparator = rowComparator();
+    // use all the doc path columns
+    // note that this differs from V1,
+    // as we can not know what clustering columns are selected in queries
+    List<String> pathColumns = documentProperties.tableColumns().pathColumnNamesList();
+    this.comparator = new DocumentPropertyComparator(pathColumns);
   }
 
   /**
@@ -406,33 +410,6 @@ public class QueryExecutor {
     return new Accumulator(id, comparator, docKey.build(), property);
   }
 
-  /**
-   * Builds a comparator that follows the natural order of rows in document tables, including all
-   * clustering columns (i.e., "path" columns).
-   */
-  private Comparator<DocumentProperty> rowComparator() {
-    List<Comparator<DocumentProperty>> comparators = new ArrayList<>();
-
-    // always first compare by the comparable bytes
-    comparators.add(DocumentProperty.COMPARABLE_BYTES_COMPARATOR);
-
-    for (String column : docPathColumns()) {
-      comparators.add(Comparator.comparing(p -> p.keyValue(column)));
-    }
-
-    return (p1, p2) -> {
-      // Avoid recursion because the number of "path" columns can be quite large.
-      int result = 0;
-      for (Comparator<DocumentProperty> comparator : comparators) {
-        result = comparator.compare(p1, p2);
-        if (result != 0) {
-          return result;
-        }
-      }
-      return result;
-    };
-  }
-
   // resolves what columns will be considered as keys for the document aggregation
   // always includes the document id,
   // plus set of path columns based on the key depth
@@ -452,13 +429,6 @@ public class QueryExecutor {
       result.add(tableProperties.pathColumnName(i));
     }
     return result;
-  }
-
-  // all the doc path columns
-  // note that this differs from V1,
-  // as we can not know what clustering columns are selected
-  private List<String> docPathColumns() {
-    return documentProperties.tableColumns().pathColumnNamesList();
   }
 
   // knows how to accumulate a set of document properties
