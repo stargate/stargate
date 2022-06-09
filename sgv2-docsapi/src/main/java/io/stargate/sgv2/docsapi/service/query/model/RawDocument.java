@@ -35,7 +35,7 @@ public interface RawDocument {
 
   /** @return The keys being considered when creating a document. */
   @Value.Parameter
-  List<String> docKey();
+  List<String> documentKeys();
 
   /** @return The page state supplier to use. */
   @Value.Parameter
@@ -87,7 +87,7 @@ public interface RawDocument {
   }
 
   private RawDocument replaceRows(List<RowWrapper> newRows) {
-    return ImmutableRawDocument.of(id(), docKey(), pagingState(), newRows);
+    return ImmutableRawDocument.of(id(), documentKeys(), pagingState(), newRows);
   }
 
   /** @return If the document has paging state. */

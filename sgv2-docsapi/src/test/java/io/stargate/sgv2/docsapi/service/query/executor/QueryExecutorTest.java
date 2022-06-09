@@ -163,13 +163,13 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
           .anySatisfy(
               doc -> {
                 assertThat(doc.id()).isEqualTo("1");
-                assertThat(doc.docKey()).containsExactly("1");
+                assertThat(doc.documentKeys()).containsExactly("1");
                 assertThat(doc.rows()).hasSize(2);
               })
           .anySatisfy(
               doc -> {
                 assertThat(doc.id()).isEqualTo("2");
-                assertThat(doc.docKey()).containsExactly("2");
+                assertThat(doc.documentKeys()).containsExactly("2");
                 assertThat(doc.rows()).hasSize(1);
               });
     }
@@ -462,7 +462,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
                 assertThat(doc.rows())
                     .extracting(r -> r.getDouble("dbl_value"))
                     .containsExactly(1.0d, 2.0d, 3.0d, 4.0d);
-                assertThat(doc.docKey()).containsExactly("b", "x", "2");
+                assertThat(doc.documentKeys()).containsExactly("b", "x", "2");
               });
 
       assertThat(result.get(1))
@@ -471,7 +471,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
                 assertThat(doc.rows())
                     .extracting(r -> r.getDouble("dbl_value"))
                     .containsExactly(5.0d);
-                assertThat(doc.docKey()).containsExactly("b", "y", "2");
+                assertThat(doc.documentKeys()).containsExactly("b", "y", "2");
               });
 
       assertThat(result.get(2))
@@ -480,7 +480,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
                 assertThat(doc.rows())
                     .extracting(r -> r.getDouble("dbl_value"))
                     .containsExactly(6.0d, 7.0d);
-                assertThat(doc.docKey()).containsExactly("b", "y", "3");
+                assertThat(doc.documentKeys()).containsExactly("b", "y", "3");
               });
     }
 
@@ -534,8 +534,8 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
       assertThat(result)
           .hasSize(2)
-          .anySatisfy(doc -> assertThat(doc.docKey()).containsExactly("a", "x", "2"))
-          .anySatisfy(doc -> assertThat(doc.docKey()).containsExactly("a", "y", "2"));
+          .anySatisfy(doc -> assertThat(doc.documentKeys()).containsExactly("a", "x", "2"))
+          .anySatisfy(doc -> assertThat(doc.documentKeys()).containsExactly("a", "y", "2"));
 
       ByteBuffer ps2 = result.get(1).makePagingState();
       List<RawDocument> pagedResult =
@@ -553,7 +553,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
           .hasSize(2)
           .anySatisfy(
               doc -> {
-                assertThat(doc.docKey()).containsExactly("a", "y", "3");
+                assertThat(doc.documentKeys()).containsExactly("a", "y", "3");
                 assertThat(doc.rows())
                     .extracting(r -> r.getDouble("dbl_value"))
                     .containsExactly(8.0d, 9.0d);
@@ -561,7 +561,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
               })
           .anySatisfy(
               doc -> {
-                assertThat(doc.docKey()).containsExactly("a", "y", "4");
+                assertThat(doc.documentKeys()).containsExactly("a", "y", "4");
                 assertThat(doc.rows())
                     .extracting(r -> r.getDouble("dbl_value"))
                     .containsExactly(10.0d);
@@ -710,19 +710,19 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
       assertThat(result).extracting(RawDocument::id).containsExactly("a", "a", "b", "c");
 
-      assertThat(result.get(0).docKey()).containsExactly("a", "x1");
+      assertThat(result.get(0).documentKeys()).containsExactly("a", "x1");
       assertThat(result.get(0).rows())
           .extracting(r -> r.getDouble("dbl_value"))
           .containsExactly(1.0d, 2.0d);
-      assertThat(result.get(1).docKey()).containsExactly("a", "x2");
+      assertThat(result.get(1).documentKeys()).containsExactly("a", "x2");
       assertThat(result.get(1).rows())
           .extracting(r -> r.getDouble("dbl_value"))
           .containsExactly(3.0d, 6.0d);
-      assertThat(result.get(2).docKey()).containsExactly("b", "x1");
+      assertThat(result.get(2).documentKeys()).containsExactly("b", "x1");
       assertThat(result.get(2).rows())
           .extracting(r -> r.getDouble("dbl_value"))
           .containsExactly(7.0d, 4.0d);
-      assertThat(result.get(3).docKey()).containsExactly("c", "x1");
+      assertThat(result.get(3).documentKeys()).containsExactly("c", "x1");
       assertThat(result.get(3).rows())
           .extracting(r -> r.getDouble("dbl_value"))
           .containsExactly(5.0d);
@@ -792,13 +792,13 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
       // Note: clustering key columns that were not explicitly selected are not used to distinguish
       // document property rows.
-      assertThat(result.get(0).docKey()).containsExactly("a", "x1");
+      assertThat(result.get(0).documentKeys()).containsExactly("a", "x1");
       assertThat(result.get(0).rows()).hasSize(1);
-      assertThat(result.get(1).docKey()).containsExactly("a", "x2");
+      assertThat(result.get(1).documentKeys()).containsExactly("a", "x2");
       assertThat(result.get(1).rows()).hasSize(1);
-      assertThat(result.get(2).docKey()).containsExactly("b", "x1");
+      assertThat(result.get(2).documentKeys()).containsExactly("b", "x1");
       assertThat(result.get(2).rows()).hasSize(1);
-      assertThat(result.get(3).docKey()).containsExactly("c", "x1");
+      assertThat(result.get(3).documentKeys()).containsExactly("c", "x1");
       assertThat(result.get(3).rows()).hasSize(1);
     }
 
