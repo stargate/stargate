@@ -19,4 +19,14 @@ public interface DocumentTableColumns {
 
   /** @return All the JSON path columns based on the max depth as ordered {@link List}. */
   List<String> pathColumnNamesList();
+
+  // TODO document, optimize
+  default List<String> allColumnNamesWithPathDepth(int depth) {
+    List<String> path = pathColumnNamesList().subList(0, depth);
+
+    return allColumns().stream()
+        .map(Column::name)
+        .filter(c -> path.contains(c) || !pathColumnNamesList().contains(c))
+        .toList();
+  }
 }
