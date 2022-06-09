@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
@@ -179,7 +180,7 @@ public class RestApiv2SchemaTest extends BaseRestApiTest {
   }
 
   @Test
-  public void keyspaceCreate() throws IOException {
+  public void keyspaceCreateSimple() throws IOException {
     String keyspaceName = "ks_createkeyspace_" + System.currentTimeMillis();
     createTestKeyspace(keyspaceName);
 
@@ -192,6 +193,45 @@ public class RestApiv2SchemaTest extends BaseRestApiTest {
     Keyspace keyspace = objectMapper.readValue(body, Keyspace.class);
 
     assertThat(keyspace).usingRecursiveComparison().isEqualTo(new Keyspace(keyspaceName, null));
+  }
+
+  // For [stargate#1817]. Unfortunately our current CI set up only has single DC ("dc1")
+  // configured, with a single node. But this is only about constructing keyspace anyway,
+  // including handling of variant request structure; as long as that maps to query builder
+  // we should be good.
+  @Test
+  public void keyspaceCreateWithExplicitDC() throws IOException {
+    String keyspaceName = "ks_createkeyspace_" + System.currentTimeMillis();
+    String createKeyspaceRequest =
+        String.format(
+            "{\"name\": \"%s\", \"datacenters\" : [\n"
+                + "       { \"name\":\"dc1\", \"replicas\":1}\n"
+                + "]}",
+            keyspaceName);
+
+    RestUtils.post(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces", restUrlBase),
+        createKeyspaceRequest,
+        HttpStatus.SC_CREATED);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s/v2/schemas/keyspaces/%s?raw=true", restUrlBase, keyspaceName),
+            HttpStatus.SC_OK);
+
+    Keyspace keyspace = objectMapper.readValue(body, Keyspace.class);
+
+    assertThat(keyspace.getName()).isEqualTo(keyspaceName);
+
+    Map<String, Keyspace.Datacenter> expectedDCs = new HashMap<>();
+    expectedDCs.put("dc1", new Keyspace.Datacenter("dc1", 1));
+    Map<String, Keyspace.Datacenter> actualDCs =
+        keyspace.getDatacenters().stream()
+            .collect(Collectors.toMap(Keyspace.Datacenter::getName, Function.identity()));
+
+    assertThat(actualDCs).usingRecursiveComparison().isEqualTo(expectedDCs);
   }
 
   @Test
