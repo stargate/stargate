@@ -458,9 +458,7 @@ public class QueryExecutor {
   // note that this differs from V1,
   // as we can not know what clustering columns are selected
   private List<String> docPathColumns() {
-    // TODO we push all columns as we can not know what's selected
-    //  make cached or smth
-    return documentProperties.tableColumns().pathColumnNames().stream().sorted().toList();
+    return documentProperties.tableColumns().pathColumnNamesList();
   }
 
   // knows how to accumulate a set of document properties
