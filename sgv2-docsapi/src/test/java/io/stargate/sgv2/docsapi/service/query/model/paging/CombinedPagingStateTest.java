@@ -32,6 +32,10 @@ import java.util.Objects;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
+/**
+ * @author Dmitri Bourlatchkov
+ * @author Ivan Senic
+ */
 class CombinedPagingStateTest {
 
   @Nested

@@ -22,6 +22,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
+/**
+ * @author Dmitri Bourlatchkov
+ * @author Ivan Senic
+ */
 public class ValidatingPaginator {
 
   public static final int MAGIC = 1020304050;

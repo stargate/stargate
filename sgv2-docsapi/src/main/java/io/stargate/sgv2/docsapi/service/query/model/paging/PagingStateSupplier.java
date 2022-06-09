@@ -25,6 +25,8 @@ import java.nio.ByteBuffer;
  * <li>a byte buffer, which in turn is a paging state returned from the previous query execution
  *     that was not utilized during the current processing round and hence can be reused "as is"
  * <li>a row that was received from the current (fresh) result set page.
+ *
+ * @author Dmitri Bourlatchkov
  */
 public interface PagingStateSupplier {
 

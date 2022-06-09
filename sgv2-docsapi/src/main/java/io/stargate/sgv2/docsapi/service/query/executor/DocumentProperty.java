@@ -34,6 +34,9 @@ import org.immutables.value.Value;
  *
  * <p>This class links a {@link RowWrapper} to its source result set and the {@link #queryIndex()
  * query} that produced it.
+ *
+ * @author Dmitri Bourlatchkov
+ * @author Ivan Senic
  */
 @Value.Immutable(lazyhash = true)
 public abstract class DocumentProperty implements PagingStateSupplier {

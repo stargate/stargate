@@ -34,7 +34,13 @@ import java.util.function.Function;
 import java.util.regex.Pattern;
 import org.assertj.core.api.AbstractIntegerAssert;
 
-/** A mock bridge implementation for unit tests. */
+/**
+ * A mock bridge implementation for unit tests.
+ *
+ * @author Olivier Michallat
+ * @author Dmitri Bourlatchkov
+ * @author Ivan Senic
+ */
 public class ValidatingStargateBridge implements StargateBridge {
 
   private final List<QueryExpectation> expectedQueries = new ArrayList<>();

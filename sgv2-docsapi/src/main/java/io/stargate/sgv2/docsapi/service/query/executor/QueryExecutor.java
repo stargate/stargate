@@ -49,7 +49,12 @@ import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-/** Executes pre-built document queries, groups document rows and manages document pagination. */
+/**
+ * Executes pre-built document queries, groups document rows and manages document pagination.
+ *
+ * @author Dmitri Bourlatchkov
+ * @author Ivan Senic
+ */
 @ApplicationScoped
 public class QueryExecutor {
 

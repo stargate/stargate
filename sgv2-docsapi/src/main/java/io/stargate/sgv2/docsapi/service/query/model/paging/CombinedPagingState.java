@@ -29,6 +29,8 @@ import java.util.stream.Collectors;
  *
  * <p>It handles the edge cases of {@code null} and {@link #EXHAUSTED_PAGE_STATE "exhausted"} query
  * states.
+ *
+ * @author Dmitri Bourlatchkov
  */
 public class CombinedPagingState implements PagingStateSupplier {
 
