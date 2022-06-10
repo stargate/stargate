@@ -217,10 +217,16 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
     for (QueryOuterClass.ColumnSpec column : grpcTable.getColumnsList()) {
       columns.add(column2column(column, false));
     }
-    // !!! TODO: figure out where to find TTL?
+    // 09-Jun-2022, tatu: In theory this is where we'd get defaultTTL. Alas,
+    //    it is not yet connected as per [stargate#1881].
+    //    And as a result we can't yet fix [stargate#1836]
+    //
+    //Map<String, String> options = grpcTable.getOptionsMap();
+    Integer defaultTTL = null;
+
     List<Sgv2Table.ClusteringExpression> clustering =
         clustering2clustering(grpcTable.getClusteringOrdersMap());
-    final Sgv2Table.TableOptions tableOptions = new Sgv2Table.TableOptions(null, clustering);
+    final Sgv2Table.TableOptions tableOptions = new Sgv2Table.TableOptions(defaultTTL, clustering);
     return new Sgv2Table(grpcTable.getName(), keyspace, columns, primaryKeys, tableOptions);
   }
 
