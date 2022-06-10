@@ -27,10 +27,10 @@ public interface OpenApiConstants {
   }
 
   interface Tags {
-
     String NAMESPACES = "Namespaces";
     String COLLECTIONS = "Collections";
     String DOCUMENTS = "Documents";
+    String JSON_SCHEMAS = "Json Schemas";
   }
 
   /** Parameters reference names. */
