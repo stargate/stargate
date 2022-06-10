@@ -40,7 +40,9 @@ public interface OpenApiConstants {
     String COLLECTION = "collection";
     String DOCUMENT_ID = "document-id";
     String RAW = "raw";
+    String ID_PATH = "id-path";
     String PROFILE = "profile";
+    String TTL = "ttl";
   }
 
   interface Examples {

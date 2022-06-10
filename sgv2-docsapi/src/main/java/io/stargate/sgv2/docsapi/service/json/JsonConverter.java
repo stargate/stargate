@@ -10,10 +10,13 @@ import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
 import io.opentelemetry.extension.annotations.WithSpan;
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
+import io.stargate.sgv2.docsapi.service.common.model.ImmutableRowWrapper;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -33,6 +36,23 @@ public class JsonConverter {
     Objects.requireNonNull(mapper, "JsonConverter requires a non-null ObjectMapper");
     this.mapper = mapper;
     this.docsProperties = docsProperties;
+  }
+
+  private List<RowWrapper> convertResultSetToRows(QueryOuterClass.ResultSet resultSet) {
+    List<QueryOuterClass.ColumnSpec> columns = resultSet.getColumnsList();
+    List<RowWrapper> rows = new ArrayList<>();
+    for (QueryOuterClass.Row row : resultSet.getRowsList()) {
+      rows.add(ImmutableRowWrapper.builder().columns(columns).row(row).build());
+    }
+    return rows;
+  }
+
+  public JsonNode convertToJsonDoc(
+      QueryOuterClass.ResultSet resultSet,
+      boolean writeAllPathsAsObjects,
+      boolean numericBooleans) {
+    return convertToJsonDoc(
+        convertResultSetToRows(resultSet), writeAllPathsAsObjects, numericBooleans);
   }
 
   /**

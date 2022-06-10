@@ -15,45 +15,35 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documentwrite;
+package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.smallrye.mutiny.Uni;
-import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;
-import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
-import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
+import io.stargate.sgv2.docsapi.api.v2.model.dto.DocumentResponseWrapper;
 import io.stargate.sgv2.docsapi.api.v2.model.dto.SimpleResponseWrapper;
-import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.model.dto.CollectionDto;
-import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.model.dto.CollectionUpgradeType;
-import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.model.dto.CreateCollectionDto;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.JsonDocumentShredder;
 import io.stargate.sgv2.docsapi.service.JsonShreddedRow;
+import io.stargate.sgv2.docsapi.service.json.JsonConverter;
 import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.service.schema.qualifier.Authorized;
 import io.stargate.sgv2.docsapi.service.write.DocumentWriteService;
 import java.net.URI;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 import javax.inject.Inject;
-import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
@@ -66,6 +56,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.jboss.resteasy.reactive.RestResponse;
+import org.jboss.resteasy.reactive.RestResponse.ResponseBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -81,7 +72,6 @@ public class DocumentWriteResource {
 
   public static final String BASE_PATH =
       "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w}";
-  public static final String BASE_PATH_WITH_ID = BASE_PATH + "/{document-id:\\w+}";
 
   @Inject @Authorized TableManager tableManager;
 
@@ -90,6 +80,8 @@ public class DocumentWriteResource {
   @Inject DataStoreProperties dataStoreProperties;
 
   @Inject JsonDocumentShredder documentShredder;
+
+  @Inject JsonConverter jsonConverter;
 
   @Operation(
       description = "Create a new document. If the collection does not exist, it will be created.")
@@ -103,7 +95,14 @@ public class DocumentWriteResource {
             name = "collection",
             ref = OpenApiConstants.Parameters.COLLECTION,
             description = "The collection to write the document to."),
-        @Parameter(name = "profile", ref = OpenApiConstants.Parameters.PROFILE),
+        @Parameter(
+            name = "ttl",
+            ref = OpenApiConstants.Parameters.TTL,
+            description = "The time-to-live (in seconds) of the document."),
+        @Parameter(
+            name = "profile",
+            ref = OpenApiConstants.Parameters.PROFILE,
+            description = "Include profiling information from execution."),
       })
   @APIResponses(
       value = {
@@ -138,19 +137,99 @@ public class DocumentWriteResource {
   public Uni<RestResponse<Object>> createDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
+      @QueryParam("ttl") Integer ttl,
       @QueryParam("profile") boolean profile,
       @NotNull JsonNode body) {
-
-    // get all valid collection tables
+    String documentId = UUID.randomUUID().toString();
+    ExecutionContext context = ExecutionContext.create(profile);
     return tableManager
         .ensureValidDocumentTable(namespace, collection)
-        .onItem()
-        .transform(
+        .flatMap(
             __ -> {
-              ExecutionContext context = ExecutionContext.create(profile);
               List<JsonShreddedRow> rows = documentShredder.shred(body, Collections.emptyList());
-              documentWriteService.writeDocument(
-                  namespace, collection, UUID.randomUUID().toString(), rows, null, profile);
+              return documentWriteService.writeDocument(
+                  namespace, collection, documentId, rows, ttl, context);
+            })
+        .map(
+            resultSet -> {
+              JsonNode node =
+                  jsonConverter.convertToJsonDoc(
+                      resultSet, false, dataStoreProperties.treatBooleansAsNumeric());
+              String url =
+                  String.format(
+                      "/v2/namespaces/%s/collections/%s/%s", namespace, collection, documentId);
+              return ResponseBuilder.created(URI.create(url))
+                  .entity(
+                      new DocumentResponseWrapper<>(documentId, null, node, context.toProfile()))
+                  .build();
             });
+  }
+
+  @Path("/batch")
+  @Operation(
+      description =
+          "Create multiple new documents. If the collection does not exist, it will be created.")
+  @Parameters(
+      value = {
+        @Parameter(
+            name = "namespace",
+            ref = OpenApiConstants.Parameters.NAMESPACE,
+            description = "The namespace to write the document to."),
+        @Parameter(
+            name = "collection",
+            ref = OpenApiConstants.Parameters.COLLECTION,
+            description = "The collection to write the document to."),
+        @Parameter(
+            name = "id-path",
+            ref = OpenApiConstants.Parameters.ID_PATH,
+            description =
+                "The optional path of the ID in each document whose value will be used as the ID of the created document, if present"),
+        @Parameter(
+            name = "ttl",
+            ref = OpenApiConstants.Parameters.TTL,
+            description = "The time-to-live (in seconds) of the document."),
+        @Parameter(
+            name = "profile",
+            ref = OpenApiConstants.Parameters.PROFILE,
+            description = "Include profiling information from execution."),
+      })
+  @APIResponses(
+      value = {
+        @APIResponse(
+            responseCode = "202",
+            description = "Accepted. Writes will be processed, and ID's will be returned.",
+            content = {
+              @Content(
+                  schema =
+                      @org.eclipse.microprofile.openapi.annotations.media.Schema(
+                          implementation = SimpleResponseWrapper.class,
+                          properties =
+                              @SchemaProperty(name = "documentId", type = SchemaType.STRING)))
+            }),
+        @APIResponse(
+            responseCode = "404",
+            description = "Not found.",
+            content =
+                @Content(
+                    examples = {
+                      @ExampleObject(ref = OpenApiConstants.Examples.NAMESPACE_DOES_NOT_EXIST)
+                    },
+                    schema =
+                        @org.eclipse.microprofile.openapi.annotations.media.Schema(
+                            implementation = ApiError.class))),
+        @APIResponse(ref = OpenApiConstants.Responses.GENERAL_400),
+        @APIResponse(ref = OpenApiConstants.Responses.GENERAL_401),
+        @APIResponse(ref = OpenApiConstants.Responses.GENERAL_500),
+        @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
+      })
+  @POST
+  public Uni<RestResponse<Object>> createDocuments(
+      @PathParam("namespace") String namespace,
+      @PathParam("collection") String collection,
+      @QueryParam("id-path") String idPath,
+      @QueryParam("ttl") String ttl,
+      @QueryParam("profile") boolean profile,
+      @NotNull JsonNode body) {
+    return null;
   }
 }
