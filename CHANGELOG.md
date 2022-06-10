@@ -1,6 +1,27 @@
 # Changelog
 
-## [v2.0.0-ALPHA-11](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-11) (2022-05-31)
+## [v2.0.0-ALPHA-12](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-12) (2022-06-10)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-11...v2.0.0-ALPHA-12)
+
+**Fixed bugs:**
+
+**Closed issues:**
+
+- Support different resume modes for the paging state for enriched queries [\#1862](https://github.com/stargate/stargate/issues/1862)
+- Stargate V2 keyspace creation via REST API does not work with `datacenters` argument [\#1817](https://github.com/stargate/stargate/issues/1817)
+- Decouple Bridge from gRPC service [\#1770](https://github.com/stargate/stargate/issues/1770)
+- Namespace REST Controller for Document API V2 [\#1724](https://github.com/stargate/stargate/issues/1724)
+
+**Merged pull requests:**
+
+- Fix \#1817 for SGv2/REST by supporting multi-dc setting for createKeyspace [\#1880](https://github.com/stargate/stargate/pull/1880) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- relates to \#1738: ported search weight and expression rules [\#1875](https://github.com/stargate/stargate/pull/1875) ([ivansenic](https://github.com/ivansenic))
+- Initial implementation of Host-to-tenant metrics tagger [\#1872](https://github.com/stargate/stargate/pull/1872) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- closes \#1862: making resume mode on the bridge optional [\#1870](https://github.com/stargate/stargate/pull/1870) ([ivansenic](https://github.com/ivansenic))
+- relates to \#1737: final maven setup for the int test in Docs API v2 [\#1869](https://github.com/stargate/stargate/pull/1869) ([ivansenic](https://github.com/ivansenic))
+- Allow resume mode to be settable on QueryParameters [\#1863](https://github.com/stargate/stargate/pull/1863) ([EricBorczuk](https://github.com/EricBorczuk))
+- closes \#1724: namespace resource [\#1859](https://github.com/stargate/stargate/pull/1859) ([ivansenic](https://github.com/ivansenic))
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-10...v2.0.0-ALPHA-11)
 
