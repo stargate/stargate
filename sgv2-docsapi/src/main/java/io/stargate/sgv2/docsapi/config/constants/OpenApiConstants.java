@@ -38,7 +38,9 @@ public interface OpenApiConstants {
 
     String NAMESPACE = "namespace";
     String COLLECTION = "collection";
+    String DOCUMENT_ID = "document-id";
     String RAW = "raw";
+    String PROFILE = "profile";
   }
 
   interface Examples {
