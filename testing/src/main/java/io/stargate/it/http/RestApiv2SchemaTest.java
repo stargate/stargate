@@ -227,8 +227,9 @@ public class RestApiv2SchemaTest extends BaseRestApiTest {
 
     Map<String, Keyspace.Datacenter> expectedDCs = new HashMap<>();
     expectedDCs.put("dc1", new Keyspace.Datacenter("dc1", 1));
+    Optional<List<Keyspace.Datacenter>> dcs = Optional.ofNullable(keyspace.getDatacenters());
     Map<String, Keyspace.Datacenter> actualDCs =
-        keyspace.getDatacenters().stream()
+        dcs.orElse(Collections.emptyList()).stream()
             .collect(Collectors.toMap(Keyspace.Datacenter::getName, Function.identity()));
 
     assertThat(actualDCs).usingRecursiveComparison().isEqualTo(expectedDCs);
