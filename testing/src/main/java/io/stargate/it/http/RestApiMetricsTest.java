@@ -20,7 +20,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import io.stargate.it.storage.StargateSpec;
-import io.stargate.testing.metrics.TagMeHttpMetricsTagProvider;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Arrays;
@@ -36,8 +35,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 /**
- * Leftover test class from Stargate V1 which contains tests against modules that have not yet been
- * extracted out of the Coordinator monolith.
+ * Tests from Stargate V1 that exercise refactored REST API metrics; refactored from earlier
+ * monolithic {@code MetricsTest}.
  */
 @NotThreadSafe
 @StargateSpec()
@@ -51,13 +50,7 @@ public class RestApiMetricsTest extends BaseRestApiTest {
   @SuppressWarnings("unused") // referenced in @StargateSpec
   public static void buildApiServiceParameters(ApiServiceParameters.Builder builder) {
     BaseRestApiTest.buildApiServiceParameters(builder);
-    // 13-Jan-2022, tatu: In StargateV1 HTTP Tag Provider is registered using OSGi.
-    //    SGv2 does not have equivalent mechanism implemented yet, so tag functionality
-    //    NOT verified currently.
-    /*builder.putSystemProperties(
-    TestingServicesActivator.HTTP_TAG_PROVIDER_PROPERTY,
-    TestingServicesActivator.TAG_ME_HTTP_TAG_PROVIDER); */
-    // This does not seem to do anything (triggered at wrong point)?
+    // These are still needed:
     builder.putSystemProperties("stargate.metrics.http_server_requests_percentiles", "0.95,0.99");
     builder.putSystemProperties(
         "stargate.metrics.http_server_requests_path_param_tags", "keyspaceName");
@@ -74,6 +67,8 @@ public class RestApiMetricsTest extends BaseRestApiTest {
   //    NOT verified currently.
   @Test
   public void restApiHttpRequestMetrics() throws IOException {
+    final String TEST_UUID = "2f689a6f-82d7-4728-b956-b0dff00eda23";
+
     // call the rest api path with target header
     String path = String.format("%s/v2/schemas/keyspaces", restUrlBase);
     OkHttpClient client = new OkHttpClient().newBuilder().build();
@@ -81,7 +76,8 @@ public class RestApiMetricsTest extends BaseRestApiTest {
         new Request.Builder()
             .url(path)
             .get()
-            .addHeader(TagMeHttpMetricsTagProvider.TAG_ME_HEADER, "test-value")
+            // This should become "tenant" tag
+            .addHeader("Host", TEST_UUID)
             .build();
 
     int status = execute(client, request);
@@ -110,9 +106,7 @@ public class RestApiMetricsTest extends BaseRestApiTest {
                               .contains("module=\"sgv2-restapi\"")
                               .contains("uri=\"/v2/schemas/keyspaces\"")
                               .contains(String.format("status=\"%d\"", status))
-                              // 13-Jan-2022, tatu: As mentioned above, no tags yet
-                              // .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY +
-                              // "=\"test-value\"")
+                              .contains("tenant=\"" + TEST_UUID + "\"")
                               .contains("quantile=\"0.95\"")
                               .doesNotContain("error"))
                   .anySatisfy(
@@ -122,9 +116,7 @@ public class RestApiMetricsTest extends BaseRestApiTest {
                               .contains("module=\"sgv2-restapi\"")
                               .contains("uri=\"/v2/schemas/keyspaces\"")
                               .contains(String.format("status=\"%d\"", status))
-                              // 13-Jan-2022, tatu: As mentioned above, no tags yet
-                              // .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY +
-                              // "=\"test-value\"")
+                              .contains("tenant=\"" + TEST_UUID + "\"")
                               .contains("quantile=\"0.99\"")
                               .doesNotContain("error"));
 
@@ -143,20 +135,25 @@ public class RestApiMetricsTest extends BaseRestApiTest {
                               .doesNotContain("method=\"GET\"")
                               .doesNotContain("uri=\"/v2/schemas/keyspaces\"")
                               .doesNotContain(String.format("status=\"%d\"", status))
-                      // 13-Jan-2022, tatu: As mentioned above, no tags yet
-                      // .doesNotContain(
-                      //    TagMeHttpMetricsTagProvider.TAG_ME_KEY + "=\"test-value\"")
-                      );
+                              .contains("tenant=\"" + TEST_UUID + "\""));
             });
   }
 
   // from [#1660] (PR [#1662]) ("non-api endpoint metrics to be reported with different")
   @Test
   public void restNonApiHttpRequestMetrics() throws IOException {
+    final String TEST_UUID = "4ded57a2-5324-4e82-a881-d9d777672a91";
+
     // call the rest api path with target header
     String path = String.format("%s", metricsUrlBase);
     OkHttpClient client = new OkHttpClient().newBuilder().build();
-    Request request = new Request.Builder().url(path).get().build();
+    Request request =
+        new Request.Builder()
+            .url(path)
+            .get()
+            // This should become "tenant" tag (note: here we pass lower-case)
+            .addHeader("host", TEST_UUID)
+            .build();
 
     int status = execute(client, request);
 
@@ -182,8 +179,7 @@ public class RestApiMetricsTest extends BaseRestApiTest {
                               .contains("module=\"sgv2-restapi-other\"")
                               .contains("uri=\"root\"")
                               .contains(String.format("status=\"%d\"", status))
-                              // 13-Jan-2022, tatu: As mentioned above, no tags yet
-                              // .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY)
+                              .contains("tenant=\"" + TEST_UUID + "\"")
                               .contains("quantile=\"0.95\"")
                               .doesNotContain("error"))
                   .anySatisfy(
@@ -193,8 +189,7 @@ public class RestApiMetricsTest extends BaseRestApiTest {
                               .contains("module=\"sgv2-restapi-other\"")
                               .contains("uri=\"root\"")
                               .contains(String.format("status=\"%d\"", status))
-                              // 13-Jan-2022, tatu: As mentioned above, no tags yet
-                              // .contains(TagMeHttpMetricsTagProvider.TAG_ME_KEY)
+                              .contains("tenant=\"" + TEST_UUID + "\"")
                               .contains("quantile=\"0.99\""))
                   .doesNotContain("error");
 
@@ -212,7 +207,8 @@ public class RestApiMetricsTest extends BaseRestApiTest {
                               .contains("module=\"sgv2-restapi-other\"")
                               .doesNotContain("method=\"GET\"")
                               .doesNotContain("uri=\"root\"")
-                              .doesNotContain(String.format("status=\"%d\"", status)));
+                              .doesNotContain(String.format("status=\"%d\"", status))
+                              .contains("tenant=\"" + TEST_UUID + "\""));
             });
   }
 
