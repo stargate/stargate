@@ -21,7 +21,6 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
@@ -66,7 +65,6 @@ public class JsonSchemaResourceIntegrationTest {
 
   @Inject NamespaceManager namespaceManager;
   @Inject TableManager tableManager;
-  @Inject ObjectMapper objectMapper;
 
   @BeforeAll
   public void init() {
@@ -240,6 +238,24 @@ public class JsonSchemaResourceIntegrationTest {
 
     @Test
     @Order(2)
+    public void noSchemaAvailable() {
+      // Create a fresh table for this test, to have no schema
+      tableManager
+          .createCollectionTable(DEFAULT_NAMESPACE, "freshtable")
+          .await()
+          .atMost(Duration.ofSeconds(10));
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, "freshtable")
+          .then()
+          .statusCode(404)
+          .body("code", is(404))
+          .body("description", is("The JSON schema is not set for the collection."));
+    }
+
+    @Test
+    @Order(3)
     public void tableNotExisting() {
 
       given()
@@ -253,7 +269,7 @@ public class JsonSchemaResourceIntegrationTest {
     }
 
     @Test
-    @Order(3)
+    @Order(4)
     public void keyspaceNotExisting() {
 
       given()
@@ -267,7 +283,7 @@ public class JsonSchemaResourceIntegrationTest {
     }
 
     @Test
-    @Order(4)
+    @Order(5)
     public void notDocumentTable() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")

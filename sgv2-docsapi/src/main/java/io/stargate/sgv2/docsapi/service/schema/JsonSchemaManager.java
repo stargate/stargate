@@ -3,7 +3,6 @@ package io.stargate.sgv2.docsapi.service.schema;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import com.github.fge.jsonschema.core.report.ProcessingReport;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
@@ -53,7 +52,7 @@ public class JsonSchemaManager {
         .transform(
             t -> {
               String comment = t.getOptionsMap().getOrDefault("comment", null);
-              if (comment == null) {
+              if (comment == null || comment.isEmpty()) {
                 return null;
               }
 
@@ -80,13 +79,11 @@ public class JsonSchemaManager {
         c -> {
           ProcessingReport report = jsonSchemaFactory.getSyntaxValidator().validateSchema(schema);
           if (report.isSuccess()) {
-            ObjectNode wrappedSchema = objectMapper.createObjectNode();
-            wrappedSchema.set("schema", schema);
             StargateBridge bridge = requestInfo.getStargateBridge();
             return bridge
                 .executeQuery(
                     jsonSchemaQueryProvider.attachSchemaQuery(
-                        namespace, c.getName(), wrappedSchema.toString()))
+                        namespace, c.getName(), schema.toString()))
                 .map(r -> schema);
           } else {
             String msgs =
@@ -118,7 +115,7 @@ public class JsonSchemaManager {
               }
 
               try {
-                validate(jsonSchema.get("schema"), document);
+                validate(jsonSchema, document);
               } catch (ProcessingException e) {
                 throw new ErrorCodeRuntimeException(
                     ErrorCode.DOCS_API_JSON_SCHEMA_PROCESSING_FAILED);

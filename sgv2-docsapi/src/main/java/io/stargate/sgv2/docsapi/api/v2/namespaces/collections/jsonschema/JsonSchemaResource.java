@@ -187,17 +187,19 @@ public class JsonSchemaResource {
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection) {
 
-    // go get the existing table
+    // get schema from the existing table
     return jsonSchemaManager
         .getJsonSchema(tableManager.getValidCollectionTable(namespace, collection))
-        .map(schema -> RestResponse.ok(new JsonSchemaDto(schema.requiredAt("/schema"))))
-        .onItem()
-        .ifNull()
-        .switchTo(
-            () ->
-                Uni.createFrom()
+        .flatMap(
+            schema -> {
+              if (schema == null) {
+                return Uni.createFrom()
                     .failure(
                         new ErrorCodeRuntimeException(
-                            ErrorCode.DOCS_API_JSON_SCHEMA_DOES_NOT_EXIST)));
+                            ErrorCode.DOCS_API_JSON_SCHEMA_DOES_NOT_EXIST));
+              } else {
+                return Uni.createFrom().item(RestResponse.ok(new JsonSchemaDto(schema)));
+              }
+            });
   }
 }
