@@ -29,6 +29,7 @@ import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
 import io.stargate.metrics.jersey.MetricsBinder;
+import io.stargate.metrics.jersey.sgv2.MetricsBinderWithTenantId;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.common.grpc.StargateBridgeClientFactory;
 import io.stargate.sgv2.common.http.CreateStargateBridgeClientFilter;
@@ -162,7 +163,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     enableCors(environment);
 
     final MetricsBinder metricsBinder =
-        new MetricsBinder(
+        new MetricsBinderWithTenantId(
             metrics,
             httpMetricsTagProvider,
             REST_SVC_MODULE_NAME,
