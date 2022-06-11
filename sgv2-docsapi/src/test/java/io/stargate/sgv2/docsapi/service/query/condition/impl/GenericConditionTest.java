@@ -22,6 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
@@ -31,6 +32,7 @@ import io.stargate.sgv2.docsapi.service.query.filter.operation.impl.NotInFilterO
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -86,7 +88,7 @@ class GenericConditionTest {
 
       GenericCondition<Object> condition =
           ImmutableGenericCondition.of(filterOperation, new Object(), documentProperties, true);
-      Optional<BuiltCondition> result = condition.getBuiltCondition();
+      Optional<Pair<BuiltCondition, QueryOuterClass.Value>> result = condition.getBuiltCondition();
 
       assertThat(result).isEmpty();
     }

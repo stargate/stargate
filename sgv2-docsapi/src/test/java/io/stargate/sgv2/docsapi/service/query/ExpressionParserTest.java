@@ -29,7 +29,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.stargate.bridge.grpc.Values;
-import io.stargate.sgv2.common.cql.builder.Literal;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
@@ -92,8 +91,9 @@ class ExpressionParserTest {
                           assertThat(sc.getBuiltCondition())
                               .hasValueSatisfying(
                                   builtCondition -> {
-                                    assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
-                                    assertThat(((Literal) builtCondition.value()).get())
+                                    assertThat(builtCondition.getLeft().predicate())
+                                        .isEqualTo(Predicate.EQ);
+                                    assertThat(builtCondition.getRight())
                                         .isEqualTo(Values.of("some-value"));
                                   });
                           assertThat(sc.getFilterOperation()).isEqualTo(EqFilterOperation.of());
@@ -360,8 +360,9 @@ class ExpressionParserTest {
                           assertThat(sc.getBuiltCondition())
                               .hasValueSatisfying(
                                   builtCondition -> {
-                                    assertThat(builtCondition.predicate()).isEqualTo(Predicate.LT);
-                                    assertThat(((Literal) builtCondition.value()).get())
+                                    assertThat(builtCondition.getLeft().predicate())
+                                        .isEqualTo(Predicate.LT);
+                                    assertThat(builtCondition.getRight())
                                         .isEqualTo(Values.of("some-value"));
                                   });
                           assertThat(sc.getFilterOperation()).isEqualTo(LtFilterOperation.of());
@@ -392,8 +393,9 @@ class ExpressionParserTest {
                           assertThat(sc.getBuiltCondition())
                               .hasValueSatisfying(
                                   builtCondition -> {
-                                    assertThat(builtCondition.predicate()).isEqualTo(Predicate.GTE);
-                                    assertThat(((Literal) builtCondition.value()).get())
+                                    assertThat(builtCondition.getLeft().predicate())
+                                        .isEqualTo(Predicate.GTE);
+                                    assertThat(builtCondition.getRight())
                                         .isEqualTo(Values.of(Boolean.TRUE));
                                   });
                           assertThat(sc.getFilterOperation()).isEqualTo(GteFilterOperation.of());
@@ -424,9 +426,9 @@ class ExpressionParserTest {
                           assertThat(sc.getBuiltCondition())
                               .hasValueSatisfying(
                                   builtCondition -> {
-                                    assertThat(builtCondition.predicate()).isEqualTo(Predicate.LTE);
-                                    assertThat(((Literal) builtCondition.value()).get())
-                                        .isEqualTo(Values.of(22d));
+                                    assertThat(builtCondition.getLeft().predicate())
+                                        .isEqualTo(Predicate.LTE);
+                                    assertThat(builtCondition.getRight()).isEqualTo(Values.of(22d));
                                   });
                           assertThat(sc.getFilterOperation()).isEqualTo(LteFilterOperation.of());
                           assertThat(sc.getQueryValue()).isEqualTo(22);
@@ -456,8 +458,9 @@ class ExpressionParserTest {
                           assertThat(sc.getBuiltCondition())
                               .hasValueSatisfying(
                                   builtCondition -> {
-                                    assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
-                                    assertThat(((Literal) builtCondition.value()).get())
+                                    assertThat(builtCondition.getLeft().predicate())
+                                        .isEqualTo(Predicate.EQ);
+                                    assertThat(builtCondition.getRight())
                                         .isEqualTo(Values.of("some-value"));
                                   });
                           assertThat(sc.getFilterOperation()).isEqualTo(EqFilterOperation.of());
@@ -490,8 +493,9 @@ class ExpressionParserTest {
                           assertThat(sc.getBuiltCondition())
                               .hasValueSatisfying(
                                   builtCondition -> {
-                                    assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
-                                    assertThat(((Literal) builtCondition.value()).get())
+                                    assertThat(builtCondition.getLeft().predicate())
+                                        .isEqualTo(Predicate.EQ);
+                                    assertThat(builtCondition.getRight())
                                         .isEqualTo(Values.of("some-value"));
                                   });
                           assertThat(sc.getFilterOperation()).isEqualTo(EqFilterOperation.of());
@@ -524,8 +528,9 @@ class ExpressionParserTest {
                           assertThat(sc.getBuiltCondition())
                               .hasValueSatisfying(
                                   builtCondition -> {
-                                    assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
-                                    assertThat(((Literal) builtCondition.value()).get())
+                                    assertThat(builtCondition.getLeft().predicate())
+                                        .isEqualTo(Predicate.EQ);
+                                    assertThat(builtCondition.getRight())
                                         .isEqualTo(Values.of("some-value"));
                                   });
                           assertThat(sc.getFilterOperation()).isEqualTo(EqFilterOperation.of());
@@ -557,8 +562,9 @@ class ExpressionParserTest {
                           assertThat(sc.getBuiltCondition())
                               .hasValueSatisfying(
                                   builtCondition -> {
-                                    assertThat(builtCondition.predicate()).isEqualTo(Predicate.EQ);
-                                    assertThat(((Literal) builtCondition.value()).get())
+                                    assertThat(builtCondition.getLeft().predicate())
+                                        .isEqualTo(Predicate.EQ);
+                                    assertThat(builtCondition.getRight())
                                         .isEqualTo(Values.of("some-value"));
                                   });
                           assertThat(sc.getFilterOperation()).isEqualTo(EqFilterOperation.of());
@@ -596,9 +602,9 @@ class ExpressionParserTest {
                                       assertThat(sc.getBuiltCondition())
                                           .hasValueSatisfying(
                                               builtCondition -> {
-                                                assertThat(builtCondition.predicate())
+                                                assertThat(builtCondition.getLeft().predicate())
                                                     .isEqualTo(Predicate.EQ);
-                                                assertThat(((Literal) builtCondition.value()).get())
+                                                assertThat(builtCondition.getRight())
                                                     .isEqualTo(Values.of("some-value"));
                                               });
                                       assertThat(sc.getFilterOperation())
@@ -664,9 +670,9 @@ class ExpressionParserTest {
                                       assertThat(sc.getBuiltCondition())
                                           .hasValueSatisfying(
                                               builtCondition -> {
-                                                assertThat(builtCondition.predicate())
+                                                assertThat(builtCondition.getLeft().predicate())
                                                     .isEqualTo(Predicate.EQ);
-                                                assertThat(((Literal) builtCondition.value()).get())
+                                                assertThat(builtCondition.getRight())
                                                     .isEqualTo(Values.of("some-value"));
                                               });
                                       assertThat(sc.getFilterOperation())
@@ -734,13 +740,12 @@ class ExpressionParserTest {
                                                                     builtCondition -> {
                                                                       assertThat(
                                                                               builtCondition
+                                                                                  .getLeft()
                                                                                   .predicate())
                                                                           .isEqualTo(Predicate.EQ);
                                                                       assertThat(
-                                                                              ((Literal)
-                                                                                      builtCondition
-                                                                                          .value())
-                                                                                  .get())
+                                                                              builtCondition
+                                                                                  .getRight())
                                                                           .isEqualTo(
                                                                               Values.of(
                                                                                   "some-value"));
@@ -829,13 +834,12 @@ class ExpressionParserTest {
                                                                     builtCondition -> {
                                                                       assertThat(
                                                                               builtCondition
+                                                                                  .getLeft()
                                                                                   .predicate())
                                                                           .isEqualTo(Predicate.EQ);
                                                                       assertThat(
-                                                                              ((Literal)
-                                                                                      builtCondition
-                                                                                          .value())
-                                                                                  .get())
+                                                                              builtCondition
+                                                                                  .getRight())
                                                                           .isEqualTo(
                                                                               Values.of(
                                                                                   "some-value"));
