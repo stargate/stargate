@@ -58,7 +58,7 @@ public class JsonSchemaManager {
               }
 
               try {
-                return objectMapper.readTree(comment).requiredAt("/schema");
+                return objectMapper.readTree(comment).get("schema");
               } catch (JsonProcessingException e) {
                 logger.warn("Document table has comment, but it's not a valid JSON.");
                 return null;
