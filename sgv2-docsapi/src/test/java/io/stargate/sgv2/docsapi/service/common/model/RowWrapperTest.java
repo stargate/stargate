@@ -42,7 +42,7 @@ class RowWrapperTest {
           QueryOuterClass.ColumnSpec.newBuilder().setName(name).build();
       QueryOuterClass.Row row = QueryOuterClass.Row.newBuilder().build();
 
-      RowWrapper wrapper = ImmutableRowWrapper.of(Collections.singletonList(columnSpec), row);
+      RowWrapper wrapper = RowWrapper.forColumns(Collections.singletonList(columnSpec)).apply(row);
       boolean result = wrapper.columnExists(name);
 
       assertThat(result).isTrue();
@@ -55,7 +55,7 @@ class RowWrapperTest {
           QueryOuterClass.ColumnSpec.newBuilder().setName(name).build();
       QueryOuterClass.Row row = QueryOuterClass.Row.newBuilder().build();
 
-      RowWrapper wrapper = ImmutableRowWrapper.of(Collections.singletonList(columnSpec), row);
+      RowWrapper wrapper = RowWrapper.forColumns(Collections.singletonList(columnSpec)).apply(row);
       boolean result = wrapper.columnExists("some");
 
       assertThat(result).isFalse();
@@ -75,7 +75,7 @@ class RowWrapperTest {
           QueryOuterClass.ColumnSpec.newBuilder().setName(name2).build();
       QueryOuterClass.Row row = QueryOuterClass.Row.newBuilder().build();
 
-      RowWrapper wrapper = ImmutableRowWrapper.of(Arrays.asList(columnSpec, columnSpec2), row);
+      RowWrapper wrapper = RowWrapper.forColumns(Arrays.asList(columnSpec, columnSpec2)).apply(row);
       Map<String, Integer> result = wrapper.columnIndexMap();
 
       assertThat(result).hasSize(2).containsEntry(name, 0).containsEntry(name2, 1);
@@ -92,7 +92,7 @@ class RowWrapperTest {
           QueryOuterClass.ColumnSpec.newBuilder().setName(column).build();
       QueryOuterClass.Row row = QueryOuterClass.Row.newBuilder().addValues(Values.NULL).build();
 
-      RowWrapper wrapper = ImmutableRowWrapper.of(Collections.singletonList(columnSpec), row);
+      RowWrapper wrapper = RowWrapper.forColumns(Collections.singletonList(columnSpec)).apply(row);
       boolean result = wrapper.isNull(column);
 
       assertThat(result).isTrue();
@@ -107,7 +107,7 @@ class RowWrapperTest {
       QueryOuterClass.Row row =
           QueryOuterClass.Row.newBuilder().addValues(Values.of(value)).build();
 
-      RowWrapper wrapper = ImmutableRowWrapper.of(Collections.singletonList(columnSpec), row);
+      RowWrapper wrapper = RowWrapper.forColumns(Collections.singletonList(columnSpec)).apply(row);
       boolean result = wrapper.isNull(column);
 
       assertThat(result).isFalse();
@@ -126,7 +126,7 @@ class RowWrapperTest {
       QueryOuterClass.Row row =
           QueryOuterClass.Row.newBuilder().addValues(Values.of(value)).build();
 
-      RowWrapper wrapper = ImmutableRowWrapper.of(Collections.singletonList(columnSpec), row);
+      RowWrapper wrapper = RowWrapper.forColumns(Collections.singletonList(columnSpec)).apply(row);
       String result = wrapper.getString(column);
 
       assertThat(result).isEqualTo(value);
@@ -139,7 +139,7 @@ class RowWrapperTest {
           QueryOuterClass.ColumnSpec.newBuilder().setName(column).build();
       QueryOuterClass.Row row = QueryOuterClass.Row.newBuilder().build();
 
-      RowWrapper wrapper = ImmutableRowWrapper.of(Collections.singletonList(columnSpec), row);
+      RowWrapper wrapper = RowWrapper.forColumns(Collections.singletonList(columnSpec)).apply(row);
       Throwable throwable = catchThrowable(() -> wrapper.getString("some"));
 
       assertThat(throwable)
@@ -154,7 +154,7 @@ class RowWrapperTest {
           QueryOuterClass.ColumnSpec.newBuilder().setName(column).build();
       QueryOuterClass.Row row = QueryOuterClass.Row.newBuilder().addValues(Values.of(0)).build();
 
-      RowWrapper wrapper = ImmutableRowWrapper.of(Collections.singletonList(columnSpec), row);
+      RowWrapper wrapper = RowWrapper.forColumns(Collections.singletonList(columnSpec)).apply(row);
       Throwable throwable = catchThrowable(() -> wrapper.getString(column));
 
       assertThat(throwable)
@@ -175,7 +175,7 @@ class RowWrapperTest {
       QueryOuterClass.Row row =
           QueryOuterClass.Row.newBuilder().addValues(Values.of(value)).build();
 
-      RowWrapper wrapper = ImmutableRowWrapper.of(Collections.singletonList(columnSpec), row);
+      RowWrapper wrapper = RowWrapper.forColumns(Collections.singletonList(columnSpec)).apply(row);
       double result = wrapper.getDouble(column);
 
       assertThat(result).isEqualTo(value);
@@ -194,7 +194,7 @@ class RowWrapperTest {
       QueryOuterClass.Row row =
           QueryOuterClass.Row.newBuilder().addValues(Values.of(value)).build();
 
-      RowWrapper wrapper = ImmutableRowWrapper.of(Collections.singletonList(columnSpec), row);
+      RowWrapper wrapper = RowWrapper.forColumns(Collections.singletonList(columnSpec)).apply(row);
       long result = wrapper.getLong(column);
 
       assertThat(result).isEqualTo(value);
@@ -213,7 +213,7 @@ class RowWrapperTest {
       QueryOuterClass.Row row =
           QueryOuterClass.Row.newBuilder().addValues(Values.of(value)).build();
 
-      RowWrapper wrapper = ImmutableRowWrapper.of(Collections.singletonList(columnSpec), row);
+      RowWrapper wrapper = RowWrapper.forColumns(Collections.singletonList(columnSpec)).apply(row);
       byte result = wrapper.getByte(column);
 
       assertThat(result).isEqualTo(value);
@@ -232,7 +232,7 @@ class RowWrapperTest {
       QueryOuterClass.Row row =
           QueryOuterClass.Row.newBuilder().addValues(Values.of(value)).build();
 
-      RowWrapper wrapper = ImmutableRowWrapper.of(Collections.singletonList(columnSpec), row);
+      RowWrapper wrapper = RowWrapper.forColumns(Collections.singletonList(columnSpec)).apply(row);
       boolean result = wrapper.getBoolean(column);
 
       assertThat(result).isEqualTo(value);

@@ -14,7 +14,7 @@ public record DocumentPropertiesImpl(
     int maxDepth,
     int maxArrayLength,
     int maxPageSize,
-    int searchPageSize,
+    int maxSearchPageSize,
     DocumentTableProperties tableProperties,
     DocumentTableColumns tableColumns)
     implements DocumentProperties {
@@ -24,7 +24,7 @@ public record DocumentPropertiesImpl(
         documentConfig.maxDepth(),
         documentConfig.maxArrayLength(),
         documentConfig.maxPageSize(),
-        documentConfig.searchPageSize(),
+        documentConfig.maxSearchPageSize(),
         new DocumentTablePropertiesImpl(documentConfig),
         new DocumentTableColumnsImpl(documentConfig, numericBooleans));
   }

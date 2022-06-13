@@ -50,4 +50,8 @@ public abstract class AbstractValidatingStargateBridgeTest {
       String cql, QueryOuterClass.Value... values) {
     return bridge.withQuery(cql, values);
   }
+
+  protected void resetExpectations() {
+    bridge.reset();
+  }
 }

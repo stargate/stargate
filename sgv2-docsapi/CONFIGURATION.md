@@ -31,7 +31,7 @@
 | `stargate.document.max-dept`                        | `int`    | `64`         | Max supported depth of a JSON document.                       |
 | `stargate.document.max-array-length`                | `int`    | `1_000_000`  | Max supported single array length in a JSON document.         |
 | `stargate.document.max-page-size`                   | `int`    | `20`         | The maximum page size when reading documents.                 |
-| `stargate.document.search-page-size`                | `int`    | `1_000`      | Defines the Cassandra page size when searching for documents. |
+| `stargate.document.max-search-page-size`            | `int`    | `1_000`      | Defines the Cassandra page size when searching for documents. |
 | `stargate.document.table.key-column-name`           | `String` | `key`        | The name of the column where a document key is stored.        |
 | `stargate.document.table.leaf-column-name`          | `String` | `leaf`       | The name of the column where a JSON leaf name is stored.      |
 | `stargate.document.table.string-value-column-name`  | `String` | `text_value` | The name of the column where a string value is stored.        |
