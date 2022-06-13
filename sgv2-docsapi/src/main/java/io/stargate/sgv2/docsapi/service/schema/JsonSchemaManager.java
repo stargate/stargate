@@ -3,6 +3,7 @@ package io.stargate.sgv2.docsapi.service.schema;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
 import com.github.fge.jsonschema.core.report.ProcessingReport;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
@@ -57,7 +58,7 @@ public class JsonSchemaManager {
               }
 
               try {
-                return objectMapper.readTree(comment);
+                return objectMapper.readTree(comment).get("schema");
               } catch (JsonProcessingException e) {
                 logger.warn("Document table has comment, but it's not a valid JSON.");
                 return null;
@@ -80,10 +81,12 @@ public class JsonSchemaManager {
           ProcessingReport report = jsonSchemaFactory.getSyntaxValidator().validateSchema(schema);
           if (report.isSuccess()) {
             StargateBridge bridge = requestInfo.getStargateBridge();
+            ObjectNode wrappedSchema = objectMapper.createObjectNode();
+            wrappedSchema.set("schema", schema);
             return bridge
                 .executeQuery(
                     jsonSchemaQueryProvider.attachSchemaQuery(
-                        namespace, c.getName(), schema.toString()))
+                        namespace, c.getName(), wrappedSchema.toString()))
                 .map(r -> schema);
           } else {
             String msgs =
