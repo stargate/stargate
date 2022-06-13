@@ -52,7 +52,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 @ApplicationScoped
-public class DocumentWriteService {
+public class BridgeWriteService {
 
   // path splitter on dot
   private static final Splitter PATH_SPLITTER = Splitter.on(".");
@@ -66,7 +66,7 @@ public class DocumentWriteService {
   private final QueriesConfig queriesConfig;
 
   @Inject
-  public DocumentWriteService(
+  public BridgeWriteService(
       StargateRequestInfo requestInfo,
       TimeSource timeSource,
       DataStoreProperties dataStoreProperties,

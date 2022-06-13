@@ -55,9 +55,9 @@ import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 @TestProfile(MaxDepth4TestProfile.class)
-class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
+class BridgeWriteServiceTest extends AbstractValidatingStargateBridgeTest {
 
-  @Inject DocumentWriteService service;
+  @Inject BridgeWriteService service;
   @Inject DocsApiTestSchemaProvider schemaProvider;
   @Inject DataStoreProperties dataStoreProperties;
   @Inject DocumentProperties documentProperties;
