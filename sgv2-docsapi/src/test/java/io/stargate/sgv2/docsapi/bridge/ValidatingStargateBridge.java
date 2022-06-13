@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import org.assertj.core.api.AbstractIntegerAssert;
 
@@ -111,6 +112,15 @@ public class ValidatingStargateBridge implements StargateBridge {
     return add(new QueryExpectation(Pattern.quote(cql), Arrays.asList(values)));
   }
 
+  public QueryExpectation withAnySelectFrom(String keyspace, String table) {
+    String regex =
+        """
+        SELECT.*FROM.*\\"%s\\"\\.\\"%s\\".*
+        """.formatted(keyspace, table);
+
+    return add(new QueryExpectation(regex, Collections.emptyList()));
+  }
+
   public abstract static class QueryAssert {
 
     private final AtomicInteger executeCount = new AtomicInteger();
@@ -189,7 +199,10 @@ public class ValidatingStargateBridge implements StargateBridge {
     }
 
     private boolean matches(String expectedCql, List<QueryOuterClass.Value> expectedValues) {
-      return cqlPattern.matcher(expectedCql).matches() && expectedValues.equals(values);
+      Matcher matcher = cqlPattern.matcher(expectedCql);
+      boolean valuesEquals = expectedValues.equals(values);
+      boolean cqlMatches = matcher.matches();
+      return cqlMatches && valuesEquals;
     }
 
     private Uni<QueryOuterClass.Response> execute(

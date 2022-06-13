@@ -51,6 +51,11 @@ public abstract class AbstractValidatingStargateBridgeTest {
     return bridge.withQuery(cql, values);
   }
 
+  protected ValidatingStargateBridge.QueryExpectation withAnySelectFrom(
+      String keyspace, String table) {
+    return bridge.withAnySelectFrom(keyspace, table);
+  }
+
   protected void resetExpectations() {
     bridge.reset();
   }

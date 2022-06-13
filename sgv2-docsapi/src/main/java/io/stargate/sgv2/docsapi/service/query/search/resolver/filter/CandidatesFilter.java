@@ -34,7 +34,7 @@ public interface CandidatesFilter {
    * @return Prepared query in a single
    */
   @NonNull
-  Uni<QueryOuterClass.Query> prepareQuery(String keyspace, String collection);
+  Uni<QueryOuterClass.Query> prepareQuery(String keyspace, String collection); // TODO rename
 
   /**
    * Executes a filter for given {@link RawDocument} operating with the query that was supplied in

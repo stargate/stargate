@@ -41,13 +41,14 @@ public class DocsApiTestSchemaProvider {
 
   private final CqlTable table;
   private final CqlKeyspace keyspace;
+  private final int maxDepth;
 
   @Inject
   public DocsApiTestSchemaProvider(DocumentProperties documentProperties) {
     String keyspaceName = RandomStringUtils.randomAlphabetic(16).toLowerCase();
     String collectionName = RandomStringUtils.randomAlphabetic(16).toLowerCase();
 
-    int maxDepth = documentProperties.maxDepth();
+    maxDepth = documentProperties.maxDepth();
     DocumentTableProperties tableProperties = documentProperties.tableProperties();
 
     keyspace = CqlKeyspace.newBuilder().setName(keyspaceName).build();
@@ -108,10 +109,14 @@ public class DocsApiTestSchemaProvider {
   }
 
   public Stream<ColumnSpec> allColumnSpecStream() {
+    return allColumnSpecWithPathDepthStream(maxDepth);
+  }
+
+  public Stream<ColumnSpec> allColumnSpecWithPathDepthStream(int depth) {
     Stream<ColumnSpec> allColumns =
         Streams.concat(
             table.getPartitionKeyColumnsList().stream(),
-            table.getClusteringKeyColumnsList().stream(),
+            table.getClusteringKeyColumnsList().stream().limit(depth),
             table.getColumnsList().stream(),
             table.getStaticColumnsList().stream());
     return allColumns;
@@ -119,5 +124,9 @@ public class DocsApiTestSchemaProvider {
 
   public List<ColumnSpec> allColumnSpec() {
     return allColumnSpecStream().toList();
+  }
+
+  public List<ColumnSpec> allColumnSpecForPathDepth(int depth) {
+    return allColumnSpecWithPathDepthStream(depth).toList();
   }
 }
