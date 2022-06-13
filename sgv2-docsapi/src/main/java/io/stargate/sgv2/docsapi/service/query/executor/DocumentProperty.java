@@ -56,7 +56,7 @@ public abstract class DocumentProperty implements PagingStateSupplier {
    */
   abstract QueryOuterClass.ResultSet page();
 
-  /** A single row wrapper in {@link RowWrapper}. */
+  /** A single result set row wrapped in the {@link RowWrapper}. */
   abstract RowWrapper rowWrapper();
 
   /** Indicates whether the associated row was the last row in its page. */

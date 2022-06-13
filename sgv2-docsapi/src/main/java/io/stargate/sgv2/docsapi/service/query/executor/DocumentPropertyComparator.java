@@ -3,6 +3,7 @@ package io.stargate.sgv2.docsapi.service.query.executor;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
+import org.apache.commons.lang3.StringUtils;
 
 public class DocumentPropertyComparator implements Comparator<DocumentProperty> {
 
@@ -27,8 +28,8 @@ public class DocumentPropertyComparator implements Comparator<DocumentProperty> 
       String key1 = p1.keyValue(path);
       String key2 = p2.keyValue(path);
 
-      // if both keys are null, we can short-circuit here
-      if (null == key1 && null == key2) {
+      // if both keys are null or empty, we can short-circuit here
+      if (StringUtils.isEmpty(key1) && StringUtils.isEmpty(key2)) {
         return 0;
       }
 

@@ -52,6 +52,33 @@ import javax.inject.Inject;
 /**
  * Executes pre-built document queries, groups document rows and manages document pagination.
  *
+ * <p>High-level explanations for some terms used in the query executor:
+ *
+ * <ul>
+ *   <li><b>key-depth</b> - defines the amount of keys that should be considered in order to
+ *       differentiate documents; minimum 1, when it only includes the document id; when larger than
+ *       one, then it additionally includes the document paths at p0, p1, etc, thus being able to
+ *       also query for sub-documents at different levels
+ *   <li><b>multiple queries</b> - when multiple queries are given, they will be merged in an OR
+ *       fashion, keeping the order of the documents as defined by the partition order; if two or
+ *       more queries produce a same document, only one will be emitted (distinct).
+ *   <li><b>combined page-states</b> - in order to support multiple queries, the page state is
+ *       combined including the pointer to state from each query; this enables the executor to
+ *       continue each query from it's own previous state; states are combined and uncombined by
+ *       {@link CombinedPagingState}
+ *   <li><b>exponential page-size</b> - if exponential page size is activated, the executor will
+ *       exponentially increase the page size when executing the same query on the bridge while
+ *       paging through; this can be used to gradually increase returned result set size when
+ *       in-memory processing is needed; it's the best tread-off between a large amount of queries
+ *       with small page-sizes and small amount of queries with large page-sizes
+ *   <li><b>row-based page state</b> - executor enables optional fetching of the page state for each
+ *       row; when activated the executor will use two available strategies based on the key depth;
+ *       in case of depth=1, then it will use {@link
+ *       io.stargate.bridge.proto.QueryOuterClass.ResumeMode#NEXT_PARTITION} as we are
+ *       differentating between different documents; otherwise {@link
+ *       io.stargate.bridge.proto.QueryOuterClass.ResumeMode#NEXT_ROW}
+ * </ul>
+ *
  * @author Dmitri Bourlatchkov
  * @author Ivan Senic
  */
@@ -145,8 +172,9 @@ public class QueryExecutor {
    *
    * <p>Note: queries may use different {@code WHERE} conditions.
    *
-   * <p>Note: the queries must select all the partition key columns and zero or more clustering key
-   * columns with the total number of selected key columns equal to the {@code keyDepth} parameter.
+   * <p>Note: the queries must select all the partition key columns (in case of docs that's only the
+   * key column) and zero or more clustering key columns with the total number of selected key
+   * columns equal to the {@code keyDepth} parameter.
    *
    * <p>Rows having the same set of value in their selected primary key columns are considered
    * duplicates and only one of them (in no particular order) will be use in the output of this

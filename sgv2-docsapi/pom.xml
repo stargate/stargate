@@ -112,6 +112,7 @@
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
     </dependency>
+    <!-- rxjava3 nad rxjava3-extensions only needed for ordered merge in QueryExecutor -->
     <dependency>
       <groupId>io.smallrye.reactive</groupId>
       <artifactId>mutiny-rxjava3</artifactId>
