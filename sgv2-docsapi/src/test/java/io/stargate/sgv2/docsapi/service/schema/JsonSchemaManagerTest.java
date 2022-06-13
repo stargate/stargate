@@ -122,7 +122,7 @@ class JsonSchemaManagerTest extends BridgeTest {
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
 
-      result.awaitItem().assertItem(objectMapper.readTree("{\"schema\": {}}")).assertCompleted();
+      result.awaitItem().assertItem(objectMapper.readTree("{}")).assertCompleted();
     }
 
     @Test
@@ -199,7 +199,7 @@ class JsonSchemaManagerTest extends BridgeTest {
   }
 
   private String testJsonSchema() {
-    return "{\n"
+    return "{\"schema\": {\n"
         + "  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n"
         + "  \"title\": \"Product\",\n"
         + "  \"description\": \"A product from the catalog\",\n"
@@ -221,6 +221,6 @@ class JsonSchemaManagerTest extends BridgeTest {
         + "    }\n"
         + "  },\n"
         + "  \"required\": [\"id\", \"name\", \"price\"]\n"
-        + "}";
+        + "}}";
   }
 }
