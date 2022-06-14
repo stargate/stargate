@@ -52,7 +52,9 @@ public class ValidatingStargateBridge implements StargateBridge {
   @Override
   public Uni<Schema.QueryWithSchemaResponse> executeQueryWithSchema(
       Schema.QueryWithSchema request) {
-    throw new UnsupportedOperationException("Not implemented yet");
+    // Simulate a successful execution (keyspace was up to date)
+    return executeQuery(request.getQuery())
+        .map(response -> Schema.QueryWithSchemaResponse.newBuilder().setResponse(response).build());
   }
 
   @Override
