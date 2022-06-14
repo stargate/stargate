@@ -162,11 +162,21 @@ message SupportedFeaturesResponse {
 
 message QueryWithSchema {
   Query query = 1;
+  // The keyspace that the query operates on.
   string keyspace_name = 2;
+  // The version hash of the keyspace that the client used to build the query.
   sint32 keyspace_hash = 3;
 }
 
 message QueryWithSchemaResponse {
-  Response response = 1;
-  CqlKeyspaceDescribe new_keyspace = 2;
+  message NoKeyspace {}
+
+  oneof inner {
+    // The keyspace hadn't changed on the bridge side, the query succeeded
+    Response response = 1;
+    // The keyspace changed on the bridge side, this is the new metadata.
+    CqlKeyspaceDescribe new_keyspace = 2;
+    // The keyspace was deleted on the bridge side.
+    NoKeyspace no_keyspace = 3;
+  }
 }

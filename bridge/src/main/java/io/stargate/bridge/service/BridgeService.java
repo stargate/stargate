@@ -98,7 +98,10 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
     Keyspace keyspace = persistence.schema().keyspace(decoratedName);
 
     if (keyspace == null) {
-      responseObserver.onNext(Schema.QueryWithSchemaResponse.newBuilder().build());
+      responseObserver.onNext(
+          Schema.QueryWithSchemaResponse.newBuilder()
+              .setNoKeyspace(Schema.QueryWithSchemaResponse.NoKeyspace.getDefaultInstance())
+              .build());
       responseObserver.onCompleted();
     } else if (keyspace.hashCode() != keyspaceHash) {
       try {

@@ -146,23 +146,25 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
           .asFuture()
           .thenCompose(
               withSchemaResponse -> {
-                if (withSchemaResponse.hasResponse()) {
-                  // Success, the keyspace hadn't changed on the bridge
-                  return CompletableFuture.completedFuture(withSchemaResponse.getResponse());
-                } else {
-                  // The bridge has a new version
-                  Optional<CqlKeyspaceDescribe> newKeyspace;
-                  if (withSchemaResponse.hasNewKeyspace()) {
+                QueryWithSchemaResponse.InnerCase innerCase = withSchemaResponse.getInnerCase();
+                switch (innerCase) {
+                  case RESPONSE:
+                    // Success, the keyspace hadn't changed on the bridge
+                    return CompletableFuture.completedFuture(withSchemaResponse.getResponse());
+                  case NEW_KEYSPACE:
+                    // The keyspace was updated, retry with that version
                     CqlKeyspaceDescribe ks = withSchemaResponse.getNewKeyspace();
-                    newKeyspace = Optional.of(ks);
                     keyspaceCache.put(decoratedKeyspaceName, ks);
-                  } else {
-                    newKeyspace = Optional.empty();
+                    return executeQueryAsync(
+                        produceQuery(queryProducer, Optional.of(keyspace), tableName));
+                  case NO_KEYSPACE:
+                    // The keyspace was deleted
                     keyspaceCache.invalidate(decoratedKeyspaceName);
-                  }
-                  // Execute with that version
-                  return executeQueryAsync(
-                      produceQuery(queryProducer, Optional.of(keyspace), tableName));
+                    return executeQueryAsync(
+                        produceQuery(queryProducer, Optional.empty(), tableName));
+                  default:
+                    throw new IllegalStateException(
+                        "Invalid bridge response, unexpected inner " + innerCase);
                 }
               });
     }
