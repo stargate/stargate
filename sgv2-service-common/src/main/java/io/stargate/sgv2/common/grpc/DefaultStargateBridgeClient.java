@@ -111,61 +111,86 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
   }
 
   @Override
-  public Response executeQuery(
-      String keyspaceName, Function<Optional<CqlKeyspaceDescribe>, Query> queryProducer) {
+  public CompletionStage<Response> executeQueryAsync(
+      String keyspaceName,
+      String tableName,
+      Function<Optional<Schema.CqlTable>, Query> queryProducer) {
     String decoratedKeyspaceName = addTenantPrefix(keyspaceName);
     CqlKeyspaceDescribe keyspace = keyspaceCache.getIfPresent(decoratedKeyspaceName);
     if (keyspace == null) {
       // Nothing in our local cache, check if the bridge has a more recent version
-      return forceFetchAndExecute(keyspaceName, decoratedKeyspaceName, queryProducer);
+      return forceFetchAndExecute(keyspaceName, decoratedKeyspaceName, tableName, queryProducer);
     } else {
       // Build the query with our local version
       Query query;
       try {
-        query = queryProducer.apply(Optional.of(keyspace));
+        query = produceQuery(queryProducer, Optional.of(keyspace), tableName);
       } catch (Throwable t) {
         // Always retry with the latest version, in case the error is caused by stale metadata
         // (e.g. using a table that has not yet replicated to our local cache)
-        return forceFetchAndExecute(keyspaceName, decoratedKeyspaceName, queryProducer);
+        return forceFetchAndExecute(keyspaceName, decoratedKeyspaceName, tableName, queryProducer);
       }
       // Execute optimistically
       ClientCall<QueryWithSchema, QueryWithSchemaResponse> call =
           channel.newCall(StargateBridgeGrpc.getExecuteQueryWithSchemaMethod(), callOptions);
-      QueryWithSchemaResponse withSchemaResponse =
-          ClientCalls.blockingUnaryCall(
-              call,
-              QueryWithSchema.newBuilder()
-                  .setQuery(query)
-                  .setKeyspaceName(keyspaceName)
-                  .setKeyspaceHash(keyspace.getHash().getValue())
-                  .build());
-      if (withSchemaResponse.hasResponse()) {
-        // Success, the keyspace hadn't changed on the bridge
-        return withSchemaResponse.getResponse();
-      } else {
-        // The bridge has a new version
-        Optional<CqlKeyspaceDescribe> newKeyspace;
-        if (withSchemaResponse.hasNewKeyspace()) {
-          CqlKeyspaceDescribe ks = withSchemaResponse.getNewKeyspace();
-          newKeyspace = Optional.of(ks);
-          keyspaceCache.put(decoratedKeyspaceName, ks);
-        } else {
-          newKeyspace = Optional.empty();
-          keyspaceCache.invalidate(decoratedKeyspaceName);
-        }
-        // Execute with that version
-        return executeQuery(queryProducer.apply(newKeyspace));
-      }
+      UnaryStreamObserver<QueryWithSchemaResponse> observer = new UnaryStreamObserver<>();
+      ClientCalls.asyncUnaryCall(
+          call,
+          QueryWithSchema.newBuilder()
+              .setQuery(query)
+              .setKeyspaceName(keyspaceName)
+              .setKeyspaceHash(keyspace.getHash().getValue())
+              .build(),
+          observer);
+      return observer
+          .asFuture()
+          .thenCompose(
+              withSchemaResponse -> {
+                if (withSchemaResponse.hasResponse()) {
+                  // Success, the keyspace hadn't changed on the bridge
+                  return CompletableFuture.completedFuture(withSchemaResponse.getResponse());
+                } else {
+                  // The bridge has a new version
+                  Optional<CqlKeyspaceDescribe> newKeyspace;
+                  if (withSchemaResponse.hasNewKeyspace()) {
+                    CqlKeyspaceDescribe ks = withSchemaResponse.getNewKeyspace();
+                    newKeyspace = Optional.of(ks);
+                    keyspaceCache.put(decoratedKeyspaceName, ks);
+                  } else {
+                    newKeyspace = Optional.empty();
+                    keyspaceCache.invalidate(decoratedKeyspaceName);
+                  }
+                  // Execute with that version
+                  return executeQueryAsync(
+                      produceQuery(queryProducer, Optional.of(keyspace), tableName));
+                }
+              });
     }
   }
 
-  private Response forceFetchAndExecute(
+  private CompletionStage<Response> forceFetchAndExecute(
       String keyspaceName,
       String decoratedKeyspaceName,
-      Function<Optional<CqlKeyspaceDescribe>, Query> queryProducer) {
-    Optional<CqlKeyspaceDescribe> newKeyspace = getKeyspace(keyspaceName, false);
-    newKeyspace.ifPresent(ks -> keyspaceCache.put(decoratedKeyspaceName, ks));
-    return executeQuery(queryProducer.apply(newKeyspace));
+      String tableName,
+      Function<Optional<Schema.CqlTable>, Query> queryProducer) {
+    return getKeyspaceAsync(keyspaceName, false)
+        .thenCompose(
+            newKeyspace -> {
+              newKeyspace.ifPresent(ks -> keyspaceCache.put(decoratedKeyspaceName, ks));
+              return executeQueryAsync(produceQuery(queryProducer, newKeyspace, tableName));
+            });
+  }
+
+  private Query produceQuery(
+      Function<Optional<Schema.CqlTable>, Query> queryProducer,
+      Optional<CqlKeyspaceDescribe> maybeKeyspace,
+      String tableName) {
+    return queryProducer.apply(
+        maybeKeyspace.flatMap(
+            keyspace ->
+                keyspace.getTablesList().stream()
+                    .filter(t -> t.getName().equals(tableName))
+                    .findFirst()));
   }
 
   @Override

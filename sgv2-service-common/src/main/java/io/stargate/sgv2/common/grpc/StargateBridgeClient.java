@@ -43,28 +43,25 @@ public interface StargateBridgeClient {
    */
   CompletionStage<Response> executeQueryAsync(Query query);
 
+  /**
+   * Builds a CQL query based on the definition of a table, and executes it.
+   *
+   * @param queryProducer the function that builds the query. It will receive <code>Optional.empty()
+   *     </code> if the table does not exist. Note that it may be invoked more than once (the
+   *     implementation uses an optimistic approach to avoid systematically pre-fetching the table
+   *     definition, so it may have to retry).
+   */
+  CompletionStage<Response> executeQueryAsync(
+      String keyspaceName, String tableName, Function<Optional<CqlTable>, Query> queryProducer);
+
   /** @see #executeQueryAsync(Query) */
   default Response executeQuery(Query query) {
     return Futures.getUninterruptibly(executeQueryAsync(query));
   }
 
-  // TODO create async variant?
-  Response executeQuery(
-      String keyspaceName, Function<Optional<CqlKeyspaceDescribe>, Query> queryProducer);
-
   default Response executeQuery(
       String keyspaceName, String tableName, Function<Optional<CqlTable>, Query> queryProducer) {
-    return executeQuery(
-        keyspaceName,
-        maybeKeyspace -> {
-          Optional<CqlTable> maybeTable =
-              maybeKeyspace.flatMap(
-                  keyspace ->
-                      keyspace.getTablesList().stream()
-                          .filter(t -> t.getName().equals(tableName))
-                          .findFirst());
-          return queryProducer.apply(maybeTable);
-        });
+    return Futures.getUninterruptibly(executeQueryAsync(keyspaceName, tableName, queryProducer));
   }
 
   /**
