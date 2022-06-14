@@ -91,20 +91,19 @@ public class InMemoryDocumentsResolver implements DocumentsResolver {
       QueryExecutor queryExecutor, String keyspace, String collection, Paginator paginator) {
 
     // if we have a filter path query then need all the columns on the filter, plus one additional
-    // to match
-    // otherwise we need all columns
-    Integer neededDepth =
+    // to match, otherwise we need all columns
+    String[] neededColumns =
         Optional.of(queryBuilder)
             .filter(FilterPathSearchQueryBuilder.class::isInstance)
             .map(FilterPathSearchQueryBuilder.class::cast)
             .map(qb -> qb.getFilterPath().getPath().size() + 1)
-            .orElse(documentProperties.maxDepth());
-
-    String[] neededColumns =
-        documentProperties
-            .tableColumns()
-            .allColumnNamesWithPathDepth(neededDepth)
-            .toArray(String[]::new);
+            .map(
+                depth ->
+                    documentProperties
+                        .tableColumns()
+                        .allColumnNamesWithPathDepth(depth)
+                        .toArray(String[]::new))
+            .orElse(documentProperties.tableColumns().allColumnNamesArray());
 
     // bind and build the query
     return Uni.createFrom()

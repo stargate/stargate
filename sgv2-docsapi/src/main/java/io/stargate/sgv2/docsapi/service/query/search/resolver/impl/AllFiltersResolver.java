@@ -17,10 +17,8 @@
 
 package io.stargate.sgv2.docsapi.service.query.search.resolver.impl;
 
-import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
-import io.stargate.sgv2.docsapi.service.query.model.RawDocument;
 import io.stargate.sgv2.docsapi.service.query.search.resolver.DocumentsResolver;
 import io.stargate.sgv2.docsapi.service.query.search.resolver.filter.CandidatesFilter;
 import java.util.Collection;
@@ -66,21 +64,10 @@ public class AllFiltersResolver extends AbstractFiltersResolver {
 
   /** {@inheritDoc} */
   @Override
-  protected Multi<RawDocument> resolveSources(RawDocument rawDocument, List<Uni<Boolean>> sources) {
+  protected Uni<Boolean> resolveSources(List<Uni<Boolean>> sources) {
     // only if all filters emit true, return the doc
     // this means all filters are passed
 
-    return Uni.join()
-        .all(sources)
-        .andFailFast()
-        .onItem()
-        .transformToMulti(
-            results -> {
-              if (results.contains(Boolean.FALSE)) {
-                return Multi.createFrom().empty();
-              } else {
-                return Multi.createFrom().items(rawDocument);
-              }
-            });
+    return Uni.join().all(sources).andFailFast().map(results -> !results.contains(Boolean.FALSE));
   }
 }

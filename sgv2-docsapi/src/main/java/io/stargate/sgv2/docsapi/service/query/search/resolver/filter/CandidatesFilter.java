@@ -17,7 +17,6 @@
 
 package io.stargate.sgv2.docsapi.service.query.search.resolver.filter;
 
-import io.reactivex.rxjava3.annotations.NonNull;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.docsapi.service.query.executor.QueryExecutor;
@@ -27,14 +26,13 @@ import io.stargate.sgv2.docsapi.service.query.model.RawDocument;
 public interface CandidatesFilter {
 
   /**
-   * Returns single that emmit query that this filter needs.
+   * Returns uni that emmit built, but not bound, query that this filter needs.
    *
    * @param keyspace Keyspace
    * @param collection Collection
    * @return Prepared query in a single
    */
-  @NonNull
-  Uni<QueryOuterClass.Query> prepareQuery(String keyspace, String collection); // TODO rename
+  Uni<QueryOuterClass.Query> prepareQuery(String keyspace, String collection);
 
   /**
    * Executes a filter for given {@link RawDocument} operating with the query that was supplied in

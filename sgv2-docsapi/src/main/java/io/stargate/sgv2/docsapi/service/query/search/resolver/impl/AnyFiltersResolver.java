@@ -20,7 +20,6 @@ package io.stargate.sgv2.docsapi.service.query.search.resolver.impl;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
-import io.stargate.sgv2.docsapi.service.query.model.RawDocument;
 import io.stargate.sgv2.docsapi.service.query.search.resolver.DocumentsResolver;
 import io.stargate.sgv2.docsapi.service.query.search.resolver.filter.CandidatesFilter;
 import java.util.Collection;
@@ -66,7 +65,7 @@ public class AnyFiltersResolver extends AbstractFiltersResolver {
 
   /** {@inheritDoc} */
   @Override
-  protected Multi<RawDocument> resolveSources(RawDocument rawDocument, List<Uni<Boolean>> sources) {
+  protected Uni<Boolean> resolveSources(List<Uni<Boolean>> sources) {
     // only one signal is needed here, we can dispose the rest immediately
     // when one emits, map to the document because we need to return the document that passes
     // it's important to keep with the concatMap approach in the abstract class
@@ -80,8 +79,15 @@ public class AnyFiltersResolver extends AbstractFiltersResolver {
         .merging()
         .withRequests(1)
         .streams(trueFilters)
+
+        // take any, as it will be true
         .select()
         .first()
-        .map(any -> rawDocument);
+
+        // if none, then emit false
+        .onCompletion()
+        .ifEmpty()
+        .continueWith(false)
+        .toUni();
   }
 }

@@ -39,7 +39,7 @@ import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
- * {{@link CandidatesFilter} that works with set of {@link FilterExpression}s that contain only
+ * {@link CandidatesFilter} that works with set of {@link FilterExpression}s that contain only
  * in-memory conditions.
  */
 public class InMemoryCandidatesFilter implements CandidatesFilter {

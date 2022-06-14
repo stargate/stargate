@@ -21,7 +21,6 @@ import com.bpodgursky.jbool_expressions.Or;
 import com.bpodgursky.jbool_expressions.eval.EvalEngine;
 import com.bpodgursky.jbool_expressions.eval.EvalRule;
 import io.smallrye.mutiny.Multi;
-import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
@@ -91,22 +90,27 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
             .noneMatch(
                 c -> Objects.equals(c, documentProperties.tableProperties().pathColumnName(0)));
 
+    // so for each query builder, we create and bind query
     return Multi.createFrom()
         .iterable(queryBuilders)
         .concatMap(
             queryBuilder ->
-                Uni.createFrom()
+                Multi.createFrom()
                     .item(
                         () -> {
                           QueryOuterClass.Query query =
                               queryBuilder.buildQuery(keyspace, collection, columns);
                           return queryBuilder.bind(query);
-                        })
-                    .toMulti())
+                        }))
+        // then collect all in list
         .collect()
         .asList()
+
+        // cache them
         .memoize()
         .indefinitely()
+
+        // then execute them all
         .onItem()
         .transformToMulti(
             boundQueries -> {
@@ -124,6 +128,8 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
               return queryExecutor.queryDocs(
                   boundQueries, pageSize, true, paginator.getCurrentDbPageState(), true, context);
             })
+
+        // ensure filtering is executed in case of in-memory queries
         .filter(
             doc -> {
               // now we can get doc as a result of the persistence or in memory query

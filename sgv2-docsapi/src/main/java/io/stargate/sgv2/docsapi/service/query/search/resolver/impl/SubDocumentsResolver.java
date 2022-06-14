@@ -23,7 +23,6 @@ import com.bpodgursky.jbool_expressions.eval.EvalRule;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
-import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.common.model.Paginator;
@@ -83,11 +82,7 @@ public class SubDocumentsResolver implements DocumentsResolver {
   public Multi<RawDocument> getDocuments(
       QueryExecutor queryExecutor, String keyspace, String collection, Paginator paginator) {
 
-    // todo optimize
-    String[] columns =
-        documentProperties.tableColumns().allColumns().stream()
-            .map(Column::name)
-            .toArray(String[]::new);
+    String[] columns = documentProperties.tableColumns().allColumnNamesArray();
 
     // prepare the query
     return Uni.createFrom()

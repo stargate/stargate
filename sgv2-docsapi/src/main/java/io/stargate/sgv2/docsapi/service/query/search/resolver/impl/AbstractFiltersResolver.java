@@ -2,7 +2,7 @@
  * Copyright The Stargate Authors
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in comHpliance with the License.
+ * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
  * http://www.apache.org/licenses/LICENSE-2.0
@@ -20,7 +20,6 @@ package io.stargate.sgv2.docsapi.service.query.search.resolver.impl;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
-import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.common.model.Paginator;
 import io.stargate.sgv2.docsapi.service.query.executor.QueryExecutor;
 import io.stargate.sgv2.docsapi.service.query.model.RawDocument;
@@ -33,14 +32,22 @@ import org.apache.commons.lang3.tuple.Pair;
 
 public abstract class AbstractFiltersResolver implements DocumentsResolver {
 
+  /** @return Resolver used to fetch candidates. */
   protected abstract DocumentsResolver getCandidatesResolver();
 
+  /**
+   * @return Collection of the {@link CandidatesFilter}s that should be used for filtering
+   *     candidates.
+   */
   protected abstract Collection<CandidatesFilter> getCandidatesFilters();
 
-  protected abstract Multi<RawDocument> resolveSources(
-      RawDocument rawDocument, List<Uni<Boolean>> sources);
-
-  protected DocumentProperties documentProperties;
+  /**
+   * Resolves the given filter results based on the type of the resolver into a single Uni.
+   *
+   * @param sources All filter results
+   * @return Uni that emits true if the document should be selected
+   */
+  protected abstract Uni<Boolean> resolveSources(List<Uni<Boolean>> sources);
 
   @Override
   public Multi<RawDocument> getDocuments(
@@ -86,9 +93,19 @@ public abstract class AbstractFiltersResolver implements DocumentsResolver {
                           })
                       .collect(Collectors.toList());
 
-              // only if all filters emit the item, return the doc
-              // this means all filters are passed
-              return resolveSources(doc, sources);
+              // only if resolving filters emits an item, return the doc
+              return resolveSources(sources)
+
+                  // only emit the document if the result of resolving is true
+                  .onItem()
+                  .transformToMulti(
+                      result -> {
+                        if (Boolean.TRUE.equals(result)) {
+                          return Multi.createFrom().items(doc);
+                        } else {
+                          return Multi.createFrom().empty();
+                        }
+                      });
             });
   }
 }
