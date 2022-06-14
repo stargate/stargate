@@ -91,7 +91,11 @@ public class SubDocumentsResolver implements DocumentsResolver {
 
     // prepare the query
     return Uni.createFrom()
-        .item(() -> queryBuilder.buildQuery(keyspace, collection, columns))
+        .item(
+            () -> {
+              QueryOuterClass.Query query = queryBuilder.buildQuery(keyspace, collection, columns);
+              return queryBuilder.bind(query);
+            })
 
         // cache the prepared
         .memoize()
@@ -100,10 +104,7 @@ public class SubDocumentsResolver implements DocumentsResolver {
         // then bind and execute
         .onItem()
         .transformToMulti(
-            built -> {
-              // bind (no values needed)
-              QueryOuterClass.Query query = queryBuilder.bind(built);
-
+            query -> {
               // note that we fetch row paging, only if key depth is more than 1
               // if it's one, then we are getting a whole document, thus no paging
               boolean fetchRowPaging = keyDepth > 1;

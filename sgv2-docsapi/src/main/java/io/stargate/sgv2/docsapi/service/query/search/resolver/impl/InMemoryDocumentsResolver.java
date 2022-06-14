@@ -107,9 +107,14 @@ public class InMemoryDocumentsResolver implements DocumentsResolver {
             .allColumnNamesWithPathDepth(neededDepth)
             .toArray(String[]::new);
 
-    // prepare the query
+    // bind and build the query
     return Uni.createFrom()
-        .item(() -> queryBuilder.buildQuery(keyspace, collection, neededColumns))
+        .item(
+            () -> {
+              QueryOuterClass.Query query =
+                  queryBuilder.buildQuery(keyspace, collection, neededColumns);
+              return queryBuilder.bind(query);
+            })
 
         // cache it
         .memoize()
@@ -118,10 +123,7 @@ public class InMemoryDocumentsResolver implements DocumentsResolver {
         // then bind and execute
         .onItem()
         .transformToMulti(
-            built -> {
-              // once ready bind (no values) and fire
-              QueryOuterClass.Query query = queryBuilder.bind(built);
-
+            query -> {
               // in case we have a full search then base the page size on the app. doc size
               // otherwise start with the requested page size, plus one more than needed to stop
               // pre-fetching

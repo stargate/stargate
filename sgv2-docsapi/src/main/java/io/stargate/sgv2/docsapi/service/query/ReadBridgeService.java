@@ -183,9 +183,8 @@ public class ReadBridgeService {
 
   private Multi<RawDocument> fullSearch(
       String keyspace, String collection, Paginator paginator, ExecutionContext context) {
-    FullSearchQueryBuilder queryBuilder = new FullSearchQueryBuilder(documentProperties);
 
-    // prepare first (this could be cached for the max depth)
+    // build and bind first (this could be cached for the max depth)
     return Uni.createFrom()
         .item(
             () -> {
@@ -195,22 +194,23 @@ public class ReadBridgeService {
                       .tableColumns()
                       .allColumnNamesWithPathDepth(maxDepth)
                       .toArray(String[]::new);
-              return queryBuilder.buildQuery(keyspace, collection, columns);
+
+              FullSearchQueryBuilder queryBuilder = new FullSearchQueryBuilder(documentProperties);
+              QueryOuterClass.Query query = queryBuilder.buildQuery(keyspace, collection, columns);
+              return queryBuilder.bind(query);
             })
         .memoize()
         .indefinitely()
         .onItem()
         .transformToMulti(
-            built -> {
-              QueryOuterClass.Query query = queryBuilder.bind(built);
-              return queryExecutor.queryDocs(
-                  query,
-                  documentProperties.getApproximateStoragePageSize(paginator.docPageSize),
-                  true,
-                  paginator.getCurrentDbPageState(),
-                  true,
-                  context);
-            });
+            query ->
+                queryExecutor.queryDocs(
+                    query,
+                    documentProperties.getApproximateStoragePageSize(paginator.docPageSize),
+                    true,
+                    paginator.getCurrentDbPageState(),
+                    true,
+                    context));
   }
 
   private Multi<RawDocument> documentTtl(
@@ -240,10 +240,7 @@ public class ReadBridgeService {
       List<String> subDocumentPath,
       ExecutionContext context) {
 
-    SubDocumentSearchQueryBuilder queryBuilder =
-        new SubDocumentSearchQueryBuilder(documentProperties, documentId, subDocumentPath);
-
-    // prepare first
+    // build and bind first
     return Uni.createFrom()
         .item(
             () -> {
@@ -254,22 +251,24 @@ public class ReadBridgeService {
                       .allColumnNamesWithPathDepth(maxDepth)
                       .toArray(String[]::new);
 
-              return queryBuilder.buildQuery(keyspace, collection, columns);
+              SubDocumentSearchQueryBuilder queryBuilder =
+                  new SubDocumentSearchQueryBuilder(
+                      documentProperties, documentId, subDocumentPath);
+              QueryOuterClass.Query query = queryBuilder.buildQuery(keyspace, collection, columns);
+              return queryBuilder.bind(query);
             })
         .memoize()
         .indefinitely()
         .onItem()
         .transformToMulti(
-            prepared -> {
-              // since we have the doc id, use the max storage page size to grab all the rows for
-              // that doc
-              QueryOuterClass.Query query = queryBuilder.bind(prepared);
-
+            query -> {
               // note that we fetch row paging, only if key depth is more than 1
               // if it's one, then we are getting a whole document, thus no paging
               int keyDepth = subDocumentPath.size() + 1;
               boolean fetchRowPaging = keyDepth > 1;
 
+              // since we have the doc id, use the max storage page size to grab all the rows for
+              // that doc
               return queryExecutor.queryDocs(
                   keyDepth,
                   query,

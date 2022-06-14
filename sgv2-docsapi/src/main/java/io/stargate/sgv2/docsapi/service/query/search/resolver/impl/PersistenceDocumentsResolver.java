@@ -77,15 +77,18 @@ public class PersistenceDocumentsResolver implements DocumentsResolver {
 
     DocumentTableProperties tableProperties = documentProperties.tableProperties();
 
-    // prepare the query
+    // build and bind the query
     return Uni.createFrom()
         .item(
-            () ->
-                queryBuilder.buildQuery(
-                    keyspace,
-                    collection,
-                    tableProperties.keyColumnName(),
-                    tableProperties.leafColumnName()))
+            () -> {
+              QueryOuterClass.Query query =
+                  queryBuilder.buildQuery(
+                      keyspace,
+                      collection,
+                      tableProperties.keyColumnName(),
+                      tableProperties.leafColumnName());
+              return queryBuilder.bind(query);
+            })
 
         // cache the prepared
         .memoize()
@@ -94,10 +97,7 @@ public class PersistenceDocumentsResolver implements DocumentsResolver {
         // then bind and execute
         .onItem()
         .transformToMulti(
-            built -> {
-              // bind (no values needed)
-              QueryOuterClass.Query query = queryBuilder.bind(built);
-
+            query -> {
               // execute by respecting the paging state
               // take always one more than needed to stop pre-fetching
               // use exponential page size to increase when more is needed
