@@ -105,9 +105,11 @@ public class JsonSchemaManager {
    *
    * @param table the table that has a schema
    * @param document the document, as JsonNode
+   * @param subDocument whether the document currently being checked is a sub-document
    * @return a Uni with Boolean detailing whether or not the document complies with the schema.
    */
-  public Uni<Boolean> validateJsonDocument(Uni<Schema.CqlTable> table, JsonNode document) {
+  public Uni<Boolean> validateJsonDocument(
+      Uni<Schema.CqlTable> table, JsonNode document, boolean subDocument) {
     return getJsonSchema(table)
         .onItem()
         .transform(
@@ -115,6 +117,9 @@ public class JsonSchemaManager {
               if (jsonSchema == null) {
                 // If there is no valid JSON schema, then the document is valid
                 return true;
+              } else if (subDocument) {
+                throw new ErrorCodeRuntimeException(
+                    ErrorCode.DOCS_API_JSON_SCHEMA_INVALID_PARTIAL_UPDATE);
               }
 
               try {

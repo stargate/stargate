@@ -162,7 +162,7 @@ class JsonSchemaManagerTest extends BridgeTest {
 
       UniAssertSubscriber<Boolean> result =
           jsonSchemaManager
-              .validateJsonDocument(Uni.createFrom().item(table), document)
+              .validateJsonDocument(Uni.createFrom().item(table), document, false)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
 
@@ -177,7 +177,7 @@ class JsonSchemaManagerTest extends BridgeTest {
 
       UniAssertSubscriber<Boolean> result =
           jsonSchemaManager
-              .validateJsonDocument(Uni.createFrom().item(table), document)
+              .validateJsonDocument(Uni.createFrom().item(table), document, false)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
 
@@ -191,7 +191,20 @@ class JsonSchemaManagerTest extends BridgeTest {
 
     JsonNode document = objectMapper.readTree("{\"id\":1, \"price\":1}");
     jsonSchemaManager
-        .validateJsonDocument(Uni.createFrom().item(table), document)
+        .validateJsonDocument(Uni.createFrom().item(table), document, false)
+        .subscribe()
+        .withSubscriber(UniAssertSubscriber.create())
+        .awaitFailure()
+        .assertFailedWith(ErrorCodeRuntimeException.class);
+  }
+
+  @Test
+  public void schemaPresentSubdocumentDisallowed() throws JsonProcessingException {
+    table = Schema.CqlTable.newBuilder().putOptions("comment", testJsonSchema()).build();
+
+    JsonNode document = objectMapper.readTree("{\"id\":1, \"name\": \"Eric\", \"price\":1}");
+    jsonSchemaManager
+        .validateJsonDocument(Uni.createFrom().item(table), document, true)
         .subscribe()
         .withSubscriber(UniAssertSubscriber.create())
         .awaitFailure()

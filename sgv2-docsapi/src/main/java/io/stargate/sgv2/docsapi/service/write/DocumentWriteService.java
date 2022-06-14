@@ -10,6 +10,7 @@ import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.api.v2.model.dto.DocumentResponseWrapper;
 import io.stargate.sgv2.docsapi.api.v2.model.dto.MultiDocsResponse;
+import io.stargate.sgv2.docsapi.config.DocumentConfig;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.JsonDocumentShredder;
 import io.stargate.sgv2.docsapi.service.JsonShreddedRow;
@@ -36,6 +37,8 @@ public class DocumentWriteService {
 
   @Inject BridgeWriteService bridgeWriteService;
 
+  @Inject DocumentConfig configuration;
+
   /**
    * Writes a document in the given namespace and collection using the randomly generated ID.
    *
@@ -52,7 +55,8 @@ public class DocumentWriteService {
     final String documentId = UUID.randomUUID().toString();
     final JsonNode document = readPayload(payload);
     return jsonSchemaManager
-        .validateJsonDocument(tableManager.getValidCollectionTable(namespace, collection), document)
+        .validateJsonDocument(
+            tableManager.getValidCollectionTable(namespace, collection), document, false)
         .map(
             valid -> {
               if (!valid) {
@@ -102,7 +106,7 @@ public class DocumentWriteService {
     for (JsonNode documentNode : root) {
       // validate that the document fits the schema
       jsonSchemaManager
-          .validateJsonDocument(table, documentNode)
+          .validateJsonDocument(table, documentNode, false)
           .map(
               valid -> {
                 if (!valid) {
@@ -163,6 +167,85 @@ public class DocumentWriteService {
             .collect(Collectors.toList());
 
     return Uni.createFrom().item(new MultiDocsResponse(documentIds, context.toProfile()));
+  }
+
+  /**
+   * Updates a document with given ID in the given namespace and collection. Any previously existing
+   * document with the same ID will be overwritten.
+   *
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to update
+   * @param payload Document represented as JSON string
+   * @param ttl the time-to-live of the document (seconds)
+   * @param context Execution content
+   * @return Document response wrapper containing the generated ID.
+   */
+  public Uni<DocumentResponseWrapper<Void>> updateDocument(
+      String namespace,
+      String collection,
+      String documentId,
+      String payload,
+      Integer ttl,
+      ExecutionContext context) {
+    return updateDocumentInternal(
+        namespace, collection, documentId, Collections.emptyList(), payload, ttl, context);
+  }
+
+  /**
+   * Updates a document with given ID in the given namespace and collection at the specified
+   * sub-path. Any previously existing sub-document at the given path will be overwritten.
+   *
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to update
+   * @param subPath Sub-path of the document to update. If empty will update the whole doc.
+   * @param payload Document represented as JSON string
+   * @param ttl the time-to-live of the document (seconds)
+   * @param context Execution content
+   * @return Document response wrapper containing the generated ID.
+   */
+  private Uni<DocumentResponseWrapper<Void>> updateDocumentInternal(
+      String namespace,
+      String collection,
+      String documentId,
+      List<String> subPath,
+      String payload,
+      Integer ttl,
+      ExecutionContext context) {
+    final JsonNode document = readPayload(payload);
+    final List<String> subPathProcessed = processSubDocumentPath(subPath);
+    return jsonSchemaManager
+        .validateJsonDocument(
+            tableManager.getValidCollectionTable(namespace, collection),
+            document,
+            !subPathProcessed.isEmpty())
+        .onItem()
+        .transform(
+            valid -> {
+              if (!valid) {
+                throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_INVALID_JSON_VALUE);
+              }
+              return true;
+            })
+        .onItem()
+        .transform(
+            __ -> {
+              // shred rows
+              List<JsonShreddedRow> rows = documentShredder.shred(document, subPathProcessed);
+
+              // call write document
+              return bridgeWriteService.updateDocument(
+                  namespace, collection, documentId, subPathProcessed, rows, ttl, context);
+            })
+        .map(any -> new DocumentResponseWrapper<>(documentId, null, null, context.toProfile()));
+  }
+
+  // we need to transform the stuff to support array elements
+  private List<String> processSubDocumentPath(List<String> subDocumentPath) {
+    return subDocumentPath.stream()
+        .map(path -> DocsApiUtils.convertArrayPath(path, configuration.maxArrayLength()))
+        .collect(Collectors.toList());
   }
 
   private JsonNode readPayload(String payload) {
