@@ -52,7 +52,6 @@ public class ReadBridgeService {
    * Searches a complete collection in order to find the documents that match the given expression.
    * Starts the search for the given {@link Paginator} state.
    *
-   * @param queryExecutor Query executor for running queries.
    * @param keyspace Keyspace to search in.
    * @param collection Collection to search in.
    * @param expression Expression tree
@@ -61,7 +60,6 @@ public class ReadBridgeService {
    * @return Flowable of {@link RawDocument}s.
    */
   public Multi<RawDocument> searchDocuments(
-      QueryExecutor queryExecutor,
       String keyspace,
       String collection,
       Expression<FilterExpression> expression,
@@ -106,7 +104,6 @@ public class ReadBridgeService {
    * Sub-documents are defined by the #subDocumentPath, everything outside this path is ignored.
    * Starts the search for the given {@link Paginator} state.
    *
-   * @param queryExecutor Query executor for running queries.
    * @param keyspace Keyspace to search in.
    * @param collection Collection to search in.
    * @param documentId Document ID to search in
@@ -119,7 +116,6 @@ public class ReadBridgeService {
    *     #subDocumentPath.
    */
   public Multi<RawDocument> searchSubDocuments(
-      QueryExecutor queryExecutor,
       String keyspace,
       String collection,
       String documentId,
@@ -148,7 +144,6 @@ public class ReadBridgeService {
   /**
    * Gets a single document optionally limit to the the #subDocumentPath.
    *
-   * @param queryExecutor Query executor for running queries.
    * @param keyspace Keyspace to search in.
    * @param collection Collection to search in.
    * @param documentId Document ID to search in
@@ -158,7 +153,6 @@ public class ReadBridgeService {
    *     #subDocumentPath.
    */
   public Multi<RawDocument> getDocument(
-      QueryExecutor queryExecutor,
       String keyspace,
       String collection,
       String documentId,
@@ -176,7 +170,6 @@ public class ReadBridgeService {
   /**
    * Gets a single document's rows with its TTL data in each row.
    *
-   * @param queryExecutor Query executor for running queries.
    * @param keyspace Keyspace to search in.
    * @param collection Collection to search in.
    * @param documentId Document ID to search in
@@ -184,11 +177,7 @@ public class ReadBridgeService {
    * @return Flowable of {@link RawDocument}s representing a document's rows with TTL as a column
    */
   public Multi<RawDocument> getDocumentTtlInfo(
-      QueryExecutor queryExecutor,
-      String keyspace,
-      String collection,
-      String documentId,
-      ExecutionContext context) {
+      String keyspace, String collection, String documentId, ExecutionContext context) {
     return documentTtl(keyspace, collection, documentId, context).select().first();
   }
 

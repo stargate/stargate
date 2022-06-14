@@ -36,7 +36,6 @@ import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.common.model.Paginator;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
 import io.stargate.sgv2.docsapi.service.query.condition.impl.ImmutableStringCondition;
-import io.stargate.sgv2.docsapi.service.query.executor.QueryExecutor;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.impl.EqFilterOperation;
 import io.stargate.sgv2.docsapi.service.query.model.RawDocument;
 import io.stargate.sgv2.docsapi.testprofiles.MaxDepth4TestProfile;
@@ -58,8 +57,6 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
   @Inject ReadBridgeService service;
 
   @Inject DocumentProperties documentProperties;
-
-  @Inject QueryExecutor queryExecutor;
 
   @Inject DocsApiTestSchemaProvider schemaProvider;
 
@@ -153,8 +150,7 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
 
       List<RawDocument> result =
           service
-              .searchDocuments(
-                  queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, expression, paginator, context)
+              .searchDocuments(KEYSPACE_NAME, COLLECTION_NAME, expression, paginator, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(100))
               .awaitItems(2)
@@ -306,8 +302,7 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
 
       List<RawDocument> result =
           service
-              .searchDocuments(
-                  queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, expression, paginator, context)
+              .searchDocuments(KEYSPACE_NAME, COLLECTION_NAME, expression, paginator, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(100))
               .awaitItems(1)
@@ -406,8 +401,7 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
               .returningNothing();
 
       service
-          .searchDocuments(
-              queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, expression, paginator, context)
+          .searchDocuments(KEYSPACE_NAME, COLLECTION_NAME, expression, paginator, context)
           .subscribe()
           .withSubscriber(AssertSubscriber.create(100))
           .awaitCompletion()
@@ -503,12 +497,7 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
       List<RawDocument> result =
           service
               .searchDocuments(
-                  queryExecutor,
-                  KEYSPACE_NAME,
-                  COLLECTION_NAME,
-                  Literal.getTrue(),
-                  paginator,
-                  context)
+                  KEYSPACE_NAME, COLLECTION_NAME, Literal.getTrue(), paginator, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(100))
               .awaitItems(2)
@@ -631,7 +620,6 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
       List<RawDocument> result =
           service
               .searchSubDocuments(
-                  queryExecutor,
                   KEYSPACE_NAME,
                   COLLECTION_NAME,
                   documentId,
@@ -729,7 +717,6 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
       List<RawDocument> result =
           service
               .searchSubDocuments(
-                  queryExecutor,
                   KEYSPACE_NAME,
                   COLLECTION_NAME,
                   documentId,
@@ -837,7 +824,6 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
       List<RawDocument> result =
           service
               .searchSubDocuments(
-                  queryExecutor,
                   KEYSPACE_NAME,
                   COLLECTION_NAME,
                   documentId,
@@ -956,8 +942,7 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
 
       List<RawDocument> result =
           service
-              .getDocument(
-                  queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, documentId, subPath, context)
+              .getDocument(KEYSPACE_NAME, COLLECTION_NAME, documentId, subPath, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(100))
               .awaitItems(1)
@@ -1020,8 +1005,7 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
 
       List<RawDocument> result =
           service
-              .getDocumentTtlInfo(
-                  queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, documentId, context)
+              .getDocumentTtlInfo(KEYSPACE_NAME, COLLECTION_NAME, documentId, context)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(100))
               .awaitItems(1)
@@ -1136,8 +1120,7 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                       Values.NULL)));
 
       service
-          .searchDocuments(
-              queryExecutor, KEYSPACE_NAME, COLLECTION_NAME, expression, paginator, context)
+          .searchDocuments(KEYSPACE_NAME, COLLECTION_NAME, expression, paginator, context)
           .subscribe()
           .withSubscriber(AssertSubscriber.create(100))
           .awaitItems(1)
