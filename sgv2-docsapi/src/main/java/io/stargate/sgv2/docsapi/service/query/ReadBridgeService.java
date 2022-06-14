@@ -37,9 +37,11 @@ import io.stargate.sgv2.docsapi.service.query.search.resolver.DocumentsResolver;
 import io.stargate.sgv2.docsapi.service.query.search.resolver.impl.SubDocumentsResolver;
 import java.util.List;
 import java.util.stream.Collectors;
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import org.apache.commons.lang3.tuple.Pair;
 
+@ApplicationScoped
 public class ReadBridgeService {
 
   @Inject QueryExecutor queryExecutor;
@@ -274,9 +276,19 @@ public class ReadBridgeService {
               // that doc
               QueryOuterClass.Query query = queryBuilder.bind(prepared);
 
-              // TODO correct row state fetch
+              // note that we fetch row paging, only if key depth is more than 1
+              // if it's one, then we are getting a whole document, thus no paging
+              int keyDepth = subDocumentPath.size() + 1;
+              boolean fetchRowPaging = keyDepth > 1;
+
               return queryExecutor.queryDocs(
-                  query, documentProperties.maxSearchPageSize(), false, null, true, context);
+                  keyDepth,
+                  query,
+                  documentProperties.maxSearchPageSize(),
+                  false,
+                  null,
+                  fetchRowPaging,
+                  context);
             });
   }
 

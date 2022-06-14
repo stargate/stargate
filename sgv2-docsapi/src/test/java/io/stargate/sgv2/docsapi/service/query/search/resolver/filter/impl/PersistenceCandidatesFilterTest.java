@@ -112,6 +112,7 @@ class PersistenceCandidatesFilterTest extends AbstractValidatingStargateBridgeTe
           ImmutableStringCondition.of(EqFilterOperation.of(), "query-value", documentProperties);
       when(filterExpression.getFilterPath()).thenReturn(filterPath);
       when(filterExpression.getCondition()).thenReturn(condition);
+      when(filterExpression.getDescription()).thenReturn("field EQ something");
 
       CandidatesFilter filter =
           PersistenceCandidatesFilter.forExpression(filterExpression, documentProperties)

@@ -104,6 +104,10 @@ public class SubDocumentsResolver implements DocumentsResolver {
               // bind (no values needed)
               QueryOuterClass.Query query = queryBuilder.bind(built);
 
+              // note that we fetch row paging, only if key depth is more than 1
+              // if it's one, then we are getting a whole document, thus no paging
+              boolean fetchRowPaging = keyDepth > 1;
+
               // execute by respecting the paging state
               // go for max storage page size as we have the document
               return queryExecutor.queryDocs(
@@ -112,7 +116,7 @@ public class SubDocumentsResolver implements DocumentsResolver {
                   documentProperties.getApproximateStoragePageSize(paginator.docPageSize),
                   true,
                   paginator.getCurrentDbPageState(),
-                  true,
+                  fetchRowPaging,
                   context);
             })
         .filter(
