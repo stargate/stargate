@@ -1,20 +1,3 @@
-/*
- * Copyright The Stargate Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- *  See the License for the specific language governing permissions and
- * limitations under the License.
- *
- */
-
 package io.stargate.sgv2.docsapi.api.common.properties.document.impl;
 
 import com.google.common.collect.ImmutableSet;
@@ -28,34 +11,31 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.IntStream;
+import org.immutables.value.Value;
 
-/**
- * Immutable implementation of the {@link DocumentTableColumns}.
- *
- * @see DocumentTableColumns
- */
-public record DocumentTableColumnsImpl(
-    List<Column> allColumns,
-    Set<String> valueColumnNames,
-    Set<String> pathColumnNames,
-    List<String> pathColumnNamesList)
-    implements DocumentTableColumns {
+/** Helper for understanding the available document table columns. */
+@Value.Immutable
+@Value.Style(visibility = Value.Style.ImplementationVisibility.PRIVATE)
+public interface DocumentTableColumnsImpl extends DocumentTableColumns {
 
-  /**
-   * Constructor that initializes all columns based on the {@link DocumentConfig}.
-   *
-   * @param documentConfig {@link DocumentConfig}
-   */
-  public DocumentTableColumnsImpl(DocumentConfig documentConfig, boolean numberBooleans) {
-    this(
-        allColumns(documentConfig, numberBooleans),
-        valueColumnsNames(documentConfig),
-        pathColumnsNames(documentConfig),
-        pathColumnsNamesList(documentConfig));
+  static DocumentTableColumns of(DocumentConfig documentConfig, boolean numericBoolean) {
+    return new DocumentTableColumnsImplBuilder()
+        .documentConfig(documentConfig)
+        .numericBooleans(numericBoolean)
+        .build();
   }
 
-  private static Set<String> valueColumnsNames(DocumentConfig documentConfig) {
-    DocumentConfig.DocumentTableConfig table = documentConfig.table();
+  @Value.Parameter
+  DocumentConfig documentConfig();
+
+  @Value.Parameter
+  boolean numericBooleans();
+
+  /** @return Value columns, including the leaf, as {@link Set}. */
+  @Value.Derived
+  @Override
+  default Set<String> valueColumnNames() {
+    DocumentConfig.DocumentTableConfig table = documentConfig().table();
     return ImmutableSet.<String>builder()
         .add(table.leafColumnName())
         .add(table.stringValueColumnName())
@@ -63,22 +43,34 @@ public record DocumentTableColumnsImpl(
         .add(table.booleanValueColumnName())
         .build();
   }
+  ;
 
-  private static List<String> pathColumnsNamesList(DocumentConfig documentConfig) {
-    DocumentConfig.DocumentTableConfig table = documentConfig.table();
-    int depth = documentConfig.maxDepth();
+  /** @return All the JSON path columns based on the max depth as ordered {@link List}. */
+  @Value.Derived
+  @Override
+  default List<String> pathColumnNamesList() {
+    DocumentConfig.DocumentTableConfig table = documentConfig().table();
+    int depth = documentConfig().maxDepth();
 
     return IntStream.range(0, depth).mapToObj(i -> table.pathColumnPrefix() + i).toList();
   }
+  ;
 
-  private static Set<String> pathColumnsNames(DocumentConfig documentConfig) {
-    List<String> columns = pathColumnsNamesList(documentConfig);
+  /** @return All the JSON path columns based on the max depth as {@link Set}. */
+  @Value.Derived
+  @Override
+  default Set<String> pathColumnNames() {
+    List<String> columns = pathColumnNamesList();
     return Set.copyOf(columns);
   }
+  ;
 
-  private static List<Column> allColumns(DocumentConfig config, boolean numberBooleans) {
-    DocumentConfig.DocumentTableConfig table = config.table();
-    int depth = config.maxDepth();
+  /** @return All columns as the {@link ImmutableColumn} representation. */
+  @Value.Derived
+  @Override
+  default List<Column> allColumns() {
+    DocumentConfig.DocumentTableConfig table = documentConfig().table();
+    int depth = documentConfig().maxDepth();
 
     List<Column> result = new ArrayList<>();
 
@@ -131,7 +123,7 @@ public record DocumentTableColumnsImpl(
 
     // boolean value
     ImmutableColumn booleanValue;
-    if (numberBooleans) {
+    if (numericBooleans()) {
       booleanValue =
           ImmutableColumn.builder()
               .name(table.booleanValueColumnName())
@@ -149,4 +141,13 @@ public record DocumentTableColumnsImpl(
     // return unmodifiable
     return Collections.unmodifiableList(result);
   }
+  ;
+
+  /** @return all column names */
+  @Value.Derived
+  @Override
+  default String[] allColumnNamesArray() {
+    return allColumns().stream().map(Column::name).toArray(String[]::new);
+  }
+  ;
 }

@@ -100,7 +100,6 @@ public class InMemoryDocumentsResolver implements DocumentsResolver {
             .map(qb -> qb.getFilterPath().getPath().size() + 1)
             .orElse(documentProperties.maxDepth());
 
-    // TODO optimize list to string necessary
     String[] neededColumns =
         documentProperties
             .tableColumns()

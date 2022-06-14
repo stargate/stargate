@@ -26,6 +26,6 @@ public record DocumentPropertiesImpl(
         documentConfig.maxPageSize(),
         documentConfig.maxSearchPageSize(),
         new DocumentTablePropertiesImpl(documentConfig),
-        new DocumentTableColumnsImpl(documentConfig, numericBooleans));
+        DocumentTableColumnsImpl.of(documentConfig, numericBooleans));
   }
 }

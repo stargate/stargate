@@ -81,14 +81,9 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
     // find the max size of columns in all queries and use that for now
     String[] columns =
         queryBuilders.stream()
-            .map(qb -> columnsForQuery(qb, documentProperties.maxDepth()))
+            .map(qb -> columnsForQuery(qb))
             .max(Comparator.comparingInt(o -> o.length))
-            .orElseGet(
-                () ->
-                    documentProperties
-                        .tableColumns()
-                        .allColumnNamesWithPathDepth(documentProperties.maxDepth())
-                        .toArray(String[]::new));
+            .orElseGet(() -> documentProperties.tableColumns().allColumnNamesArray());
 
     // resolve if no path are there, used in the filtering
     boolean noPaths =
@@ -146,7 +141,7 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
             });
   }
 
-  private String[] columnsForQuery(AbstractSearchQueryBuilder queryBuilder, int maxDepth) {
+  private String[] columnsForQuery(AbstractSearchQueryBuilder queryBuilder) {
     DocumentTableProperties tableProps = documentProperties.tableProperties();
     String[] columns;
     if (queryBuilder instanceof FilterExpressionSearchQueryBuilder) {
@@ -159,11 +154,7 @@ public class OrExpressionDocumentsResolver implements DocumentsResolver {
               .allColumnNamesWithPathDepth(fpqb.getFilterPath().getPath().size() + 1)
               .toArray(String[]::new);
     } else {
-      columns =
-          documentProperties
-              .tableColumns()
-              .allColumnNamesWithPathDepth(maxDepth)
-              .toArray(String[]::new);
+      columns = documentProperties.tableColumns().allColumnNamesArray();
     }
     return columns;
   }

@@ -188,12 +188,7 @@ public class ReadBridgeService {
     return Uni.createFrom()
         .item(
             () -> {
-              int maxDepth = documentProperties.maxDepth();
-              String[] columns =
-                  documentProperties
-                      .tableColumns()
-                      .allColumnNamesWithPathDepth(maxDepth)
-                      .toArray(String[]::new);
+              String[] columns = documentProperties.tableColumns().allColumnNamesArray();
 
               FullSearchQueryBuilder queryBuilder = new FullSearchQueryBuilder(documentProperties);
               QueryOuterClass.Query query = queryBuilder.buildQuery(keyspace, collection, columns);
@@ -244,12 +239,7 @@ public class ReadBridgeService {
     return Uni.createFrom()
         .item(
             () -> {
-              int maxDepth = documentProperties.maxDepth();
-              String[] columns =
-                  documentProperties
-                      .tableColumns()
-                      .allColumnNamesWithPathDepth(maxDepth)
-                      .toArray(String[]::new);
+              String[] columns = documentProperties.tableColumns().allColumnNamesArray();
 
               SubDocumentSearchQueryBuilder queryBuilder =
                   new SubDocumentSearchQueryBuilder(
@@ -291,13 +281,7 @@ public class ReadBridgeService {
         Uni.createFrom()
             .item(
                 () -> {
-                  // columns from depth
-                  int maxDepth = documentProperties.maxDepth();
-                  String[] columns =
-                      documentProperties
-                          .tableColumns()
-                          .allColumnNamesWithPathDepth(maxDepth)
-                          .toArray(String[]::new);
+                  String[] columns = documentProperties.tableColumns().allColumnNamesArray();
 
                   // build
                   return queryBuilder.buildQuery(keyspace, collection, columns);
