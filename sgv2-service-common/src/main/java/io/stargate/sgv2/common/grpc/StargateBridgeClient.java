@@ -59,6 +59,7 @@ public interface StargateBridgeClient {
     return Futures.getUninterruptibly(executeQueryAsync(query));
   }
 
+  /** @see #executeQueryAsync(String, String, Function) */
   default Response executeQuery(
       String keyspaceName, String tableName, Function<Optional<CqlTable>, Query> queryProducer) {
     return Futures.getUninterruptibly(executeQueryAsync(keyspaceName, tableName, queryProducer));
