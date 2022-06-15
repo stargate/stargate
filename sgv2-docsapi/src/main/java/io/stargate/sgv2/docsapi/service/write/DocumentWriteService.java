@@ -193,6 +193,30 @@ public class DocumentWriteService {
   }
 
   /**
+   * Updates a sub-document with given ID in the given namespace and collection. Any previously
+   * existing sub-document with the same ID at the given path will be overwritten.
+   *
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to update
+   * @param payload Document represented as JSON string
+   * @param ttlAuto Whether to automatically determine TTL from the surrounding document
+   * @param context Execution content
+   * @return Document response wrapper containing the generated ID.
+   */
+  public Uni<DocumentResponseWrapper<Void>> updateSubDocument(
+      String namespace,
+      String collection,
+      String documentId,
+      List<String> subPath,
+      String payload,
+      boolean ttlAuto,
+      ExecutionContext context) {
+    // TODO after ReadBridgeService is merged, add ttl auto handling in here
+    return updateDocumentInternal(namespace, collection, documentId, subPath, payload, 0, context);
+  }
+
+  /**
    * Updates a document with given ID in the given namespace and collection at the specified
    * sub-path. Any previously existing sub-document at the given path will be overwritten.
    *
@@ -234,11 +258,122 @@ public class DocumentWriteService {
               // shred rows
               List<JsonShreddedRow> rows = documentShredder.shred(document, subPathProcessed);
 
-              // call write document
+              // call update document
               return bridgeWriteService.updateDocument(
                   namespace, collection, documentId, subPathProcessed, rows, ttl, context);
             })
         .map(any -> new DocumentResponseWrapper<>(documentId, null, null, context.toProfile()));
+  }
+
+  /**
+   * Patches a document with given ID in the given namespace and collection at the specified
+   * sub-path. Any previously existing patched keys at the given path will be overwritten, as well
+   * as any existing array.
+   *
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to patch
+   * @param subPath Sub-path of the document to patch. If empty will patch the whole doc.
+   * @param payload Document represented as JSON string
+   * @param ttlAuto Whether to automatically determine TTL from the surrounding document
+   * @param context Execution content
+   * @return Document response wrapper containing the generated ID.
+   */
+  public Uni<DocumentResponseWrapper<Void>> patchDocument(
+      String namespace,
+      String collection,
+      String documentId,
+      List<String> subPath,
+      String payload,
+      boolean ttlAuto,
+      ExecutionContext context) {
+    // TODO after ReadBridgeService is merged, add ttl auto handling in here
+    return patchDocumentInternal(namespace, collection, documentId, subPath, payload, 0, context);
+  }
+
+  /**
+   * Patches a document with given ID in the given namespace and collection at the specified
+   * sub-path. Any previously existing patched keys at the given path will be overwritten, as well
+   * as any existing array.
+   *
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to patch
+   * @param subPath Sub-path of the document to patch. If empty will patch the whole doc.
+   * @param payload Document represented as JSON string
+   * @param ttl the time-to-live of the document (in seconds), or 'auto'
+   * @param context Execution content
+   * @return Document response wrapper containing the generated ID.
+   */
+  private Uni<DocumentResponseWrapper<Void>> patchDocumentInternal(
+      String namespace,
+      String collection,
+      String documentId,
+      List<String> subPath,
+      String payload,
+      Integer ttl,
+      ExecutionContext context) {
+    // pre-process to support array elements
+    final List<String> subPathProcessed = processSubDocumentPath(subPath);
+    // read the root
+    final JsonNode root = readPayload(payload);
+    // explicitly forbid arrays and empty objects
+    if (root.isArray()) {
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_PATCH_ARRAY_NOT_ACCEPTED);
+    }
+    if (root.isObject() && root.isEmpty()) {
+      throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_PATCH_EMPTY_NOT_ACCEPTED);
+    }
+
+    return jsonSchemaManager
+        .validateJsonDocument(
+            tableManager.getValidCollectionTable(namespace, collection),
+            root,
+            !subPathProcessed.isEmpty())
+        .onItem()
+        .transform(
+            valid -> {
+              if (!valid) {
+                throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_INVALID_JSON_VALUE);
+              }
+              return true;
+            })
+        .onItem()
+        .transform(
+            __ -> {
+              // shred rows
+              List<JsonShreddedRow> rows = documentShredder.shred(root, subPathProcessed);
+
+              // call patch document
+              return bridgeWriteService.patchDocument(
+                  namespace, collection, documentId, subPathProcessed, rows, ttl, context);
+            })
+        .map(any -> new DocumentResponseWrapper<>(documentId, null, null, context.toProfile()));
+  }
+
+  /**
+   * Deletes a document with given ID in the given namespace and collection at the specified
+   * sub-path. Any previously existing sub-document at the given path will be removed.
+   *
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to delete
+   * @param subPath Sub-path of the document to delete. If empty will delete the whole doc.
+   * @param context Execution content
+   * @return Flag representing if the operation was success.
+   */
+  public Uni<Boolean> deleteDocument(
+      String namespace,
+      String collection,
+      String documentId,
+      List<String> subPath,
+      ExecutionContext context) {
+    // pre-process to support array elements
+    List<String> subPathProcessed = processSubDocumentPath(subPath);
+    return bridgeWriteService
+        .deleteDocument(namespace, collection, documentId, subPathProcessed, context)
+        .onItem()
+        .transform(__ -> true);
   }
 
   // we need to transform the stuff to support array elements
