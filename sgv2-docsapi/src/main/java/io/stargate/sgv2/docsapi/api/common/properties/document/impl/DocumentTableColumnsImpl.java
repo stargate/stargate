@@ -18,7 +18,6 @@
 package io.stargate.sgv2.docsapi.api.common.properties.document.impl;
 
 import com.google.common.collect.ImmutableSet;
-import com.google.common.collect.Streams;
 import io.stargate.bridge.grpc.TypeSpecs;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
@@ -28,9 +27,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /**
  * Immutable implementation of the {@link DocumentTableColumns}.
@@ -41,7 +38,7 @@ public record DocumentTableColumnsImpl(
     List<Column> allColumns,
     Set<String> valueColumnNames,
     Set<String> pathColumnNames,
-    Set<String> allColumnNames)
+    List<String> pathColumnNamesList)
     implements DocumentTableColumns {
 
   /**
@@ -54,7 +51,7 @@ public record DocumentTableColumnsImpl(
         allColumns(documentConfig, numberBooleans),
         valueColumnsNames(documentConfig),
         pathColumnsNames(documentConfig),
-        allColumnsNames(documentConfig));
+        pathColumnsNamesList(documentConfig));
   }
 
   private static Set<String> valueColumnsNames(DocumentConfig documentConfig) {
@@ -67,29 +64,16 @@ public record DocumentTableColumnsImpl(
         .build();
   }
 
-  private static Set<String> pathColumnsNames(DocumentConfig documentConfig) {
+  private static List<String> pathColumnsNamesList(DocumentConfig documentConfig) {
     DocumentConfig.DocumentTableConfig table = documentConfig.table();
     int depth = documentConfig.maxDepth();
 
-    return IntStream.range(0, depth)
-        .mapToObj(i -> table.pathColumnPrefix() + i)
-        .collect(Collectors.toUnmodifiableSet());
+    return IntStream.range(0, depth).mapToObj(i -> table.pathColumnPrefix() + i).toList();
   }
 
-  private static Set<String> allColumnsNames(DocumentConfig properties) {
-    DocumentConfig.DocumentTableConfig table = properties.table();
-    int depth = properties.maxDepth();
-
-    Stream<String> keyCol = Stream.of(table.keyColumnName());
-    Stream<String> pColumns = IntStream.range(0, depth).mapToObj(i -> table.pathColumnPrefix() + i);
-    Stream<String> fixedColumns =
-        Stream.of(
-            table.leafColumnName(),
-            table.stringValueColumnName(),
-            table.doubleValueColumnName(),
-            table.booleanValueColumnName());
-
-    return Streams.concat(keyCol, pColumns, fixedColumns).collect(Collectors.toUnmodifiableSet());
+  private static Set<String> pathColumnsNames(DocumentConfig documentConfig) {
+    List<String> columns = pathColumnsNamesList(documentConfig);
+    return Set.copyOf(columns);
   }
 
   private static List<Column> allColumns(DocumentConfig config, boolean numberBooleans) {

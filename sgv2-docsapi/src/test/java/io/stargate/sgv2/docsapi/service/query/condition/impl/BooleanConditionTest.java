@@ -23,14 +23,16 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
-import io.stargate.sgv2.common.cql.builder.Literal;
+import io.stargate.sgv2.common.cql.builder.Marker;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.ValueFilterOperation;
 import java.util.Optional;
 import org.apache.commons.lang3.RandomUtils;
+import org.apache.commons.lang3.tuple.Pair;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -83,14 +85,16 @@ class BooleanConditionTest {
 
       ImmutableBooleanCondition condition =
           ImmutableBooleanCondition.of(filterOperation, value, documentProperties, false);
-      Optional<BuiltCondition> result = condition.getBuiltCondition();
+      Optional<Pair<BuiltCondition, QueryOuterClass.Value>> result = condition.getBuiltCondition();
 
       assertThat(result)
           .hasValueSatisfying(
               builtCondition -> {
-                assertThat(builtCondition.predicate()).isEqualTo(eq);
-                assertThat(((Literal) builtCondition.value()).get()).isEqualTo(Values.of(value));
-                assertThat(builtCondition.lhs()).isEqualTo(BuiltCondition.LHS.column("bool_value"));
+                assertThat(builtCondition.getLeft().predicate()).isEqualTo(eq);
+                assertThat(builtCondition.getLeft().value()).isInstanceOf(Marker.class);
+                assertThat(builtCondition.getLeft().lhs())
+                    .isEqualTo(BuiltCondition.LHS.column("bool_value"));
+                assertThat(builtCondition.getRight()).isEqualTo(Values.of(value));
               });
     }
 
@@ -101,14 +105,16 @@ class BooleanConditionTest {
 
       ImmutableBooleanCondition condition =
           ImmutableBooleanCondition.of(filterOperation, true, documentProperties, true);
-      Optional<BuiltCondition> result = condition.getBuiltCondition();
+      Optional<Pair<BuiltCondition, QueryOuterClass.Value>> result = condition.getBuiltCondition();
 
       assertThat(result)
           .hasValueSatisfying(
               builtCondition -> {
-                assertThat(builtCondition.predicate()).isEqualTo(eq);
-                assertThat(((Literal) builtCondition.value()).get()).isEqualTo(Values.of(1));
-                assertThat(builtCondition.lhs()).isEqualTo(BuiltCondition.LHS.column("bool_value"));
+                assertThat(builtCondition.getLeft().predicate()).isEqualTo(eq);
+                assertThat(builtCondition.getLeft().value()).isInstanceOf(Marker.class);
+                assertThat(builtCondition.getLeft().lhs())
+                    .isEqualTo(BuiltCondition.LHS.column("bool_value"));
+                assertThat(builtCondition.getRight()).isEqualTo(Values.of(1));
               });
     }
 
@@ -119,14 +125,16 @@ class BooleanConditionTest {
 
       ImmutableBooleanCondition condition =
           ImmutableBooleanCondition.of(filterOperation, false, documentProperties, true);
-      Optional<BuiltCondition> result = condition.getBuiltCondition();
+      Optional<Pair<BuiltCondition, QueryOuterClass.Value>> result = condition.getBuiltCondition();
 
       assertThat(result)
           .hasValueSatisfying(
               builtCondition -> {
-                assertThat(builtCondition.predicate()).isEqualTo(eq);
-                assertThat(((Literal) builtCondition.value()).get()).isEqualTo(Values.of(0));
-                assertThat(builtCondition.lhs()).isEqualTo(BuiltCondition.LHS.column("bool_value"));
+                assertThat(builtCondition.getLeft().predicate()).isEqualTo(eq);
+                assertThat(builtCondition.getLeft().value()).isInstanceOf(Marker.class);
+                assertThat(builtCondition.getLeft().lhs())
+                    .isEqualTo(BuiltCondition.LHS.column("bool_value"));
+                assertThat(builtCondition.getRight()).isEqualTo(Values.of(0));
               });
     }
 
@@ -137,7 +145,7 @@ class BooleanConditionTest {
 
       ImmutableBooleanCondition condition =
           ImmutableBooleanCondition.of(filterOperation, value, documentProperties, true);
-      Optional<BuiltCondition> result = condition.getBuiltCondition();
+      Optional<Pair<BuiltCondition, QueryOuterClass.Value>> result = condition.getBuiltCondition();
 
       assertThat(result).isEmpty();
     }

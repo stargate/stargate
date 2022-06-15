@@ -11,12 +11,12 @@ public interface DocumentTableColumns {
   /** @return All columns as the {@link ImmutableColumn} representation. */
   List<Column> allColumns();
 
-  /** @return Value columns, including the leaf. */
+  /** @return Value columns, including the leaf, as {@link Set}. */
   Set<String> valueColumnNames();
 
-  /** @return All the JSON path columns based on the max depth. */
+  /** @return All the JSON path columns based on the max depth as {@link Set}. */
   Set<String> pathColumnNames();
 
-  /** @return All the columns of the document table. */
-  Set<String> allColumnNames();
+  /** @return All the JSON path columns based on the max depth as ordered {@link List}. */
+  List<String> pathColumnNamesList();
 }

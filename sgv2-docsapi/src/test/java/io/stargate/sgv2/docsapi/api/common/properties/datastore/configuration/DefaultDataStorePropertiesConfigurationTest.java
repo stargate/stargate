@@ -7,6 +7,7 @@ import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStorePropert
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableColumns;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
+import java.util.stream.IntStream;
 import javax.inject.Inject;
 import org.junit.jupiter.api.Test;
 
@@ -29,7 +30,7 @@ class DefaultDataStorePropertiesConfigurationTest {
     assertThat(properties.maxDepth()).isEqualTo(64);
     assertThat(properties.maxArrayLength()).isEqualTo(1_000_000);
     assertThat(properties.maxPageSize()).isEqualTo(20);
-    assertThat(properties.searchPageSize()).isEqualTo(1_000);
+    assertThat(properties.maxSearchPageSize()).isEqualTo(1_000);
   }
 
   @Test
@@ -53,10 +54,7 @@ class DefaultDataStorePropertiesConfigurationTest {
     assertThat(columns.pathColumnNames())
         .hasSize(64)
         .allSatisfy(p -> assertThat(p).startsWith("p"));
-    assertThat(columns.allColumnNames())
-        .hasSize(69)
-        .contains("key")
-        .containsAll(columns.valueColumnNames())
-        .containsAll(columns.pathColumnNames());
+    assertThat(columns.pathColumnNamesList())
+        .containsExactlyElementsOf(IntStream.range(0, 64).mapToObj("p%d"::formatted).toList());
   }
 }

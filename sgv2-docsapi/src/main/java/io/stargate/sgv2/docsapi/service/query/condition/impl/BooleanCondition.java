@@ -19,6 +19,7 @@ package io.stargate.sgv2.docsapi.service.query.condition.impl;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
+import io.stargate.sgv2.common.cql.builder.Term;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
@@ -26,6 +27,7 @@ import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.FilterOperationCode;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.ValueFilterOperation;
 import java.util.Optional;
+import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
 
 /** Condition that accepts boolean filter values and compare against boolean database row value. */
@@ -61,7 +63,7 @@ public abstract class BooleanCondition implements BaseCondition {
 
   /** {@inheritDoc} */
   @Override
-  public Optional<BuiltCondition> getBuiltCondition() {
+  public Optional<Pair<BuiltCondition, QueryOuterClass.Value>> getBuiltCondition() {
     String column = documentProperties().tableProperties().booleanValueColumnName();
     return getFilterOperation()
         .getQueryPredicate()
@@ -74,7 +76,8 @@ public abstract class BooleanCondition implements BaseCondition {
                           ? Constants.NUMERIC_BOOLEAN_TRUE
                           : Constants.NUMERIC_BOOLEAN_FALSE)
                       : Values.of(getQueryValue());
-              return BuiltCondition.of(column, predicate, value);
+              BuiltCondition condition = BuiltCondition.of(column, predicate, Term.marker());
+              return Pair.of(condition, value);
             });
   }
 

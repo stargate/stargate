@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.stargate</groupId>
   <artifactId>sgv2-docsapi</artifactId>
-  <version>2.0.0-ALPHA-12-SNAPSHOT</version>
+  <version>2.0.0-ALPHA-13-SNAPSHOT</version>
   <properties>
     <assertj.version>3.22.0</assertj.version>
     <compiler-plugin.version>3.8.1</compiler-plugin.version>
@@ -107,6 +107,21 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-opentelemetry-exporter-otlp</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+    </dependency>
+    <!-- rxjava3 nad rxjava3-extensions only needed for ordered merge in QueryExecutor -->
+    <dependency>
+      <groupId>io.smallrye.reactive</groupId>
+      <artifactId>mutiny-rxjava3</artifactId>
+      <version>1.5.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.akarnokd</groupId>
+      <artifactId>rxjava3-extensions</artifactId>
+      <version>3.1.1</version>
     </dependency>
     <dependency>
       <groupId>org.immutables</groupId>

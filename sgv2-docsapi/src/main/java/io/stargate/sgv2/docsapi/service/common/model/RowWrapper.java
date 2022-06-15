@@ -16,6 +16,8 @@
  */
 package io.stargate.sgv2.docsapi.service.common.model;
 
+import static org.immutables.value.Value.Style.ImplementationVisibility.PRIVATE;
+
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
@@ -24,14 +26,36 @@ import io.stargate.bridge.proto.QueryOuterClass.Value;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 /** A wrapper around the protobuf-generated {@link Row}, to add the column metadata. */
-@org.immutables.value.Value.Immutable
+@org.immutables.value.Value.Immutable(builder = false)
+@org.immutables.value.Value.Style(visibility = PRIVATE)
 public interface RowWrapper {
+
+  /**
+   * Provides a function for wrapping rows into {@link RowWrapper}s for given columns.
+   *
+   * @param columns Columns
+   * @return Function to map a {@link Row} to a {@link RowWrapper}
+   */
+  static Function<Row, RowWrapper> forColumns(List<ColumnSpec> columns) {
+    Map<String, Integer> columnIndexMap = new HashMap<>();
+    for (int index = 0; index < columns.size(); index++) {
+      QueryOuterClass.ColumnSpec col = columns.get(index);
+      columnIndexMap.put(col.getName(), index);
+    }
+
+    return row -> ImmutableRowWrapper.of(columns, columnIndexMap, row);
+  }
 
   /** @return The list of {@link ColumnSpec} for the row. */
   @org.immutables.value.Value.Parameter
   List<ColumnSpec> columns();
+
+  /** @return The column name to index map. */
+  @org.immutables.value.Value.Parameter
+  Map<String, Integer> columnIndexMap();
 
   /** @return The actual row. */
   @org.immutables.value.Value.Parameter
@@ -88,17 +112,6 @@ public interface RowWrapper {
    */
   default Boolean getBoolean(String columnName) {
     return Values.bool(getValue(columnName));
-  }
-
-  /** @return Map of column names to index in the {@link #row()}. */
-  @org.immutables.value.Value.Derived
-  default Map<String, Integer> columnIndexMap() {
-    Map<String, Integer> colIndexes = new HashMap<>();
-    for (int index = 0; index < columns().size(); index++) {
-      QueryOuterClass.ColumnSpec col = columns().get(index);
-      colIndexes.put(col.getName(), index);
-    }
-    return colIndexes;
   }
 
   private Value getValue(String columnName) {

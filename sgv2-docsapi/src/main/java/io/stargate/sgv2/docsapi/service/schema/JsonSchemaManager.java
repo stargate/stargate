@@ -5,11 +5,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.github.fge.jsonschema.core.exceptions.ProcessingException;
-import com.github.fge.jsonschema.core.report.ProcessingMessage;
 import com.github.fge.jsonschema.core.report.ProcessingReport;
 import com.github.fge.jsonschema.main.JsonSchemaFactory;
 import io.smallrye.mutiny.Uni;
-import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
@@ -17,8 +15,9 @@ import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.service.schema.query.JsonSchemaQueryProvider;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import org.slf4j.Logger;
@@ -54,12 +53,12 @@ public class JsonSchemaManager {
         .transform(
             t -> {
               String comment = t.getOptionsMap().getOrDefault("comment", null);
-              if (comment == null) {
+              if (comment == null || comment.isEmpty()) {
                 return null;
               }
 
               try {
-                return objectMapper.readTree(comment);
+                return objectMapper.readTree(comment).get("schema");
               } catch (JsonProcessingException e) {
                 logger.warn("Document table has comment, but it's not a valid JSON.");
                 return null;
@@ -70,36 +69,35 @@ public class JsonSchemaManager {
   /**
    * Assigns a JSON schema to a table.
    *
-   * @param keyspace the keyspace of the table
-   * @param table the table
+   * @param namespace the namespace of the collection
+   * @param collection the collection to attach JSON schema to
    * @param schema the JSON schema to assign
    * @return a Uni with a success boolean
    */
-  public Uni<QueryOuterClass.Response> attachJsonSchema(
-      String keyspace, String table, JsonNode schema) {
-    return Uni.createFrom()
-        .item(() -> jsonSchemaFactory.getSyntaxValidator().validateSchema(schema))
-        .flatMap(
-            report -> {
-              if (report.isSuccess()) {
-                ObjectNode wrappedSchema = objectMapper.createObjectNode();
-                wrappedSchema.set("schema", schema);
-                StargateBridge bridge = requestInfo.getStargateBridge();
-                return bridge.executeQuery(
+  public Uni<JsonNode> attachJsonSchema(
+      String namespace, Uni<Schema.CqlTable> collection, JsonNode schema) {
+    return collection.flatMap(
+        c -> {
+          ProcessingReport report = jsonSchemaFactory.getSyntaxValidator().validateSchema(schema);
+          if (report.isSuccess()) {
+            StargateBridge bridge = requestInfo.getStargateBridge();
+            ObjectNode wrappedSchema = objectMapper.createObjectNode();
+            wrappedSchema.set("schema", schema);
+            return bridge
+                .executeQuery(
                     jsonSchemaQueryProvider.attachSchemaQuery(
-                        keyspace, table, wrappedSchema.toString()));
-              } else {
-                String msgs = "";
-                Iterator<ProcessingMessage> it = report.iterator();
-                while (it.hasNext()) {
-                  ProcessingMessage msg = it.next();
-                  msgs += String.format("[%s]: %s; ", msg.getLogLevel(), msg.getMessage());
-                }
-                Throwable failure =
-                    new ErrorCodeRuntimeException(ErrorCode.DOCS_API_JSON_SCHEMA_INVALID, msgs);
-                return Uni.createFrom().failure(failure);
-              }
-            });
+                        namespace, c.getName(), wrappedSchema.toString()))
+                .map(r -> schema);
+          } else {
+            String msgs =
+                StreamSupport.stream(report.spliterator(), false)
+                    .map(msg -> String.format("[%s]: %s; ", msg.getLogLevel(), msg.getMessage()))
+                    .collect(Collectors.joining());
+            Throwable failure =
+                new ErrorCodeRuntimeException(ErrorCode.DOCS_API_JSON_SCHEMA_INVALID, msgs);
+            return Uni.createFrom().failure(failure);
+          }
+        });
   }
 
   /**
@@ -111,7 +109,8 @@ public class JsonSchemaManager {
    */
   public Uni<Boolean> validateJsonDocument(Uni<Schema.CqlTable> table, JsonNode document) {
     return getJsonSchema(table)
-        .map(
+        .onItem()
+        .transform(
             jsonSchema -> {
               if (jsonSchema == null) {
                 // If there is no valid JSON schema, then the document is valid
@@ -119,7 +118,7 @@ public class JsonSchemaManager {
               }
 
               try {
-                validate(jsonSchema.get("schema"), document);
+                validate(jsonSchema, document);
               } catch (ProcessingException e) {
                 throw new ErrorCodeRuntimeException(
                     ErrorCode.DOCS_API_JSON_SCHEMA_PROCESSING_FAILED);

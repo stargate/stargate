@@ -55,6 +55,7 @@ class JsonSchemaManagerTest extends BridgeTest {
     public void happyPath() throws JsonProcessingException {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
+      table = Schema.CqlTable.newBuilder().setName(collection).putOptions("comment", "{}").build();
 
       doAnswer(
               invocationOnMock -> {
@@ -70,7 +71,7 @@ class JsonSchemaManagerTest extends BridgeTest {
           objectMapper.readTree("{\"$schema\": \"https://json-schema.org/draft/2019-09/schema\"}");
 
       jsonSchemaManager
-          .attachJsonSchema(namespace, collection, schema)
+          .attachJsonSchema(namespace, Uni.createFrom().item(table), schema)
           .subscribe()
           .withSubscriber(UniAssertSubscriber.create())
           .awaitItem();
@@ -81,6 +82,7 @@ class JsonSchemaManagerTest extends BridgeTest {
 
     @Test
     public void malformedSchema() throws JsonProcessingException {
+      table = Schema.CqlTable.newBuilder().build();
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
 
@@ -97,7 +99,7 @@ class JsonSchemaManagerTest extends BridgeTest {
                   + "}");
 
       jsonSchemaManager
-          .attachJsonSchema(namespace, collection, schema)
+          .attachJsonSchema(namespace, Uni.createFrom().item(table), schema)
           .subscribe()
           .withSubscriber(UniAssertSubscriber.create())
           .awaitFailure()
@@ -120,7 +122,7 @@ class JsonSchemaManagerTest extends BridgeTest {
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
 
-      result.awaitItem().assertItem(objectMapper.readTree("{\"schema\": {}}")).assertCompleted();
+      result.awaitItem().assertItem(objectMapper.readTree("{}")).assertCompleted();
     }
 
     @Test

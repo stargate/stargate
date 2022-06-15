@@ -16,6 +16,7 @@
 
 package io.stargate.sgv2.docsapi.service.query.condition;
 
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
@@ -24,6 +25,7 @@ import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
 import java.util.Optional;
 import java.util.function.Predicate;
 import javax.validation.constraints.NotNull;
+import org.apache.commons.lang3.tuple.Pair;
 
 /** Interface for the base filtering condition. */
 public interface BaseCondition extends Predicate<RowWrapper> {
@@ -40,8 +42,11 @@ public interface BaseCondition extends Predicate<RowWrapper> {
     return getBuiltCondition().isPresent();
   }
 
-  /** @return Returns persistence built condition, if this condition supports database querying. */
-  Optional<BuiltCondition> getBuiltCondition();
+  /**
+   * @return Returns persistence built condition together with bind value, if this condition
+   *     supports database querying.
+   */
+  Optional<Pair<BuiltCondition, QueryOuterClass.Value>> getBuiltCondition();
 
   /** @return Returns filter operation code used by this condition. */
   FilterOperationCode getFilterOperationCode();

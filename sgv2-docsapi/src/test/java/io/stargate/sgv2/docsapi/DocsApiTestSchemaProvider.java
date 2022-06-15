@@ -28,7 +28,6 @@ import io.stargate.bridge.proto.Schema.CqlKeyspace;
 import io.stargate.bridge.proto.Schema.CqlTable;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
-import io.stargate.sgv2.docsapi.service.common.model.ImmutableRowWrapper;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import java.util.List;
 import java.util.stream.Stream;
@@ -97,12 +96,7 @@ public class DocsApiTestSchemaProvider {
   }
 
   public RowWrapper getRow(ImmutableMap<String, Value> valuesMap) {
-    Stream<ColumnSpec> allColumns =
-        Streams.concat(
-            table.getPartitionKeyColumnsList().stream(),
-            table.getClusteringKeyColumnsList().stream(),
-            table.getColumnsList().stream(),
-            table.getStaticColumnsList().stream());
+    Stream<ColumnSpec> allColumns = allColumnSpecStream();
     List<ColumnSpec> columnsInRow =
         allColumns.filter(c -> valuesMap.containsKey(c.getName())).toList();
     QueryOuterClass.Row row =
@@ -110,6 +104,20 @@ public class DocsApiTestSchemaProvider {
             // Make sure the values are in the same order as the columns
             .addAllValues(columnsInRow.stream().map(c -> valuesMap.get(c.getName())).toList())
             .build();
-    return ImmutableRowWrapper.of(columnsInRow, row);
+    return RowWrapper.forColumns(columnsInRow).apply(row);
+  }
+
+  public Stream<ColumnSpec> allColumnSpecStream() {
+    Stream<ColumnSpec> allColumns =
+        Streams.concat(
+            table.getPartitionKeyColumnsList().stream(),
+            table.getClusteringKeyColumnsList().stream(),
+            table.getColumnsList().stream(),
+            table.getStaticColumnsList().stream());
+    return allColumns;
+  }
+
+  public List<ColumnSpec> allColumnSpec() {
+    return allColumnSpecStream().toList();
   }
 }

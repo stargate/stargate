@@ -16,6 +16,7 @@
 
 package io.stargate.sgv2.docsapi.service.query.condition.impl;
 
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
@@ -23,6 +24,7 @@ import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.FilterOperationCode;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.GenericFilterOperation;
 import java.util.Optional;
+import org.apache.commons.lang3.tuple.Pair;
 import org.immutables.value.Value;
 
 /**
@@ -63,7 +65,7 @@ public abstract class GenericCondition<V> implements BaseCondition {
    * <p>This implementation always returns empty. Sub-class to override.
    */
   @Override
-  public Optional<BuiltCondition> getBuiltCondition() {
+  public Optional<Pair<BuiltCondition, QueryOuterClass.Value>> getBuiltCondition() {
     return Optional.empty();
   }
 
