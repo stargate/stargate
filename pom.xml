@@ -16,7 +16,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.scm.id>github</project.scm.id>
     <doclint>none</doclint>
-    <driver.version>4.13.0</driver.version>
+    <driver.version>4.14.1</driver.version>
     <xml-format.skip>true</xml-format.skip>
 
     <!-- First DropWizard version and things it directly depends on that make sense to sync -->
@@ -715,6 +715,25 @@
         <groupId>com.datastax.oss</groupId>
         <artifactId>java-driver-shaded-guava</artifactId>
         <version>25.1-jre</version>
+      </dependency>
+      <dependency>
+        <groupId>com.datastax.oss</groupId>
+        <artifactId>java-driver-core</artifactId>
+        <version>${driver.version}</version>
+      </dependency>
+      <!-- 14-Jun-2022, tatu: with java-driver-core 4.14.1 this dependency is optional
+            and not brought as compile-time dependency, so needs to be explicitly added
+           (see [stargate#1889] for details). But we better use consistent version
+        -->
+      <dependency>
+        <groupId>com.esri.geometry</groupId>
+        <artifactId>esri-geometry-api</artifactId>
+        <version>1.2.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.datastax.oss</groupId>
+        <artifactId>java-driver-query-builder</artifactId>
+        <version>${driver.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.errorprone</groupId>
