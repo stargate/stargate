@@ -1,5 +1,13 @@
 # Changelog
 
+## [v1.0.58](https://github.com/stargate/stargate/tree/v1.0.58) (2022-06-15)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.57...v1.0.58)
+
+**Closed issues:**
+
+- Update java-driver-code dependency from 4.13.0 to 4.14.1 [\#1890](https://github.com/stargate/stargate/pull/1890) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v1.0.57](https://github.com/stargate/stargate/tree/v1.0.57) (2022-05-26)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.56...v1.0.57)
