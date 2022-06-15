@@ -125,7 +125,7 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
       Query query;
       try {
         query = produceQuery(queryProducer, Optional.of(keyspace), tableName);
-      } catch (Throwable t) {
+      } catch (Exception ignored) {
         // Always retry with the latest version, in case the error is caused by stale metadata
         // (e.g. using a table that has not yet replicated to our local cache)
         return forceFetchAndExecute(keyspaceName, decoratedKeyspaceName, tableName, queryProducer);
