@@ -1,5 +1,14 @@
 # Changelog
 
+## [v2.0.0-ALPHA-13](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-13) (2022-06-15)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-12...v2.0.0-ALPHA-13)
+
+**Merged pull requests:**
+
+- Revert the nesting of JSON schema in table comment [\#1885](https://github.com/stargate/stargate/pull/1885) ([EricBorczuk](https://github.com/EricBorczuk))
+- Adds JsonSchemaResource, with tests [\#1867](https://github.com/stargate/stargate/pull/1867) ([EricBorczuk](https://github.com/EricBorczuk))
+
 ## [v2.0.0-ALPHA-12](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-12) (2022-06-10)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-11...v2.0.0-ALPHA-12)
