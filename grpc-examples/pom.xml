@@ -3,7 +3,7 @@
     <parent>
         <artifactId>stargate</artifactId>
         <groupId>io.stargate</groupId>
-        <version>1.0.58-SNAPSHOT</version>
+        <version>1.0.59-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
