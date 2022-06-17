@@ -24,6 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableList;
+import io.stargate.sgv2.docsapi.service.util.ByteBufferUtils;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;
@@ -130,9 +131,9 @@ class CombinedPagingStateTest {
       ByteBuffer s2 = ByteBuffer.wrap(new byte[] {-1, -3});
       List<ByteBuffer> combined = deserialize(3, serialize(ImmutableList.of(s0, s1, s2)));
       assertThat(combined).hasSize(3);
-      assertThat(getArray(combined.get(0))).isEqualTo(s0.array());
-      assertThat(getArray(combined.get(1))).isEqualTo(s1.array());
-      assertThat(getArray(combined.get(2))).isEqualTo(s2.array());
+      assertThat(ByteBufferUtils.getArray(combined.get(0))).isEqualTo(s0.array());
+      assertThat(ByteBufferUtils.getArray(combined.get(1))).isEqualTo(s1.array());
+      assertThat(ByteBufferUtils.getArray(combined.get(2))).isEqualTo(s2.array());
     }
 
     @Test
@@ -142,14 +143,14 @@ class CombinedPagingStateTest {
 
       List<ByteBuffer> combined = deserialize(3, serialize(Arrays.asList(s0, null, s1)));
       assertThat(combined).hasSize(3);
-      assertThat(getArray(combined.get(0))).isEqualTo(s0.array());
+      assertThat(ByteBufferUtils.getArray(combined.get(0))).isEqualTo(s0.array());
       assertThat(combined.get(1)).isNull();
-      assertThat(getArray(combined.get(2))).isEqualTo(s1.array());
+      assertThat(ByteBufferUtils.getArray(combined.get(2))).isEqualTo(s1.array());
 
       combined = deserialize(3, serialize(Arrays.asList(null, s0, null)));
       assertThat(combined).hasSize(3);
       assertThat(combined.get(0)).isNull();
-      assertThat(getArray(combined.get(1))).isEqualTo(s0.array());
+      assertThat(ByteBufferUtils.getArray(combined.get(1))).isEqualTo(s0.array());
       assertThat(combined.get(2)).isNull();
     }
 
@@ -181,32 +182,6 @@ class CombinedPagingStateTest {
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("2") // actual number of sub-states
           .hasMessageContaining("1345"); // expected number of sub-states
-    }
-
-    /**
-     * Extract the content of the provided {@code ByteBuffer} as a byte array.
-     *
-     * <p>This method work with any type of {@code ByteBuffer} (direct and non-direct ones), but
-     * when the {@code ByteBuffer} is backed by an array, this method will try to avoid copy when
-     * possible. As a consequence, changes to the returned byte array may or may not reflect into
-     * the initial {@code ByteBuffer}.
-     *
-     * @param bytes the buffer whose content to extract.
-     * @return a byte array with the content of {@code bytes}. That array may be the array backing
-     *     {@code bytes} if this can avoid a copy.
-     */
-    public static byte[] getArray(ByteBuffer bytes) {
-      int length = bytes.remaining();
-
-      if (bytes.hasArray()) {
-        int boff = bytes.arrayOffset() + bytes.position();
-        if (boff == 0 && length == bytes.array().length) return bytes.array();
-        else return Arrays.copyOfRange(bytes.array(), boff, boff + length);
-      }
-      // else, DirectByteBuffer.get() is the fastest route
-      byte[] array = new byte[length];
-      bytes.duplicate().get(array);
-      return array;
     }
   }
 }
