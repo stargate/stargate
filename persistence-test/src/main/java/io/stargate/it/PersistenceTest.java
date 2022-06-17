@@ -1364,7 +1364,7 @@ public abstract class PersistenceTest {
   }
 
   @Test
-  public void testTableDefaultTTLSelect() {
+  public void testTableDefaultTTL() {
     createKeyspace();
     dataStore
         .queryBuilder()
