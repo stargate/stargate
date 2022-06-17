@@ -1155,9 +1155,9 @@ public class RestApiv2SchemaTest extends BaseRestApiTest {
                 "%s/v2/schemas/keyspaces/%s/tables/invalid_table/indexes",
                 restUrlBase, keyspaceName),
             objectMapper.writeValueAsString(indexAdd),
-            HttpStatus.SC_NOT_FOUND);
+            HttpStatus.SC_BAD_REQUEST);
     ApiError response = objectMapper.readValue(body, ApiError.class);
-    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_NOT_FOUND);
+    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(response.getDescription()).containsPattern("Table.*not found");
 
     // invalid column

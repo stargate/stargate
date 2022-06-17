@@ -16,6 +16,7 @@
 package io.stargate.bridge.service;
 
 import io.grpc.Context;
+import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.bridge.proto.QueryOuterClass.Batch;
@@ -25,6 +26,7 @@ import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridgeGrpc;
 import io.stargate.db.Persistence;
 import io.stargate.db.Result;
+import io.stargate.db.schema.Keyspace;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
@@ -83,6 +85,56 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
             schemaAgreementRetries,
             synchronizedStreamObserver)
         .handle();
+  }
+
+  @Override
+  public void executeQueryWithSchema(
+      Schema.QueryWithSchema request,
+      StreamObserver<Schema.QueryWithSchemaResponse> responseObserver) {
+    String keyspaceName = request.getKeyspaceName();
+    int keyspaceHash = request.getKeyspaceHash();
+    String decoratedName =
+        persistence.decorateKeyspaceName(keyspaceName, BridgeService.HEADERS_KEY.get());
+    Keyspace keyspace = persistence.schema().keyspace(decoratedName);
+
+    if (keyspace == null) {
+      responseObserver.onNext(
+          Schema.QueryWithSchemaResponse.newBuilder()
+              .setNoKeyspace(Schema.QueryWithSchemaResponse.NoKeyspace.getDefaultInstance())
+              .build());
+      responseObserver.onCompleted();
+    } else if (keyspace.hashCode() != keyspaceHash) {
+      try {
+        responseObserver.onNext(
+            Schema.QueryWithSchemaResponse.newBuilder()
+                .setNewKeyspace(
+                    SchemaHandler.buildKeyspaceDescription(keyspace, keyspaceName, decoratedName))
+                .build());
+        responseObserver.onCompleted();
+      } catch (StatusException e) {
+        responseObserver.onError(e);
+      }
+    } else {
+      executeQuery(
+          request.getQuery(),
+          new StreamObserver<Response>() {
+            @Override
+            public void onNext(Response response) {
+              responseObserver.onNext(
+                  Schema.QueryWithSchemaResponse.newBuilder().setResponse(response).build());
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+              responseObserver.onError(throwable);
+            }
+
+            @Override
+            public void onCompleted() {
+              responseObserver.onCompleted();
+            }
+          });
+    }
   }
 
   @Override

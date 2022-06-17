@@ -40,6 +40,7 @@ import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.QueryOuterClass.QueryParameters;
 import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.bridge.proto.QueryOuterClass.Values;
+import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridgeGrpc;
 import io.stargate.bridge.proto.StargateBridgeGrpc.StargateBridgeBlockingStub;
 import io.stargate.db.BoundStatement;
@@ -112,6 +113,20 @@ public class BaseBridgeServiceTest {
   protected QueryOuterClass.Response executeQuery(
       StargateBridgeBlockingStub stub, String cql, Value... values) {
     return stub.executeQuery(Query.newBuilder().setCql(cql).setValues(valuesOf(values)).build());
+  }
+
+  protected Schema.QueryWithSchemaResponse executeQueryWithSchema(
+      StargateBridgeBlockingStub stub,
+      String keyspaceName,
+      int keyspaceHash,
+      String cql,
+      Value... values) {
+    return stub.executeQueryWithSchema(
+        Schema.QueryWithSchema.newBuilder()
+            .setKeyspaceName(keyspaceName)
+            .setKeyspaceHash(keyspaceHash)
+            .setQuery(Query.newBuilder().setCql(cql).setValues(valuesOf(values)))
+            .build());
   }
 
   protected static Values.Builder valuesOf(Value... values) {

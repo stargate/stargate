@@ -39,6 +39,8 @@ import io.stargate.bridge.proto.Schema.AuthorizeSchemaReadsRequest;
 import io.stargate.bridge.proto.Schema.AuthorizeSchemaReadsResponse;
 import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.bridge.proto.Schema.DescribeKeyspaceQuery;
+import io.stargate.bridge.proto.Schema.QueryWithSchema;
+import io.stargate.bridge.proto.Schema.QueryWithSchemaResponse;
 import io.stargate.bridge.proto.Schema.SchemaRead;
 import io.stargate.bridge.proto.Schema.SchemaRead.SourceApi;
 import io.stargate.bridge.proto.Schema.SupportedFeaturesRequest;
@@ -54,6 +56,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.commons.codec.binary.Hex;
 
@@ -105,6 +108,91 @@ class DefaultStargateBridgeClient implements StargateBridgeClient {
     UnaryStreamObserver<Response> observer = new UnaryStreamObserver<>();
     ClientCalls.asyncUnaryCall(call, query, observer);
     return observer.asFuture();
+  }
+
+  @Override
+  public CompletionStage<Response> executeQueryAsync(
+      String keyspaceName,
+      String tableName,
+      Function<Optional<Schema.CqlTable>, Query> queryProducer) {
+    String decoratedKeyspaceName = addTenantPrefix(keyspaceName);
+    CqlKeyspaceDescribe keyspace = keyspaceCache.getIfPresent(decoratedKeyspaceName);
+    if (keyspace == null) {
+      // Nothing in our local cache, check if the bridge has a more recent version
+      return forceFetchAndExecute(keyspaceName, decoratedKeyspaceName, tableName, queryProducer);
+    } else {
+      // Build the query with our local version
+      Query query;
+      try {
+        query = produceQuery(queryProducer, Optional.of(keyspace), tableName);
+      } catch (Exception ignored) {
+        // Always retry with the latest version, in case the error is caused by stale metadata
+        // (e.g. using a table that has not yet replicated to our local cache)
+        return forceFetchAndExecute(keyspaceName, decoratedKeyspaceName, tableName, queryProducer);
+      }
+      // Execute optimistically
+      ClientCall<QueryWithSchema, QueryWithSchemaResponse> call =
+          channel.newCall(StargateBridgeGrpc.getExecuteQueryWithSchemaMethod(), callOptions);
+      UnaryStreamObserver<QueryWithSchemaResponse> observer = new UnaryStreamObserver<>();
+      ClientCalls.asyncUnaryCall(
+          call,
+          QueryWithSchema.newBuilder()
+              .setQuery(query)
+              .setKeyspaceName(keyspaceName)
+              .setKeyspaceHash(keyspace.getHash().getValue())
+              .build(),
+          observer);
+      return observer
+          .asFuture()
+          .thenCompose(
+              withSchemaResponse -> {
+                QueryWithSchemaResponse.InnerCase innerCase = withSchemaResponse.getInnerCase();
+                switch (innerCase) {
+                  case RESPONSE:
+                    // Success, the keyspace hadn't changed on the bridge
+                    return CompletableFuture.completedFuture(withSchemaResponse.getResponse());
+                  case NEW_KEYSPACE:
+                    // The keyspace was updated, retry with that version
+                    CqlKeyspaceDescribe ks = withSchemaResponse.getNewKeyspace();
+                    keyspaceCache.put(decoratedKeyspaceName, ks);
+                    return executeQueryAsync(
+                        produceQuery(queryProducer, Optional.of(keyspace), tableName));
+                  case NO_KEYSPACE:
+                    // The keyspace was deleted
+                    keyspaceCache.invalidate(decoratedKeyspaceName);
+                    return executeQueryAsync(
+                        produceQuery(queryProducer, Optional.empty(), tableName));
+                  default:
+                    throw new IllegalStateException(
+                        "Invalid bridge response, unexpected inner " + innerCase);
+                }
+              });
+    }
+  }
+
+  private CompletionStage<Response> forceFetchAndExecute(
+      String keyspaceName,
+      String decoratedKeyspaceName,
+      String tableName,
+      Function<Optional<Schema.CqlTable>, Query> queryProducer) {
+    return getKeyspaceAsync(keyspaceName, false)
+        .thenCompose(
+            newKeyspace -> {
+              newKeyspace.ifPresent(ks -> keyspaceCache.put(decoratedKeyspaceName, ks));
+              return executeQueryAsync(produceQuery(queryProducer, newKeyspace, tableName));
+            });
+  }
+
+  private Query produceQuery(
+      Function<Optional<Schema.CqlTable>, Query> queryProducer,
+      Optional<CqlKeyspaceDescribe> maybeKeyspace,
+      String tableName) {
+    return queryProducer.apply(
+        maybeKeyspace.flatMap(
+            keyspace ->
+                keyspace.getTablesList().stream()
+                    .filter(t -> t.getName().equals(tableName))
+                    .findFirst()));
   }
 
   @Override

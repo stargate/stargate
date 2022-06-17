@@ -72,25 +72,23 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
     }
 
-    return callWithTable(
-        bridge,
-        keyspaceName,
-        tableName,
-        false,
-        (tableDef) -> {
-          final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+    QueryOuterClass.Response response =
+        queryWithTable(
+            bridge,
+            keyspaceName,
+            tableName,
+            tableDef -> {
+              final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
 
-          final List<BuiltCondition> whereConditions;
-          try {
-            whereConditions = new WhereParser(tableDef, toProtoConverter).parseWhere(where);
-          } catch (IllegalArgumentException e) {
-            throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
-          }
+              final List<BuiltCondition> whereConditions;
+              try {
+                whereConditions = new WhereParser(tableDef, toProtoConverter).parseWhere(where);
+              } catch (IllegalArgumentException e) {
+                throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
+              }
 
-          final QueryOuterClass.Query query;
-          if (columns.isEmpty()) {
-            query =
-                new QueryBuilder()
+              if (columns.isEmpty()) {
+                return new QueryBuilder()
                     .select()
                     .star()
                     .from(keyspaceName, tableName)
@@ -98,9 +96,8 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
                     .orderBy(sortOrder)
                     .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
                     .build();
-          } else {
-            query =
-                new QueryBuilder()
+              } else {
+                return new QueryBuilder()
                     .select()
                     .column(columns)
                     .from(keyspaceName, tableName)
@@ -108,9 +105,9 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
                     .orderBy(sortOrder)
                     .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
                     .build();
-          }
-          return fetchRows(bridge, query, raw);
-        });
+              }
+            });
+    return toHttpResponse(response, raw);
   }
 
   @Override
@@ -135,15 +132,14 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
     }
 
-    return callWithTable(
-        bridge,
-        keyspaceName,
-        tableName,
-        false,
-        (tableDef) -> {
-          final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
-          final QueryOuterClass.Query query =
-              buildGetRowsByPKQuery(
+    QueryOuterClass.Response response =
+        queryWithTable(
+            bridge,
+            keyspaceName,
+            tableName,
+            tableDef -> {
+              final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+              return buildGetRowsByPKQuery(
                   keyspaceName,
                   tableName,
                   path,
@@ -153,8 +149,8 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
                   pageSizeParam,
                   pageStateParam,
                   toProtoConverter);
-          return fetchRows(bridge, query, raw);
-        });
+            });
+    return toHttpResponse(response, raw);
   }
 
   @Override
@@ -215,25 +211,22 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
           "Invalid JSON payload: " + e.getMessage(), Status.BAD_REQUEST);
     }
 
-    return callWithTable(
+    queryWithTable(
         bridge,
         keyspaceName,
         tableName,
-        false,
-        (tableDef) -> {
+        tableDef -> {
           final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
 
-          final QueryOuterClass.Query query;
           try {
-            query = buildAddRowQuery(keyspaceName, tableName, payloadMap, toProtoConverter);
+            return buildAddRowQuery(keyspaceName, tableName, payloadMap, toProtoConverter);
           } catch (IllegalArgumentException e) {
             throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
           }
-
-          QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
-          // apparently no useful data in ResultSet, we should simply return payload we got:
-          return Response.status(Status.CREATED).entity(payloadAsString).build();
         });
+
+    // apparently no useful data in ResultSet, we should simply return payload we got:
+    return Response.status(Status.CREATED).entity(payloadAsString).build();
   }
 
   @Override
@@ -256,21 +249,16 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final List<PathSegment> path,
       HttpServletRequest request) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    return callWithTable(
+    queryWithTable(
         bridge,
         keyspaceName,
         tableName,
-        false,
         (tableDef) -> {
           final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
-
-          final QueryOuterClass.Query query =
-              buildDeleteRowsByPKCQuery(keyspaceName, tableName, path, tableDef, toProtoConverter);
-
-          /*QueryOuterClass.Response grpcResponse =*/
-          bridge.executeQuery(query);
-          return Response.status(Status.NO_CONTENT).build();
+          return buildDeleteRowsByPKCQuery(
+              keyspaceName, tableName, path, tableDef, toProtoConverter);
         });
+    return Response.status(Status.NO_CONTENT).build();
   }
 
   @Override
@@ -302,28 +290,23 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       throw new WebApplicationException(
           "Invalid JSON payload: " + e.getMessage(), Status.BAD_REQUEST);
     }
-    return callWithTable(
+    queryWithTable(
         bridge,
         keyspaceName,
         tableName,
-        false,
-        (tableDef) -> {
+        tableDef -> {
           final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
-
-          final QueryOuterClass.Query query;
           try {
-            query =
-                buildUpdateRowQuery(
-                    keyspaceName, tableName, path, tableDef, payloadMap, toProtoConverter);
+            return buildUpdateRowQuery(
+                keyspaceName, tableName, path, tableDef, payloadMap, toProtoConverter);
           } catch (IllegalArgumentException e) {
             throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
           }
-
-          QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
-          // apparently no useful data in ResultSet, we should simply return payload we got:
-          final Object responsePayload = raw ? payloadMap : new Sgv2RESTResponse(payloadMap);
-          return Response.status(Status.OK).entity(responsePayload).build();
         });
+
+    // apparently no useful data in ResultSet, we should simply return payload we got:
+    final Object responsePayload = raw ? payloadMap : new Sgv2RESTResponse(payloadMap);
+    return Response.status(Status.OK).entity(responsePayload).build();
   }
 
   /*

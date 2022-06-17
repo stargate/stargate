@@ -1,5 +1,14 @@
 # Changelog
 
+## [v2.0.0-ALPHA-13](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-13) (2022-06-15)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-12...v2.0.0-ALPHA-13)
+
+**Merged pull requests:**
+
+- Revert the nesting of JSON schema in table comment [\#1885](https://github.com/stargate/stargate/pull/1885) ([EricBorczuk](https://github.com/EricBorczuk))
+- Adds JsonSchemaResource, with tests [\#1867](https://github.com/stargate/stargate/pull/1867) ([EricBorczuk](https://github.com/EricBorczuk))
+
 ## [v2.0.0-ALPHA-12](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-12) (2022-06-10)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-11...v2.0.0-ALPHA-12)
@@ -252,6 +261,14 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Rest integration test - initial work (#1359)
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
+
+## [v1.0.58](https://github.com/stargate/stargate/tree/v1.0.58) (2022-06-15)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.57...v1.0.58)
+
+**Closed issues:**
+
+- Update java-driver-code dependency from 4.13.0 to 4.14.1 [\#1890](https://github.com/stargate/stargate/pull/1890) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 
 ## [v1.0.57](https://github.com/stargate/stargate/tree/v1.0.57) (2022-05-26)
 
