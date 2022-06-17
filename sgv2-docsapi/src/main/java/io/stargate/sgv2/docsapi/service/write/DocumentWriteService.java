@@ -14,6 +14,7 @@ import io.stargate.sgv2.docsapi.config.DocumentConfig;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.JsonDocumentShredder;
 import io.stargate.sgv2.docsapi.service.JsonShreddedRow;
+import io.stargate.sgv2.docsapi.service.query.ReadBridgeService;
 import io.stargate.sgv2.docsapi.service.schema.JsonSchemaManager;
 import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
@@ -35,7 +36,9 @@ public class DocumentWriteService {
 
   @Inject JsonDocumentShredder documentShredder;
 
-  @Inject BridgeWriteService bridgeWriteService;
+  @Inject WriteBridgeService writeBridgeService;
+
+  @Inject ReadBridgeService readBridgeService;
 
   @Inject DocumentConfig configuration;
 
@@ -68,7 +71,7 @@ public class DocumentWriteService {
             __ -> {
               List<JsonShreddedRow> rows =
                   documentShredder.shred(document, Collections.emptyList());
-              return bridgeWriteService.writeDocument(
+              return writeBridgeService.writeDocument(
                   namespace, collection, documentId, rows, ttl, context);
             })
         .map(any -> new DocumentResponseWrapper<>(documentId, null, null, context.toProfile()));
@@ -144,7 +147,7 @@ public class DocumentWriteService {
 
                   // use write when possible to avoid the extra delete query
                   if (useUpdate) {
-                    return bridgeWriteService
+                    return writeBridgeService
                         .updateDocument(
                             namespace,
                             collection,
@@ -156,7 +159,7 @@ public class DocumentWriteService {
                         .onItem()
                         .transform(resultSet -> documentId);
                   } else {
-                    return bridgeWriteService
+                    return writeBridgeService
                         .writeDocument(
                             namespace, collection, documentId, documentRows, ttl, context)
                         .onItem()
@@ -212,8 +215,16 @@ public class DocumentWriteService {
       String payload,
       boolean ttlAuto,
       ExecutionContext context) {
-    // TODO after ReadBridgeService is merged, add ttl auto handling in here
-    return updateDocumentInternal(namespace, collection, documentId, subPath, payload, 0, context);
+    Uni<Integer> ttlValue = Uni.createFrom().item(0);
+    if (ttlAuto) {
+      ttlValue = determineTtl(namespace, collection, documentId, context);
+    }
+    return ttlValue
+        .onItem()
+        .transformToUni(
+            ttl ->
+                updateDocumentInternal(
+                    namespace, collection, documentId, subPath, payload, ttl, context));
   }
 
   /**
@@ -259,7 +270,7 @@ public class DocumentWriteService {
               List<JsonShreddedRow> rows = documentShredder.shred(document, subPathProcessed);
 
               // call update document
-              return bridgeWriteService.updateDocument(
+              return writeBridgeService.updateDocument(
                   namespace, collection, documentId, subPathProcessed, rows, ttl, context);
             })
         .map(any -> new DocumentResponseWrapper<>(documentId, null, null, context.toProfile()));
@@ -287,8 +298,16 @@ public class DocumentWriteService {
       String payload,
       boolean ttlAuto,
       ExecutionContext context) {
-    // TODO after ReadBridgeService is merged, add ttl auto handling in here
-    return patchDocumentInternal(namespace, collection, documentId, subPath, payload, 0, context);
+    Uni<Integer> ttlValue = Uni.createFrom().item(0);
+    if (ttlAuto) {
+      ttlValue = determineTtl(namespace, collection, documentId, context);
+    }
+    return ttlValue
+        .onItem()
+        .transformToUni(
+            ttl ->
+                patchDocumentInternal(
+                    namespace, collection, documentId, subPath, payload, ttl, context));
   }
 
   /**
@@ -345,7 +364,7 @@ public class DocumentWriteService {
               List<JsonShreddedRow> rows = documentShredder.shred(root, subPathProcessed);
 
               // call patch document
-              return bridgeWriteService.patchDocument(
+              return writeBridgeService.patchDocument(
                   namespace, collection, documentId, subPathProcessed, rows, ttl, context);
             })
         .map(any -> new DocumentResponseWrapper<>(documentId, null, null, context.toProfile()));
@@ -370,7 +389,7 @@ public class DocumentWriteService {
       ExecutionContext context) {
     // pre-process to support array elements
     List<String> subPathProcessed = processSubDocumentPath(subPath);
-    return bridgeWriteService
+    return writeBridgeService
         .deleteDocument(namespace, collection, documentId, subPathProcessed, context)
         .onItem()
         .transform(__ -> true);
@@ -381,6 +400,18 @@ public class DocumentWriteService {
     return subDocumentPath.stream()
         .map(path -> DocsApiUtils.convertArrayPath(path, configuration.maxArrayLength()))
         .collect(Collectors.toList());
+  }
+
+  private Uni<Integer> determineTtl(
+      String namespace, String collection, String documentId, ExecutionContext ctx) {
+    return readBridgeService
+        .getDocumentTtlInfo(namespace, collection, documentId, ctx)
+        .collect()
+        .asList()
+        .onItem()
+        .transform(
+            rawDocumentList ->
+                rawDocumentList.get(0).rows().get(0).getLong("ttl(leaf)").intValue());
   }
 
   private JsonNode readPayload(String payload) {
