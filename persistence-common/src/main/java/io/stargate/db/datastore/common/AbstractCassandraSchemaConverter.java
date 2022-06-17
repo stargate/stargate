@@ -267,7 +267,8 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
     T table = asTable(view);
     List<Column> columns = convertColumns(keyspaceName, table).collect(Collectors.toList());
     String comment = comment(table);
-    return MaterializedView.create(keyspaceName, tableName(table), columns, comment);
+    int ttl = ttl(table);
+    return MaterializedView.create(keyspaceName, tableName(table), columns, comment, ttl);
   }
 
   private Stream<UserDefinedType> convertUserTypes(String keyspaceName, Iterable<U> userTypes) {
