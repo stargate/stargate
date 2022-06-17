@@ -89,6 +89,9 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
   /** The comment on the provided internal table. * */
   protected abstract String comment(T table);
 
+  /** The TTL on the provided internal table. * */
+  protected abstract int ttl(T table);
+
   /** The (unquoted) name of the provided internal index. */
   protected abstract String indexName(I index);
 
@@ -146,12 +149,14 @@ public abstract class AbstractCassandraSchemaConverter<K, T, C, U, I, V> {
     Stream<Index> secondaryIndexes = convertSecondaryIndexes(keyspaceName, table, columns);
     Stream<Index> materializedViews = convertMVIndexes(keyspaceName, table, views);
     String comment = comment(table);
+    int ttl = ttl(table);
     return Table.create(
         keyspaceName,
         tableName(table),
         columns,
         Stream.concat(secondaryIndexes, materializedViews).collect(Collectors.toList()),
-        comment);
+        comment,
+        ttl);
   }
 
   private Stream<Column> convertColumns(String keyspaceName, T table) {
