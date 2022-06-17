@@ -62,6 +62,14 @@ public class ValidatingStargateBridge implements StargateBridge {
   }
 
   @Override
+  public Uni<Schema.QueryWithSchemaResponse> executeQueryWithSchema(
+      Schema.QueryWithSchema request) {
+    // Simulate a successful execution (keyspace was up to date)
+    return executeQuery(request.getQuery())
+        .map(response -> Schema.QueryWithSchemaResponse.newBuilder().setResponse(response).build());
+  }
+
+  @Override
   public Uni<QueryOuterClass.Response> executeBatch(QueryOuterClass.Batch batch) {
     return batch.getQueriesList().stream()
         .map(

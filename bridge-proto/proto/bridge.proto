@@ -28,6 +28,14 @@ service StargateBridge {
   // Executes a single CQL query.
   rpc ExecuteQuery(Query) returns (Response) {}
 
+  // Executes a single CQL query, assuming that a keyspace with the given version hash exists on the
+  // bridge side.
+  // This is an optimization when the client builds a query based on a keyspace's contents: with
+  // this operation, it can use its local version of the keyspace (therefore avoiding an extra
+  // network hop to fetch it), and execute the query optimistically. If the keyspace has changed,
+  // the bridge will reply with the new version, allowing the client to retry.
+  rpc ExecuteQueryWithSchema(QueryWithSchema) returns (QueryWithSchemaResponse) {}
+
   // Executes a batch of CQL queries.
   rpc ExecuteBatch(Batch) returns (Response) {}
 
