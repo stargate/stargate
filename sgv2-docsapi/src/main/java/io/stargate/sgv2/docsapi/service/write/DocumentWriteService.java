@@ -17,22 +17,26 @@ import io.stargate.sgv2.docsapi.service.JsonShreddedRow;
 import io.stargate.sgv2.docsapi.service.query.ReadBridgeService;
 import io.stargate.sgv2.docsapi.service.schema.JsonSchemaManager;
 import io.stargate.sgv2.docsapi.service.schema.TableManager;
+import io.stargate.sgv2.docsapi.service.schema.qualifier.Authorized;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
+@ApplicationScoped
 public class DocumentWriteService {
   @Inject ObjectMapper objectMapper;
 
   @Inject JsonSchemaManager jsonSchemaManager;
 
-  @Inject TableManager tableManager;
+  @Inject @Authorized TableManager tableManager;
 
   @Inject JsonDocumentShredder documentShredder;
 
@@ -60,14 +64,8 @@ public class DocumentWriteService {
     return jsonSchemaManager
         .validateJsonDocument(
             tableManager.getValidCollectionTable(namespace, collection), document, false)
-        .map(
-            valid -> {
-              if (!valid) {
-                throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_INVALID_JSON_VALUE);
-              }
-              return true;
-            })
-        .flatMap(
+        .onItem()
+        .transform(
             __ -> {
               List<JsonShreddedRow> rows =
                   documentShredder.shred(document, Collections.emptyList());
@@ -106,17 +104,12 @@ public class DocumentWriteService {
     LinkedHashMap<String, List<JsonShreddedRow>> documentRowsMap = new LinkedHashMap<>();
     Optional<JsonPointer> idPointer = DocsApiUtils.pathToJsonPointer(idPath);
 
+    // TODO how to do this non-blocking?
     for (JsonNode documentNode : root) {
       // validate that the document fits the schema
       jsonSchemaManager
           .validateJsonDocument(table, documentNode, false)
-          .map(
-              valid -> {
-                if (!valid) {
-                  throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_INVALID_JSON_VALUE);
-                }
-                return true;
-              })
+          .onItem()
           .invoke(
               __ -> {
                 // get document id
@@ -134,39 +127,33 @@ public class DocumentWriteService {
                   throw new ErrorCodeRuntimeException(
                       ErrorCode.DOCS_API_WRITE_BATCH_DUPLICATE_ID, msg);
                 }
-              });
+              })
+          .await()
+          .indefinitely();
     }
-
-    // TODO how to do this fully non-blocking?
     List<String> documentIds =
         documentRowsMap.entrySet().stream()
             .map(
                 entry -> {
                   String documentId = entry.getKey();
                   List<JsonShreddedRow> documentRows = entry.getValue();
-
                   // use write when possible to avoid the extra delete query
                   if (useUpdate) {
                     return writeBridgeService
                         .updateDocument(
-                            namespace,
-                            collection,
-                            documentId,
-                            Collections.emptyList(),
-                            documentRows,
-                            ttl,
-                            context)
-                        .onItem()
-                        .transform(resultSet -> documentId);
+                            namespace, collection, documentId, documentRows, ttl, context)
+                        .onItemOrFailure()
+                        .transform((resultSet, failure) -> failure == null ? documentId : null);
                   } else {
                     return writeBridgeService
                         .writeDocument(
                             namespace, collection, documentId, documentRows, ttl, context)
-                        .onItem()
-                        .transform(resultSet -> documentId);
+                        .onItemOrFailure()
+                        .transform((resultSet, failure) -> failure == null ? documentId : null);
                   }
                 })
             .map(uni -> uni.await().indefinitely())
+            .filter(Objects::nonNull)
             .collect(Collectors.toList());
 
     return Uni.createFrom().item(new MultiDocsResponse(documentIds, context.toProfile()));
@@ -257,14 +244,6 @@ public class DocumentWriteService {
             !subPathProcessed.isEmpty())
         .onItem()
         .transform(
-            valid -> {
-              if (!valid) {
-                throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_INVALID_JSON_VALUE);
-              }
-              return true;
-            })
-        .onItem()
-        .transform(
             __ -> {
               // shred rows
               List<JsonShreddedRow> rows = documentShredder.shred(document, subPathProcessed);
@@ -349,14 +328,6 @@ public class DocumentWriteService {
             tableManager.getValidCollectionTable(namespace, collection),
             root,
             !subPathProcessed.isEmpty())
-        .onItem()
-        .transform(
-            valid -> {
-              if (!valid) {
-                throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_INVALID_JSON_VALUE);
-              }
-              return true;
-            })
         .onItem()
         .transform(
             __ -> {
