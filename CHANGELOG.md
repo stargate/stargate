@@ -1,5 +1,20 @@
 # Changelog
 
+
+## [v2.0.0-ALPHA-14](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-14) (2022-06-21)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-13...v2.0.0-ALPHA-14)
+
+**Closed issues:**
+
+- Implement `ReadBridgeService` in the Document API V2 [\#1738](https://github.com/stargate/stargate/issues/1738)
+- Consider optimistic handling of schema metadata [\#1873](https://github.com/stargate/stargate/issues/1873)
+
+**Merged pull requests:**
+
+- closes \#1738: read bridge service for docs V2 [\#1888](https://github.com/stargate/stargate/pull/1888) ([ivansenic](https://github.com/ivansenic))
+- Add optimistic handling of schema metadata \(fixes \#1873\) [\#1876](https://github.com/stargate/stargate/pull/1876) ([olim7t](https://github.com/olim7t))
+
 ## [v2.0.0-ALPHA-13](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-13) (2022-06-15)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-12...v2.0.0-ALPHA-13)
