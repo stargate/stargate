@@ -395,16 +395,19 @@ public class DocumentWriteServiceTest {
       when(jsonSchemaManager.validateJsonDocument(table, objectMapper.readTree(doc2Payload), false))
           .thenThrow(exception);
 
-      // This isn't right, should use a normal awaitFailure, but multi docs write isn't fully async
-      assertThatThrownBy(
-              () ->
-                  documentWriteService.writeDocuments(
-                      namespace, collection, payload, "id", null, context))
-          .isInstanceOf(ErrorCodeRuntimeException.class);
+      documentWriteService
+          .writeDocuments(namespace, collection, payload, "id", null, context)
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitFailure()
+          .assertFailedWith(ErrorCodeRuntimeException.class);
+
       verify(jsonSchemaManager)
           .validateJsonDocument(table, objectMapper.readTree(doc1Payload), false);
       verify(jsonSchemaManager)
           .validateJsonDocument(table, objectMapper.readTree(doc2Payload), false);
+      verify(writeBridgeService, times(1))
+          .updateDocument(any(), any(), anyString(), any(), any(), any());
       verifyNoMoreInteractions(writeBridgeService, jsonSchemaManager);
     }
 

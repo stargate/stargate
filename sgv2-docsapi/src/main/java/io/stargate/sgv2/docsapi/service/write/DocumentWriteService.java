@@ -4,6 +4,7 @@ import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
@@ -20,10 +21,11 @@ import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.service.schema.qualifier.Authorized;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
 import java.util.Collections;
-import java.util.LinkedHashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.stream.Collectors;
@@ -98,65 +100,78 @@ public class DocumentWriteService {
       throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_WRITE_BATCH_NOT_ARRAY);
     }
     boolean useUpdate = null != idPath;
+    final Optional<JsonPointer> idPointer = DocsApiUtils.pathToJsonPointer(idPath);
 
-    Uni<Schema.CqlTable> table = tableManager.getValidCollectionTable(namespace, collection);
-    // keep order with LinkedHashMap
-    LinkedHashMap<String, List<JsonShreddedRow>> documentRowsMap = new LinkedHashMap<>();
-    Optional<JsonPointer> idPointer = DocsApiUtils.pathToJsonPointer(idPath);
-
-    // TODO how to do this non-blocking?
-    for (JsonNode documentNode : root) {
-      // validate that the document fits the schema
-      jsonSchemaManager
-          .validateJsonDocument(table, documentNode, false)
-          .onItem()
-          .invoke(
-              __ -> {
-                // get document id
-                String documentId = documentIdResolver().apply(idPointer, documentNode);
-                // shred rows
-                List<JsonShreddedRow> rows =
-                    documentShredder.shred(documentNode, Collections.emptyList());
-
-                // add to map and make sure we did not have already the same ID
-                if (documentRowsMap.put(documentId, rows) != null) {
-                  String msg =
-                      String.format(
-                          "Found duplicate ID %s in more than one document when doing batched document write.",
-                          documentId);
-                  throw new ErrorCodeRuntimeException(
-                      ErrorCode.DOCS_API_WRITE_BATCH_DUPLICATE_ID, msg);
-                }
-              })
-          .await()
-          .indefinitely();
+    if (idPointer.isPresent()) {
+      // Before doing async flow, we have to scan the JSON one time to error out if there are any
+      // duplicate ID's
+      Set<String> existingIds = new HashSet<>();
+      for (JsonNode node : root) {
+        String documentId = documentIdResolver().apply(idPointer, node);
+        if (existingIds.contains(documentId)) {
+          String msg =
+              String.format(
+                  "Found duplicate ID %s in more than one document when doing batched document write.",
+                  documentId);
+          throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_WRITE_BATCH_DUPLICATE_ID, msg);
+        } else {
+          existingIds.add(documentId);
+        }
+      }
     }
-    List<String> documentIds =
-        documentRowsMap.entrySet().stream()
-            .map(
-                entry -> {
-                  String documentId = entry.getKey();
-                  List<JsonShreddedRow> documentRows = entry.getValue();
-                  // use write when possible to avoid the extra delete query
-                  if (useUpdate) {
-                    return writeBridgeService
-                        .updateDocument(
-                            namespace, collection, documentId, documentRows, ttl, context)
-                        .onItemOrFailure()
-                        .transform((resultSet, failure) -> failure == null ? documentId : null);
-                  } else {
-                    return writeBridgeService
-                        .writeDocument(
-                            namespace, collection, documentId, documentRows, ttl, context)
-                        .onItemOrFailure()
-                        .transform((resultSet, failure) -> failure == null ? documentId : null);
-                  }
-                })
-            .map(uni -> uni.await().indefinitely())
-            .filter(Objects::nonNull)
-            .collect(Collectors.toList());
 
-    return Uni.createFrom().item(new MultiDocsResponse(documentIds, context.toProfile()));
+    return Multi.createFrom()
+        .iterable(root)
+        .onItem()
+        .transformToUniAndMerge(
+            json -> {
+              // This is memoized so should be cheap to access multiple times
+              Uni<Schema.CqlTable> table =
+                  tableManager.getValidCollectionTable(namespace, collection);
+              return jsonSchemaManager
+                  .validateJsonDocument(table, json, false)
+                  .onItem()
+                  .transformToUni(
+                      __ -> {
+                        String documentId = documentIdResolver().apply(idPointer, json);
+
+                        List<JsonShreddedRow> rows =
+                            documentShredder.shred(json, Collections.emptyList());
+                        if (useUpdate) {
+                          return writeBridgeService
+                              .updateDocument(namespace, collection, documentId, rows, ttl, context)
+                              .onItemOrFailure()
+                              .transform(
+                                  (resultSet, failure) -> {
+                                    if (failure == null) {
+                                      return documentId;
+                                    } else {
+                                      return null;
+                                    }
+                                  });
+                        } else {
+                          return writeBridgeService
+                              .writeDocument(namespace, collection, documentId, rows, ttl, context)
+                              .onItemOrFailure()
+                              .transform(
+                                  (resultSet, failure) -> {
+                                    if (failure == null) {
+                                      return documentId;
+                                    } else {
+                                      return null;
+                                    }
+                                  });
+                        }
+                      });
+            })
+        .collect()
+        .asList()
+        .onItem()
+        .transform(
+            ids ->
+                new MultiDocsResponse(
+                    ids.stream().filter(Objects::nonNull).collect(Collectors.toList()),
+                    context.toProfile()));
   }
 
   /**
