@@ -3,6 +3,7 @@ name: CI Experiment
 on:
   workflow_dispatch:
 
+jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
