@@ -36,14 +36,12 @@ chances of your issue being dealt with quickly:
 ### <a name="submit-pr"></a> Submitting a Pull Request (PR)
 Before you submit your Pull Request (PR) consider the following guidelines:
 
-* Acceptance of the DataStax [contributor license agreement](https://cla.datastax.com/) (CLA) is required in order for us to be able to accept your code contribution. You will see this on the standard pull request checklist for the Stargate repositories.
-
 * Search the repository (https://github.com/stargate/stargate/pulls) for an open or closed PR that relates to your submission. You don't want to duplicate effort.
 
 * Create a fork of the repo
-    * Navigate to the repo you want to fork
-    * In the top right corner of the page click **Fork**:
-    ![](https://help.github.com/assets/images/help/repository/fork_button.jpg)
+	* Navigate to the repo you want to fork
+	* In the top right corner of the page click **Fork**:
+	![](https://help.github.com/assets/images/help/repository/fork_button.jpg)
 
 * Make your changes in the forked repo
 * Commit your changes using a descriptive commit message
