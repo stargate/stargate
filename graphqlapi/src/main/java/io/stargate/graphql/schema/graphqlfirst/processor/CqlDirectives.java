@@ -635,7 +635,7 @@ public class CqlDirectives {
     ALL_AS_STRING =
         new SchemaPrinter(
                 SchemaPrinter.Options.defaultOptions()
-                    .includeDirectives(d -> !defaultDirectives.contains(d.getName()))
+                    .includeDirectives(d -> !defaultDirectives.contains(d))
                     .includeSchemaElement(e -> e != dummyQueryType))
             .print(schema);
 
