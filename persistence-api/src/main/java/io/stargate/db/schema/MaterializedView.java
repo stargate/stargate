@@ -46,6 +46,18 @@ public abstract class MaterializedView extends AbstractTable implements Index {
     return ImmutableMaterializedView.builder().keyspace(keyspace).name(name).addColumns().build();
   }
 
+  @Value.Default
+  @Override
+  public String comment() {
+    return "";
+  }
+
+  @Value.Default
+  @Override
+  public int ttl() {
+    return 0;
+  }
+
   @Override
   public int priority() {
     return 1;
