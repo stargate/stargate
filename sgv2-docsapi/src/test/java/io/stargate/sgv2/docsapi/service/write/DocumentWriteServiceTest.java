@@ -42,6 +42,7 @@ import io.stargate.sgv2.docsapi.testprofiles.MaxDepth4TestProfile;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -1207,11 +1208,10 @@ class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
 
       Map<String, Set<DeadLeaf>> deadLeaves = new LinkedHashMap<>();
 
-      deadLeaves.put(
-          "$.a.b",
-          Set.of(
-              ImmutableDeadLeaf.builder().name("key1").build(),
-              ImmutableDeadLeaf.builder().name("key2").build()));
+      LinkedHashSet<DeadLeaf> leavesWithKeys = new LinkedHashSet<>();
+      leavesWithKeys.add(ImmutableDeadLeaf.builder().name("key1").build());
+      leavesWithKeys.add(ImmutableDeadLeaf.builder().name("key2").build());
+      deadLeaves.put("$.a.b", leavesWithKeys);
       deadLeaves.put("$.b", Set.of(DeadLeaf.ARRAY_LEAF));
       deadLeaves.put("$.c.d", Set.of(DeadLeaf.STAR_LEAF));
 
