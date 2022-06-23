@@ -11,6 +11,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
@@ -19,7 +20,6 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.junit.mockito.InjectMock;
-import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.stargate.bridge.proto.QueryOuterClass;
@@ -36,8 +36,8 @@ import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.ReadBridgeService;
 import io.stargate.sgv2.docsapi.service.query.model.RawDocument;
 import io.stargate.sgv2.docsapi.service.query.model.paging.PagingStateSupplier;
-import io.stargate.sgv2.docsapi.service.schema.AuthorizedTableManager;
 import io.stargate.sgv2.docsapi.service.schema.JsonSchemaManager;
+import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -72,7 +72,7 @@ public class WriteDocumentsServiceTest {
 
   @InjectMock JsonSchemaManager jsonSchemaManager;
 
-  @InjectMock AuthorizedTableManager tableManager;
+  @InjectMock TableManager tableManager;
 
   @Inject WriteDocumentsService documentWriteService;
 
@@ -89,22 +89,22 @@ public class WriteDocumentsServiceTest {
       String collection = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "{}";
+      JsonNode obj = objectMapper.readTree(payload);
 
       Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
 
-      when(jsonDocumentShredder.shred(objectMapper.readTree(payload), Collections.emptyList()))
-          .thenReturn(rows);
+      when(jsonDocumentShredder.shred(obj, Collections.emptyList())).thenReturn(rows);
       when(writeBridgeService.writeDocument(
               eq(namespace), eq(collection), anyString(), eq(rows), any(), eq(context)))
           .thenReturn(Uni.createFrom().item(ResultSet.getDefaultInstance()));
       when(jsonSchemaManager.validateJsonDocument(any(), any(), anyBoolean()))
           .thenReturn(Uni.createFrom().item(true));
-      when(tableManager.getValidCollectionTable(anyString(), anyString()))
+      when(tableManager.ensureValidDocumentTable(anyString(), anyString()))
           .thenReturn(Uni.createFrom().item(table));
 
       DocumentResponseWrapper<Void> result =
           documentWriteService
-              .writeDocument(namespace, collection, payload, null, context)
+              .writeDocument(namespace, collection, obj, null, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -114,6 +114,7 @@ public class WriteDocumentsServiceTest {
       assertThat(result.documentId()).isNotNull();
       assertThat(result.data()).isNull();
       assertThat(result.pageState()).isNull();
+      assertThat(result.profile()).isNotNull();
 
       verify(writeBridgeService)
           .writeDocument(namespace, collection, result.documentId(), rows, null, context);
@@ -126,21 +127,21 @@ public class WriteDocumentsServiceTest {
       String collection = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "{}";
+      JsonNode obj = objectMapper.readTree(payload);
       Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
 
-      when(jsonDocumentShredder.shred(objectMapper.readTree(payload), Collections.emptyList()))
-          .thenReturn(rows);
+      when(jsonDocumentShredder.shred(obj, Collections.emptyList())).thenReturn(rows);
       when(writeBridgeService.writeDocument(
               eq(namespace), eq(collection), anyString(), eq(rows), any(), eq(context)))
           .thenReturn(Uni.createFrom().item(ResultSet.getDefaultInstance()));
       when(jsonSchemaManager.validateJsonDocument(any(), any(), anyBoolean()))
           .thenReturn(Uni.createFrom().item(true));
-      when(tableManager.getValidCollectionTable(anyString(), anyString()))
+      when(tableManager.ensureValidDocumentTable(anyString(), anyString()))
           .thenReturn(Uni.createFrom().item(table));
 
       DocumentResponseWrapper<Void> result =
           documentWriteService
-              .writeDocument(namespace, collection, payload, 100, context)
+              .writeDocument(namespace, collection, obj, 100, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -166,7 +167,7 @@ public class WriteDocumentsServiceTest {
       JsonNode schema = objectMapper.createObjectNode();
       JsonNode document = objectMapper.readTree(payload);
       when(jsonSchemaManager.getJsonSchema(any())).thenReturn(Uni.createFrom().item(schema));
-      when(tableManager.getValidCollectionTable(anyString(), anyString())).thenReturn(tableUni);
+      when(tableManager.ensureValidDocumentTable(anyString(), anyString())).thenReturn(tableUni);
       when(jsonDocumentShredder.shred(document, Collections.emptyList())).thenReturn(rows);
       when(writeBridgeService.writeDocument(
               eq(namespace), eq(collection), anyString(), eq(rows), any(), eq(context)))
@@ -174,7 +175,7 @@ public class WriteDocumentsServiceTest {
 
       DocumentResponseWrapper<Void> result =
           documentWriteService
-              .writeDocument(namespace, collection, payload, null, context)
+              .writeDocument(namespace, collection, document, null, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -189,19 +190,6 @@ public class WriteDocumentsServiceTest {
           .writeDocument(namespace, collection, result.documentId(), rows, null, context);
       verify(jsonSchemaManager).validateJsonDocument(tableUni, document, false);
       verifyNoMoreInteractions(writeBridgeService, jsonSchemaManager);
-    }
-
-    @Test
-    public void malformedJson() {
-      String namespace = RandomStringUtils.randomAlphanumeric(16);
-      String collection = RandomStringUtils.randomAlphanumeric(16);
-      ExecutionContext context = ExecutionContext.create(true);
-      String payload = "{\"key\":}";
-
-      assertThatThrownBy(
-              () ->
-                  documentWriteService.writeDocument(namespace, collection, payload, null, context))
-          .isInstanceOf(ErrorCodeRuntimeException.class);
     }
   }
 
@@ -228,8 +216,9 @@ public class WriteDocumentsServiceTest {
       String doc1Payload = "{\"id\": \"1\"}";
       String doc2Payload = "{\"id\": \"2\"}";
       String payload = String.format("[%s,%s]", doc1Payload, doc2Payload);
+      JsonNode obj = objectMapper.readTree(payload);
       Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
-      when(tableManager.getValidCollectionTable(anyString(), anyString()))
+      when(tableManager.ensureValidDocumentTable(anyString(), anyString()))
           .thenReturn(Uni.createFrom().item(table));
       when(jsonDocumentShredder.shred(objectMapper.readTree(doc1Payload), Collections.emptyList()))
           .thenReturn(rows1);
@@ -241,21 +230,19 @@ public class WriteDocumentsServiceTest {
 
       MultiDocsResponse result =
           documentWriteService
-              .writeDocuments(namespace, collection, payload, null, null, context)
+              .writeDocuments(namespace, collection, obj, null, null, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
               .assertCompleted()
               .getItem();
 
-      assertThat(result.getDocumentIds().size()).isEqualTo(2);
+      assertThat(result.documentIds().size()).isEqualTo(2);
 
       verify(writeBridgeService)
-          .writeDocument(
-              namespace, collection, result.getDocumentIds().get(0), rows1, null, context);
+          .writeDocument(namespace, collection, result.documentIds().get(0), rows1, null, context);
       verify(writeBridgeService)
-          .writeDocument(
-              namespace, collection, result.getDocumentIds().get(1), rows2, null, context);
+          .writeDocument(namespace, collection, result.documentIds().get(1), rows2, null, context);
       verify(jsonSchemaManager, times(2)).validateJsonDocument(any(), any(), anyBoolean());
       verifyNoMoreInteractions(writeBridgeService, jsonSchemaManager);
     }
@@ -268,6 +255,7 @@ public class WriteDocumentsServiceTest {
       String doc1Payload = "{\"id\": \"1\"}";
       String doc2Payload = "{\"id\": \"2\"}";
       String payload = String.format("[%s,%s]", doc1Payload, doc2Payload);
+      JsonNode obj = objectMapper.readTree(payload);
 
       when(jsonDocumentShredder.shred(objectMapper.readTree(doc1Payload), Collections.emptyList()))
           .thenReturn(rows1);
@@ -279,21 +267,19 @@ public class WriteDocumentsServiceTest {
 
       MultiDocsResponse result =
           documentWriteService
-              .writeDocuments(namespace, collection, payload, null, 100, context)
+              .writeDocuments(namespace, collection, obj, null, 100, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
               .assertCompleted()
               .getItem();
 
-      assertThat(result.getDocumentIds().size()).isEqualTo(2);
+      assertThat(result.documentIds().size()).isEqualTo(2);
 
       verify(writeBridgeService)
-          .writeDocument(
-              namespace, collection, result.getDocumentIds().get(0), rows1, 100, context);
+          .writeDocument(namespace, collection, result.documentIds().get(0), rows1, 100, context);
       verify(writeBridgeService)
-          .writeDocument(
-              namespace, collection, result.getDocumentIds().get(1), rows2, 100, context);
+          .writeDocument(namespace, collection, result.documentIds().get(1), rows2, 100, context);
       verify(jsonSchemaManager, times(2)).validateJsonDocument(any(), any(), anyBoolean());
       verifyNoMoreInteractions(writeBridgeService, jsonSchemaManager);
     }
@@ -306,6 +292,7 @@ public class WriteDocumentsServiceTest {
       String doc1Payload = "{\"id\": \"1\"}";
       String doc2Payload = "{\"id\": \"2\"}";
       String payload = String.format("[%s,%s]", doc1Payload, doc2Payload);
+      JsonNode obj = objectMapper.readTree(payload);
 
       when(jsonDocumentShredder.shred(objectMapper.readTree(doc1Payload), Collections.emptyList()))
           .thenReturn(rows1);
@@ -317,21 +304,19 @@ public class WriteDocumentsServiceTest {
 
       MultiDocsResponse result =
           documentWriteService
-              .writeDocuments(namespace, collection, payload, "id", null, context)
+              .writeDocuments(namespace, collection, obj, "id", null, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
               .assertCompleted()
               .getItem();
 
-      assertThat(result.getDocumentIds().size()).isEqualTo(2);
+      assertThat(result.documentIds().size()).isEqualTo(2);
 
       verify(writeBridgeService)
-          .updateDocument(
-              namespace, collection, result.getDocumentIds().get(0), rows1, null, context);
+          .updateDocument(namespace, collection, result.documentIds().get(0), rows1, null, context);
       verify(writeBridgeService)
-          .updateDocument(
-              namespace, collection, result.getDocumentIds().get(1), rows2, null, context);
+          .updateDocument(namespace, collection, result.documentIds().get(1), rows2, null, context);
       verify(jsonSchemaManager, times(2)).validateJsonDocument(any(), any(), anyBoolean());
       verifyNoMoreInteractions(writeBridgeService, jsonSchemaManager);
     }
@@ -344,6 +329,7 @@ public class WriteDocumentsServiceTest {
       String doc1Payload = "{\"id\": \"1\"}";
       String doc2Payload = "{\"id\": \"2\"}";
       String payload = String.format("[%s,%s]", doc1Payload, doc2Payload);
+      JsonNode obj = objectMapper.readTree(payload);
 
       when(jsonDocumentShredder.shred(objectMapper.readTree(doc1Payload), Collections.emptyList()))
           .thenReturn(rows1);
@@ -358,19 +344,18 @@ public class WriteDocumentsServiceTest {
 
       MultiDocsResponse result =
           documentWriteService
-              .writeDocuments(namespace, collection, payload, "id", null, context)
+              .writeDocuments(namespace, collection, obj, "id", null, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
               .assertCompleted()
               .getItem();
 
-      assertThat(result.getDocumentIds()).isEqualTo(ImmutableList.of("2"));
+      assertThat(result.documentIds()).isEqualTo(ImmutableList.of("2"));
 
       verify(writeBridgeService).updateDocument(namespace, collection, "1", rows1, null, context);
       verify(writeBridgeService)
-          .updateDocument(
-              namespace, collection, result.getDocumentIds().get(0), rows2, null, context);
+          .updateDocument(namespace, collection, result.documentIds().get(0), rows2, null, context);
       verify(jsonSchemaManager, times(2)).validateJsonDocument(any(), any(), anyBoolean());
       verifyNoMoreInteractions(writeBridgeService, jsonSchemaManager);
     }
@@ -384,19 +369,20 @@ public class WriteDocumentsServiceTest {
       String doc1Payload = "{\"id\": \"1\"}";
       String doc2Payload = "{\"id\": \"2\"}";
       String payload = String.format("[%s,%s]", doc1Payload, doc2Payload);
+      JsonNode obj = objectMapper.readTree(payload);
       JsonNode schema = objectMapper.createObjectNode();
 
       ErrorCodeRuntimeException exception =
           new ErrorCodeRuntimeException(ErrorCode.DOCS_API_INVALID_JSON_VALUE);
       when(jsonSchemaManager.getJsonSchema(any())).thenReturn(Uni.createFrom().item(schema));
-      when(tableManager.getValidCollectionTable(anyString(), anyString())).thenReturn(table);
+      when(tableManager.ensureValidDocumentTable(anyString(), anyString())).thenReturn(table);
       when(jsonSchemaManager.validateJsonDocument(table, objectMapper.readTree(doc1Payload), false))
           .thenReturn(Uni.createFrom().item(true));
       when(jsonSchemaManager.validateJsonDocument(table, objectMapper.readTree(doc2Payload), false))
           .thenThrow(exception);
 
       documentWriteService
-          .writeDocuments(namespace, collection, payload, "id", null, context)
+          .writeDocuments(namespace, collection, obj, "id", null, context)
           .subscribe()
           .withSubscriber(UniAssertSubscriber.create())
           .awaitFailure()
@@ -419,6 +405,7 @@ public class WriteDocumentsServiceTest {
       String doc1Payload = "{\"id\": \"1\"}";
       String doc2Payload = "{\"id\": \"1\"}";
       String payload = String.format("[%s,%s]", doc1Payload, doc2Payload);
+      JsonNode obj = objectMapper.readTree(payload);
 
       when(jsonDocumentShredder.shred(objectMapper.readTree(doc1Payload), Collections.emptyList()))
           .thenReturn(rows1);
@@ -428,23 +415,24 @@ public class WriteDocumentsServiceTest {
       assertThatThrownBy(
               () ->
                   documentWriteService.writeDocuments(
-                      namespace, collection, payload, "id", null, context))
+                      namespace, collection, obj, "id", null, context))
           .isInstanceOf(ErrorCodeRuntimeException.class)
           .hasMessage(
               "Found duplicate ID 1 in more than one document when doing batched document write.");
     }
 
     @Test
-    public void notArrayPayload() {
+    public void notArrayPayload() throws JsonProcessingException {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
       String payload = String.format("{}");
+      JsonNode obj = objectMapper.readTree(payload);
 
       assertThatThrownBy(
               () ->
                   documentWriteService.writeDocuments(
-                      namespace, collection, payload, "id", null, context))
+                      namespace, collection, obj, "id", null, context))
           .isInstanceOf(ErrorCodeRuntimeException.class)
           .hasMessage(ErrorCode.DOCS_API_WRITE_BATCH_NOT_ARRAY.getDefaultMessage());
     }
@@ -489,16 +477,16 @@ public class WriteDocumentsServiceTest {
       String collection = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "{}";
+      JsonNode obj = objectMapper.readTree(payload);
 
-      when(jsonDocumentShredder.shred(objectMapper.readTree(payload), Collections.emptyList()))
-          .thenReturn(rows);
+      when(jsonDocumentShredder.shred(obj, Collections.emptyList())).thenReturn(rows);
       when(writeBridgeService.updateDocument(
               namespace, collection, documentId, Collections.emptyList(), rows, null, context))
           .thenReturn(Uni.createFrom().item(ResultSet.getDefaultInstance()));
 
       DocumentResponseWrapper<Void> result =
           documentWriteService
-              .updateDocument(namespace, collection, documentId, payload, null, context)
+              .updateDocument(namespace, collection, documentId, obj, null, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -524,16 +512,16 @@ public class WriteDocumentsServiceTest {
       String collection = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "{}";
+      JsonNode obj = objectMapper.readTree(payload);
 
-      when(jsonDocumentShredder.shred(objectMapper.readTree(payload), Collections.emptyList()))
-          .thenReturn(rows);
+      when(jsonDocumentShredder.shred(obj, Collections.emptyList())).thenReturn(rows);
       when(writeBridgeService.updateDocument(
               namespace, collection, documentId, Collections.emptyList(), rows, 100, context))
           .thenReturn(Uni.createFrom().item(ResultSet.getDefaultInstance()));
 
       DocumentResponseWrapper<Void> result =
           documentWriteService
-              .updateDocument(namespace, collection, documentId, payload, 100, context)
+              .updateDocument(namespace, collection, documentId, obj, 100, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -561,16 +549,16 @@ public class WriteDocumentsServiceTest {
       List<String> subPath = Collections.singletonList(path);
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "{}";
+      JsonNode obj = objectMapper.readTree(payload);
 
-      when(jsonDocumentShredder.shred(objectMapper.readTree(payload), subPath)).thenReturn(rows);
+      when(jsonDocumentShredder.shred(obj, subPath)).thenReturn(rows);
       when(writeBridgeService.updateDocument(
               namespace, collection, documentId, subPath, rows, 0, context))
           .thenReturn(Uni.createFrom().item(ResultSet.getDefaultInstance()));
 
       DocumentResponseWrapper<Void> result =
           documentWriteService
-              .updateSubDocument(
-                  namespace, collection, documentId, subPath, payload, false, context)
+              .updateSubDocument(namespace, collection, documentId, subPath, obj, false, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -620,17 +608,18 @@ public class WriteDocumentsServiceTest {
       List<String> subPath = Collections.singletonList(path);
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "{}";
+      JsonNode obj = objectMapper.readTree(payload);
 
-      when(jsonDocumentShredder.shred(objectMapper.readTree(payload), subPath)).thenReturn(rows);
+      when(jsonDocumentShredder.shred(obj, subPath)).thenReturn(rows);
       when(writeBridgeService.updateDocument(
               namespace, collection, documentId, subPath, rows, 0, context))
           .thenReturn(Uni.createFrom().item(ResultSet.getDefaultInstance()));
       when(readBridgeService.getDocumentTtlInfo(any(), any(), any(), any()))
-          .thenReturn(Multi.createFrom().item(rawDocument));
+          .thenReturn(Uni.createFrom().item(rawDocument));
 
       DocumentResponseWrapper<Void> result =
           documentWriteService
-              .updateSubDocument(namespace, collection, documentId, subPath, payload, true, context)
+              .updateSubDocument(namespace, collection, documentId, subPath, obj, true, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -666,7 +655,7 @@ public class WriteDocumentsServiceTest {
 
       DocumentResponseWrapper<Void> result =
           documentWriteService
-              .updateDocument(namespace, collection, documentId, payload, null, context)
+              .updateDocument(namespace, collection, documentId, document, null, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -686,7 +675,7 @@ public class WriteDocumentsServiceTest {
     }
 
     @Test
-    public void subDocumentWithSchemaCheck() {
+    public void subDocumentWithSchemaCheck() throws JsonProcessingException {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
@@ -695,15 +684,16 @@ public class WriteDocumentsServiceTest {
       List<String> subPath = Collections.singletonList(path);
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "{}";
+      JsonNode obj = objectMapper.readTree(payload);
       JsonNode schema = objectMapper.createObjectNode();
 
-      when(tableManager.getValidCollectionTable(anyString(), anyString()))
+      when(tableManager.ensureValidDocumentTable(anyString(), anyString()))
           .thenReturn(Uni.createFrom().item(table));
       when(jsonSchemaManager.getJsonSchema(any())).thenReturn(Uni.createFrom().item(schema));
       when(jsonSchemaManager.validateJsonDocument(any(), any(), anyBoolean())).thenCallRealMethod();
 
       documentWriteService
-          .updateSubDocument(namespace, collection, documentId, subPath, payload, false, context)
+          .updateSubDocument(namespace, collection, documentId, subPath, obj, false, context)
           .subscribe()
           .withSubscriber(UniAssertSubscriber.create())
           .awaitFailure()
@@ -711,27 +701,13 @@ public class WriteDocumentsServiceTest {
     }
 
     @Test
-    public void malformedJson() {
-      String documentId = RandomStringUtils.randomAlphanumeric(16);
-      String namespace = RandomStringUtils.randomAlphanumeric(16);
-      String collection = RandomStringUtils.randomAlphanumeric(16);
-      ExecutionContext context = ExecutionContext.create(true);
-      String payload = "{\"key\":}";
-
-      assertThatThrownBy(
-              () ->
-                  documentWriteService.updateDocument(
-                      namespace, collection, documentId, payload, null, context))
-          .isInstanceOf(ErrorCodeRuntimeException.class);
-    }
-
-    @Test
-    public void schemaCheckFailed() {
+    public void schemaCheckFailed() throws JsonProcessingException {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "{}";
+      JsonNode obj = objectMapper.readTree(payload);
       JsonNode schema = objectMapper.createObjectNode();
 
       ErrorCodeRuntimeException exception =
@@ -742,7 +718,7 @@ public class WriteDocumentsServiceTest {
       assertThatThrownBy(
               () ->
                   documentWriteService.updateDocument(
-                      namespace, collection, documentId, payload, null, context))
+                      namespace, collection, documentId, obj, null, context))
           .isInstanceOf(ErrorCodeRuntimeException.class);
     }
   }
@@ -786,9 +762,9 @@ public class WriteDocumentsServiceTest {
       String collection = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "{\"key\":\"value\"}";
+      JsonNode obj = objectMapper.readTree(payload);
 
-      when(jsonDocumentShredder.shred(objectMapper.readTree(payload), Collections.emptyList()))
-          .thenReturn(rows);
+      when(jsonDocumentShredder.shred(obj, Collections.emptyList())).thenReturn(rows);
       when(writeBridgeService.patchDocument(
               namespace, collection, documentId, Collections.emptyList(), rows, 0, context))
           .thenReturn(Uni.createFrom().item(ResultSet.getDefaultInstance()));
@@ -796,13 +772,7 @@ public class WriteDocumentsServiceTest {
       DocumentResponseWrapper<Void> result =
           documentWriteService
               .patchDocument(
-                  namespace,
-                  collection,
-                  documentId,
-                  Collections.emptyList(),
-                  payload,
-                  false,
-                  context)
+                  namespace, collection, documentId, Collections.emptyList(), obj, false, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -828,15 +798,16 @@ public class WriteDocumentsServiceTest {
       List<String> subPath = Collections.singletonList(path);
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "{\"key\":\"value\"}";
+      JsonNode obj = objectMapper.readTree(payload);
 
-      when(jsonDocumentShredder.shred(objectMapper.readTree(payload), subPath)).thenReturn(rows);
+      when(jsonDocumentShredder.shred(obj, subPath)).thenReturn(rows);
       when(writeBridgeService.patchDocument(
               namespace, collection, documentId, subPath, rows, 0, context))
           .thenReturn(Uni.createFrom().item(ResultSet.getDefaultInstance()));
 
       DocumentResponseWrapper<Void> result =
           documentWriteService
-              .patchDocument(namespace, collection, documentId, subPath, payload, false, context)
+              .patchDocument(namespace, collection, documentId, subPath, obj, false, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -884,17 +855,18 @@ public class WriteDocumentsServiceTest {
       List<String> subPath = Collections.singletonList(path);
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "{\"key\":\"value\"}";
+      JsonNode obj = objectMapper.readTree(payload);
 
-      when(jsonDocumentShredder.shred(objectMapper.readTree(payload), subPath)).thenReturn(rows);
+      when(jsonDocumentShredder.shred(obj, subPath)).thenReturn(rows);
       when(writeBridgeService.patchDocument(
               namespace, collection, documentId, subPath, rows, 0, context))
           .thenReturn(Uni.createFrom().item(ResultSet.getDefaultInstance()));
       when(readBridgeService.getDocumentTtlInfo(any(), any(), any(), any()))
-          .thenReturn(Multi.createFrom().item(rawDocument));
+          .thenReturn(Uni.createFrom().item(rawDocument));
 
       DocumentResponseWrapper<Void> result =
           documentWriteService
-              .patchDocument(namespace, collection, documentId, subPath, payload, true, context)
+              .patchDocument(namespace, collection, documentId, subPath, obj, true, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -919,13 +891,14 @@ public class WriteDocumentsServiceTest {
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "{}";
       JsonNode schema = objectMapper.createObjectNode();
+      JsonNode obj = objectMapper.readTree(payload);
 
       when(jsonSchemaManager.getJsonSchema(any())).thenReturn(Uni.createFrom().item(schema));
       when(jsonSchemaManager.validateJsonDocument(any(), any(), anyBoolean())).thenCallRealMethod();
 
       documentWriteService
           .patchDocument(
-              namespace, collection, documentId, Collections.emptyList(), payload, false, context)
+              namespace, collection, documentId, Collections.emptyList(), obj, false, context)
           .subscribe()
           .withSubscriber(UniAssertSubscriber.create())
           .awaitFailure()
@@ -933,16 +906,17 @@ public class WriteDocumentsServiceTest {
     }
 
     @Test
-    public void arrayNotAllowed() {
+    public void arrayNotAllowed() throws JsonProcessingException {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "[1]";
+      JsonNode obj = objectMapper.readTree(payload);
 
       documentWriteService
           .patchDocument(
-              namespace, collection, documentId, Collections.emptyList(), payload, false, context)
+              namespace, collection, documentId, Collections.emptyList(), obj, false, context)
           .subscribe()
           .withSubscriber(UniAssertSubscriber.create())
           .awaitFailure()
@@ -950,33 +924,17 @@ public class WriteDocumentsServiceTest {
     }
 
     @Test
-    public void emptyObjectNotAllowed() {
+    public void emptyObjectNotAllowed() throws JsonProcessingException {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "{}";
+      JsonNode obj = objectMapper.readTree(payload);
 
       documentWriteService
           .patchDocument(
-              namespace, collection, documentId, Collections.emptyList(), payload, false, context)
-          .subscribe()
-          .withSubscriber(UniAssertSubscriber.create())
-          .awaitFailure()
-          .assertFailedWith(ErrorCodeRuntimeException.class);
-    }
-
-    @Test
-    public void malformedJson() {
-      String documentId = RandomStringUtils.randomAlphanumeric(16);
-      String namespace = RandomStringUtils.randomAlphanumeric(16);
-      String collection = RandomStringUtils.randomAlphanumeric(16);
-      ExecutionContext context = ExecutionContext.create(true);
-      String payload = "{\"key\":}";
-
-      documentWriteService
-          .patchDocument(
-              namespace, collection, documentId, Collections.emptyList(), payload, false, context)
+              namespace, collection, documentId, Collections.emptyList(), obj, false, context)
           .subscribe()
           .withSubscriber(UniAssertSubscriber.create())
           .awaitFailure()

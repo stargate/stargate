@@ -176,9 +176,9 @@ public class ReadBridgeService {
    * @param context Context for recording profiling information
    * @return Flowable of {@link RawDocument}s representing a document's rows with TTL as a column
    */
-  public Multi<RawDocument> getDocumentTtlInfo(
+  public Uni<RawDocument> getDocumentTtlInfo(
       String keyspace, String collection, String documentId, ExecutionContext context) {
-    return documentTtl(keyspace, collection, documentId, context).select().first();
+    return documentTtl(keyspace, collection, documentId, context).select().first().toUni();
   }
 
   private Multi<RawDocument> fullSearch(

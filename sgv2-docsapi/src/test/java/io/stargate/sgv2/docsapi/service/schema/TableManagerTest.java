@@ -286,13 +286,16 @@ class TableManagerTest extends BridgeTest {
           .when(bridgeService)
           .describeKeyspace(any(), any());
 
-      UniAssertSubscriber<Boolean> result =
+      Schema.CqlTable result =
           tableManager
               .ensureValidDocumentTable(namespace, collection)
               .subscribe()
-              .withSubscriber(UniAssertSubscriber.create());
+              .withSubscriber(UniAssertSubscriber.create())
+              .awaitItem()
+              .assertCompleted()
+              .getItem();
 
-      result.awaitItem().assertItem(true).assertCompleted();
+      assertThat(result).isNotNull();
 
       verify(bridgeService).describeKeyspace(any(), any());
       verifyNoMoreInteractions(bridgeService);
@@ -337,15 +340,9 @@ class TableManagerTest extends BridgeTest {
           .when(bridgeService)
           .executeQuery(any(), any());
 
-      UniAssertSubscriber<Boolean> result =
-          tableManager
-              .ensureValidDocumentTable(namespace, collection)
-              .subscribe()
-              .withSubscriber(UniAssertSubscriber.create());
+      tableManager.ensureValidDocumentTable(namespace, collection).await().indefinitely();
 
-      result.awaitItem().assertItem(true).assertCompleted();
-
-      verify(bridgeService).describeKeyspace(any(), any());
+      verify(bridgeService, times(2)).describeKeyspace(any(), any());
       verify(bridgeService, times(5)).executeQuery(queryCaptor.capture(), any());
       verifyNoMoreInteractions(bridgeService);
 

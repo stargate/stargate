@@ -246,20 +246,16 @@ public class TableManager {
    * @return True if table exists and is a valid document table, or it is created.
    */
   @WithSpan
-  public Uni<Boolean> ensureValidDocumentTable(String namespace, String collection) {
+  public Uni<Schema.CqlTable> ensureValidDocumentTable(String namespace, String collection) {
     // get the table
     return getValidDocumentTableInternal(namespace, collection)
         .onItem()
-        .transformToUni(
-            table -> {
-              // if emits the table, then fine
-              // if not then create the table
-              if (table != null) {
-                return Uni.createFrom().item(true);
-              } else {
-                return createCollectionTable(namespace, collection);
-              }
-            });
+        .ifNull()
+        .switchTo(
+            () ->
+                createCollectionTable(namespace, collection)
+                    .onItem()
+                    .transformToUni(result -> getTable(namespace, collection)));
   }
 
   // internal method for getting a valid document table

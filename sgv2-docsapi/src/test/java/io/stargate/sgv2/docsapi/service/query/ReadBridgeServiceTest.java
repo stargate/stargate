@@ -25,6 +25,7 @@ import com.bpodgursky.jbool_expressions.Literal;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.smallrye.mutiny.helpers.test.AssertSubscriber;
+import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
@@ -1003,19 +1004,16 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                       QueryOuterClass.ColumnSpec.newBuilder().setName("ttl(leaf)").build()))
               .returning(Arrays.asList(List.of(Values.of(documentId), Values.of(100))));
 
-      List<RawDocument> result =
+      RawDocument result =
           service
               .getDocumentTtlInfo(KEYSPACE_NAME, COLLECTION_NAME, documentId, context)
               .subscribe()
-              .withSubscriber(AssertSubscriber.create(100))
-              .awaitItems(1)
-              .awaitCompletion()
+              .withSubscriber(UniAssertSubscriber.create())
               .assertCompleted()
-              .getItems();
+              .getItem();
 
       // assert results
       assertThat(result)
-          .singleElement()
           .satisfies(
               doc -> {
                 assertThat(doc.id()).isEqualTo(documentId);
