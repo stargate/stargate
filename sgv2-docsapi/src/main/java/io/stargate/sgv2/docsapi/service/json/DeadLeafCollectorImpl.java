@@ -22,14 +22,14 @@ public class DeadLeafCollectorImpl implements DeadLeafCollector {
   @Override
   public void addArray(String path) {
     Set<DeadLeaf> leavesAtPath = deadPaths.getOrDefault(path, new HashSet<>());
-    leavesAtPath.add(DeadLeaf.ARRAYLEAF);
+    leavesAtPath.add(DeadLeaf.ARRAY_LEAF);
     deadPaths.put(path, leavesAtPath);
   }
 
   @Override
   public void addAll(String path) {
     Set<DeadLeaf> leavesAtPath = new HashSet<>();
-    leavesAtPath.add(DeadLeaf.STARLEAF);
+    leavesAtPath.add(DeadLeaf.STAR_LEAF);
     deadPaths.put(path, leavesAtPath);
   }
 
