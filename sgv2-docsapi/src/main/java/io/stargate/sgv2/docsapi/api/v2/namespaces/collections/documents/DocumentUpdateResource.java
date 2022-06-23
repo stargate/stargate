@@ -17,15 +17,11 @@
 
 package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
-import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;
 import io.stargate.sgv2.docsapi.api.v2.model.dto.SimpleResponseWrapper;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
-import io.stargate.sgv2.docsapi.service.JsonDocumentShredder;
-import io.stargate.sgv2.docsapi.service.schema.TableManager;
-import io.stargate.sgv2.docsapi.service.schema.qualifier.Authorized;
+import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.write.DocumentWriteService;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
@@ -48,8 +44,6 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.jboss.resteasy.reactive.RestResponse;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /** Collections resource. */
 @Path(DocumentUpdateResource.BASE_PATH)
@@ -59,18 +53,10 @@ import org.slf4j.LoggerFactory;
 @Tag(ref = OpenApiConstants.Tags.DOCUMENTS)
 public class DocumentUpdateResource {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DocumentUpdateResource.class);
-
   public static final String BASE_PATH =
       "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w}/{document-id:\\w+}";
 
-  @Inject @Authorized TableManager tableManager;
-
   @Inject DocumentWriteService documentWriteService;
-
-  @Inject DataStoreProperties dataStoreProperties;
-
-  @Inject JsonDocumentShredder documentShredder;
 
   @Operation(
       description =
@@ -133,9 +119,13 @@ public class DocumentUpdateResource {
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
       @PathParam("document-id") String documentId,
-      @QueryParam("ttl") String ttl,
+      @QueryParam("ttl") Integer ttl,
       @QueryParam("profile") boolean profile,
-      @NotNull JsonNode body) {
-    return null;
+      @NotNull String body) {
+    ExecutionContext context = ExecutionContext.create(profile);
+    return documentWriteService
+        .updateDocument(namespace, collection, documentId, body, ttl, context)
+        .onItem()
+        .transform(result -> RestResponse.ResponseBuilder.ok().entity(result).build());
   }
 }

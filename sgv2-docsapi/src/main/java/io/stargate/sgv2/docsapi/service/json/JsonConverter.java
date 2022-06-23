@@ -13,7 +13,6 @@ import io.opentelemetry.extension.annotations.WithSpan;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
-import io.stargate.sgv2.docsapi.service.common.model.ImmutableRowWrapper;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
 import java.util.ArrayList;
@@ -42,7 +41,7 @@ public class JsonConverter {
     List<QueryOuterClass.ColumnSpec> columns = resultSet.getColumnsList();
     List<RowWrapper> rows = new ArrayList<>();
     for (QueryOuterClass.Row row : resultSet.getRowsList()) {
-      rows.add(ImmutableRowWrapper.builder().columns(columns).row(row).build());
+      rows.add(RowWrapper.forColumns(columns).apply(row));
     }
     return rows;
   }

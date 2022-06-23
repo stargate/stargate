@@ -17,24 +17,13 @@
 
 package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
-import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;
-import io.stargate.sgv2.docsapi.api.v2.model.dto.DocumentResponseWrapper;
 import io.stargate.sgv2.docsapi.api.v2.model.dto.SimpleResponseWrapper;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
-import io.stargate.sgv2.docsapi.service.JsonDocumentShredder;
-import io.stargate.sgv2.docsapi.service.JsonShreddedRow;
-import io.stargate.sgv2.docsapi.service.json.JsonConverter;
-import io.stargate.sgv2.docsapi.service.schema.TableManager;
-import io.stargate.sgv2.docsapi.service.schema.qualifier.Authorized;
 import io.stargate.sgv2.docsapi.service.write.DocumentWriteService;
 import java.net.URI;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
@@ -57,8 +46,6 @@ import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.RestResponse.ResponseBuilder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /** Collections resource. */
 @Path(DocumentWriteResource.BASE_PATH)
@@ -68,20 +55,10 @@ import org.slf4j.LoggerFactory;
 @Tag(ref = OpenApiConstants.Tags.DOCUMENTS)
 public class DocumentWriteResource {
 
-  private static final Logger LOG = LoggerFactory.getLogger(DocumentWriteResource.class);
-
   public static final String BASE_PATH =
       "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w}";
 
-  @Inject @Authorized TableManager tableManager;
-
   @Inject DocumentWriteService documentWriteService;
-
-  @Inject DataStoreProperties dataStoreProperties;
-
-  @Inject JsonDocumentShredder documentShredder;
-
-  @Inject JsonConverter jsonConverter;
 
   @Operation(
       description = "Create a new document. If the collection does not exist, it will be created.")
@@ -139,29 +116,18 @@ public class DocumentWriteResource {
       @PathParam("collection") String collection,
       @QueryParam("ttl") Integer ttl,
       @QueryParam("profile") boolean profile,
-      @NotNull JsonNode body) {
-    String documentId = UUID.randomUUID().toString();
+      @NotNull String body) {
     ExecutionContext context = ExecutionContext.create(profile);
-    return tableManager
-        .ensureValidDocumentTable(namespace, collection)
-        .flatMap(
-            __ -> {
-              List<JsonShreddedRow> rows = documentShredder.shred(body, Collections.emptyList());
-              return documentWriteService.writeDocument(
-                  namespace, collection, documentId, rows, ttl, context);
-            })
-        .map(
-            resultSet -> {
-              JsonNode node =
-                  jsonConverter.convertToJsonDoc(
-                      resultSet, false, dataStoreProperties.treatBooleansAsNumeric());
+    return documentWriteService
+        .writeDocument(namespace, collection, body, ttl, context)
+        .onItem()
+        .transform(
+            result -> {
               String url =
                   String.format(
-                      "/v2/namespaces/%s/collections/%s/%s", namespace, collection, documentId);
-              return ResponseBuilder.created(URI.create(url))
-                  .entity(
-                      new DocumentResponseWrapper<>(documentId, null, node, context.toProfile()))
-                  .build();
+                      "/v2/namespaces/%s/collections/%s/%s",
+                      namespace, collection, result.documentId());
+              return ResponseBuilder.created(URI.create(url)).entity(result).build();
             });
   }
 
@@ -227,9 +193,13 @@ public class DocumentWriteResource {
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
       @QueryParam("id-path") String idPath,
-      @QueryParam("ttl") String ttl,
+      @QueryParam("ttl") Integer ttl,
       @QueryParam("profile") boolean profile,
-      @NotNull JsonNode body) {
-    return null;
+      @NotNull String body) {
+    ExecutionContext context = ExecutionContext.create(profile);
+    return documentWriteService
+        .writeDocuments(namespace, collection, body, idPath, ttl, context)
+        .onItem()
+        .transform(result -> ResponseBuilder.accepted().entity(result).build());
   }
 }
