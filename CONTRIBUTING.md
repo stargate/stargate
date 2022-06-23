@@ -41,9 +41,9 @@ Before you submit your Pull Request (PR) consider the following guidelines:
 * Search the repository (https://github.com/stargate/stargate/pulls) for an open or closed PR that relates to your submission. You don't want to duplicate effort.
 
 * Create a fork of the repo
-    * Navigate to the repo you want to fork
-    * In the top right corner of the page click **Fork**:
-    ![](https://help.github.com/assets/images/help/repository/fork_button.jpg)
+	* Navigate to the repo you want to fork
+	* In the top right corner of the page click **Fork**:
+	![](https://help.github.com/assets/images/help/repository/fork_button.jpg)
 
 * Make your changes in the forked repo
 * Commit your changes using a descriptive commit message
