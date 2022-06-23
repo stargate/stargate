@@ -51,8 +51,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 
 @QuarkusTest
-@TestProfile(DocumentWriteServiceTest.Profile.class)
-public class DocumentWriteServiceTest {
+@TestProfile(WriteDocumentsServiceTest.Profile.class)
+public class WriteDocumentsServiceTest {
 
   public static class Profile implements QuarkusTestProfile {
     @Override
@@ -74,7 +74,7 @@ public class DocumentWriteServiceTest {
 
   @InjectMock AuthorizedTableManager tableManager;
 
-  @Inject DocumentWriteService documentWriteService;
+  @Inject WriteDocumentsService documentWriteService;
 
   @Inject ObjectMapper objectMapper;
 
