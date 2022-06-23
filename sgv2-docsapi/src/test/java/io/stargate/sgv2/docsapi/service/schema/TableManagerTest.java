@@ -38,7 +38,7 @@ import org.mockito.ArgumentCaptor;
 @QuarkusTest
 class TableManagerTest extends BridgeTest {
 
-  @Inject TableManager tableManager;
+  @Inject NoAuthTableManager tableManager;
 
   @Inject CollectionQueryProvider queryProvider;
 

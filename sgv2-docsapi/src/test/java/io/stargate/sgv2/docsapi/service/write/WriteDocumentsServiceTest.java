@@ -37,7 +37,7 @@ import io.stargate.sgv2.docsapi.service.query.ReadBridgeService;
 import io.stargate.sgv2.docsapi.service.query.model.RawDocument;
 import io.stargate.sgv2.docsapi.service.query.model.paging.PagingStateSupplier;
 import io.stargate.sgv2.docsapi.service.schema.JsonSchemaManager;
-import io.stargate.sgv2.docsapi.service.schema.TableManager;
+import io.stargate.sgv2.docsapi.service.schema.NoAuthTableManager;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -72,7 +72,7 @@ public class WriteDocumentsServiceTest {
 
   @InjectMock JsonSchemaManager jsonSchemaManager;
 
-  @InjectMock TableManager tableManager;
+  @InjectMock NoAuthTableManager tableManager;
 
   @Inject WriteDocumentsService documentWriteService;
 

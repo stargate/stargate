@@ -28,7 +28,7 @@ import io.restassured.http.ContentType;
 import io.stargate.sgv2.common.cql.builder.Replication;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.service.schema.NamespaceManager;
-import io.stargate.sgv2.docsapi.service.schema.TableManager;
+import io.stargate.sgv2.docsapi.service.schema.NoAuthTableManager;
 import io.stargate.sgv2.docsapi.testprofiles.IntegrationTestProfile;
 import java.time.Duration;
 import javax.enterprise.context.control.ActivateRequestContext;
@@ -64,7 +64,7 @@ public class JsonSchemaResourceIntegrationTest {
   public static final String DEFAULT_COLLECTION = RandomStringUtils.randomAlphanumeric(16);
 
   @Inject NamespaceManager namespaceManager;
-  @Inject TableManager tableManager;
+  @Inject NoAuthTableManager tableManager;
 
   @BeforeAll
   public void init() {
