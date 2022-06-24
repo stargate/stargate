@@ -39,6 +39,24 @@ jobs:
            </servers>
           </settings>
           EOF
+      - name: Clone CCM
+        uses: actions/checkout@v3
+        with:
+          repository: riptano/ccm
+          ref: master
+          fetch-depth: 1
+          path: ccm
+      - name: Install CCM
+        run: |
+          sudo apt-get install python2.7
+          sudo apt-get install python-dev
+          sudo apt-get install python-setuptools
+          sudo apt-get install python-yaml
+          python -m pip install --upgrade pip
+          python -m pip install psutil
+          cd ccm
+          sudo ./setup.py install
+          ccm list
       - name: Build with Maven
         run: |
           ./mvnw verify -B -q -ntp -P it-cassandra-4.0
