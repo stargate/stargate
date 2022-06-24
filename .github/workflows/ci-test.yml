@@ -6,7 +6,7 @@ on:
 jobs:
   integration-test:
     name: Integration Test
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     steps:
       - uses: actions/checkout@v3
         with:
@@ -47,13 +47,16 @@ jobs:
           fetch-depth: 1
           path: ccm
       - name: Install CCM
+        # Ubuntu 20 won't ship with PIP for Python 2, so this is bit more complicated, see
+        #   https://linuxize.com/post/how-to-install-pip-on-ubuntu-20.04/
         run: |
-          sudo apt-get install python2.7
-          sudo apt-get install python-dev
-          sudo apt-get install python-setuptools
-          sudo apt-get install python-yaml
-          python -m pip install --upgrade pip
-          python -m pip install psutil
+          sudo add-apt-repository universe
+          sudo apt update
+          sudo apt install python2
+          curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py
+          sudo python2 get-pip.py
+          pip2 --version
+          pip2 install psutil
           cd ccm
           sudo ./setup.py install
           ccm list
