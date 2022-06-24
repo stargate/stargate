@@ -71,6 +71,7 @@ public class HAProxyProtocolDetectingDecoder extends ByteToMessageDecoder {
                       new ProxyInfo(
                           new InetSocketAddress(msg.destinationAddress(), msg.destinationPort()),
                           new InetSocketAddress(msg.sourceAddress(), msg.sourcePort())));
+                  msg.release();
                 }
               });
     } else {
