@@ -28,12 +28,14 @@ SGTAG="v$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)"
 
 REPO="stargateio"
 
+API_ONLY=
+
 #
 # overrides via command line
 #
 
-while getopts ":pat:r:" opt; do
-  case $opt in
+while getopts ":t:r:pa" opt; do
+  case "$opt" in
     p)
       DOCKER_FLAGS="--platform linux/amd64,linux/arm64 --push"
       ;;
