@@ -136,6 +136,10 @@ jobs:
       #  run: |
       #    mvn versions:set -DremoveSnapshot versions:commit && \
       #    mvn -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse
+      - name: Build package
+        run: |
+          mvn versions:set -DremoveSnapshot versions:commit && \
+          mvn clean package -DskipTests -P deploy,dse
       - name: Set up Docker QEMU
         uses: docker/setup-qemu-action@v1
       - name: Login to DockerHub
