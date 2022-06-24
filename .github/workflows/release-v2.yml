@@ -3,8 +3,7 @@ name: Release v2
 on:
   push:
     tags:
-      - 'v2.*.*'
-      - 'v2.*.*-TEST.*'
+      - 'v2test.*.*'
 
 jobs:
   create-release:
@@ -133,10 +132,10 @@ jobs:
         name: Install gpg secret key
         run: |
           cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
-      - name: Publish package
-        run: |
-          mvn versions:set -DremoveSnapshot versions:commit && \
-          mvn -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse
+      #- name: Publish package
+      #  run: |
+      #    mvn versions:set -DremoveSnapshot versions:commit && \
+      #    mvn -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse
       - name: Set up Docker QEMU
         uses: docker/setup-qemu-action@v1
       - name: Login to DockerHub
