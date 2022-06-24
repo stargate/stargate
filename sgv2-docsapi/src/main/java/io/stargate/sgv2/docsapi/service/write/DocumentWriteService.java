@@ -463,11 +463,14 @@ public class DocumentWriteService {
   // creates needed query builders for one path of dead leaves
   private List<AbstractDeleteQueryBuilder> getDeadLeavesQueryBuilders(
       String path, Set<DeadLeaf> leaves) {
+
+    // path is expected as $.path.field
     List<String> pathParts = PATH_SPLITTER.splitToList(path);
     if (pathParts.isEmpty()) {
       return Collections.emptyList();
     }
 
+    // we remove the first one ($)
     List<String> pathToDelete = pathParts.subList(1, pathParts.size());
     boolean deleteArray = false;
     boolean deleteAll = false;
@@ -484,21 +487,26 @@ public class DocumentWriteService {
 
     List<AbstractDeleteQueryBuilder> builders = new ArrayList<>();
 
-    // TODO Eric if we have delete all, why would we add this one below
-    if (!keysToDelete.isEmpty()) {
-      DeleteSubDocumentKeysQueryBuilder deleteSubDocumentKeysQueryBuilder =
-          new DeleteSubDocumentKeysQueryBuilder(pathToDelete, keysToDelete, documentProperties);
-      builders.add(deleteSubDocumentKeysQueryBuilder);
-    }
-
+    // in case of delete all, just that one
     if (deleteAll) {
       DeleteSubDocumentPathQueryBuilder deleteSubDocumentPathQueryBuilder =
           new DeleteSubDocumentPathQueryBuilder(pathToDelete, false, documentProperties);
       builders.add(deleteSubDocumentPathQueryBuilder);
-    } else if (deleteArray) {
-      DeleteSubDocumentArrayQueryBuilder deleteSubDocumentArrayQueryBuilder =
-          new DeleteSubDocumentArrayQueryBuilder(pathToDelete, documentProperties);
-      builders.add(deleteSubDocumentArrayQueryBuilder);
+    } else {
+      // otherwise if we have any keys include that
+      // if it's delete array include array deletion as well
+
+      if (!keysToDelete.isEmpty()) {
+        DeleteSubDocumentKeysQueryBuilder deleteSubDocumentKeysQueryBuilder =
+            new DeleteSubDocumentKeysQueryBuilder(pathToDelete, keysToDelete, documentProperties);
+        builders.add(deleteSubDocumentKeysQueryBuilder);
+      }
+
+      if (deleteArray) {
+        DeleteSubDocumentArrayQueryBuilder deleteSubDocumentArrayQueryBuilder =
+            new DeleteSubDocumentArrayQueryBuilder(pathToDelete, documentProperties);
+        builders.add(deleteSubDocumentArrayQueryBuilder);
+      }
     }
 
     return builders;
