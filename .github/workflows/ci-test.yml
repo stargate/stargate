@@ -41,5 +41,5 @@ jobs:
           EOF
       - name: Build with Maven
         run: |
-          ./mvnw verify -P it-cassandra-4.0
+          ./mvnw verify -B -q -ntp -P it-cassandra-4.0
 
