@@ -17,6 +17,7 @@
 
 package io.stargate.sgv2.docsapi.service.write;
 
+import com.google.common.base.Splitter;
 import io.opentelemetry.extension.annotations.WithSpan;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
@@ -31,6 +32,7 @@ import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.config.QueriesConfig;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.JsonShreddedRow;
+import io.stargate.sgv2.docsapi.service.json.DeadLeaf;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
 import io.stargate.sgv2.docsapi.service.util.TimeSource;
 import io.stargate.sgv2.docsapi.service.write.db.AbstractDeleteQueryBuilder;
@@ -42,13 +44,18 @@ import io.stargate.sgv2.docsapi.service.write.db.InsertQueryBuilder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 @ApplicationScoped
 public class DocumentWriteService {
+
+  // path splitter on dot
+  private static final Splitter PATH_SPLITTER = Splitter.on(".");
 
   private final StargateRequestInfo requestInfo;
   private final TimeSource timeSource;
@@ -407,6 +414,102 @@ public class DocumentWriteService {
             query ->
                 executeSingle(
                     requestInfo.getStargateBridge(), query, context.nested("ASYNC DELETE")));
+  }
+
+  /**
+   * Deletes a given dead leaves for a document.
+   *
+   * @param keyspace Keyspace to delete a dead leaves from.
+   * @param collection Collection the document belongs to.
+   * @param documentId Document ID.
+   * @param microsTimestamp Micros timestamp to use in delete queries.
+   * @param deadLeaves A map of JSON paths (f.e. $.some.path) to dead leaves to delete.
+   * @param context Execution content for profiling.
+   * @return Single containing the {@link ResultSet} of the batch execution.
+   */
+  public Uni<ResultSet> deleteDeadLeaves(
+      String keyspace,
+      String collection,
+      String documentId,
+      long microsTimestamp,
+      Map<String, Set<DeadLeaf>> deadLeaves,
+      ExecutionContext context) {
+    return Uni.createFrom()
+        .item(
+            () -> {
+              List<QueryOuterClass.BatchQuery> queries = new ArrayList<>();
+              for (Map.Entry<String, Set<DeadLeaf>> entry : deadLeaves.entrySet()) {
+                String path = entry.getKey();
+                Set<DeadLeaf> leaves = entry.getValue();
+
+                getDeadLeavesQueryBuilders(path, leaves)
+                    .forEach(
+                        builder -> {
+                          queries.add(
+                              builder.buildAndBind(
+                                  keyspace, collection, documentId, microsTimestamp));
+                        });
+              }
+              return queries;
+            })
+        .flatMap(
+            boundQueries ->
+                executeBatch(
+                    requestInfo.getStargateBridge(),
+                    boundQueries,
+                    context.nested("ASYNC DOCUMENT CORRECTION")));
+  }
+
+  // creates needed query builders for one path of dead leaves
+  private List<AbstractDeleteQueryBuilder> getDeadLeavesQueryBuilders(
+      String path, Set<DeadLeaf> leaves) {
+
+    // path is expected as $.path.field
+    List<String> pathParts = PATH_SPLITTER.splitToList(path);
+    if (pathParts.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    // we remove the first one ($)
+    List<String> pathToDelete = pathParts.subList(1, pathParts.size());
+    boolean deleteArray = false;
+    boolean deleteAll = false;
+    List<String> keysToDelete = new ArrayList<>(leaves.size());
+    for (DeadLeaf deadLeaf : leaves) {
+      if (DeadLeaf.STAR_LEAF.equals(deadLeaf)) {
+        deleteAll = true;
+      } else if (DeadLeaf.ARRAY_LEAF.equals(deadLeaf)) {
+        deleteArray = true;
+      } else {
+        keysToDelete.add(deadLeaf.getName());
+      }
+    }
+
+    List<AbstractDeleteQueryBuilder> builders = new ArrayList<>();
+
+    // in case of delete all, just that one
+    if (deleteAll) {
+      DeleteSubDocumentPathQueryBuilder deleteSubDocumentPathQueryBuilder =
+          new DeleteSubDocumentPathQueryBuilder(pathToDelete, false, documentProperties);
+      builders.add(deleteSubDocumentPathQueryBuilder);
+    } else {
+      // otherwise if we have any keys include that
+      // if it's delete array include array deletion as well
+
+      if (!keysToDelete.isEmpty()) {
+        DeleteSubDocumentKeysQueryBuilder deleteSubDocumentKeysQueryBuilder =
+            new DeleteSubDocumentKeysQueryBuilder(pathToDelete, keysToDelete, documentProperties);
+        builders.add(deleteSubDocumentKeysQueryBuilder);
+      }
+
+      if (deleteArray) {
+        DeleteSubDocumentArrayQueryBuilder deleteSubDocumentArrayQueryBuilder =
+            new DeleteSubDocumentArrayQueryBuilder(pathToDelete, documentProperties);
+        builders.add(deleteSubDocumentArrayQueryBuilder);
+      }
+    }
+
+    return builders;
   }
 
   private Uni<ResultSet> executeBatch(

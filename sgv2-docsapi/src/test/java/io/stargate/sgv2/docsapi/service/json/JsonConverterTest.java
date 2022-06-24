@@ -125,7 +125,7 @@ public class JsonConverterTest {
     assertThat(leaves.contains(ImmutableDeadLeaf.builder().name("").build())).isTrue();
     leaves = deadLeaves.get("$.d.e");
     assertThat(leaves.size()).isEqualTo(1);
-    assertThat(leaves.contains(DeadLeaf.ARRAYLEAF)).isTrue();
+    assertThat(leaves.contains(DeadLeaf.ARRAY_LEAF)).isTrue();
     leaves = deadLeaves.get("$.g.h");
     assertThat(leaves.size()).isEqualTo(1);
     assertThat(leaves.contains(ImmutableDeadLeaf.builder().name("").build())).isTrue();
@@ -165,16 +165,16 @@ public class JsonConverterTest {
     assertThat(deadLeaves.containsKey("$.g")).isTrue();
     leaves = deadLeaves.get("$.a");
     assertThat(leaves.size()).isEqualTo(1);
-    assertThat(leaves.contains(DeadLeaf.STARLEAF)).isTrue();
+    assertThat(leaves.contains(DeadLeaf.STAR_LEAF)).isTrue();
     leaves = deadLeaves.get("$.d");
     assertThat(leaves.size()).isEqualTo(1);
-    assertThat(leaves.contains(DeadLeaf.STARLEAF)).isTrue();
+    assertThat(leaves.contains(DeadLeaf.STAR_LEAF)).isTrue();
     leaves = deadLeaves.get("$.f");
     assertThat(leaves.size()).isEqualTo(1);
-    assertThat(leaves.contains(DeadLeaf.STARLEAF)).isTrue();
+    assertThat(leaves.contains(DeadLeaf.STAR_LEAF)).isTrue();
     leaves = deadLeaves.get("$.g");
     assertThat(leaves.size()).isEqualTo(1);
-    assertThat(leaves.contains(DeadLeaf.STARLEAF)).isTrue();
+    assertThat(leaves.contains(DeadLeaf.STAR_LEAF)).isTrue();
   }
 
   @Test
@@ -261,7 +261,7 @@ public class JsonConverterTest {
     assertThat(leaves.contains(ImmutableDeadLeaf.builder().name("").build())).isTrue();
     leaves = deadLeaves.get("$.d.e");
     assertThat(leaves.size()).isEqualTo(1);
-    assertThat(leaves.contains(DeadLeaf.ARRAYLEAF)).isTrue();
+    assertThat(leaves.contains(DeadLeaf.ARRAY_LEAF)).isTrue();
     leaves = deadLeaves.get("$.g.h");
     assertThat(leaves.size()).isEqualTo(1);
     assertThat(leaves.contains(ImmutableDeadLeaf.builder().name("").build())).isTrue();
@@ -301,16 +301,16 @@ public class JsonConverterTest {
     assertThat(deadLeaves.containsKey("$.g")).isTrue();
     leaves = deadLeaves.get("$.a");
     assertThat(leaves.size()).isEqualTo(1);
-    assertThat(leaves.contains(DeadLeaf.STARLEAF)).isTrue();
+    assertThat(leaves.contains(DeadLeaf.STAR_LEAF)).isTrue();
     leaves = deadLeaves.get("$.d");
     assertThat(leaves.size()).isEqualTo(1);
-    assertThat(leaves.contains(DeadLeaf.STARLEAF)).isTrue();
+    assertThat(leaves.contains(DeadLeaf.STAR_LEAF)).isTrue();
     leaves = deadLeaves.get("$.f");
     assertThat(leaves.size()).isEqualTo(1);
-    assertThat(leaves.contains(DeadLeaf.STARLEAF)).isTrue();
+    assertThat(leaves.contains(DeadLeaf.STAR_LEAF)).isTrue();
     leaves = deadLeaves.get("$.g");
     assertThat(leaves.size()).isEqualTo(1);
-    assertThat(leaves.contains(DeadLeaf.STARLEAF)).isTrue();
+    assertThat(leaves.contains(DeadLeaf.STAR_LEAF)).isTrue();
   }
 
   @Test
