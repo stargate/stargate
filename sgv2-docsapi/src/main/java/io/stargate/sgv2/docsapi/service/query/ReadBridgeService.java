@@ -19,6 +19,7 @@ package io.stargate.sgv2.docsapi.service.query;
 
 import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.Literal;
+import io.opentelemetry.extension.annotations.WithSpan;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.grpc.Values;
@@ -57,8 +58,9 @@ public class ReadBridgeService {
    * @param expression Expression tree
    * @param paginator {@link Paginator}
    * @param context Context for recording profiling information
-   * @return Flowable of {@link RawDocument}s.
+   * @return Multi of {@link RawDocument}s, limited to a size defined in the #paginator.
    */
+  @WithSpan
   public Multi<RawDocument> searchDocuments(
       String keyspace,
       String collection,
@@ -112,9 +114,10 @@ public class ReadBridgeService {
    *     included in the {@link FilterExpression}s)
    * @param paginator {@link Paginator}
    * @param context Context for recording profiling information
-   * @return Flowable of {@link RawDocument}s representing sub-documents in the given
-   *     #subDocumentPath.
+   * @return Multi of {@link RawDocument}s representing sub-documents in the given #subDocumentPath,
+   *     limited to a size defined in the #paginator
    */
+  @WithSpan
   public Multi<RawDocument> searchSubDocuments(
       String keyspace,
       String collection,
@@ -142,16 +145,17 @@ public class ReadBridgeService {
   }
 
   /**
-   * Gets a single document optionally limit to the the #subDocumentPath.
+   * Gets a single document optionally limited to the #subDocumentPath.
    *
    * @param keyspace Keyspace to search in.
    * @param collection Collection to search in.
    * @param documentId Document ID to search in
    * @param subDocumentPath Path where to find the document
    * @param context Context for recording profiling information
-   * @return Flowable of {@link RawDocument}s representing a document or sub-document in the given
-   *     #subDocumentPath.
+   * @return Multi with a single {@link RawDocument} representing a document or sub-document in the
+   *     given #subDocumentPath, or empty if not found.
    */
+  @WithSpan
   public Multi<RawDocument> getDocument(
       String keyspace,
       String collection,
@@ -174,8 +178,10 @@ public class ReadBridgeService {
    * @param collection Collection to search in.
    * @param documentId Document ID to search in
    * @param context Context for recording profiling information
-   * @return Flowable of {@link RawDocument}s representing a document's rows with TTL as a column
+   * @return Uni with a single {@link RawDocument} representing a document's rows with TTL as a
+   *     column, or null if document not found
    */
+  @WithSpan
   public Uni<RawDocument> getDocumentTtlInfo(
       String keyspace, String collection, String documentId, ExecutionContext context) {
     return documentTtl(keyspace, collection, documentId, context).select().first().toUni();
