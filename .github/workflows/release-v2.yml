@@ -166,7 +166,7 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
       - name: Build and push (ECR)
         run: |
-          ./build_docker_images.sh -p -t ${{ steps.vars.outputs.tag }} -r "made-up-dne-exist"
+          ./build_docker_images.sh -p -t ${{ steps.vars.outputs.tag }} -r ${{ secrets.ECR_REPOSITORY }}
       - name: Update version numbers for next release
         run: |
           mvn -B release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse && \
