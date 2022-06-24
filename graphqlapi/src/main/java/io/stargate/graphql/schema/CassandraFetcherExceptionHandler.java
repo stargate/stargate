@@ -41,6 +41,5 @@ public class CassandraFetcherExceptionHandler extends SimpleDataFetcherException
   protected void logException(ExceptionWhileDataFetching error, Throwable exception) {
     // 24-Jun-2022, tatu: [stargate#1279] Since we handle exception at an outer level,
     //    should not log it here.
-    ;
   }
 }
