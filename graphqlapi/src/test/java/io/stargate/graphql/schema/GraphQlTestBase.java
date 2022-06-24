@@ -97,6 +97,9 @@ public abstract class GraphQlTestBase {
         GraphQL.newGraphQL(graphQlSchema)
             // Use parallel execution strategy for mutations (serial is default)
             .mutationExecutionStrategy(new AsyncExecutionStrategy())
+            // 24-Jun-2022, tatu: As per [stargate#1279] prevent graphql-java from adding
+            //    spurious logs at low level. Will not affect propagation of exceptions
+            .defaultDataFetcherExceptionHandler(CassandraFetcherExceptionHandler.INSTANCE)
             .build();
   }
 
