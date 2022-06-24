@@ -41,6 +41,7 @@ jobs:
           </settings>
           EOF
       - name: Clone CCM
+        # 24-Jun-2022, tatu: CCM install copied from C2 repo's ".github/workflows/ci.yml":
         uses: actions/checkout@v3
         with:
           repository: riptano/ccm
@@ -58,7 +59,7 @@ jobs:
           cd ccm
           sudo ./setup.py install
           ccm list
-      - name: Build with Maven
+      - name: Run Integration Tests against C*4.0
         run: |
-          ./mvnw verify -B -q -ntp -P it-cassandra-4.0
+          ./mvnw verify -B -ntp -P it-cassandra-4.0
 
