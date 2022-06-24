@@ -37,12 +37,13 @@ import io.stargate.sgv2.docsapi.service.query.ReadBridgeService;
 import io.stargate.sgv2.docsapi.service.query.model.RawDocument;
 import io.stargate.sgv2.docsapi.service.query.model.paging.PagingStateSupplier;
 import io.stargate.sgv2.docsapi.service.schema.JsonSchemaManager;
-import io.stargate.sgv2.docsapi.service.schema.NoAuthTableManager;
+import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import javax.enterprise.inject.Default;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -72,7 +73,7 @@ public class WriteDocumentsServiceTest {
 
   @InjectMock JsonSchemaManager jsonSchemaManager;
 
-  @InjectMock NoAuthTableManager tableManager;
+  @InjectMock @Default TableManager tableManager;
 
   @Inject WriteDocumentsService documentWriteService;
 

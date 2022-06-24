@@ -255,7 +255,8 @@ public class TableManager {
             () ->
                 createCollectionTable(namespace, collection)
                     .onItem()
-                    .transformToUni(result -> getTable(namespace, collection)));
+                    .transformToUni(
+                        result -> getValidDocumentTableInternal(namespace, collection)));
   }
 
   // internal method for getting a valid document table

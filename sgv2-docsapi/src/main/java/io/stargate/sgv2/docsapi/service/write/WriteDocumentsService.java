@@ -15,7 +15,7 @@ import io.stargate.sgv2.docsapi.service.JsonDocumentShredder;
 import io.stargate.sgv2.docsapi.service.JsonShreddedRow;
 import io.stargate.sgv2.docsapi.service.query.ReadBridgeService;
 import io.stargate.sgv2.docsapi.service.schema.JsonSchemaManager;
-import io.stargate.sgv2.docsapi.service.schema.NoAuthTableManager;
+import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
 import java.util.Collections;
 import java.util.HashSet;
@@ -37,7 +37,7 @@ public class WriteDocumentsService {
 
   @Inject JsonSchemaManager jsonSchemaManager;
 
-  @Inject NoAuthTableManager tableManager;
+  @Inject TableManager tableManager;
 
   @Inject JsonDocumentShredder documentShredder;
 
