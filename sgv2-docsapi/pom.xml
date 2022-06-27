@@ -19,8 +19,8 @@
     <quarkus.generate-code.grpc.scan-for-proto>io.stargate.grpc:bridge-proto</quarkus.generate-code.grpc.scan-for-proto>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-    <quarkus.platform.version>2.9.1.Final</quarkus.platform.version>
-    <surefire-plugin.version>3.0.0-M5</surefire-plugin.version>
+    <quarkus.platform.version>2.10.0.Final</quarkus.platform.version>
+    <surefire-plugin.version>3.0.0-M7</surefire-plugin.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -325,7 +325,6 @@
       </build>
       <properties>
         <quarkus.container-image.name>docsapi-native</quarkus.container-image.name>
-        <quarkus.native.builder-image>quay.io/quarkus/ubi-quarkus-mandrel:21.3-java17</quarkus.native.builder-image>
         <quarkus.package.type>native</quarkus.package.type>
         <quarkus.native.native-image-xmx>6G</quarkus.native.native-image-xmx>
       </properties>
