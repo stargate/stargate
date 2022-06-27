@@ -132,6 +132,11 @@ public class SchemaConverter
   }
 
   @Override
+  protected int ttl(TableMetadata table) {
+    return table.params.get(TableParams.DEFAULT_TTL);
+  }
+
+  @Override
   protected String indexName(IndexMetadata index) {
     return index.name;
   }
