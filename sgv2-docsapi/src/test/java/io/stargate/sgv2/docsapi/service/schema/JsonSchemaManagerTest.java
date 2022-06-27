@@ -1,5 +1,6 @@
 package io.stargate.sgv2.docsapi.service.schema;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.verify;
@@ -17,6 +18,7 @@ import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.docsapi.BridgeTest;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
+import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.grpc.GrpcClients;
 import java.util.Optional;
@@ -162,7 +164,7 @@ class JsonSchemaManagerTest extends BridgeTest {
 
       UniAssertSubscriber<Boolean> result =
           jsonSchemaManager
-              .validateJsonDocument(Uni.createFrom().item(table), document)
+              .validateJsonDocument(Uni.createFrom().item(table), document, false)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
 
@@ -177,7 +179,7 @@ class JsonSchemaManagerTest extends BridgeTest {
 
       UniAssertSubscriber<Boolean> result =
           jsonSchemaManager
-              .validateJsonDocument(Uni.createFrom().item(table), document)
+              .validateJsonDocument(Uni.createFrom().item(table), document, false)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
 
@@ -191,11 +193,30 @@ class JsonSchemaManagerTest extends BridgeTest {
 
     JsonNode document = objectMapper.readTree("{\"id\":1, \"price\":1}");
     jsonSchemaManager
-        .validateJsonDocument(Uni.createFrom().item(table), document)
+        .validateJsonDocument(Uni.createFrom().item(table), document, false)
         .subscribe()
         .withSubscriber(UniAssertSubscriber.create())
         .awaitFailure()
         .assertFailedWith(ErrorCodeRuntimeException.class);
+  }
+
+  @Test
+  public void schemaPresentSubdocumentDisallowed() throws JsonProcessingException {
+    table = Schema.CqlTable.newBuilder().putOptions("comment", testJsonSchema()).build();
+
+    JsonNode document = objectMapper.readTree("{\"id\":1, \"name\": \"Eric\", \"price\":1}");
+    Throwable failure =
+        jsonSchemaManager
+            .validateJsonDocument(Uni.createFrom().item(table), document, true)
+            .subscribe()
+            .withSubscriber(UniAssertSubscriber.create())
+            .awaitFailure()
+            .getFailure();
+
+    assertThat(failure)
+        .isInstanceOf(ErrorCodeRuntimeException.class)
+        .hasFieldOrPropertyWithValue(
+            "errorCode", ErrorCode.DOCS_API_JSON_SCHEMA_INVALID_PARTIAL_UPDATE);
   }
 
   private String testJsonSchema() {

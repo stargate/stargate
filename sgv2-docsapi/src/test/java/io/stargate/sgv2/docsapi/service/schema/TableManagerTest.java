@@ -286,13 +286,16 @@ class TableManagerTest extends BridgeTest {
           .when(bridgeService)
           .describeKeyspace(any(), any());
 
-      UniAssertSubscriber<Boolean> result =
+      Schema.CqlTable result =
           tableManager
               .ensureValidDocumentTable(namespace, collection)
               .subscribe()
-              .withSubscriber(UniAssertSubscriber.create());
+              .withSubscriber(UniAssertSubscriber.create())
+              .awaitItem()
+              .assertCompleted()
+              .getItem();
 
-      result.awaitItem().assertItem(true).assertCompleted();
+      assertThat(result).isNotNull();
 
       verify(bridgeService).describeKeyspace(any(), any());
       verifyNoMoreInteractions(bridgeService);
@@ -308,11 +311,22 @@ class TableManagerTest extends BridgeTest {
               .setCqlKeyspace(Schema.CqlKeyspace.newBuilder().setName(namespace))
               .build();
 
+      Schema.CqlKeyspaceDescribe validTableAndKeyspace =
+          getValidTableAndKeyspace(namespace, collection);
+
       doAnswer(
               invocationOnMock -> {
                 StreamObserver<Schema.CqlKeyspaceDescribe> observer =
                     invocationOnMock.getArgument(1);
                 observer.onNext(keyspace);
+                observer.onCompleted();
+                return null;
+              })
+          .doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.CqlKeyspaceDescribe> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(validTableAndKeyspace);
                 observer.onCompleted();
                 return null;
               })
@@ -337,15 +351,18 @@ class TableManagerTest extends BridgeTest {
           .when(bridgeService)
           .executeQuery(any(), any());
 
-      UniAssertSubscriber<Boolean> result =
+      Schema.CqlTable result =
           tableManager
               .ensureValidDocumentTable(namespace, collection)
               .subscribe()
-              .withSubscriber(UniAssertSubscriber.create());
+              .withSubscriber(UniAssertSubscriber.create())
+              .awaitItem()
+              .assertCompleted()
+              .getItem();
 
-      result.awaitItem().assertItem(true).assertCompleted();
+      assertThat(result).isNotNull();
 
-      verify(bridgeService).describeKeyspace(any(), any());
+      verify(bridgeService, times(2)).describeKeyspace(any(), any());
       verify(bridgeService, times(5)).executeQuery(queryCaptor.capture(), any());
       verifyNoMoreInteractions(bridgeService);
 
