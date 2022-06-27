@@ -35,11 +35,17 @@ import io.stargate.sgv2.docsapi.bridge.ValidatingStargateBridge;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.ImmutableJsonShreddedRow;
 import io.stargate.sgv2.docsapi.service.JsonShreddedRow;
+import io.stargate.sgv2.docsapi.service.json.DeadLeaf;
+import io.stargate.sgv2.docsapi.service.json.ImmutableDeadLeaf;
 import io.stargate.sgv2.docsapi.service.util.TimeSource;
 import io.stargate.sgv2.docsapi.testprofiles.MaxDepth4TestProfile;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -49,9 +55,9 @@ import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 @TestProfile(MaxDepth4TestProfile.class)
-class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
+class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
 
-  @Inject DocumentWriteService service;
+  @Inject WriteBridgeService service;
   @Inject DocsApiTestSchemaProvider schemaProvider;
   @Inject DataStoreProperties dataStoreProperties;
   @Inject DocumentProperties documentProperties;
@@ -329,8 +335,7 @@ class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
                     .hasSize(2)
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL())
-                              .isEqualTo(String.format(deleteCql, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.preparedCQL()).isEqualTo(deleteCql);
                           assertThat(queryInfo.execCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         })
@@ -428,8 +433,7 @@ class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
                     .hasSize(2)
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL())
-                              .isEqualTo(String.format(deleteCql, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.preparedCQL()).isEqualTo(deleteCql);
                           assertThat(queryInfo.execCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         })
@@ -527,8 +531,7 @@ class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
                     .hasSize(2)
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL())
-                              .isEqualTo(String.format(deleteCql, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.preparedCQL()).isEqualTo(deleteCql);
                           assertThat(queryInfo.execCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         })
@@ -1148,8 +1151,7 @@ class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL())
-                              .isEqualTo(String.format(deleteCql, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.preparedCQL()).isEqualTo(deleteCql);
                           assertThat(queryInfo.execCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         });
@@ -1188,10 +1190,106 @@ class DocumentWriteServiceTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL())
-                              .isEqualTo(String.format(deleteCql, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.preparedCQL()).isEqualTo(deleteCql);
                           assertThat(queryInfo.execCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
+                        });
+              });
+    }
+  }
+
+  @Nested
+  class DeleteDeadLeaves {
+
+    @Test
+    public void happyPath() {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      long microsTimestamp = RandomUtils.nextLong();
+
+      Map<String, Set<DeadLeaf>> deadLeaves = new LinkedHashMap<>();
+
+      LinkedHashSet<DeadLeaf> leavesWithKeys = new LinkedHashSet<>();
+      leavesWithKeys.add(ImmutableDeadLeaf.builder().name("key1").build());
+      leavesWithKeys.add(ImmutableDeadLeaf.builder().name("key2").build());
+      deadLeaves.put("$.a.b", leavesWithKeys);
+      deadLeaves.put("$.b", Set.of(DeadLeaf.ARRAY_LEAF));
+      deadLeaves.put("$.c.d", Set.of(DeadLeaf.STAR_LEAF));
+
+      String deleteFirst =
+          "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ? AND p2 IN ?"
+              .formatted(keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert deleteFirstQueryAssert =
+          withQuery(
+                  deleteFirst,
+                  Values.of(microsTimestamp),
+                  Values.of(documentId),
+                  Values.of("a"),
+                  Values.of("b"),
+                  Values.of(Values.of("key1"), Values.of("key2")))
+              .inBatch(Batch.Type.LOGGED)
+              .returningNothing();
+
+      String deleteSecond =
+          "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 >= ? AND p1 <= ?"
+              .formatted(keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert deleteSecondQueryAssert =
+          withQuery(
+                  deleteSecond,
+                  Values.of(microsTimestamp),
+                  Values.of(documentId),
+                  Values.of("b"),
+                  Values.of("[000000]"),
+                  Values.of("[999999]"))
+              .inBatch(Batch.Type.LOGGED)
+              .returningNothing();
+
+      String deleteThird =
+          "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ?"
+              .formatted(keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert deleteThirdQueryAssert =
+          withQuery(
+                  deleteThird,
+                  Values.of(microsTimestamp),
+                  Values.of(documentId),
+                  Values.of("c"),
+                  Values.of("d"))
+              .inBatch(Batch.Type.LOGGED)
+              .returningNothing();
+
+      service
+          .deleteDeadLeaves(
+              keyspaceName, tableName, documentId, microsTimestamp, deadLeaves, context)
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitItem()
+          .assertCompleted();
+
+      deleteFirstQueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteSecondQueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteThirdQueryAssert.assertExecuteCount().isEqualTo(1);
+
+      // execution context
+      assertThat(context.toProfile().nested())
+          .singleElement()
+          .satisfies(
+              nested -> {
+                assertThat(nested.description()).isEqualTo("ASYNC DOCUMENT CORRECTION");
+                assertThat(nested.queries())
+                    .hasSize(3)
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL()).isEqualTo(deleteFirst);
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL()).isEqualTo(deleteSecond);
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.preparedCQL()).isEqualTo(deleteThird);
+                          assertThat(queryInfo.execCount()).isEqualTo(1);
                         });
               });
     }

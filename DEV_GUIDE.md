@@ -350,6 +350,7 @@ do
     sudo /sbin/ifconfig lo0 alias 127.0.2.$i;
 done
 
+sudo /sbin/ifconfig lo0 alias 127.0.3.1;
 ```
 
 Set access of the script:
