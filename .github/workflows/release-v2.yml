@@ -36,8 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          #  ref: "v2.0.0"
-          ref: ${{ steps.vars.outputs.tag }}
+          ref: "v2.0.0"
       - name: Setup Java JDK
         uses: actions/setup-java@v1
         with:
@@ -93,7 +92,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          ref: "v2.0.0"
+          #ref: "v2.0.0"
+          ref: ${{ github.ref_name }}
       - name: Set version
         id: vars
         run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
@@ -165,10 +165,6 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
-      - name: Setup upterm session
-        uses: lhotari/action-upterm@v1
-        with:
-          limit-access-to-users: mpenick
       - name: Build and push (ECR)
         run: |
           ./build_docker_images.sh -p -t ${{ steps.vars.outputs.tag }} -r "made-up-dne-exist"
