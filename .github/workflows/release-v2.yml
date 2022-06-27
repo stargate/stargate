@@ -36,7 +36,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          ref: "v2.0.0"
+          #  ref: "v2.0.0"
+          ref: ${{ steps.vars.outputs.tag }}
       - name: Setup Java JDK
         uses: actions/setup-java@v1
         with:
