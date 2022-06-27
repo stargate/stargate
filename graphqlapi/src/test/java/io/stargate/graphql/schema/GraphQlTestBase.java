@@ -99,7 +99,8 @@ public abstract class GraphQlTestBase {
             //    spurious logs at low level. Will not affect propagation of exceptions
             .defaultDataFetcherExceptionHandler(CassandraFetcherExceptionHandler.INSTANCE)
             // Use parallel execution strategy for mutations (serial is default)
-            .mutationExecutionStrategy(new AsyncExecutionStrategy(CassandraFetcherExceptionHandler.INSTANCE))
+            .mutationExecutionStrategy(
+                new AsyncExecutionStrategy(CassandraFetcherExceptionHandler.INSTANCE))
             .build();
   }
 
