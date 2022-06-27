@@ -43,7 +43,7 @@ import io.stargate.sgv2.docsapi.service.json.JsonConverter;
 import io.stargate.sgv2.docsapi.service.query.model.RawDocument;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
 import io.stargate.sgv2.docsapi.service.util.TimeSource;
-import io.stargate.sgv2.docsapi.service.write.DocumentWriteService;
+import io.stargate.sgv2.docsapi.service.write.WriteBridgeService;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
@@ -64,7 +64,7 @@ public class ReadDocumentsService {
 
   @Inject ReadBridgeService readBridgeService;
 
-  @Inject DocumentWriteService writeBridgeService;
+  @Inject WriteBridgeService writeBridgeService;
 
   @Inject ExpressionParser expressionParser;
 

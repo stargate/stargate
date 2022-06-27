@@ -50,7 +50,7 @@ import io.stargate.sgv2.docsapi.service.json.DeadLeaf;
 import io.stargate.sgv2.docsapi.service.json.ImmutableDeadLeaf;
 import io.stargate.sgv2.docsapi.service.query.model.RawDocument;
 import io.stargate.sgv2.docsapi.service.util.ByteBufferUtils;
-import io.stargate.sgv2.docsapi.service.write.DocumentWriteService;
+import io.stargate.sgv2.docsapi.service.write.WriteBridgeService;
 import io.stargate.sgv2.docsapi.testprofiles.MaxDepth4TestProfile;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -83,7 +83,7 @@ class ReadDocumentsServiceTest {
 
   @InjectMock ReadBridgeService readBridgeService;
 
-  @InjectMock DocumentWriteService writeBridgeService;
+  @InjectMock WriteBridgeService writeBridgeService;
 
   Function<QueryOuterClass.Row, RowWrapper> wrapperFunction;
 
