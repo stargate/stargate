@@ -369,5 +369,17 @@
         <stargate.int-test.cluster.dse>true</stargate.int-test.cluster.dse>
       </properties>
     </profile>
+    <profile>
+      <id>c2-68</id>
+      <properties>
+        <stargate.int-test.cassandra.image>datastax/dse-server</stargate.int-test.cassandra.image>
+        <stargate.int-test.cassandra.image-tag>6.8.21</stargate.int-test.cassandra.image-tag>
+        <stargate.int-test.coordinator.image>237073351946.dkr.ecr.us-east-1.amazonaws.com/c2/c2-6_8</stargate.int-test.coordinator.image>
+        <stargate.int-test.coordinator.image-tag>v2.0.0-ALPHA-14</stargate.int-test.coordinator.image-tag>
+        <stargate.int-test.cluster.name>c2-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>
+        <stargate.int-test.cluster.version>6.8</stargate.int-test.cluster.version>
+        <stargate.int-test.cluster.dse>true</stargate.int-test.cluster.dse>
+      </properties>
+    </profile>
   </profiles>
 </project>
