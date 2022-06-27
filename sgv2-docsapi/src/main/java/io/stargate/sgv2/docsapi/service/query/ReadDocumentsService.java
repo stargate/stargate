@@ -19,6 +19,7 @@ package io.stargate.sgv2.docsapi.service.query;
 
 import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.Literal;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -83,8 +84,8 @@ public class ReadDocumentsService {
    *
    * @param namespace Namespace
    * @param collection Collection name
-   * @param where Conditions as {@link JsonNode}
-   * @param fields Fields to include in returned documents as {@link JsonNode}, must be an array
+   * @param where Conditions
+   * @param fields Fields to include in returned documents, must be a JSON array
    * @param paginator Paginator
    * @param context Execution content
    * @return Uni containing DocumentResponseWrapper, in case no results found it will contain an
@@ -93,8 +94,8 @@ public class ReadDocumentsService {
   public Uni<DocumentResponseWrapper<? extends JsonNode>> findDocuments(
       String namespace,
       String collection,
-      JsonNode where,
-      JsonNode fields,
+      String where,
+      String fields,
       Paginator paginator,
       ExecutionContext context) {
 
@@ -153,7 +154,7 @@ public class ReadDocumentsService {
    * @param collection Collection name
    * @param documentId Document to get
    * @param subDocumentPath path to look for sub documents (empty means get complete doc)
-   * @param fields Fields to include in returned document(s) as {@link JsonNode}, must be an array
+   * @param fields Fields to include in returned document(s), must be a JSON array
    * @param context Execution content
    * @return Uni emitting DocumentResponseWrapper with result node and no paging state, or emitting
    *     null if the document can not be found
@@ -163,14 +164,14 @@ public class ReadDocumentsService {
       String collection,
       String documentId,
       List<String> subDocumentPath,
-      JsonNode fields,
+      String fields,
       ExecutionContext context) {
     return getDocumentInternal(namespace, collection, documentId, subDocumentPath, fields, context)
         .map(Pair::getLeft);
   }
 
   /**
-   * See {@link #getDocument(String, String, String, List, JsonNode, ExecutionContext)}
+   * See {@link #getDocument(String, String, String, List, String, ExecutionContext)}
    *
    * @return a Uni pair of the {@link DocumentResponseWrapper}, and a {@link Cancellable} for a
    *     potentially issued "dead leaf" deletion batch.
@@ -181,7 +182,7 @@ public class ReadDocumentsService {
       String collection,
       String documentId,
       List<String> subDocumentPath,
-      JsonNode fields,
+      String fields,
       ExecutionContext context) {
 
     long now = timeSource.currentTimeMicros();
@@ -284,10 +285,9 @@ public class ReadDocumentsService {
    * @param collection Collection name
    * @param documentId Document to get
    * @param subDocumentPath path to look for sub documents (empty means search complete doc)
-   * @param where Conditions as {@link JsonNode}, to be matches at the #subDocumentPath (max 1
-   *     filter path)
-   * @param fields Fields to include in returned documents as {@link JsonNode}, must be an array
-   *     (relative to the one filter path)
+   * @param where Conditions, to be matches at the #subDocumentPath (max 1 filter path)
+   * @param fields Fields to include in returned documents, must be a JSON array (relative to the
+   *     one filter path)
    * @param paginator for defining page size
    * @param context Execution content
    * @return Uni containing DocumentResponseWrapper with result node and paging state, or null if
@@ -300,8 +300,8 @@ public class ReadDocumentsService {
       String collection,
       String documentId,
       List<String> subDocumentPath,
-      JsonNode where,
-      JsonNode fields,
+      String where,
+      String fields,
       Paginator paginator,
       ExecutionContext context) {
 
@@ -408,20 +408,31 @@ public class ReadDocumentsService {
     }
   }
 
-  private Expression<FilterExpression> getExpression(List<String> prependPath, JsonNode whereNode) {
-    if (null != whereNode) {
-      return expressionParser.constructFilterExpression(prependPath, whereNode);
-    } else {
-      return Literal.getTrue();
+  private Expression<FilterExpression> getExpression(List<String> prependPath, String where) {
+    Expression<FilterExpression> expression = Literal.getTrue();
+    if (null != where) {
+      try {
+        JsonNode whereNode = objectMapper.readTree(where);
+        expression = expressionParser.constructFilterExpression(prependPath, whereNode);
+      } catch (JsonProcessingException ex) {
+        throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_WHERE_JSON_INVALID);
+      }
     }
+    return expression;
   }
 
-  private Collection<List<String>> getFields(JsonNode fieldsNode) {
-    if (null != fieldsNode) {
-      return DocsApiUtils.convertFieldsToPaths(fieldsNode, documentProperties.maxArrayLength());
-    } else {
-      return Collections.emptyList();
+  private Collection<List<String>> getFields(String fields) {
+    Collection<List<String>> fieldPaths = Collections.emptyList();
+    if (null != fields) {
+      try {
+        JsonNode fieldsNode = objectMapper.readTree(fields);
+        fieldPaths =
+            DocsApiUtils.convertFieldsToPaths(fieldsNode, documentProperties.maxArrayLength());
+      } catch (JsonProcessingException ex) {
+        throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_SEARCH_FIELDS_JSON_INVALID);
+      }
     }
+    return fieldPaths;
   }
 
   // we need to transform the stuff to support array elements

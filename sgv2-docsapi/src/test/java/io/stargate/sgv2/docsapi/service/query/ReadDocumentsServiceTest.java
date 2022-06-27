@@ -26,9 +26,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.junit.mockito.InjectMock;
@@ -74,8 +72,6 @@ import org.mockito.Mock;
 class ReadDocumentsServiceTest {
 
   @Inject ReadDocumentsService service;
-
-  @Inject ObjectMapper objectMapper;
 
   @Inject DocsApiTestSchemaProvider schemaProvider;
 
@@ -137,8 +133,8 @@ class ReadDocumentsServiceTest {
       ExecutionContext context = ExecutionContext.create(true);
       Paginator paginator = new Paginator(null, 1);
 
-      JsonNode where = objectMapper.readTree("{}");
-      JsonNode fields = objectMapper.readTree("[\"myField\"]");
+      String where = "{}";
+      String fields = "[\"myField\"]";
       byte[] pageState1 = RandomUtils.nextBytes(64);
       byte[] pageState2 = RandomUtils.nextBytes(64);
       Multi<RawDocument> docs = Multi.createFrom().items(rawDocument, rawDocument2);
@@ -186,15 +182,15 @@ class ReadDocumentsServiceTest {
     }
 
     @Test
-    public void happyPathFieldNotMatched() throws JsonProcessingException {
+    public void happyPathFieldNotMatched() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
       Paginator paginator = new Paginator(null, 1);
 
-      JsonNode where = objectMapper.readTree("{}");
-      JsonNode fields = objectMapper.readTree("[\"myField\"]");
+      String where = "{}";
+      String fields = "[\"myField\"]";
       byte[] pageState = RandomUtils.nextBytes(64);
       Multi<RawDocument> docs = Multi.createFrom().item(rawDocument);
 
@@ -230,15 +226,15 @@ class ReadDocumentsServiceTest {
     }
 
     @Test
-    public void happyPathNoFields() throws JsonProcessingException {
+    public void happyPathNoFields() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
       Paginator paginator = new Paginator(null, 1);
 
-      JsonNode where = objectMapper.readTree("{}");
-      JsonNode fields = objectMapper.readTree("[]");
+      String where = "{}";
+      String fields = "[]";
       byte[] pageState = RandomUtils.nextBytes(64);
       Multi<RawDocument> docs = Multi.createFrom().item(rawDocument);
 
@@ -276,15 +272,15 @@ class ReadDocumentsServiceTest {
     }
 
     @Test
-    public void paginatorExhausted() throws JsonProcessingException {
+    public void paginatorExhausted() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
       Paginator paginator = new Paginator(null, 2);
 
-      JsonNode where = objectMapper.readTree("{}");
-      JsonNode fields = objectMapper.readTree("[]");
+      String where = "{}";
+      String fields = "[]";
       byte[] pageState = RandomUtils.nextBytes(64);
       Multi<RawDocument> docs = Multi.createFrom().item(rawDocument);
 
@@ -321,14 +317,14 @@ class ReadDocumentsServiceTest {
     }
 
     @Test
-    public void noResults() throws JsonProcessingException {
+    public void noResults() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
       Paginator paginator = new Paginator(null, 1);
 
-      JsonNode where = objectMapper.readTree("{}");
-      JsonNode fields = objectMapper.readTree("[]");
+      String where = "{}";
+      String fields = "[]";
       Multi<RawDocument> docs = Multi.createFrom().empty();
 
       when(readBridgeService.searchDocuments(
@@ -413,7 +409,7 @@ class ReadDocumentsServiceTest {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
 
-      JsonNode fields = objectMapper.readTree("[\"prePath\"]");
+      String fields = "[\"prePath\"]";
       Multi<RawDocument> docs = Multi.createFrom().items(rawDocument);
 
       when(readBridgeService.getDocument(
@@ -449,13 +445,13 @@ class ReadDocumentsServiceTest {
     }
 
     @Test
-    public void withPrePath() throws Exception {
+    public void withPrePath() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
 
-      JsonNode fields = objectMapper.readTree("[\"myField\"]");
+      String fields = "[\"myField\"]";
       Multi<RawDocument> docs = Multi.createFrom().items(rawDocument);
       List<String> prePath = Collections.singletonList("prePath");
 
@@ -703,7 +699,7 @@ class ReadDocumentsServiceTest {
     }
 
     @Test
-    public void withFieldsSelection() throws JsonProcessingException {
+    public void withFieldsSelection() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String documentId = RandomStringUtils.randomAlphanumeric(16);
@@ -713,7 +709,7 @@ class ReadDocumentsServiceTest {
       byte[] pageState1 = RandomUtils.nextBytes(64);
       byte[] pageState2 = RandomUtils.nextBytes(64);
 
-      JsonNode fields = objectMapper.readTree("[\"field1\"]");
+      String fields = "[\"field1\"]";
       Multi<RawDocument> docs = Multi.createFrom().items(rawDocument, rawDocument2);
       List<String> subPath = List.of("path");
 
@@ -774,7 +770,7 @@ class ReadDocumentsServiceTest {
     }
 
     @Test
-    public void withPreAndParentPath() throws JsonProcessingException {
+    public void withPreAndParentPath() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String documentId = RandomStringUtils.randomAlphanumeric(16);
@@ -782,8 +778,8 @@ class ReadDocumentsServiceTest {
       Paginator paginator = new Paginator(null, 1);
 
       byte[] pageState1 = RandomUtils.nextBytes(64);
-      JsonNode where = objectMapper.readTree("{\"parent.field1\": { \"$eq\": \"something\"}}");
-      JsonNode fields = objectMapper.readTree("[\"field1\"]");
+      String where = "{\"parent.field1\": { \"$eq\": \"something\"}}";
+      String fields = "[\"field1\"]";
       Multi<RawDocument> docs = Multi.createFrom().items(rawDocument);
       List<String> subPath = List.of("path");
 
@@ -839,7 +835,7 @@ class ReadDocumentsServiceTest {
     }
 
     @Test
-    public void withoutPrePath() throws JsonProcessingException {
+    public void withoutPrePath() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String documentId = RandomStringUtils.randomAlphanumeric(16);
@@ -847,8 +843,8 @@ class ReadDocumentsServiceTest {
       Paginator paginator = new Paginator(null, 1);
 
       byte[] pageState1 = RandomUtils.nextBytes(64);
-      JsonNode where = objectMapper.readTree("{\"parent.field1\": { \"$eq\": \"something\"}}");
-      JsonNode fields = objectMapper.readTree("[\"field1\"]");
+      String where = "{\"parent.field1\": { \"$eq\": \"something\"}}";
+      String fields = "[\"field1\"]";
       Multi<RawDocument> docs = Multi.createFrom().items(rawDocument);
 
       when(readBridgeService.searchSubDocuments(
@@ -909,7 +905,7 @@ class ReadDocumentsServiceTest {
     }
 
     @Test
-    public void paginatorExhausted() throws JsonProcessingException {
+    public void paginatorExhausted() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String documentId = RandomStringUtils.randomAlphanumeric(16);
@@ -918,7 +914,7 @@ class ReadDocumentsServiceTest {
 
       byte[] pageState1 = RandomUtils.nextBytes(64);
       byte[] pageState2 = RandomUtils.nextBytes(64);
-      JsonNode fields = objectMapper.readTree("[\"field1\"]");
+      String fields = "[\"field1\"]";
       Multi<RawDocument> docs = Multi.createFrom().items(rawDocument, rawDocument2);
       List<String> subPath = List.of("path");
 
@@ -1023,16 +1019,15 @@ class ReadDocumentsServiceTest {
     }
 
     @Test
-    public void multipleFieldsNotAllowed() throws JsonProcessingException {
+    public void multipleFieldsNotAllowed() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
       Paginator paginator = new Paginator(null, 2);
 
-      JsonNode where =
-          objectMapper.readTree(
-              "{\"otherField\": { \"$eq\": \"something\"}, \"otherField2\": { \"$eq\": \"something\"}}");
+      String where =
+          "{\"otherField\": { \"$eq\": \"something\"}, \"otherField2\": { \"$eq\": \"something\"}}";
       List<String> subPath = List.of("path");
 
       Throwable failure =
@@ -1053,15 +1048,15 @@ class ReadDocumentsServiceTest {
     }
 
     @Test
-    public void fieldNotReferenced() throws JsonProcessingException {
+    public void fieldNotReferenced() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
       Paginator paginator = new Paginator(null, 2);
 
-      JsonNode where = objectMapper.readTree("{\"otherField\": { \"$eq\": \"something\"}}");
-      JsonNode fields = objectMapper.readTree("[\"field1\"]");
+      String where = "{\"otherField\": { \"$eq\": \"something\"}}";
+      String fields = "[\"field1\"]";
       List<String> subPath = List.of("path");
 
       Throwable failure =
