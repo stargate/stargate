@@ -35,7 +35,7 @@ API_ONLY=
 #
 
 while getopts ":t:r:pa" opt; do
-  case "$opt" in
+  case $opt in
     p)
       DOCKER_FLAGS="--platform linux/amd64,linux/arm64 --push"
       ;;
