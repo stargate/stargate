@@ -72,9 +72,9 @@ cp ./stargate-lib/logback.xml $LIBDIR
 rm ${LIBDIR}/persistence*.jar
 
 if [ -z $API_ONLY ]; then
-  docker buildx build --target coordinator-4_0 --build-arg LIBDIR="$LIBDIR" -t $REPO/coordinator-4_0:$SGTAG $DOCKER_FLAGS .
-  docker buildx build --target coordinator-3_11 --build-arg LIBDIR="$LIBDIR" -t $REPO/coordinator-3_11:$SGTAG $DOCKER_FLAGS .
-  docker buildx build --target coordinator-dse-68 --build-arg LIBDIR="$LIBDIR" -t $REPO/coordinator-dse-68:$SGTAG $DOCKER_FLAGS .
+  docker buildx build --target coordinator-4_0 --build-arg LIBDIR="$LIBDIR" -t "$REPO"/coordinator-4_0:$SGTAG $DOCKER_FLAGS .
+  docker buildx build --target coordinator-3_11 --build-arg LIBDIR="$LIBDIR" -t "$REPO"/coordinator-3_11:$SGTAG $DOCKER_FLAGS .
+  docker buildx build --target coordinator-dse-68 --build-arg LIBDIR="$LIBDIR" -t "$REPO"/coordinator-dse-68:$SGTAG $DOCKER_FLAGS .
 fi
 
 rm -rf ${LIBDIR}
@@ -83,5 +83,5 @@ rm -rf ${LIBDIR}
 # API Service images
 #
 
-docker buildx build --target restapi -t $REPO/restapi:$SGTAG $DOCKER_FLAGS .
-docker buildx build --target graphqlapi -t $REPO/graphqlapi:$SGTAG $DOCKER_FLAGS .
+docker buildx build --target restapi -t "$REPO"/restapi:$SGTAG $DOCKER_FLAGS .
+docker buildx build --target graphqlapi -t "$REPO"/graphqlapi:$SGTAG $DOCKER_FLAGS .
