@@ -1365,6 +1365,37 @@ public abstract class PersistenceTest {
   }
 
   @Test
+  public void testTableDefaultTTL() {
+    createKeyspace();
+    dataStore
+        .queryBuilder()
+        .create()
+        .table(keyspace, table)
+        .column("id", Column.Type.Int, PartitionKey)
+        .column("name", Column.Type.Text)
+        .withDefaultTTL(1234)
+        .build()
+        .execute()
+        .join();
+    dataStore.waitForSchemaAgreement();
+    Table theTable = dataStore.schema().keyspace(keyspace).table(table);
+    assertThat(theTable.ttl()).isEqualTo(1234);
+
+    dataStore
+        .queryBuilder()
+        .alter()
+        .table(keyspace, table)
+        .withDefaultTTL(5000)
+        .build()
+        .execute()
+        .join();
+    dataStore.waitForSchemaAgreement();
+
+    theTable = dataStore.schema().keyspace(keyspace).table(table);
+    assertThat(theTable.ttl()).isEqualTo(5000);
+  }
+
+  @Test
   public void testInsertWithTTL() throws ExecutionException, InterruptedException {
     createKeyspace();
     dataStore
