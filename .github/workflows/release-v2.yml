@@ -3,7 +3,7 @@ name: Release v2
 on:
   push:
     tags:
-      - 'v2test.*.*'
+      - 'v2.*.*'
 
 jobs:
   create-release:
@@ -92,8 +92,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
         with:
-          #ref: "v2.0.0"
-          ref: ${{ github.ref_name }}
+          ref: "v2.0.0"
       - name: Set version
         id: vars
         run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
@@ -133,14 +132,10 @@ jobs:
         name: Install gpg secret key
         run: |
           cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
-      #- name: Publish package
-      #  run: |
-      #    mvn versions:set -DremoveSnapshot versions:commit && \
-      #    mvn -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse
-      - name: Build package
+      - name: Publish package
         run: |
           mvn versions:set -DremoveSnapshot versions:commit && \
-          mvn clean package -DskipTests -P deploy,dse
+          mvn -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse
       - name: Set up Docker QEMU
         uses: docker/setup-qemu-action@v1
       - name: Login to DockerHub
