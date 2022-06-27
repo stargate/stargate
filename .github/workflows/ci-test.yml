@@ -16,7 +16,7 @@ jobs:
         name: Setup Java JDK
         with:
           distribution: 'temurin'
-          java-version: 8
+          java-version: 8.0.322
           cache: 'maven'
       - name: Setup Maven
         env:
