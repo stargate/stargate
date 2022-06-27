@@ -20,6 +20,7 @@ package io.stargate.sgv2.docsapi.service.query.executor;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableMap;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.smallrye.mutiny.helpers.test.AssertSubscriber;
@@ -41,6 +42,7 @@ import io.stargate.sgv2.docsapi.testprofiles.MaxDepth4TestProfile;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -1120,6 +1122,59 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
       assertThat(failureOverMax)
           .isInstanceOf(IllegalArgumentException.class)
           .hasMessageContaining("Invalid document identity depth: 6");
+    }
+  }
+
+  @Nested
+  @TestProfile(WithDifferentConsistency.Profile.class)
+  class WithDifferentConsistency {
+
+    public static class Profile extends MaxDepth4TestProfile {
+
+      @Override
+      public Map<String, String> getConfigOverrides() {
+        return ImmutableMap.<String, String>builder()
+            .putAll(super.getConfigOverrides())
+            .put("stargate.queries.consistency.reads", "ONE")
+            .build();
+      }
+    }
+
+    @Test
+    public void fullScan() {
+      List<List<QueryOuterClass.Value>> rows =
+          ImmutableList.of(row("1", "x", 1.0d), row("1", "y", 2.0d), row("2", "x", 3.0d));
+
+      withQuery(allDocsQuery.getCql())
+          .enriched()
+          .withColumnSpec(columnSpec)
+          .withConsistency(QueryOuterClass.Consistency.ONE)
+          .returning(rows);
+
+      List<RawDocument> result =
+          queryExecutor
+              .queryDocs(allDocsQuery, 100, false, null, false, context)
+              .subscribe()
+              .withSubscriber(AssertSubscriber.create())
+              .awaitNextItems(2)
+              .awaitCompletion()
+              .assertCompleted()
+              .getItems();
+
+      assertThat(result)
+          .hasSize(2)
+          .anySatisfy(
+              doc -> {
+                assertThat(doc.id()).isEqualTo("1");
+                assertThat(doc.documentKeys()).containsExactly("1");
+                assertThat(doc.rows()).hasSize(2);
+              })
+          .anySatisfy(
+              doc -> {
+                assertThat(doc.id()).isEqualTo("2");
+                assertThat(doc.documentKeys()).containsExactly("2");
+                assertThat(doc.rows()).hasSize(1);
+              });
     }
   }
 }
