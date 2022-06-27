@@ -18,4 +18,4 @@ Note that this will have no effect until the docker image is rebuilt and pushed 
 It's always good to validate your work against the pull requests that bumped the version in the past:
 
 * `6.8.16` -> `6.8.20` [stargate/stargate#1652](https://github.com/stargate/stargate/pull/1652)
-* `6.8.20` -> `6.8.21` [stargate/stargate#1652](https://github.com/stargate/stargate/pull/1699)
+* `6.8.20` -> `6.8.21` [stargate/stargate#1699](https://github.com/stargate/stargate/pull/1699)

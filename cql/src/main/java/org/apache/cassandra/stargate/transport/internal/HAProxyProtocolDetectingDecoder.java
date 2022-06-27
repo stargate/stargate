@@ -66,11 +66,15 @@ public class HAProxyProtocolDetectingDecoder extends ByteToMessageDecoder {
               new SimpleChannelInboundHandler<HAProxyMessage>() {
                 @Override
                 protected void channelRead0(ChannelHandlerContext ctx, HAProxyMessage msg) {
-                  Attribute<ProxyInfo> attrProxy = ctx.channel().attr(ProxyInfo.attributeKey);
-                  attrProxy.set(
-                      new ProxyInfo(
-                          new InetSocketAddress(msg.destinationAddress(), msg.destinationPort()),
-                          new InetSocketAddress(msg.sourceAddress(), msg.sourcePort())));
+                  try {
+                    Attribute<ProxyInfo> attrProxy = ctx.channel().attr(ProxyInfo.attributeKey);
+                    attrProxy.set(
+                        new ProxyInfo(
+                            new InetSocketAddress(msg.destinationAddress(), msg.destinationPort()),
+                            new InetSocketAddress(msg.sourceAddress(), msg.sourcePort())));
+                  } finally {
+                    msg.release();
+                  }
                 }
               });
     } else {
