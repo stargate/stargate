@@ -24,12 +24,13 @@ import io.stargate.sgv2.docsapi.api.v2.model.dto.SimpleResponseWrapper;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.write.WriteDocumentsService;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
-import javax.ws.rs.PUT;
+import javax.ws.rs.PATCH;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -49,13 +50,13 @@ import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.jboss.resteasy.reactive.RestResponse;
 
-/** Document update resource. */
-@Path(DocumentUpdateResource.BASE_PATH)
+/** Document patch resource. */
+@Path(DocumentPatchResource.BASE_PATH)
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @SecurityRequirement(name = OpenApiConstants.SecuritySchemes.TOKEN)
 @Tag(ref = OpenApiConstants.Tags.DOCUMENTS)
-public class DocumentUpdateResource {
+public class DocumentPatchResource {
 
   public static final String BASE_PATH =
       "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w}/{document-id:\\w+}";
@@ -64,25 +65,26 @@ public class DocumentUpdateResource {
 
   @Operation(
       description =
-          "Create or update a document with a given ID. If the collection does not exist, it will be created. If the document already exists, it will be overwritten.")
+          "Patch a document with a given ID. Merges data at the root with requested data. Note that operation is not allowed if a JSON schema exist for a target collection.")
   @Parameters(
       value = {
         @Parameter(
             name = "namespace",
             ref = OpenApiConstants.Parameters.NAMESPACE,
-            description = "The namespace to write the document to."),
+            description = "The namespace of the document."),
         @Parameter(
             name = "collection",
             ref = OpenApiConstants.Parameters.COLLECTION,
-            description = "The collection to write the document to."),
+            description = "The collection of the document (Will be created if it does not exist)."),
         @Parameter(
             name = "document-id",
             ref = OpenApiConstants.Parameters.DOCUMENT_ID,
-            description = "The ID of the document that you'd like to write"),
+            description = "The ID of the document that you'd like to patch"),
         @Parameter(
-            name = "ttl",
-            ref = OpenApiConstants.Parameters.TTL,
-            description = "The time-to-live (in seconds) of the document."),
+            name = "ttl-auto",
+            ref = OpenApiConstants.Parameters.TTL_AUTO,
+            description =
+                "Include this to make the TTL match that of the parent document. Requires read-before-write if set to true"),
         @Parameter(
             name = "profile",
             ref = OpenApiConstants.Parameters.PROFILE,
@@ -118,24 +120,25 @@ public class DocumentUpdateResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_500),
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
-  @PUT
-  public Uni<RestResponse<Object>> updateDocument(
+  @PATCH
+  public Uni<RestResponse<Object>> patchDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
       @PathParam("document-id") String documentId,
-      @QueryParam("ttl") Integer ttl,
+      @QueryParam("ttl-auto") boolean ttlAuto,
       @QueryParam("profile") boolean profile,
       @NotNull JsonNode body) {
     ExecutionContext context = ExecutionContext.create(profile);
     return documentWriteService
-        .updateDocument(namespace, collection, documentId, body, ttl, context)
+        .patchDocument(
+            namespace, collection, documentId, Collections.emptyList(), body, ttlAuto, context)
         .onItem()
         .transform(result -> RestResponse.ResponseBuilder.ok().entity(result).build());
   }
 
   @Operation(
       description =
-          "Create or update a path in a document by ID. If the collection does not exist, it will be created. If data exists at the path, it will be overwritten.")
+          "Patch data at a path in a document by ID. Merges data at the path with requested data, assumes that the data at the path is already an object. Note that operation is not allowed if a JSON schema exist for a target collection.")
   @Parameters(
       value = {
         @Parameter(
@@ -145,7 +148,8 @@ public class DocumentUpdateResource {
         @Parameter(
             name = "collection",
             ref = OpenApiConstants.Parameters.COLLECTION,
-            description = "The collection to write the document to."),
+            description =
+                "The collection to write the document to (Will be created if it does not exist)."),
         @Parameter(
             name = "document-id",
             ref = OpenApiConstants.Parameters.DOCUMENT_ID,
@@ -194,7 +198,7 @@ public class DocumentUpdateResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_500),
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
-  @PUT
+  @PATCH
   @Path("{document-path: .*}")
   public Uni<RestResponse<Object>> updateSubDocument(
       @PathParam("namespace") String namespace,
@@ -208,7 +212,7 @@ public class DocumentUpdateResource {
     List<String> subPath =
         documentPath.stream().map(PathSegment::getPath).collect(Collectors.toList());
     return documentWriteService
-        .updateSubDocument(namespace, collection, documentId, subPath, body, ttlAuto, context)
+        .patchDocument(namespace, collection, documentId, subPath, body, ttlAuto, context)
         .onItem()
         .transform(result -> RestResponse.ResponseBuilder.ok().entity(result).build());
   }

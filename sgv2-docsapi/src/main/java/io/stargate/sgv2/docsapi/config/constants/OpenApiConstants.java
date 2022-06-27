@@ -39,10 +39,12 @@ public interface OpenApiConstants {
     String NAMESPACE = "namespace";
     String COLLECTION = "collection";
     String DOCUMENT_ID = "document-id";
+    String DOCUMENT_PATH = "document-path";
     String RAW = "raw";
     String ID_PATH = "id-path";
     String PROFILE = "profile";
     String TTL = "ttl";
+    String TTL_AUTO = "ttl-auto";
   }
 
   interface Examples {

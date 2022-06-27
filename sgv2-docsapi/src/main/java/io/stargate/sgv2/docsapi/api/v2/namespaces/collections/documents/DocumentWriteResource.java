@@ -17,12 +17,13 @@
 
 package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.docsapi.api.v2.model.dto.SimpleResponseWrapper;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
-import io.stargate.sgv2.docsapi.service.write.DocumentWriteService;
+import io.stargate.sgv2.docsapi.service.write.WriteDocumentsService;
 import java.net.URI;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
@@ -47,7 +48,7 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.RestResponse.ResponseBuilder;
 
-/** Collections resource. */
+/** Document write resource. */
 @Path(DocumentWriteResource.BASE_PATH)
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
@@ -58,7 +59,7 @@ public class DocumentWriteResource {
   public static final String BASE_PATH =
       "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w}";
 
-  @Inject DocumentWriteService documentWriteService;
+  @Inject WriteDocumentsService documentWriteService;
 
   @Operation(
       description = "Create a new document. If the collection does not exist, it will be created.")
@@ -116,7 +117,7 @@ public class DocumentWriteResource {
       @PathParam("collection") String collection,
       @QueryParam("ttl") Integer ttl,
       @QueryParam("profile") boolean profile,
-      @NotNull String body) {
+      @NotNull JsonNode body) {
     ExecutionContext context = ExecutionContext.create(profile);
     return documentWriteService
         .writeDocument(namespace, collection, body, ttl, context)
@@ -195,7 +196,7 @@ public class DocumentWriteResource {
       @QueryParam("id-path") String idPath,
       @QueryParam("ttl") Integer ttl,
       @QueryParam("profile") boolean profile,
-      @NotNull String body) {
+      @NotNull JsonNode body) {
     ExecutionContext context = ExecutionContext.create(profile);
     return documentWriteService
         .writeDocuments(namespace, collection, body, idPath, ttl, context)
