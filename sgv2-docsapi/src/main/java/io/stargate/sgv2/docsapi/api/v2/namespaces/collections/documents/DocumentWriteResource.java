@@ -19,10 +19,13 @@ package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.smallrye.mutiny.Uni;
+import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
+import io.stargate.sgv2.docsapi.api.v2.model.dto.MultiDocsResponse;
 import io.stargate.sgv2.docsapi.api.v2.model.dto.SimpleResponseWrapper;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
+import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.service.write.WriteDocumentsService;
 import java.net.URI;
 import javax.inject.Inject;
@@ -33,7 +36,9 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
@@ -57,9 +62,11 @@ import org.jboss.resteasy.reactive.RestResponse.ResponseBuilder;
 public class DocumentWriteResource {
 
   public static final String BASE_PATH =
-      "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w}";
+      "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}";
 
   @Inject WriteDocumentsService documentWriteService;
+
+  @Inject TableManager tableManager;
 
   @Operation(
       description = "Create a new document. If the collection does not exist, it will be created.")
@@ -113,22 +120,26 @@ public class DocumentWriteResource {
       })
   @POST
   public Uni<RestResponse<Object>> createDocument(
+      @Context UriInfo uriInfo,
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
       @QueryParam("ttl") Integer ttl,
       @QueryParam("profile") boolean profile,
       @NotNull JsonNode body) {
     ExecutionContext context = ExecutionContext.create(profile);
+    Uni<Schema.CqlTable> table = tableManager.ensureValidDocumentTable(namespace, collection);
     return documentWriteService
-        .writeDocument(namespace, collection, body, ttl, context)
+        .writeDocument(table, namespace, collection, body, ttl, context)
         .onItem()
         .transform(
             result -> {
-              String url =
-                  String.format(
-                      "/v2/namespaces/%s/collections/%s/%s",
-                      namespace, collection, result.documentId());
-              return ResponseBuilder.created(URI.create(url)).entity(result).build();
+              URI location =
+                  uriInfo
+                      .getBaseUriBuilder()
+                      .path(uriInfo.getPath())
+                      .path(result.documentId())
+                      .build();
+              return ResponseBuilder.created(location).entity(result).build();
             });
   }
 
@@ -169,9 +180,9 @@ public class DocumentWriteResource {
               @Content(
                   schema =
                       @org.eclipse.microprofile.openapi.annotations.media.Schema(
-                          implementation = SimpleResponseWrapper.class,
+                          implementation = MultiDocsResponse.class,
                           properties =
-                              @SchemaProperty(name = "documentId", type = SchemaType.STRING)))
+                              @SchemaProperty(name = "documentIds", type = SchemaType.ARRAY)))
             }),
         @APIResponse(
             responseCode = "404",
@@ -198,8 +209,9 @@ public class DocumentWriteResource {
       @QueryParam("profile") boolean profile,
       @NotNull JsonNode body) {
     ExecutionContext context = ExecutionContext.create(profile);
+    Uni<Schema.CqlTable> table = tableManager.ensureValidDocumentTable(namespace, collection);
     return documentWriteService
-        .writeDocuments(namespace, collection, body, idPath, ttl, context)
+        .writeDocuments(table, namespace, collection, body, idPath, ttl, context)
         .onItem()
         .transform(result -> ResponseBuilder.accepted().entity(result).build());
   }

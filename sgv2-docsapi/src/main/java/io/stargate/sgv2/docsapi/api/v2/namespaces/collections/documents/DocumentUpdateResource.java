@@ -19,10 +19,12 @@ package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.smallrye.mutiny.Uni;
+import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.docsapi.api.v2.model.dto.SimpleResponseWrapper;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
+import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.service.write.WriteDocumentsService;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -58,9 +60,11 @@ import org.jboss.resteasy.reactive.RestResponse;
 public class DocumentUpdateResource {
 
   public static final String BASE_PATH =
-      "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w}/{document-id:\\w+}";
+      "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}/{document-id}";
 
   @Inject WriteDocumentsService documentWriteService;
+
+  @Inject TableManager tableManager;
 
   @Operation(
       description =
@@ -127,8 +131,9 @@ public class DocumentUpdateResource {
       @QueryParam("profile") boolean profile,
       @NotNull JsonNode body) {
     ExecutionContext context = ExecutionContext.create(profile);
+    Uni<Schema.CqlTable> table = tableManager.ensureValidDocumentTable(namespace, collection);
     return documentWriteService
-        .updateDocument(namespace, collection, documentId, body, ttl, context)
+        .updateDocument(table, namespace, collection, documentId, body, ttl, context)
         .onItem()
         .transform(result -> RestResponse.ResponseBuilder.ok().entity(result).build());
   }
@@ -207,8 +212,10 @@ public class DocumentUpdateResource {
     ExecutionContext context = ExecutionContext.create(profile);
     List<String> subPath =
         documentPath.stream().map(PathSegment::getPath).collect(Collectors.toList());
+    Uni<Schema.CqlTable> table = tableManager.ensureValidDocumentTable(namespace, collection);
     return documentWriteService
-        .updateSubDocument(namespace, collection, documentId, subPath, body, ttlAuto, context)
+        .updateSubDocument(
+            table, namespace, collection, documentId, subPath, body, ttlAuto, context)
         .onItem()
         .transform(result -> RestResponse.ResponseBuilder.ok().entity(result).build());
   }

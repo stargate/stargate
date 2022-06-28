@@ -15,7 +15,6 @@ import io.stargate.sgv2.docsapi.service.JsonDocumentShredder;
 import io.stargate.sgv2.docsapi.service.JsonShreddedRow;
 import io.stargate.sgv2.docsapi.service.query.ReadBridgeService;
 import io.stargate.sgv2.docsapi.service.schema.JsonSchemaManager;
-import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
 import java.util.Collections;
 import java.util.HashSet;
@@ -37,8 +36,6 @@ public class WriteDocumentsService {
 
   @Inject JsonSchemaManager jsonSchemaManager;
 
-  @Inject TableManager tableManager;
-
   @Inject JsonDocumentShredder documentShredder;
 
   @Inject WriteBridgeService writeBridgeService;
@@ -50,6 +47,7 @@ public class WriteDocumentsService {
   /**
    * Writes a document in the given namespace and collection using the randomly generated ID.
    *
+   * @param table a CqlTable to be used for schema/validity checks
    * @param namespace Namespace
    * @param collection Collection name
    * @param document Document represented as JSON node
@@ -58,6 +56,7 @@ public class WriteDocumentsService {
    * @return Document response wrapper containing the generated ID.
    */
   public Uni<DocumentResponseWrapper<Void>> writeDocument(
+      Uni<Schema.CqlTable> table,
       String namespace,
       String collection,
       JsonNode document,
@@ -66,8 +65,7 @@ public class WriteDocumentsService {
     // generate the document id
     final String documentId = UUID.randomUUID().toString();
     return jsonSchemaManager
-        .validateJsonDocument(
-            tableManager.ensureValidDocumentTable(namespace, collection), document, false)
+        .validateJsonDocument(table, document, false)
         .onItem()
         .transformToUni(
             __ -> {
@@ -86,6 +84,7 @@ public class WriteDocumentsService {
    * Writes many documents in the given namespace and collection. If #idPath is not provided, IDs
    * for each document will be randomly generated.
    *
+   * @param table a CqlTable to be used for schema/validity checks
    * @param namespace Namespace
    * @param collection Collection name
    * @param root Documents represented as JSON array
@@ -94,6 +93,7 @@ public class WriteDocumentsService {
    * @return Document response wrapper containing the generated ID.
    */
   public Uni<MultiDocsResponse> writeDocuments(
+      Uni<Schema.CqlTable> table,
       String namespace,
       String collection,
       JsonNode root,
@@ -129,9 +129,6 @@ public class WriteDocumentsService {
         .onItem()
         .transformToUniAndMerge(
             json -> {
-              // This is memoized so should be cheap to access multiple times
-              Uni<Schema.CqlTable> table =
-                  tableManager.ensureValidDocumentTable(namespace, collection);
               return jsonSchemaManager
                   .validateJsonDocument(table, json, false)
                   .onItem()
@@ -188,6 +185,7 @@ public class WriteDocumentsService {
    * Updates a document with given ID in the given namespace and collection. Any previously existing
    * document with the same ID will be overwritten.
    *
+   * @param table a CqlTable to be used for schema/validity checks
    * @param namespace Namespace
    * @param collection Collection name
    * @param documentId The ID of the document to update
@@ -197,6 +195,7 @@ public class WriteDocumentsService {
    * @return Document response wrapper containing the generated ID.
    */
   public Uni<DocumentResponseWrapper<Void>> updateDocument(
+      Uni<Schema.CqlTable> table,
       String namespace,
       String collection,
       String documentId,
@@ -204,13 +203,14 @@ public class WriteDocumentsService {
       Integer ttl,
       ExecutionContext context) {
     return updateDocumentInternal(
-        namespace, collection, documentId, Collections.emptyList(), payload, ttl, context);
+        table, namespace, collection, documentId, Collections.emptyList(), payload, ttl, context);
   }
 
   /**
    * Updates a sub-document with given ID in the given namespace and collection. Any previously
    * existing sub-document with the same ID at the given path will be overwritten.
    *
+   * @param table a CqlTable to be used for schema/validity checks
    * @param namespace Namespace
    * @param collection Collection name
    * @param documentId The ID of the document to update
@@ -220,6 +220,7 @@ public class WriteDocumentsService {
    * @return Document response wrapper containing the generated ID.
    */
   public Uni<DocumentResponseWrapper<Void>> updateSubDocument(
+      Uni<Schema.CqlTable> table,
       String namespace,
       String collection,
       String documentId,
@@ -236,13 +237,14 @@ public class WriteDocumentsService {
         .transformToUni(
             ttl ->
                 updateDocumentInternal(
-                    namespace, collection, documentId, subPath, payload, ttl, context));
+                    table, namespace, collection, documentId, subPath, payload, ttl, context));
   }
 
   /**
    * Updates a document with given ID in the given namespace and collection at the specified
    * sub-path. Any previously existing sub-document at the given path will be overwritten.
    *
+   * @param table a CqlTable to be used for schema/validity checks
    * @param namespace Namespace
    * @param collection Collection name
    * @param documentId The ID of the document to update
@@ -253,6 +255,7 @@ public class WriteDocumentsService {
    * @return Document response wrapper containing the generated ID.
    */
   private Uni<DocumentResponseWrapper<Void>> updateDocumentInternal(
+      Uni<Schema.CqlTable> table,
       String namespace,
       String collection,
       String documentId,
@@ -262,10 +265,7 @@ public class WriteDocumentsService {
       ExecutionContext context) {
     final List<String> subPathProcessed = processSubDocumentPath(subPath);
     return jsonSchemaManager
-        .validateJsonDocument(
-            tableManager.ensureValidDocumentTable(namespace, collection),
-            document,
-            !subPathProcessed.isEmpty())
+        .validateJsonDocument(table, document, !subPathProcessed.isEmpty())
         .onItem()
         .transformToUni(
             __ -> {
@@ -284,10 +284,43 @@ public class WriteDocumentsService {
   }
 
   /**
+   * Patches a document with given ID in the given namespace and collection. Any previously existing
+   * patched keys at the given path will be overwritten, as well as any existing array.
+   *
+   * @param table a CqlTable to be used for schema/validity checks
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to patch
+   * @param payload Document represented as JSON node
+   * @param ttlAuto Whether to automatically determine TTL from the surrounding document
+   * @param context Execution content
+   * @return Document response wrapper containing the generated ID.
+   */
+  public Uni<DocumentResponseWrapper<Void>> patchDocument(
+      Uni<Schema.CqlTable> table,
+      String namespace,
+      String collection,
+      String documentId,
+      JsonNode payload,
+      boolean ttlAuto,
+      ExecutionContext context) {
+    return patchSubDocument(
+        table,
+        namespace,
+        collection,
+        documentId,
+        Collections.emptyList(),
+        payload,
+        ttlAuto,
+        context);
+  }
+
+  /**
    * Patches a document with given ID in the given namespace and collection at the specified
    * sub-path. Any previously existing patched keys at the given path will be overwritten, as well
    * as any existing array.
    *
+   * @param table a CqlTable to be used for schema/validity checks
    * @param namespace Namespace
    * @param collection Collection name
    * @param documentId The ID of the document to patch
@@ -297,7 +330,8 @@ public class WriteDocumentsService {
    * @param context Execution content
    * @return Document response wrapper containing the generated ID.
    */
-  public Uni<DocumentResponseWrapper<Void>> patchDocument(
+  public Uni<DocumentResponseWrapper<Void>> patchSubDocument(
+      Uni<Schema.CqlTable> table,
       String namespace,
       String collection,
       String documentId,
@@ -314,7 +348,7 @@ public class WriteDocumentsService {
         .transformToUni(
             ttl ->
                 patchDocumentInternal(
-                    namespace, collection, documentId, subPath, payload, ttl, context));
+                    table, namespace, collection, documentId, subPath, payload, ttl, context));
   }
 
   /**
@@ -322,6 +356,7 @@ public class WriteDocumentsService {
    * sub-path. Any previously existing patched keys at the given path will be overwritten, as well
    * as any existing array.
    *
+   * @param table a CqlTable to be used for schema/validity checks
    * @param namespace Namespace
    * @param collection Collection name
    * @param documentId The ID of the document to patch
@@ -332,6 +367,7 @@ public class WriteDocumentsService {
    * @return Document response wrapper containing the generated ID.
    */
   private Uni<DocumentResponseWrapper<Void>> patchDocumentInternal(
+      Uni<Schema.CqlTable> table,
       String namespace,
       String collection,
       String documentId,
@@ -350,10 +386,7 @@ public class WriteDocumentsService {
     }
 
     return jsonSchemaManager
-        .validateJsonDocument(
-            tableManager.ensureValidDocumentTable(namespace, collection),
-            root,
-            !subPathProcessed.isEmpty())
+        .validateJsonDocument(table, root, !subPathProcessed.isEmpty())
         .onItem()
         .transformToUni(
             __ -> {
@@ -369,6 +402,23 @@ public class WriteDocumentsService {
                           new DocumentResponseWrapper<>(
                               documentId, null, null, context.toProfile()));
             });
+  }
+
+  /**
+   * Deletes a document with given ID in the given namespace and collection.
+   *
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to delete
+   * @param context Execution content
+   * @return Flag representing if the operation was success.
+   */
+  public Uni<Boolean> deleteDocument(
+      String namespace, String collection, String documentId, ExecutionContext context) {
+    return writeBridgeService
+        .deleteDocument(namespace, collection, documentId, Collections.emptyList(), context)
+        .onItem()
+        .transform(__ -> true);
   }
 
   /**

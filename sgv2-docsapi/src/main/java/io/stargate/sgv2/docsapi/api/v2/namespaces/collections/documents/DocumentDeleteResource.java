@@ -21,8 +21,8 @@ import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
+import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.service.write.WriteDocumentsService;
-import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -54,9 +54,11 @@ import org.jboss.resteasy.reactive.RestResponse;
 public class DocumentDeleteResource {
 
   public static final String BASE_PATH =
-      "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w}/{document-id:\\w+}";
+      "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}/{document-id}";
 
   @Inject WriteDocumentsService documentWriteService;
+
+  @Inject TableManager tableManager;
 
   @Operation(description = "Delete a document with a given ID.")
   @Parameters(
@@ -107,10 +109,15 @@ public class DocumentDeleteResource {
       @PathParam("document-id") String documentId,
       @QueryParam("profile") boolean profile) {
     ExecutionContext context = ExecutionContext.create(profile);
-    return documentWriteService
-        .deleteDocument(namespace, collection, documentId, Collections.emptyList(), context)
+    return tableManager
+        .getValidCollectionTable(namespace, collection)
         .onItem()
-        .transform(result -> RestResponse.ResponseBuilder.noContent().build());
+        .transformToUni(
+            __ ->
+                documentWriteService
+                    .deleteDocument(namespace, collection, documentId, context)
+                    .onItem()
+                    .transform(result -> RestResponse.ResponseBuilder.noContent().build()));
   }
 
   @Operation(description = "Delete the data at a path in a document by ID.")
@@ -171,9 +178,14 @@ public class DocumentDeleteResource {
     ExecutionContext context = ExecutionContext.create(profile);
     List<String> subPath =
         documentPath.stream().map(PathSegment::getPath).collect(Collectors.toList());
-    return documentWriteService
-        .deleteDocument(namespace, collection, documentId, subPath, context)
+    return tableManager
+        .getValidCollectionTable(namespace, collection)
         .onItem()
-        .transform(result -> RestResponse.ResponseBuilder.ok().entity(result).build());
+        .transformToUni(
+            __ ->
+                documentWriteService
+                    .deleteDocument(namespace, collection, documentId, subPath, context)
+                    .onItem()
+                    .transform(result -> RestResponse.ResponseBuilder.noContent().build()));
   }
 }
