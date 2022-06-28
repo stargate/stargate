@@ -24,7 +24,7 @@ set -euo pipefail
 DOCKER_FLAGS="--load"
 
 # extract Stargate version from project pom file
-SGTAG="v$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)"
+SGTAG="v$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)"
 
 REPO="stargateio"
 
