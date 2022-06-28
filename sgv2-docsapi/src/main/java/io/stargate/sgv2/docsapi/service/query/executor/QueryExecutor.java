@@ -31,6 +31,7 @@ import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
+import io.stargate.sgv2.docsapi.config.QueriesConfig;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.model.ImmutableRawDocument;
@@ -89,13 +90,19 @@ public class QueryExecutor {
 
   private final DocumentProperties documentProperties;
 
+  private final QueriesConfig queriesConfig;
+
   private final StargateRequestInfo requestInfo;
 
   private final Comparator<DocumentProperty> comparator;
 
   @Inject
-  public QueryExecutor(DocumentProperties documentProperties, StargateRequestInfo requestInfo) {
+  public QueryExecutor(
+      DocumentProperties documentProperties,
+      QueriesConfig queriesConfig,
+      StargateRequestInfo requestInfo) {
     this.documentProperties = documentProperties;
+    this.queriesConfig = queriesConfig;
     this.requestInfo = requestInfo;
 
     // create reusable comparator
@@ -345,9 +352,17 @@ public class QueryExecutor {
             stateRef -> {
               QueryState state = stateRef.get();
 
-              // create params
+              // create params, ensure:
+              // 1. read consistency
+              // 2. needed page size
+              // 3. enriched always
+              // 4. resume mode if defined
+              QueryOuterClass.Consistency consistency = queriesConfig.consistency().reads();
+              QueryOuterClass.ConsistencyValue.Builder consistencyValue =
+                  QueryOuterClass.ConsistencyValue.newBuilder().setValue(consistency);
               QueryOuterClass.QueryParameters.Builder params =
                   QueryOuterClass.QueryParameters.newBuilder()
+                      .setConsistency(consistencyValue)
                       .setPageSize(Int32Value.of(state.pageSize()))
                       .setEnriched(true);
 

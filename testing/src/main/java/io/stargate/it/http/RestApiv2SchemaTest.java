@@ -440,6 +440,28 @@ public class RestApiv2SchemaTest extends BaseRestApiTest {
         String.format("%s/v2/schemas/keyspaces/%s/tables/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(tableUpdate),
         HttpStatus.SC_OK);
+
+    // Let's also verify that TTL is updated (related to [stargate#1836])
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/schemas/keyspaces/%s/tables/%s?raw=true",
+                restUrlBase, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+
+    TableResponse table = objectMapper.readValue(body, TableResponse.class);
+    assertThat(table.getKeyspace()).isEqualTo(keyspaceName);
+    assertThat(table.getName()).isEqualTo(tableName);
+    assertThat(table.getColumnDefinitions()).isNotNull().isNotEmpty();
+
+    assertThat(table.getTableOptions()).isNotNull();
+    // 28-Jun-2022, tatu: [stargate#1836] fixed for SGv1 but not yet SGv2, and that's why
+    //    need to either disable check, or check for incorrect value. Let's do latter
+    //    until we can fix it; this way fix will trigger test fail so we won't forget
+    //    to fix the test too.
+    //    assertThat(table.getTableOptions().getDefaultTimeToLive()).isEqualTo(5);
+    assertThat(table.getTableOptions().getDefaultTimeToLive()).isEqualTo(0);
   }
 
   @Test

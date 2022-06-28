@@ -58,7 +58,7 @@ public class ValidatingStargateBridge implements StargateBridge {
   public Uni<QueryOuterClass.Response> executeQuery(QueryOuterClass.Query query) {
     QueryExpectation expectation =
         findQueryExpectation(query.getCql(), query.getValues().getValuesList());
-    return expectation.execute(query.getParameters(), null);
+    return expectation.execute(query.getParameters());
   }
 
   @Override
@@ -76,7 +76,7 @@ public class ValidatingStargateBridge implements StargateBridge {
             query -> {
               QueryExpectation expectation =
                   findQueryExpectation(query.getCql(), query.getValues().getValuesList());
-              return expectation.execute(null, batch.getType());
+              return expectation.execute(batch.getParameters(), batch.getType());
             })
         // Return the last result
         .reduce((first, second) -> second)
@@ -150,9 +150,9 @@ public class ValidatingStargateBridge implements StargateBridge {
     private QueryOuterClass.Batch.Type batchType;
     private boolean enriched;
     private QueryOuterClass.ResumeMode resumeMode;
+    private QueryOuterClass.Consistency consistency = QueryOuterClass.Consistency.LOCAL_QUORUM;
     private List<List<QueryOuterClass.Value>> rows;
     private Iterable<? extends QueryOuterClass.ColumnSpec> columnSpec;
-
     private Function<List<QueryOuterClass.Value>, ByteBuffer> comparableKey;
 
     private QueryExpectation(String cqlRegex, List<QueryOuterClass.Value> values) {
@@ -181,6 +181,11 @@ public class ValidatingStargateBridge implements StargateBridge {
 
     public QueryExpectation withResumeMode(QueryOuterClass.ResumeMode resumeMode) {
       this.resumeMode = resumeMode;
+      return this;
+    }
+
+    public QueryExpectation withConsistency(QueryOuterClass.Consistency consistency) {
+      this.consistency = consistency;
       return this;
     }
 
@@ -214,65 +219,108 @@ public class ValidatingStargateBridge implements StargateBridge {
     }
 
     private Uni<QueryOuterClass.Response> execute(
-        QueryOuterClass.QueryParameters parameters, QueryOuterClass.Batch.Type actualBatchType) {
+        QueryOuterClass.BatchParameters parameters, QueryOuterClass.Batch.Type actualBatchType) {
+      QueryOuterClass.Consistency actualConsistency =
+          Optional.ofNullable(parameters)
+              .filter(QueryOuterClass.BatchParameters::hasConsistency)
+              .map(p -> p.getConsistency().getValue())
+              .orElse(null);
 
-      // assert batch type
-      assertThat(this.batchType)
-          .as("Batch type for query %s", cqlPattern)
-          .isEqualTo(actualBatchType);
+      return execute(actualBatchType, false, null, actualConsistency, null, null);
+    }
 
-      // assert enriched
+    private Uni<QueryOuterClass.Response> execute(QueryOuterClass.QueryParameters parameters) {
       Boolean actualEnriched =
           Optional.ofNullable(parameters)
               .map(QueryOuterClass.QueryParameters::getEnriched)
               .orElse(false);
-      assertThat(this.enriched)
-          .as("Enriched flag for the query %s", cqlPattern)
-          .isEqualTo(actualEnriched);
 
-      // assert resume mode
       QueryOuterClass.ResumeMode actualResumeMode =
           Optional.ofNullable(parameters)
               .filter(QueryOuterClass.QueryParameters::hasResumeMode)
               .map(p -> p.getResumeMode().getValue())
               .orElse(null);
-      assertThat(this.resumeMode)
+
+      QueryOuterClass.Consistency actualConsistency =
+          Optional.ofNullable(parameters)
+              .filter(QueryOuterClass.QueryParameters::hasConsistency)
+              .map(p -> p.getConsistency().getValue())
+              .orElse(null);
+
+      Integer actualPageSize =
+          Optional.ofNullable(parameters)
+              .filter(QueryOuterClass.QueryParameters::hasPageSize)
+              .map(p -> p.getPageSize().getValue())
+              .orElse(null);
+
+      BytesValue actualPagingState =
+          Optional.ofNullable(parameters)
+              .filter(QueryOuterClass.QueryParameters::hasPagingState)
+              .map(QueryOuterClass.QueryParameters::getPagingState)
+              .orElse(null);
+
+      return execute(
+          null,
+          actualEnriched,
+          actualResumeMode,
+          actualConsistency,
+          actualPageSize,
+          actualPagingState);
+    }
+
+    private Uni<QueryOuterClass.Response> execute(
+        QueryOuterClass.Batch.Type actualBatchType,
+        Boolean actualEnriched,
+        QueryOuterClass.ResumeMode actualResumeMode,
+        QueryOuterClass.Consistency actualConsistency,
+        Integer actualPageSize,
+        BytesValue actualPagingState) {
+
+      // assert batch type
+      assertThat(actualBatchType)
+          .as("Batch type for query %s", cqlPattern)
+          .isEqualTo(this.batchType);
+
+      // assert enriched
+      assertThat(actualEnriched)
+          .as("Enriched flag for the query %s", cqlPattern)
+          .isEqualTo(this.enriched);
+
+      // assert resume mode
+      assertThat(actualResumeMode)
           .as("Resume mode for the query %s", cqlPattern)
-          .isEqualTo(actualResumeMode);
+          .isEqualTo(this.resumeMode);
+
+      // assert consistency
+      assertThat(actualConsistency)
+          .as(
+              "Consistency for the query %s not matching, actual %s, expected %s",
+              cqlPattern, actualConsistency, this.consistency)
+          .isEqualTo(this.consistency);
 
       // resolve and assert page size
-      int pageSize;
+      int pageSizeUsed;
       if (this.pageSize < Integer.MAX_VALUE) {
-        pageSize = this.pageSize;
-        int actual = parameters.getPageSize().getValue();
-        assertThat(parameters)
-            .isNotNull()
-            .withFailMessage(
-                "Page size of %d expected, but query parameters are null.".formatted(pageSize));
-        assertThat(actual)
-            .isEqualTo(pageSize)
-            .withFailMessage(
-                "Page size mismatch, expected %d but actual was %d".formatted(pageSize, actual));
+        pageSizeUsed = this.pageSize;
+        assertThat(actualPageSize)
+            .as("Page size of %d expected, but query parameters are null.", pageSizeUsed)
+            .isNotNull();
+        assertThat(actualPageSize)
+            .as("Page size mismatch, expected %d but actual was %d", pageSizeUsed, actualPageSize)
+            .isEqualTo(pageSizeUsed);
       } else {
-        pageSize =
-            Optional.ofNullable(parameters)
-                .map(p -> p.getPageSize().getValue())
-                .orElse(this.pageSize);
+        pageSizeUsed = Optional.ofNullable(actualPageSize).orElse(this.pageSize);
       }
 
       // resolve the paging state
       Optional<ByteBuffer> pagingState =
-          Optional.ofNullable(parameters)
+          Optional.ofNullable(actualPagingState)
               .flatMap(
                   p -> {
-                    if (p.hasPagingState()) {
-                      ByteBuffer byteBuffer = p.getPagingState().getValue().asReadOnlyByteBuffer();
-                      return Optional.of(byteBuffer);
-                    } else {
-                      return Optional.empty();
-                    }
+                    ByteBuffer byteBuffer = actualPagingState.getValue().asReadOnlyByteBuffer();
+                    return Optional.of(byteBuffer);
                   });
-      ValidatingPaginator paginator = ValidatingPaginator.of(pageSize, pagingState);
+      ValidatingPaginator paginator = ValidatingPaginator.of(pageSizeUsed, pagingState);
 
       // mark as executed
       executed();
