@@ -20,6 +20,8 @@
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
     <quarkus.platform.version>2.10.0.Final</quarkus.platform.version>
+    <skipTests>false</skipTests>
+    <skipUnitTests>${skipTests}</skipUnitTests>
     <surefire-plugin.version>3.0.0-M7</surefire-plugin.version>
   </properties>
   <dependencyManagement>
@@ -231,6 +233,7 @@
             <exclude>**/*IntegrationTest.*</exclude>
             <exclude>**/*EndToEndTest.*</exclude>
           </excludes>
+          <skip>${skipUnitTests}</skip>
         </configuration>
       </plugin>
       <plugin>
