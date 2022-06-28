@@ -440,6 +440,23 @@ public class RestApiv2SchemaTest extends BaseRestApiTest {
         String.format("%s/v2/schemas/keyspaces/%s/tables/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(tableUpdate),
         HttpStatus.SC_OK);
+
+    // Let's also verify that TTL is updated (related to [stargate#1836])
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/schemas/keyspaces/%s/tables/%s?raw=true",
+                restUrlBase, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+
+    TableResponse table = objectMapper.readValue(body, TableResponse.class);
+    assertThat(table.getKeyspace()).isEqualTo(keyspaceName);
+    assertThat(table.getName()).isEqualTo(tableName);
+    assertThat(table.getColumnDefinitions()).isNotNull().isNotEmpty();
+
+    assertThat(table.getTableOptions()).isNotNull();
+    assertThat(table.getTableOptions().getDefaultTimeToLive()).isEqualTo(5);
   }
 
   @Test
