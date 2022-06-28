@@ -212,10 +212,11 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
     for (QueryOuterClass.ColumnSpec column : grpcTable.getColumnsList()) {
       columns.add(column2column(column, false));
     }
-    // !!! TODO: figure out where to find TTL?
     List<Sgv2Table.ClusteringExpression> clustering =
         clustering2clustering(grpcTable.getClusteringOrdersMap());
-    final Sgv2Table.TableOptions tableOptions = new Sgv2Table.TableOptions(null, clustering);
+    // !!! TODO: figure out where to find TTL? Persistence does provide it [stargate#1816]
+    Integer defaultTTL = null;
+    final Sgv2Table.TableOptions tableOptions = new Sgv2Table.TableOptions(defaultTTL, clustering);
     return new Sgv2Table(grpcTable.getName(), keyspace, columns, primaryKeys, tableOptions);
   }
 
