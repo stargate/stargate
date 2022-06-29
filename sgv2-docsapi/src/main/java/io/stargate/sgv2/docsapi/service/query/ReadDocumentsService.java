@@ -91,7 +91,7 @@ public class ReadDocumentsService {
    * @return Uni containing DocumentResponseWrapper, in case no results found it will contain an
    *     empty json node
    */
-  public Uni<DocumentResponseWrapper<? extends JsonNode>> findDocuments(
+  public Uni<DocumentResponseWrapper<JsonNode>> findDocuments(
       String namespace,
       String collection,
       String where,
@@ -159,7 +159,7 @@ public class ReadDocumentsService {
    * @return Uni emitting DocumentResponseWrapper with result node and no paging state, or emitting
    *     null if the document can not be found
    */
-  public Uni<DocumentResponseWrapper<? extends JsonNode>> getDocument(
+  public Uni<DocumentResponseWrapper<JsonNode>> getDocument(
       String namespace,
       String collection,
       String documentId,
@@ -295,7 +295,7 @@ public class ReadDocumentsService {
    * @throws ErrorCodeRuntimeException If more than one filter path is supplied, and if fields are
    *     not containing the filter path field
    */
-  public Uni<DocumentResponseWrapper<? extends JsonNode>> findSubDocuments(
+  public Uni<DocumentResponseWrapper<JsonNode>> findSubDocuments(
       String namespace,
       String collection,
       String documentId,
