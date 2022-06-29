@@ -158,10 +158,7 @@ class SchemaHandler {
     if (table.comment() != null) {
       cqlTableBuilder.putOptions("comment", table.comment());
     }
-    int ttl = table.ttl();
-    if (ttl != 0) { // any other markers (is -1 used as indicator?)
-      cqlTableBuilder.putOptions("ttl", String.valueOf(ttl));
-    }
+    cqlTableBuilder.putOptions("ttl", String.valueOf(table.ttl()));
 
     for (Index index : table.indexes()) {
       if (index instanceof SecondaryIndex) {

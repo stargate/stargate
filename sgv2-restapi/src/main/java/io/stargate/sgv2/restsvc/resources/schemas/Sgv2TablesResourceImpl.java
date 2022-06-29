@@ -218,7 +218,6 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
     }
     List<Sgv2Table.ClusteringExpression> clustering =
         clustering2clustering(grpcTable.getClusteringOrdersMap());
-    // !!! TODO: figure out where to find TTL? Persistence does provide it [stargate#1816]
     Integer defaultTTL = null;
     String defaultTTLString = grpcTable.getOptionsOrDefault("ttl", null);
     if (defaultTTLString != null) {
