@@ -29,12 +29,16 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Path("/v2/schemas/keyspaces/{keyspaceName}/tables")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 @CreateStargateBridgeClient
 public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesResourceApi {
+  private static final Logger LOGGER = LoggerFactory.getLogger(Sgv2TablesResourceImpl.class);
+
   @Override
   public Response getAllTables(
       final StargateBridgeClient bridge,
@@ -214,8 +218,19 @@ public class Sgv2TablesResourceImpl extends ResourceBase implements Sgv2TablesRe
     }
     List<Sgv2Table.ClusteringExpression> clustering =
         clustering2clustering(grpcTable.getClusteringOrdersMap());
-    // !!! TODO: figure out where to find TTL? Persistence does provide it [stargate#1816]
     Integer defaultTTL = null;
+    String defaultTTLString = grpcTable.getOptionsOrDefault("ttl", null);
+    if (defaultTTLString != null) {
+      try {
+        defaultTTL = Integer.parseInt(defaultTTLString);
+      } catch (NumberFormatException e) {
+        LOGGER.warn(
+            "Internal problem: invalid default TTL value '{}' for table '{}:{}', not a valid Integer",
+            defaultTTLString,
+            keyspace,
+            grpcTable.getName());
+      }
+    }
     final Sgv2Table.TableOptions tableOptions = new Sgv2Table.TableOptions(defaultTTL, clustering);
     return new Sgv2Table(grpcTable.getName(), keyspace, columns, primaryKeys, tableOptions);
   }

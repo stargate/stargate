@@ -158,6 +158,7 @@ class SchemaHandler {
     if (table.comment() != null) {
       cqlTableBuilder.putOptions("comment", table.comment());
     }
+    cqlTableBuilder.putOptions("ttl", String.valueOf(table.ttl()));
 
     for (Index index : table.indexes()) {
       if (index instanceof SecondaryIndex) {
