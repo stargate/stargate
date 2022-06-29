@@ -72,7 +72,7 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                   name = OpenApiConstants.Parameters.WHERE,
                   description =
                       """
-                      A JSON blog with search filters:
+                      A JSON blob with search filters:
                       * allowed predicates: `$eq`, `$ne`, `$in`, `$nin`, `$gt`, `$lt`, `$gte`, `$lte`, `$exists`
                       * allowed boolean operators: `$and`, `$or`, `$not`
                       * allowed hints: `$selectivity` (a number between 0.0 and 1.0, less is better), defines conditions that should be search for first

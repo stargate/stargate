@@ -387,7 +387,7 @@ public class ReadResource {
             });
   }
 
-  private Function<DocumentResponseWrapper<? extends JsonNode>, RestResponse<Object>> rawHandler(
+  private Function<DocumentResponseWrapper<JsonNode>, RestResponse<Object>> rawHandler(
       boolean raw) {
     return wrapper -> {
       if (raw) {
