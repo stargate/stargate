@@ -37,13 +37,11 @@ import io.stargate.sgv2.docsapi.service.query.ReadBridgeService;
 import io.stargate.sgv2.docsapi.service.query.model.RawDocument;
 import io.stargate.sgv2.docsapi.service.query.model.paging.PagingStateSupplier;
 import io.stargate.sgv2.docsapi.service.schema.JsonSchemaManager;
-import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import javax.enterprise.inject.Default;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -73,8 +71,6 @@ public class WriteDocumentsServiceTest {
 
   @InjectMock JsonSchemaManager jsonSchemaManager;
 
-  @InjectMock @Default TableManager tableManager;
-
   @Inject WriteDocumentsService documentWriteService;
 
   @Inject ObjectMapper objectMapper;
@@ -100,12 +96,11 @@ public class WriteDocumentsServiceTest {
           .thenReturn(Uni.createFrom().item(ResultSet.getDefaultInstance()));
       when(jsonSchemaManager.validateJsonDocument(any(), any(), anyBoolean()))
           .thenReturn(Uni.createFrom().item(true));
-      when(tableManager.ensureValidDocumentTable(anyString(), anyString()))
-          .thenReturn(Uni.createFrom().item(table));
 
       DocumentResponseWrapper<Void> result =
           documentWriteService
-              .writeDocument(namespace, collection, obj, null, context)
+              .writeDocument(
+                  Uni.createFrom().item(table), namespace, collection, obj, null, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -137,12 +132,10 @@ public class WriteDocumentsServiceTest {
           .thenReturn(Uni.createFrom().item(ResultSet.getDefaultInstance()));
       when(jsonSchemaManager.validateJsonDocument(any(), any(), anyBoolean()))
           .thenReturn(Uni.createFrom().item(true));
-      when(tableManager.ensureValidDocumentTable(anyString(), anyString()))
-          .thenReturn(Uni.createFrom().item(table));
 
       DocumentResponseWrapper<Void> result =
           documentWriteService
-              .writeDocument(namespace, collection, obj, 100, context)
+              .writeDocument(Uni.createFrom().item(table), namespace, collection, obj, 100, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -168,7 +161,6 @@ public class WriteDocumentsServiceTest {
       JsonNode schema = objectMapper.createObjectNode();
       JsonNode document = objectMapper.readTree(payload);
       when(jsonSchemaManager.getJsonSchema(any())).thenReturn(Uni.createFrom().item(schema));
-      when(tableManager.ensureValidDocumentTable(anyString(), anyString())).thenReturn(tableUni);
       when(jsonDocumentShredder.shred(document, Collections.emptyList())).thenReturn(rows);
       when(writeBridgeService.writeDocument(
               eq(namespace), eq(collection), anyString(), eq(rows), any(), eq(context)))
@@ -176,7 +168,7 @@ public class WriteDocumentsServiceTest {
 
       DocumentResponseWrapper<Void> result =
           documentWriteService
-              .writeDocument(namespace, collection, document, null, context)
+              .writeDocument(tableUni, namespace, collection, document, null, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -219,8 +211,6 @@ public class WriteDocumentsServiceTest {
       String payload = String.format("[%s,%s]", doc1Payload, doc2Payload);
       JsonNode obj = objectMapper.readTree(payload);
       Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
-      when(tableManager.ensureValidDocumentTable(anyString(), anyString()))
-          .thenReturn(Uni.createFrom().item(table));
       when(jsonDocumentShredder.shred(objectMapper.readTree(doc1Payload), Collections.emptyList()))
           .thenReturn(rows1);
       when(jsonDocumentShredder.shred(objectMapper.readTree(doc2Payload), Collections.emptyList()))
@@ -231,7 +221,8 @@ public class WriteDocumentsServiceTest {
 
       MultiDocsResponse result =
           documentWriteService
-              .writeDocuments(namespace, collection, obj, null, null, context)
+              .writeDocuments(
+                  Uni.createFrom().item(table), namespace, collection, obj, null, null, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -257,6 +248,7 @@ public class WriteDocumentsServiceTest {
       String doc2Payload = "{\"id\": \"2\"}";
       String payload = String.format("[%s,%s]", doc1Payload, doc2Payload);
       JsonNode obj = objectMapper.readTree(payload);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
 
       when(jsonDocumentShredder.shred(objectMapper.readTree(doc1Payload), Collections.emptyList()))
           .thenReturn(rows1);
@@ -268,7 +260,8 @@ public class WriteDocumentsServiceTest {
 
       MultiDocsResponse result =
           documentWriteService
-              .writeDocuments(namespace, collection, obj, null, 100, context)
+              .writeDocuments(
+                  Uni.createFrom().item(table), namespace, collection, obj, null, 100, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -294,6 +287,7 @@ public class WriteDocumentsServiceTest {
       String doc2Payload = "{\"id\": \"2\"}";
       String payload = String.format("[%s,%s]", doc1Payload, doc2Payload);
       JsonNode obj = objectMapper.readTree(payload);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
 
       when(jsonDocumentShredder.shred(objectMapper.readTree(doc1Payload), Collections.emptyList()))
           .thenReturn(rows1);
@@ -305,7 +299,8 @@ public class WriteDocumentsServiceTest {
 
       MultiDocsResponse result =
           documentWriteService
-              .writeDocuments(namespace, collection, obj, "id", null, context)
+              .writeDocuments(
+                  Uni.createFrom().item(table), namespace, collection, obj, "id", null, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -331,6 +326,7 @@ public class WriteDocumentsServiceTest {
       String doc2Payload = "{\"id\": \"2\"}";
       String payload = String.format("[%s,%s]", doc1Payload, doc2Payload);
       JsonNode obj = objectMapper.readTree(payload);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
 
       when(jsonDocumentShredder.shred(objectMapper.readTree(doc1Payload), Collections.emptyList()))
           .thenReturn(rows1);
@@ -345,7 +341,8 @@ public class WriteDocumentsServiceTest {
 
       MultiDocsResponse result =
           documentWriteService
-              .writeDocuments(namespace, collection, obj, "id", null, context)
+              .writeDocuments(
+                  Uni.createFrom().item(table), namespace, collection, obj, "id", null, context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -376,14 +373,13 @@ public class WriteDocumentsServiceTest {
       ErrorCodeRuntimeException exception =
           new ErrorCodeRuntimeException(ErrorCode.DOCS_API_INVALID_JSON_VALUE);
       when(jsonSchemaManager.getJsonSchema(any())).thenReturn(Uni.createFrom().item(schema));
-      when(tableManager.ensureValidDocumentTable(anyString(), anyString())).thenReturn(table);
       when(jsonSchemaManager.validateJsonDocument(table, objectMapper.readTree(doc1Payload), false))
           .thenReturn(Uni.createFrom().item(true));
       when(jsonSchemaManager.validateJsonDocument(table, objectMapper.readTree(doc2Payload), false))
           .thenThrow(exception);
 
       documentWriteService
-          .writeDocuments(namespace, collection, obj, "id", null, context)
+          .writeDocuments(table, namespace, collection, obj, "id", null, context)
           .subscribe()
           .withSubscriber(UniAssertSubscriber.create())
           .awaitFailure()
@@ -407,6 +403,7 @@ public class WriteDocumentsServiceTest {
       String doc2Payload = "{\"id\": \"1\"}";
       String payload = String.format("[%s,%s]", doc1Payload, doc2Payload);
       JsonNode obj = objectMapper.readTree(payload);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
 
       when(jsonDocumentShredder.shred(objectMapper.readTree(doc1Payload), Collections.emptyList()))
           .thenReturn(rows1);
@@ -416,7 +413,13 @@ public class WriteDocumentsServiceTest {
       assertThatThrownBy(
               () ->
                   documentWriteService.writeDocuments(
-                      namespace, collection, obj, "id", null, context))
+                      Uni.createFrom().item(table),
+                      namespace,
+                      collection,
+                      obj,
+                      "id",
+                      null,
+                      context))
           .isInstanceOf(ErrorCodeRuntimeException.class)
           .hasMessage(
               "Found duplicate ID 1 in more than one document when doing batched document write.");
@@ -429,11 +432,18 @@ public class WriteDocumentsServiceTest {
       ExecutionContext context = ExecutionContext.create(true);
       String payload = String.format("{}");
       JsonNode obj = objectMapper.readTree(payload);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
 
       assertThatThrownBy(
               () ->
                   documentWriteService.writeDocuments(
-                      namespace, collection, obj, "id", null, context))
+                      Uni.createFrom().item(table),
+                      namespace,
+                      collection,
+                      obj,
+                      "id",
+                      null,
+                      context))
           .isInstanceOf(ErrorCodeRuntimeException.class)
           .hasMessage(ErrorCode.DOCS_API_WRITE_BATCH_NOT_ARRAY.getDefaultMessage());
     }
@@ -479,6 +489,7 @@ public class WriteDocumentsServiceTest {
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "{}";
       JsonNode obj = objectMapper.readTree(payload);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
 
       when(jsonDocumentShredder.shred(obj, Collections.emptyList())).thenReturn(rows);
       when(writeBridgeService.updateDocument(
@@ -487,7 +498,14 @@ public class WriteDocumentsServiceTest {
 
       DocumentResponseWrapper<Void> result =
           documentWriteService
-              .updateDocument(namespace, collection, documentId, obj, null, context)
+              .updateDocument(
+                  Uni.createFrom().item(table),
+                  namespace,
+                  collection,
+                  documentId,
+                  obj,
+                  null,
+                  context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -514,6 +532,7 @@ public class WriteDocumentsServiceTest {
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "{}";
       JsonNode obj = objectMapper.readTree(payload);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
 
       when(jsonDocumentShredder.shred(obj, Collections.emptyList())).thenReturn(rows);
       when(writeBridgeService.updateDocument(
@@ -522,7 +541,14 @@ public class WriteDocumentsServiceTest {
 
       DocumentResponseWrapper<Void> result =
           documentWriteService
-              .updateDocument(namespace, collection, documentId, obj, 100, context)
+              .updateDocument(
+                  Uni.createFrom().item(table),
+                  namespace,
+                  collection,
+                  documentId,
+                  obj,
+                  100,
+                  context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -551,6 +577,7 @@ public class WriteDocumentsServiceTest {
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "{}";
       JsonNode obj = objectMapper.readTree(payload);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
 
       when(jsonDocumentShredder.shred(obj, subPath)).thenReturn(rows);
       when(writeBridgeService.updateDocument(
@@ -559,7 +586,15 @@ public class WriteDocumentsServiceTest {
 
       DocumentResponseWrapper<Void> result =
           documentWriteService
-              .updateSubDocument(namespace, collection, documentId, subPath, obj, false, context)
+              .updateSubDocument(
+                  Uni.createFrom().item(table),
+                  namespace,
+                  collection,
+                  documentId,
+                  subPath,
+                  obj,
+                  false,
+                  context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -610,6 +645,7 @@ public class WriteDocumentsServiceTest {
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "{}";
       JsonNode obj = objectMapper.readTree(payload);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
 
       when(jsonDocumentShredder.shred(obj, subPath)).thenReturn(rows);
       when(writeBridgeService.updateDocument(
@@ -620,7 +656,15 @@ public class WriteDocumentsServiceTest {
 
       DocumentResponseWrapper<Void> result =
           documentWriteService
-              .updateSubDocument(namespace, collection, documentId, subPath, obj, true, context)
+              .updateSubDocument(
+                  Uni.createFrom().item(table),
+                  namespace,
+                  collection,
+                  documentId,
+                  subPath,
+                  obj,
+                  true,
+                  context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -647,6 +691,7 @@ public class WriteDocumentsServiceTest {
       String payload = "{}";
       JsonNode schema = objectMapper.createObjectNode();
       JsonNode document = objectMapper.readTree(payload);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
 
       when(jsonSchemaManager.getJsonSchema(any())).thenReturn(Uni.createFrom().item(schema));
       when(jsonDocumentShredder.shred(document, Collections.emptyList())).thenReturn(rows);
@@ -656,7 +701,14 @@ public class WriteDocumentsServiceTest {
 
       DocumentResponseWrapper<Void> result =
           documentWriteService
-              .updateDocument(namespace, collection, documentId, document, null, context)
+              .updateDocument(
+                  Uni.createFrom().item(table),
+                  namespace,
+                  collection,
+                  documentId,
+                  document,
+                  null,
+                  context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -687,14 +739,19 @@ public class WriteDocumentsServiceTest {
       String payload = "{}";
       JsonNode obj = objectMapper.readTree(payload);
       JsonNode schema = objectMapper.createObjectNode();
-
-      when(tableManager.ensureValidDocumentTable(anyString(), anyString()))
-          .thenReturn(Uni.createFrom().item(table));
       when(jsonSchemaManager.getJsonSchema(any())).thenReturn(Uni.createFrom().item(schema));
       when(jsonSchemaManager.validateJsonDocument(any(), any(), anyBoolean())).thenCallRealMethod();
 
       documentWriteService
-          .updateSubDocument(namespace, collection, documentId, subPath, obj, false, context)
+          .updateSubDocument(
+              Uni.createFrom().item(table),
+              namespace,
+              collection,
+              documentId,
+              subPath,
+              obj,
+              false,
+              context)
           .subscribe()
           .withSubscriber(UniAssertSubscriber.create())
           .awaitFailure()
@@ -706,6 +763,7 @@ public class WriteDocumentsServiceTest {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "{}";
       JsonNode obj = objectMapper.readTree(payload);
@@ -719,7 +777,13 @@ public class WriteDocumentsServiceTest {
       assertThatThrownBy(
               () ->
                   documentWriteService.updateDocument(
-                      namespace, collection, documentId, obj, null, context))
+                      Uni.createFrom().item(table),
+                      namespace,
+                      collection,
+                      documentId,
+                      obj,
+                      null,
+                      context))
           .isInstanceOf(ErrorCodeRuntimeException.class);
     }
   }
@@ -761,6 +825,7 @@ public class WriteDocumentsServiceTest {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "{\"key\":\"value\"}";
       JsonNode obj = objectMapper.readTree(payload);
@@ -772,8 +837,15 @@ public class WriteDocumentsServiceTest {
 
       DocumentResponseWrapper<Void> result =
           documentWriteService
-              .patchDocument(
-                  namespace, collection, documentId, Collections.emptyList(), obj, false, context)
+              .patchSubDocument(
+                  Uni.createFrom().item(table),
+                  namespace,
+                  collection,
+                  documentId,
+                  Collections.emptyList(),
+                  obj,
+                  false,
+                  context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -795,6 +867,7 @@ public class WriteDocumentsServiceTest {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
       String path = RandomStringUtils.randomAlphanumeric(16);
       List<String> subPath = Collections.singletonList(path);
       ExecutionContext context = ExecutionContext.create(true);
@@ -808,7 +881,15 @@ public class WriteDocumentsServiceTest {
 
       DocumentResponseWrapper<Void> result =
           documentWriteService
-              .patchDocument(namespace, collection, documentId, subPath, obj, false, context)
+              .patchSubDocument(
+                  Uni.createFrom().item(table),
+                  namespace,
+                  collection,
+                  documentId,
+                  subPath,
+                  obj,
+                  false,
+                  context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -852,6 +933,7 @@ public class WriteDocumentsServiceTest {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
       String path = RandomStringUtils.randomAlphanumeric(16);
       List<String> subPath = Collections.singletonList(path);
       ExecutionContext context = ExecutionContext.create(true);
@@ -867,7 +949,15 @@ public class WriteDocumentsServiceTest {
 
       DocumentResponseWrapper<Void> result =
           documentWriteService
-              .patchDocument(namespace, collection, documentId, subPath, obj, true, context)
+              .patchSubDocument(
+                  Uni.createFrom().item(table),
+                  namespace,
+                  collection,
+                  documentId,
+                  subPath,
+                  obj,
+                  true,
+                  context)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
               .awaitItem()
@@ -889,6 +979,7 @@ public class WriteDocumentsServiceTest {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "{}";
       JsonNode schema = objectMapper.createObjectNode();
@@ -898,8 +989,15 @@ public class WriteDocumentsServiceTest {
       when(jsonSchemaManager.validateJsonDocument(any(), any(), anyBoolean())).thenCallRealMethod();
 
       documentWriteService
-          .patchDocument(
-              namespace, collection, documentId, Collections.emptyList(), obj, false, context)
+          .patchSubDocument(
+              Uni.createFrom().item(table),
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              obj,
+              false,
+              context)
           .subscribe()
           .withSubscriber(UniAssertSubscriber.create())
           .awaitFailure()
@@ -911,13 +1009,21 @@ public class WriteDocumentsServiceTest {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "[1]";
       JsonNode obj = objectMapper.readTree(payload);
 
       documentWriteService
-          .patchDocument(
-              namespace, collection, documentId, Collections.emptyList(), obj, false, context)
+          .patchSubDocument(
+              Uni.createFrom().item(table),
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              obj,
+              false,
+              context)
           .subscribe()
           .withSubscriber(UniAssertSubscriber.create())
           .awaitFailure()
@@ -929,13 +1035,21 @@ public class WriteDocumentsServiceTest {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
       ExecutionContext context = ExecutionContext.create(true);
       String payload = "{}";
       JsonNode obj = objectMapper.readTree(payload);
 
       documentWriteService
-          .patchDocument(
-              namespace, collection, documentId, Collections.emptyList(), obj, false, context)
+          .patchSubDocument(
+              Uni.createFrom().item(table),
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              obj,
+              false,
+              context)
           .subscribe()
           .withSubscriber(UniAssertSubscriber.create())
           .awaitFailure()

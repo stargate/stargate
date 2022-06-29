@@ -38,7 +38,17 @@ public interface OpenApiConstants {
 
     String NAMESPACE = "namespace";
     String COLLECTION = "collection";
+    String DOCUMENT_ID = "document-id";
+    String DOCUMENT_PATH = "document-path";
+    String WHERE = "where";
+    String FIELDS = "fields";
+    String PAGE_SIZE = "page-size";
+    String PAGE_STATE = "page-state";
+    String PROFILE = "profile";
     String RAW = "raw";
+    String ID_PATH = "id-path";
+    String TTL = "ttl";
+    String TTL_AUTO = "ttl-auto";
   }
 
   interface Examples {
@@ -53,6 +63,15 @@ public interface OpenApiConstants {
     // based on the error code
     String NAMESPACE_DOES_NOT_EXIST = "Namespace does not exist";
     String COLLECTION_DOES_NOT_EXIST = "Collection does not exist";
+    String DOCUMENT_DOES_NOT_EXIST = "Document does not exist";
+    String DOCUMENT_SINGLE = "Single document";
+    String DOCUMENT_SINGLE_UNWRAPPED = "Single document unwrapped";
+    String DOCUMENT_SINGLE_WITH_WHERE = "Single document with where condition";
+    String SUB_DOCUMENT_SINGLE = "Sub-document";
+    String SUB_DOCUMENT_SINGLE_UNWRAPPED = "Sub-document unwrapped";
+    String SUB_DOCUMENT_SINGLE_WITH_WHERE = "Sub-document with where condition";
+    String SEARCH_DOCUMENTS = "Search documents result";
+    String SEARCH_DOCUMENTS_UNWRAPPED = "Search documents result unwrapped";
   }
 
   /** Response reference names. */
