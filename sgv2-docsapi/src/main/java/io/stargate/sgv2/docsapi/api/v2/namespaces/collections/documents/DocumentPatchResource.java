@@ -21,8 +21,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
-import io.stargate.sgv2.docsapi.api.v2.model.dto.SimpleResponseWrapper;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
+import io.stargate.sgv2.docsapi.models.ExecutionProfile;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.service.write.WriteDocumentsService;
@@ -45,6 +45,7 @@ import org.eclipse.microprofile.openapi.annotations.media.ExampleObject;
 import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameters;
+import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
@@ -71,41 +72,39 @@ public class DocumentPatchResource {
           "Patch a document with a given ID. Merges data at the root with requested data. Note that operation is not allowed if a JSON schema exist for a target collection.")
   @Parameters(
       value = {
-        @Parameter(
-            name = "namespace",
-            ref = OpenApiConstants.Parameters.NAMESPACE,
-            description = "The namespace of the document."),
+        @Parameter(name = "namespace", ref = OpenApiConstants.Parameters.NAMESPACE),
         @Parameter(
             name = "collection",
             ref = OpenApiConstants.Parameters.COLLECTION,
-            description = "The collection of the document (Will be created if it does not exist)."),
+            description = "The collection of the document. Will be created if it does not exist."),
         @Parameter(
             name = "document-id",
             ref = OpenApiConstants.Parameters.DOCUMENT_ID,
             description = "The ID of the document that you'd like to patch"),
-        @Parameter(
-            name = "ttl-auto",
-            ref = OpenApiConstants.Parameters.TTL_AUTO,
-            description =
-                "Include this to make the TTL match that of the parent document. Requires read-before-write if set to true"),
-        @Parameter(
-            name = "profile",
-            ref = OpenApiConstants.Parameters.PROFILE,
-            description = "Include profiling information from execution."),
+        @Parameter(name = "ttl-auto", ref = OpenApiConstants.Parameters.TTL_AUTO),
+        @Parameter(name = "profile", ref = OpenApiConstants.Parameters.PROFILE),
       })
+  @RequestBody(ref = OpenApiConstants.RequestBodies.PATCH)
   @APIResponses(
       value = {
         @APIResponse(
             responseCode = "200",
-            description =
-                "Document updated or created with the provided document-id. The document-id will be returned.",
+            description = "Document patched. The document-id will be returned.",
             content = {
               @Content(
                   schema =
                       @org.eclipse.microprofile.openapi.annotations.media.Schema(
-                          implementation = SimpleResponseWrapper.class,
-                          properties =
-                              @SchemaProperty(name = "documentId", type = SchemaType.STRING)))
+                          properties = {
+                            @SchemaProperty(
+                                name = "documentId",
+                                type = SchemaType.STRING,
+                                description = "The ID of the patched document."),
+                            @SchemaProperty(
+                                name = "profile",
+                                implementation = ExecutionProfile.class,
+                                nullable = true),
+                          }),
+                  examples = @ExampleObject(ref = OpenApiConstants.Examples.DOCUMENT_WRITE))
             }),
         @APIResponse(
             responseCode = "404",
@@ -151,8 +150,7 @@ public class DocumentPatchResource {
         @Parameter(
             name = "collection",
             ref = OpenApiConstants.Parameters.COLLECTION,
-            description =
-                "The collection to write the document to (Will be created if it does not exist)."),
+            description = "The collection of the document. Will be created if it does not exist."),
         @Parameter(
             name = "document-id",
             ref = OpenApiConstants.Parameters.DOCUMENT_ID,
@@ -171,19 +169,27 @@ public class DocumentPatchResource {
             ref = OpenApiConstants.Parameters.PROFILE,
             description = "Include profiling information from execution."),
       })
+  @RequestBody(ref = OpenApiConstants.RequestBodies.PATCH)
   @APIResponses(
       value = {
         @APIResponse(
             responseCode = "200",
-            description =
-                "Document updated or created with the provided document-id. The document-id will be returned.",
+            description = "Document path patched. The document-id will be returned.",
             content = {
               @Content(
                   schema =
                       @org.eclipse.microprofile.openapi.annotations.media.Schema(
-                          implementation = SimpleResponseWrapper.class,
-                          properties =
-                              @SchemaProperty(name = "documentId", type = SchemaType.STRING)))
+                          properties = {
+                            @SchemaProperty(
+                                name = "documentId",
+                                type = SchemaType.STRING,
+                                description = "The ID of the patched document."),
+                            @SchemaProperty(
+                                name = "profile",
+                                implementation = ExecutionProfile.class,
+                                nullable = true),
+                          }),
+                  examples = @ExampleObject(ref = OpenApiConstants.Examples.DOCUMENT_WRITE))
             }),
         @APIResponse(
             responseCode = "404",

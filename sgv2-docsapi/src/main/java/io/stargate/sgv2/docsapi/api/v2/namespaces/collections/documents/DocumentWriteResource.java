@@ -22,8 +22,8 @@ import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.docsapi.api.v2.model.dto.MultiDocsResponse;
-import io.stargate.sgv2.docsapi.api.v2.model.dto.SimpleResponseWrapper;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
+import io.stargate.sgv2.docsapi.models.ExecutionProfile;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.service.write.WriteDocumentsService;
@@ -37,15 +37,18 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
+import org.eclipse.microprofile.openapi.annotations.headers.Header;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.ExampleObject;
 import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameters;
+import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
@@ -72,23 +75,15 @@ public class DocumentWriteResource {
       description = "Create a new document. If the collection does not exist, it will be created.")
   @Parameters(
       value = {
-        @Parameter(
-            name = "namespace",
-            ref = OpenApiConstants.Parameters.NAMESPACE,
-            description = "The namespace to write the document to."),
+        @Parameter(name = "namespace", ref = OpenApiConstants.Parameters.NAMESPACE),
         @Parameter(
             name = "collection",
             ref = OpenApiConstants.Parameters.COLLECTION,
-            description = "The collection to write the document to."),
-        @Parameter(
-            name = "ttl",
-            ref = OpenApiConstants.Parameters.TTL,
-            description = "The time-to-live (in seconds) of the document."),
-        @Parameter(
-            name = "profile",
-            ref = OpenApiConstants.Parameters.PROFILE,
-            description = "Include profiling information from execution."),
+            description = "The collection of the document. Will be created if it does not exist."),
+        @Parameter(name = "ttl", ref = OpenApiConstants.Parameters.TTL),
+        @Parameter(name = "profile", ref = OpenApiConstants.Parameters.PROFILE),
       })
+  @RequestBody(ref = OpenApiConstants.RequestBodies.WRITE)
   @APIResponses(
       value = {
         @APIResponse(
@@ -98,10 +93,22 @@ public class DocumentWriteResource {
               @Content(
                   schema =
                       @org.eclipse.microprofile.openapi.annotations.media.Schema(
-                          implementation = SimpleResponseWrapper.class,
-                          properties =
-                              @SchemaProperty(name = "documentId", type = SchemaType.STRING)))
-            }),
+                          properties = {
+                            @SchemaProperty(
+                                name = "documentId",
+                                type = SchemaType.STRING,
+                                description = "The ID of the written document."),
+                            @SchemaProperty(
+                                name = "profile",
+                                implementation = ExecutionProfile.class,
+                                nullable = true),
+                          }),
+                  examples = @ExampleObject(ref = OpenApiConstants.Examples.DOCUMENT_WRITE))
+            },
+            headers =
+                @Header(
+                    name = HttpHeaders.LOCATION,
+                    description = "The URL of a newly created document.")),
         @APIResponse(
             responseCode = "404",
             description = "Not found.",
@@ -149,28 +156,22 @@ public class DocumentWriteResource {
           "Create multiple new documents. If the collection does not exist, it will be created.")
   @Parameters(
       value = {
-        @Parameter(
-            name = "namespace",
-            ref = OpenApiConstants.Parameters.NAMESPACE,
-            description = "The namespace to write the document to."),
+        @Parameter(name = "namespace", ref = OpenApiConstants.Parameters.NAMESPACE),
         @Parameter(
             name = "collection",
             ref = OpenApiConstants.Parameters.COLLECTION,
-            description = "The collection to write the document to."),
+            description = "The collection of the documents. Will be created if it does not exist."),
         @Parameter(
             name = "id-path",
-            ref = OpenApiConstants.Parameters.ID_PATH,
             description =
-                "The optional path of the ID in each document whose value will be used as the ID of the created document, if present"),
+                "The optional path of the ID in each document whose value will be used as the ID of the created document, if present."),
         @Parameter(
             name = "ttl",
             ref = OpenApiConstants.Parameters.TTL,
-            description = "The time-to-live (in seconds) of the document."),
-        @Parameter(
-            name = "profile",
-            ref = OpenApiConstants.Parameters.PROFILE,
-            description = "Include profiling information from execution."),
+            description = "The time-to-live (in seconds) of each written document."),
+        @Parameter(name = "profile", ref = OpenApiConstants.Parameters.PROFILE),
       })
+  @RequestBody(ref = OpenApiConstants.RequestBodies.WRITE_BATCH)
   @APIResponses(
       value = {
         @APIResponse(
@@ -180,9 +181,8 @@ public class DocumentWriteResource {
               @Content(
                   schema =
                       @org.eclipse.microprofile.openapi.annotations.media.Schema(
-                          implementation = MultiDocsResponse.class,
-                          properties =
-                              @SchemaProperty(name = "documentIds", type = SchemaType.ARRAY)))
+                          implementation = MultiDocsResponse.class),
+                  examples = @ExampleObject(ref = OpenApiConstants.Examples.DOCUMENT_WRITE_BATCH))
             }),
         @APIResponse(
             responseCode = "404",

@@ -46,7 +46,6 @@ public interface OpenApiConstants {
     String PAGE_STATE = "page-state";
     String PROFILE = "profile";
     String RAW = "raw";
-    String ID_PATH = "id-path";
     String TTL = "ttl";
     String TTL_AUTO = "ttl-auto";
   }
@@ -64,6 +63,10 @@ public interface OpenApiConstants {
     String NAMESPACE_DOES_NOT_EXIST = "Namespace does not exist";
     String COLLECTION_DOES_NOT_EXIST = "Collection does not exist";
     String DOCUMENT_DOES_NOT_EXIST = "Document does not exist";
+
+    // document examples
+    String DOCUMENT_WRITE = "Document write";
+    String DOCUMENT_WRITE_BATCH = "Batch documents write";
     String DOCUMENT_SINGLE = "Single document";
     String DOCUMENT_SINGLE_UNWRAPPED = "Single document unwrapped";
     String DOCUMENT_SINGLE_WITH_WHERE = "Single document with where condition";
@@ -72,6 +75,15 @@ public interface OpenApiConstants {
     String SUB_DOCUMENT_SINGLE_WITH_WHERE = "Sub-document with where condition";
     String SEARCH_DOCUMENTS = "Search documents result";
     String SEARCH_DOCUMENTS_UNWRAPPED = "Search documents result unwrapped";
+  }
+
+  /** Request bodies reference names. */
+  interface RequestBodies {
+
+    String PATCH = "PATCH";
+    String WRITE = "WRITE";
+    String WRITE_SUB_DOCUMENT = "WRITE_SUB_DOCUMENT";
+    String WRITE_BATCH = "WRITE_BATCH";
   }
 
   /** Response reference names. */
