@@ -15,6 +15,14 @@
  */
 package io.stargate.sgv2.restsvc.impl;
 
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.jvm.BufferPoolMetricSet;
+import com.codahale.metrics.jvm.ClassLoadingGaugeSet;
+import com.codahale.metrics.jvm.FileDescriptorRatioGauge;
+import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
+import com.codahale.metrics.jvm.JvmAttributeGaugeSet;
+import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
+import com.codahale.metrics.jvm.ThreadStatesGaugeSet;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -50,6 +58,7 @@ import io.swagger.jaxrs.config.DefaultJaxrsScanner;
 import io.swagger.jaxrs.listing.ApiListingResource;
 import io.swagger.jaxrs.listing.SwaggerSerializers;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.util.Arrays;
 import java.util.EnumSet;
 import javax.servlet.DispatcherType;
@@ -195,6 +204,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   @Override
   public void initialize(final Bootstrap<RestServiceServerConfiguration> bootstrap) {
     super.initialize(bootstrap);
+    registerJvmMetrics();
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
     bootstrap.setMetricRegistry(metrics.getRegistry(REST_SVC_MODULE_NAME));
   }
@@ -217,5 +227,17 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   @Override
   protected void bootstrapLogging() {
     // disable dropwizard logging, it will use external logback
+  }
+
+  private void registerJvmMetrics() {
+    MetricRegistry topLevelRegistry = metrics.getRegistry();
+    topLevelRegistry.register("jvm.attribute", new JvmAttributeGaugeSet());
+    topLevelRegistry.register(
+        "jvm.buffers", new BufferPoolMetricSet(ManagementFactory.getPlatformMBeanServer()));
+    topLevelRegistry.register("jvm.classloader", new ClassLoadingGaugeSet());
+    topLevelRegistry.register("jvm.filedescriptor", new FileDescriptorRatioGauge());
+    topLevelRegistry.register("jvm.gc", new GarbageCollectorMetricSet());
+    topLevelRegistry.register("jvm.memory", new MemoryUsageGaugeSet());
+    topLevelRegistry.register("jvm.threads", new ThreadStatesGaugeSet());
   }
 }
