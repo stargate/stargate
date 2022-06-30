@@ -204,10 +204,9 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   @Override
   public void initialize(final Bootstrap<RestServiceServerConfiguration> bootstrap) {
     super.initialize(bootstrap);
-    MetricRegistry registry = metrics.getRegistry(REST_SVC_MODULE_NAME);
-    registerJvmMetrics(registry);
+    registerJvmMetrics();
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
-    bootstrap.setMetricRegistry(registry);
+    bootstrap.setMetricRegistry(metrics.getRegistry(REST_SVC_MODULE_NAME));
   }
 
   private void enableCors(Environment environment) {
@@ -230,14 +229,15 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     // disable dropwizard logging, it will use external logback
   }
 
-  private void registerJvmMetrics(MetricRegistry registry) {
-    registry.register("jvm.attribute", new JvmAttributeGaugeSet());
-    registry.register(
+  private void registerJvmMetrics() {
+    MetricRegistry topLevelRegistry = metrics.getRegistry();
+    topLevelRegistry.register("jvm.attribute", new JvmAttributeGaugeSet());
+    topLevelRegistry.register(
         "jvm.buffers", new BufferPoolMetricSet(ManagementFactory.getPlatformMBeanServer()));
-    registry.register("jvm.classloader", new ClassLoadingGaugeSet());
-    registry.register("jvm.filedescriptor", new FileDescriptorRatioGauge());
-    registry.register("jvm.gc", new GarbageCollectorMetricSet());
-    registry.register("jvm.memory", new MemoryUsageGaugeSet());
-    registry.register("jvm.threads", new ThreadStatesGaugeSet());
+    topLevelRegistry.register("jvm.classloader", new ClassLoadingGaugeSet());
+    topLevelRegistry.register("jvm.filedescriptor", new FileDescriptorRatioGauge());
+    topLevelRegistry.register("jvm.gc", new GarbageCollectorMetricSet());
+    topLevelRegistry.register("jvm.memory", new MemoryUsageGaugeSet());
+    topLevelRegistry.register("jvm.threads", new ThreadStatesGaugeSet());
   }
 }
