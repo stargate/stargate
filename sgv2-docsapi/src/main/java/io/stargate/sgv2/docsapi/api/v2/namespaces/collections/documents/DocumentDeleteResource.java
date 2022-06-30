@@ -54,7 +54,7 @@ import org.jboss.resteasy.reactive.RestResponse;
 public class DocumentDeleteResource {
 
   public static final String BASE_PATH =
-      "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}/{document-id}";
+      "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}}";
 
   @Inject WriteDocumentsService documentWriteService;
 
@@ -94,6 +94,7 @@ public class DocumentDeleteResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @DELETE
+  @Path("{document-id}")
   public Uni<RestResponse<Object>> deleteDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
@@ -147,7 +148,7 @@ public class DocumentDeleteResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @DELETE
-  @Path("{document-path: .*}")
+  @Path("{document-id}/{document-path: .*}")
   public Uni<RestResponse<Object>> deleteSubDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,

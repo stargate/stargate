@@ -150,7 +150,7 @@ public class DocumentWriteResource {
             });
   }
 
-  @Path("/batch")
+  @Path("batch")
   @Operation(
       description =
           "Create multiple new documents. If the collection does not exist, it will be created.")
