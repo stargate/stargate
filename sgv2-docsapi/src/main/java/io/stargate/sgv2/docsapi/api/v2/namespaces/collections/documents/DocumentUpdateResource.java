@@ -21,8 +21,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
-import io.stargate.sgv2.docsapi.api.v2.model.dto.SimpleResponseWrapper;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
+import io.stargate.sgv2.docsapi.models.ExecutionProfile;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.service.write.WriteDocumentsService;
@@ -45,6 +45,7 @@ import org.eclipse.microprofile.openapi.annotations.media.ExampleObject;
 import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameters;
+import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
@@ -60,7 +61,7 @@ import org.jboss.resteasy.reactive.RestResponse;
 public class DocumentUpdateResource {
 
   public static final String BASE_PATH =
-      "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}/{document-id}";
+      "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}";
 
   @Inject WriteDocumentsService documentWriteService;
 
@@ -71,27 +72,19 @@ public class DocumentUpdateResource {
           "Create or update a document with a given ID. If the collection does not exist, it will be created. If the document already exists, it will be overwritten.")
   @Parameters(
       value = {
-        @Parameter(
-            name = "namespace",
-            ref = OpenApiConstants.Parameters.NAMESPACE,
-            description = "The namespace to write the document to."),
+        @Parameter(name = "namespace", ref = OpenApiConstants.Parameters.NAMESPACE),
         @Parameter(
             name = "collection",
             ref = OpenApiConstants.Parameters.COLLECTION,
-            description = "The collection to write the document to."),
+            description = "The collection of the document. Will be created if it does not exist."),
         @Parameter(
             name = "document-id",
             ref = OpenApiConstants.Parameters.DOCUMENT_ID,
-            description = "The ID of the document that you'd like to write"),
-        @Parameter(
-            name = "ttl",
-            ref = OpenApiConstants.Parameters.TTL,
-            description = "The time-to-live (in seconds) of the document."),
-        @Parameter(
-            name = "profile",
-            ref = OpenApiConstants.Parameters.PROFILE,
-            description = "Include profiling information from execution."),
+            description = "The ID of the document to update."),
+        @Parameter(name = "ttl", ref = OpenApiConstants.Parameters.TTL),
+        @Parameter(name = "profile", ref = OpenApiConstants.Parameters.PROFILE),
       })
+  @RequestBody(ref = OpenApiConstants.RequestBodies.WRITE)
   @APIResponses(
       value = {
         @APIResponse(
@@ -102,9 +95,17 @@ public class DocumentUpdateResource {
               @Content(
                   schema =
                       @org.eclipse.microprofile.openapi.annotations.media.Schema(
-                          implementation = SimpleResponseWrapper.class,
-                          properties =
-                              @SchemaProperty(name = "documentId", type = SchemaType.STRING)))
+                          properties = {
+                            @SchemaProperty(
+                                name = "documentId",
+                                type = SchemaType.STRING,
+                                description = "The ID of the updated document."),
+                            @SchemaProperty(
+                                name = "profile",
+                                implementation = ExecutionProfile.class,
+                                nullable = true),
+                          }),
+                  examples = @ExampleObject(ref = OpenApiConstants.Examples.DOCUMENT_WRITE))
             }),
         @APIResponse(
             responseCode = "404",
@@ -123,6 +124,7 @@ public class DocumentUpdateResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @PUT
+  @Path("{document-id}")
   public Uni<RestResponse<Object>> updateDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
@@ -143,32 +145,20 @@ public class DocumentUpdateResource {
           "Create or update a path in a document by ID. If the collection does not exist, it will be created. If data exists at the path, it will be overwritten.")
   @Parameters(
       value = {
-        @Parameter(
-            name = "namespace",
-            ref = OpenApiConstants.Parameters.NAMESPACE,
-            description = "The namespace to write the document to."),
+        @Parameter(name = "namespace", ref = OpenApiConstants.Parameters.NAMESPACE),
         @Parameter(
             name = "collection",
             ref = OpenApiConstants.Parameters.COLLECTION,
-            description = "The collection to write the document to."),
+            description = "The collection of the document. Will be created if it does not exist."),
         @Parameter(
             name = "document-id",
             ref = OpenApiConstants.Parameters.DOCUMENT_ID,
-            description = "The ID of the document that you'd like to write"),
-        @Parameter(
-            name = "document-path",
-            ref = OpenApiConstants.Parameters.DOCUMENT_PATH,
-            description = "The path within the document you would like to write to"),
-        @Parameter(
-            name = "ttl-auto",
-            ref = OpenApiConstants.Parameters.TTL_AUTO,
-            description =
-                "Include this to make the TTL match that of the parent document. Requires read-before-write if set to true"),
-        @Parameter(
-            name = "profile",
-            ref = OpenApiConstants.Parameters.PROFILE,
-            description = "Include profiling information from execution."),
+            description = "The ID of the document to update."),
+        @Parameter(name = "document-path", ref = OpenApiConstants.Parameters.DOCUMENT_PATH),
+        @Parameter(name = "ttl-auto", ref = OpenApiConstants.Parameters.TTL_AUTO),
+        @Parameter(name = "profile", ref = OpenApiConstants.Parameters.PROFILE),
       })
+  @RequestBody(ref = OpenApiConstants.RequestBodies.WRITE_SUB_DOCUMENT)
   @APIResponses(
       value = {
         @APIResponse(
@@ -179,9 +169,17 @@ public class DocumentUpdateResource {
               @Content(
                   schema =
                       @org.eclipse.microprofile.openapi.annotations.media.Schema(
-                          implementation = SimpleResponseWrapper.class,
-                          properties =
-                              @SchemaProperty(name = "documentId", type = SchemaType.STRING)))
+                          properties = {
+                            @SchemaProperty(
+                                name = "documentId",
+                                type = SchemaType.STRING,
+                                description = "The ID of the updated document."),
+                            @SchemaProperty(
+                                name = "profile",
+                                implementation = ExecutionProfile.class,
+                                nullable = true),
+                          }),
+                  examples = @ExampleObject(ref = OpenApiConstants.Examples.DOCUMENT_WRITE))
             }),
         @APIResponse(
             responseCode = "404",
@@ -200,7 +198,7 @@ public class DocumentUpdateResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @PUT
-  @Path("{document-path: .*}")
+  @Path("{document-id}/{document-path:.*}")
   public Uni<RestResponse<Object>> updateSubDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,

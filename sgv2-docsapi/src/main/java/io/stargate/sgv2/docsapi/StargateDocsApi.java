@@ -16,6 +16,7 @@ import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.ExampleObject;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityScheme;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
@@ -66,7 +67,7 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                   required = true,
                   schema = @Schema(implementation = String.class, type = SchemaType.ARRAY),
                   description =
-                      "The path in the JSON that you want to retrieve. Use `\\` to escape periods, commas, and asterisks."),
+                      "The path in the JSON that you want to target. Use `\\` to escape periods, commas, and asterisks."),
               @Parameter(
                   in = ParameterIn.QUERY,
                   name = OpenApiConstants.Parameters.WHERE,
@@ -176,6 +177,17 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                   name = OpenApiConstants.Parameters.RAW,
                   description = "Unwrap results.",
                   schema = @Schema(implementation = boolean.class)),
+              @Parameter(
+                  in = ParameterIn.QUERY,
+                  name = OpenApiConstants.Parameters.TTL,
+                  description = "The time-to-live (in seconds) of the document.",
+                  schema = @Schema(implementation = int.class)),
+              @Parameter(
+                  in = ParameterIn.QUERY,
+                  name = OpenApiConstants.Parameters.TTL_AUTO,
+                  description =
+                      "If set to `true` on document update or patch, ensures that the time-to-live for the updated portion of the document will match the parent document. Requires a read-before-write if set to `true`.",
+                  schema = @Schema(implementation = boolean.class)),
             },
 
             // reusable examples
@@ -255,6 +267,22 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                       }
                       """),
               @ExampleObject(
+                  name = OpenApiConstants.Examples.DOCUMENT_WRITE,
+                  value =
+                      """
+                      {
+                          "documentId": "822dc277-9121-4791-8b01-da8154e67d5d"
+                      }
+                      """),
+              @ExampleObject(
+                  name = OpenApiConstants.Examples.DOCUMENT_WRITE_BATCH,
+                  value =
+                      """
+                      {
+                          "documentIds": ["822dc277-9121-4791-8b01-da8154e67d5d, 6334dft4-9153-3642-4f32-da8154e67d5d"]
+                      }
+                      """),
+              @ExampleObject(
                   name = OpenApiConstants.Examples.SEARCH_DOCUMENTS,
                   value =
                       """
@@ -298,7 +326,6 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                               }
                           }
                       ]
-                      }
                       """),
               @ExampleObject(
                   name = OpenApiConstants.Examples.DOCUMENT_SINGLE,
@@ -425,6 +452,80 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                       """),
             },
 
+            // reusable request bodies
+            requestBodies = {
+              @RequestBody(
+                  name = OpenApiConstants.RequestBodies.PATCH,
+                  description = "The JSON of a patch.",
+                  content =
+                      @Content(
+                          mediaType = MediaType.APPLICATION_JSON,
+                          schema = @Schema(type = SchemaType.OBJECT),
+                          example =
+                              """
+                              {
+                                  "location": "Berlin"
+                              }
+                              """)),
+              @RequestBody(
+                  name = OpenApiConstants.RequestBodies.WRITE,
+                  description = "The JSON of a document.",
+                  content =
+                      @Content(
+                          mediaType = MediaType.APPLICATION_JSON,
+                          schema = @Schema(type = SchemaType.OBJECT),
+                          example =
+                              """
+                              {
+                                  "location": "London",
+                                  "race": {
+                                      "competitors": 100,
+                                      "start_date": "2022-08-15"
+                                  }
+                              }
+                              """)),
+              @RequestBody(
+                  name = OpenApiConstants.RequestBodies.WRITE_SUB_DOCUMENT,
+                  description = "The JSON of a sub-document.",
+                  content =
+                      @Content(
+                          mediaType = MediaType.APPLICATION_JSON,
+                          schema = @Schema(type = SchemaType.OBJECT),
+                          example =
+                              """
+                              {
+                                  "competitors": 100,
+                                  "start_date": "2022-08-15"
+                              }
+                              """)),
+              @RequestBody(
+                  name = OpenApiConstants.RequestBodies.WRITE_BATCH,
+                  description = "The JSON array of a documents for batch write.",
+                  content =
+                      @Content(
+                          mediaType = MediaType.APPLICATION_JSON,
+                          schema = @Schema(type = SchemaType.ARRAY),
+                          example =
+                              """
+                              [
+                                  {
+                                      "location": "London",
+                                      "race": {
+                                          "competitors": 100,
+                                          "start_date": "2022-08-15"
+                                      }
+                                  },
+                                  {
+                                      "location": "Barcelona",
+                                      "race": {
+                                          "competitors": 30,
+                                          "start_date": "2022-09-26"
+                                      }
+                                  }
+                              ]
+                              """)),
+            },
+
             // reusable response
             responses = {
               @APIResponse(
@@ -437,9 +538,7 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                           examples = {
                             @ExampleObject(ref = OpenApiConstants.Examples.GENERAL_BAD_REQUEST)
                           },
-                          schema =
-                              @org.eclipse.microprofile.openapi.annotations.media.Schema(
-                                  implementation = ApiError.class))),
+                          schema = @Schema(implementation = ApiError.class))),
               @APIResponse(
                   name = OpenApiConstants.Responses.GENERAL_401,
                   responseCode = "401",
@@ -451,9 +550,7 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                             @ExampleObject(ref = OpenApiConstants.Examples.GENERAL_UNAUTHORIZED),
                             @ExampleObject(ref = OpenApiConstants.Examples.GENERAL_MISSING_TOKEN),
                           },
-                          schema =
-                              @org.eclipse.microprofile.openapi.annotations.media.Schema(
-                                  implementation = ApiError.class))),
+                          schema = @Schema(implementation = ApiError.class))),
               @APIResponse(
                   name = OpenApiConstants.Responses.GENERAL_500,
                   responseCode = "500",
@@ -465,9 +562,7 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                             @ExampleObject(
                                 ref = OpenApiConstants.Examples.GENERAL_SERVER_SIDE_ERROR),
                           },
-                          schema =
-                              @org.eclipse.microprofile.openapi.annotations.media.Schema(
-                                  implementation = ApiError.class))),
+                          schema = @Schema(implementation = ApiError.class))),
               @APIResponse(
                   name = OpenApiConstants.Responses.GENERAL_503,
                   responseCode = "503",
@@ -479,9 +574,7 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                             @ExampleObject(
                                 ref = OpenApiConstants.Examples.GENERAL_SERVICE_UNAVAILABLE),
                           },
-                          schema =
-                              @org.eclipse.microprofile.openapi.annotations.media.Schema(
-                                  implementation = ApiError.class))),
+                          schema = @Schema(implementation = ApiError.class))),
             }),
     tags = {
       @Tag(name = OpenApiConstants.Tags.DOCUMENTS, description = "Document related operations."),

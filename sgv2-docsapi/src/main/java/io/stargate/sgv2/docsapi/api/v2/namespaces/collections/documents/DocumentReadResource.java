@@ -59,12 +59,12 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.jboss.resteasy.reactive.RestResponse;
 
 /** Read resource. */
-@Path(ReadResource.BASE_PATH)
+@Path(DocumentReadResource.BASE_PATH)
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @SecurityRequirement(name = OpenApiConstants.SecuritySchemes.TOKEN)
 @Tag(ref = OpenApiConstants.Tags.DOCUMENTS)
-public class ReadResource {
+public class DocumentReadResource {
 
   public static final String BASE_PATH =
       "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}";
@@ -105,7 +105,7 @@ public class ReadResource {
           @Content(
               mediaType = MediaType.APPLICATION_JSON,
               schema =
-                  @org.eclipse.microprofile.openapi.annotations.media.Schema(
+                  @Schema(
                       name = "SearchDocsResult",
                       properties = {
                         @SchemaProperty(
@@ -134,9 +134,7 @@ public class ReadResource {
                   @ExampleObject(ref = OpenApiConstants.Examples.NAMESPACE_DOES_NOT_EXIST),
                   @ExampleObject(ref = OpenApiConstants.Examples.COLLECTION_DOES_NOT_EXIST)
                 },
-                schema =
-                    @org.eclipse.microprofile.openapi.annotations.media.Schema(
-                        implementation = ApiError.class))),
+                schema = @Schema(implementation = ApiError.class))),
     @APIResponse(ref = OpenApiConstants.Responses.GENERAL_401),
     @APIResponse(ref = OpenApiConstants.Responses.GENERAL_500),
     @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
@@ -213,7 +211,7 @@ public class ReadResource {
           @Content(
               mediaType = MediaType.APPLICATION_JSON,
               schema =
-                  @org.eclipse.microprofile.openapi.annotations.media.Schema(
+                  @Schema(
                       implementation = DocumentResponseWrapper.class,
                       properties = @SchemaProperty(name = "data", type = SchemaType.DEFAULT)),
               examples = {
@@ -233,9 +231,7 @@ public class ReadResource {
                   @ExampleObject(ref = OpenApiConstants.Examples.COLLECTION_DOES_NOT_EXIST),
                   @ExampleObject(ref = OpenApiConstants.Examples.DOCUMENT_DOES_NOT_EXIST),
                 },
-                schema =
-                    @org.eclipse.microprofile.openapi.annotations.media.Schema(
-                        implementation = ApiError.class))),
+                schema = @Schema(implementation = ApiError.class))),
     @APIResponse(ref = OpenApiConstants.Responses.GENERAL_401),
     @APIResponse(ref = OpenApiConstants.Responses.GENERAL_500),
     @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
@@ -299,7 +295,7 @@ public class ReadResource {
           @Content(
               mediaType = MediaType.APPLICATION_JSON,
               schema =
-                  @org.eclipse.microprofile.openapi.annotations.media.Schema(
+                  @Schema(
                       implementation = DocumentResponseWrapper.class,
                       properties = @SchemaProperty(name = "data", type = SchemaType.DEFAULT)),
               examples = {
@@ -319,9 +315,7 @@ public class ReadResource {
                   @ExampleObject(ref = OpenApiConstants.Examples.COLLECTION_DOES_NOT_EXIST),
                   @ExampleObject(ref = OpenApiConstants.Examples.DOCUMENT_DOES_NOT_EXIST),
                 },
-                schema =
-                    @org.eclipse.microprofile.openapi.annotations.media.Schema(
-                        implementation = ApiError.class))),
+                schema = @Schema(implementation = ApiError.class))),
     @APIResponse(ref = OpenApiConstants.Responses.GENERAL_401),
     @APIResponse(ref = OpenApiConstants.Responses.GENERAL_500),
     @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),

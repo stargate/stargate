@@ -54,7 +54,7 @@ import org.jboss.resteasy.reactive.RestResponse;
 public class DocumentDeleteResource {
 
   public static final String BASE_PATH =
-      "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}/{document-id}";
+      "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}";
 
   @Inject WriteDocumentsService documentWriteService;
 
@@ -63,22 +63,13 @@ public class DocumentDeleteResource {
   @Operation(description = "Delete a document with a given ID.")
   @Parameters(
       value = {
-        @Parameter(
-            name = "namespace",
-            ref = OpenApiConstants.Parameters.NAMESPACE,
-            description = "The namespace to write the document to."),
-        @Parameter(
-            name = "collection",
-            ref = OpenApiConstants.Parameters.COLLECTION,
-            description = "The collection to write the document to."),
+        @Parameter(name = "namespace", ref = OpenApiConstants.Parameters.NAMESPACE),
+        @Parameter(name = "collection", ref = OpenApiConstants.Parameters.COLLECTION),
         @Parameter(
             name = "document-id",
             ref = OpenApiConstants.Parameters.DOCUMENT_ID,
-            description = "The ID of the document that you'd like to write"),
-        @Parameter(
-            name = "profile",
-            ref = OpenApiConstants.Parameters.PROFILE,
-            description = "Include profiling information from execution."),
+            description = "The ID of the document to delete."),
+        @Parameter(name = "profile", ref = OpenApiConstants.Parameters.PROFILE),
       })
   @APIResponses(
       value = {
@@ -103,6 +94,7 @@ public class DocumentDeleteResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @DELETE
+  @Path("{document-id}")
   public Uni<RestResponse<Object>> deleteDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
@@ -123,26 +115,14 @@ public class DocumentDeleteResource {
   @Operation(description = "Delete the data at a path in a document by ID.")
   @Parameters(
       value = {
-        @Parameter(
-            name = "namespace",
-            ref = OpenApiConstants.Parameters.NAMESPACE,
-            description = "The namespace to write the document to."),
-        @Parameter(
-            name = "collection",
-            ref = OpenApiConstants.Parameters.COLLECTION,
-            description = "The collection to write the document to."),
+        @Parameter(name = "namespace", ref = OpenApiConstants.Parameters.NAMESPACE),
+        @Parameter(name = "collection", ref = OpenApiConstants.Parameters.COLLECTION),
         @Parameter(
             name = "document-id",
             ref = OpenApiConstants.Parameters.DOCUMENT_ID,
-            description = "The ID of the document that you'd like to write"),
-        @Parameter(
-            name = "document-path",
-            ref = OpenApiConstants.Parameters.DOCUMENT_PATH,
-            description = "The path within the document you would like to write to"),
-        @Parameter(
-            name = "profile",
-            ref = OpenApiConstants.Parameters.PROFILE,
-            description = "Include profiling information from execution."),
+            description = "The ID of the document to delete."),
+        @Parameter(name = "document-path", ref = OpenApiConstants.Parameters.DOCUMENT_PATH),
+        @Parameter(name = "profile", ref = OpenApiConstants.Parameters.PROFILE),
       })
   @APIResponses(
       value = {
@@ -168,7 +148,7 @@ public class DocumentDeleteResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @DELETE
-  @Path("{document-path: .*}")
+  @Path("{document-id}/{document-path:.*}")
   public Uni<RestResponse<Object>> deleteSubDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
