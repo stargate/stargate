@@ -209,7 +209,7 @@ public class DocumentPatchResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @PATCH
-  @Path("{document-id}/{document-path: .*}")
+  @Path("{document-id}/{document-path:.*}")
   public Uni<RestResponse<Object>> patchSubDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
