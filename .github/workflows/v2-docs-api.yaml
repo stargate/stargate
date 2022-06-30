@@ -61,7 +61,7 @@ jobs:
 
       - name: Build
         if: steps.cache-coordinator-snapshots.outputs.cache-hit != 'true'
-        run: ./mvnw install -P dse -DskipTests
+        run: MAVEN_OPTS="-Xmx4g" ./mvnw install -P dse -DskipTests
 
       - name: Set up QEMU
         if: steps.cache-coordinator-snapshots.outputs.cache-hit != 'true'
