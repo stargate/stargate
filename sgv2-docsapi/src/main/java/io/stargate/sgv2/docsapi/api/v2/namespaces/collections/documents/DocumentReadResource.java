@@ -182,8 +182,8 @@ public class DocumentReadResource {
 
           > Note that in case when conditions are given using the `where` query parameter, the response will contain an array of sub-documents where the condition is matched.
           The structure of returned sub-documents will only contain the path to the field which was included in the condition.
+          Other fields of the matched sub-document can be included using the `fields` parameter.
           Only single field conditions are possible at the moment. Multiple conditions targeting the same field are allowed.
-          Mixing the `field` selection and `where` is not supported at the moment.
           The page size and page state parameters are only used together with `where` and enable paging through matched sub-documents.
           """)
   @Parameters(
@@ -265,8 +265,8 @@ public class DocumentReadResource {
 
           > Note that in case when conditions are given using the `where` query parameter, the response will contain an array of sub-documents where the condition is matched.
           The structure of returned sub-documents will only contain the path to the field which was included in the condition.
+          Other fields of the matched sub-document can be included using the `fields` parameter.
           Only single field conditions are possible at the moment. Multiple conditions targeting the same field are allowed.
-          Mixing the `field` selection and `where` is not supported at the moment.
           The page size and page state parameters are only used together with `where` and enable paging through matched sub-documents.
           """)
   @Parameters(
