@@ -154,18 +154,26 @@ jobs:
         include:
           - name: cassandra-40
             profile: cassandra-40
+            repository-login: false
             image-file: coordinator-4_0-${{ github.sha }}.tar
             image: stargateio/coordinator-4_0:${{ github.sha }}
 
           - name: cassandra-311
             profile: cassandra-311
+            repository-login: false
             image-file: coordinator-3_11-${{ github.sha }}.tar
             image: stargateio/coordinator-3_11:${{ github.sha }}
-            
+
           - name: dse-68
             profile: dse-68
+            repository-login: false
             image-file: coordinator-dse-68-${{ github.sha }}.tar
             image: stargateio/coordinator-dse-68:${{ github.sha }}
+
+          - name: c2-dse-68
+            profile: dse-68
+            repository-login: true
+            image: '237073351946.dkr.ecr.us-east-1.amazonaws.com/c2/c2-6_8:v2.0.0-ALPHA-14'
 
     steps:
       - uses: actions/checkout@v3
@@ -224,7 +232,32 @@ jobs:
           path: ~/.m2/repository
           key: snapshots-${{ github.sha }}
 
+      - name: Configure AWS credentials
+        if: ${{ matrix.repository-login }} == true
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.ECR_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.ECR_SECRET_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        if: ${{ matrix.repository-login }} == true
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
       - name: Integration Test
         run: |
           cd sgv2-docsapi/
           ./mvnw -B verify -DskipUnitTests -P ${{ matrix.profile }} -Dtesting.containers.stargate-image=${{ matrix.image }}
+
+  clean-up:
+    name: Clean up
+    runs-on: ubuntu-latest
+    needs: int-tests
+    if: ${{ always() }}
+
+    steps:
+      - uses: geekyeggo/delete-artifact@v1
+        with:
+          name: |
+            coordinator-images
