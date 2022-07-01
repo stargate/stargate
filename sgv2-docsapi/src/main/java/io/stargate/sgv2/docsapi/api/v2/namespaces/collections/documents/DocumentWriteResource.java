@@ -64,8 +64,7 @@ import org.jboss.resteasy.reactive.RestResponse.ResponseBuilder;
 @Tag(ref = OpenApiConstants.Tags.DOCUMENTS)
 public class DocumentWriteResource {
 
-  public static final String BASE_PATH =
-      "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}";
+  public static final String BASE_PATH = "/v2/namespaces/{namespace:\\w+}/collections";
 
   @Inject WriteDocumentsService documentWriteService;
 
@@ -126,6 +125,7 @@ public class DocumentWriteResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @POST
+  @Path("{collection:\\w+}")
   public Uni<RestResponse<Object>> createDocument(
       @Context UriInfo uriInfo,
       @PathParam("namespace") String namespace,
@@ -150,7 +150,6 @@ public class DocumentWriteResource {
             });
   }
 
-  @Path("batch")
   @Operation(
       description =
           "Create multiple new documents. If the collection does not exist, it will be created.")
@@ -201,6 +200,7 @@ public class DocumentWriteResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @POST
+  @Path("{collection:\\w+}/batch")
   public Uni<RestResponse<Object>> createDocuments(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,

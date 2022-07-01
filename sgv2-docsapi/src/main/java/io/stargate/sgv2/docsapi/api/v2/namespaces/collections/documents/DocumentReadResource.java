@@ -66,8 +66,7 @@ import org.jboss.resteasy.reactive.RestResponse;
 @Tag(ref = OpenApiConstants.Tags.DOCUMENTS)
 public class DocumentReadResource {
 
-  public static final String BASE_PATH =
-      "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}";
+  public static final String BASE_PATH = "/v2/namespaces/{namespace:\\w+}/collections";
 
   @Inject ReadDocumentsService readDocumentsService;
 
@@ -140,6 +139,7 @@ public class DocumentReadResource {
     @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
   })
   @GET
+  @Path("{collection:\\w+}")
   public Uni<RestResponse<Object>> searchDocuments(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
@@ -237,7 +237,7 @@ public class DocumentReadResource {
     @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
   })
   @GET
-  @Path("{document-id}")
+  @Path("{collection:\\w+}/{document-id}")
   public Uni<RestResponse<Object>> getDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
@@ -321,7 +321,7 @@ public class DocumentReadResource {
     @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
   })
   @GET
-  @Path("{document-id}/{document-path:.*}")
+  @Path("{collection:\\w+}/{document-id}/{document-path:.*}")
   public Uni<RestResponse<Object>> getDocumentPath(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
