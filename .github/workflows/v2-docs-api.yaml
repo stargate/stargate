@@ -66,16 +66,12 @@ jobs:
         env:
           cache-name: cache-coordinator-libs
         with:
-          path: stargate-libs
-          key: stargate-libs-${{ github.sha }}
+          path: ./stargate-lib
+          key: stargate-lib-${{ github.sha }}
 
       - name: Build
         if: steps.cache-coordinator-snapshots.outputs.cache-hit != 'true'
-        run: |
-          pwd
-          ls
-          echo $HOME
-          MAVEN_OPTS="-Xmx4g" ./mvnw install -P dse -DskipTests
+        run: MAVEN_OPTS="-Xmx4g" ./mvnw install -P dse -DskipTests
 
   build-coordinator-docker:
     name: Coordinator docker
@@ -95,8 +91,8 @@ jobs:
         env:
           cache-name: cache-coordinator-libs
         with:
-          path: stargate-libs
-          key: stargate-libs-${{ github.sha }}
+          path: ./stargate-lib
+          key: stargate-lib-${{ github.sha }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
