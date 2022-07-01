@@ -1,16 +1,31 @@
+# @author Ivan Senic
 name: Documents API V2
 
-on:
+# runs on
+# * pushes and pull requests on the v2.0.0.
+# * manual trigger
 
+on:
   push:
     branches: [ "v2.0.0" ]
-
   pull_request:
     branches: [ "v2.0.0" ]
-
   workflow_dispatch:
 
+# Jobs structure:
+#
+# 1. Builds the coordinator without tests in order to get snapshot jar versions
+# 2. Then 4 jobs in parallel
+#  a) Build and test the sgv2-docsapi
+#  b) Build coordinator docker images (x3)
+# 3. Runs INT tests for sgv2-docsapi (x4 in parallel, C*3, C*4, dse, c2)
+# 4. Clean-up - deletes created docker image artifacts
+
 jobs:
+
+  # runs install for building the coordinator jars
+  # caches the stargate-lib folder (needed for the docker images)
+  # cached .m2/repository in order to pass SG snapshots to other jobs
 
   build-coordinator:
     name: Coordinator build
@@ -61,6 +76,7 @@ jobs:
             snapshots-
 
       - name: Cache Libs
+        if: steps.cache-coordinator-snapshots.outputs.cache-hit != 'true'
         uses: actions/cache@v3
         id: cache-coordinator-libs
         env:
@@ -73,11 +89,15 @@ jobs:
         if: steps.cache-coordinator-snapshots.outputs.cache-hit != 'true'
         run: MAVEN_OPTS="-Xmx4g" ./mvnw install -P dse -DskipTests
 
+  # Builds C*3, C*4 and DSE coordinator images using matrix
+  # Exports image to a file and then uploads it using action artifacts
+
   build-coordinator-docker:
     name: Coordinator docker
     needs: build-coordinator
     runs-on: ubuntu-latest
 
+    # image name needed only
     strategy:
       matrix:
         image: [ coordinator-4_0 , coordinator-3_11, coordinator-dse-68]
@@ -100,6 +120,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
+      # same as in build_docker_images.sh
       - name: Prepare LIBDIR
         run: |
           LIBDIR=./tmp-${RANDOM}
@@ -108,13 +129,17 @@ jobs:
           cp ./stargate-lib/logback.xml $LIBDIR
           rm ${LIBDIR}/persistence*.jar
 
+      # same as in build_docker_images.sh
+      # just builds a single image
       - name: Build Docker Image
-        run: docker buildx build --target ${{ matrix.image }} --build-arg LIBDIR="$LIBDIR" -t stargateio/${{ matrix.image }}:${{ github.sha }} .
+        run: docker buildx build --target ${{ matrix.image }} --build-arg LIBDIR="$LIBDIR" -t stargateio/${{ matrix.image }}:${{ github.sha }} --load .
 
+      # this will export a file in form image-commitsha.tar
       - name: Export Docker Image
         run: |
           docker save --output ${{ matrix.image }}-${{ github.sha }}.tar stargateio/${{ matrix.image }}:${{ github.sha }}
 
+      # this will upload a file from previous step as an artifact named img-image-commitsha
       - name: Upload Docker Images
         uses: actions/upload-artifact@v3
         with:
