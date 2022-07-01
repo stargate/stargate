@@ -1,13 +1,5 @@
 # Changelog
 
-## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-15...HEAD)
-
-**Fixed bugs:**
-
-- Unable to page throught Docs API V2 with resume mode `NEXT\_ROW` [\#1938](https://github.com/stargate/stargate/issues/1938)
-
 ## [v2.0.0-ALPHA-15](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-15) (2022-07-01)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.59...v2.0.0-ALPHA-15)
