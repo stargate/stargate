@@ -5,17 +5,13 @@ import static net.javacrumbs.jsonunit.JsonMatchers.jsonEquals;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
 import io.stargate.sgv2.common.cql.builder.Replication;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
-import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.schema.NamespaceManager;
 import io.stargate.sgv2.docsapi.service.schema.TableManager;
-import io.stargate.sgv2.docsapi.service.write.WriteDocumentsService;
 import io.stargate.sgv2.docsapi.testprofiles.IntegrationTestProfile;
 import java.time.Duration;
 import javax.enterprise.context.control.ActivateRequestContext;
@@ -45,10 +41,6 @@ class DocumentDeleteResourceIntegrationTest {
 
   @Inject TableManager tableManager;
 
-  @Inject WriteDocumentsService writeDocumentsService;
-
-  @Inject ObjectMapper objectMapper;
-
   @BeforeAll
   public void init() {
 
@@ -66,18 +58,15 @@ class DocumentDeleteResourceIntegrationTest {
   }
 
   @BeforeEach
-  public void setup() throws JsonProcessingException {
-    writeDocumentsService
-        .updateDocument(
-            tableManager.getValidCollectionTable(DEFAULT_NAMESPACE, DEFAULT_COLLECTION),
-            DEFAULT_NAMESPACE,
-            DEFAULT_COLLECTION,
-            DEFAULT_DOCUMENT_ID,
-            objectMapper.readTree(DEFAULT_PAYLOAD),
-            null,
-            ExecutionContext.NOOP_CONTEXT)
-        .await()
-        .atMost(Duration.ofSeconds(10));
+  public void setup() {
+    given()
+        .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        .header("Content-Type", "application/json")
+        .body(DEFAULT_PAYLOAD)
+        .when()
+        .put(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
+        .then()
+        .statusCode(200);
   }
 
   @Nested
@@ -132,9 +121,8 @@ class DocumentDeleteResourceIntegrationTest {
     public void keyspaceNotExists() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .param("raw", true)
           .when()
-          .get(BASE_PATH, "notakeyspace", DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
+          .delete(BASE_PATH, "notakeyspace", DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
           .then()
           .statusCode(404)
           .body("code", equalTo(404))
@@ -146,9 +134,8 @@ class DocumentDeleteResourceIntegrationTest {
     public void tableNotExists() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .param("raw", true)
           .when()
-          .get(BASE_PATH, DEFAULT_NAMESPACE, "notatable", DEFAULT_DOCUMENT_ID)
+          .delete(BASE_PATH, DEFAULT_NAMESPACE, "notatable", DEFAULT_DOCUMENT_ID)
           .then()
           .statusCode(404)
           .body("code", equalTo(404))
