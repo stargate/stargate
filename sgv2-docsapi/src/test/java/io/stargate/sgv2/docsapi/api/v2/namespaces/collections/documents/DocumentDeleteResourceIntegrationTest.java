@@ -2,6 +2,8 @@ package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents;
 
 import static io.restassured.RestAssured.given;
 import static net.javacrumbs.jsonunit.JsonMatchers.jsonEquals;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.nullValue;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,7 +33,8 @@ import org.junit.jupiter.api.TestInstance;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class DocumentDeleteResourceIntegrationTest {
 
-  public static final String BASE_PATH = "/v2/namespaces/{namespace}/collections/{collection}";
+  public static final String BASE_PATH =
+      "/v2/namespaces/{namespace}/collections/{collection}/{document-id}";
   public static final String DEFAULT_NAMESPACE = RandomStringUtils.randomAlphanumeric(16);
   public static final String DEFAULT_COLLECTION = RandomStringUtils.randomAlphanumeric(16);
   public static final String DEFAULT_DOCUMENT_ID = RandomStringUtils.randomAlphanumeric(16);
@@ -80,28 +83,39 @@ class DocumentDeleteResourceIntegrationTest {
   @Nested
   class DeleteDocument {
     @Test
+    public void happyPath() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .when()
+          .delete(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
+          .then()
+          .statusCode(204);
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("raw", true)
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
+          .then()
+          .statusCode(404);
+    }
+
+    @Test
     public void unauthorized() {
       given()
           .when()
-          .delete(
-              BASE_PATH + "/{document-id}",
-              DEFAULT_NAMESPACE,
-              DEFAULT_COLLECTION,
-              DEFAULT_DOCUMENT_ID)
+          .delete(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
           .then()
           .statusCode(401);
     }
 
     @Test
-    public void testDelete() {
+    public void deleteNotFound() {
+      // When a delete occurs on an unknown document, it still returns 204 No Content
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
-          .delete(
-              BASE_PATH + "/{document-id}",
-              DEFAULT_NAMESPACE,
-              DEFAULT_COLLECTION,
-              DEFAULT_DOCUMENT_ID)
+          .delete(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, "no-id")
           .then()
           .statusCode(204);
 
@@ -109,81 +123,47 @@ class DocumentDeleteResourceIntegrationTest {
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .param("raw", true)
           .when()
-          .get(
-              BASE_PATH + "/{document-id}",
-              DEFAULT_NAMESPACE,
-              DEFAULT_COLLECTION,
-              DEFAULT_DOCUMENT_ID)
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, "no-id")
           .then()
           .statusCode(404);
     }
 
     @Test
-    public void testDeleteNotFound() {
+    public void keyspaceNotExists() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .param("raw", true)
           .when()
-          .get(BASE_PATH + "/no-id", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .get(BASE_PATH, "notakeyspace", DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
           .then()
-          .statusCode(404);
+          .statusCode(404)
+          .body("code", equalTo(404))
+          .body(
+              "description", equalTo("Unknown namespace notakeyspace, you must create it first."));
+    }
 
-      // When a delete occurs on an unknown document, it still returns 204 No Content
-      given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .when()
-          .delete(BASE_PATH + "/no-id", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
-          .then()
-          .statusCode(204);
-
+    @Test
+    public void tableNotExists() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .param("raw", true)
           .when()
-          .get(BASE_PATH + "/no-id", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .get(BASE_PATH, DEFAULT_NAMESPACE, "notatable", DEFAULT_DOCUMENT_ID)
           .then()
-          .statusCode(404);
+          .statusCode(404)
+          .body("code", equalTo(404))
+          .body("description", equalTo("Collection 'notatable' not found."));
     }
   }
 
   @Nested
   class DeleteDocumentPath {
-
-    @Test
-    public void unauthorized() {
-      given()
-          .when()
-          .delete(
-              BASE_PATH + "/{document-id}/test",
-              DEFAULT_NAMESPACE,
-              DEFAULT_COLLECTION,
-              DEFAULT_DOCUMENT_ID)
-          .then()
-          .statusCode(401);
-    }
-
     @Test
     public void testDeletePath() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .param("raw", true)
           .when()
-          .get(
-              BASE_PATH + "/{document-id}/test",
-              DEFAULT_NAMESPACE,
-              DEFAULT_COLLECTION,
-              DEFAULT_DOCUMENT_ID)
-          .then()
-          .statusCode(200);
-
-      given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .when()
-          .delete(
-              BASE_PATH + "/{document-id}/test",
-              DEFAULT_NAMESPACE,
-              DEFAULT_COLLECTION,
-              DEFAULT_DOCUMENT_ID)
+          .delete(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
           .then()
           .statusCode(204);
 
@@ -191,38 +171,27 @@ class DocumentDeleteResourceIntegrationTest {
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .param("raw", true)
           .when()
-          .get(
-              BASE_PATH + "/{document-id}/test",
-              DEFAULT_NAMESPACE,
-              DEFAULT_COLLECTION,
-              DEFAULT_DOCUMENT_ID)
+          .get(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
           .then()
           .statusCode(404);
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("raw", true)
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
+          .then()
+          .statusCode(200)
+          .body("test", nullValue());
     }
 
     @Test
     public void testDeleteArrayPath() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .param("raw", true)
-          .when()
-          .get(
-              BASE_PATH + "/{document-id}/this",
-              DEFAULT_NAMESPACE,
-              DEFAULT_COLLECTION,
-              DEFAULT_DOCUMENT_ID)
-          .then()
-          .statusCode(200)
-          .body(jsonEquals("[\"is\",1,true]"));
-
-      given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .delete(
-              BASE_PATH + "/{document-id}/this/[2]",
-              DEFAULT_NAMESPACE,
-              DEFAULT_COLLECTION,
-              DEFAULT_DOCUMENT_ID)
+              BASE_PATH + "/this/[2]", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
           .then()
           .statusCode(204);
 
@@ -230,11 +199,7 @@ class DocumentDeleteResourceIntegrationTest {
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .param("raw", true)
           .when()
-          .get(
-              BASE_PATH + "/{document-id}/this",
-              DEFAULT_NAMESPACE,
-              DEFAULT_COLLECTION,
-              DEFAULT_DOCUMENT_ID)
+          .get(BASE_PATH + "/this", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
           .then()
           .statusCode(200)
           .body(jsonEquals("[\"is\",1]"));
@@ -243,10 +208,7 @@ class DocumentDeleteResourceIntegrationTest {
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .delete(
-              BASE_PATH + "/{document-id}/this/[0]",
-              DEFAULT_NAMESPACE,
-              DEFAULT_COLLECTION,
-              DEFAULT_DOCUMENT_ID)
+              BASE_PATH + "/this/[0]", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
           .then()
           .statusCode(204);
 
@@ -254,39 +216,27 @@ class DocumentDeleteResourceIntegrationTest {
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .param("raw", true)
           .when()
-          .get(
-              BASE_PATH + "/{document-id}/this",
-              DEFAULT_NAMESPACE,
-              DEFAULT_COLLECTION,
-              DEFAULT_DOCUMENT_ID)
+          .get(BASE_PATH + "/this", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
           .then()
           .statusCode(200)
           .body(jsonEquals("[null,1]"));
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("raw", true)
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
+          .then()
+          .statusCode(200)
+          .body("this", jsonEquals("[null,1]"));
     }
 
     @Test
     public void testDeletePathNotFound() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .param("raw", true)
           .when()
-          .get(
-              BASE_PATH + "/{document-id}/test",
-              DEFAULT_NAMESPACE,
-              DEFAULT_COLLECTION,
-              DEFAULT_DOCUMENT_ID)
-          .then()
-          .statusCode(200)
-          .body(jsonEquals("\"document\""));
-
-      given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .when()
-          .delete(
-              BASE_PATH + "/{document-id}/test/a",
-              DEFAULT_NAMESPACE,
-              DEFAULT_COLLECTION,
-              DEFAULT_DOCUMENT_ID)
+          .delete(BASE_PATH + "/test/a", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
           .then()
           .statusCode(204);
 
@@ -294,14 +244,19 @@ class DocumentDeleteResourceIntegrationTest {
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .param("raw", true)
           .when()
-          .get(
-              BASE_PATH + "/{document-id}/test",
-              DEFAULT_NAMESPACE,
-              DEFAULT_COLLECTION,
-              DEFAULT_DOCUMENT_ID)
+          .get(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
           .then()
           .statusCode(200)
           .body(jsonEquals("\"document\""));
+    }
+
+    @Test
+    public void unauthorized() {
+      given()
+          .when()
+          .delete(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
+          .then()
+          .statusCode(401);
     }
   }
 }
