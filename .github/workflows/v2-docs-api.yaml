@@ -61,13 +61,14 @@ jobs:
           </settings>
           EOF
 
+      # ensure snapshots from this build are used in next jobs
       - name: Cache Snapshots
         uses: actions/cache@v3
         id: cache-coordinator-snapshots
         env:
           cache-name: cache-coordinator-snapshots
         with:
-          path: ~/.m2/repository
+          path: ~/.m2/repository/io/stargate
           key: snapshots-${{ github.sha }}
           restore-keys: |
             snapshots-
@@ -125,7 +126,7 @@ jobs:
           cp ./stargate-lib/*.jar $LIBDIR
           cp ./stargate-lib/logback.xml $LIBDIR
           rm ${LIBDIR}/persistence*.jar
-          docker buildx build --target ${{ matrix.image }} --build-arg LIBDIR=${LIBDIR} -t stargateio/${{ matrix.image }}:${{ github.sha }} --load .
+          docker buildx build --target ${{ matrix.image }} --build-arg LIBDIR="$LIBDIR" -t stargateio/${{ matrix.image }}:${{ github.sha }} --load .
 
       # this will export a file in form image-commitsha.tar
       - name: Export Docker Image
@@ -184,7 +185,7 @@ jobs:
         env:
           cache-name: cache-coordinator-snapshots
         with:
-          path: ~/.m2/repository
+          path: ~/.m2/repository/io/stargate
           key: snapshots-${{ github.sha }}
 
       - name: Build & Test
@@ -295,7 +296,7 @@ jobs:
         env:
           cache-name: cache-coordinator-snapshots
         with:
-          path: ~/.m2/repository
+          path: ~/.m2/repository/io/stargate
           key: snapshots-${{ github.sha }}
 
       # configure AWS credentials if repo login is needed
