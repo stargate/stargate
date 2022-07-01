@@ -119,16 +119,18 @@ jobs:
       # same as in build_docker_images.sh
       - name: Prepare LIBDIR
         run: |
-          LIBDIR=./tmp-${RANDOM}
+          LIBDIR=tmp-${RANDOM}
           mkdir ${LIBDIR}
           cp ./stargate-lib/*.jar $LIBDIR
           cp ./stargate-lib/logback.xml $LIBDIR
           rm ${LIBDIR}/persistence*.jar
+          ls -all
+          ls -all ${LIBDIR}
 
       # same as in build_docker_images.sh
       # just builds a single image
       - name: Build Docker Image
-        run: docker buildx build --target ${{ matrix.image }} --build-arg LIBDIR="$LIBDIR" -t stargateio/${{ matrix.image }}:${{ github.sha }} --load .
+        run: docker buildx build --target ${{ matrix.image }} --build-arg LIBDIR=${LIBDIR} -t stargateio/${{ matrix.image }}:${{ github.sha }} --load .
 
       # this will export a file in form image-commitsha.tar
       - name: Export Docker Image
