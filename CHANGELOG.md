@@ -12,7 +12,6 @@
 **Closed issues:**
 
 - Update persistence to C\*3.11.13, 4.0.4 [\#1920](https://github.com/stargate/stargate/issues/1920)
-- Consider optimistic handling of schema metadata [\#1873](https://github.com/stargate/stargate/issues/1873)
 - Port read and search paths of the `ReactiveDocumentService` to the `ReadDocumentService` [\#1732](https://github.com/stargate/stargate/issues/1732)
 - Javascript: Can't run codegen. [\#1691](https://github.com/stargate/stargate/issues/1691)
 - Configure GraphQL-java's `DataFetcherExceptionHandler` to reduce log noise [\#1279](https://github.com/stargate/stargate/issues/1279)
