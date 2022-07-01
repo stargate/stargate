@@ -333,4 +333,6 @@ jobs:
       - uses: geekyeggo/delete-artifact@v1
         with:
           name: |
-            coordinator-images
+            img-coordinator-4_0-${{ github.sha }}
+            img-coordinator-3_11-${{ github.sha }}
+            img-coordinator-dse-68-${{ github.sha }}
