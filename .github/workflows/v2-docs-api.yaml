@@ -150,14 +150,22 @@ jobs:
 
     strategy:
       matrix:
-        profile: [ cassandra-40, cassandra-311, dse-68 ]
+        name: [ cassandra-40, cassandra-311, dse-68 ]
         include:
-          - profile: cassandra-40
-            image: coordinator-4_0-${{ github.sha }}.tar
-          - profile: cassandra-311
-            image: coordinator-3_11-${{ github.sha }}.tar
-          - profile: dse-68
-            image: coordinator-dse-68-${{ github.sha }}.tar
+          - name: cassandra-40
+            profile: cassandra-40
+            image-file: coordinator-4_0-${{ github.sha }}.tar
+            image: stargateio/coordinator-4_0:${{ github.sha }}
+
+          - name: cassandra-311
+            profile: cassandra-311
+            image-file: coordinator-3_11-${{ github.sha }}.tar
+            image: stargateio/coordinator-3_11:${{ github.sha }}
+            
+          - name: dse-68
+            profile: dse-68
+            image-file: coordinator-dse-68-${{ github.sha }}.tar
+            image: stargateio/coordinator-dse-68:${{ github.sha }}
 
     steps:
       - uses: actions/checkout@v3
@@ -193,16 +201,19 @@ jobs:
           EOF
 
       - name: Set up Docker Buildx
+        if: ${{ matrix.image-file }} != null
         uses: docker/setup-buildx-action@v2
 
       - name: Download Docker Images
+        if: ${{ matrix.image-file }} != null
         uses: actions/download-artifact@v3
         with:
           name: coordinator-images
           path: /tmp
 
       - name: Load image
-        run: docker load --input /tmp/${{ matrix.image }}
+        if: ${{ matrix.image-file }} != null
+        run: docker load --input /tmp/${{ matrix.image-file }}
 
       - name: Restore Snapshots
         uses: actions/cache@v3
@@ -216,4 +227,4 @@ jobs:
       - name: Integration Test
         run: |
           cd sgv2-docsapi/
-          ./mvnw -B integration-test -DskipUnitTests -P ${{ matrix.profile }}
+          ./mvnw -B verify -DskipUnitTests -P ${{ matrix.profile }} -Dtesting.containers.stargate-image=${{ matrix.image }}
