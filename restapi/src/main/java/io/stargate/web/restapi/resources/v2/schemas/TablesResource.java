@@ -451,10 +451,7 @@ public class TablesResource {
             .collect(Collectors.toList());
 
     final PrimaryKey primaryKey = new PrimaryKey(partitionKey, clusteringKey);
-    final int ttl =
-        0; // TODO: [doug] 2020-09-1, Tue, 0:08 get this from schema (select default_time_to_live
-    // from tables;)
-    final TableOptions tableOptions = new TableOptions(ttl, clusteringExpression);
+    final TableOptions tableOptions = new TableOptions(tableMetadata.ttl(), clusteringExpression);
 
     return new TableResponse(
         tableMetadata.name(),
