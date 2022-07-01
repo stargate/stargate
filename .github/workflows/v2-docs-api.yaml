@@ -66,12 +66,16 @@ jobs:
         env:
           cache-name: cache-coordinator-libs
         with:
-          path: ./stargate-libs
+          path: stargate-libs
           key: stargate-libs-${{ github.sha }}
 
       - name: Build
         if: steps.cache-coordinator-snapshots.outputs.cache-hit != 'true'
-        run: MAVEN_OPTS="-Xmx4g" ./mvnw install -P dse -DskipTests
+        run: |
+          pwd
+          ls
+          echo $HOME
+          MAVEN_OPTS="-Xmx4g" ./mvnw install -P dse -DskipTests
 
   build-coordinator-docker:
     name: Coordinator docker
@@ -91,7 +95,7 @@ jobs:
         env:
           cache-name: cache-coordinator-libs
         with:
-          path: ./stargate-libs
+          path: stargate-libs
           key: stargate-libs-${{ github.sha }}
 
       - name: Set up QEMU
@@ -123,7 +127,7 @@ jobs:
     name: Build and test
     needs: build-coordinator
     runs-on: ubuntu-latest
-    
+
     steps:
       - uses: actions/checkout@v3
 
@@ -240,18 +244,18 @@ jobs:
           EOF
 
       - name: Set up Docker Buildx
-        if: ${{ matrix.image-file }} != null
+        if: ${{ matrix.image-file }}
         uses: docker/setup-buildx-action@v2
 
       - name: Download Docker Images
-        if: ${{ matrix.image-artifact}} != null
+        if: ${{ matrix.image-artifact}}
         uses: actions/download-artifact@v3
         with:
           name: ${{ matrix.image-artifact }}
           path: /tmp
 
       - name: Load image
-        if: ${{ matrix.image-file }} != null
+        if: ${{ matrix.image-file }}
         run: docker load --input /tmp/${{ matrix.image-file }}
 
       - name: Restore Snapshots
@@ -272,7 +276,7 @@ jobs:
           aws-region: us-east-1
 
       - name: Login to Amazon ECR
-        if: ${{ matrix.repository-login }} == true
+        if: ${{ matrix.repository-login }}
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
