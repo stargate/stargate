@@ -328,7 +328,7 @@ public class ReadDocumentsService {
                 String msg =
                     String.format(
                         "Conditions across multiple fields are not yet supported. Found: %d.",
-                            filterPaths.size());
+                        filterPaths.size());
                 throw new ErrorCodeRuntimeException(
                     ErrorCode.DOCS_API_GET_MULTIPLE_FIELD_CONDITIONS, msg);
               }

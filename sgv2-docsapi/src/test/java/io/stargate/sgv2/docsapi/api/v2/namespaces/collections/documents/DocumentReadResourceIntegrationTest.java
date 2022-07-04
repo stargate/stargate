@@ -535,94 +535,95 @@ class DocumentReadResourceIntegrationTest {
     public void matchFiltersCombo() {
       // NIN (limited support) with GT (full support)
       given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .param("raw", true)
-              .param("where", "{\"products.electronics.*.model\": {\"$nin\": [\"11\"], \"$gt\": \"\"}}")
-              .when()
-              .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-              .then()
-              .statusCode(200)
-              .body(
-                      jsonEquals(
-                              "[{\"products\": {\"electronics\": { \"Pixel_3a\": {\"model\": \"3a\"}}}}]"));
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("raw", true)
+          .param("where", "{\"products.electronics.*.model\": {\"$nin\": [\"11\"], \"$gt\": \"\"}}")
+          .when()
+          .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(200)
+          .body(
+              jsonEquals(
+                  "[{\"products\": {\"electronics\": { \"Pixel_3a\": {\"model\": \"3a\"}}}}]"));
 
       // IN (limited support) with NE (limited support)
       given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .param("raw", true)
-              .param("where", "{\"products.electronics.*.model\": {\"$nin\": [\"11\"], \"$gt\": \"\"}}")
-              .when()
-              .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-              .then()
-              .statusCode(200)
-              .body(
-                      jsonEquals(
-                              "[{\"products\": {\"electronics\": { \"Pixel_3a\": {\"model\": \"3a\"}}}}]"));
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("raw", true)
+          .param("where", "{\"products.electronics.*.model\": {\"$nin\": [\"11\"], \"$gt\": \"\"}}")
+          .when()
+          .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(200)
+          .body(
+              jsonEquals(
+                  "[{\"products\": {\"electronics\": { \"Pixel_3a\": {\"model\": \"3a\"}}}}]"));
     }
 
     @Test
     public void matchMultipleOperators() {
       given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .param("raw", true)
-              .param("where", "{\"products.food.Orange.info.price\": {\"$gt\": 600, \"$lt\": 600.05}}")
-              .when()
-              .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-              .then()
-              .statusCode(200)
-              .body(
-                      jsonEquals(
-                              "[{\"products\": {\"food\": {\"Orange\": {\"info\": {\"price\": 600.01}}}}}]"));
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("raw", true)
+          .param("where", "{\"products.food.Orange.info.price\": {\"$gt\": 600, \"$lt\": 600.05}}")
+          .when()
+          .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(200)
+          .body(
+              jsonEquals(
+                  "[{\"products\": {\"food\": {\"Orange\": {\"info\": {\"price\": 600.01}}}}}]"));
     }
 
     @Test
     public void matchArrayPaths() {
       given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .param("raw", true)
-              .param("where", "{\"quiz.maths.q1.options.[0]\": {\"$lt\": 13.3}}")
-              .when()
-              .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-              .then()
-              .statusCode(200)
-              .body(
-                      jsonEquals(
-                              "[{\"quiz\":{\"maths\":{\"q1\":{\"options\":{\"[0]\":10.2}}}}}]"));
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("raw", true)
+          .param("where", "{\"quiz.maths.q1.options.[0]\": {\"$lt\": 13.3}}")
+          .when()
+          .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(200)
+          .body(jsonEquals("[{\"quiz\":{\"maths\":{\"q1\":{\"options\":{\"[0]\":10.2}}}}}]"));
     }
 
     @Test
     public void matchMultiplePaths() {
-      String expected = """
+      String expected =
+          """
               [
                 {"quiz":{"nests":{"q1":{"options":{"[0]":"nest"}}}}},
                 {"quiz":{"nests":{"q2":{"options":{"[0]":"nest"}}}}}
               ]""";
 
       given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .param("raw", true)
-              .param("where", "{\"quiz.nests.q1,q2.options.[0]\": {\"$eq\": \"nest\"}}")
-              .when()
-              .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-              .then()
-              .statusCode(200)
-              .body(jsonEquals(expected));
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("raw", true)
+          .param("where", "{\"quiz.nests.q1,q2.options.[0]\": {\"$eq\": \"nest\"}}")
+          .when()
+          .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(200)
+          .body(jsonEquals(expected));
     }
 
     @Test
     public void matchMultiplePathsAndGlob() {
       given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .param("raw", true)
-              .param("where", "{\"quiz.nests.q2,q3.options.*.this.them\": {\"$eq\": false}}")
-              .when()
-              .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-              .then()
-              .statusCode(200)
-              .body(jsonEquals("[{\"quiz\":{\"nests\":{\"q3\":{\"options\":{\"[2]\":{\"this\":{\"them\":false}}}}}}}]"));
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("raw", true)
+          .param("where", "{\"quiz.nests.q2,q3.options.*.this.them\": {\"$eq\": false}}")
+          .when()
+          .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(200)
+          .body(
+              jsonEquals(
+                  "[{\"quiz\":{\"nests\":{\"q3\":{\"options\":{\"[2]\":{\"this\":{\"them\":false}}}}}}}]"));
     }
 
-      @Test
+    @Test
     public void matchWithSelectivity() {
       String where =
           """
@@ -697,23 +698,23 @@ class DocumentReadResourceIntegrationTest {
       exampleResource = CharStreams.toString(resource("documents/long-search.json"));
 
       given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .contentType(ContentType.JSON)
-              .body(exampleResource)
-              .when()
-              .put(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
-              .then()
-              .statusCode(200);
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .body(exampleResource)
+          .when()
+          .put(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
+          .then()
+          .statusCode(200);
 
       given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .param("where", "{\"*.value\": {\"$gt\": 0}}")
-              .when()
-              .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
-              .then()
-              .statusCode(200)
-              .body("data", hasSize(100))
-              .body("pageState", notNullValue());
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("where", "{\"*.value\": {\"$gt\": 0}}")
+          .when()
+          .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
+          .then()
+          .statusCode(200)
+          .body("data", hasSize(100))
+          .body("pageState", notNullValue());
     }
 
     @Test
@@ -722,15 +723,16 @@ class DocumentReadResourceIntegrationTest {
       exampleResource = CharStreams.toString(resource("documents/long-search.json"));
 
       given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .contentType(ContentType.JSON)
-              .body(exampleResource)
-              .when()
-              .put(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
-              .then()
-              .statusCode(200);
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .body(exampleResource)
+          .when()
+          .put(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
+          .then()
+          .statusCode(200);
 
-      String bodyFirstPage = given()
+      String bodyFirstPage =
+          given()
               .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
               .param("where", "{\"*.value\": {\"$gt\": 0}}")
               .param("page-size", 20)
@@ -746,7 +748,8 @@ class DocumentReadResourceIntegrationTest {
 
       // paging only second with state
       String pageState = objectMapper.readTree(bodyFirstPage).requiredAt("/pageState").textValue();
-      String bodySecondPage = given()
+      String bodySecondPage =
+          given()
               .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
               .param("where", "{\"*.value\": {\"$gt\": 0}}")
               .param("page-size", 20)
@@ -772,119 +775,126 @@ class DocumentReadResourceIntegrationTest {
     public void matchInvalid() {
       // not JSON
       given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .param("where", "hello")
-              .when()
-              .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-              .then()
-              .statusCode(400);
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("where", "hello")
+          .when()
+          .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(400);
 
       // array
       given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .param("where", "[\"a\"]")
-              .when()
-              .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-              .then()
-              .statusCode(400)
-              .body("description", is("Search was expecting a JSON object as input."));
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("where", "[\"a\"]")
+          .when()
+          .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(400)
+          .body("description", is("Search was expecting a JSON object as input."));
 
       // no-op
       given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .param("where", "{\"a\": true}")
-              .when()
-              .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-              .then()
-              .statusCode(400)
-              .body("description", is("A filter operation and value resolved as invalid."));
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("where", "{\"a\": true}")
+          .when()
+          .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(400)
+          .body("description", is("A filter operation and value resolved as invalid."));
 
       // op not found
       given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .param("where", "{\"a\": {\"exists\": true}}}")
-              .when()
-              .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-              .then()
-              .statusCode(400)
-              .body("description", is("Operation 'exists' is not supported."));
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("where", "{\"a\": {\"exists\": true}}}")
+          .when()
+          .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(400)
+          .body("description", is("Operation 'exists' is not supported."));
 
       // op value not valid
       given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .param("where", "{\"a\": {\"$eq\": null}}}")
-              .when()
-              .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-              .then()
-              .statusCode(400)
-              .body("description", is("Operation '$eq' does not support the provided value null."));
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("where", "{\"a\": {\"$eq\": null}}}")
+          .when()
+          .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(400)
+          .body("description", is("Operation '$eq' does not support the provided value null."));
 
       // op value empty
       given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .param("where", "{\"a\": {\"$eq\": {}}}}")
-              .when()
-              .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-              .then()
-              .statusCode(400)
-              .body("description", is("Operation '$eq' does not support the provided value { }."));
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("where", "{\"a\": {\"$eq\": {}}}}")
+          .when()
+          .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(400)
+          .body("description", is("Operation '$eq' does not support the provided value { }."));
 
       // op value array
       given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .param("where", "{\"a\": {\"$eq\": []}}}")
-              .when()
-              .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-              .then()
-              .statusCode(400)
-              .body("description", is("Operation '$eq' does not support the provided value [ ]."));
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("where", "{\"a\": {\"$eq\": []}}}")
+          .when()
+          .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(400)
+          .body("description", is("Operation '$eq' does not support the provided value [ ]."));
 
       // in not array
       given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .param("where", "{\"a\": {\"$in\": 2}}}")
-              .when()
-              .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-              .then()
-              .statusCode(400)
-              .body("description", is("Operation '$in' does not support the provided value 2."));
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("where", "{\"a\": {\"$in\": 2}}}")
+          .when()
+          .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(400)
+          .body("description", is("Operation '$in' does not support the provided value 2."));
 
       // multiple field conditions
       given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .param("where", "{\"a\": {\"$eq\": 300}, \"b\": {\"$lt\": 500}}")
-              .when()
-              .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-              .then()
-              .statusCode(400)
-              .body("description", is("Conditions across multiple fields are not yet supported. Found: 2."));
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("where", "{\"a\": {\"$eq\": 300}, \"b\": {\"$lt\": 500}}")
+          .when()
+          .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(400)
+          .body(
+              "description",
+              is("Conditions across multiple fields are not yet supported. Found: 2."));
     }
 
     @Test
     public void matchWhereAndFieldsDifferentTarget() {
       // not JSON
       given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .param("where", "{\"a\": {\"$in\": [1]}}")
-              .param("fields", "[\"b\"]")
-              .when()
-              .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-              .then()
-              .statusCode(400)
-              .body("description", is("When selecting `fields`, the field referenced by `where` must be in the selection."));
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("where", "{\"a\": {\"$in\": [1]}}")
+          .param("fields", "[\"b\"]")
+          .when()
+          .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(400)
+          .body(
+              "description",
+              is(
+                  "When selecting `fields`, the field referenced by `where` must be in the selection."));
     }
 
     @Test
     public void matchPageSizeNotPositive() {
       // not JSON
       given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .param("page-size", 0)
-              .when()
-              .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-              .then()
-              .statusCode(400)
-              .body("description", is("Request invalid: the minimum number of results to return is one."));
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("page-size", 0)
+          .when()
+          .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(400)
+          .body(
+              "description",
+              is("Request invalid: the minimum number of results to return is one."));
     }
 
     @Test
