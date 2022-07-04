@@ -16,6 +16,7 @@ Note that transitive dependencies can be seen on [mvnrepository.com](https://mvn
 * Update the [CI Dockerfile](../ci/Dockerfile) and set the new version in the `ccm create` command related to 4.0.
 Note that this will have no effect until the docker image is rebuilt and pushed to the remote repository, thus creating an issue for that would be a good idea.
 * Make sure everything compiles and CI tests are green.
+* Update the [default docker-compose env variables](../docker-compose/cassandra-4.0/.env) to reference the new version.
 * Update this `README.md` file with the new or updated instructions.
 
 It's always good to validate your work against the pull requests that bumped the version in the past:
