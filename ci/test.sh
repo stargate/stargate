@@ -50,14 +50,6 @@ mvn -B install verify --file pom.xml \
 -P default \
 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
-echoinfo "Testing Java 17 projects"
-
-cd sgv2-docsapi/
-JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./mvnw -B verify --file ./pom.xml \
--DskipITs \
--Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
-cd ../
-
 echoinfo "Test complete"
 
 echoinfo "Uploading test results"

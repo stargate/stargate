@@ -60,8 +60,7 @@ import org.jboss.resteasy.reactive.RestResponse;
 @Tag(ref = OpenApiConstants.Tags.DOCUMENTS)
 public class DocumentPatchResource {
 
-  public static final String BASE_PATH =
-      "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}";
+  public static final String BASE_PATH = "/v2/namespaces/{namespace:\\w+}/collections";
 
   @Inject WriteDocumentsService documentWriteService;
 
@@ -123,7 +122,7 @@ public class DocumentPatchResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @PATCH
-  @Path("{document-id}")
+  @Path("{collection:\\w+}/{document-id}")
   public Uni<RestResponse<Object>> patchDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
@@ -209,7 +208,7 @@ public class DocumentPatchResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @PATCH
-  @Path("{document-id}/{document-path:.*}")
+  @Path("{collection:\\w+}/{document-id}/{document-path:.*}")
   public Uni<RestResponse<Object>> patchSubDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,

@@ -24,6 +24,7 @@ import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.grpc.GrpcClients;
 import io.stargate.sgv2.docsapi.service.schema.query.CollectionQueryProvider;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -251,14 +252,17 @@ class TableManagerTest extends BridgeTest {
           .when(bridgeService)
           .describeKeyspace(any(), any());
 
-      tableManager
-          .getValidCollectionTables(namespace)
-          .subscribe()
-          .withSubscriber(AssertSubscriber.create(1))
-          .awaitNextItem()
-          .assertItems(keyspace.getTables(0))
-          .awaitCompletion()
-          .assertCompleted();
+      List<Schema.CqlTable> result =
+          tableManager
+              .getValidCollectionTables(namespace)
+              .subscribe()
+              .withSubscriber(AssertSubscriber.create(2))
+              .awaitItems(1)
+              .awaitCompletion()
+              .assertCompleted()
+              .getItems();
+
+      assertThat(result).singleElement().isEqualTo(keyspace.getTables(0));
 
       verify(bridgeService).describeKeyspace(any(), any());
       verifyNoMoreInteractions(bridgeService);
