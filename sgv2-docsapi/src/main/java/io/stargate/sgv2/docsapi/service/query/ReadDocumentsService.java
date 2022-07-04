@@ -167,7 +167,11 @@ public class ReadDocumentsService {
       String fields,
       ExecutionContext context) {
     return getDocumentInternal(namespace, collection, documentId, subDocumentPath, fields, context)
-        .map(Pair::getLeft);
+
+        // map only if internal returns something
+        .onItem()
+        .ifNotNull()
+        .transform(Pair::getLeft);
   }
 
   /**
