@@ -655,6 +655,68 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
       assertThat(result.get(3).rows()).extracting(r -> r.getString("p0")).contains("z1", "z2");
     }
 
+    @Test
+    void mergeSameRows() {
+      BuiltCondition pathCondition =
+          BuiltCondition.of(
+              documentProperties.tableProperties().pathColumnName(0), Predicate.GT, Term.marker());
+
+      QueryOuterClass.Query query =
+          new QueryBuilder()
+              .select()
+              .star()
+              .from(schemaProvider.getTable().getName())
+              .where(pathCondition)
+              .build();
+
+      QueryOuterClass.Value valueX = Values.of("x");
+      withQuery(query.getCql(), valueX)
+          .withComparableKey(FIRST_COLUMN_COMPARABLE_KEY)
+          .enriched()
+          .withPageSize(10)
+          .withColumnSpec(columnSpec)
+          .returning(
+              ImmutableList.of(
+                  row("a", "x1", 1.0d),
+                  row("a", "x2", 2.0d),
+                  row("c", "x2", 2.0d),
+                  row("c", "x3", 2.0d)));
+      QueryOuterClass.Value valueY = Values.of("y");
+      withQuery(query.getCql(), valueY)
+          .withComparableKey(FIRST_COLUMN_COMPARABLE_KEY)
+          .enriched()
+          .withPageSize(10)
+          .withColumnSpec(columnSpec)
+          .returning(
+              ImmutableList.of(
+                  row("a", "x1", 1.0d),
+                  row("a", "x2", 2.0d),
+                  row("c", "x2", 2.0d),
+                  row("c", "x3", 2.0d)));
+
+      QueryOuterClass.Query q1 =
+          QueryOuterClass.Query.newBuilder(query)
+              .setValues(QueryOuterClass.Values.newBuilder().addValues(valueX))
+              .build();
+      QueryOuterClass.Query q2 =
+          QueryOuterClass.Query.newBuilder(query)
+              .setValues(QueryOuterClass.Values.newBuilder().addValues(valueY))
+              .build();
+
+      List<RawDocument> result =
+          queryExecutor
+              .queryDocs(ImmutableList.of(q1, q2), 10, false, null, false, context)
+              .subscribe()
+              .withSubscriber(AssertSubscriber.create(4))
+              .awaitItems(2)
+              .awaitCompletion()
+              .getItems();
+
+      assertThat(result).extracting(RawDocument::id).containsExactly("a", "c");
+      assertThat(result.get(0).rows()).extracting(r -> r.getString("p0")).contains("x1", "x2");
+      assertThat(result.get(1).rows()).extracting(r -> r.getString("p0")).contains("x2", "x3");
+    }
+
     @ParameterizedTest
     @CsvSource({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "100"})
     void mergeSubDocuments(int pageSize) {

@@ -41,20 +41,31 @@ import io.stargate.sgv2.docsapi.service.schema.NamespaceManager;
 import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.testprofiles.IntegrationTestProfile;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import javax.enterprise.context.control.ActivateRequestContext;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.assertj.core.api.Condition;
 import org.assertj.core.api.HamcrestCondition;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestClassOrder;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 
 @QuarkusTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
+@TestClassOrder(ClassOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class DocumentReadResourceIntegrationTest {
 
@@ -81,6 +92,1438 @@ class DocumentReadResourceIntegrationTest {
         .createCollectionTable(DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
         .await()
         .atMost(Duration.ofSeconds(10));
+  }
+
+  @Nested
+  @Order(1)
+  // run search first as it depends on empty collection state
+  class SearchDocuments {
+
+    // simple util to write documents
+    String[] writeDocuments(String... json) {
+      String[] ids = new String[json.length];
+
+      for (int i = 0, jsonLength = json.length; i < jsonLength; i++) {
+        String id = RandomStringUtils.randomAlphanumeric(16);
+        ids[i] = id;
+
+        String body = json[i];
+        writeDocument(id, body);
+      }
+
+      return ids;
+    }
+
+    // simple util to write documents
+    private void writeDocument(String id, String json) {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .body(json)
+          .when()
+          .put(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
+          .then()
+          .statusCode(200);
+    }
+
+    // simple util to delete documents
+    void deleteDocuments(String... ids) {
+      for (String id : ids) {
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .when()
+            .delete(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
+            .then()
+            .statusCode(204);
+      }
+    }
+
+    @Test
+    public void singlePersistenceFilter() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": \"a\"}", "{\"value\": \"b\"}", "{\"someStuff\": {\"value\": \"a\"}}");
+
+      try {
+        // assert
+        String expected = "{\"%s\":{\"value\":\"a\"}}".formatted(ids[0]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", "{\"value\": {\"$eq\": \"a\"}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void singlePersistenceFilterWithBoolean() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": true}", "{\"value\": false}", "{\"someStuff\": {\"value\": true}}");
+
+      try {
+        // assert
+        String expected = "{\"%s\":{\"value\":true}}".formatted(ids[0]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", "{\"value\": {\"$eq\": true}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void multiPersistenceFilter() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": \"a\", \"n\": { \"value\": 5}}",
+              "{\"value\": \"a\", \"n\": { \"value\": 10}}");
+
+      try {
+        // assert
+        String expected = "{\"%s\":{\"value\":\"a\",\"n\":{\"value\":5}}}".formatted(ids[0]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", "{\"value\": {\"$eq\": \"a\"}, \"n.value\": {\"$lt\": 6}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void multiPersistenceFilterWithSelectivity() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": \"a\", \"n\": { \"value\": 5}}",
+              "{\"value\": \"a\", \"n\": { \"value\": 10}}");
+
+      String where =
+          """
+              {
+                "value": {"$eq": "a"},
+                "n.value": {"$lt": 6, "$selectivity":0.5}
+              }""";
+
+      try {
+        // assert
+        String expected = "{\"%s\":{\"value\":\"a\",\"n\":{\"value\":5}}}".formatted(ids[0]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", where)
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void singleInMemoryFilter() {
+      String[] ids =
+          writeDocuments("{\"value\": \"a\"}", "{\"value\": \"b\"}", "{\"value\": \"c\"}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"value\":\"a\"},\"%s\":{\"value\":\"b\"}}".formatted(ids[0], ids[1]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", "{\"value\": {\"$in\": [\"a\", \"b\"]}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void singleInMemoryEvaluateMissingFieldFilter() {
+      String[] ids =
+          writeDocuments("{\"value\": \"a\"}", "{\"value\": \"b\"}", "{\"value\": \"c\"}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"value\":\"a\"},\"%s\":{\"value\":\"b\"}}".formatted(ids[0], ids[1]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", "{\"value\": {\"$ne\": \"c\"}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void multiInMemoryFilter() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": \"a\", \"n\": { \"value\": 5}}",
+              "{\"value\": \"b\", \"n\": { \"value\": 10}}");
+
+      try {
+        // assert
+        String expected = "{\"%s\":{\"value\":\"a\",\"n\":{\"value\":5}}}".formatted(ids[0]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", "{\"value\": {\"$in\": [\"a\", \"b\"]}, \"n.value\": {\"$in\": [5]}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void mixedFilters() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": \"a\", \"n\": { \"value\": 5}}",
+              "{\"value\": \"b\", \"n\": { \"value\": 10}}",
+              "{\"value\": \"c\", \"n\": { \"value\": 5}}");
+
+      try {
+        // assert
+        String expected = "{\"%s\":{\"value\":\"a\",\"n\":{\"value\":5}}}".formatted(ids[0]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param(
+                "where",
+                "{\"value\": {\"$in\": [\"a\", \"b\"]}, \"n.value\": {\"$gt\": 0, \"$lt\": 10}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void pathMatching() {
+      String[] ids =
+          writeDocuments(
+              "{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}", "{\"value\": \"a\"}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}}".formatted(ids[0]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", "{\"someStuff.someOtherStuff.value\": {\"$eq\": \"a\"}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void pathSegmentMatching() {
+      String[] ids =
+          writeDocuments(
+              "{\"n\": { \"value\": 5}}", "{\"m\": { \"value\": 8}}", "{\"x\": { \"value\": 10}}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"n\":{\"value\":5}},\"%s\":{\"m\":{\"value\":8}}}".formatted(ids[0], ids[1]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", "{\"n,m.value\": {\"$gte\": 5}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void pathSegmentInMemoryMatching() {
+      String[] ids =
+          writeDocuments(
+              "{\"n\": { \"value\": 5}}", "{\"m\": { \"value\": 8}}", "{\"x\": { \"value\": 10}}");
+
+      try {
+        // assert
+        String expected = "{\"%s\":{\"n\":{\"value\":5}}}".formatted(ids[0]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", "{\"n,m.value\": {\"$in\": [5]}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void pathWildcardsMatching() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": \"b\"}",
+              "{\"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}",
+              "{\"someStuff\": {\"1\": {\"value\": \"c\"}, \"2\": {\"value\": \"d\"}}}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}}"
+                .formatted(ids[1]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", "{\"someStuff.*.value\": {\"$eq\": \"b\"}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void pathWildcardsInMemoryMatching() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": \"b\"}",
+              "{\"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}",
+              "{\"someStuff\": {\"1\": {\"value\": \"c\"}, \"2\": {\"value\": \"d\"}}}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}}"
+                .formatted(ids[1]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", "{\"someStuff.*.value\": {\"$in\": [\"b\"]}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void pathWildcardsCandidatesMatching() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": \"b\"}",
+              "{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}",
+              "{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"c\"}, \"2\": {\"value\": \"d\"}}}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}}"
+                .formatted(ids[1]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param(
+                "where", "{\"value\": {\"$eq\": \"b\"}, \"someStuff.*.value\": {\"$eq\": \"b\"}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void pathWildcardsCandidatesInMemoryMatching() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": \"b\"}",
+              "{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}",
+              "{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"c\"}, \"2\": {\"value\": \"d\"}}}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}}"
+                .formatted(ids[1]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param(
+                "where", "{\"value\": {\"$eq\": \"b\"}, \"someStuff.*.value\": {\"$in\": [\"b\"]}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void pathWildcardsExists() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": \"b\"}",
+              "{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"other\": \"b\"}}}",
+              "{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"c\"}, \"2\": {\"value\": \"d\"}}}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"other\": \"b\"}}}}"
+                .formatted(ids[1]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param(
+                "where",
+                "{\"value\": {\"$eq\": \"b\"}, \"someStuff.*.other\": {\"$exists\": true}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void arrayPathMatching() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": [{ \"n\": { \"value\": 5} }]}",
+              "{\"value\": [{ \"n\": { \"value\": 10} }]}");
+
+      try {
+        // assert
+        String expected = "{\"%s\":{\"value\":[{\"n\":{\"value\":5}}]}}".formatted(ids[0]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", "{\"value.[0].n.value\": {\"$eq\": 5}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void arrayPathSegmentMatching() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": [{ \"n\": { \"value\": 5} }, { \"n\": { \"value\": 8} }]}",
+              "{\"value\": [{ \"n\": { \"value\": 10} }, { \"n\": { \"value\": 3} }]}",
+              "{\"value\": [{ \"n\": { \"value\": 10} },{ \"n\": { \"value\": 20} },{ \"n\": { \"value\": 2} }]}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"value\":[{\"n\":{\"value\":5}},{\"n\":{\"value\":8}}]},\"%s\":{\"value\":[{\"n\":{\"value\":10}},{\"n\":{\"value\":3}}]}}"
+                .formatted(ids[0], ids[1]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", "{\"value.[0],[1].n.value\": {\"$lt\": 6}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void arrayPathSegmentInMemoryMatching() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": [{ \"n\": { \"value\": 5} }, { \"n\": { \"value\": 8} }]}",
+              "{\"value\": [{ \"n\": { \"value\": 10} }, { \"n\": { \"value\": 3} }]}",
+              "{\"value\": [{ \"n\": { \"value\": 10} },{ \"n\": { \"value\": 20} },{ \"n\": { \"value\": 2} }]}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"value\":[{\"n\":{\"value\":5}},{\"n\":{\"value\":8}}]}}".formatted(ids[0]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", "{\"value.[0],[1].n.value\": {\"$in\": [8]}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void arrayWildcardMatching() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": [{ \"n\": { \"value\": 5} }, { \"n\": { \"value\": 8} }]}",
+              "{\"value\": [{ \"n\": { \"value\": 10} }]}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"value\":[{\"n\":{\"value\":5}},{\"n\":{\"value\":8}}]}}".formatted(ids[0]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", "{\"value.[*].n.value\": {\"$eq\": 8}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void arrayWildcardCandidatesMatching() {
+      String[] ids =
+          writeDocuments(
+              "{\"first\": 5, \"value\": [{ \"n\": { \"value\": 5} }, { \"n\": { \"value\": 8} }]}",
+              "{\"first\": 50, \"value\": [{ \"n\": { \"value\": 10} }]}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"first\": 5, \"value\":[{\"n\":{\"value\":5}},{\"n\":{\"value\":8}}]}}"
+                .formatted(ids[0]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", "{\"first\": {\"$gt\": 0}, \"value.[*].n.value\": {\"$eq\": 8}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void arrayWildcardInMemoryMatching() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": [{ \"n\": { \"value\": 5} }, { \"n\": { \"value\": 8} }]}",
+              "{\"value\": [{ \"n\": { \"value\": 10} }]}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"value\":[{\"n\":{\"value\":5}},{\"n\":{\"value\":8}}]}}".formatted(ids[0]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", "{\"value.[*].n.value\": {\"$in\": [8]}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void arrayWildcardCandidatesInMemoryMatching() {
+      String[] ids =
+          writeDocuments(
+              "{\"first\": 5, \"value\": [{ \"n\": { \"value\": 5} }, { \"n\": { \"value\": 8} }]}",
+              "{\"first\": 1, \"value\": [{ \"n\": { \"value\": 10} }]}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"first\": 5, \"value\":[{\"n\":{\"value\":5}},{\"n\":{\"value\":8}}]}}"
+                .formatted(ids[0]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", "{\"first\": {\"$gte\": 1}, \"value.[*].n.value\": {\"$in\": [8]}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void arrayWildcardExists() {
+      String[] ids =
+          writeDocuments(
+              "{\"first\": 5, \"value\": [{ \"n\": { \"value\": 5} }, { \"m\": { \"value\": 8} }]}",
+              "{\"first\": 1, \"value\": [{ \"n\": { \"value\": 10} }]}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"first\": 5, \"value\":[{\"n\":{\"value\":5}},{\"m\":{\"value\":8}}]}}"
+                .formatted(ids[0]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param(
+                "where", "{\"first\": {\"$gte\": 1}, \"value.[*].m.value\": {\"$exists\": true}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void orPersistenceFilter() {
+      String[] ids =
+          writeDocuments("{\"value\": \"a\"}", "{\"value\": \"b\"}", "{\"value\": \"c\"}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"value\":\"a\"},\"%s\":{\"value\":\"b\"}}".formatted(ids[0], ids[1]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param(
+                "where",
+                "{\"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"value\": {\"$eq\": \"b\"}}]}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void orInMemoryFilter() {
+      String[] ids =
+          writeDocuments("{\"value\": \"a\"}", "{\"value\": \"b\"}", "{\"value\": \"c\"}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"value\":\"a\"},\"%s\":{\"value\":\"b\"}}".formatted(ids[0], ids[1]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param(
+                "where",
+                "{\"$or\": [{\"value\": {\"$in\": [\"a\"]}}, {\"value\": {\"$in\": [\"b\"]}}]}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    @EnabledIfSystemProperty(
+        named = "testing.containers.cluster-dse",
+        matches = "true",
+        disabledReason =
+            "[Comparable bytes API] Flaky as merging order depends which query executes fastest (a-b-a possible).")
+    public void orMixedFilter() {
+      String[] ids =
+          writeDocuments("{\"value\": \"a\"}", "{\"value\": \"b\"}", "{\"value\": \"c\"}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"value\":\"a\"},\"%s\":{\"value\":\"b\"}}".formatted(ids[0], ids[1]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param(
+                "where",
+                "{\"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"value\": {\"$in\": [\"a\", \"b\"]}}]}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    @EnabledIfSystemProperty(
+        named = "testing.containers.cluster-dse",
+        matches = "true",
+        disabledReason = "[Comparable bytes API] Order false.")
+    public void orMixedFilterWithPaging() throws Exception {
+      writeDocument("a", "{\"value\": \"a\"}");
+      writeDocument("b", "{\"value\": \"b\"}");
+      writeDocument("c", "{\"value\": \"c\"}");
+
+      try {
+        // assert, by expecting first key
+        String firstExpected = "{\"a\":{\"value\":\"a\"}}";
+        String body =
+            given()
+                .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                .param(
+                    "where",
+                    "{\"$or\": [{\"value\": {\"$eq\": \"b\"}}, {\"value\": {\"$in\": [\"a\"]}}]}")
+                .param("page-size", 1)
+                .when()
+                .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+                .then()
+                .statusCode(200)
+                .body("documentId", is(nullValue()))
+                .body("pageState", is(notNullValue()))
+                .body("data", jsonEquals(firstExpected))
+                .extract()
+                .body()
+                .asString();
+
+        String pageState = objectMapper.readTree(body).requiredAt("/pageState").textValue();
+        String secondExpected = "{\"b\":{\"value\":\"b\"}}";
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param(
+                "where",
+                "{\"$or\": [{\"value\": {\"$eq\": \"b\"}}, {\"value\": {\"$in\": [\"a\"]}}]}")
+            .param("page-size", 1)
+            .param("page-state", pageState)
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(notNullValue()))
+            .body("data", jsonEquals(secondExpected));
+      } finally {
+        deleteDocuments("a", "b", "c");
+      }
+    }
+
+    @Test
+    public void orMixedFiltersDifferentPaths() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": \"a\", \"count\": 1}",
+              "{\"value\": \"b\", \"count\": 2}",
+              "{\"value\": \"c\", \"count\": 3}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"value\":\"a\",\"count\": 1},\"%s\":{\"value\":\"b\",\"count\": 2}}"
+                .formatted(ids[0], ids[1]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param(
+                "where",
+                "{\"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"count\": {\"$in\": [2,4]}}]}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void andWithOr() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": \"a\", \"count\": 1}",
+              "{\"value\": \"b\", \"count\": 2}",
+              "{\"value\": \"c\", \"count\": 3}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"value\":\"a\",\"count\": 1},\"%s\":{\"value\":\"b\",\"count\": 2}}"
+                .formatted(ids[0], ids[1]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param(
+                "where",
+                "{\"count\": {\"$gt\": 0}, \"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"value\": {\"$in\": [\"b\"]}}]}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void orExists() {
+      String[] ids =
+          writeDocuments("{\"value\": \"a\"}", "{\"other\": \"b\"}", "{\"value\": \"c\"}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"value\":\"a\"},\"%s\":{\"other\":\"b\"}}".formatted(ids[0], ids[1]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param(
+                "where",
+                "{\"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"other\": {\"$exists\": true}}]}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void orEvaluateOnMissing() {
+      String[] ids =
+          writeDocuments("{\"value\": \"a\"}", "{\"other\": \"b\"}", "{\"value\": \"c\"}");
+
+      try {
+        // assert
+        String expected =
+            """
+                {
+                  "%s":{"value":"a"},"%s":{"other":"b"}
+                }"""
+                .formatted(ids[0], ids[1]);
+
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param(
+                "where",
+                "{\"$or\": [{\"value\": {\"$nin\": [\"b\",\"c\"]}}, {\"value\": {\"$eq\": \"a\"}}]}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void orPathSegmentsAndWildcards() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": [{ \"n\": { \"value\": 5} }, { \"m\": { \"value\": 8} }]}",
+              "{\"value\": [{ \"x\": { \"value\": 10} }, { \"y\": { \"value\": 20} }]}",
+              "{\"value\": [{ \"n\": { \"value\": 10} }]}");
+
+      try {
+        // assert
+        String expected =
+            """
+                {
+                  "%s":{"value":[{"n":{"value":5}},{"m":{"value":8}}]},
+                  "%s":{"value":[{"x":{"value":10}},{"y":{"value":20}}]}
+                }"""
+                .formatted(ids[0], ids[1]);
+
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param(
+                "where",
+                "{\"$or\": [{\"value.[*].*.value\": {\"$eq\": 20}}, {\"value.[1],[2].n,m.value\": {\"$eq\": 8}}]}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void withProfile() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("where", "{\"value\": {\"$eq\": \"a\"}}")
+          .param("profile", true)
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .then()
+          .statusCode(200)
+          .body("profile", is(notNullValue()));
+    }
+
+    @Test
+    public void withFieldsArrayPath() {
+      String[] ids =
+          writeDocuments(
+              "{\"first\": 5, \"value\": [{ \"n\": { \"value\": 5} }, { \"m\": { \"value\": 8} }]}");
+
+      try {
+        // assert
+        String expected = "{\"%s\":{\"value\":[null,{\"m\":{\"value\":8}}]}}".formatted(ids[0]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("fields", "[\"value.[1].m\"]")
+            .param("raw", true)
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body(jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void withFieldsArrayGlobSegmentedPath() {
+      String[] ids =
+          writeDocuments(
+              "{\"first\": 5, \"value\": [{ \"n\": { \"value\": 5} }, { \"m\": { \"value\": 8} }]}");
+
+      try {
+        // assert
+        String expected =
+            "{\"%s\":{\"value\":[{\"n\":{\"value\":5}},{\"m\":{\"value\":8}}]}}".formatted(ids[0]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("fields", "[\"value.[*].m,n\"]")
+            .param("raw", true)
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body(jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void withFieldsDoubleGlob() {
+      String[] ids =
+          writeDocuments(
+              "{\"first\": 5, \"value\": [{ \"n\": { \"value\": 5} }, { \"m\": { \"value\": 8} }]}");
+
+      try {
+        // assert
+        String expected = "{\"%s\":{\"value\":[{\"n\":{\"value\":5}}]}}".formatted(ids[0]);
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("fields", "[\"*.[*].n\"]")
+            .param("raw", true)
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body(jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void withFieldsNested() throws Exception {
+      String json = CharStreams.toString(resource("documents/long-search.json"));
+      String[] ids = writeDocuments(json);
+
+      try {
+        // assert
+        String expected = "{\"a\": {\"value\": 1},\"b\": {\"value\": 2}, \"bb\": {\"value\": 4}}";
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("fields", "[\"a.value\",\"b.value\",\"bb.value\"]")
+            .param("raw", true)
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body(jsonPartEquals(ids[0], expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void existsFalse() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": \"b\"}",
+              "{\"value\": \"b\", \"someStuff\": {\"1\": {\"first\": \"a\"}, \"2\": {\"second\": \"b\"}}}",
+              "{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"c\"}, \"2\": {\"value\": \"d\"}}}");
+
+      try {
+        // assert
+        String expected =
+            """
+                {
+                  "%s":{"value": "b"},
+                  "%s":{"value": "b", "someStuff": {"1": {"first": "a"}, "2": {"second": "b"}}}
+                }"""
+                .formatted(ids[0], ids[1]);
+
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", "{\"someStuff.*.value\": {\"$exists\": false}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void existsFalseMixed() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": \"b\"}",
+              "{\"value\": \"b\", \"someStuff\": {\"1\": {\"first\": \"a\"}, \"2\": {\"second\": \"b\"}}}",
+              "{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"c\"}, \"2\": {\"value\": \"d\"}}}");
+
+      try {
+        // assert
+        String expected =
+            """
+                {
+                  "%s":{"value": "b"},
+                  "%s":{"value": "b", "someStuff": {"1": {"first": "a"}, "2": {"second": "b"}}}
+                }"""
+                .formatted(ids[0], ids[1]);
+
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param(
+                "where",
+                "{\"value\": {\"$eq\": \"b\"}, \"someStuff.*.value\": {\"$exists\": false}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
+    public void multiFilter() throws Exception {
+      String firstDocument =
+          "{\"a\": \"b\", \"c\": 2, \"quiz\": {\"sport\": {\"q1\": {\"question\": \"Which one is correct team name in NBA?\"}}}}";
+      String secondDocument = CharStreams.toString(resource("documents/example.json"));
+      String[] ids = writeDocuments(firstDocument, secondDocument);
+
+      try {
+        // assert
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", "{\"a\":{\"$eq\":\"b\"},\"c\":{\"$lt\":3}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonPartEquals(ids[0], firstDocument));
+
+        given()
+            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .param("where", "{\"a\":{\"$eq\":\"b\"},\"c\":{\"$lt\":0}}")
+            .when()
+            .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals("{}"));
+
+        String body =
+            given()
+                .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                .param(
+                    "where",
+                    "{\"quiz.sport.q1.question\":{\"$in\": [\"Which one is correct team name in NBA?\"]}}")
+                .when()
+                .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+                .then()
+                .statusCode(200)
+                .body("documentId", is(nullValue()))
+                .body("pageState", is(nullValue()))
+                .extract()
+                .body()
+                .asString();
+
+        Condition<Object> condition1 =
+            new HamcrestCondition<>(jsonPartEquals("data.%s".formatted(ids[0]), firstDocument));
+        Condition<Object> condition2 =
+            new HamcrestCondition<>(jsonPartEquals("data.%s".formatted(ids[1]), secondDocument));
+        assertThat(body).is(condition1).is(condition2);
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"1", "2", "4"})
+    public void withPagination(int pageSize) throws Exception {
+      String firstDocument = "{\"a\": \"b\"}";
+      String secondDocument = CharStreams.toString(resource("documents/example.json"));
+      String thirdDocument = CharStreams.toString(resource("documents/long-search.json"));
+      String[] ids = writeDocuments(firstDocument, secondDocument, thirdDocument);
+
+      try {
+        List<String> fetched = new ArrayList<>();
+        String pageState = null;
+        for (int i = 0; i < 3; i += pageSize) {
+          String body =
+              given()
+                  .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                  .param("page-size", pageSize)
+                  .param("page-state", pageState)
+                  .when()
+                  .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+                  .then()
+                  .statusCode(200)
+                  .body("documentId", is(nullValue()))
+                  .extract()
+                  .body()
+                  .asString();
+
+          // collect ids and
+          // assert we have the page state only when needed
+          JsonNode root = objectMapper.readTree(body);
+          root.requiredAt("/data").fieldNames().forEachRemaining(fetched::add);
+          if (i + pageSize < 3) {
+            pageState = root.requiredAt("/pageState").textValue();
+          }
+        }
+
+        assertThat(ids).containsOnlyOnceElementsOf(fetched);
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"1", "2", "4"})
+    public void withPaginationAndFields(int pageSize) throws Exception {
+      String firstDocument = "{\"a\": \"b\"}";
+      String secondDocument = CharStreams.toString(resource("documents/example.json"));
+      String thirdDocument = CharStreams.toString(resource("documents/long-search.json"));
+      String[] ids = writeDocuments(firstDocument, secondDocument, thirdDocument);
+
+      try {
+        List<String> fetched = new ArrayList<>();
+        String pageState = null;
+        for (int i = 0; i < 3; i += pageSize) {
+          String body =
+              given()
+                  .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                  .param("page-size", pageSize)
+                  .param("page-state", pageState)
+                  .param("fields", "[\"a\"]")
+                  .when()
+                  .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+                  .then()
+                  .statusCode(200)
+                  .body("documentId", is(nullValue()))
+                  .extract()
+                  .body()
+                  .asString();
+
+          // collect ids and
+          // assert we have the page state only when needed
+          JsonNode root = objectMapper.readTree(body);
+          root.requiredAt("/data")
+              .fields()
+              .forEachRemaining(
+                  e -> {
+                    String documentId = e.getKey();
+                    fetched.add(documentId);
+                    // only example.json does not have '/a' field
+                    if (!Objects.equals(documentId, ids[1])) {
+                      assertThat(e.getValue().fieldNames())
+                          .toIterable()
+                          .singleElement()
+                          .isEqualTo("a");
+                    } else {
+                      assertThat(e.getValue()).isEmpty();
+                    }
+                  });
+          if (i + pageSize < 3) {
+            pageState = root.requiredAt("/pageState").textValue();
+          }
+        }
+
+        assertThat(ids).containsOnlyOnceElementsOf(fetched);
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"1", "2", "4"})
+    public void withPaginationFilterAndFields(int pageSize) throws Exception {
+      String firstDocument =
+          "{\"a\": \"b\", \"quiz\": {\"sport\": {\"q1\": {\"question\": \"hello?\"}}}}";
+      String secondDocument = CharStreams.toString(resource("documents/example.json"));
+      String thirdDocument = CharStreams.toString(resource("documents/long-search.json"));
+      String[] ids = writeDocuments(firstDocument, secondDocument, thirdDocument);
+
+      try {
+        List<String> fetched = new ArrayList<>();
+        String pageState = null;
+        for (int i = 0; i < 3; i += pageSize) {
+          String body =
+              given()
+                  .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                  .param("page-size", pageSize)
+                  .param("page-state", pageState)
+                  .param("fields", "[\"quiz\"]")
+                  .param("where", "{\"quiz.sport.q1.question\": {\"$exists\": true}}")
+                  .when()
+                  .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+                  .then()
+                  .statusCode(200)
+                  .body("documentId", is(nullValue()))
+                  .extract()
+                  .body()
+                  .asString();
+
+          // collect ids (only two docs matching)
+          // assert we have the page state only when needed
+          JsonNode root = objectMapper.readTree(body);
+          root.requiredAt("/data").fieldNames().forEachRemaining(fetched::add);
+          if (i + pageSize < 2) {
+            pageState = root.requiredAt("/pageState").textValue();
+          }
+        }
+
+        assertThat(fetched).containsOnly(ids[0], ids[1]);
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    // 4xx
+
+    @Test
+    public void whereMalformed() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("where", "{\"a\":}")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .then()
+          .statusCode(400)
+          .body("code", is(400))
+          .body(
+              "description",
+              is(
+                  "The `where` parameter expects a valid JSON object representing search criteria."));
+    }
+
+    @Test
+    public void fieldsMalformed() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("fields", "[\"a\"")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .then()
+          .body("code", is(400))
+          .body(
+              "description",
+              is("The `fields` parameter expects a valid JSON array containing field names."));
+    }
+
+    @Test
+    public void keyspaceNotExisting() {
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .when()
+          .get(BASE_PATH, namespace, DEFAULT_COLLECTION)
+          .then()
+          .statusCode(404)
+          .body("code", is(404))
+          .body(
+              "description",
+              is("Unknown namespace %s, you must create it first.".formatted(namespace)));
+    }
+
+    @Test
+    public void tableNotExisting() {
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, collection)
+          .then()
+          .statusCode(404)
+          .body("code", is(404))
+          .body("description", is("Collection '%s' not found.".formatted(collection)));
+    }
+
+    @Test
+    public void invalidPageSize() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("page-size", -1)
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .then()
+          .statusCode(400)
+          .body(
+              "description",
+              is("Request invalid: the minimum number of documents to return is one."));
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .param("page-size", 21)
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .then()
+          .statusCode(400)
+          .body("description", is("Request invalid: the max number of documents to return is 20."));
+    }
+
+    @Test
+    public void unauthorized() {
+      given().when().get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION).then().statusCode(401);
+    }
   }
 
   @Nested

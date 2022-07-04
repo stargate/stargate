@@ -146,7 +146,7 @@ public class DocumentReadResource {
       @QueryParam("where") String where,
       @QueryParam("fields") String fields,
       @QueryParam("page-size")
-          @Min(value = 1, message = "the minimum number of results to return is one")
+          @Min(value = 1, message = "the minimum number of documents to return is one")
           @Max(value = 20, message = "the max number of documents to return is 20")
           Integer pageSize,
       @QueryParam("page-state") String pageState,
