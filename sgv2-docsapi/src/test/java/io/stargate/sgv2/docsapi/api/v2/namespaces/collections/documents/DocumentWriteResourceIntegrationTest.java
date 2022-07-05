@@ -5,6 +5,7 @@ import static net.javacrumbs.jsonunit.JsonMatchers.jsonEquals;
 import static net.javacrumbs.jsonunit.JsonMatchers.jsonPartMatches;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.any;
+import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
 
@@ -22,9 +23,7 @@ import io.stargate.sgv2.docsapi.service.schema.NamespaceManager;
 import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.testprofiles.IntegrationTestProfile;
 import java.time.Duration;
-import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import javax.enterprise.context.control.ActivateRequestContext;
 import javax.inject.Inject;
@@ -98,6 +97,56 @@ class DocumentWriteResourceIntegrationTest {
     }
 
     @Test
+    public void happyPathNoCollection() {
+      Response postResponse =
+          given()
+              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header("Content-Type", "application/json")
+              .body(DEFAULT_PAYLOAD)
+              .when()
+              .post(BASE_PATH, DEFAULT_NAMESPACE, "newtable")
+              .peek();
+
+      assertThat(postResponse.statusCode()).isEqualTo(201);
+      assertThat(postResponse.header("location")).isNotNull();
+      String location = postResponse.header("location");
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .queryParam("raw", "true")
+          .when()
+          .get(location)
+          .then()
+          .statusCode(200)
+          .body(jsonEquals(DEFAULT_PAYLOAD));
+    }
+
+    @Test
+    public void writeArray() {
+      Response postResponse =
+          given()
+              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header("Content-Type", "application/json")
+              .body("[1, 2, 3]")
+              .when()
+              .post(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+              .peek();
+
+      assertThat(postResponse.statusCode()).isEqualTo(201);
+      assertThat(postResponse.header("location")).isNotNull();
+      String location = postResponse.header("location");
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .queryParam("raw", "true")
+          .when()
+          .get(location)
+          .then()
+          .statusCode(200)
+          .body(jsonEquals("[1, 2, 3]"));
+    }
+
+    @Test
     public void withProfile() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
@@ -128,7 +177,36 @@ class DocumentWriteResourceIntegrationTest {
       String location = postResponse.header("location");
 
       Awaitility.await()
-          .atLeast(0, TimeUnit.MILLISECONDS)
+          .atMost(2000, TimeUnit.MILLISECONDS)
+          .untilAsserted(
+              () -> {
+                given()
+                    .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                    .when()
+                    .get(location)
+                    .then()
+                    .statusCode(404);
+              });
+    }
+
+    @Test
+    public void withLongerTtl() {
+      Response postResponse =
+          given()
+              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header("Content-Type", "application/json")
+              .queryParam("ttl", "10")
+              .body(DEFAULT_PAYLOAD)
+              .when()
+              .post(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+              .peek();
+
+      assertThat(postResponse.statusCode()).isEqualTo(201);
+      assertThat(postResponse.header("location")).isNotNull();
+      String location = postResponse.header("location");
+
+      Awaitility.await()
+          .atMost(11000, TimeUnit.MILLISECONDS)
           .untilAsserted(
               () -> {
                 given()
@@ -150,6 +228,68 @@ class DocumentWriteResourceIntegrationTest {
           .post(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
           .then()
           .statusCode(400);
+    }
+
+    @Test
+    public void emptyObject() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .body("{}")
+          .when()
+          .post(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .then()
+          .statusCode(400)
+          .body("code", equalTo(400))
+          .body(
+              "description",
+              equalTo(
+                  "Updating a key with just an empty object or an empty array is not allowed. Hint: update the parent path with a defined object instead."));
+    }
+
+    @Test
+    public void emptyArray() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .body("[]")
+          .when()
+          .post(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .then()
+          .body("code", equalTo(400))
+          .body(
+              "description",
+              equalTo(
+                  "Updating a key with just an empty object or an empty array is not allowed. Hint: update the parent path with a defined object instead."));
+    }
+
+    @Test
+    public void singlePrimitive() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .body("true")
+          .when()
+          .post(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .then()
+          .body("code", equalTo(400))
+          .body(
+              "description",
+              equalTo(
+                  "Updating a key with just a JSON primitive is not allowed. Hint: update the parent path with a defined object instead."));
+    }
+
+    @Test
+    public void noBody() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .when()
+          .post(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .then()
+          .statusCode(400)
+          .body("code", equalTo(400))
+          .body("description", equalTo("Request invalid: must not be null."));
     }
 
     @Test
@@ -204,29 +344,16 @@ class DocumentWriteResourceIntegrationTest {
       String doc1 = "{\"id\": \"1\", \"name\":\"a\"}";
       String doc2 = "{\"id\": \"2\", \"name\":\"b\"}";
       String doc3 = "{\"id\": \"3\", \"name\":\"c\"}";
-      Response batchResponse =
-          given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .header("Content-Type", "application/json")
-              .queryParam("id-path", "id")
-              .body(String.format("[%s, %s, %s]", doc1, doc2, doc3))
-              .when()
-              .post(BASE_PATH + "/batch", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
-              .peek();
-
-      assertThat(batchResponse.statusCode()).isEqualTo(202);
-      ArrayNode documentIds =
-          (ArrayNode)
-              objectMapper.readTree(batchResponse.body().asString()).requiredAt("/documentIds");
-      Set<String> expectedIds = new HashSet<>();
-      expectedIds.add("1");
-      expectedIds.add("2");
-      expectedIds.add("3");
-      for (JsonNode node : documentIds) {
-        String id = node.asText();
-        expectedIds.remove(id);
-      }
-      assertThat(expectedIds).isEmpty();
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .queryParam("id-path", "id")
+          .body(String.format("[%s, %s, %s]", doc1, doc2, doc3))
+          .when()
+          .post(BASE_PATH + "/batch", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .then()
+          .statusCode(202)
+          .body("documentIds", containsInAnyOrder("1", "2", "3"));
     }
 
     @Test
@@ -297,7 +424,7 @@ class DocumentWriteResourceIntegrationTest {
               objectMapper.readTree(postResponse.body().asString()).requiredAt("/documentIds");
 
       Awaitility.await()
-          .atLeast(0, TimeUnit.MILLISECONDS)
+          .atMost(2000, TimeUnit.MILLISECONDS)
           .untilAsserted(
               () -> {
                 Iterator<JsonNode> iter = ids.iterator();
