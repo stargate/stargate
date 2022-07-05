@@ -1,5 +1,20 @@
 # Changelog
 
+## [v1.0.60](https://github.com/stargate/stargate/tree/v1.0.60) (2022-07-05)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.59...v1.0.60)
+
+**Fixed bugs:**
+
+- NPE thrown when the system property `stargate.proxy\_protocol.dns\_name` is not provided [\#1934](https://github.com/stargate/stargate/issues/1934)
+
+**Closed issues:**
+
+**Merged pull requests:**
+
+- Revert "Fix `ByteBuf` leak caused by not releasing `HAProxyMessage` \(… [\#1943](https://github.com/stargate/stargate/pull/1943) ([mpenick](https://github.com/mpenick))
+- Change generic NPE to IllegalArgumentException with descriptive message [\#1939](https://github.com/stargate/stargate/pull/1939) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v1.0.59](https://github.com/stargate/stargate/tree/v1.0.59) (2022-06-30)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.58...v1.0.59)
