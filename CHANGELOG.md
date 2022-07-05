@@ -1,24 +1,34 @@
 # Changelog
 
-## [v2.0.0-ALPHA-15](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-15) (2022-07-01)
+## [v2.0.0-ALPHA-16](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-16) (2022-07-05)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.59...v2.0.0-ALPHA-15)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-15...v2.0.0-ALPHA-16)
 
 **Merged pull requests:**
 
-- Add JVM metrics to SGv2 REST API [\#1929](https://github.com/stargate/stargate/pull/1929) ([mpenick](https://github.com/mpenick))
-- relates to \#1730, \#1734: api documents for write paths updated [\#1927](https://github.com/stargate/stargate/pull/1927) ([ivansenic](https://github.com/ivansenic))
-- Fix \#1923: expose Table "default TTL" for SGv2/REST API too [\#1924](https://github.com/stargate/stargate/pull/1924) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- relates to \#1734: read resource [\#1921](https://github.com/stargate/stargate/pull/1921) ([ivansenic](https://github.com/ivansenic))
-- Port write endpoints to v2 [\#1916](https://github.com/stargate/stargate/pull/1916) ([EricBorczuk](https://github.com/EricBorczuk))
-- Push images to ECR [\#1911](https://github.com/stargate/stargate/pull/1911) ([mpenick](https://github.com/mpenick))
-- updated Quarkus to v2.10.0.Final [\#1909](https://github.com/stargate/stargate/pull/1909) ([ivansenic](https://github.com/ivansenic))
-- closes \#1887: fixed consistency for reads, added consistency checks in tests [\#1908](https://github.com/stargate/stargate/pull/1908) ([ivansenic](https://github.com/ivansenic))
-- closes \#1732: read documents service for V2 [\#1907](https://github.com/stargate/stargate/pull/1907) ([ivansenic](https://github.com/ivansenic))
-- closes \#1733: added dead leaves deletion to the write bridge service [\#1905](https://github.com/stargate/stargate/pull/1905) ([ivansenic](https://github.com/ivansenic))
-- Bumping version to 2.0.0-ALPHA-15-SNAPSHOT [\#1900](https://github.com/stargate/stargate/pull/1900) ([github-actions[bot]](https://github.com/apps/github-actions))
-- closes \#1729: port write paths of ReactiveDocumentService v1 to v2 [\#1899](https://github.com/stargate/stargate/pull/1899) ([EricBorczuk](https://github.com/EricBorczuk))
-- DEV\_GUIDE: Add MacOS loopback address [\#1812](https://github.com/stargate/stargate/pull/1812) ([li-boxuan](https://github.com/li-boxuan))
+- update docs api V2 traget C\* and DSE versions [\#1945](https://github.com/stargate/stargate/pull/1945)
+- relates to \#1920: update C\* and DSE versions in the docker compose [\#1944](https://github.com/stargate/stargate/pull/1944)
+- relates to \#1730: added document delete resource test [\#1933](https://github.com/stargate/stargate/pull/1933)
+- relates to \#1737: docs api V2 action workflow updates [\#1931](https://github.com/stargate/stargate/pull/1931)
+
+## [v2.0.0-ALPHA-15](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-15) (2022-07-01)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-14...v2.0.0-ALPHA-15)
+
+**Merged pull requests:**
+
+- Add JVM metrics to SGv2 REST API [\#1929](https://github.com/stargate/stargate/pull/1929)
+- relates to \#1730, \#1734: api documents for write paths updated [\#1927](https://github.com/stargate/stargate/pull/1927)
+- Fix \#1923: expose Table "default TTL" for SGv2/REST API too [\#1924](https://github.com/stargate/stargate/pull/1924)
+- relates to \#1734: read resource [\#1921](https://github.com/stargate/stargate/pull/1921)
+- Port write endpoints to v2 [\#1916](https://github.com/stargate/stargate/pull/1916)
+- Push images to ECR [\#1911](https://github.com/stargate/stargate/pull/1911)
+- updated Quarkus to v2.10.0.Final [\#1909](https://github.com/stargate/stargate/pull/1909)
+- closes \#1887: fixed consistency for reads, added consistency checks in tests [\#1908](https://github.com/stargate/stargate/pull/1908)
+- closes \#1732: read documents service for V2 [\#1907](https://github.com/stargate/stargate/pull/1907)
+- closes \#1733: added dead leaves deletion to the write bridge service [\#1905](https://github.com/stargate/stargate/pull/1905)
+- closes \#1729: port write paths of ReactiveDocumentService v1 to v2 [\#1899](https://github.com/stargate/stargate/pull/1899)
+- DEV\_GUIDE: Add MacOS loopback address [\#1812](https://github.com/stargate/stargate/pull/1812)
 
 ## [v1.0.60](https://github.com/stargate/stargate/tree/v1.0.60) (2022-07-05)
 
@@ -34,48 +44,6 @@
 
 - Revert "Fix `ByteBuf` leak caused by not releasing `HAProxyMessage` \(… [\#1943](https://github.com/stargate/stargate/pull/1943) ([mpenick](https://github.com/mpenick))
 - Change generic NPE to IllegalArgumentException with descriptive message [\#1939](https://github.com/stargate/stargate/pull/1939) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-
-## [v1.0.59](https://github.com/stargate/stargate/tree/v1.0.59) (2022-06-30)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-14...v1.0.59)
-
-**Fixed bugs:**
-
-- QueryExecutor in V2 should use the configured consistency level [\#1887](https://github.com/stargate/stargate/issues/1887)
-- Rest v2 "Get a Table" endpoint does not correctly report defaultTimeToLive [\#1836](https://github.com/stargate/stargate/issues/1836)
-- `ByteBuf` leak in `HAProxyMessageDecoder` \(proxy protocol handling?\) [\#1397](https://github.com/stargate/stargate/issues/1397)
-
-**Closed issues:**
-
-- Update persistence to C\*3.11.13, 4.0.4 [\#1920](https://github.com/stargate/stargate/issues/1920)
-- Consider optimistic handling of schema metadata [\#1873](https://github.com/stargate/stargate/issues/1873)
-- Implement `JsonSchemaManager` based on Stargate V2 `TableManager` [\#1824](https://github.com/stargate/stargate/issues/1824)
-- Implement dead leaf collection service in the Documents API V2 [\#1733](https://github.com/stargate/stargate/issues/1733)
-- Port read and search paths of the `ReactiveDocumentService` to the `ReadDocumentService` [\#1732](https://github.com/stargate/stargate/issues/1732)
-- Port write paths of the `ReactiveDocumentService` to the `WriteDocumentService` V2 version [\#1729](https://github.com/stargate/stargate/issues/1729)
-- Port Document API utility services to the V2 [\#1725](https://github.com/stargate/stargate/issues/1725)
-- JSON Schema REST Controller for the Document API V2 [\#1723](https://github.com/stargate/stargate/issues/1723)
-- Javascript: Can't run codegen. [\#1691](https://github.com/stargate/stargate/issues/1691)
-- Configure GraphQL-java's `DataFetcherExceptionHandler` to reduce log noise [\#1279](https://github.com/stargate/stargate/issues/1279)
-- Stargate V2 REST API "get table" does not yet expose "default TTL" [\#1923](https://github.com/stargate/stargate/issues/1923)
-- Expose "default time-to-live" configuration of Tables via `persistence-api` [\#1896](https://github.com/stargate/stargate/issues/1896)
-- Bridge does not expose "defaultTTL" for `CqlTable` [\#1881](https://github.com/stargate/stargate/issues/1881)
-
-**Merged pull requests:**
-
-- Build docker build image for c3.11.13 / c4.0.4 [\#1932](https://github.com/stargate/stargate/pull/1932) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Upgrade C\*3 \(3.11.13\) and C\*4 \(4.0.4\) dependencies [\#1926](https://github.com/stargate/stargate/pull/1926) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- relates to \#1737: base github action for Docs API V2 [\#1922](https://github.com/stargate/stargate/pull/1922) ([ivansenic](https://github.com/ivansenic))
-- Fix \#1836 \(expose default TTL for Table resource\) [\#1917](https://github.com/stargate/stargate/pull/1917) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Fix link on DSE-persistence README [\#1915](https://github.com/stargate/stargate/pull/1915) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Fix `ByteBuf` leak caused by not releasing `HAProxyMessage` [\#1910](https://github.com/stargate/stargate/pull/1910) ([mpenick](https://github.com/mpenick))
-- Test GH actions for CI [\#1904](https://github.com/stargate/stargate/pull/1904) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
-- Reduce GraphQLJava induced log noise [\#1903](https://github.com/stargate/stargate/pull/1903) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Add CLA [\#1902](https://github.com/stargate/stargate/pull/1902) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
-- Update `dse-core` dependency from 6.8.21 to 6.8.24 [\#1898](https://github.com/stargate/stargate/pull/1898) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Add `ttl\(\)` method to persistence backends [\#1897](https://github.com/stargate/stargate/pull/1897) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Publish new Stargate-builder \(1.0.8\) for DSE core 6.8.24 [\#1906](https://github.com/stargate/stargate/pull/1906) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-
 
 ## [v2.0.0-ALPHA-14](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-14) (2022-06-21)
 
