@@ -1,20 +1,33 @@
-name: CI for Docs API V2
+# @author Ivan Senic
+name: Documents API V2
 
+# runs on
+# * pushes and pull requests on the v2.0.0.
+# * manual trigger
 on:
-
-# for now only manual trigger
-#  push:
-#    branches: [ "v2.0.0" ]
-#
-#  pull_request:
-#    branches: [ "v2.0.0" ]
-
+  push:
+    branches: [ "v2.0.0" ]
+  pull_request:
+    branches: [ "v2.0.0" ]
   workflow_dispatch:
 
+# Jobs structure:
+#
+# 1. Builds the coordinator without tests in order to get snapshot jar versions
+# 2. Then 4 jobs in parallel
+#  a) Build and test the sgv2-docsapi
+#  b) Build coordinator docker images (x3)
+# 3. Runs INT tests for sgv2-docsapi (x4 in parallel, C*3, C*4, dse, c2)
+# 4. Clean-up - deletes created docker image artifacts
 jobs:
 
+  # runs mvnw install for building the coordinator jars
+  # caches the stargate-lib folder (needed for the docker images)
+  # cached .m2/repository in order to pass SG snapshots to other jobs
   build-coordinator:
+    name: Coordinator build
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
 
@@ -48,52 +61,91 @@ jobs:
           </settings>
           EOF
 
+      # ensure snapshots from this build are used in next jobs
       - name: Cache Snapshots
         uses: actions/cache@v3
         id: cache-coordinator-snapshots
         env:
           cache-name: cache-coordinator-snapshots
         with:
-          path: ~/.m2/repository/io/stargate/
+          path: ~/.m2/repository/io/stargate
           key: snapshots-${{ github.sha }}
+          restore-keys: |
+            snapshots-
+
+      - name: Cache Libs
+        if: steps.cache-coordinator-snapshots.outputs.cache-hit != 'true'
+        uses: actions/cache@v3
+        id: cache-coordinator-libs
+        env:
+          cache-name: cache-coordinator-libs
+        with:
+          path: ./stargate-lib
+          key: stargate-lib-${{ github.sha }}
 
       - name: Build
         if: steps.cache-coordinator-snapshots.outputs.cache-hit != 'true'
-        run: ./mvnw install -P dse -DskipTests
+        run: MAVEN_OPTS="-Xmx4g" ./mvnw install -P dse -DskipTests
+
+  # Builds C*3, C*4 and DSE coordinator images using matrix
+  # Exports image to a file and then uploads it using action artifacts
+  build-coordinator-docker:
+    name: Docker image
+    needs: build-coordinator
+    runs-on: ubuntu-latest
+
+    # image name needed only
+    strategy:
+      matrix:
+        image: [ coordinator-4_0 , coordinator-3_11, coordinator-dse-68 ]
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Restore Libs
+        uses: actions/cache@v3
+        id: cache-coordinator-libs
+        env:
+          cache-name: cache-coordinator-libs
+        with:
+          path: ./stargate-lib
+          key: stargate-lib-${{ github.sha }}
 
       - name: Set up QEMU
-        if: steps.cache-coordinator-snapshots.outputs.cache-hit != 'true'
         uses: docker/setup-qemu-action@v2
 
       - name: Set up Docker Buildx
-        if: steps.cache-coordinator-snapshots.outputs.cache-hit != 'true'
         uses: docker/setup-buildx-action@v2
 
-      - name: Build Docker Images
-        if: steps.cache-coordinator-snapshots.outputs.cache-hit != 'true'
-        run: ./build_docker_images.sh -t ${{ github.sha }}
-
-      - name: Export Docker Images
-        if: steps.cache-coordinator-snapshots.outputs.cache-hit != 'true'
+      # same as in build_docker_images.sh
+      # just builds a single image
+      - name: Build Docker Image
         run: |
-          docker save --output coordinator-3_11-${{ github.sha }}.tar stargateio/coordinator-3_11:${{ github.sha }}
-          docker save --output coordinator-4_0-${{ github.sha }}.tar stargateio/coordinator-4_0:${{ github.sha }}
-          docker save --output coordinator-dse-68-${{ github.sha }}.tar stargateio/coordinator-dse-68:${{ github.sha }}
+          LIBDIR=./tmp-${RANDOM}
+          mkdir ${LIBDIR}
+          cp ./stargate-lib/*.jar $LIBDIR
+          cp ./stargate-lib/logback.xml $LIBDIR
+          rm ${LIBDIR}/persistence*.jar
+          docker buildx build --target ${{ matrix.image }} --build-arg LIBDIR="$LIBDIR" -t stargateio/${{ matrix.image }}:${{ github.sha }} --load .
 
+      # this will export a file in form image-commitsha.tar
+      - name: Export Docker Image
+        run: |
+          docker save --output ${{ matrix.image }}-${{ github.sha }}.tar stargateio/${{ matrix.image }}:${{ github.sha }}
+
+      # this will upload a file from previous step as an artifact named img-image-commitsha
       - name: Upload Docker Images
-        if: steps.cache-coordinator-snapshots.outputs.cache-hit != 'true'
         uses: actions/upload-artifact@v3
         with:
-          name: coordinator-images
-          path: |
-            coordinator-3_11-${{ github.sha }}.tar
-            coordinator-4_0-${{ github.sha }}.tar
-            coordinator-dse-68-${{ github.sha }}.tar
+          name: img-${{ matrix.image }}-${{ github.sha }}
+          path: ${{ matrix.image }}-${{ github.sha }}.tar
 
-
+  # runs unit tests for the sgv2-docsapi
   build:
+    name: Unit tests
     needs: build-coordinator
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v3
 
@@ -133,7 +185,7 @@ jobs:
         env:
           cache-name: cache-coordinator-snapshots
         with:
-          path: ~/.m2/repository/io/stargate/
+          path: ~/.m2/repository/io/stargate
           key: snapshots-${{ github.sha }}
 
       - name: Build & Test
@@ -141,33 +193,55 @@ jobs:
           cd sgv2-docsapi/
           ./mvnw -B test
 
+  # runs int tests for the sgv2-docsapi
+  # supports two modes:
+  # 1. by downloading and importing the built docker image
+  # 2. by logging into ECR and fetching images directly
   int-tests:
-    needs: [ build-coordinator, build ]
+    name: Integration tests
+    needs: [ build-coordinator-docker, build ]
     runs-on: ubuntu-latest
 
     strategy:
+
+      # props:
+      # name - human-readable name
+      # profile - what profile should be activated when running int tests
+      # repository-login (optional) - if login to the ECR docker repo is needed
+      # image-artifact (optional) - name of the artifact containing the image file
+      # image-file - file name of the image to import (must be in the artifact)
+      # image - final image name to use when running int tests (-Dtesting.containers.stargate-image)
       matrix:
-        profile: [ cassandra-40, cassandra-311, dse-68 ]
+        name: [ cassandra-40, cassandra-311, dse-68, c2-dse-68 ]
         include:
-          - profile: cassandra-40
-            image: coordinator-4_0-${{ github.sha }}.tar
-          - profile: cassandra-311
-            image: coordinator-3_11-${{ github.sha }}.tar
-          - profile: dse-68
-            image: coordinator-dse-68-${{ github.sha }}.tar
+          - name: cassandra-40
+            profile: cassandra-40
+            repository-login: false
+            image-artifact: img-coordinator-4_0-${{ github.sha }}
+            image-file: coordinator-4_0-${{ github.sha }}.tar
+            image: stargateio/coordinator-4_0:${{ github.sha }}
+
+          - name: cassandra-311
+            profile: cassandra-311
+            repository-login: false
+            image-artifact: img-coordinator-3_11-${{ github.sha }}
+            image-file: coordinator-3_11-${{ github.sha }}.tar
+            image: stargateio/coordinator-3_11:${{ github.sha }}
+
+          - name: dse-68
+            profile: dse-68
+            repository-login: false
+            image-artifact: img-coordinator-dse-68-${{ github.sha }}
+            image-file: coordinator-dse-68-${{ github.sha }}.tar
+            image: stargateio/coordinator-dse-68:${{ github.sha }}
+
+          - name: c2-dse-68
+            profile: dse-68
+            repository-login: true
+            image: '237073351946.dkr.ecr.us-east-1.amazonaws.com/c2/c2-6_8:v2.0.0-ALPHA-15'
 
     steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-
-      - name: Download Docker Images
-        uses: actions/download-artifact@v3
-        with:
-          name: coordinator-images
-          path: /tmp
-
-      - name: Load image
-        run: docker load --input /tmp/${{ matrix.image }}
+      - uses: actions/checkout@v3
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
@@ -199,16 +273,64 @@ jobs:
           </settings>
           EOF
 
+      - name: Set up Docker Buildx
+        if: ${{ matrix.image-file }}
+        uses: docker/setup-buildx-action@v2
+
+      # downloads the artifact if one is defined
+      - name: Download Docker Image
+        if: ${{ matrix.image-artifact}}
+        uses: actions/download-artifact@v3
+        with:
+          name: ${{ matrix.image-artifact }}
+          path: /tmp
+
+      # loads the image from the .tar
+      - name: Load image
+        if: ${{ matrix.image-file }}
+        run: docker load --input /tmp/${{ matrix.image-file }}
+
       - name: Restore Snapshots
         uses: actions/cache@v3
         id: restore-coordinator-snapshots
         env:
           cache-name: cache-coordinator-snapshots
         with:
-          path: ~/.m2/repository/io/stargate/
+          path: ~/.m2/repository/io/stargate
           key: snapshots-${{ github.sha }}
 
+      # configure AWS credentials if repo login is needed
+      - name: Configure AWS credentials
+        if: ${{ matrix.repository-login }} == true
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.ECR_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.ECR_SECRET_KEY }}
+          aws-region: us-east-1
+
+      # login to the ECR if needed
+      - name: Login to Amazon ECR
+        if: ${{ matrix.repository-login }}
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # run finally the int tests
       - name: Integration Test
         run: |
           cd sgv2-docsapi/
-          ./mvnw -B integration-test -DskipUnitTests -P ${{ matrix.profile }}
+          ./mvnw -B verify -DskipUnitTests -P ${{ matrix.profile }} -Dtesting.containers.stargate-image=${{ matrix.image }}
+
+  # runs always, deletes built docker image artifacts
+  clean-up:
+    name: Clean up
+    runs-on: ubuntu-latest
+    needs: int-tests
+    if: ${{ always() }}
+
+    steps:
+      - uses: geekyeggo/delete-artifact@v1
+        with:
+          name: |
+            img-coordinator-4_0-${{ github.sha }}
+            img-coordinator-3_11-${{ github.sha }}
+            img-coordinator-dse-68-${{ github.sha }}

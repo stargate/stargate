@@ -13,6 +13,7 @@ In order to update to a newer patch version, please follow the guidelines below:
 * Update the [CI Dockerfile](../ci/Dockerfile) and set the new version in the `ccm create` command related to DSE 6.8.
 Note that this will have no effect until the docker image is rebuilt and pushed to the remote repository, thus creating an issue for that would be a good idea.
 * Make sure everything compiles and CI tests are green.
+* Update the [default docker-compose env variables](../docker-compose/dse-6.8/.env) to reference the new version.
 * Update this `README.md` file with the new or updated instructions.
 
 It's always good to validate your work against the pull requests that bumped the version in the past:

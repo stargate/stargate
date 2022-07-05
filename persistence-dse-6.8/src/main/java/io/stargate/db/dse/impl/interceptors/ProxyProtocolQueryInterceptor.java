@@ -24,7 +24,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
@@ -58,8 +57,9 @@ import org.slf4j.LoggerFactory;
  * `system.local`. `system.peers` is populated with A-records from a provided DNS name.
  */
 public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
-  public static final String PROXY_DNS_NAME =
-      System.getProperty("stargate.proxy_protocol.dns_name");
+  public static final String SYSPROP_PROXY_DNS_NAME = "stargate.proxy_protocol.dns_name";
+
+  public static final String PROXY_DNS_NAME = System.getProperty(SYSPROP_PROXY_DNS_NAME);
   public static final String INTERNAL_PROXY_DNS_NAME =
       System.getProperty("stargate.proxy_protocol.internal_dns_name");
   public static final int PROXY_PORT =
@@ -126,7 +126,13 @@ public class ProxyProtocolQueryInterceptor implements QueryInterceptor {
       long resolveDelaySecs,
       QueryInterceptor wrapped) {
     this.resolver = resolver;
-    this.proxyDnsName = Objects.requireNonNull(proxyDnsName);
+    if (proxyDnsName == null) {
+      throw new IllegalArgumentException(
+          String.format(
+              "System property '%s' undefined, cannot create %s",
+              SYSPROP_PROXY_DNS_NAME, getClass().getName()));
+    }
+    this.proxyDnsName = proxyDnsName;
     this.internalProxyDnsName =
         (internalProxyDnsName == null) ? "internal-" + proxyDnsName : internalProxyDnsName;
     this.proxyPort = proxyPort;
