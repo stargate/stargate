@@ -1,5 +1,37 @@
 # Changelog
 
+## [v1.0.59](https://github.com/stargate/stargate/tree/v1.0.59) (2022-06-30)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.58...v1.0.59)
+
+**Fixed bugs:**
+
+- Rest v2 "Get a Table" endpoint does not correctly report defaultTimeToLive [\#1836](https://github.com/stargate/stargate/issues/1836)
+- `ByteBuf` leak in `HAProxyMessageDecoder` \(proxy protocol handling?\) [\#1397](https://github.com/stargate/stargate/issues/1397)
+
+**Closed issues:**
+
+- Update persistence to C\*3.11.13, 4.0.4 [\#1920](https://github.com/stargate/stargate/issues/1920)
+- Port read and search paths of the `ReactiveDocumentService` to the `ReadDocumentService` [\#1732](https://github.com/stargate/stargate/issues/1732)
+- Javascript: Can't run codegen. [\#1691](https://github.com/stargate/stargate/issues/1691)
+- Configure GraphQL-java's `DataFetcherExceptionHandler` to reduce log noise [\#1279](https://github.com/stargate/stargate/issues/1279)
+- Expose "default time-to-live" configuration of Tables via `persistence-api` [\#1896](https://github.com/stargate/stargate/issues/1896)
+- Bridge does not expose "defaultTTL" for `CqlTable` [\#1881](https://github.com/stargate/stargate/issues/1881)
+
+**Merged pull requests:**
+
+- Build docker build image for c3.11.13 / c4.0.4 [\#1932](https://github.com/stargate/stargate/pull/1932) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Upgrade C\*3 \(3.11.13\) and C\*4 \(4.0.4\) dependencies [\#1926](https://github.com/stargate/stargate/pull/1926) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#1836 \(expose default TTL for Table resource\) [\#1917](https://github.com/stargate/stargate/pull/1917) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix link on DSE-persistence README [\#1915](https://github.com/stargate/stargate/pull/1915) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix `ByteBuf` leak caused by not releasing `HAProxyMessage` [\#1910](https://github.com/stargate/stargate/pull/1910) ([mpenick](https://github.com/mpenick))
+- Test GH actions for CI [\#1904](https://github.com/stargate/stargate/pull/1904) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Reduce GraphQLJava induced log noise [\#1903](https://github.com/stargate/stargate/pull/1903) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add CLA [\#1902](https://github.com/stargate/stargate/pull/1902) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Update `dse-core` dependency from 6.8.21 to 6.8.24 [\#1898](https://github.com/stargate/stargate/pull/1898) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add `ttl\(\)` method to persistence backends [\#1897](https://github.com/stargate/stargate/pull/1897) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Publish new Stargate-builder \(1.0.8\) for DSE core 6.8.24 [\#1906](https://github.com/stargate/stargate/pull/1906) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v1.0.58](https://github.com/stargate/stargate/tree/v1.0.58) (2022-06-15)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.57...v1.0.58)
