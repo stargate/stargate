@@ -6,7 +6,7 @@
 
 **Merged pull requests:**
 
-- update docs api V2 traget C\* and DSE versions [\#1945](https://github.com/stargate/stargate/pull/1945)
+- update docs api V2 target C\* and DSE versions [\#1945](https://github.com/stargate/stargate/pull/1945)
 - relates to \#1920: update C\* and DSE versions in the docker compose [\#1944](https://github.com/stargate/stargate/pull/1944)
 - relates to \#1730: added document delete resource test [\#1933](https://github.com/stargate/stargate/pull/1933)
 - relates to \#1737: docs api V2 action workflow updates [\#1931](https://github.com/stargate/stargate/pull/1931)
