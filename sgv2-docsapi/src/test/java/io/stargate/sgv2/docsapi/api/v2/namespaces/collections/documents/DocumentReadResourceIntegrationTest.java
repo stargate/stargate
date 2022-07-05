@@ -220,10 +220,11 @@ class DocumentReadResourceIntegrationTest {
 
       String where =
           """
-              {
-                "value": {"$eq": "a"},
-                "n.value": {"$lt": 6, "$selectivity":0.5}
-              }""";
+          {
+            "value": {"$eq": "a"},
+            "n.value": {"$lt": 6, "$selectivity":0.5}
+          }
+          """;
 
       try {
         // assert
@@ -251,7 +252,14 @@ class DocumentReadResourceIntegrationTest {
       try {
         // assert
         String expected =
-            "{\"%s\":{\"value\":\"a\"},\"%s\":{\"value\":\"b\"}}".formatted(ids[0], ids[1]);
+            """
+            {
+              "%s":{"value":"a"},
+              "%s":{"value":"b"}
+            }
+            """
+                .formatted(ids[0], ids[1]);
+
         given()
             .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .param("where", "{\"value\": {\"$in\": [\"a\", \"b\"]}}")
@@ -275,7 +283,14 @@ class DocumentReadResourceIntegrationTest {
       try {
         // assert
         String expected =
-            "{\"%s\":{\"value\":\"a\"},\"%s\":{\"value\":\"b\"}}".formatted(ids[0], ids[1]);
+            """
+            {
+              "%s":{"value":"a"},
+              "%s":{"value":"b"}
+            }
+            """
+                .formatted(ids[0], ids[1]);
+
         given()
             .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .param("where", "{\"value\": {\"$ne\": \"c\"}}")
@@ -378,7 +393,14 @@ class DocumentReadResourceIntegrationTest {
       try {
         // assert
         String expected =
-            "{\"%s\":{\"n\":{\"value\":5}},\"%s\":{\"m\":{\"value\":8}}}".formatted(ids[0], ids[1]);
+            """
+            {
+              "%s":{"n":{"value":5}},
+              "%s":{"m":{"value":8}}
+            }
+            """
+                .formatted(ids[0], ids[1]);
+
         given()
             .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .param("where", "{\"n,m.value\": {\"$gte\": 5}}")
@@ -598,8 +620,14 @@ class DocumentReadResourceIntegrationTest {
       try {
         // assert
         String expected =
-            "{\"%s\":{\"value\":[{\"n\":{\"value\":5}},{\"n\":{\"value\":8}}]},\"%s\":{\"value\":[{\"n\":{\"value\":10}},{\"n\":{\"value\":3}}]}}"
+            """
+            {
+              "%s":{"value":[{"n":{"value":5}},{"n":{"value":8}}]},
+              "%s":{"value":[{"n":{"value":10}},{"n":{"value":3}}]}
+            }
+            """
                 .formatted(ids[0], ids[1]);
+
         given()
             .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .param("where", "{\"value.[0],[1].n.value\": {\"$lt\": 6}}")
@@ -784,7 +812,14 @@ class DocumentReadResourceIntegrationTest {
       try {
         // assert
         String expected =
-            "{\"%s\":{\"value\":\"a\"},\"%s\":{\"value\":\"b\"}}".formatted(ids[0], ids[1]);
+            """
+            {
+              "%s":{"value":"a"},
+              "%s":{"value":"b"}
+            }
+            """
+                .formatted(ids[0], ids[1]);
+
         given()
             .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .param(
@@ -810,7 +845,14 @@ class DocumentReadResourceIntegrationTest {
       try {
         // assert
         String expected =
-            "{\"%s\":{\"value\":\"a\"},\"%s\":{\"value\":\"b\"}}".formatted(ids[0], ids[1]);
+            """
+            {
+              "%s":{"value":"a"},
+              "%s":{"value":"b"}
+            }
+            """
+                .formatted(ids[0], ids[1]);
+
         given()
             .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .param(
@@ -841,7 +883,14 @@ class DocumentReadResourceIntegrationTest {
       try {
         // assert
         String expected =
-            "{\"%s\":{\"value\":\"a\"},\"%s\":{\"value\":\"b\"}}".formatted(ids[0], ids[1]);
+            """
+            {
+              "%s":{"value":"a"},
+              "%s":{"value":"b"}
+            }
+            """
+                .formatted(ids[0], ids[1]);
+
         given()
             .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .param(
@@ -922,8 +971,14 @@ class DocumentReadResourceIntegrationTest {
       try {
         // assert
         String expected =
-            "{\"%s\":{\"value\":\"a\",\"count\": 1},\"%s\":{\"value\":\"b\",\"count\": 2}}"
+            """
+            {
+              "%s":{"value":"a","count": 1},
+              "%s":{"value":"b","count": 2}
+            }
+            """
                 .formatted(ids[0], ids[1]);
+
         given()
             .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .param(
@@ -952,8 +1007,14 @@ class DocumentReadResourceIntegrationTest {
       try {
         // assert
         String expected =
-            "{\"%s\":{\"value\":\"a\",\"count\": 1},\"%s\":{\"value\":\"b\",\"count\": 2}}"
+            """
+            {
+              "%s":{"value":"a","count": 1},
+              "%s":{"value":"b","count": 2}
+            }
+            """
                 .formatted(ids[0], ids[1]);
+
         given()
             .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .param(
@@ -979,7 +1040,14 @@ class DocumentReadResourceIntegrationTest {
       try {
         // assert
         String expected =
-            "{\"%s\":{\"value\":\"a\"},\"%s\":{\"other\":\"b\"}}".formatted(ids[0], ids[1]);
+            """
+            {
+              "%s":{"value":"a"},
+              "%s":{"other":"b"}
+            }
+            """
+                .formatted(ids[0], ids[1]);
+
         given()
             .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .param(
@@ -1006,9 +1074,11 @@ class DocumentReadResourceIntegrationTest {
         // assert
         String expected =
             """
-                {
-                  "%s":{"value":"a"},"%s":{"other":"b"}
-                }"""
+            {
+              "%s":{"value":"a"},
+              "%s":{"other":"b"}
+            }
+            """
                 .formatted(ids[0], ids[1]);
 
         given()
@@ -1040,10 +1110,11 @@ class DocumentReadResourceIntegrationTest {
         // assert
         String expected =
             """
-                {
-                  "%s":{"value":[{"n":{"value":5}},{"m":{"value":8}}]},
-                  "%s":{"value":[{"x":{"value":10}},{"y":{"value":20}}]}
-                }"""
+            {
+              "%s":{"value":[{"n":{"value":5}},{"m":{"value":8}}]},
+              "%s":{"value":[{"x":{"value":10}},{"y":{"value":20}}]}
+            }
+            """
                 .formatted(ids[0], ids[1]);
 
         given()
@@ -1180,10 +1251,11 @@ class DocumentReadResourceIntegrationTest {
         // assert
         String expected =
             """
-                {
-                  "%s":{"value": "b"},
-                  "%s":{"value": "b", "someStuff": {"1": {"first": "a"}, "2": {"second": "b"}}}
-                }"""
+            {
+              "%s":{"value": "b"},
+              "%s":{"value": "b", "someStuff": {"1": {"first": "a"}, "2": {"second": "b"}}}
+            }
+            """
                 .formatted(ids[0], ids[1]);
 
         given()
@@ -1213,10 +1285,11 @@ class DocumentReadResourceIntegrationTest {
         // assert
         String expected =
             """
-                {
-                  "%s":{"value": "b"},
-                  "%s":{"value": "b", "someStuff": {"1": {"first": "a"}, "2": {"second": "b"}}}
-                }"""
+            {
+              "%s":{"value": "b"},
+              "%s":{"value": "b", "someStuff": {"1": {"first": "a"}, "2": {"second": "b"}}}
+            }
+            """
                 .formatted(ids[0], ids[1]);
 
         given()
