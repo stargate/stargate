@@ -143,14 +143,31 @@ public class QueryExecutor {
       ByteBuffer pagingState,
       boolean fetchRowPaging,
       ExecutionContext context) {
-    return queryDocs(
-        keyDepth,
-        ImmutableList.of(query),
-        pageSize,
-        exponentPageSize,
-        pagingState,
-        fetchRowPaging,
-        context);
+    StargateBridge bridge = requestInfo.getStargateBridge();
+
+    // deffer to wrap failures
+    return Multi.createFrom()
+        .deferred(
+            () -> {
+
+              // construct query data and id columns based on depth
+              List<String> idColumns = docIdColumns(keyDepth);
+
+              // get resume mode
+              QueryOuterClass.ResumeMode resumeMode =
+                  getResumeMode(fetchRowPaging, idColumns.size());
+
+              // init the given paging states
+              List<ByteBuffer> pagingStates = CombinedPagingState.deserialize(1, pagingState);
+              PagingStateTracker tracker = new PagingStateTracker(pagingStates);
+
+              // execute the single query
+              Multi<DocumentProperty> documents =
+                  executeQuery(
+                      bridge, query, pageSize, exponentPageSize, pagingState, resumeMode, context);
+
+              return accumulate(documents, idColumns, tracker);
+            });
   }
 
   /**
@@ -223,13 +240,8 @@ public class QueryExecutor {
               // if row page should be fetched
               // then NEXT_ROW is used when we have more than one keys,
               // otherwise NEXT_PARTITION
-              QueryOuterClass.ResumeMode resumeMode = null;
-              if (fetchRowPaging) {
-                resumeMode =
-                    idColumns.size() > 1
-                        ? QueryOuterClass.ResumeMode.NEXT_ROW
-                        : QueryOuterClass.ResumeMode.NEXT_PARTITION;
-              }
+              QueryOuterClass.ResumeMode resumeMode =
+                  getResumeMode(fetchRowPaging, idColumns.size());
 
               // init the given paging states
               List<ByteBuffer> pagingStates =
@@ -237,38 +249,83 @@ public class QueryExecutor {
               PagingStateTracker tracker = new PagingStateTracker(pagingStates);
 
               // execute all queries
-              Multi<Accumulator> accumulatorMulti =
+              Multi<DocumentProperty> documents =
                   executeQueries(
-                          bridge,
-                          queries,
-                          comparator,
-                          pageSize,
-                          exponentPageSize,
-                          pagingStates,
-                          resumeMode,
-                          context)
+                      bridge,
+                      queries,
+                      comparator,
+                      pageSize,
+                      exponentPageSize,
+                      pagingStates,
+                      resumeMode,
+                      context);
 
-                      // map to seed
-                      .map(p -> toSeed(p, comparator, idColumns));
-
-              // then add the TERM to the end
-              return Multi.createBy()
-                  .concatenating()
-                  .streams(accumulatorMulti, Multi.createFrom().items(TERM))
-
-                  // can with tracker combine
-                  .onItem()
-                  .scan(tracker::combine)
-
-                  // filter only complete elements
-                  .filter(Accumulator::isComplete)
-
-                  // and map to the document
-                  .map(Accumulator::toDoc);
+              return accumulate(documents, idColumns, tracker);
             });
   }
 
-  // executes all queries and provides Multi of DocumentProperty
+  private QueryOuterClass.ResumeMode getResumeMode(boolean fetchRowPaging, int idColumnsSize) {
+    // if row page should be fetched
+    // then NEXT_ROW is used when we have more than one keys,
+    // otherwise NEXT_PARTITION
+    QueryOuterClass.ResumeMode resumeMode = null;
+    if (fetchRowPaging) {
+      resumeMode =
+          idColumnsSize > 1
+              ? QueryOuterClass.ResumeMode.NEXT_ROW
+              : QueryOuterClass.ResumeMode.NEXT_PARTITION;
+    }
+    return resumeMode;
+  }
+
+  // accumulates the document properties into RawDocument instances
+  private Multi<RawDocument> accumulate(
+      Multi<DocumentProperty> documents, List<String> idColumns, PagingStateTracker tracker) {
+    Multi<Accumulator> accumulatorMulti = documents.map(p -> toSeed(p, comparator, idColumns));
+
+    // then add the TERM to the end
+    return Multi.createBy()
+        .concatenating()
+        .streams(accumulatorMulti, Multi.createFrom().items(TERM))
+
+        // can with tracker combine
+        .onItem()
+        .scan(tracker::combine)
+
+        // filter only complete elements
+        .filter(Accumulator::isComplete)
+
+        // and map to the document
+        .map(Accumulator::toDoc);
+  }
+
+  // executes a single queries and provides Multi of DocumentProperty
+  // we can short circuit and avoid any merges and transformations
+  private Multi<DocumentProperty> executeQuery(
+      StargateBridge stargateBridge,
+      QueryOuterClass.Query query,
+      int pageSize,
+      boolean exponentPageSize,
+      ByteBuffer pagingState,
+      QueryOuterClass.ResumeMode resumeMode,
+      ExecutionContext context) {
+
+    ByteBuffer queryPagingState = pagingState;
+    if (queryPagingState != null) {
+      queryPagingState = queryPagingState.slice();
+    }
+
+    // execute that query
+    return queryBridge(
+            stargateBridge, query, pageSize, exponentPageSize, queryPagingState, resumeMode)
+
+        // for each result set, transform to doc property
+        .onItem()
+        .transformToMultiAndConcatenate(
+            rs -> Multi.createFrom().iterable(properties(0, query, rs, context)));
+  }
+
+  // executes multiple queries and provides Multi of DocumentProperty
   // this means that each item represents one value of a single document
   // these are ordered, first by partition, then by the value of the included sub-paths
   private Multi<DocumentProperty> executeQueries(
@@ -295,7 +352,7 @@ public class QueryExecutor {
                   }
 
                   // execute that query
-                  return executeQuery(
+                  return queryBridge(
                           stargateBridge,
                           query,
                           pageSize,
@@ -326,7 +383,7 @@ public class QueryExecutor {
 
   // executes a single query and returns Multi of the ResultSet
   // each result set represents a result of a single trip to the data store
-  private Multi<QueryOuterClass.ResultSet> executeQuery(
+  private Multi<QueryOuterClass.ResultSet> queryBridge(
       StargateBridge stargateBridge,
       QueryOuterClass.Query query,
       int pageSize,

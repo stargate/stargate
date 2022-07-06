@@ -129,8 +129,7 @@ public class ReadDocumentsService {
                           String state = Paginator.makeExternalPagingState(paginator, rawDocuments);
 
                           ObjectNode docsResult = createJsonMap(rawDocuments, fieldPaths, false);
-                          return new DocumentResponseWrapper<JsonNode>(
-                              null, state, docsResult, profile);
+                          return new DocumentResponseWrapper<>(null, state, docsResult, profile);
                         } else {
                           ObjectNode emptyNode = objectMapper.createObjectNode();
                           return new DocumentResponseWrapper<>(null, null, emptyNode, profile);
@@ -328,7 +327,7 @@ public class ReadDocumentsService {
                 String msg =
                     String.format(
                         "Conditions across multiple fields are not yet supported. Found: %d.",
-                        fieldPaths.size());
+                        filterPaths.size());
                 throw new ErrorCodeRuntimeException(
                     ErrorCode.DOCS_API_GET_MULTIPLE_FIELD_CONDITIONS, msg);
               }
