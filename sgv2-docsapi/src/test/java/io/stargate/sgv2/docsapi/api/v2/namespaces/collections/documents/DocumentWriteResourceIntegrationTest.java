@@ -289,6 +289,26 @@ class DocumentWriteResourceIntegrationTest {
     }
 
     @Test
+    public void tableNotAValidCollection() {
+      String namespace = "system";
+      String collection = "local";
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .body(DEFAULT_PAYLOAD)
+          .when()
+          .post(BASE_PATH, namespace, collection)
+          .then()
+          .statusCode(400)
+          .body("code", equalTo(400))
+          .body(
+              "description",
+              equalTo(
+                  "The database table system.local is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted."));
+    }
+
+    @Test
     public void unauthorized() {
       given()
           .header("Content-Type", "application/json")

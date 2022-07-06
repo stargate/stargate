@@ -16,13 +16,13 @@ import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.service.schema.NamespaceManager;
 import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.testprofiles.IntegrationTestProfile;
-import java.io.IOException;
 import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 import javax.enterprise.context.control.ActivateRequestContext;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -34,9 +34,11 @@ import org.testcontainers.shaded.org.awaitility.Awaitility;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class DocumentPatchResourceIntegrationTest {
 
-  public static final String BASE_PATH = "/v2/namespaces/{namespace}/collections/{collection}";
+  public static final String BASE_PATH =
+      "/v2/namespaces/{namespace}/collections/{collection}/{document-id}";
   public static final String DEFAULT_NAMESPACE = RandomStringUtils.randomAlphanumeric(16);
   public static final String DEFAULT_COLLECTION = RandomStringUtils.randomAlphanumeric(16);
+  public String documentId;
   public static final String DEFAULT_PAYLOAD =
       "{\"test\": \"document\", \"this\": [\"is\", 1, true]}";
   public static final String MALFORMED_PAYLOAD = "{\"malformed\": ";
@@ -63,6 +65,11 @@ class DocumentPatchResourceIntegrationTest {
         .atMost(Duration.ofSeconds(10));
   }
 
+  @BeforeEach
+  public void setup() {
+    documentId = RandomStringUtils.randomAlphanumeric(16);
+  }
+
   @Nested
   class PatchDocument {
     @Test
@@ -72,16 +79,16 @@ class DocumentPatchResourceIntegrationTest {
           .header("Content-Type", "application/json")
           .body(DEFAULT_PAYLOAD)
           .when()
-          .patch(BASE_PATH + "/newdoc", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200)
-          .body("documentId", equalTo("newdoc"));
+          .body("documentId", equalTo(documentId));
 
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", "true")
           .when()
-          .get(BASE_PATH + "/newdoc", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200)
           .body(jsonEquals(DEFAULT_PAYLOAD));
@@ -94,26 +101,26 @@ class DocumentPatchResourceIntegrationTest {
           .header("Content-Type", "application/json")
           .body("{\"a\":\"b\"}")
           .when()
-          .put(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .put(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200)
-          .body("documentId", equalTo("test"));
+          .body("documentId", equalTo(documentId));
 
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .header("Content-Type", "application/json")
           .body(DEFAULT_PAYLOAD)
           .when()
-          .patch(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200)
-          .body("documentId", equalTo("test"));
+          .body("documentId", equalTo(documentId));
 
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", "true")
           .when()
-          .get(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200)
           .body(jsonEquals("{\"test\": \"document\", \"this\": [\"is\", 1, true], \"a\": \"b\"}"));
@@ -121,12 +128,13 @@ class DocumentPatchResourceIntegrationTest {
 
     @Test
     public void happyPathNoCollection() {
+      String tableName = RandomStringUtils.randomAlphanumeric(16);
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .header("Content-Type", "application/json")
           .body(DEFAULT_PAYLOAD)
           .when()
-          .patch(BASE_PATH + "/test", DEFAULT_NAMESPACE, "newtable")
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, tableName, documentId)
           .then()
           .statusCode(200);
 
@@ -134,20 +142,20 @@ class DocumentPatchResourceIntegrationTest {
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", "true")
           .when()
-          .get(BASE_PATH + "/test", DEFAULT_NAMESPACE, "newtable")
+          .get(BASE_PATH, DEFAULT_NAMESPACE, tableName, documentId)
           .then()
           .statusCode(200)
           .body(jsonEquals(DEFAULT_PAYLOAD));
     }
 
     @Test
-    public void testRootDocumentPatch() throws IOException {
+    public void rootDocumentPatch() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .header("Content-Type", "application/json")
           .body("{\"abc\": 1}")
           .when()
-          .patch(BASE_PATH + "/1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200);
 
@@ -155,7 +163,7 @@ class DocumentPatchResourceIntegrationTest {
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", "true")
           .when()
-          .get(BASE_PATH + "/1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200)
           .body(jsonEquals("{\"abc\": 1}"));
@@ -165,7 +173,7 @@ class DocumentPatchResourceIntegrationTest {
           .header("Content-Type", "application/json")
           .body("{\"bcd\": true}")
           .when()
-          .patch(BASE_PATH + "/1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200);
 
@@ -173,7 +181,7 @@ class DocumentPatchResourceIntegrationTest {
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", "true")
           .when()
-          .get(BASE_PATH + "/1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200)
           .body(jsonEquals("{\"abc\": 1, \"bcd\": true}"));
@@ -183,7 +191,7 @@ class DocumentPatchResourceIntegrationTest {
           .header("Content-Type", "application/json")
           .body("{\"bcd\": {\"a\": {\"b\": 0 }}}")
           .when()
-          .patch(BASE_PATH + "/1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200);
 
@@ -191,7 +199,7 @@ class DocumentPatchResourceIntegrationTest {
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", "true")
           .when()
-          .get(BASE_PATH + "/1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200)
           .body(jsonEquals("{ \"abc\": 1, \"bcd\": {\"a\": {\"b\": 0 }} }"));
@@ -201,7 +209,7 @@ class DocumentPatchResourceIntegrationTest {
           .header("Content-Type", "application/json")
           .body("{\"bcd\": [1,2,3,4]}")
           .when()
-          .patch(BASE_PATH + "/1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200);
 
@@ -209,7 +217,7 @@ class DocumentPatchResourceIntegrationTest {
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", "true")
           .when()
-          .get(BASE_PATH + "/1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200)
           .body(jsonEquals("{ \"abc\": 1, \"bcd\": [1,2,3,4] }"));
@@ -219,7 +227,7 @@ class DocumentPatchResourceIntegrationTest {
           .header("Content-Type", "application/json")
           .body("{\"bcd\": [5,{\"a\": 23},7,8]}")
           .when()
-          .patch(BASE_PATH + "/1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200);
 
@@ -227,7 +235,7 @@ class DocumentPatchResourceIntegrationTest {
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", "true")
           .when()
-          .get(BASE_PATH + "/1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200)
           .body(jsonEquals("{ \"abc\": 1, \"bcd\": [5,{\"a\": 23},7,8] }"));
@@ -237,7 +245,7 @@ class DocumentPatchResourceIntegrationTest {
           .header("Content-Type", "application/json")
           .body("{\"bcd\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}")
           .when()
-          .patch(BASE_PATH + "/1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200);
 
@@ -245,7 +253,7 @@ class DocumentPatchResourceIntegrationTest {
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", "true")
           .when()
-          .get(BASE_PATH + "/1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200)
           .body(jsonEquals("{ \"abc\": 1, \"bcd\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }"));
@@ -255,7 +263,7 @@ class DocumentPatchResourceIntegrationTest {
           .header("Content-Type", "application/json")
           .body("{\"bcd\": {\"replace\": \"array\"}}")
           .when()
-          .patch(BASE_PATH + "/1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200);
 
@@ -263,7 +271,7 @@ class DocumentPatchResourceIntegrationTest {
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", "true")
           .when()
-          .get(BASE_PATH + "/1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200)
           .body(jsonEquals("{ \"abc\": 1, \"bcd\": {\"replace\": \"array\"} }"));
@@ -273,7 +281,7 @@ class DocumentPatchResourceIntegrationTest {
           .header("Content-Type", "application/json")
           .body("{\"done\": \"done\"}")
           .when()
-          .patch(BASE_PATH + "/1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200);
 
@@ -281,11 +289,161 @@ class DocumentPatchResourceIntegrationTest {
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", "true")
           .when()
-          .get(BASE_PATH + "/1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200)
           .body(
               jsonEquals("{ \"abc\": 1, \"bcd\": {\"replace\": \"array\"}, \"done\": \"done\" }"));
+    }
+
+    @Test
+    public void rootDocumentPatchNulls() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .body("{\"abc\": null}")
+          .when()
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200);
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .queryParam("raw", "true")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200)
+          .body(jsonEquals("{\"abc\": null}"));
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .body("{\"bcd\": null}")
+          .when()
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200);
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .queryParam("raw", "true")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200)
+          .body(jsonEquals("{\"abc\": null, \"bcd\": null}"));
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .body("{\"bcd\": {\"a\": {\"b\": null }}}")
+          .when()
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200);
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .queryParam("raw", "true")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200)
+          .body(jsonEquals("{ \"abc\": null, \"bcd\": {\"a\": {\"b\": null }} }"));
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .body("{\"bcd\": [null,null,null,null]}")
+          .when()
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200);
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .queryParam("raw", "true")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200)
+          .body(jsonEquals("{ \"abc\": null, \"bcd\": [null,null,null,null] }"));
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .body("{\"bcd\": [null,{\"a\": null},null,null]}")
+          .when()
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200);
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .queryParam("raw", "true")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200)
+          .body(jsonEquals("{ \"abc\": null, \"bcd\": [null,{\"a\": null},null,null] }"));
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .body(
+              "{\"bcd\": [null, null, null, null, null, null, null, null, null, null, null, null, null]}")
+          .when()
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200);
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .queryParam("raw", "true")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200)
+          .body(
+              jsonEquals(
+                  "{ \"abc\": null, \"bcd\": [null, null, null, null, null, null, null, null, null, null, null, null, null] }"));
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .body("{\"bcd\": {\"replace\": null}}")
+          .when()
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200);
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .queryParam("raw", "true")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200)
+          .body(jsonEquals("{ \"abc\": null, \"bcd\": {\"replace\": null} }"));
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .body("{\"done\": null}")
+          .when()
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200);
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .queryParam("raw", "true")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200)
+          .body(jsonEquals("{ \"abc\": null, \"bcd\": {\"replace\": null}, \"done\": null }"));
     }
 
     @Test
@@ -296,7 +454,7 @@ class DocumentPatchResourceIntegrationTest {
           .queryParam("profile", "true")
           .body(DEFAULT_PAYLOAD)
           .when()
-          .patch(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200)
           .body("profile", notNullValue());
@@ -310,14 +468,14 @@ class DocumentPatchResourceIntegrationTest {
           .queryParam("ttl-auto", "true")
           .body(DEFAULT_PAYLOAD)
           .when()
-          .patch(BASE_PATH + "/testdoc", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200);
 
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
-          .get(BASE_PATH + "/testdoc", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200);
     }
@@ -330,10 +488,10 @@ class DocumentPatchResourceIntegrationTest {
           .queryParam("ttl", "5")
           .body("{\"a\":\"b\"}")
           .when()
-          .put(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .put(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200)
-          .body("documentId", equalTo("test"));
+          .body("documentId", equalTo(documentId));
 
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
@@ -341,7 +499,7 @@ class DocumentPatchResourceIntegrationTest {
           .queryParam("ttl-auto", "true")
           .body(DEFAULT_PAYLOAD)
           .when()
-          .patch(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200);
 
@@ -352,7 +510,7 @@ class DocumentPatchResourceIntegrationTest {
                 given()
                     .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
                     .when()
-                    .get(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+                    .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
                     .then()
                     .statusCode(404);
               });
@@ -365,7 +523,7 @@ class DocumentPatchResourceIntegrationTest {
           .header("Content-Type", "application/json")
           .body(MALFORMED_PAYLOAD)
           .when()
-          .patch(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(400);
     }
@@ -377,7 +535,7 @@ class DocumentPatchResourceIntegrationTest {
           .header("Content-Type", "application/json")
           .body("{}")
           .when()
-          .patch(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(400)
           .body("code", equalTo(400))
@@ -393,7 +551,7 @@ class DocumentPatchResourceIntegrationTest {
           .header("Content-Type", "application/json")
           .body("[]")
           .when()
-          .patch(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .body("code", equalTo(400))
           .body(
@@ -408,7 +566,7 @@ class DocumentPatchResourceIntegrationTest {
           .header("Content-Type", "application/json")
           .body("[1,2,3]")
           .when()
-          .patch(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .body("code", equalTo(400))
           .body(
@@ -423,7 +581,7 @@ class DocumentPatchResourceIntegrationTest {
           .header("Content-Type", "application/json")
           .body("true")
           .when()
-          .patch(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .body("code", equalTo(400))
           .body(
@@ -438,11 +596,31 @@ class DocumentPatchResourceIntegrationTest {
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .header("Content-Type", "application/json")
           .when()
-          .patch(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(400)
           .body("code", equalTo(400))
           .body("description", equalTo("Request invalid: must not be null."));
+    }
+
+    @Test
+    public void tableNotAValidCollection() {
+      String namespace = "system";
+      String collection = "local";
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .body(DEFAULT_PAYLOAD)
+          .when()
+          .patch(BASE_PATH, namespace, collection, documentId)
+          .then()
+          .statusCode(400)
+          .body("code", equalTo(400))
+          .body(
+              "description",
+              equalTo(
+                  "The database table system.local is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted."));
     }
 
     @Test
@@ -451,7 +629,7 @@ class DocumentPatchResourceIntegrationTest {
           .header("Content-Type", "application/json")
           .body(DEFAULT_PAYLOAD)
           .when()
-          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(401);
     }
@@ -463,7 +641,7 @@ class DocumentPatchResourceIntegrationTest {
           .header("Content-Type", "application/json")
           .body(DEFAULT_PAYLOAD)
           .when()
-          .patch(BASE_PATH + "/test", "notakeyspace", DEFAULT_COLLECTION)
+          .patch(BASE_PATH, "notakeyspace", DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(404)
           .body("code", equalTo(404))
@@ -482,19 +660,139 @@ class DocumentPatchResourceIntegrationTest {
           .header("Content-Type", "application/json")
           .body(DEFAULT_PAYLOAD)
           .when()
-          .patch(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH + "/path", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200)
-          .body("documentId", equalTo("test"));
+          .body("documentId", equalTo(documentId));
 
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", "true")
           .when()
-          .get(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .get(BASE_PATH + "/path", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200)
           .body(jsonEquals(DEFAULT_PAYLOAD));
+    }
+
+    @Test
+    public void subDocumentPatch() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .body("{\"abc\": null}")
+          .when()
+          .put(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200);
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .body("{\"bcd\": {}}}")
+          .when()
+          .patch(BASE_PATH + "/abc", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200);
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .queryParam("raw", "true")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200)
+          .body(jsonEquals("{ \"abc\": { \"bcd\": {} }}}"));
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .body("3")
+          .when()
+          .patch(BASE_PATH + "/abc/bcd", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200);
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .queryParam("raw", "true")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200)
+          .body(jsonEquals("{ \"abc\": { \"bcd\": 3 }}}"));
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .body("{\"bcd\": [null,2,null,4]}")
+          .when()
+          .patch(BASE_PATH + "/abc", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200);
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .queryParam("raw", "true")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200)
+          .body(jsonEquals("{ \"abc\": {\"bcd\": [null,2,null,4]} }"));
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .body("{\"bcd\": [1,{\"a\": null},3,4]}")
+          .when()
+          .patch(BASE_PATH + "/abc", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200);
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .queryParam("raw", "true")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200)
+          .body(jsonEquals("{ \"abc\": { \"bcd\": [1,{\"a\": null},3,4] }}"));
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .body("{\"bcd\": [null]}")
+          .when()
+          .patch(BASE_PATH + "/abc", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200);
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .queryParam("raw", "true")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200)
+          .body(jsonEquals("{ \"abc\": { \"bcd\": [null] }}"));
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header("Content-Type", "application/json")
+          .body("{\"null\": null}")
+          .when()
+          .patch(BASE_PATH + "/abc", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200);
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .queryParam("raw", "true")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .then()
+          .statusCode(200)
+          .body(jsonEquals("{ \"abc\": { \"bcd\": [null], \"null\": null }}"));
     }
 
     @Test
@@ -508,7 +806,7 @@ class DocumentPatchResourceIntegrationTest {
           .queryParam("ttl", "5")
           .body(obj1)
           .when()
-          .put(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .put(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200);
 
@@ -518,7 +816,7 @@ class DocumentPatchResourceIntegrationTest {
           .queryParam("ttl-auto", "true")
           .body(obj2)
           .when()
-          .patch(BASE_PATH + "/test/1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH + "/1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200);
 
@@ -530,7 +828,7 @@ class DocumentPatchResourceIntegrationTest {
                 given()
                     .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
                     .when()
-                    .get(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+                    .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
                     .then()
                     .statusCode(404);
               });
@@ -547,7 +845,7 @@ class DocumentPatchResourceIntegrationTest {
           .header("Content-Type", "application/json")
           .body(obj1)
           .when()
-          .put(BASE_PATH + "/testdoc2", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .put(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200);
 
@@ -557,14 +855,14 @@ class DocumentPatchResourceIntegrationTest {
           .queryParam("ttl-auto", "true")
           .body(obj2)
           .when()
-          .patch(BASE_PATH + "/testdoc2/a", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH + "/a", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200);
 
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
-          .get(BASE_PATH + "/testdoc2", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200)
           .body(
@@ -581,7 +879,7 @@ class DocumentPatchResourceIntegrationTest {
           .queryParam("profile", "true")
           .body(DEFAULT_PAYLOAD)
           .when()
-          .patch(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200)
           .body("profile", notNullValue());
@@ -594,7 +892,7 @@ class DocumentPatchResourceIntegrationTest {
           .header("Content-Type", "application/json")
           .body(MALFORMED_PAYLOAD)
           .when()
-          .patch(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(400);
     }
@@ -603,7 +901,7 @@ class DocumentPatchResourceIntegrationTest {
     public void unauthorized() {
       given()
           .when()
-          .patch(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .patch(BASE_PATH + "/path", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(401);
     }
@@ -615,7 +913,7 @@ class DocumentPatchResourceIntegrationTest {
           .header("Content-Type", "application/json")
           .body(DEFAULT_PAYLOAD)
           .when()
-          .patch(BASE_PATH + "/test", "notakeyspace", DEFAULT_COLLECTION)
+          .patch(BASE_PATH + "/path", "notakeyspace", DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(404)
           .body("code", equalTo(404))

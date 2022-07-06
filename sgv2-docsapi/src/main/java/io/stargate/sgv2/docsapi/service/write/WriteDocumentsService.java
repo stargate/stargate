@@ -459,24 +459,20 @@ public class WriteDocumentsService {
     return readBridgeService
         .getDocumentTtlInfo(namespace, collection, documentId, ctx)
         .onItem()
+        .ifNotNull()
         .transform(
             rawDocument -> {
-              if (rawDocument == null) {
-                return 0;
-              }
               List<RowWrapper> rows = rawDocument.rows();
               if (rows.isEmpty()) {
                 return 0;
               }
-              try {
-                Long value =
-                    rows.get(0)
-                        .getLong(String.format("ttl(%s)", configuration.table().leafColumnName()));
+              RowWrapper row = rows.get(0);
+              String ttlColumn = "ttl(%s)".formatted(configuration.table().leafColumnName());
+              if (!row.isNull(ttlColumn)) {
+                Long value = row.getLong(ttlColumn);
                 return value.intValue();
-              } catch (IllegalArgumentException e) {
-                // getLong had a NULL value
-                return 0;
               }
+              return 0;
             })
         .onItem()
         .ifNull()

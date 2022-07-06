@@ -479,6 +479,34 @@ public class WriteDocumentsServiceTest {
               return ImmutableList.of(row);
             }
           };
+
+      row =
+          new RowWrapper() {
+            @Override
+            public List<QueryOuterClass.ColumnSpec> columns() {
+              return null;
+            }
+
+            @Override
+            public Map<String, Integer> columnIndexMap() {
+              return null;
+            }
+
+            @Override
+            public QueryOuterClass.Row row() {
+              return null;
+            }
+
+            @Override
+            public boolean isNull(String column) {
+              return false;
+            }
+
+            @Override
+            public Long getLong(String columnName) {
+              return 0L;
+            }
+          };
     }
 
     @Test
@@ -614,29 +642,6 @@ public class WriteDocumentsServiceTest {
 
     @Test
     public void happyPathWithSubPathTtlAuto() throws Exception {
-      row =
-          new RowWrapper() {
-            @Override
-            public List<QueryOuterClass.ColumnSpec> columns() {
-              return null;
-            }
-
-            @Override
-            public Map<String, Integer> columnIndexMap() {
-              return null;
-            }
-
-            @Override
-            public QueryOuterClass.Row row() {
-              return null;
-            }
-
-            @Override
-            public Long getLong(String columnName) {
-              return 0L;
-            }
-          };
-
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
@@ -818,6 +823,34 @@ public class WriteDocumentsServiceTest {
               return ImmutableList.of(row);
             }
           };
+
+      row =
+          new RowWrapper() {
+            @Override
+            public List<QueryOuterClass.ColumnSpec> columns() {
+              return null;
+            }
+
+            @Override
+            public Map<String, Integer> columnIndexMap() {
+              return null;
+            }
+
+            @Override
+            public QueryOuterClass.Row row() {
+              return null;
+            }
+
+            @Override
+            public boolean isNull(String column) {
+              return false;
+            }
+
+            @Override
+            public Long getLong(String columnName) {
+              return 0L;
+            }
+          };
     }
 
     @Test
@@ -908,28 +941,6 @@ public class WriteDocumentsServiceTest {
 
     @Test
     public void happyPathWithSubPathTtlAuto() throws Exception {
-      row =
-          new RowWrapper() {
-            @Override
-            public List<QueryOuterClass.ColumnSpec> columns() {
-              return null;
-            }
-
-            @Override
-            public Map<String, Integer> columnIndexMap() {
-              return null;
-            }
-
-            @Override
-            public QueryOuterClass.Row row() {
-              return null;
-            }
-
-            @Override
-            public Long getLong(String columnName) {
-              return 0L;
-            }
-          };
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
