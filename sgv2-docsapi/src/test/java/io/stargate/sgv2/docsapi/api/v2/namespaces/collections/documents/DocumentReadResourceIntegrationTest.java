@@ -2495,7 +2495,7 @@ class DocumentReadResourceIntegrationTest {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
-          .delete(BASE_PATH + "/{document-id}", namespace, collection, DOCUMENT_ID)
+          .get(BASE_PATH + "/{document-id}", namespace, collection, DOCUMENT_ID)
           .then()
           .statusCode(400)
           .body("code", is(400))
