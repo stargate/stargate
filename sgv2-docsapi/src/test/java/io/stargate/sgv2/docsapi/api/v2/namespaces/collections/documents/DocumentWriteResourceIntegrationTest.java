@@ -205,17 +205,13 @@ class DocumentWriteResourceIntegrationTest {
       assertThat(postResponse.header("location")).isNotNull();
       String location = postResponse.header("location");
 
-      Awaitility.await()
-          .atMost(11000, TimeUnit.MILLISECONDS)
-          .untilAsserted(
-              () -> {
-                given()
-                    .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-                    .when()
-                    .get(location)
-                    .then()
-                    .statusCode(404);
-              });
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .when()
+          .get(location)
+          .then()
+          .statusCode(200)
+          .body("data", jsonEquals(DEFAULT_PAYLOAD));
     }
 
     @Test
