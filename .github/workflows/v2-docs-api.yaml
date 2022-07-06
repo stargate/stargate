@@ -238,7 +238,7 @@ jobs:
           - name: c2-dse-68
             profile: dse-68
             repository-login: true
-            image: '237073351946.dkr.ecr.us-east-1.amazonaws.com/c2/c2-6_8:v2.0.0-ALPHA-15'
+            image: '237073351946.dkr.ecr.us-east-1.amazonaws.com/c2/c2-6_8:v2.0.0-ALPHA-16'
 
     steps:
       - uses: actions/checkout@v3
