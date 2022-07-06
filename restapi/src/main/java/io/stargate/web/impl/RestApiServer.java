@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.dropwizard.Application;
 import io.dropwizard.cli.Cli;
-import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
@@ -30,6 +29,7 @@ import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.metrics.jersey.MetricsBinder;
+import io.stargate.metrics.jersey.dwconfig.StargateV1ConfigurationSourceProvider;
 import io.stargate.web.docsapi.dao.DocumentDBFactory;
 import io.stargate.web.docsapi.resources.CollectionsResource;
 import io.stargate.web.docsapi.resources.JsonSchemaResource;
@@ -207,7 +207,8 @@ public class RestApiServer extends Application<RestApiServerConfiguration> {
   @Override
   public void initialize(final Bootstrap<RestApiServerConfiguration> bootstrap) {
     super.initialize(bootstrap);
-    bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
+    bootstrap.setConfigurationSourceProvider(
+        new StargateV1ConfigurationSourceProvider(RestApiActivator.MODULE_NAME));
     bootstrap.setMetricRegistry(metrics.getRegistry(RestApiActivator.MODULE_NAME));
   }
 
