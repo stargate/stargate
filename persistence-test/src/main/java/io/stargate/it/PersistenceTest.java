@@ -2019,29 +2019,27 @@ public abstract class PersistenceTest {
     RowDecorator dec2 = rs2.makeRowDecorator();
     Iterator<Row> it2 = rs2.iterator();
 
-    if (backend.isDse()) {
-      Row first = null;
-      Row last = null;
-      Row p1 = null;
-      PureJavaOperations ops = new PureJavaOperations();
-      while (it1.hasNext()) {
-        assertThat(it2.hasNext()).isTrue();
-        Row r1 = it1.next();
-        Row r2 = it2.next();
-        first = first == null ? r1 : first;
-        last = r1;
-        assertThat(ops.compare(dec1.getComparableBytes(r1), dec2.getComparableBytes(r2)))
-            .isEqualTo(0);
-        if (p1 == null) {
-          p1 = r1;
-        }
-        assertThat(ops.compare(dec1.getComparableBytes(r1), dec2.getComparableBytes(p1)))
-            .isGreaterThanOrEqualTo(0);
+    Row first = null;
+    Row last = null;
+    Row p1 = null;
+    PureJavaOperations ops = new PureJavaOperations();
+    while (it1.hasNext()) {
+      assertThat(it2.hasNext()).isTrue();
+      Row r1 = it1.next();
+      Row r2 = it2.next();
+      first = first == null ? r1 : first;
+      last = r1;
+      assertThat(ops.compare(dec1.getComparableBytes(r1), dec2.getComparableBytes(r2)))
+          .isEqualTo(0);
+      if (p1 == null) {
+        p1 = r1;
       }
-      assertThat(it2.hasNext()).isFalse();
-      assertThat(ops.compare(dec1.getComparableBytes(last), dec2.getComparableBytes(first)))
-          .isGreaterThan(0);
+      assertThat(ops.compare(dec1.getComparableBytes(r1), dec2.getComparableBytes(p1)))
+          .isGreaterThanOrEqualTo(0);
     }
+    assertThat(it2.hasNext()).isFalse();
+    assertThat(ops.compare(dec1.getComparableBytes(last), dec2.getComparableBytes(first)))
+        .isGreaterThan(0);
   }
 
   private boolean isCassandra4() {
