@@ -29,6 +29,7 @@ import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.service.write.WriteDocumentsService;
 import java.net.URI;
 import javax.inject.Inject;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -130,9 +131,10 @@ public class DocumentWriteResource {
       @Context UriInfo uriInfo,
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
-      @QueryParam("ttl") Integer ttl,
+      @QueryParam("ttl") @Min(value = 1, message = "TTL value must be a positive integer")
+          Integer ttl,
       @QueryParam("profile") boolean profile,
-      @NotNull JsonNode body) {
+      @NotNull(message = "payload must not be empty") JsonNode body) {
     ExecutionContext context = ExecutionContext.create(profile);
     Uni<Schema.CqlTable> table = tableManager.ensureValidDocumentTable(namespace, collection);
     return documentWriteService
@@ -205,9 +207,10 @@ public class DocumentWriteResource {
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
       @QueryParam("id-path") String idPath,
-      @QueryParam("ttl") Integer ttl,
+      @QueryParam("ttl") @Min(value = 1, message = "TTL value must be a positive integer")
+          Integer ttl,
       @QueryParam("profile") boolean profile,
-      @NotNull JsonNode body) {
+      @NotNull(message = "payload must not be empty") JsonNode body) {
     ExecutionContext context = ExecutionContext.create(profile);
     Uni<Schema.CqlTable> table = tableManager.ensureValidDocumentTable(namespace, collection);
     return documentWriteService

@@ -2764,7 +2764,12 @@ class DocumentReadResourceIntegrationTest {
               DEFAULT_COLLECTION,
               DOCUMENT_ID)
           .then()
-          .statusCode(404);
+          .statusCode(404)
+          .body(
+              "description",
+              is(
+                  "A path [nonexistent, path] in a document with the id %s, or the document itself, does not exist."
+                      .formatted(DOCUMENT_ID)));
 
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
@@ -2776,7 +2781,12 @@ class DocumentReadResourceIntegrationTest {
               DEFAULT_COLLECTION,
               DOCUMENT_ID)
           .then()
-          .statusCode(404);
+          .statusCode(404)
+          .body(
+              "description",
+              is(
+                  "A path [nonexistent, path, [1]] in a document with the id %s, or the document itself, does not exist."
+                      .formatted(DOCUMENT_ID)));
 
       // out of bounds
       given()
@@ -2789,7 +2799,12 @@ class DocumentReadResourceIntegrationTest {
               DEFAULT_COLLECTION,
               DOCUMENT_ID)
           .then()
-          .statusCode(404);
+          .statusCode(404)
+          .body(
+              "description",
+              is(
+                  "A path [quiz, maths, q1, options, [9999]] in a document with the id %s, or the document itself, does not exist."
+                      .formatted(DOCUMENT_ID)));
     }
   }
 }
