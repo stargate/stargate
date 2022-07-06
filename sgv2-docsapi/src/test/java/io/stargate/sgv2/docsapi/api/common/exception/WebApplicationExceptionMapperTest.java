@@ -43,7 +43,7 @@ public class WebApplicationExceptionMapperTest {
   public void happyPath() {
     given()
         .when()
-        .post("/runtime-exception-mapper-test")
+        .post("/web-application-exception-mapper-test")
         .then()
         .statusCode(405)
         .body("code", is(405))
