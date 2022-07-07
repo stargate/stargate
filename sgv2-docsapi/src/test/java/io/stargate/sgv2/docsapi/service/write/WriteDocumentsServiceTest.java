@@ -22,9 +22,9 @@ import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
-import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.ResultSet;
 import io.stargate.bridge.proto.Schema;
+import io.stargate.sgv2.docsapi.OpenMocksTest;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.api.v2.model.dto.DocumentResponseWrapper;
@@ -35,7 +35,6 @@ import io.stargate.sgv2.docsapi.service.JsonShreddedRow;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.ReadBridgeService;
 import io.stargate.sgv2.docsapi.service.query.model.RawDocument;
-import io.stargate.sgv2.docsapi.service.query.model.paging.PagingStateSupplier;
 import io.stargate.sgv2.docsapi.service.schema.JsonSchemaManager;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -44,6 +43,7 @@ import java.util.List;
 import java.util.Map;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -75,10 +75,10 @@ public class WriteDocumentsServiceTest {
 
   @Inject ObjectMapper objectMapper;
 
-  @Mock List<JsonShreddedRow> rows;
-
   @Nested
-  class WriteDocument {
+  class WriteDocument implements OpenMocksTest {
+
+    @Mock List<JsonShreddedRow> rows;
 
     @Test
     public void happyPath() throws Exception {
@@ -187,7 +187,7 @@ public class WriteDocumentsServiceTest {
   }
 
   @Nested
-  class WriteDocuments {
+  class WriteDocuments implements OpenMocksTest {
     @Mock JsonShreddedRow jsonShreddedRow;
 
     List<JsonShreddedRow> rows1;
@@ -450,63 +450,15 @@ public class WriteDocumentsServiceTest {
   }
 
   @Nested
-  class UpdateDocument {
-    RowWrapper row;
-    RawDocument rawDocument;
+  class UpdateDocument implements OpenMocksTest {
+
+    @Mock RowWrapper row;
+    @Mock RawDocument rawDocument;
     @Mock List<JsonShreddedRow> rows;
 
     @BeforeEach
     public void setup() {
-      rawDocument =
-          new RawDocument() {
-            @Override
-            public String id() {
-              return null;
-            }
-
-            @Override
-            public List<String> documentKeys() {
-              return null;
-            }
-
-            @Override
-            public PagingStateSupplier pagingState() {
-              return null;
-            }
-
-            @Override
-            public List<RowWrapper> rows() {
-              return ImmutableList.of(row);
-            }
-          };
-
-      row =
-          new RowWrapper() {
-            @Override
-            public List<QueryOuterClass.ColumnSpec> columns() {
-              return null;
-            }
-
-            @Override
-            public Map<String, Integer> columnIndexMap() {
-              return null;
-            }
-
-            @Override
-            public QueryOuterClass.Row row() {
-              return null;
-            }
-
-            @Override
-            public boolean isNull(String column) {
-              return false;
-            }
-
-            @Override
-            public Long getLong(String columnName) {
-              return 0L;
-            }
-          };
+      when(rawDocument.rows()).thenReturn(List.of(row));
     }
 
     @Test
@@ -642,6 +594,7 @@ public class WriteDocumentsServiceTest {
 
     @Test
     public void happyPathWithSubPathTtlAuto() throws Exception {
+      int ttl = RandomUtils.nextInt(1, 100);
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
@@ -652,9 +605,10 @@ public class WriteDocumentsServiceTest {
       JsonNode obj = objectMapper.readTree(payload);
       Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
 
+      when(row.getLong("ttl(leaf)")).thenReturn((long) ttl);
       when(jsonDocumentShredder.shred(obj, subPath)).thenReturn(rows);
       when(writeBridgeService.updateDocument(
-              namespace, collection, documentId, subPath, rows, 0, context))
+              namespace, collection, documentId, subPath, rows, ttl, context))
           .thenReturn(Uni.createFrom().item(ResultSet.getDefaultInstance()));
       when(readBridgeService.getDocumentTtlInfo(any(), any(), any(), any()))
           .thenReturn(Uni.createFrom().item(rawDocument));
@@ -682,7 +636,7 @@ public class WriteDocumentsServiceTest {
       assertThat(result.profile()).isEqualTo(context.toProfile());
 
       verify(writeBridgeService)
-          .updateDocument(namespace, collection, documentId, subPath, rows, 0, context);
+          .updateDocument(namespace, collection, documentId, subPath, rows, ttl, context);
       verify(jsonSchemaManager).validateJsonDocument(any(), any(), anyBoolean());
       verifyNoMoreInteractions(writeBridgeService, jsonSchemaManager);
     }
@@ -794,63 +748,14 @@ public class WriteDocumentsServiceTest {
   }
 
   @Nested
-  class PatchDocument {
-    RowWrapper row;
-    RawDocument rawDocument;
+  class PatchDocument implements OpenMocksTest {
+    @Mock RowWrapper row;
+    @Mock RawDocument rawDocument;
     @Mock List<JsonShreddedRow> rows;
 
     @BeforeEach
     public void setup() {
-      rawDocument =
-          new RawDocument() {
-            @Override
-            public String id() {
-              return null;
-            }
-
-            @Override
-            public List<String> documentKeys() {
-              return null;
-            }
-
-            @Override
-            public PagingStateSupplier pagingState() {
-              return null;
-            }
-
-            @Override
-            public List<RowWrapper> rows() {
-              return ImmutableList.of(row);
-            }
-          };
-
-      row =
-          new RowWrapper() {
-            @Override
-            public List<QueryOuterClass.ColumnSpec> columns() {
-              return null;
-            }
-
-            @Override
-            public Map<String, Integer> columnIndexMap() {
-              return null;
-            }
-
-            @Override
-            public QueryOuterClass.Row row() {
-              return null;
-            }
-
-            @Override
-            public boolean isNull(String column) {
-              return false;
-            }
-
-            @Override
-            public Long getLong(String columnName) {
-              return 0L;
-            }
-          };
+      when(rawDocument.rows()).thenReturn(List.of(row));
     }
 
     @Test
@@ -941,6 +846,7 @@ public class WriteDocumentsServiceTest {
 
     @Test
     public void happyPathWithSubPathTtlAuto() throws Exception {
+      int ttl = RandomUtils.nextInt(1, 100);
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
@@ -951,9 +857,10 @@ public class WriteDocumentsServiceTest {
       String payload = "{\"key\":\"value\"}";
       JsonNode obj = objectMapper.readTree(payload);
 
+      when(row.getLong("ttl(leaf)")).thenReturn((long) ttl);
       when(jsonDocumentShredder.shred(obj, subPath)).thenReturn(rows);
       when(writeBridgeService.patchDocument(
-              namespace, collection, documentId, subPath, rows, 0, context))
+              namespace, collection, documentId, subPath, rows, ttl, context))
           .thenReturn(Uni.createFrom().item(ResultSet.getDefaultInstance()));
       when(readBridgeService.getDocumentTtlInfo(any(), any(), any(), any()))
           .thenReturn(Uni.createFrom().item(rawDocument));
@@ -980,7 +887,7 @@ public class WriteDocumentsServiceTest {
       assertThat(result.profile()).isEqualTo(context.toProfile());
 
       verify(writeBridgeService)
-          .patchDocument(namespace, collection, documentId, subPath, rows, 0, context);
+          .patchDocument(namespace, collection, documentId, subPath, rows, ttl, context);
       verify(jsonSchemaManager).validateJsonDocument(any(), any(), anyBoolean());
       verifyNoMoreInteractions(writeBridgeService, jsonSchemaManager);
     }
