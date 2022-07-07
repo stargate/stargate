@@ -40,6 +40,7 @@ jobs:
           </settings>
           EOF
       - name: Build with Maven
+        working-directory: ./coordinator
         run: |
           ./mvnw verify -P it-cassandra-4.0
 

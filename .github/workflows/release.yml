@@ -64,10 +64,12 @@ jobs:
           </settings>
           EOF
       - name: Build with Maven
+        working-directory: ./coordinator
         run: |
           mvn versions:set -DremoveSnapshot versions:commit
           mvn -P dse -q -ff clean package -DskipTests
       - name: zip-up
+        working-directory: ./coordinator
         run: |
           zip stargate-jars.zip starctl stargate-lib/logback.xml stargate-lib/*.jar
       - name: Retrieve stashed release URL
@@ -83,7 +85,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           upload_url: ${{ steps.get_release_url.outputs.URL }}
-          asset_path: stargate-jars.zip
+          asset_path: coordinator/stargate-jars.zip
           asset_name: stargate-jars.zip
           asset_content_type: text/html
 
@@ -105,6 +107,7 @@ jobs:
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_TOKEN: ${{ secrets.OSSRH_TOKEN }}
+        working-directory: ./coordinator
         run: |
           mkdir -p ~/.m2
           cat <<EOF > ~/.m2/settings.xml
@@ -133,6 +136,7 @@ jobs:
         run: |
           cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
       - name: Publish package
+        working-directory: ./coordinator
         run: |
           mvn versions:set -DremoveSnapshot versions:commit && \
           mvn -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse && \

@@ -41,13 +41,14 @@ jobs:
           </settings>
           EOF
       - name: Check Maven Dependency Updates
+        working-directory: ./coordinator
         run: |
           mvn -B versions:display-dependency-updates -Dversions.outputFile=target/dependency-updates-report.txt
       - name: Archive dependency update results
         uses: actions/upload-artifact@v3
         with:
           name: dependency-update-report
-          path: target/dependency-updates-report.txt
+          path: coordinator/target/dependency-updates-report.txt
 
   check-vulnerabilities:
     name: Check Vulnerabilities
@@ -64,6 +65,7 @@ jobs:
         env:
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+        working-directory: ./coordinator
         run: |
           mkdir -p ~/.m2
           cat <<EOF > ~/.m2/settings.xml
@@ -83,10 +85,11 @@ jobs:
           </settings>
           EOF
       - name: Check Maven Dependencies
+        working-directory: ./coordinator
         run: |
           mvn -B dependency-check:aggregate
       - name: Archive vulnerability results
         uses: actions/upload-artifact@v3
         with:
           name: dependency-check-report
-          path: target/dependency-check-report.html
+          path: coordinator/target/dependency-check-report.html
