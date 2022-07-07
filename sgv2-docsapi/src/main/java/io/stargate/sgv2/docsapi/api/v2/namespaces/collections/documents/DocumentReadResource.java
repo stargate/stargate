@@ -371,8 +371,15 @@ public class DocumentReadResource {
                           if (null != result) {
                             return rawHandler(raw).apply(result);
                           } else {
+                            String msg;
+                            if (pathStrings.isEmpty()) {
+                              msg = "A document with the id %s does not exist.".formatted(id);
+                            } else {
+                              msg =
+                                  "A path %s in a document with the id %s, or the document itself, does not exist."
+                                      .formatted(pathStrings, id);
+                            }
                             int code = Response.Status.NOT_FOUND.getStatusCode();
-                            String msg = "A document with the id %s does not exist.".formatted(id);
                             ApiError error = new ApiError(msg, 404);
                             return RestResponse.ResponseBuilder.create(code).entity(error).build();
                           }

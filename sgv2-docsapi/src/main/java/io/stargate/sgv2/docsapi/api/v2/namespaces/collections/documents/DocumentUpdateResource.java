@@ -29,6 +29,7 @@ import io.stargate.sgv2.docsapi.service.write.WriteDocumentsService;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.PUT;
@@ -128,9 +129,10 @@ public class DocumentUpdateResource {
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
       @PathParam("document-id") String documentId,
-      @QueryParam("ttl") Integer ttl,
+      @QueryParam("ttl") @Min(value = 1, message = "TTL value must be a positive integer")
+          Integer ttl,
       @QueryParam("profile") boolean profile,
-      @NotNull JsonNode body) {
+      @NotNull(message = "payload must not be empty") JsonNode body) {
     ExecutionContext context = ExecutionContext.create(profile);
     Uni<Schema.CqlTable> table = tableManager.ensureValidDocumentTable(namespace, collection);
     return documentWriteService
@@ -205,7 +207,7 @@ public class DocumentUpdateResource {
       @PathParam("document-path") List<PathSegment> documentPath,
       @QueryParam("ttl-auto") boolean ttlAuto,
       @QueryParam("profile") boolean profile,
-      @NotNull JsonNode body) {
+      @NotNull(message = "payload must not be empty") JsonNode body) {
     ExecutionContext context = ExecutionContext.create(profile);
     List<String> subPath =
         documentPath.stream().map(PathSegment::getPath).collect(Collectors.toList());
