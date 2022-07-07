@@ -288,7 +288,7 @@ public class CollectionsResourceIntegrationTest {
           .post(BASE_PATH + "/{collection}/upgrade", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
           .then()
           .statusCode(400)
-          .body("code", is("400"))
+          .body("code", is(400))
           .body(
               "description",
               is(
@@ -307,7 +307,7 @@ public class CollectionsResourceIntegrationTest {
           .post(BASE_PATH + "/{collection}/upgrade", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
           .then()
           .statusCode(400)
-          .body("code", is("400"))
+          .body("code", is(400))
           .body(
               "description",
               is("Request invalid: `upgradeType` is required to upgrade a collection."));
