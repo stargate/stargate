@@ -65,7 +65,7 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
   class SearchDocuments {
 
     @Test
-    public void happyPath() throws Exception {
+    public void happyPath() {
       Paginator paginator = new Paginator(null, 20);
       ExecutionContext context = ExecutionContext.create(true);
       FilterPath filterPath = ImmutableFilterPath.of(Arrays.asList("some", "field"));
@@ -774,7 +774,7 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
     }
 
     @Test
-    public void searchSubDocPaginated() throws Exception {
+    public void searchSubDocPaginated() {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       Paginator paginator = new Paginator(null, 2);
       ExecutionContext context = ExecutionContext.create(true);
@@ -894,7 +894,7 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
   class GetDocument {
 
     @Test
-    public void getSubDoc() throws Exception {
+    public void getSubDoc() {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
       List<String> subPath = Collections.singletonList("field");
@@ -987,7 +987,7 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
   class GetDocumentTtlInfo {
 
     @Test
-    public void happyPath() throws Exception {
+    public void happyPath() {
       String documentId = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
 
@@ -1002,7 +1002,7 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                   List.of(
                       QueryOuterClass.ColumnSpec.newBuilder().setName("key").build(),
                       QueryOuterClass.ColumnSpec.newBuilder().setName("ttl(leaf)").build()))
-              .returning(Arrays.asList(List.of(Values.of(documentId), Values.of(100))));
+              .returning(List.of(List.of(Values.of(documentId), Values.of(100))));
 
       RawDocument result =
           service

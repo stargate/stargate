@@ -125,7 +125,7 @@ class ReadDocumentsServiceTest {
     @Mock RawDocument rawDocument2;
 
     @Test
-    public void happyPath() throws Exception {
+    public void happyPath() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String documentId1 = RandomStringUtils.randomAlphanumeric(16);
@@ -403,7 +403,7 @@ class ReadDocumentsServiceTest {
     @Captor ArgumentCaptor<Map<String, Set<DeadLeaf>>> deadLeavesCaptor;
 
     @Test
-    public void happyPath() throws Exception {
+    public void happyPath() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String documentId = RandomStringUtils.randomAlphanumeric(16);
@@ -662,7 +662,7 @@ class ReadDocumentsServiceTest {
     @Mock RawDocument rawDocument2;
 
     @Test
-    public void happyPath() throws Exception {
+    public void happyPath() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String documentId = RandomStringUtils.randomAlphanumeric(16);

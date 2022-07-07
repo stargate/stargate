@@ -430,7 +430,7 @@ public class WriteDocumentsServiceTest {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       ExecutionContext context = ExecutionContext.create(true);
-      String payload = String.format("{}");
+      String payload = "{}";
       JsonNode obj = objectMapper.readTree(payload);
       Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
 

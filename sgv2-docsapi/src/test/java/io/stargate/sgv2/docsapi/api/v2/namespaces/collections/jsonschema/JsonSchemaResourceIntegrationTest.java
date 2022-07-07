@@ -20,7 +20,6 @@ package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.jsonschema;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
@@ -82,11 +81,11 @@ public class JsonSchemaResourceIntegrationTest {
 
     @Test
     @Order(1)
-    public void happyPath() throws JsonProcessingException {
+    public void happyPath() {
       String body =
           """
-                        {\"$schema\": \"https://json-schema.org/draft/2019-09/schema\"}
-                    """;
+            {"$schema": "https://json-schema.org/draft/2019-09/schema"}
+          """;
 
       given()
           .contentType(ContentType.JSON)
@@ -100,11 +99,11 @@ public class JsonSchemaResourceIntegrationTest {
 
     @Test
     @Order(2)
-    public void updateExisting() throws JsonProcessingException {
+    public void updateExisting() {
       String body =
           """
-                            {\"$schema\": \"https://json-schema.org/draft/2020-09/schema\"}
-                        """;
+            {"$schema": "https://json-schema.org/draft/2020-09/schema"}
+          """;
 
       given()
           .contentType(ContentType.JSON)
@@ -121,7 +120,7 @@ public class JsonSchemaResourceIntegrationTest {
     public void tableDoesNotExist() {
       String body =
           """
-            {\"$schema\": \"https://json-schema.org/draft/2019-09/schema\"}
+            {"$schema": "https://json-schema.org/draft/2019-09/schema"}
           """;
 
       given()
@@ -140,8 +139,8 @@ public class JsonSchemaResourceIntegrationTest {
     public void keyspaceDoesNotExist() {
       String body =
           """
-                {\"$schema\": \"https://json-schema.org/draft/2019-09/schema\"}
-              """;
+            {"$schema": "https://json-schema.org/draft/2019-09/schema"}
+          """;
 
       given()
           .contentType(ContentType.JSON)
@@ -158,13 +157,14 @@ public class JsonSchemaResourceIntegrationTest {
     @Order(5)
     public void invalidJsonSchema() {
       String body =
-          "{\n"
-              + "  \"$schema\": \"https://json-schema.org/draft/2019-09/schema\",\n"
-              + "  \"type\": \"object\",\n"
-              + "  \"properties\": {\n"
-              + "    \"something\": { \"type\": \"strin\" }\n"
-              + "  }\n"
-              + "}";
+          """
+              {
+                "$schema": "https://json-schema.org/draft/2019-09/schema",
+                "type": "object",
+                "properties": {
+                  "something": { "type": "strin" }
+                }
+              }""";
 
       given()
           .contentType(ContentType.JSON)
