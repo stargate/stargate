@@ -18,7 +18,6 @@ package io.stargate.graphql.web;
 import io.dropwizard.Application;
 import io.dropwizard.Configuration;
 import io.dropwizard.cli.Cli;
-import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.forms.MultiPartBundle;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
@@ -42,6 +41,8 @@ import java.util.Arrays;
 import java.util.EnumSet;
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterRegistration;
+
+import io.stargate.metrics.jersey.dwconfig.StargateV1ConfigurationSourceProvider;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlets.CrossOriginFilter;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
@@ -176,7 +177,7 @@ public class DropwizardServer extends Application<Configuration> {
   @Override
   public void initialize(final Bootstrap<Configuration> bootstrap) {
     super.initialize(bootstrap);
-    bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
+    bootstrap.setConfigurationSourceProvider(new StargateV1ConfigurationSourceProvider(GraphqlActivator.MODULE_NAME));
     bootstrap.setMetricRegistry(metrics.getRegistry(GraphqlActivator.MODULE_NAME));
     bootstrap.addBundle(new MultiPartBundle());
   }
