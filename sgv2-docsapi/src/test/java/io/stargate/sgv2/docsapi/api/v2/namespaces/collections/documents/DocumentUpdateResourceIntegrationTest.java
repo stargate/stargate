@@ -117,7 +117,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .param("profile", true)
+          .queryParam("profile", true)
           .contentType(ContentType.JSON)
           .body(exampleResource)
           .when()
@@ -133,7 +133,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .param("ttl", 3)
+          .queryParam("ttl", 3)
           .contentType(ContentType.JSON)
           .body(exampleResource)
           .when()
@@ -288,7 +288,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .param("ttl", -1)
+          .queryParam("ttl", -1)
           .contentType(ContentType.JSON)
           .body(exampleResource)
           .when()
@@ -499,7 +499,7 @@ class DocumentUpdateResourceIntegrationTest {
       String updateJson = "{\"q5000\": \"hello?\"}";
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .param("profile", true)
+          .queryParam("profile", true)
           .contentType(ContentType.JSON)
           .body(updateJson)
           .when()
@@ -807,7 +807,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .param("ttl", 2)
+          .queryParam("ttl", 2)
           .contentType(ContentType.JSON)
           .body("{ \"delete this\": \"in 2 seconds\" }")
           .when()
@@ -817,7 +817,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .param("ttl-auto", true)
+          .queryParam("ttl-auto", true)
           .contentType(ContentType.JSON)
           .body("{ \"match the parent\": \"this\", \"a\": \"b\" }")
           .when()
@@ -842,7 +842,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .param("ttl", 2)
+          .queryParam("ttl", 2)
           .contentType(ContentType.JSON)
           .body("{ \"delete this\": \"in 2 seconds\" }")
           .when()

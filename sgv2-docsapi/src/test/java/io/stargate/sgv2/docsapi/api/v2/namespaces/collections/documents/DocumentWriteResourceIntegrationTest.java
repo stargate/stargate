@@ -7,6 +7,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.any;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -16,6 +17,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import io.stargate.sgv2.common.cql.builder.Replication;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
@@ -23,7 +25,6 @@ import io.stargate.sgv2.docsapi.service.schema.NamespaceManager;
 import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.testprofiles.IntegrationTestProfile;
 import java.time.Duration;
-import java.util.Iterator;
 import java.util.concurrent.TimeUnit;
 import javax.enterprise.context.control.ActivateRequestContext;
 import javax.inject.Inject;
@@ -76,7 +77,7 @@ class DocumentWriteResourceIntegrationTest {
       Response postResponse =
           given()
               .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .header("Content-Type", "application/json")
+              .contentType(ContentType.JSON)
               .body(DEFAULT_PAYLOAD)
               .when()
               .post(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -101,7 +102,7 @@ class DocumentWriteResourceIntegrationTest {
       Response postResponse =
           given()
               .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .header("Content-Type", "application/json")
+              .contentType(ContentType.JSON)
               .body(DEFAULT_PAYLOAD)
               .when()
               .post(BASE_PATH, DEFAULT_NAMESPACE, "newtable")
@@ -126,7 +127,7 @@ class DocumentWriteResourceIntegrationTest {
       Response postResponse =
           given()
               .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .header("Content-Type", "application/json")
+              .contentType(ContentType.JSON)
               .body("[1, 2, 3]")
               .when()
               .post(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -150,7 +151,7 @@ class DocumentWriteResourceIntegrationTest {
     public void withProfile() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .queryParam("profile", "true")
           .body(DEFAULT_PAYLOAD)
           .when()
@@ -165,7 +166,7 @@ class DocumentWriteResourceIntegrationTest {
       Response postResponse =
           given()
               .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .header("Content-Type", "application/json")
+              .contentType(ContentType.JSON)
               .queryParam("ttl", "1")
               .body(DEFAULT_PAYLOAD)
               .when()
@@ -179,14 +180,13 @@ class DocumentWriteResourceIntegrationTest {
       Awaitility.await()
           .atMost(2000, TimeUnit.MILLISECONDS)
           .untilAsserted(
-              () -> {
-                given()
-                    .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-                    .when()
-                    .get(location)
-                    .then()
-                    .statusCode(404);
-              });
+              () ->
+                  given()
+                      .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                      .when()
+                      .get(location)
+                      .then()
+                      .statusCode(404));
     }
 
     @Test
@@ -194,7 +194,7 @@ class DocumentWriteResourceIntegrationTest {
       Response postResponse =
           given()
               .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .header("Content-Type", "application/json")
+              .contentType(ContentType.JSON)
               .queryParam("ttl", "10")
               .body(DEFAULT_PAYLOAD)
               .when()
@@ -214,11 +214,13 @@ class DocumentWriteResourceIntegrationTest {
           .body("data", jsonEquals(DEFAULT_PAYLOAD));
     }
 
+    // 4xx
+
     @Test
     public void malformedJson() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .body(MALFORMED_PAYLOAD)
           .when()
           .post(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -227,10 +229,25 @@ class DocumentWriteResourceIntegrationTest {
     }
 
     @Test
+    public void invalidTtl() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .queryParam("ttl", -10)
+          .contentType(ContentType.JSON)
+          .body(DEFAULT_PAYLOAD)
+          .when()
+          .post(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .then()
+          .statusCode(400)
+          .body("code", equalTo(400))
+          .body("description", is("Request invalid: TTL value must be a positive integer."));
+    }
+
+    @Test
     public void emptyObject() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .body("{}")
           .when()
           .post(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -247,7 +264,7 @@ class DocumentWriteResourceIntegrationTest {
     public void emptyArray() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .body("[]")
           .when()
           .post(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -263,7 +280,7 @@ class DocumentWriteResourceIntegrationTest {
     public void singlePrimitive() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .body("true")
           .when()
           .post(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -279,13 +296,13 @@ class DocumentWriteResourceIntegrationTest {
     public void noBody() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .when()
           .post(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
           .then()
           .statusCode(400)
           .body("code", equalTo(400))
-          .body("description", equalTo("Request invalid: must not be null."));
+          .body("description", equalTo("Request invalid: payload must not be empty."));
     }
 
     @Test
@@ -295,7 +312,7 @@ class DocumentWriteResourceIntegrationTest {
 
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .body(DEFAULT_PAYLOAD)
           .when()
           .post(BASE_PATH, namespace, collection)
@@ -311,7 +328,7 @@ class DocumentWriteResourceIntegrationTest {
     @Test
     public void unauthorized() {
       given()
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .body(DEFAULT_PAYLOAD)
           .when()
           .post(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -323,7 +340,7 @@ class DocumentWriteResourceIntegrationTest {
     public void keyspaceNotExists() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .body(DEFAULT_PAYLOAD)
           .when()
           .post(BASE_PATH, "notakeyspace", DEFAULT_COLLECTION)
@@ -342,7 +359,7 @@ class DocumentWriteResourceIntegrationTest {
     public void happyPath() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .queryParam("ttl", "1")
           .body(String.format("[%s, %s, %s]", DEFAULT_PAYLOAD, DEFAULT_PAYLOAD, DEFAULT_PAYLOAD))
           .when()
@@ -356,13 +373,13 @@ class DocumentWriteResourceIntegrationTest {
     }
 
     @Test
-    public void idPath() throws JsonProcessingException {
+    public void idPath() {
       String doc1 = "{\"id\": \"1\", \"name\":\"a\"}";
       String doc2 = "{\"id\": \"2\", \"name\":\"b\"}";
       String doc3 = "{\"id\": \"3\", \"name\":\"c\"}";
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .queryParam("id-path", "id")
           .body(String.format("[%s, %s, %s]", doc1, doc2, doc3))
           .when()
@@ -376,7 +393,7 @@ class DocumentWriteResourceIntegrationTest {
     public void idPathOverwrite() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .body(DEFAULT_PAYLOAD)
           .when()
           .put(BASE_PATH + "/1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -388,7 +405,7 @@ class DocumentWriteResourceIntegrationTest {
       String doc3 = "{\"id\": \"3\", \"name\":\"c\"}";
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .queryParam("id-path", "id")
           .body(String.format("[%s, %s, %s]", doc1, doc2, doc3))
           .when()
@@ -411,7 +428,7 @@ class DocumentWriteResourceIntegrationTest {
     public void withProfile() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .queryParam("profile", "true")
           .body("[" + DEFAULT_PAYLOAD + "]")
           .when()
@@ -426,7 +443,7 @@ class DocumentWriteResourceIntegrationTest {
       Response postResponse =
           given()
               .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-              .header("Content-Type", "application/json")
+              .contentType(ContentType.JSON)
               .queryParam("ttl", "1")
               .body("[" + DEFAULT_PAYLOAD + "]")
               .when()
@@ -443,9 +460,8 @@ class DocumentWriteResourceIntegrationTest {
           .atMost(2000, TimeUnit.MILLISECONDS)
           .untilAsserted(
               () -> {
-                Iterator<JsonNode> iter = ids.iterator();
-                while (iter.hasNext()) {
-                  String id = iter.next().asText();
+                for (JsonNode jsonNode : ids) {
+                  String id = jsonNode.asText();
                   given()
                       .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
                       .when()
@@ -456,11 +472,28 @@ class DocumentWriteResourceIntegrationTest {
               });
     }
 
+    // 4xx
+
+    @Test
+    public void invalidTtl() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .queryParam("ttl", "-10")
+          .body("[" + DEFAULT_PAYLOAD + "]")
+          .when()
+          .post(BASE_PATH + "/batch", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .then()
+          .statusCode(400)
+          .body("code", is(400))
+          .body("description", is("Request invalid: TTL value must be a positive integer."));
+    }
+
     @Test
     public void illegalDuplicatedId() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .queryParam("id-path", "test")
           .body(String.format("[%s, %s]", DEFAULT_PAYLOAD, DEFAULT_PAYLOAD))
           .when()
@@ -478,7 +511,7 @@ class DocumentWriteResourceIntegrationTest {
     public void invalidIdPath() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .queryParam("id-path", "not.valid.path")
           .body(String.format("[%s]", DEFAULT_PAYLOAD))
           .when()
@@ -496,7 +529,7 @@ class DocumentWriteResourceIntegrationTest {
     public void malformedJson() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .body(MALFORMED_PAYLOAD)
           .when()
           .post(BASE_PATH + "/batch", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -517,7 +550,7 @@ class DocumentWriteResourceIntegrationTest {
     public void keyspaceNotExists() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .body("[" + DEFAULT_PAYLOAD + "]")
           .when()
           .post(BASE_PATH + "/batch", "notakeyspace", DEFAULT_COLLECTION)

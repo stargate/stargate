@@ -230,7 +230,7 @@ public class CollectionsResourceIntegrationTest {
     @Test
     public void happyPathRaw() {
       given()
-          .param("raw", true)
+          .queryParam("raw", true)
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE)

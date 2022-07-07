@@ -71,7 +71,7 @@ class NamespacesResourceIntegrationTest {
     public void happyPathRaw() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .param("raw", true)
+          .queryParam("raw", true)
           .when()
           .get(BASE_PATH)
           .then()
@@ -89,7 +89,7 @@ class NamespacesResourceIntegrationTest {
 
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .param("raw", true)
+          .queryParam("raw", true)
           .when()
           .get(BASE_PATH + "/{namespace}", namespace)
           .then()
