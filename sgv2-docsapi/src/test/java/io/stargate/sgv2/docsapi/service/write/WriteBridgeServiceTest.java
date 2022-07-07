@@ -256,7 +256,7 @@ class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
   class UpdateDocument {
 
     @Test
-    public void happyPath() throws Exception {
+    public void happyPath() {
       JsonShreddedRow row1 =
           ImmutableJsonShreddedRow.builder()
               .maxDepth(documentProperties.maxDepth())
@@ -605,7 +605,7 @@ class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
   class PatchDocument {
 
     @Test
-    public void happyPath() throws Exception {
+    public void happyPath() {
       JsonShreddedRow row1 =
           ImmutableJsonShreddedRow.builder()
               .maxDepth(documentProperties.maxDepth())
@@ -1094,7 +1094,7 @@ class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
               .addPath("[000000]")
               .stringValue("value1")
               .build();
-      List<JsonShreddedRow> rows = Arrays.asList(row1);
+      List<JsonShreddedRow> rows = List.of(row1);
       service
           .patchDocument(keyspaceName, tableName, documentId, rows, null, context)
           .subscribe()
@@ -1127,7 +1127,7 @@ class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
   class DeleteDocument {
 
     @Test
-    public void happyPath() throws Exception {
+    public void happyPath() {
       String deleteCql =
           String.format(
               "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ?", keyspaceName, tableName);

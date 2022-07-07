@@ -54,12 +54,6 @@ import org.junit.jupiter.api.TestMethodOrder;
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class CollectionsResourceIntegrationTest {
 
-  // TODO replace with HTTP call and remove @Inject to support end-to-end
-  //  remove @ActivateRequestContext
-  //  remove @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-  //  drop keyspace properly, see https://github.com/quarkusio/quarkus/issues/25812
-  //  could be as the junit extension that runs before all tests
-
   // base path for the test
   public static final String BASE_PATH = "/v2/namespaces/{namespace}/collections";
   public static final String DEFAULT_NAMESPACE = RandomStringUtils.randomAlphanumeric(16);

@@ -92,8 +92,6 @@ class GrpcClientsTest extends BridgeTest {
 
   @Test
   public void noExtraMetadata() {
-    String token = RandomStringUtils.randomAlphanumeric(16);
-    String tenant = RandomStringUtils.randomAlphanumeric(16);
     String keyspaceName = RandomStringUtils.randomAlphanumeric(16);
     Schema.DescribeKeyspaceQuery query =
         Schema.DescribeKeyspaceQuery.newBuilder().setKeyspaceName(keyspaceName).build();
