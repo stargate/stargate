@@ -20,13 +20,13 @@ package io.stargate.sgv2.docsapi.api.v2.namespaces.collections;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
-import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.api.v2.model.dto.SimpleResponseWrapper;
 import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.model.dto.CollectionDto;
 import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.model.dto.CollectionUpgradeType;
 import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.model.dto.CreateCollectionDto;
+import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.model.dto.UpgradeCollectionDto;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
 import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.service.schema.qualifier.Authorized;
@@ -76,8 +76,6 @@ public class CollectionsResource {
   public static final String BASE_PATH = "/v2/namespaces/{namespace:\\w+}/collections";
 
   @Inject @Authorized TableManager tableManager;
-
-  @Inject DataStoreProperties dataStoreProperties;
 
   @Operation(description = "List collections in a namespace.")
   @Parameters(
@@ -132,7 +130,12 @@ public class CollectionsResource {
         .getValidCollectionTables(namespace)
 
         // map to DTO and collect list
-        .map(this::toCollectionDto)
+        .map(
+            table -> {
+              List<CollectionUpgradeType> upgradeTypes =
+                  tableManager.getAvailableUpgradeTypes(table);
+              return toCollectionDto(table, upgradeTypes);
+            })
         .collect()
         .asList()
 
@@ -256,6 +259,80 @@ public class CollectionsResource {
                         }));
   }
 
+  @Operation(
+      description =
+          """
+          Upgrade a collection in a namespace.
+
+          > **WARNING**: This endpoint is expected to cause some down-time for the collection you choose.
+          """)
+  @Parameters(
+      value = {
+        @Parameter(name = "namespace", ref = OpenApiConstants.Parameters.NAMESPACE),
+        @Parameter(name = "collection", ref = OpenApiConstants.Parameters.COLLECTION),
+        @Parameter(name = "raw", ref = OpenApiConstants.Parameters.RAW),
+      })
+  @APIResponses(
+      value = {
+        @APIResponse(
+            responseCode = "200",
+            description =
+                "Upgrade successful, returns upgraded collection data. Note that in case of unwrapping (`raw=true`), the response contains only the contents of the `data` property.",
+            content = {
+              @Content(
+                  schema =
+                      @org.eclipse.microprofile.openapi.annotations.media.Schema(
+                          implementation = SimpleResponseWrapper.class,
+                          properties =
+                              @SchemaProperty(name = "data", implementation = CollectionDto.class)))
+            }),
+        @APIResponse(ref = OpenApiConstants.Responses.GENERAL_400),
+        @APIResponse(
+            responseCode = "404",
+            description = "Not found.",
+            content =
+                @Content(
+                    examples = {
+                      @ExampleObject(ref = OpenApiConstants.Examples.NAMESPACE_DOES_NOT_EXIST),
+                      @ExampleObject(ref = OpenApiConstants.Examples.COLLECTION_DOES_NOT_EXIST)
+                    },
+                    schema =
+                        @org.eclipse.microprofile.openapi.annotations.media.Schema(
+                            implementation = ApiError.class))),
+        @APIResponse(ref = OpenApiConstants.Responses.GENERAL_401),
+        @APIResponse(ref = OpenApiConstants.Responses.GENERAL_500),
+        @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
+      })
+  @POST
+  @Path("/{collection:\\w+}/upgrade")
+  public Uni<RestResponse<Object>> upgradeCollection(
+      @PathParam("namespace") String namespace,
+      @PathParam("collection") String collection,
+      @NotNull(message = "payload not provided") @Valid UpgradeCollectionDto body,
+      @QueryParam("raw") boolean raw) {
+    // execute upgrade
+    return tableManager
+        .upgradeCollectionTable(namespace, collection, body.upgradeType())
+
+        // if OK, reloads the collections and returns result
+        .flatMap(
+            any ->
+                tableManager
+                    .getValidCollectionTable(namespace, collection)
+                    .map(
+                        table -> {
+                          List<CollectionUpgradeType> upgradeTypes =
+                              tableManager.getAvailableUpgradeTypes(table);
+                          CollectionDto result = toCollectionDto(table, upgradeTypes);
+                          if (raw) {
+                            return result;
+                          } else {
+                            return new SimpleResponseWrapper<>(result);
+                          }
+                        })
+                    .map(RestResponse::ok));
+  }
+
   @Operation(description = "Delete a collection in a namespace.")
   @Parameters(
       value = {
@@ -291,22 +368,16 @@ public class CollectionsResource {
         .map(any -> RestResponse.noContent());
   }
 
-  // simple mapper of CqlTable to the response DTO
-  private CollectionDto toCollectionDto(Schema.CqlTable table) {
+  // simple mapper to the response DTO
+  private CollectionDto toCollectionDto(
+      Schema.CqlTable table, List<CollectionUpgradeType> upgradeTypes) {
     String name = table.getName();
 
     // if sai enabled, check if they are all there
-    if (dataStoreProperties.saiEnabled()) {
-      // these are already only secondary indexes
-      // see io.stargate.bridge.service.SchemaHandler#buildSecondaryIndex
-      List<Schema.CqlIndex> indexes = table.getIndexesList();
-      boolean noCustom = indexes.stream().noneMatch(Schema.CqlIndex::getCustom);
-
-      // If all secondary indexes are not SAI or there are no secondary indexes,
-      // then an upgrade is available.
-      if (indexes.size() == 0 || noCustom) {
-        new CollectionDto(name, true, CollectionUpgradeType.SAI_INDEX_UPGRADE);
-      }
+    if (!upgradeTypes.isEmpty()) {
+      // TODO this is retarded, current API allows only one upgrade per collection
+      //  let's deal with this once we upgrade the API version
+      new CollectionDto(name, true, upgradeTypes.get(0));
     }
 
     // no upgrade

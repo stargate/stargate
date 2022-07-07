@@ -29,12 +29,15 @@ import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableColu
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
+import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.model.dto.CollectionUpgradeType;
 import io.stargate.sgv2.docsapi.service.schema.common.SchemaManager;
 import io.stargate.sgv2.docsapi.service.schema.query.CollectionQueryProvider;
+import io.stargate.sgv2.docsapi.service.schema.upgrade.CollectionUpgradeAction;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
 /** Table manager provides basic operations on tables that are used for storing collections. */
@@ -57,6 +60,8 @@ public class TableManager {
   @Inject CollectionQueryProvider collectionQueryProvider;
 
   @Inject StargateRequestInfo requestInfo;
+
+  @Inject Instance<CollectionUpgradeAction> upgradeActions;
 
   /**
    * Fetches a table from the schema manager. Subclasses can override to use the authorized version.
@@ -257,6 +262,69 @@ public class TableManager {
                     .onItem()
                     .transformToUni(
                         result -> getValidDocumentTableInternal(namespace, collection)));
+  }
+
+  /**
+   * Upgrades a collection table with the given upgrade type.
+   *
+   * <p>Emits a failure in case:
+   *
+   * <ol>
+   *   <li>Upgrade type is not supported, with {@link ErrorCode#DOCS_API_GENERAL_UPGRADE_INVALID}
+   *   <li>Keyspace does not exists, with {@link ErrorCode#DATASTORE_KEYSPACE_DOES_NOT_EXIST}
+   *   <li>Table does not exists, with {@link ErrorCode#DATASTORE_TABLE_DOES_NOT_EXIST}
+   *   <li>Table is not valid, with {@link ErrorCode#DOCS_API_GENERAL_TABLE_NOT_A_COLLECTION}
+   * </ol>
+   *
+   * @param namespace Namespace of the collection.
+   * @param collection Collection name.
+   * @param upgradeType Type of the upgrade
+   * @return Emits a <code>Void</code> item in case upgrade is success, otherwise emits failure.
+   */
+  public Uni<Void> upgradeCollectionTable(
+      String namespace, String collection, CollectionUpgradeType upgradeType) {
+    // iterate all upgrade actions
+    return Multi.createFrom()
+        .iterable(upgradeActions)
+
+        // select the right one for the execution
+        .filter(action -> Objects.equals(action.getType(), upgradeType))
+        .select()
+        .first()
+        .toUni()
+
+        // if there is no such action
+        // fail
+        .onItem()
+        .ifNull()
+        .switchTo(
+            () -> {
+              Exception error =
+                  new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_UPGRADE_INVALID);
+              return Uni.createFrom().failure(error);
+            })
+
+        // if there is action, try to load the valid collection table
+        .flatMap(
+            action ->
+                getValidCollectionTable(namespace, collection)
+
+                    // and then execute the upgrade
+                    .flatMap(table -> action.executeUpgrade(table, namespace, collection)));
+  }
+
+  /**
+   * Returns all available upgrades for the collection table. Should be called only with valid
+   * collection table.
+   *
+   * @param table Table schema
+   * @return List of {@link CollectionUpgradeType}s available.
+   */
+  public List<CollectionUpgradeType> getAvailableUpgradeTypes(Schema.CqlTable table) {
+    return upgradeActions.stream()
+        .filter(action -> action.canUpgrade(table))
+        .map(CollectionUpgradeAction::getType)
+        .toList();
   }
 
   // internal method for getting a valid document table

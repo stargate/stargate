@@ -64,11 +64,29 @@ public class CollectionQueryProvider {
   }
 
   /**
+   * Creates query that deletes index by name.
+   *
+   * @param namespace Namespace of the collection.
+   * @param index Index name
+   * @return Query
+   */
+  public QueryOuterClass.Query deleteCollectionIndexQuery(String namespace, String index) {
+    QueryOuterClass.QueryParameters parameters = getQueryParameters();
+
+    return new QueryBuilder()
+        .drop()
+        .index(namespace, index)
+        .ifExists()
+        .parameters(parameters)
+        .build();
+  }
+
+  /**
    * Creates a set of queries to be performed for creating all needed indexes for a collection.
    *
-   * @param namespace
-   * @param collection
-   * @return
+   * @param namespace Namespace of the collection.
+   * @param collection Collection name.
+   * @return Query
    */
   public List<QueryOuterClass.Query> createCollectionIndexQueries(
       String namespace, String collection) {
