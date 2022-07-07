@@ -49,7 +49,7 @@ public class StargateV1ConfigurationSourceProvider implements ConfigurationSourc
       log("No configuration override file '%s' found", f);
     } else {
       log("Found configuration override file '%s', will use that", f);
-      return new FileConfigurationSourceProvider().open(configFilename);
+      return new FileConfigurationSourceProvider().open(f.getPath());
     }
     log("No configuration overrides found, will use the default config resource '%s'", path);
     return new ResourceConfigurationSourceProvider().open(path);
