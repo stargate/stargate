@@ -1,8 +1,14 @@
-## Stargate Developer Guide
+# Stargate Developer Guide
 
 Want to build Stargate locally or even start contributing to the project? This is the right place to get started. 
 
 If you're developing on MacOS, we've added notes throughout to highlight a few specific differences.
+
+## Directory structure
+
+The project sources are located in the `coordinator` subdirectory (this is in anticipation of
+Stargate v2, where the API services will become independent and live in their own directory; you can
+follow that work on the [v2.0.0](https://github.com/stargate/stargate/tree/v2.0.0) branch).
  
 ## Code conventions
 
