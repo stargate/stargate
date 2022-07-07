@@ -120,7 +120,8 @@ public class AuthApiServer extends Application<AuthApiServerConfiguration> {
   @Override
   public void initialize(final Bootstrap<AuthApiServerConfiguration> bootstrap) {
     super.initialize(bootstrap);
-    bootstrap.setConfigurationSourceProvider(new StargateV1ConfigurationSourceProvider(AuthApiActivator.MODULE_NAME));
+    bootstrap.setConfigurationSourceProvider(
+        new StargateV1ConfigurationSourceProvider(AuthApiActivator.MODULE_NAME));
     bootstrap.setMetricRegistry(metrics.getRegistry(AuthApiActivator.MODULE_NAME));
   }
 
