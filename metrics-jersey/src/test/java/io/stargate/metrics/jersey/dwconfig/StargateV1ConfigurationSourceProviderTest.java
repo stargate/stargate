@@ -63,7 +63,7 @@ public class StargateV1ConfigurationSourceProviderTest {
 
   private String readConfig() throws Exception {
     try (InputStream in =
-                 new StargateV1ConfigurationSourceProvider(TEST_MODULE).open(TEST_CONFIG_BASE)) {
+        new StargateV1ConfigurationSourceProvider(TEST_MODULE).open(TEST_CONFIG_BASE)) {
       return IOUtils.toString(in, StandardCharsets.UTF_8).trim();
     }
   }
