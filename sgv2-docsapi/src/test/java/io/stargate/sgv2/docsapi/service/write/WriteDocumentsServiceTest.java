@@ -14,14 +14,17 @@ import static org.mockito.Mockito.when;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.IntNode;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.junit.mockito.InjectMock;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.ResultSet;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.docsapi.OpenMocksTest;
@@ -29,16 +32,20 @@ import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.api.v2.model.dto.DocumentResponseWrapper;
 import io.stargate.sgv2.docsapi.api.v2.model.dto.MultiDocsResponse;
+import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents.model.dto.BuiltInFunctionDto;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.JsonDocumentShredder;
 import io.stargate.sgv2.docsapi.service.JsonShreddedRow;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
+import io.stargate.sgv2.docsapi.service.json.JsonConverter;
 import io.stargate.sgv2.docsapi.service.query.ReadBridgeService;
 import io.stargate.sgv2.docsapi.service.query.model.RawDocument;
+import io.stargate.sgv2.docsapi.service.query.model.paging.PagingStateSupplier;
 import io.stargate.sgv2.docsapi.service.schema.JsonSchemaManager;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import javax.inject.Inject;
@@ -70,6 +77,8 @@ public class WriteDocumentsServiceTest {
   @InjectMock JsonDocumentShredder jsonDocumentShredder;
 
   @InjectMock JsonSchemaManager jsonSchemaManager;
+
+  @InjectMock JsonConverter jsonConverter;
 
   @Inject WriteDocumentsService documentWriteService;
 
@@ -972,6 +981,309 @@ public class WriteDocumentsServiceTest {
           .withSubscriber(UniAssertSubscriber.create())
           .awaitFailure()
           .assertFailedWith(ErrorCodeRuntimeException.class);
+    }
+  }
+
+  @Nested
+  class ExecuteBuiltInFunction {
+    RowWrapper row;
+    RawDocument rawDocument;
+    @Mock List<JsonShreddedRow> rows;
+
+    @BeforeEach
+    public void setup() {
+      rawDocument =
+          new RawDocument() {
+            @Override
+            public String id() {
+              return null;
+            }
+
+            @Override
+            public List<String> documentKeys() {
+              return null;
+            }
+
+            @Override
+            public PagingStateSupplier pagingState() {
+              return null;
+            }
+
+            @Override
+            public List<RowWrapper> rows() {
+              return ImmutableList.of(row);
+            }
+          };
+
+      row =
+          new RowWrapper() {
+            @Override
+            public List<QueryOuterClass.ColumnSpec> columns() {
+              return null;
+            }
+
+            @Override
+            public Map<String, Integer> columnIndexMap() {
+              return new HashMap<>();
+            }
+
+            @Override
+            public QueryOuterClass.Row row() {
+              return null;
+            }
+
+            @Override
+            public boolean isNull(String column) {
+              return false;
+            }
+
+            @Override
+            public Long getLong(String columnName) {
+              return 0L;
+            }
+          };
+    }
+
+    @Test
+    public void happyPathPush() throws JsonProcessingException {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
+      ExecutionContext context = ExecutionContext.create(true);
+      JsonNode arrayNode = objectMapper.readTree("[1, 2, 3]");
+
+      when(jsonDocumentShredder.shred((JsonNode) any(), any())).thenReturn(rows);
+      when(writeBridgeService.updateDocument(
+              namespace, collection, documentId, Collections.emptyList(), rows, 0, context))
+          .thenReturn(Uni.createFrom().item(ResultSet.getDefaultInstance()));
+      when(readBridgeService.getDocumentTtlInfo(any(), any(), any(), any()))
+          .thenReturn(Uni.createFrom().item(rawDocument));
+      when(readBridgeService.getDocument(any(), any(), any(), any(), any()))
+          .thenReturn(Multi.createFrom().item(rawDocument));
+      when(jsonSchemaManager.validateJsonDocument(any(), any(), anyBoolean()))
+          .thenReturn(Uni.createFrom().item(true));
+      when(jsonConverter.convertToJsonDoc(any(), anyBoolean(), anyBoolean())).thenReturn(arrayNode);
+
+      DocumentResponseWrapper<JsonNode> result =
+          documentWriteService
+              .executeBuiltInFunction(
+                  Uni.createFrom().item(table),
+                  namespace,
+                  collection,
+                  documentId,
+                  Collections.emptyList(),
+                  new BuiltInFunctionDto("$push", 4),
+                  context)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create())
+              .awaitItem()
+              .getItem();
+      assertThat(result.documentId()).isEqualTo(documentId);
+      assertThat(result.data()).isEqualTo(objectMapper.readTree("[1,2,3,4]"));
+      assertThat(result.pageState()).isNull();
+      assertThat(result.profile()).isEqualTo(context.toProfile());
+
+      verify(writeBridgeService)
+          .updateDocument(
+              namespace, collection, documentId, Collections.emptyList(), rows, 0, context);
+      verify(readBridgeService)
+          .getDocument(namespace, collection, documentId, Collections.emptyList(), context);
+      verify(readBridgeService).getDocumentTtlInfo(namespace, collection, documentId, context);
+      verify(jsonSchemaManager).validateJsonDocument(any(), any(), anyBoolean());
+      verify(jsonConverter, times(2)).convertToJsonDoc(any(), anyBoolean(), anyBoolean());
+      verifyNoMoreInteractions(
+          writeBridgeService, jsonSchemaManager, readBridgeService, jsonConverter);
+    }
+
+    @Test
+    public void happyPathPushNull() throws JsonProcessingException {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
+      ExecutionContext context = ExecutionContext.create(true);
+      JsonNode arrayNode = objectMapper.readTree("[1, 2, 3]");
+
+      when(jsonDocumentShredder.shred((JsonNode) any(), any())).thenReturn(rows);
+      when(writeBridgeService.updateDocument(
+              namespace, collection, documentId, Collections.emptyList(), rows, 0, context))
+          .thenReturn(Uni.createFrom().item(ResultSet.getDefaultInstance()));
+      when(readBridgeService.getDocumentTtlInfo(any(), any(), any(), any()))
+          .thenReturn(Uni.createFrom().item(rawDocument));
+      when(readBridgeService.getDocument(any(), any(), any(), any(), any()))
+          .thenReturn(Multi.createFrom().item(rawDocument));
+      when(jsonSchemaManager.validateJsonDocument(any(), any(), anyBoolean()))
+          .thenReturn(Uni.createFrom().item(true));
+      when(jsonConverter.convertToJsonDoc(any(), anyBoolean(), anyBoolean())).thenReturn(arrayNode);
+
+      DocumentResponseWrapper<JsonNode> result =
+          documentWriteService
+              .executeBuiltInFunction(
+                  Uni.createFrom().item(table),
+                  namespace,
+                  collection,
+                  documentId,
+                  Collections.emptyList(),
+                  new BuiltInFunctionDto("$push", null),
+                  context)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create())
+              .awaitItem()
+              .getItem();
+      assertThat(result.documentId()).isEqualTo(documentId);
+      assertThat(result.data()).isEqualTo(objectMapper.readTree("[1,2,3,null]"));
+      assertThat(result.pageState()).isNull();
+      assertThat(result.profile()).isEqualTo(context.toProfile());
+
+      verify(writeBridgeService)
+          .updateDocument(
+              namespace, collection, documentId, Collections.emptyList(), rows, 0, context);
+      verify(readBridgeService)
+          .getDocument(namespace, collection, documentId, Collections.emptyList(), context);
+      verify(readBridgeService).getDocumentTtlInfo(namespace, collection, documentId, context);
+      verify(jsonSchemaManager).validateJsonDocument(any(), any(), anyBoolean());
+      verify(jsonConverter, times(2)).convertToJsonDoc(any(), anyBoolean(), anyBoolean());
+      verifyNoMoreInteractions(
+          writeBridgeService, jsonSchemaManager, readBridgeService, jsonConverter);
+    }
+
+    @Test
+    public void happyPathPop() throws JsonProcessingException {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
+      ExecutionContext context = ExecutionContext.create(true);
+      JsonNode arrayNode = objectMapper.readTree("[1, 2, 3]");
+
+      when(jsonDocumentShredder.shred((JsonNode) any(), any())).thenReturn(rows);
+      when(writeBridgeService.updateDocument(
+              namespace, collection, documentId, Collections.emptyList(), rows, 0, context))
+          .thenReturn(Uni.createFrom().item(ResultSet.getDefaultInstance()));
+      when(readBridgeService.getDocumentTtlInfo(any(), any(), any(), any()))
+          .thenReturn(Uni.createFrom().item(rawDocument));
+      when(readBridgeService.getDocument(any(), any(), any(), any(), any()))
+          .thenReturn(Multi.createFrom().item(rawDocument));
+      when(jsonSchemaManager.validateJsonDocument(any(), any(), anyBoolean()))
+          .thenReturn(Uni.createFrom().item(true));
+      when(jsonConverter.convertToJsonDoc(any(), anyBoolean(), anyBoolean())).thenReturn(arrayNode);
+
+      DocumentResponseWrapper<JsonNode> result =
+          documentWriteService
+              .executeBuiltInFunction(
+                  Uni.createFrom().item(table),
+                  namespace,
+                  collection,
+                  documentId,
+                  Collections.emptyList(),
+                  new BuiltInFunctionDto("$pop", null),
+                  context)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create())
+              .awaitItem()
+              .getItem();
+      assertThat(result.documentId()).isEqualTo(documentId);
+      assertThat(result.data()).isEqualTo(new IntNode(3));
+      assertThat(result.pageState()).isNull();
+      assertThat(result.profile()).isEqualTo(context.toProfile());
+
+      verify(writeBridgeService)
+          .updateDocument(
+              namespace, collection, documentId, Collections.emptyList(), rows, 0, context);
+      verify(readBridgeService)
+          .getDocument(namespace, collection, documentId, Collections.emptyList(), context);
+      verify(readBridgeService).getDocumentTtlInfo(namespace, collection, documentId, context);
+      verify(jsonSchemaManager).validateJsonDocument(any(), any(), anyBoolean());
+      verify(jsonConverter, times(2)).convertToJsonDoc(any(), anyBoolean(), anyBoolean());
+      verifyNoMoreInteractions(
+          writeBridgeService, jsonSchemaManager, readBridgeService, jsonConverter);
+    }
+
+    @Test
+    public void invalidArrays() throws JsonProcessingException {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
+      ExecutionContext context = ExecutionContext.create(true);
+      JsonNode arrayNode = objectMapper.readTree("{}");
+
+      when(jsonDocumentShredder.shred((JsonNode) any(), any())).thenReturn(rows);
+      when(writeBridgeService.updateDocument(
+              namespace, collection, documentId, Collections.emptyList(), rows, 0, context))
+          .thenReturn(Uni.createFrom().item(ResultSet.getDefaultInstance()));
+      when(readBridgeService.getDocumentTtlInfo(any(), any(), any(), any()))
+          .thenReturn(Uni.createFrom().item(rawDocument));
+      when(readBridgeService.getDocument(any(), any(), any(), any(), any()))
+          .thenReturn(Multi.createFrom().item(rawDocument));
+      when(jsonSchemaManager.validateJsonDocument(any(), any(), anyBoolean()))
+          .thenReturn(Uni.createFrom().item(true));
+      when(jsonConverter.convertToJsonDoc(any(), anyBoolean(), anyBoolean())).thenReturn(arrayNode);
+
+      Throwable failure =
+          documentWriteService
+              .executeBuiltInFunction(
+                  Uni.createFrom().item(table),
+                  namespace,
+                  collection,
+                  documentId,
+                  Collections.emptyList(),
+                  new BuiltInFunctionDto("$pop", null),
+                  context)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create())
+              .awaitFailure()
+              .getFailure();
+      assertThat(failure).isInstanceOf(ErrorCodeRuntimeException.class);
+      assertThat(failure.getMessage())
+          .isEqualTo("The path provided to pop from has no array, found {}");
+
+      arrayNode = objectMapper.readTree("[]");
+      when(jsonConverter.convertToJsonDoc(any(), anyBoolean(), anyBoolean())).thenReturn(arrayNode);
+      Throwable failure2 =
+          documentWriteService
+              .executeBuiltInFunction(
+                  Uni.createFrom().item(table),
+                  namespace,
+                  collection,
+                  documentId,
+                  Collections.emptyList(),
+                  new BuiltInFunctionDto("$pop", null),
+                  context)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create())
+              .awaitFailure()
+              .getFailure();
+      assertThat(failure2).isInstanceOf(ErrorCodeRuntimeException.class);
+      assertThat(failure2.getMessage()).isEqualTo("No data available to pop.");
+    }
+
+    @Test
+    public void invalidBuiltinFunctionName() {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
+      ExecutionContext context = ExecutionContext.create(true);
+
+      assertThatThrownBy(
+              () ->
+                  documentWriteService
+                      .executeBuiltInFunction(
+                          Uni.createFrom().item(table),
+                          namespace,
+                          collection,
+                          documentId,
+                          Collections.emptyList(),
+                          new BuiltInFunctionDto("$poop", null),
+                          context)
+                      .subscribe()
+                      .withSubscriber(UniAssertSubscriber.create())
+                      .awaitFailure()
+                      .getFailure())
+          .isInstanceOf(ErrorCodeRuntimeException.class)
+          .hasMessage("Invalid Built-In function name.");
     }
   }
 }

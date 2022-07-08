@@ -84,6 +84,7 @@ public interface OpenApiConstants {
     String WRITE = "WRITE";
     String WRITE_SUB_DOCUMENT = "WRITE_SUB_DOCUMENT";
     String WRITE_BATCH = "WRITE_BATCH";
+    String WRITE_BUILT_IN_FUNCTION = "WRITE_BUILT_IN_FUNCTION";
   }
 
   /** Response reference names. */
