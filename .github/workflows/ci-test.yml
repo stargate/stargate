@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-18.04
     strategy:
       # Defaults to "true" but let's let all runs finish
-      * (see https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs)
+      # (see https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs)
       fail-fast: false
       matrix:
         backend: [ cassandra-40, cassandra-311, dse-68 ]
