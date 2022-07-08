@@ -28,7 +28,7 @@ import org.eclipse.jetty.util.thread.ThreadPool;
 
 /**
  * @see "META-INF/services/io.dropwizard.server.ServerFactory"
- * @see "config.yaml"
+ * @see "restapi-config.yaml"
  */
 @JsonTypeName("rest-api")
 public class RestApiServerFactory extends SimpleServerFactory {
