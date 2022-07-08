@@ -26,9 +26,9 @@ import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.QueryOuterClass.QueryParameters;
 import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.bridge.proto.QueryOuterClass.Values;
+import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.common.cql.ColumnUtils;
 import io.stargate.sgv2.common.cql.CqlStrings;
-import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -44,7 +44,7 @@ import java.util.stream.Stream;
  * Convenience builder for creating queries.
  *
  * <p>The generated CQL string is wrapped into a {@link Query} that can be passed directly to {@link
- * StargateBridgeClient#executeQuery(Query)}. In addition, any time a {@link Value} is passed to the
+ * StargateBridge#executeQuery(Query)}. In addition, any time a {@link Value} is passed to the
  * builder (via such methods as {@link #where(Column, Predicate, Object)}, {@link #value(Column,
  * Object)}, etc.), it is automatically replaced with a bind marker, and stored in {@link
  * Query#getValues()}.
