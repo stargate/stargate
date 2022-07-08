@@ -9,6 +9,9 @@ jobs:
     # CCM installation trickier on 20.04, alas; Python 2.x dep etc problematic
     runs-on: ubuntu-18.04
     strategy:
+      # Defaults to "true" but let's let all runs finish
+      * (see https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs)
+      fail-fast: false
       matrix:
         backend: [ cassandra-40, cassandra-311, dse-68 ]
     steps:
