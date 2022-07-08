@@ -43,7 +43,7 @@ steps:
     name: 'maven:3-openjdk-17'
     waitFor: [ 'fetch_secret', 'init_cache', 'build' ]
     entrypoint: mvn
-    args: [ '-B','install', '--settings', 'ci/custom-settings.xml', '--file', 'sgv2-docsapi/pom.xml', '-DskipTests',
+    args: [ '-B','install', '--settings', 'ci/custom-settings.xml', '--file', 'apis/pom.xml', '-DskipTests',
             '-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn'
     ]
     volumes:

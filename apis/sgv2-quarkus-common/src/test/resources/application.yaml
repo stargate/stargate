@@ -1,0 +1,7 @@
+quarkus:
+  grpc:
+    clients:
+      # Used to setup a mock bridge in tests:
+      bridge:
+        host: localhost
+        port: 8091
