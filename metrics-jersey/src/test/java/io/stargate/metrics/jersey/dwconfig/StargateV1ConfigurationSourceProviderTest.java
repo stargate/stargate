@@ -12,8 +12,7 @@ import org.junit.jupiter.api.Test;
 public class StargateV1ConfigurationSourceProviderTest {
   private static final String TEST_MODULE = "testapi";
 
-  // Use base different from standard "config.yaml" to avoid clashes
-  private static final String TEST_CONFIG_BASE = "test-config.yaml";
+  private static final String TEST_CONFIG_FILENAME = "testapi-config.yaml";
 
   private static final String TEST_CONFIG_SYSTEM_PROPERTY =
       StargateV1ConfigurationSourceProvider.SYSPROP_CONFIG_FILE_PREFIX + TEST_MODULE;
@@ -24,7 +23,7 @@ public class StargateV1ConfigurationSourceProviderTest {
     // Read expected resource contents directly
     String expectedDefaultConfigs =
         FileUtils.readFileToString(
-                new File("src/test/resources/" + TEST_CONFIG_BASE), StandardCharsets.UTF_8)
+                new File("src/test/resources/" + TEST_CONFIG_FILENAME), StandardCharsets.UTF_8)
             .trim();
     String actualDefaultConfigs = readConfig();
     assertThat(actualDefaultConfigs).isEqualTo(expectedDefaultConfigs);
@@ -33,7 +32,7 @@ public class StargateV1ConfigurationSourceProviderTest {
   // Test to verify that setting specific System property will use override too
   @Test
   public void testViaSystemProperty() throws Exception {
-    final String ALT_CONFIG_PATH = "src/test/resources/alt-" + TEST_CONFIG_BASE;
+    final String ALT_CONFIG_PATH = "src/test/resources/alt-config.yaml";
     System.setProperty(TEST_CONFIG_SYSTEM_PROPERTY, ALT_CONFIG_PATH);
     try {
       assertThat(readConfig()).isEqualTo("config: alt");
@@ -55,15 +54,26 @@ public class StargateV1ConfigurationSourceProviderTest {
       f = new File(f, "resources");
       f = new File(f, "cwd");
       System.setProperty("user.dir", f.toString());
-      assertThat(readConfig()).isEqualTo("config: bogus");
+      assertThat(readConfig()).isEqualTo("config: custom");
     } finally {
       System.setProperty("user.dir", originalCWD);
     }
   }
 
+  @Test
+  public void testMissingConfig() throws Exception {
+    try (InputStream in =
+        new StargateV1ConfigurationSourceProvider("nosuchmodule").open("noconfig.yaml")) {
+      String content = IOUtils.toString(in, StandardCharsets.UTF_8).trim();
+      // Expecting "empty" content due to config resource missing; DropWizard will complain
+      // about missing contents
+      assertThat(content).isEmpty();
+    }
+  }
+
   private String readConfig() throws Exception {
     try (InputStream in =
-        new StargateV1ConfigurationSourceProvider(TEST_MODULE).open(TEST_CONFIG_BASE)) {
+        new StargateV1ConfigurationSourceProvider(TEST_MODULE).open(TEST_CONFIG_FILENAME)) {
       return IOUtils.toString(in, StandardCharsets.UTF_8).trim();
     }
   }
