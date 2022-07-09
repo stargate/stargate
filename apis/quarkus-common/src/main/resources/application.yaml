@@ -1,0 +1,16 @@
+---
+# please keep properties in the alphabetical order
+
+stargate:
+
+  # security and authentication configuration
+  # see io.stargate.sgv2.docsapi.config.AuthConfig for all config properties and options
+  auth:
+    # header-based security by default
+    # if changed, adapt token resolver type
+    header-based:
+      enabled: true
+
+    # Cassandra token resolver from principal
+    token-resolver:
+      type: principal
