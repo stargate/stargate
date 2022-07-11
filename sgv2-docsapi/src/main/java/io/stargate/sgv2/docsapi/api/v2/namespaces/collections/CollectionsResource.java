@@ -31,6 +31,7 @@ import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
 import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.service.schema.qualifier.Authorized;
 import java.net.URI;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import javax.inject.Inject;
@@ -130,12 +131,7 @@ public class CollectionsResource {
         .getValidCollectionTables(namespace)
 
         // map to DTO and collect list
-        .map(
-            table -> {
-              List<CollectionUpgradeType> upgradeTypes =
-                  tableManager.getAvailableUpgradeTypes(table);
-              return toCollectionDto(table, upgradeTypes);
-            })
+        .map(table -> toCollectionDto(table, Collections.emptyList()))
         .collect()
         .asList()
 
@@ -310,27 +306,18 @@ public class CollectionsResource {
       @PathParam("collection") String collection,
       @NotNull(message = "payload not provided") @Valid UpgradeCollectionDto body,
       @QueryParam("raw") boolean raw) {
-    // execute upgrade
-    return tableManager
-        .upgradeCollectionTable(namespace, collection, body.upgradeType())
 
-        // if OK, reloads the collections and returns result
+    // currently no upgrade possible
+    // fetch the table and if valid signal exception
+    return tableManager
+        .getValidCollectionTable(namespace, collection)
+
+        // fail with DOCS_API_GENERAL_UPGRADE_INVALID
         .flatMap(
-            any ->
-                tableManager
-                    .getValidCollectionTable(namespace, collection)
-                    .map(
-                        table -> {
-                          List<CollectionUpgradeType> upgradeTypes =
-                              tableManager.getAvailableUpgradeTypes(table);
-                          CollectionDto result = toCollectionDto(table, upgradeTypes);
-                          if (raw) {
-                            return result;
-                          } else {
-                            return new SimpleResponseWrapper<>(result);
-                          }
-                        })
-                    .map(RestResponse::ok));
+            t ->
+                Uni.createFrom()
+                    .failure(
+                        new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_UPGRADE_INVALID)));
   }
 
   @Operation(description = "Delete a collection in a namespace.")

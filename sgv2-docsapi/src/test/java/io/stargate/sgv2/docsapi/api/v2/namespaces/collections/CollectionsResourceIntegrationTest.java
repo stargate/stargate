@@ -289,11 +289,7 @@ public class CollectionsResourceIntegrationTest {
           .then()
           .statusCode(400)
           .body("code", is(400))
-          .body(
-              "description",
-              is(
-                  "Can not upgrade collection %s using the SAI_INDEX_UPGRADE."
-                      .formatted(DEFAULT_COLLECTION)));
+          .body("description", is("The collection cannot be upgraded in given manner."));
     }
 
     @Test
