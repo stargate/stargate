@@ -93,7 +93,7 @@ class PersistenceDocumentsResolverTest extends AbstractValidatingStargateBridgeT
     }
 
     @Test
-    public void happyPath() throws Exception {
+    public void happyPath() {
       int pageSize = 1;
       Paginator paginator = new Paginator(null, pageSize);
       FilterPath filterPath = ImmutableFilterPath.of(Collections.singleton("field"));

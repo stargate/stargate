@@ -99,7 +99,7 @@ class AllFiltersResolverTest extends AbstractValidatingStargateBridgeTest {
     }
 
     @Test
-    public void happyPath() throws Exception {
+    public void happyPath() {
       withAnySelectFrom(KEYSPACE_NAME, COLLECTION_NAME).returningNothing();
       QueryOuterClass.Query query1Final = query1.await().indefinitely();
       QueryOuterClass.Query query2Final = query2.await().indefinitely();

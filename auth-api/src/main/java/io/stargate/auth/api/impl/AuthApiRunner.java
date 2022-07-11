@@ -36,6 +36,6 @@ public class AuthApiRunner {
   public void start() {
     AuthApiServer authApiServer =
         new AuthApiServer(this.authenticationService, this.metrics, this.httpMetricsTagProvider);
-    authApiServer.run("server", "config.yaml");
+    authApiServer.run("server", "authapi-config.yaml");
   }
 }

@@ -1,11 +1,19 @@
 package io.stargate.sgv2.docsapi.service.query.executor;
 
+import com.google.protobuf.ByteString;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Objects;
 import org.apache.commons.lang3.StringUtils;
 
 public class DocumentPropertyComparator implements Comparator<DocumentProperty> {
+
+  /**
+   * Comparator for comparing {@link DocumentProperty#comparableKey()}s. Compares bytes in unsigned
+   * way.
+   */
+  public static final Comparator<ByteString> COMPARABLE_BYTES_COMPARATOR =
+      Comparator.nullsLast(ByteString.unsignedLexicographicalComparator());
 
   private final List<String> documentPathsColumns;
 
@@ -17,7 +25,7 @@ public class DocumentPropertyComparator implements Comparator<DocumentProperty> 
   @Override
   public int compare(DocumentProperty p1, DocumentProperty p2) {
     // always first compare by using COMPARABLE_BYTES_COMPARATOR
-    int byteCompare = DocumentProperty.COMPARABLE_BYTES_COMPARATOR.compare(p1, p2);
+    int byteCompare = COMPARABLE_BYTES_COMPARATOR.compare(p1.comparableKey(), p2.comparableKey());
     if (byteCompare != 0) {
       return byteCompare;
     }

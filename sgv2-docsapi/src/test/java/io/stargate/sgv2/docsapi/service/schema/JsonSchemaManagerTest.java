@@ -92,13 +92,14 @@ class JsonSchemaManagerTest extends BridgeTest {
 
       JsonNode schema =
           objectMapper.readTree(
-              "{\n"
-                  + "  \"$schema\": \"https://json-schema.org/draft/2019-09/schema\",\n"
-                  + "  \"type\": \"object\",\n"
-                  + "  \"properties\": {\n"
-                  + "    \"something\": { \"type\": \"strin\" }\n"
-                  + "  }\n"
-                  + "}");
+              """
+                  {
+                    "$schema": "https://json-schema.org/draft/2019-09/schema",
+                    "type": "object",
+                    "properties": {
+                      "something": { "type": "strin" }
+                    }
+                  }""");
 
       jsonSchemaManager
           .attachJsonSchema(namespace, Uni.createFrom().item(table), schema)
@@ -220,28 +221,29 @@ class JsonSchemaManagerTest extends BridgeTest {
   }
 
   private String testJsonSchema() {
-    return "{\"schema\": {\n"
-        + "  \"$schema\": \"http://json-schema.org/draft-04/schema#\",\n"
-        + "  \"title\": \"Product\",\n"
-        + "  \"description\": \"A product from the catalog\",\n"
-        + "  \"type\": \"object\",\n"
-        + "  \"properties\": {\n"
-        + "    \"id\": {\n"
-        + "      \"description\": \"The unique identifier for a product\",\n"
-        + "      \"type\": \"integer\"\n"
-        + "    },\n"
-        + "    \"name\": {\n"
-        + "      \"description\": \"Name of the product\",\n"
-        + "      \"type\": \"string\"\n"
-        + "    },\n"
-        + "    \"price\": {\n"
-        + "      \"type\": \"number\",\n"
-        + "      \"minimum\": 0,\n"
-        + "      \"exclusiveMinimum\": true,\n"
-        + "      \"description\": \"Product's price\"\n"
-        + "    }\n"
-        + "  },\n"
-        + "  \"required\": [\"id\", \"name\", \"price\"]\n"
-        + "}}";
+    return """
+            {"schema": {
+              "$schema": "http://json-schema.org/draft-04/schema#",
+              "title": "Product",
+              "description": "A product from the catalog",
+              "type": "object",
+              "properties": {
+                "id": {
+                  "description": "The unique identifier for a product",
+                  "type": "integer"
+                },
+                "name": {
+                  "description": "Name of the product",
+                  "type": "string"
+                },
+                "price": {
+                  "type": "number",
+                  "minimum": 0,
+                  "exclusiveMinimum": true,
+                  "description": "Product's price"
+                }
+              },
+              "required": ["id", "name", "price"]
+            }}""";
   }
 }

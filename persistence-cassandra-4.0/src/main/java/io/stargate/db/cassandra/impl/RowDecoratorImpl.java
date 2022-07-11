@@ -20,13 +20,24 @@ import io.stargate.db.ComparableKey;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.schema.TableName;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 import java.util.stream.Collectors;
 import org.apache.cassandra.db.Clustering;
 import org.apache.cassandra.db.DecoratedKey;
 import org.apache.cassandra.db.PartitionPosition;
+import org.apache.cassandra.dht.ByteOrderedPartitioner;
+import org.apache.cassandra.dht.Murmur3Partitioner;
+import org.apache.cassandra.dht.OrderPreservingPartitioner;
+import org.apache.cassandra.dht.Token;
 import org.apache.cassandra.schema.TableMetadata;
+import org.apache.cassandra.utils.bytecomparable.ByteComparable;
+import org.apache.cassandra.utils.bytecomparable.ByteSource;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class RowDecoratorImpl extends AbstractRowDecorator {
+
+  private static final Logger LOG = LoggerFactory.getLogger(RowDecoratorImpl.class);
 
   private final TableMetadata metadata;
 
@@ -43,17 +54,88 @@ public class RowDecoratorImpl extends AbstractRowDecorator {
     this.metadata = tableMetadata;
   }
 
-  @Override
-  protected ComparableKey<?> decoratePrimaryKey(Object... pkValues) {
-    Clustering key = metadata.partitionKeyAsClusteringComparator().make(pkValues);
-    DecoratedKey decoratedKey = metadata.partitioner.decorateKey(key.serializeAsPartitionKey());
-    return new ComparableKey<>(PartitionPosition.class, decoratedKey);
+  private DecoratedKey decoratedKeyFromRawKeyValues(Object... rawKeyValues) {
+    Clustering<?> key = metadata.partitionKeyAsClusteringComparator().make(rawKeyValues);
+    return metadata.partitioner.decorateKey(key.serializeAsPartitionKey());
   }
 
   @Override
+  protected ComparableKey<?> decoratePrimaryKey(Object... rawKeyValues) {
+    DecoratedKey decoratedKey = decoratedKeyFromRawKeyValues(rawKeyValues);
+    return new ComparableKey<>(PartitionPosition.class, decoratedKey);
+  }
+
+  /**
+   * {@inheritDoc}
+   *
+   * <p><b>IMPORTANT:</b> we only support getting the bytes for the Murmur3Partitioner,
+   * ByteOrderedPartitioner & OrderPreservingPartitioner. Any other partitioner will only depend on
+   * the key comparison, which is not going to work for the correct OR queries in the Docs API V2.
+   */
+  @Override
   public ByteBuffer getComparableBytes(Row row) {
-    // TODO replace this with the relevant row's byte-comparable value when
-    // https://github.com/apache/cassandra/pull/1294 is ready
-    return ByteBuffer.wrap(new byte[] {});
+    DecoratedKey decoratedKey = decoratedKeyFromRawKeyValues(primaryKeyValues(row));
+
+    // based on
+    // https://github.com/apache/cassandra/blob/trunk/src/java/org/apache/cassandra/db/DecoratedKey.java#L109-L119
+
+    ByteComparable.Version version = ByteComparable.Version.OSS42;
+    ByteSource keyComparableBytes = ByteSource.of(decoratedKey.getKey(), version);
+    ByteSource tokenComparableBytes = getTokenComparableBytes(decoratedKey.getToken(), version);
+
+    // combine
+    ByteSource bytes =
+        ByteSource.withTerminatorMaybeLegacy(
+            version, ByteSource.END_OF_STREAM, tokenComparableBytes, keyComparableBytes);
+    return ByteBuffer.wrap(readBytes(bytes, 64));
+  }
+
+  // resolves the comparable bytes for three token types
+  private static ByteSource getTokenComparableBytes(Token token, ByteComparable.Version version) {
+    // Murmur3Partitioner is default, so first try that
+    // https://github.com/apache/cassandra/blob/trunk/src/java/org/apache/cassandra/dht/Murmur3Partitioner.java#L182-L186
+    if (token instanceof Murmur3Partitioner.LongToken) {
+      long tokenValue = (long) token.getTokenValue();
+      return ByteSource.of(tokenValue);
+    }
+
+    // https://github.com/apache/cassandra/blob/trunk/src/java/org/apache/cassandra/dht/ByteOrderedPartitioner.java#L107-L111
+    if (token instanceof ByteOrderedPartitioner.BytesToken) {
+      byte[] tokenValue = (byte[]) token.getTokenValue();
+      return ByteSource.of(tokenValue, version);
+    }
+
+    // https://github.com/apache/cassandra/blob/trunk/src/java/org/apache/cassandra/dht/OrderPreservingPartitioner.java#L206-L210
+    if (token instanceof OrderPreservingPartitioner.StringToken) {
+      String tokenValue = (String) token.getTokenValue();
+      return ByteSource.of(tokenValue, version);
+    }
+
+    // we only support the above 3
+    // for other partitioner, log warn and wrap empty bytes
+    LOG.warn(
+        "Comparable bytes not supported for the token type {}.", token.getClass().getSimpleName());
+    return ByteSource.EMPTY;
+  }
+
+  // copied from com.datastax.bdp.db.tries.util.ByteSourceUtil
+  public static byte[] readBytes(ByteSource byteSource, final int initialBufferCapacity) {
+    if (byteSource == null) return new byte[0];
+
+    int readBytes = 0;
+    byte[] buf = new byte[initialBufferCapacity];
+    int data;
+    while ((data = byteSource.next()) != ByteSource.END_OF_STREAM) {
+      // inlined com.datastax.bdp.db.tries.util.ByteSourceUtil#ensureCapacity
+      if (readBytes == buf.length) {
+        buf = Arrays.copyOf(buf, readBytes * 2);
+      }
+      buf[readBytes++] = (byte) (data & 0xFF);
+    }
+
+    if (readBytes != buf.length) {
+      buf = Arrays.copyOf(buf, readBytes);
+    }
+    return buf;
   }
 }

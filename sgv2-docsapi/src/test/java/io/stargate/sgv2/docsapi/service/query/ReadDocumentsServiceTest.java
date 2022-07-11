@@ -125,7 +125,7 @@ class ReadDocumentsServiceTest {
     @Mock RawDocument rawDocument2;
 
     @Test
-    public void happyPath() throws Exception {
+    public void happyPath() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String documentId1 = RandomStringUtils.randomAlphanumeric(16);
@@ -403,7 +403,7 @@ class ReadDocumentsServiceTest {
     @Captor ArgumentCaptor<Map<String, Set<DeadLeaf>>> deadLeavesCaptor;
 
     @Test
-    public void happyPath() throws Exception {
+    public void happyPath() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String documentId = RandomStringUtils.randomAlphanumeric(16);
@@ -622,6 +622,37 @@ class ReadDocumentsServiceTest {
               eq(context));
       verifyNoMoreInteractions(readBridgeService, writeBridgeService);
     }
+
+    @Test
+    public void notFound() {
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+
+      String fields = "[\"prePath\"]";
+      Multi<RawDocument> docs = Multi.createFrom().empty();
+
+      when(readBridgeService.getDocument(
+              eq(namespace),
+              eq(collection),
+              eq(documentId),
+              eq(Collections.emptyList()),
+              eq(context)))
+          .thenReturn(docs);
+
+      DocumentResponseWrapper<? extends JsonNode> wrapper =
+          service
+              .getDocument(
+                  namespace, collection, documentId, Collections.emptyList(), fields, context)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create())
+              .awaitItem()
+              .assertCompleted()
+              .getItem();
+
+      assertThat(wrapper).isNull();
+    }
   }
 
   @Nested
@@ -631,7 +662,7 @@ class ReadDocumentsServiceTest {
     @Mock RawDocument rawDocument2;
 
     @Test
-    public void happyPath() throws Exception {
+    public void happyPath() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String documentId = RandomStringUtils.randomAlphanumeric(16);

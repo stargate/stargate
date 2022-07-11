@@ -51,17 +51,12 @@ class ExpressionUtilsTest {
   private FilterExpression e(FilterOperationCode op, int value) {
     FilterPath filterPath = ImmutableFilterPath.of(Collections.singletonList("field"));
 
-    ValueFilterOperation operation;
-    switch (op) {
-      case GT:
-        operation = GtFilterOperation.of();
-        break;
-      case LTE:
-        operation = LteFilterOperation.of();
-        break;
-      default:
-        throw new UnsupportedOperationException("Unsupported op code: " + op);
-    }
+    ValueFilterOperation operation =
+        switch (op) {
+          case GT -> GtFilterOperation.of();
+          case LTE -> LteFilterOperation.of();
+          default -> throw new UnsupportedOperationException("Unsupported op code: " + op);
+        };
 
     BaseCondition condition = ImmutableNumberCondition.of(operation, value, documentProperties);
     return ImmutableFilterExpression.of(filterPath, condition, 0);

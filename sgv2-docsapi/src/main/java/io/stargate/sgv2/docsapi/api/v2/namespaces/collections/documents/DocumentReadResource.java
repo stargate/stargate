@@ -146,7 +146,7 @@ public class DocumentReadResource {
       @QueryParam("where") String where,
       @QueryParam("fields") String fields,
       @QueryParam("page-size")
-          @Min(value = 1, message = "the minimum number of results to return is one")
+          @Min(value = 1, message = "the minimum number of documents to return is one")
           @Max(value = 20, message = "the max number of documents to return is 20")
           Integer pageSize,
       @QueryParam("page-state") String pageState,
@@ -182,8 +182,8 @@ public class DocumentReadResource {
 
           > Note that in case when conditions are given using the `where` query parameter, the response will contain an array of sub-documents where the condition is matched.
           The structure of returned sub-documents will only contain the path to the field which was included in the condition.
+          Other fields of the matched sub-document can be included using the `fields` parameter.
           Only single field conditions are possible at the moment. Multiple conditions targeting the same field are allowed.
-          Mixing the `field` selection and `where` is not supported at the moment.
           The page size and page state parameters are only used together with `where` and enable paging through matched sub-documents.
           """)
   @Parameters(
@@ -265,8 +265,8 @@ public class DocumentReadResource {
 
           > Note that in case when conditions are given using the `where` query parameter, the response will contain an array of sub-documents where the condition is matched.
           The structure of returned sub-documents will only contain the path to the field which was included in the condition.
+          Other fields of the matched sub-document can be included using the `fields` parameter.
           Only single field conditions are possible at the moment. Multiple conditions targeting the same field are allowed.
-          Mixing the `field` selection and `where` is not supported at the moment.
           The page size and page state parameters are only used together with `where` and enable paging through matched sub-documents.
           """)
   @Parameters(
@@ -371,8 +371,15 @@ public class DocumentReadResource {
                           if (null != result) {
                             return rawHandler(raw).apply(result);
                           } else {
+                            String msg;
+                            if (pathStrings.isEmpty()) {
+                              msg = "A document with the id %s does not exist.".formatted(id);
+                            } else {
+                              msg =
+                                  "A path %s in a document with the id %s, or the document itself, does not exist."
+                                      .formatted(pathStrings, id);
+                            }
                             int code = Response.Status.NOT_FOUND.getStatusCode();
-                            String msg = "A document with the id %s does not exist.".formatted(id);
                             ApiError error = new ApiError(msg, 404);
                             return RestResponse.ResponseBuilder.create(code).entity(error).build();
                           }

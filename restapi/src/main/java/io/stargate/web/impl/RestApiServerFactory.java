@@ -31,7 +31,7 @@ import org.slf4j.LoggerFactory;
 
 /**
  * @see "META-INF/services/io.dropwizard.server.ServerFactory"
- * @see "config.yaml"
+ * @see "restapi-config.yaml"
  */
 @JsonTypeName("rest-api")
 public class RestApiServerFactory extends SimpleServerFactory {

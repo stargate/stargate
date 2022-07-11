@@ -132,7 +132,6 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
   void withFiveTestDocIds(QueryOuterClass.Query query, int pageSize) {
     withQuery(query.getCql())
-        .enriched()
         .withPageSize(pageSize)
         .withColumnSpec(columnSpec)
         .returning(
@@ -152,7 +151,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
       List<List<QueryOuterClass.Value>> rows =
           ImmutableList.of(row("1", "x", 1.0d), row("1", "y", 2.0d), row("2", "x", 3.0d));
 
-      withQuery(allDocsQuery.getCql()).enriched().withColumnSpec(columnSpec).returning(rows);
+      withQuery(allDocsQuery.getCql()).withColumnSpec(columnSpec).returning(rows);
 
       List<RawDocument> result =
           queryExecutor
@@ -233,7 +232,6 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
       withQuery(query.getCql())
           .withPageSize(pageSize)
-          .enriched()
           .withColumnSpec(columnSpec)
           .returning(rows.build());
 
@@ -350,13 +348,11 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
       withQuery(selectDocQuery.getCql(), Values.of("2"))
           .withPageSize(pageSize)
-          .enriched()
           .withColumnSpec(columnSpec)
           .returning(ImmutableList.of(row("2", "x", 3.0d), row("2", "y", 1.0d)));
 
       withQuery(selectDocQuery.getCql(), Values.of("5"))
           .withPageSize(pageSize)
-          .enriched()
           .withColumnSpec(columnSpec)
           .returning(
               ImmutableList.of(
@@ -436,7 +432,6 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
       QueryOuterClass.Value[] values = {Values.of("b")};
       withQuery(query.getCql(), values)
-          .enriched()
           .withPageSize(3)
           .withColumnSpec(columnSpec)
           .returning(
@@ -653,6 +648,68 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
       assertThat(result.get(1).rows()).extracting(r -> r.getString("p0")).contains("y2");
       assertThat(result.get(2).rows()).extracting(r -> r.getString("p0")).contains("x2", "x3");
       assertThat(result.get(3).rows()).extracting(r -> r.getString("p0")).contains("z1", "z2");
+    }
+
+    @Test
+    void mergeSameRows() {
+      BuiltCondition pathCondition =
+          BuiltCondition.of(
+              documentProperties.tableProperties().pathColumnName(0), Predicate.GT, Term.marker());
+
+      QueryOuterClass.Query query =
+          new QueryBuilder()
+              .select()
+              .star()
+              .from(schemaProvider.getTable().getName())
+              .where(pathCondition)
+              .build();
+
+      QueryOuterClass.Value valueX = Values.of("x");
+      withQuery(query.getCql(), valueX)
+          .withComparableKey(FIRST_COLUMN_COMPARABLE_KEY)
+          .enriched()
+          .withPageSize(10)
+          .withColumnSpec(columnSpec)
+          .returning(
+              ImmutableList.of(
+                  row("a", "x1", 1.0d),
+                  row("a", "x2", 2.0d),
+                  row("c", "x2", 2.0d),
+                  row("c", "x3", 2.0d)));
+      QueryOuterClass.Value valueY = Values.of("y");
+      withQuery(query.getCql(), valueY)
+          .withComparableKey(FIRST_COLUMN_COMPARABLE_KEY)
+          .enriched()
+          .withPageSize(10)
+          .withColumnSpec(columnSpec)
+          .returning(
+              ImmutableList.of(
+                  row("a", "x1", 1.0d),
+                  row("a", "x2", 2.0d),
+                  row("c", "x2", 2.0d),
+                  row("c", "x3", 2.0d)));
+
+      QueryOuterClass.Query q1 =
+          QueryOuterClass.Query.newBuilder(query)
+              .setValues(QueryOuterClass.Values.newBuilder().addValues(valueX))
+              .build();
+      QueryOuterClass.Query q2 =
+          QueryOuterClass.Query.newBuilder(query)
+              .setValues(QueryOuterClass.Values.newBuilder().addValues(valueY))
+              .build();
+
+      List<RawDocument> result =
+          queryExecutor
+              .queryDocs(ImmutableList.of(q1, q2), 10, false, null, false, context)
+              .subscribe()
+              .withSubscriber(AssertSubscriber.create(4))
+              .awaitItems(2)
+              .awaitCompletion()
+              .getItems();
+
+      assertThat(result).extracting(RawDocument::id).containsExactly("a", "c");
+      assertThat(result.get(0).rows()).extracting(r -> r.getString("p0")).contains("x1", "x2");
+      assertThat(result.get(1).rows()).extracting(r -> r.getString("p0")).contains("x2", "x3");
     }
 
     @ParameterizedTest
@@ -1146,7 +1203,6 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
           ImmutableList.of(row("1", "x", 1.0d), row("1", "y", 2.0d), row("2", "x", 3.0d));
 
       withQuery(allDocsQuery.getCql())
-          .enriched()
           .withColumnSpec(columnSpec)
           .withConsistency(QueryOuterClass.Consistency.ONE)
           .returning(rows);

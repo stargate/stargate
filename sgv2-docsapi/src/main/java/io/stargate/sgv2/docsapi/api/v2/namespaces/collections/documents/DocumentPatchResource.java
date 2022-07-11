@@ -129,7 +129,7 @@ public class DocumentPatchResource {
       @PathParam("document-id") String documentId,
       @QueryParam("ttl-auto") boolean ttlAuto,
       @QueryParam("profile") boolean profile,
-      @NotNull JsonNode body) {
+      @NotNull(message = "payload must not be empty") JsonNode body) {
     ExecutionContext context = ExecutionContext.create(profile);
     Uni<Schema.CqlTable> table = tableManager.ensureValidDocumentTable(namespace, collection);
     return documentWriteService
@@ -216,7 +216,7 @@ public class DocumentPatchResource {
       @PathParam("document-path") List<PathSegment> documentPath,
       @QueryParam("ttl-auto") boolean ttlAuto,
       @QueryParam("profile") boolean profile,
-      @NotNull JsonNode body) {
+      @NotNull(message = "payload must not be empty") JsonNode body) {
     ExecutionContext context = ExecutionContext.create(profile);
     List<String> subPath =
         documentPath.stream().map(PathSegment::getPath).collect(Collectors.toList());

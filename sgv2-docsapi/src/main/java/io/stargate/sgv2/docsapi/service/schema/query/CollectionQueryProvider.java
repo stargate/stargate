@@ -66,9 +66,9 @@ public class CollectionQueryProvider {
   /**
    * Creates a set of queries to be performed for creating all needed indexes for a collection.
    *
-   * @param namespace
-   * @param collection
-   * @return
+   * @param namespace Namespace of the collection.
+   * @param collection Collection name.
+   * @return Query
    */
   public List<QueryOuterClass.Query> createCollectionIndexQueries(
       String namespace, String collection) {

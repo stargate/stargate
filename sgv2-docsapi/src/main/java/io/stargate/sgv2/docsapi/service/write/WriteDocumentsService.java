@@ -13,6 +13,7 @@ import io.stargate.sgv2.docsapi.config.DocumentConfig;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.JsonDocumentShredder;
 import io.stargate.sgv2.docsapi.service.JsonShreddedRow;
+import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.ReadBridgeService;
 import io.stargate.sgv2.docsapi.service.schema.JsonSchemaManager;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
@@ -458,13 +459,21 @@ public class WriteDocumentsService {
     return readBridgeService
         .getDocumentTtlInfo(namespace, collection, documentId, ctx)
         .onItem()
+        .ifNotNull()
         .transform(
-            rawDocument ->
-                rawDocument
-                    .rows()
-                    .get(0)
-                    .getLong(String.format("ttl(%s)", configuration.table().leafColumnName()))
-                    .intValue())
+            rawDocument -> {
+              List<RowWrapper> rows = rawDocument.rows();
+              if (rows.isEmpty()) {
+                return 0;
+              }
+              RowWrapper row = rows.get(0);
+              String ttlColumn = "ttl(%s)".formatted(configuration.table().leafColumnName());
+              if (!row.isNull(ttlColumn)) {
+                Long value = row.getLong(ttlColumn);
+                return value.intValue();
+              }
+              return 0;
+            })
         .onItem()
         .ifNull()
         .switchTo(() -> Uni.createFrom().item(0));

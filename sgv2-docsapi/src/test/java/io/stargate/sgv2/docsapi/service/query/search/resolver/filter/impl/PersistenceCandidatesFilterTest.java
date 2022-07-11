@@ -216,7 +216,6 @@ class PersistenceCandidatesFilterTest extends AbstractValidatingStargateBridgeTe
                   Values.of("query-value"),
                   Values.of(documentId))
               .withPageSize(2)
-              .enriched()
               .withColumnSpec(schemaProvider.allColumnSpec())
               .returning(List.of(List.of(Values.of("1"))));
 
@@ -282,7 +281,6 @@ class PersistenceCandidatesFilterTest extends AbstractValidatingStargateBridgeTe
                   Values.of(2.0),
                   Values.of(documentId))
               .withPageSize(documentProperties.maxSearchPageSize())
-              .enriched()
               .withColumnSpec(schemaProvider.allColumnSpec())
               .returning(List.of(List.of(Values.of("1"))));
 
@@ -340,7 +338,6 @@ class PersistenceCandidatesFilterTest extends AbstractValidatingStargateBridgeTe
                   Values.of("query-value"),
                   Values.of(documentId))
               .withPageSize(2)
-              .enriched()
               .returningNothing();
 
       CandidatesFilter filter =

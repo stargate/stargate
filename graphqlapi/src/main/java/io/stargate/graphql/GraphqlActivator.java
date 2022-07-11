@@ -106,7 +106,7 @@ public class GraphqlActivator extends BaseActivator {
                 ENABLE_GRAPHQL_FIRST,
                 ENABLE_GRAPHQL_PLAYGROUND);
         LOG.info("Starting GraphQL");
-        server.run("server", "config.yaml");
+        server.run("server", "graphqlapi-config.yaml");
       } catch (Exception e) {
         LOG.error("Unexpected error while stopping GraphQL", e);
       }

@@ -217,7 +217,6 @@ class InMemoryCandidatesFilterTest extends AbstractValidatingStargateBridgeTest 
                   Values.of(""),
                   Values.of(documentId))
               .withPageSize(2)
-              .enriched()
               .withColumnSpec(schemaProvider.allColumnSpec())
               .returning(List.of(List.of(Values.of("1"))));
 
@@ -292,7 +291,6 @@ class InMemoryCandidatesFilterTest extends AbstractValidatingStargateBridgeTest 
                   Values.of(""),
                   Values.of(documentId))
               .withPageSize(documentProperties.maxSearchPageSize())
-              .enriched()
               .withColumnSpec(schemaProvider.allColumnSpec())
               .returning(List.of(List.of(Values.of("1"))));
 
@@ -361,7 +359,6 @@ class InMemoryCandidatesFilterTest extends AbstractValidatingStargateBridgeTest 
                   Values.of(""),
                   Values.of(documentId))
               .withPageSize(2)
-              .enriched()
               .returningNothing();
 
       CandidatesFilter filter =
@@ -417,7 +414,6 @@ class InMemoryCandidatesFilterTest extends AbstractValidatingStargateBridgeTest 
                   Values.of(""),
                   Values.of(documentId))
               .withPageSize(2)
-              .enriched()
               .returningNothing();
 
       CandidatesFilter filter =
@@ -473,7 +469,6 @@ class InMemoryCandidatesFilterTest extends AbstractValidatingStargateBridgeTest 
                   Values.of(""),
                   Values.of(documentId))
               .withPageSize(2)
-              .enriched()
               .withColumnSpec(schemaProvider.allColumnSpec())
               .returning(List.of(List.of(Values.of("1"))));
 
