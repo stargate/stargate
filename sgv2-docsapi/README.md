@@ -11,6 +11,7 @@ All issues related to the Docs API V2 are marked with the `stargate-v2` and `doc
 * [Concepts](#concepts)
    * [Authentication](#authentication) 
    * [Multi-tenancy](#multi-tenancy) 
+   * [Partitioner limitations](#partitioner-limitations) 
 * [Configuration properties](#configuration-properties)  
 * [Development guide](#development-guide)  
    * [Running the application in dev mode](#running-the-application-in-dev-mode)
@@ -41,6 +42,13 @@ If a tenant is resolved for an HTTP request, the information about the tenant wi
 In addition, the tenant identifier could be added to metrics, traces, logs, etc.
 
 The [Configuration properties](#configuration-properties) provides detailed view on available configuration options.
+
+### Partitioner limitations
+
+The Stargate Docs API V2 supports open-source Cassandra `3.11.x` and `4.0.x` lines, with a limitation of using the `Murmur3Partitioner`, `ByteOrderedPartitioner` or `OrderPreservingPartitioner` at the data store.
+Other partitioners have limited support, and if used, will result in inability to properly search collections using `$or` conditions.
+All other features are supported regardless of the partitioner used.
+This limitation will be removed with the release of Cassandra `4.2.0`.
 
 ## Configuration properties
 
