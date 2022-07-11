@@ -34,6 +34,6 @@ public class WebImpl {
             metricsScraper,
             httpMetricsTagProvider,
             healthCheckRegistry);
-    server.run("server", "config.yaml");
+    server.run("server", "health-checker-config.yaml");
   }
 }
