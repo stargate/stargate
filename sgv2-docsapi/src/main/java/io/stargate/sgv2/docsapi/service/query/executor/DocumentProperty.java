@@ -26,7 +26,7 @@ import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.model.paging.CombinedPagingState;
 import io.stargate.sgv2.docsapi.service.query.model.paging.PagingStateSupplier;
 import java.nio.ByteBuffer;
-import java.util.Comparator;
+import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 /**
@@ -40,15 +40,6 @@ import org.immutables.value.Value;
  */
 @Value.Immutable(lazyhash = true)
 public abstract class DocumentProperty implements PagingStateSupplier {
-
-  /**
-   * Comparator for comparing {@link DocumentProperty}s by the output of the {@link
-   * DocumentProperty#comparableKey()}. Compares bytes in unsigned way.
-   */
-  public static final Comparator<DocumentProperty> COMPARABLE_BYTES_COMPARATOR =
-      (docProperty1, docProperty2) ->
-          ByteString.unsignedLexicographicalComparator()
-              .compare(docProperty1.comparableKey(), docProperty2.comparableKey());
 
   /**
    * A result set that points to a page where the row that describes this document property
@@ -70,11 +61,20 @@ public abstract class DocumentProperty implements PagingStateSupplier {
    */
   abstract int queryIndex();
 
-  /** @return Comparable key that can be used for comparing the partition belonging for this row. */
-  @Value.Lazy
+  /**
+   * @return Comparable key that can be used for comparing the partition belonging for this row. Or
+   *     <code>null</code> if row does not contain it.
+   */
+  @Value.Lazy()
+  @Nullable
   ByteString comparableKey() {
     QueryOuterClass.Row row = rowWrapper().row();
-    return row.getComparableBytes().getValue();
+
+    if (row.hasComparableBytes()) {
+      return row.getComparableBytes().getValue();
+    } else {
+      return null;
+    }
   }
 
   /**

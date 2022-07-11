@@ -316,8 +316,9 @@ public class QueryExecutor {
     }
 
     // execute that query
+    // comparable bytes with singe query not needed
     return queryBridge(
-            stargateBridge, query, pageSize, exponentPageSize, queryPagingState, resumeMode)
+            stargateBridge, query, pageSize, exponentPageSize, queryPagingState, resumeMode, false)
 
         // for each result set, transform to doc property
         .onItem()
@@ -352,13 +353,15 @@ public class QueryExecutor {
                   }
 
                   // execute that query
+                  // comparable bytes with multiple queries needed
                   return queryBridge(
                           stargateBridge,
                           query,
                           pageSize,
                           exponentPageSize,
                           queryPagingState,
-                          resumeMode)
+                          resumeMode,
+                          true)
 
                       // for each result set, transform to doc property
                       .onItem()
@@ -389,7 +392,8 @@ public class QueryExecutor {
       int pageSize,
       boolean exponentPageSize,
       ByteBuffer pagingState,
-      QueryOuterClass.ResumeMode resumeMode) {
+      QueryOuterClass.ResumeMode resumeMode,
+      boolean comparableBytesNeeded) {
     // An empty paging state means the query was exhausted during previous execution
     if (pagingState != null && pagingState.remaining() == 0) {
       return Multi.createFrom().empty();
@@ -412,16 +416,17 @@ public class QueryExecutor {
               // create params, ensure:
               // 1. read consistency
               // 2. needed page size
-              // 3. enriched always
+              // 3. enriched if needed
               // 4. resume mode if defined
               QueryOuterClass.Consistency consistency = queriesConfig.consistency().reads();
               QueryOuterClass.ConsistencyValue.Builder consistencyValue =
                   QueryOuterClass.ConsistencyValue.newBuilder().setValue(consistency);
+              boolean enriched = comparableBytesNeeded || null != resumeMode;
               QueryOuterClass.QueryParameters.Builder params =
                   QueryOuterClass.QueryParameters.newBuilder()
                       .setConsistency(consistencyValue)
                       .setPageSize(Int32Value.of(state.pageSize()))
-                      .setEnriched(true);
+                      .setEnriched(enriched);
 
               // set resume mode if not null
               if (null != resumeMode) {

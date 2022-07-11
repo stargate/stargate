@@ -96,7 +96,6 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
       ValidatingStargateBridge.QueryAssert populateFirstAssert =
           withQuery(populateCql, Values.of("1"))
               .withPageSize(documentProperties.maxSearchPageSize())
-              .enriched()
               .withColumnSpec(schemaProvider.allColumnSpec())
               .returning(
                   Arrays.asList(
@@ -124,7 +123,6 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
       ValidatingStargateBridge.QueryAssert populateSecondAssert =
           withQuery(populateCql, Values.of("2"))
               .withPageSize(documentProperties.maxSearchPageSize())
-              .enriched()
               .withColumnSpec(schemaProvider.allColumnSpec())
               .returning(
                   Arrays.asList(
@@ -276,7 +274,6 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
       ValidatingStargateBridge.QueryAssert populateFirstAssert =
           withQuery(populateCql, Values.of("1"))
               .withPageSize(documentProperties.maxSearchPageSize())
-              .enriched()
               .withColumnSpec(schemaProvider.allColumnSpec())
               .returning(
                   Arrays.asList(
@@ -593,7 +590,6 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
       ValidatingStargateBridge.QueryAssert cqlAssert =
           withQuery(cql, Values.of(documentId))
               .withPageSize(documentProperties.getApproximateStoragePageSize(paginator.docPageSize))
-              .enriched()
               .withColumnSpec(schemaProvider.allColumnSpec())
               .returning(
                   Arrays.asList(
@@ -997,7 +993,6 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
       ValidatingStargateBridge.QueryAssert cqlAssert =
           withQuery(cql, Values.of(documentId))
               .withPageSize(documentProperties.maxSearchPageSize())
-              .enriched()
               .withColumnSpec(
                   List.of(
                       QueryOuterClass.ColumnSpec.newBuilder().setName("key").build(),
@@ -1082,7 +1077,6 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
               Values.of(""),
               Values.of("find-me"),
               Values.of("1"))
-          .enriched()
           .withColumnSpec(schemaProvider.allColumnSpec())
           .returning(Collections.singletonList(List.of(Values.of("1"))));
 
@@ -1092,7 +1086,6 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
 
       withQuery(populateCql, Values.of("1"))
           .withPageSize(documentProperties.maxSearchPageSize())
-          .enriched()
           .withColumnSpec(schemaProvider.allColumnSpec())
           .returning(
               Arrays.asList(
