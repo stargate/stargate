@@ -41,6 +41,21 @@ class DocumentPropertyComparatorTest {
     }
 
     @Test
+    public void onByteCompareNull() {
+      when(p1.comparableKey()).thenReturn(ByteString.copyFromUtf8("a"));
+      when(p2.comparableKey()).thenReturn(null);
+
+      DocumentPropertyComparator comparator =
+          new DocumentPropertyComparator(Collections.singletonList("path"));
+
+      assertThat(comparator.compare(p1, p2)).isLessThan(0);
+      assertThat(comparator.compare(p2, p1)).isGreaterThan(0);
+      verify(p1, times(2)).comparableKey();
+      verify(p2, times(2)).comparableKey();
+      verifyNoMoreInteractions(p1, p2);
+    }
+
+    @Test
     public void onKey() {
       String path = "path";
       when(p1.comparableKey()).thenReturn(ByteString.copyFromUtf8("a"));

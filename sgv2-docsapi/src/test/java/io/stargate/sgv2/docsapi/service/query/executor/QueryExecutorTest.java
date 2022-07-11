@@ -132,7 +132,6 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
   void withFiveTestDocIds(QueryOuterClass.Query query, int pageSize) {
     withQuery(query.getCql())
-        .enriched()
         .withPageSize(pageSize)
         .withColumnSpec(columnSpec)
         .returning(
@@ -152,7 +151,7 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
       List<List<QueryOuterClass.Value>> rows =
           ImmutableList.of(row("1", "x", 1.0d), row("1", "y", 2.0d), row("2", "x", 3.0d));
 
-      withQuery(allDocsQuery.getCql()).enriched().withColumnSpec(columnSpec).returning(rows);
+      withQuery(allDocsQuery.getCql()).withColumnSpec(columnSpec).returning(rows);
 
       List<RawDocument> result =
           queryExecutor
@@ -233,7 +232,6 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
       withQuery(query.getCql())
           .withPageSize(pageSize)
-          .enriched()
           .withColumnSpec(columnSpec)
           .returning(rows.build());
 
@@ -350,13 +348,11 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
       withQuery(selectDocQuery.getCql(), Values.of("2"))
           .withPageSize(pageSize)
-          .enriched()
           .withColumnSpec(columnSpec)
           .returning(ImmutableList.of(row("2", "x", 3.0d), row("2", "y", 1.0d)));
 
       withQuery(selectDocQuery.getCql(), Values.of("5"))
           .withPageSize(pageSize)
-          .enriched()
           .withColumnSpec(columnSpec)
           .returning(
               ImmutableList.of(
@@ -436,7 +432,6 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
 
       QueryOuterClass.Value[] values = {Values.of("b")};
       withQuery(query.getCql(), values)
-          .enriched()
           .withPageSize(3)
           .withColumnSpec(columnSpec)
           .returning(
@@ -1208,7 +1203,6 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
           ImmutableList.of(row("1", "x", 1.0d), row("1", "y", 2.0d), row("2", "x", 3.0d));
 
       withQuery(allDocsQuery.getCql())
-          .enriched()
           .withColumnSpec(columnSpec)
           .withConsistency(QueryOuterClass.Consistency.ONE)
           .returning(rows);
