@@ -20,7 +20,11 @@ package io.stargate.sgv2.docsapi.api.common.security;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
 
+import com.google.common.collect.ImmutableMap;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import io.quarkus.test.junit.TestProfile;
+import java.util.Map;
 import javax.enterprise.context.ApplicationScoped;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -29,9 +33,23 @@ import javax.ws.rs.core.MediaType;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
+@TestProfile(HeaderBasedAuthenticationMechanismTest.Profile.class)
 public class HeaderBasedAuthenticationMechanismTest {
 
+  public static final class Profile implements QuarkusTestProfile {
+
+    @Override
+    public Map<String, String> getConfigOverrides() {
+      return ImmutableMap.<String, String>builder()
+          .put("quarkus.http.auth.proactive", "true")
+          .put("quarkus.http.auth.permission.default.paths", "/v2/*")
+          .put("quarkus.http.auth.permission.default.policy", "authenticated")
+          .build();
+    }
+  }
+
   @ApplicationScoped
+  @Path("")
   public static class TestingResource {
 
     @GET

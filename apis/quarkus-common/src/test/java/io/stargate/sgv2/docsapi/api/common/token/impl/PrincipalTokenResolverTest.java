@@ -20,9 +20,13 @@ package io.stargate.sgv2.docsapi.api.common.token.impl;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableMap;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.docsapi.api.common.token.CassandraTokenResolver;
 import java.security.Principal;
+import java.util.Map;
 import java.util.Optional;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
@@ -34,10 +38,19 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
+@TestProfile(PrincipalTokenResolverTest.Profile.class)
 class PrincipalTokenResolverTest {
 
-  @Inject // enabled by default
-  Instance<CassandraTokenResolver> tokenResolver;
+  public static final class Profile implements QuarkusTestProfile {
+    @Override
+    public Map<String, String> getConfigOverrides() {
+      return ImmutableMap.<String, String>builder()
+          .put("stargate.auth.token-resolver.type", "principal")
+          .build();
+    }
+  }
+
+  @Inject Instance<CassandraTokenResolver> tokenResolver;
 
   SecurityContext securityContext;
 

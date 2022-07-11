@@ -20,6 +20,7 @@ public interface AuthConfig {
   interface HeaderBasedAuthConfig {
 
     /** @return If the header based auth is enabled. */
+    @WithDefault("true")
     boolean enabled();
 
     /**
