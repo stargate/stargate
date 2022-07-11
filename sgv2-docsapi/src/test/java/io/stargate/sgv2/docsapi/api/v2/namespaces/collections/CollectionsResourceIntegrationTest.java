@@ -267,6 +267,124 @@ public class CollectionsResourceIntegrationTest {
 
   @Nested
   @Order(3)
+  class UpgradeCollection {
+
+    // no way we can actually test the upgrade :(
+
+    @Test
+    public void upgradeNotPossible() {
+      String json =
+          """
+              {
+                 "upgradeType": "SAI_INDEX_UPGRADE"
+              }
+              """;
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .body(json)
+          .when()
+          .post(BASE_PATH + "/{collection}/upgrade", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .then()
+          .statusCode(400)
+          .body("code", is(400))
+          .body("description", is("The collection cannot be upgraded in given manner."));
+    }
+
+    @Test
+    public void upgradeNull() {
+      String json = "{}";
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .body(json)
+          .when()
+          .post(BASE_PATH + "/{collection}/upgrade", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .then()
+          .statusCode(400)
+          .body("code", is(400))
+          .body(
+              "description",
+              is("Request invalid: `upgradeType` is required to upgrade a collection."));
+    }
+
+    @Test
+    public void tableNotExisting() {
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      String json =
+          """
+              {
+                 "upgradeType": "SAI_INDEX_UPGRADE"
+              }
+              """;
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .body(json)
+          .when()
+          .post(BASE_PATH + "/{collection}/upgrade", DEFAULT_NAMESPACE, collection)
+          .then()
+          .statusCode(404)
+          .body("code", is(404))
+          .body("description", is("Collection '%s' not found.".formatted(collection)));
+    }
+
+    @Test
+    public void keyspaceNotExisting() {
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      String json =
+          """
+              {
+                 "upgradeType": "SAI_INDEX_UPGRADE"
+              }
+              """;
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .body(json)
+          .when()
+          .post(BASE_PATH + "/{collection}/upgrade", namespace, collection)
+          .then()
+          .statusCode(404)
+          .body("code", is(404))
+          .body(
+              "description",
+              is("Unknown namespace %s, you must create it first.".formatted(namespace)));
+    }
+
+    @Test
+    public void tableNotAValidCollection() {
+      String namespace = "system";
+      String collection = "local";
+      String json =
+          """
+              {
+                 "upgradeType": "SAI_INDEX_UPGRADE"
+              }
+              """;
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .body(json)
+          .when()
+          .post(BASE_PATH + "/{collection}/upgrade", namespace, collection)
+          .then()
+          .statusCode(400)
+          .body("code", is(400))
+          .body(
+              "description",
+              is(
+                  "The database table system.local is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted."));
+    }
+  }
+
+  @Nested
+  @Order(4)
   class DeleteCollection {
 
     @Test
