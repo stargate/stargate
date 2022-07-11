@@ -126,7 +126,10 @@ public class RowDecoratorImpl extends AbstractRowDecorator {
     byte[] buf = new byte[initialBufferCapacity];
     int data;
     while ((data = byteSource.next()) != ByteSource.END_OF_STREAM) {
-      buf = ensureCapacity(buf, readBytes);
+      // inlined com.datastax.bdp.db.tries.util.ByteSourceUtil#ensureCapacity
+      if (readBytes == buf.length) {
+        buf = Arrays.copyOf(buf, readBytes * 2);
+      }
       buf[readBytes++] = (byte) (data & 0xFF);
     }
 
@@ -134,19 +137,5 @@ public class RowDecoratorImpl extends AbstractRowDecorator {
       buf = Arrays.copyOf(buf, readBytes);
     }
     return buf;
-  }
-
-  // copied from com.datastax.bdp.db.tries.util.ByteSourceUtil
-  private static byte[] ensureCapacity(byte[] buf, int dataLengthInBytes) {
-    if (dataLengthInBytes == buf.length)
-      // We won't gain much with guarding against overflow. We'll overflow when dataLengthInBytes >=
-      // 1 << 30,
-      // and if we do guard, we'll be able to extend the capacity to Integer.MAX_VALUE (which is 1
-      // << 31 - 1).
-      // Controlling the exception that will be thrown shouldn't matter that much, and  in practice,
-      // we almost
-      // surely won't be reading gigabytes of ByteSource data at once.
-      return Arrays.copyOf(buf, dataLengthInBytes * 2);
-    else return buf;
   }
 }
