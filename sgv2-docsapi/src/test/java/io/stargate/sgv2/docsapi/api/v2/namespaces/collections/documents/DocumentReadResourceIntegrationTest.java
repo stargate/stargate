@@ -58,7 +58,6 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestClassOrder;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
@@ -873,11 +872,6 @@ class DocumentReadResourceIntegrationTest {
     }
 
     @Test
-    @EnabledIfSystemProperty(
-        named = "testing.containers.cluster-dse",
-        matches = "true",
-        disabledReason =
-            "[Comparable bytes API] Flaky as merging order depends which query executes fastest (a-b-a possible).")
     public void orMixedFilter() {
       String[] ids =
           writeDocuments("{\"value\": \"a\"}", "{\"value\": \"b\"}", "{\"value\": \"c\"}");
@@ -911,10 +905,6 @@ class DocumentReadResourceIntegrationTest {
     }
 
     @Test
-    @EnabledIfSystemProperty(
-        named = "testing.containers.cluster-dse",
-        matches = "true",
-        disabledReason = "[Comparable bytes API] Order false.")
     public void orMixedFilterWithPaging() throws Exception {
       writeDocument("a", "{\"value\": \"a\"}");
       writeDocument("b", "{\"value\": \"b\"}");
