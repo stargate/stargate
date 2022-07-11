@@ -18,8 +18,10 @@
 package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.JsonNode;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 /** DTO for a namespace. */
@@ -28,9 +30,12 @@ public record BuiltInFunctionDto(
     @Schema(description = "The operation to execute", example = "$push")
         @NotNull(message = "`operation` is required for function execution")
         @NotBlank(message = "`operation` is required for function execution")
+        @Pattern(
+            regexp = "\\$pop|\\$push",
+            message = "available built-in functions are $pop and $push")
         String operation,
     @Schema(
             description = "The value to use for the operation",
             example = "some_value",
             nullable = true)
-        Object value) {}
+        JsonNode value) {}

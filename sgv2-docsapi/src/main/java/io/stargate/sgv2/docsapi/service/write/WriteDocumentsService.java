@@ -2,25 +2,18 @@ package io.stargate.sgv2.docsapi.service.write;
 
 import com.fasterxml.jackson.core.JsonPointer;
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
-import io.smallrye.mutiny.tuples.Tuple2;
 import io.stargate.bridge.proto.Schema;
-import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;
-import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.api.v2.model.dto.DocumentResponseWrapper;
 import io.stargate.sgv2.docsapi.api.v2.model.dto.MultiDocsResponse;
-import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents.model.dto.BuiltInFunctionDto;
 import io.stargate.sgv2.docsapi.config.DocumentConfig;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.JsonDocumentShredder;
 import io.stargate.sgv2.docsapi.service.JsonShreddedRow;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
-import io.stargate.sgv2.docsapi.service.json.JsonConverter;
 import io.stargate.sgv2.docsapi.service.query.ReadBridgeService;
 import io.stargate.sgv2.docsapi.service.schema.JsonSchemaManager;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
@@ -51,14 +44,6 @@ public class WriteDocumentsService {
   @Inject ReadBridgeService readBridgeService;
 
   @Inject DocumentConfig configuration;
-
-  @Inject JsonConverter jsonConverter;
-
-  @Inject DocumentProperties documentProperties;
-
-  @Inject DataStoreProperties dataStoreProperties;
-
-  @Inject ObjectMapper objectMapper;
 
   /**
    * Writes a document in the given namespace and collection using the randomly generated ID.
@@ -460,185 +445,6 @@ public class WriteDocumentsService {
         .deleteDocument(namespace, collection, documentId, subPathProcessed, context)
         .onItem()
         .transform(__ -> true);
-  }
-
-  private void checkFunctionValid(BuiltInFunctionDto function) {
-    if (function.operation().equals("$push") || function.operation().equals("$pop")) {
-      return;
-    }
-    throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_INVALID_BUILTIN_FUNCTION);
-  }
-
-  /**
-   * Executes a built-in function on a sub-path of a document. Currently only supports array push
-   * and array pop.
-   *
-   * @param namespace Namespace
-   * @param collection Collection name
-   * @param documentId The ID of the document to delete
-   * @param subPath Sub-path of the document to delete. If empty will delete the whole doc.
-   * @param functionDto The function to execute.
-   * @param context Execution content
-   * @return Flag representing if the operation was success.
-   */
-  public Uni<DocumentResponseWrapper<JsonNode>> executeBuiltInFunction(
-      Uni<Schema.CqlTable> table,
-      String namespace,
-      String collection,
-      String documentId,
-      List<String> subPath,
-      BuiltInFunctionDto functionDto,
-      ExecutionContext context) {
-    checkFunctionValid(functionDto);
-    final List<String> subPathProcessed = processSubDocumentPath(subPath);
-    return jsonSchemaManager
-        // Ensure that no schema is present, since we are mutating the document
-        .validateJsonDocument(table, null, true)
-        .onItem()
-        .transformToUni(
-            __ -> {
-              // The left is the data that needs to be written back to the database, the right
-              // is the data to return to the user.
-              Tuple2<Uni<JsonNode>, Uni<JsonNode>> data =
-                  determineDataForExecution(
-                      namespace, collection, documentId, subPathProcessed, context, functionDto);
-              // shred rows
-              return data.getItem2()
-                  .onItem()
-                  .transformToUni(
-                      returnJson ->
-                          data.getItem1()
-                              .onItem()
-                              .transformToUni(
-                                  jsonToWrite -> {
-                                    List<JsonShreddedRow> rows =
-                                        documentShredder.shred(jsonToWrite, subPathProcessed);
-                                    // call update document
-                                    return determineTtl(namespace, collection, documentId, context)
-                                        .onItem()
-                                        .transformToUni(
-                                            ttl ->
-                                                writeBridgeService.updateDocument(
-                                                    namespace,
-                                                    collection,
-                                                    documentId,
-                                                    subPathProcessed,
-                                                    rows,
-                                                    ttl,
-                                                    context))
-                                        .onItem()
-                                        .transform(
-                                            result ->
-                                                new DocumentResponseWrapper<>(
-                                                    documentId,
-                                                    null,
-                                                    returnJson,
-                                                    context.toProfile()));
-                                  }));
-            });
-  }
-
-  private Tuple2<Uni<JsonNode>, Uni<JsonNode>> determineDataForExecution(
-      String namespace,
-      String collection,
-      String documentId,
-      List<String> subPath,
-      ExecutionContext context,
-      BuiltInFunctionDto functionDto) {
-    if (functionDto.operation().equals("$push")) {
-      Uni<JsonNode> finalState =
-          readBridgeService
-              .getDocument(namespace, collection, documentId, subPath, context)
-              .select()
-              .first()
-              .toUni()
-              .onItem()
-              .transform(
-                  rawDocument -> {
-                    List<RowWrapper> rows = rawDocument.rows();
-                    JsonNode result =
-                        jsonConverter.convertToJsonDoc(
-                            rows, false, dataStoreProperties.treatBooleansAsNumeric());
-                    if (!subPath.isEmpty()) {
-                      String jsonPtrExpr =
-                          subPath.stream()
-                              .map(
-                                  p ->
-                                      DocsApiUtils.extractArrayPathIndex(
-                                              p, documentProperties.maxArrayLength())
-                                          .map(Object::toString)
-                                          .orElse(DocsApiUtils.convertEscapedCharacters(p)))
-                              .collect(Collectors.joining("/", "/", ""));
-                      result = result.at(jsonPtrExpr);
-                    }
-                    if (!result.isArray()) {
-                      throw new ErrorCodeRuntimeException(
-                          ErrorCode.DOCS_API_SEARCH_ARRAY_PATH_INVALID,
-                          "The path provided to push to has no array, found %s".formatted(result));
-                    }
-                    ArrayNode arrayData = result.deepCopy();
-                    arrayData.insert(
-                        arrayData.size(), objectMapper.valueToTree(functionDto.value()));
-                    return arrayData;
-                  });
-      return Tuple2.of(finalState, finalState);
-    } else {
-      Uni<ArrayNode> arrayState =
-          readBridgeService
-              .getDocument(namespace, collection, documentId, subPath, context)
-              .select()
-              .first()
-              .toUni()
-              .onItem()
-              .transform(
-                  rawDocument -> {
-                    List<RowWrapper> rows = rawDocument.rows();
-                    JsonNode result =
-                        jsonConverter.convertToJsonDoc(
-                            rows, false, dataStoreProperties.treatBooleansAsNumeric());
-                    if (!subPath.isEmpty()) {
-                      String jsonPtrExpr =
-                          subPath.stream()
-                              .map(
-                                  p ->
-                                      DocsApiUtils.extractArrayPathIndex(
-                                              p, documentProperties.maxArrayLength())
-                                          .map(Object::toString)
-                                          .orElse(DocsApiUtils.convertEscapedCharacters(p)))
-                              .collect(Collectors.joining("/", "/", ""));
-                      result = result.at(jsonPtrExpr);
-                    }
-                    if (!result.isArray()) {
-                      throw new ErrorCodeRuntimeException(
-                          ErrorCode.DOCS_API_SEARCH_ARRAY_PATH_INVALID,
-                          "The path provided to pop from has no array, found %s".formatted(result));
-                    }
-                    ArrayNode arrayData = (ArrayNode) result;
-                    if (arrayData.size() == 0) {
-                      throw new ErrorCodeRuntimeException(
-                          ErrorCode.DOCS_API_ARRAY_POP_OUT_OF_BOUNDS);
-                    }
-                    return arrayData;
-                  });
-      Uni<JsonNode> finalState =
-          arrayState
-              .onItem()
-              .transform(
-                  arrayNode -> {
-                    ArrayNode copy = arrayNode.deepCopy();
-                    copy.remove(arrayNode.size() - 1);
-                    return copy;
-                  });
-      Uni<JsonNode> returnData =
-          arrayState
-              .onItem()
-              .transform(
-                  arrayNode -> {
-                    ArrayNode copy = arrayNode.deepCopy();
-                    return copy.remove(arrayNode.size() - 1);
-                  });
-      return Tuple2.of(finalState, returnData);
-    }
   }
 
   // we need to transform the stuff to support array elements

@@ -2,11 +2,13 @@ package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents;
 
 import static io.restassured.RestAssured.given;
 import static net.javacrumbs.jsonunit.JsonMatchers.jsonEquals;
+import static net.javacrumbs.jsonunit.JsonMatchers.jsonPartEquals;
 import static org.hamcrest.Matchers.equalTo;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
 import io.stargate.sgv2.common.cql.builder.Replication;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.service.schema.NamespaceManager;
@@ -16,6 +18,7 @@ import java.time.Duration;
 import javax.enterprise.context.control.ActivateRequestContext;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -32,10 +35,7 @@ class BuiltInFunctionResourceIntegrationTest {
       "/v2/namespaces/{namespace}/collections/{collection}/{document-id}";
   public static final String DEFAULT_NAMESPACE = RandomStringUtils.randomAlphanumeric(16);
   public static final String DEFAULT_COLLECTION = RandomStringUtils.randomAlphanumeric(16);
-  public String documentId;
-  public static final String POP_PAYLOAD = "{\"operation\": \"$pop\"}";
-  public static final String PUSH_PAYLOAD = "{\"operation\": \"$push\", \"value\": true}";
-  public static final String PUSH_PAYLOAD_NULL = "{\"operation\": \"$push\", \"value\": null}";
+  public static final String DOCUMENT_ID = RandomStringUtils.randomAlphanumeric(16);
 
   @Inject NamespaceManager namespaceManager;
 
@@ -43,7 +43,6 @@ class BuiltInFunctionResourceIntegrationTest {
 
   @BeforeAll
   public void init() {
-
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
 
     namespaceManager
@@ -59,172 +58,112 @@ class BuiltInFunctionResourceIntegrationTest {
 
   @BeforeEach
   public void setup() {
-    documentId = RandomStringUtils.randomAlphanumeric(16);
     given()
         .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-        .header("Content-Type", "application/json")
+        .contentType(ContentType.JSON)
         .body("{\"array\": [1, 2, 3], \"object\": {}}")
         .when()
-        .put(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+        .put(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
         .then()
-        .statusCode(200)
-        .body("documentId", equalTo(documentId));
+        .statusCode(200);
+  }
 
+  @AfterEach
+  public void cleanUp() {
     given()
         .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
         .when()
-        .get(BASE_PATH + "/array", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+        .delete(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
         .then()
-        .statusCode(200)
-        .body("data", jsonEquals("[1, 2, 3]"));
+        .statusCode(204);
   }
 
   @Nested
-  class PushToDocument {
-    @Test
-    public void happyPath() {
-      given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
-          .body(PUSH_PAYLOAD)
-          .when()
-          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
-          .then()
-          .statusCode(200)
-          .body("documentId", equalTo(documentId))
-          .body("data", jsonEquals("[1, 2, 3, true]"));
-    }
+  class ExecuteBuiltInFunction {
+
+    public static final String PUSH_PAYLOAD = "{\"operation\": \"$push\", \"value\": true}";
+
+    public static final String POP_PAYLOAD = "{\"operation\": \"$pop\"}";
 
     @Test
-    public void happyPathWriteNull() {
+    public void pop() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
-          .body(PUSH_PAYLOAD_NULL)
-          .when()
-          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
-          .then()
-          .statusCode(200)
-          .body("documentId", equalTo(documentId))
-          .body("data", jsonEquals("[1, 2, 3, null]"));
-    }
-
-    @Test
-    public void pushNoArray() {
-      given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
-          .body(PUSH_PAYLOAD)
-          .when()
-          .post(BASE_PATH + "/object/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
-          .then()
-          .statusCode(400)
-          .body("code", equalTo(400))
-          .body("description", equalTo("The path provided to push to has no array, found {}"));
-    }
-
-    @Test
-    public void invalidOperation() {
-      given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
-          .body("{\"operation\": \"$dollar\"}")
-          .when()
-          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
-          .then()
-          .statusCode(400)
-          .body("code", equalTo(400))
-          .body("description", equalTo("Invalid Built-In function name."));
-    }
-
-    @Test
-    public void invalidCollection() {
-      given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
-          .body(PUSH_PAYLOAD)
-          .when()
-          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, "missingcollection", documentId)
-          .then()
-          .statusCode(404)
-          .body("code", equalTo(404))
-          .body("description", equalTo("Collection 'missingcollection' not found."));
-    }
-
-    @Test
-    public void invalidNamespace() {
-      given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
-          .body(PUSH_PAYLOAD)
-          .when()
-          .post(BASE_PATH + "/array/function", "missingnamespace", DEFAULT_COLLECTION, documentId)
-          .then()
-          .statusCode(404)
-          .body("code", equalTo(404))
-          .body(
-              "description",
-              equalTo("Unknown namespace missingnamespace, you must create it first."));
-    }
-  }
-
-  @Nested
-  class PopFromDocument {
-    @Test
-    public void happyPath() {
-      given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .body(POP_PAYLOAD)
           .when()
-          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
           .statusCode(200)
-          .body("documentId", equalTo(documentId))
+          .body("documentId", equalTo(DOCUMENT_ID))
           .body("data", jsonEquals(3));
+
+      // assert whole document
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(200)
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .body("data", jsonPartEquals("array", "[1, 2]"));
+    }
+
+    @Test
+    public void popRaw() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .queryParam("raw", true)
+          .contentType(ContentType.JSON)
+          .body(POP_PAYLOAD)
+          .when()
+          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(200)
+          .body(jsonEquals(3));
     }
 
     @Test
     public void popEmpty() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .body(POP_PAYLOAD)
           .when()
-          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
           .statusCode(200)
-          .body("documentId", equalTo(documentId))
+          .body("documentId", equalTo(DOCUMENT_ID))
           .body("data", jsonEquals(3));
 
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .body(POP_PAYLOAD)
           .when()
-          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
           .statusCode(200)
-          .body("documentId", equalTo(documentId))
+          .body("documentId", equalTo(DOCUMENT_ID))
           .body("data", jsonEquals(2));
 
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .body(POP_PAYLOAD)
           .when()
-          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
           .statusCode(200)
-          .body("documentId", equalTo(documentId))
+          .body("documentId", equalTo(DOCUMENT_ID))
           .body("data", jsonEquals(1));
 
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .body(POP_PAYLOAD)
           .when()
-          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
           .statusCode(400)
           .body("code", equalTo(400))
@@ -235,14 +174,227 @@ class BuiltInFunctionResourceIntegrationTest {
     public void popNoArray() {
       given()
           .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .header("Content-Type", "application/json")
+          .contentType(ContentType.JSON)
           .body(POP_PAYLOAD)
           .when()
-          .post(BASE_PATH + "/object/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
+          .post(BASE_PATH + "/object/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
           .statusCode(400)
           .body("code", equalTo(400))
-          .body("description", equalTo("The path provided to pop from has no array, found {}"));
+          .body("description", equalTo("The path provided to pop from has no array, found {}."));
+    }
+
+    @Test
+    public void push() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .body(PUSH_PAYLOAD)
+          .when()
+          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(200)
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .body("data", jsonEquals("[1, 2, 3, true]"));
+
+      // assert whole document
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(200)
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .body("data", jsonPartEquals("array", "[1, 2, 3, true]"));
+    }
+
+    @Test
+    public void pushObject() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .body("{\"operation\": \"$push\", \"value\": { \"p\": true}}")
+          .when()
+          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(200)
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .body("data", jsonEquals("[1, 2, 3, { \"p\": true}]"));
+
+      // assert whole document
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(200)
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .body("data", jsonPartEquals("array", "[1, 2, 3, { \"p\": true}]"));
+    }
+
+    @Test
+    public void pushArray() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .body("{\"operation\": \"$push\", \"value\": [4, 5, 6]}")
+          .when()
+          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(200)
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .body("data", jsonEquals("[1, 2, 3, [4, 5, 6]]"));
+
+      // assert whole document
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(200)
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .body("data", jsonPartEquals("array", "[1, 2, 3, [4, 5, 6]]"));
+    }
+
+    @Test
+    public void pushRaw() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .queryParam("raw", true)
+          .contentType(ContentType.JSON)
+          .body(PUSH_PAYLOAD)
+          .when()
+          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(200)
+          .body(jsonEquals("[1, 2, 3, true]"));
+    }
+
+    @Test
+    public void pushNull() {
+      String payload = "{\"operation\": \"$push\", \"value\": null}";
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .body(payload)
+          .when()
+          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(200)
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .body("data", jsonEquals("[1, 2, 3, null]"));
+    }
+
+    @Test
+    public void pushNoArray() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .body(PUSH_PAYLOAD)
+          .when()
+          .post(BASE_PATH + "/object/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(400)
+          .body("code", equalTo(400))
+          .body("description", equalTo("The path provided to push to has no array, found {}."));
+    }
+
+    @Test
+    public void invalidOperation() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .body("{\"operation\": \"$dollar\"}")
+          .when()
+          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(400)
+          .body("code", equalTo(400))
+          .body(
+              "description",
+              equalTo("Request invalid: available built-in functions are $pop and $push."));
+    }
+
+    @Test
+    public void notExistingDocument() {
+      String id = RandomStringUtils.randomAlphanumeric(16);
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .body(PUSH_PAYLOAD)
+          .when()
+          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
+          .then()
+          .statusCode(404)
+          .body("code", equalTo(404))
+          .body(
+              "description",
+              equalTo(
+                  "A path [array] in a document with the id %s, or the document itself, does not exist."
+                      .formatted(id)));
+    }
+
+    @Test
+    public void invalidCollection() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .body(PUSH_PAYLOAD)
+          .when()
+          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, "missingcollection", DOCUMENT_ID)
+          .then()
+          .statusCode(404)
+          .body("code", equalTo(404))
+          .body("description", equalTo("Collection 'missingcollection' not found."));
+    }
+
+    @Test
+    public void invalidNamespace() {
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .body(PUSH_PAYLOAD)
+          .when()
+          .post(BASE_PATH + "/array/function", "missingnamespace", DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(404)
+          .body("code", equalTo(404))
+          .body(
+              "description",
+              equalTo("Unknown namespace missingnamespace, you must create it first."));
+    }
+
+    @Test
+    public void tableNotAValidCollection() {
+      String namespace = "system";
+      String collection = "local";
+
+      given()
+          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .body(PUSH_PAYLOAD)
+          .when()
+          .post(BASE_PATH + "/array/function", namespace, collection, DOCUMENT_ID)
+          .then()
+          .statusCode(400)
+          .body("code", equalTo(400))
+          .body(
+              "description",
+              equalTo(
+                  "The database table system.local is not a Documents collection. Accessing arbitrary tables via the Documents API is not permitted."));
+    }
+
+    @Test
+    public void unauthorized() {
+      given()
+          .contentType(ContentType.JSON)
+          .body(PUSH_PAYLOAD)
+          .when()
+          .post(BASE_PATH + "/array/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(401);
     }
   }
 }

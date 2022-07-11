@@ -19,15 +19,16 @@ package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents;
 
 import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
+import io.stargate.sgv2.docsapi.api.v2.model.dto.DocumentResponseWrapper;
 import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents.model.dto.BuiltInFunctionDto;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
-import io.stargate.sgv2.docsapi.models.ExecutionProfile;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
+import io.stargate.sgv2.docsapi.service.function.FunctionService;
 import io.stargate.sgv2.docsapi.service.schema.TableManager;
-import io.stargate.sgv2.docsapi.service.write.WriteDocumentsService;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
+import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
@@ -38,12 +39,11 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.PathSegment;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.openapi.annotations.Operation;
-import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.ExampleObject;
-import org.eclipse.microprofile.openapi.annotations.media.SchemaProperty;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameters;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
@@ -63,43 +63,37 @@ public class BuiltInFunctionResource {
 
   public static final String BASE_PATH = "/v2/namespaces/{namespace:\\w+}/collections";
 
-  @Inject WriteDocumentsService documentWriteService;
+  @Inject FunctionService functionService;
 
   @Inject TableManager tableManager;
 
   @Operation(
       description =
-          "Execute a built-in function (e.g. $push and $pop) against a value in this document. Performance may vary.")
+          "Execute a built-in function (e.g. `$push` and `$pop`) against a value in this document. Performance may vary.")
   @Parameters(
       value = {
         @Parameter(name = "namespace", ref = OpenApiConstants.Parameters.NAMESPACE),
-        @Parameter(
-            name = "collection",
-            ref = OpenApiConstants.Parameters.COLLECTION,
-            description = "The collection of the document. Will be created if it does not exist."),
+        @Parameter(name = "collection", ref = OpenApiConstants.Parameters.COLLECTION),
         @Parameter(name = "document-id", ref = OpenApiConstants.Parameters.DOCUMENT_ID),
+        @Parameter(name = "document-path", ref = OpenApiConstants.Parameters.DOCUMENT_PATH),
+        @Parameter(name = "profile", ref = OpenApiConstants.Parameters.PROFILE),
+        @Parameter(name = "raw", ref = OpenApiConstants.Parameters.RAW),
       })
   @RequestBody(ref = OpenApiConstants.RequestBodies.WRITE_BUILT_IN_FUNCTION)
   @APIResponses(
       value = {
         @APIResponse(
             responseCode = "200",
-            description = "Function is executed. Certain functions will return a value.",
+            description =
+                "Function is executed. Certain functions will return a value in the `data` property. Note that in case of unwrapping (`raw=true`), the response contains only the contents of the `data` property.",
             content = {
               @Content(
                   schema =
                       @org.eclipse.microprofile.openapi.annotations.media.Schema(
-                          properties = {
-                            @SchemaProperty(
-                                name = "documentId",
-                                type = SchemaType.STRING,
-                                description = "The ID of the written document."),
-                            @SchemaProperty(
-                                name = "profile",
-                                implementation = ExecutionProfile.class,
-                                nullable = true),
-                          }),
-                  examples = @ExampleObject(ref = OpenApiConstants.Examples.DOCUMENT_SINGLE))
+                          implementation = DocumentResponseWrapper.class),
+                  examples =
+                      @ExampleObject(
+                          ref = OpenApiConstants.Examples.DOCUMENT_SINGLE)) // TODO example
             }),
         @APIResponse(
             responseCode = "404",
@@ -107,7 +101,8 @@ public class BuiltInFunctionResource {
             content =
                 @Content(
                     examples = {
-                      @ExampleObject(ref = OpenApiConstants.Examples.NAMESPACE_DOES_NOT_EXIST)
+                      @ExampleObject(ref = OpenApiConstants.Examples.NAMESPACE_DOES_NOT_EXIST),
+                      @ExampleObject(ref = OpenApiConstants.Examples.COLLECTION_DOES_NOT_EXIST),
                     },
                     schema =
                         @org.eclipse.microprofile.openapi.annotations.media.Schema(
@@ -125,27 +120,56 @@ public class BuiltInFunctionResource {
       @PathParam("collection") String collection,
       @PathParam("document-id") String documentId,
       @PathParam("document-path") List<PathSegment> documentPath,
-      @QueryParam("ttl") Integer ttl,
       @QueryParam("profile") boolean profile,
-      @NotNull BuiltInFunctionDto body) {
+      @QueryParam("raw") boolean raw,
+      @NotNull(message = "payload not provided") @Valid BuiltInFunctionDto body) {
     ExecutionContext context = ExecutionContext.create(profile);
     List<String> subPath =
         documentPath.stream().map(PathSegment::getPath).collect(Collectors.toList());
+
+    // call table manager for valid table
     return tableManager
         .getValidCollectionTable(namespace, collection)
-        .onItem()
-        .transformToUni(
+
+        // if there execute the function
+        .flatMap(
             table ->
-                documentWriteService
+                functionService
                     .executeBuiltInFunction(
                         Uni.createFrom().item(table),
                         namespace,
                         collection,
                         documentId,
                         subPath,
-                        body,
+                        body.operation(),
+                        body.value(),
                         context)
-                    .onItem()
-                    .transform(result -> RestResponse.ResponseBuilder.ok().entity(result).build()));
+
+                    // map with raw in mind
+                    .map(
+                        result -> {
+                          // if null, means original doc was not found
+                          if (null == result) {
+                            String msg;
+                            if (subPath.isEmpty()) {
+                              msg =
+                                  "A document with the id %s does not exist.".formatted(documentId);
+                            } else {
+                              msg =
+                                  "A path %s in a document with the id %s, or the document itself, does not exist."
+                                      .formatted(subPath, documentId);
+                            }
+                            int code = Response.Status.NOT_FOUND.getStatusCode();
+                            ApiError error = new ApiError(msg, 404);
+                            return RestResponse.ResponseBuilder.create(code).entity(error).build();
+                          }
+
+                          // otherwise map
+                          if (raw) {
+                            return RestResponse.ok(result.data());
+                          } else {
+                            return RestResponse.ok(result);
+                          }
+                        }));
   }
 }
