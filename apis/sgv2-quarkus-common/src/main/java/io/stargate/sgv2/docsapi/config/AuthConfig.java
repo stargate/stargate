@@ -58,6 +58,7 @@ public interface AuthConfig {
      * @return The type of the {@link
      *     io.stargate.sgv2.docsapi.api.common.token.CassandraTokenResolver} used.
      */
+    @WithDefault("principal")
     Optional<@Pattern(regexp = "header|principal|fixed|custom") String> type();
 
     /** @return Specific settings for the <code>header</code> token resolver type. */
