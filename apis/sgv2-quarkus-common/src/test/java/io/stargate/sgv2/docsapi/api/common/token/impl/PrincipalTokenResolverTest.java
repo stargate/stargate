@@ -17,37 +17,28 @@
 
 package io.stargate.sgv2.docsapi.api.common.token.impl;
 
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.mockito.InjectMock;
 import io.stargate.sgv2.docsapi.api.common.token.CassandraTokenResolver;
-import java.security.Principal;
 import java.util.Optional;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 import javax.ws.rs.core.SecurityContext;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.assertj.core.api.Assertions;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 class PrincipalTokenResolverTest {
 
-  @Inject Instance<CassandraTokenResolver> tokenResolver;
+  @Inject // enabled by default
+  Instance<CassandraTokenResolver> tokenResolver;
 
+  @InjectMock(returnsDeepMocks = true)
   SecurityContext securityContext;
-
-  @BeforeEach
-  public void setup() {
-    // TODO we should be able to do this directly on the field with @InjectMock, but for some reason
-    //  it doesn't work
-    securityContext = mock(SecurityContext.class);
-    Principal principal = mock(Principal.class);
-    when(securityContext.getUserPrincipal()).thenReturn(principal);
-  }
 
   @Nested
   class Resolve {
