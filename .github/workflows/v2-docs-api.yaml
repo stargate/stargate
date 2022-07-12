@@ -314,16 +314,10 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Install Quarkus Common (temporary)
-        run: |
-          cd apis/sgv2-quarkus-common
-          ./mvnw -B install
-          cd ../../
-
       # run finally the int tests
       - name: Integration Test
         run: |
-          cd apis/sgv2-docsapi
+          cd apis/
           ./mvnw -B verify -DskipUnitTests -P ${{ matrix.profile }} -Dtesting.containers.stargate-image=${{ matrix.image }}
 
   # runs always, deletes built docker image artifacts
