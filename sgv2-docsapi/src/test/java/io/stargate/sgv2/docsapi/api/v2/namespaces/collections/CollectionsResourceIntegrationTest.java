@@ -281,7 +281,7 @@ public class CollectionsResourceIntegrationTest {
               """;
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -296,7 +296,7 @@ public class CollectionsResourceIntegrationTest {
     public void upgradeNull() {
       String json = "{}";
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -320,7 +320,7 @@ public class CollectionsResourceIntegrationTest {
               """;
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -343,7 +343,7 @@ public class CollectionsResourceIntegrationTest {
               """;
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -368,7 +368,7 @@ public class CollectionsResourceIntegrationTest {
               """;
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(json)
           .when()
