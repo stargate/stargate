@@ -190,7 +190,7 @@ jobs:
 
       - name: Build & Test Quarkus Common (temporary)
         run: |
-          cd apis/sgv2-quarkus-common/
+          cd apis/
           ./mvnw -B install test
           cd ../../
 
@@ -322,7 +322,7 @@ jobs:
 
       - name: Install Quarkus Common (temporary)
         run: |
-          cd apis/sgv2-quarkus-common/
+          cd apis/
           ./mvnw -B install
           cd ../../
 
