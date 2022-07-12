@@ -79,7 +79,7 @@ public class BuiltInFunctionResource {
         @Parameter(name = "profile", ref = OpenApiConstants.Parameters.PROFILE),
         @Parameter(name = "raw", ref = OpenApiConstants.Parameters.RAW),
       })
-  @RequestBody(ref = OpenApiConstants.RequestBodies.WRITE_BUILT_IN_FUNCTION)
+  @RequestBody(ref = OpenApiConstants.RequestBodies.FUNCTION)
   @APIResponses(
       value = {
         @APIResponse(
@@ -91,9 +91,7 @@ public class BuiltInFunctionResource {
                   schema =
                       @org.eclipse.microprofile.openapi.annotations.media.Schema(
                           implementation = DocumentResponseWrapper.class),
-                  examples =
-                      @ExampleObject(
-                          ref = OpenApiConstants.Examples.DOCUMENT_SINGLE)) // TODO example
+                  examples = @ExampleObject(ref = OpenApiConstants.Examples.FUNCTION_RESPONSE))
             }),
         @APIResponse(
             responseCode = "404",

@@ -27,7 +27,7 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 /** DTO for a namespace. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record BuiltInFunctionDto(
-    @Schema(description = "The operation to execute", example = "$push")
+    @Schema(description = "The operation to execute", pattern = "\\$pop|\\$push", example = "$push")
         @NotNull(message = "`operation` is required for function execution")
         @NotBlank(message = "`operation` is required for function execution")
         @Pattern(

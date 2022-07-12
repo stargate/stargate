@@ -1,6 +1,7 @@
 package io.stargate.sgv2.docsapi;
 
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
+import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents.model.dto.BuiltInFunctionDto;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
 import javax.ws.rs.core.Application;
@@ -450,6 +451,39 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                           }
                       }
                       """),
+              @ExampleObject(
+                  name = OpenApiConstants.Examples.FUNCTION_POP_BODY,
+                  value =
+                      """
+                      {
+                          "operation": "$pop"
+                      }
+                      """),
+              @ExampleObject(
+                  name = OpenApiConstants.Examples.FUNCTION_PUSH_BODY,
+                  value =
+                      """
+                      {
+                          "operation": "$push",
+                          "value": 123
+                      }
+                      """),
+              @ExampleObject(
+                  name = OpenApiConstants.Examples.FUNCTION_RESPONSE,
+                  description =
+                      """
+                      Note that `data` property content depends on the executed function:
+
+                      * `$pop` - returns the item that was popped from the array
+                      * `$push` - returns the complete array, including the item that was pushed
+                      """,
+                  value =
+                      """
+                      {
+                          "documentId": "822dc277-9121-4791-8b01-da8154e67d5d",
+                          "data": 123
+                      }
+                      """),
             },
 
             // reusable request bodies
@@ -524,6 +558,17 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                                   }
                               ]
                               """)),
+              @RequestBody(
+                  name = OpenApiConstants.RequestBodies.FUNCTION,
+                  description = "The request body for executing a built-in function.",
+                  content =
+                      @Content(
+                          mediaType = MediaType.APPLICATION_JSON,
+                          schema = @Schema(implementation = BuiltInFunctionDto.class),
+                          examples = {
+                            @ExampleObject(ref = OpenApiConstants.Examples.FUNCTION_POP_BODY),
+                            @ExampleObject(ref = OpenApiConstants.Examples.FUNCTION_PUSH_BODY)
+                          })),
             },
 
             // reusable response
