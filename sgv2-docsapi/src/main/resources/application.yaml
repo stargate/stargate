@@ -32,7 +32,7 @@ stargate:
   # see io.stargate.sgv2.docsapi.config.MetricsConfig for all config properties and options
   metrics:
     global-tags:
-      module: docsapi
+      module: sgv2-docsapi
     tenant-request-counter:
       enabled: ${stargate.multi-tenancy.enabled}
 
