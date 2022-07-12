@@ -67,6 +67,7 @@ public class DocumentPatchResource {
   @Inject TableManager tableManager;
 
   @Operation(
+      summary = "Patch a document",
       description =
           "Patch a document with a given ID. Merges data at the root with requested data. Note that operation is not allowed if a JSON schema exist for a target collection.")
   @Parameters(
@@ -139,6 +140,7 @@ public class DocumentPatchResource {
   }
 
   @Operation(
+      summary = "Patch a path in a document",
       description =
           "Patch data at a path in a document by ID. Merges data at the path with requested data, assumes that the data at the path is already an object. Note that operation is not allowed if a JSON schema exist for a target collection.")
   @Parameters(

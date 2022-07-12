@@ -59,7 +59,7 @@ public class DocumentDeleteResource {
 
   @Inject TableManager tableManager;
 
-  @Operation(description = "Delete a document with a given ID.")
+  @Operation(summary = "Delete a document", description = "Delete a document with a given ID.")
   @Parameters(
       value = {
         @Parameter(name = "namespace", ref = OpenApiConstants.Parameters.NAMESPACE),
@@ -111,7 +111,9 @@ public class DocumentDeleteResource {
                     .transform(result -> RestResponse.ResponseBuilder.noContent().build()));
   }
 
-  @Operation(description = "Delete the data at a path in a document by ID.")
+  @Operation(
+      summary = "Delete a path in a document",
+      description = "Delete the data at a path in a document by ID.")
   @Parameters(
       value = {
         @Parameter(name = "namespace", ref = OpenApiConstants.Parameters.NAMESPACE),

@@ -72,7 +72,9 @@ public class DocumentWriteResource {
   @Inject TableManager tableManager;
 
   @Operation(
-      description = "Create a new document. If the collection does not exist, it will be created.")
+      summary = "Create a document",
+      description =
+          "Create a new document with the generated ID. If the collection does not exist, it will be created.")
   @Parameters(
       value = {
         @Parameter(name = "namespace", ref = OpenApiConstants.Parameters.NAMESPACE),
@@ -153,8 +155,15 @@ public class DocumentWriteResource {
   }
 
   @Operation(
+      summary = "Create documents",
       description =
-          "Create multiple new documents. If the collection does not exist, it will be created.")
+          """
+              Create multiple new documents. If the collection does not exist, it will be created.
+
+              > Include the `id-path` parameter to extract the ID for each document from the document itself.
+              The `id-path` should be given as path to the document property containing the id, for example `a.b.c.[0]`.
+              Note that document IDs will be auto-generated     in case there is no `id-path` parameter defined.
+              """)
   @Parameters(
       value = {
         @Parameter(name = "namespace", ref = OpenApiConstants.Parameters.NAMESPACE),

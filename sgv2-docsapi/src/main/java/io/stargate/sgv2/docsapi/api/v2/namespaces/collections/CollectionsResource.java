@@ -78,7 +78,9 @@ public class CollectionsResource {
 
   @Inject @Authorized TableManager tableManager;
 
-  @Operation(description = "List collections in a namespace.")
+  @Operation(
+      summary = "List collections",
+      description = "List all available collections in a namespace.")
   @Parameters(
       value = {
         @Parameter(
@@ -147,7 +149,9 @@ public class CollectionsResource {
         .map(RestResponse::ok);
   }
 
-  @Operation(description = "Create a new empty collection in a namespace.")
+  @Operation(
+      summary = "Create a collection",
+      description = "Create a new empty collection in a namespace.")
   @Parameters(
       value = {
         @Parameter(
@@ -256,6 +260,7 @@ public class CollectionsResource {
   }
 
   @Operation(
+      summary = "Upgrade a collection",
       description =
           """
           Upgrade a collection in a namespace.
@@ -320,7 +325,7 @@ public class CollectionsResource {
                         new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_UPGRADE_INVALID)));
   }
 
-  @Operation(description = "Delete a collection in a namespace.")
+  @Operation(summary = "Delete a collection", description = "Delete a collection in a namespace.")
   @Parameters(
       value = {
         @Parameter(name = "namespace", ref = OpenApiConstants.Parameters.NAMESPACE),

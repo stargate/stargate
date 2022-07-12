@@ -88,7 +88,10 @@ public class NamespacesResource {
 
   @Inject ObjectMapper objectMapper;
 
-  @Operation(description = "Retrieve all available namespaces.")
+  @Operation(
+      summary = "List namespaces",
+      description =
+          "List all available namespaces. Note that a namespace is an equivalent to the Cassandra keyspace.")
   @Parameters(
       value = {
         @Parameter(name = "raw", ref = OpenApiConstants.Parameters.RAW),
@@ -140,7 +143,10 @@ public class NamespacesResource {
         .map(RestResponse::ok);
   }
 
-  @Operation(description = "Retrieve a single namespace specification.")
+  @Operation(
+      summary = "Get a namespace",
+      description =
+          "Retrieve a single namespace specification. Note that a namespace is an equivalent to the Cassandra keyspace.")
   @Parameters(
       value = {
         @Parameter(
@@ -202,7 +208,10 @@ public class NamespacesResource {
         .map(RestResponse::ok);
   }
 
-  @Operation(description = "Create a new namespace.")
+  @Operation(
+      summary = "Create a namespace",
+      description =
+          "Create a new namespace using given replication strategy. Note that a namespace is an equivalent to the Cassandra keyspace.")
   @RequestBody(
       description = "Request body",
       content =
@@ -311,7 +320,10 @@ public class NamespacesResource {
                         }));
   }
 
-  @Operation(description = "Delete a namespace.")
+  @Operation(
+      summary = "Delete a namespace",
+      description =
+          "Delete a namespace if exists. Note that a namespace is an equivalent to the Cassandra keyspace.")
   @Parameters(
       value = {
         @Parameter(
