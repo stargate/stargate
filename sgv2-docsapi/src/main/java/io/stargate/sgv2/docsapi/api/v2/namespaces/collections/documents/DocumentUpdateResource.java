@@ -68,6 +68,7 @@ public class DocumentUpdateResource {
   @Inject TableManager tableManager;
 
   @Operation(
+      summary = "Create or update a document",
       description =
           "Create or update a document with a given ID. If the collection does not exist, it will be created. If the document already exists, it will be overwritten.")
   @Parameters(
@@ -142,6 +143,7 @@ public class DocumentUpdateResource {
   }
 
   @Operation(
+      summary = "Create or update a path in a document",
       description =
           "Create or update a path in a document by ID. If the collection does not exist, it will be created. If data exists at the path, it will be overwritten.")
   @Parameters(

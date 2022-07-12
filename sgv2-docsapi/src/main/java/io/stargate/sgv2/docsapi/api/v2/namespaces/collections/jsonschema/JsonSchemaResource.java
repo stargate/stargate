@@ -68,6 +68,7 @@ public class JsonSchemaResource {
   @Inject JsonSchemaManager jsonSchemaManager;
 
   @Operation(
+      summary = "Attach a JSON schema",
       description =
           "Assign a JSON schema to a collection. This will erase any schema that already exists.")
   @Parameters(
@@ -80,6 +81,16 @@ public class JsonSchemaResource {
             name = "collection",
             ref = OpenApiConstants.Parameters.COLLECTION,
             description = "The collection to assign a JSON schema to.")
+      })
+  @RequestBody(
+      required = true,
+      description = "The JSON schema to attach",
+      content = {
+        @Content(
+            mediaType = "application/json",
+            examples =
+                @ExampleObject(
+                    ref = "{\"$schema\": \"https://json-schema.org/draft/2019-09/schema\"}"))
       })
   @APIResponses(
       value = {
@@ -122,26 +133,14 @@ public class JsonSchemaResource {
   public Uni<RestResponse<Object>> putJsonSchema(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
-      @NotNull(message = "json schema not provided")
-          @RequestBody(
-              required = true,
-              description = "The JSON schema to attach",
-              content = {
-                @Content(
-                    mediaType = "application/json",
-                    examples =
-                        @ExampleObject(
-                            ref =
-                                "{\"$schema\": \"https://json-schema.org/draft/2019-09/schema\"}"))
-              })
-          JsonNode body) {
+      @NotNull(message = "json schema not provided") JsonNode body) {
     return jsonSchemaManager
         .attachJsonSchema(
             namespace, tableManager.getValidCollectionTable(namespace, collection), body)
         .map(schema -> RestResponse.ok(new JsonSchemaDto(schema)));
   }
 
-  @Operation(description = "Get a JSON schema from a collection.")
+  @Operation(summary = "Get a JSON schema", description = "Get a JSON schema from a collection.")
   @Parameters(
       value = {
         @Parameter(

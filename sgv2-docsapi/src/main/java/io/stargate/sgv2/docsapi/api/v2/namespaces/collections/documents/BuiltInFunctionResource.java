@@ -68,6 +68,7 @@ public class BuiltInFunctionResource {
   @Inject TableManager tableManager;
 
   @Operation(
+      summary = "Executes a a built-in function",
       description =
           "Execute a built-in function (e.g. `$push` and `$pop`) against a value in this document. Performance may vary.")
   @Parameters(
