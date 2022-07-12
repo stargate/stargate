@@ -107,9 +107,18 @@ quarkus:
 
         # due to the https://github.com/quarkusio/quarkus/issues/24938
         # we need to define uri templating on our own for now
+        # note that order is important
         match-patterns: |
-          /v2/namespaces/[\\w]+/collections=/v2/namespaces/{namespace}/collections,
-          /v2/namespaces/[\\w]+/collections/\w+=/v2/namespaces/{namespace}/collections/{collection}
+          /v2/namespaces/[\\w]+/collections=/v2/namespaces/{namespace:\\w+}/collections,
+          /v2/namespaces/[\\w]+/collections/[\\w]+=/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+},
+          /v2/namespaces/[\\w]+/collections/[\\w]+/batch=/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}/batch,
+          /v2/namespaces/[\\w]+/collections/[\\w]+/json-schema=/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}/json-schema,
+          /v2/namespaces/[\\w]+/collections/[\\w]+/upgrade=/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}/upgrade,
+          /v2/namespaces/[\\w]+/collections/[\\w]+/(.*?)/.*/function=/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}/{document-id}/{document-path:.*}/function,
+          /v2/namespaces/[\\w]+/collections/[\\w]+/(.*?)/.*=/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}/{document-id}/{document-path:.*},
+          /v2/namespaces/[\\w]+/collections/[\\w]+/.*=/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}/{document-id},
+          /v2/schemas/namespaces/[\\w]+=/v2/schemas/namespaces/{namespace:\\w+}
+
     # exports at prometheus default path
     export:
       prometheus:
