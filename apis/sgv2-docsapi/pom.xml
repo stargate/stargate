@@ -1,54 +1,23 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>io.stargate</groupId>
+  <parent>
+    <groupId>io.stargate</groupId>
+    <artifactId>sgv2-api-parent</artifactId>
+    <version>2.0.0-ALPHA-17-SNAPSHOT</version>
+    <relativePath>../pom.xml</relativePath>
+  </parent>
   <artifactId>sgv2-docsapi</artifactId>
-  <version>2.0.0-ALPHA-17-SNAPSHOT</version>
   <properties>
-    <assertj.version>3.22.0</assertj.version>
-    <compiler-plugin.version>3.8.1</compiler-plugin.version>
     <failsafe.useModulePath>false</failsafe.useModulePath>
-    <maven.compiler.source>17</maven.compiler.source>
-    <maven.compiler.target>17</maven.compiler.target>
-    <maven.compiler.release>17</maven.compiler.release>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <quarkus.container-image.group>stargateio</quarkus.container-image.group>
     <quarkus.container-image.name>docsapi</quarkus.container-image.name>
-    <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
-    <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-    <quarkus.platform.version>2.10.1.Final</quarkus.platform.version>
-    <skipTests>false</skipTests>
-    <skipUnitTests>${skipTests}</skipUnitTests>
-    <surefire-plugin.version>3.0.0-M7</surefire-plugin.version>
   </properties>
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>${quarkus.platform.group-id}</groupId>
-        <artifactId>${quarkus.platform.artifact-id}</artifactId>
-        <version>${quarkus.platform.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
   <dependencies>
     <dependency>
       <groupId>io.stargate</groupId>
       <artifactId>sgv2-quarkus-common</artifactId>
       <version>${project.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.stargate</groupId>
-      <artifactId>sgv2-service-common</artifactId>
-      <version>${project.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>*</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
@@ -120,7 +89,6 @@
     <dependency>
       <groupId>org.immutables</groupId>
       <artifactId>value</artifactId>
-      <version>2.9.0</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -161,7 +129,6 @@
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <version>${assertj.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -189,33 +156,8 @@
         </executions>
       </plugin>
       <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>${compiler-plugin.version}</version>
-        <configuration>
-          <compilerArgs>
-            <arg>-parameters</arg>
-          </compilerArgs>
-        </configuration>
-      </plugin>
-      <plugin>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>${surefire-plugin.version}</version>
-        <configuration>
-          <argLine>-Xmx4g</argLine>
-          <systemPropertyVariables>
-            <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
-            <maven.home>${maven.home}</maven.home>
-          </systemPropertyVariables>
-          <excludes>
-            <exclude>**/*IntegrationTest.*</exclude>
-            <exclude>**/*EndToEndTest.*</exclude>
-          </excludes>
-          <skip>${skipUnitTests}</skip>
-        </configuration>
-      </plugin>
-      <plugin>
         <artifactId>maven-failsafe-plugin</artifactId>
-        <version>${surefire-plugin.version}</version>
+        <version>3.0.0-M7</version>
         <executions>
           <execution>
             <goals>
@@ -238,37 +180,6 @@
             </configuration>
           </execution>
         </executions>
-      </plugin>
-      <plugin>
-        <groupId>com.coveo</groupId>
-        <artifactId>fmt-maven-plugin</artifactId>
-        <version>2.13</version>
-        <executions>
-          <execution>
-            <phase>process-sources</phase>
-            <goals>
-              <goal>check</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>au.com.acegi</groupId>
-        <artifactId>xml-format-maven-plugin</artifactId>
-        <version>3.2.0</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>xml-check</goal>
-            </goals>
-          </execution>
-        </executions>
-        <configuration>
-          <excludes>
-            <exclude>.idea/**</exclude>
-            <exclude>**/target/**</exclude>
-          </excludes>
-        </configuration>
       </plugin>
     </plugins>
   </build>

@@ -39,23 +39,11 @@ steps:
         name: 'm2_cache'
     env:
       - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
-  - id: 'build-java17-common'
+  - id: 'build-java17'
     name: 'maven:3-openjdk-17'
     waitFor: [ 'fetch_secret', 'init_cache', 'build' ]
     entrypoint: mvn
     args: [ '-B','install', '--settings', 'ci/custom-settings.xml', '--file', 'apis/pom.xml', '-DskipTests',
-            '-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn'
-    ]
-    volumes:
-      - path: '/cache/.m2'
-        name: 'm2_cache'
-    env:
-      - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
-  - id: 'build-java17'
-    name: 'maven:3-openjdk-17'
-    waitFor: [ 'build-java17-common' ]
-    entrypoint: mvn
-    args: [ '-B','install', '--settings', 'ci/custom-settings.xml', '--file', 'sgv2-docsapi/pom.xml', '-DskipTests',
             '-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn'
     ]
     volumes:

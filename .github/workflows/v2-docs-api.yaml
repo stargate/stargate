@@ -188,15 +188,9 @@ jobs:
           path: ~/.m2/repository/io/stargate
           key: snapshots-${{ github.sha }}
 
-      - name: Build & Test Quarkus Common (temporary)
+      - name: Build & Test Stargate v2 Quarkus-based APIs
         run: |
           cd apis/
-          ./mvnw -B install test
-          cd ../../
-
-      - name: Build & Test
-        run: |
-          cd sgv2-docsapi/
           ./mvnw -B test
 
   # runs int tests for the sgv2-docsapi
@@ -322,14 +316,14 @@ jobs:
 
       - name: Install Quarkus Common (temporary)
         run: |
-          cd apis/
+          cd apis/sgv2-quarkus-common
           ./mvnw -B install
           cd ../../
 
       # run finally the int tests
       - name: Integration Test
         run: |
-          cd sgv2-docsapi/
+          cd apis/sgv2-docsapi
           ./mvnw -B verify -DskipUnitTests -P ${{ matrix.profile }} -Dtesting.containers.stargate-image=${{ matrix.image }}
 
   # runs always, deletes built docker image artifacts
