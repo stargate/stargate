@@ -37,15 +37,9 @@
   </dependencyManagement>
   <dependencies>
     <dependency>
-      <groupId>io.stargate.grpc</groupId>
-      <artifactId>bridge-proto</artifactId>
+      <groupId>io.stargate</groupId>
+      <artifactId>sgv2-quarkus-common</artifactId>
       <version>${project.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>*</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>io.stargate</groupId>
@@ -81,10 +75,6 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-smallrye-openapi</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-grpc</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
@@ -193,28 +183,6 @@
               <goal>generate-code</goal>
               <goal>generate-code-tests</goal>
             </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <artifactId>maven-antrun-plugin</artifactId>
-        <version>3.1.0</version>
-        <executions>
-          <execution>
-            <phase>process-resources</phase>
-            <goals>
-              <goal>run</goal>
-            </goals>
-            <configuration>
-              <target>
-                <delete>
-                  <fileset dir="${project.build.directory}/generated-sources/grpc/io/stargate/bridge/proto">
-                    <include name="QueryOuterClass.java"/>
-                    <include name="Schema.java"/>
-                  </fileset>
-                </delete>
-              </target>
-            </configuration>
           </execution>
         </executions>
       </plugin>

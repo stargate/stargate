@@ -36,7 +36,7 @@ import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.common.cql.builder.Replication;
-import io.stargate.sgv2.docsapi.config.constants.Constants;
+import io.stargate.sgv2.docsapi.config.constants.HttpConstants;
 import io.stargate.sgv2.docsapi.service.schema.NamespaceManager;
 import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.testprofiles.IntegrationTestProfile;
@@ -116,7 +116,7 @@ class DocumentReadResourceIntegrationTest {
     // simple util to write documents
     private void writeDocument(String id, String json) {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -129,7 +129,7 @@ class DocumentReadResourceIntegrationTest {
     void deleteDocuments(String... ids) {
       for (String id : ids) {
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .when()
             .delete(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
             .then()
@@ -147,7 +147,7 @@ class DocumentReadResourceIntegrationTest {
         // assert
         String expected = "{\"%s\":{\"value\":\"a\"}}".formatted(ids[0]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("where", "{\"value\": {\"$eq\": \"a\"}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -171,7 +171,7 @@ class DocumentReadResourceIntegrationTest {
         // assert
         String expected = "{\"%s\":{\"value\":true}}".formatted(ids[0]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("where", "{\"value\": {\"$eq\": true}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -196,7 +196,7 @@ class DocumentReadResourceIntegrationTest {
         // assert
         String expected = "{\"%s\":{\"value\":\"a\",\"n\":{\"value\":5}}}".formatted(ids[0]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("where", "{\"value\": {\"$eq\": \"a\"}, \"n.value\": {\"$lt\": 6}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -229,7 +229,7 @@ class DocumentReadResourceIntegrationTest {
         // assert
         String expected = "{\"%s\":{\"value\":\"a\",\"n\":{\"value\":5}}}".formatted(ids[0]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("where", where)
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -260,7 +260,7 @@ class DocumentReadResourceIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("where", "{\"value\": {\"$in\": [\"a\", \"b\"]}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -291,7 +291,7 @@ class DocumentReadResourceIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("where", "{\"value\": {\"$ne\": \"c\"}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -316,7 +316,7 @@ class DocumentReadResourceIntegrationTest {
         // assert
         String expected = "{\"%s\":{\"value\":\"a\",\"n\":{\"value\":5}}}".formatted(ids[0]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam(
                 "where", "{\"value\": {\"$in\": [\"a\", \"b\"]}, \"n.value\": {\"$in\": [5]}}")
             .when()
@@ -343,7 +343,7 @@ class DocumentReadResourceIntegrationTest {
         // assert
         String expected = "{\"%s\":{\"value\":\"a\",\"n\":{\"value\":5}}}".formatted(ids[0]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam(
                 "where",
                 "{\"value\": {\"$in\": [\"a\", \"b\"]}, \"n.value\": {\"$gt\": 0, \"$lt\": 10}}")
@@ -370,7 +370,7 @@ class DocumentReadResourceIntegrationTest {
         String expected =
             "{\"%s\":{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}}".formatted(ids[0]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("where", "{\"someStuff.someOtherStuff.value\": {\"$eq\": \"a\"}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -402,7 +402,7 @@ class DocumentReadResourceIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("where", "{\"n,m.value\": {\"$gte\": 5}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -426,7 +426,7 @@ class DocumentReadResourceIntegrationTest {
         // assert
         String expected = "{\"%s\":{\"n\":{\"value\":5}}}".formatted(ids[0]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("where", "{\"n,m.value\": {\"$in\": [5]}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -454,7 +454,7 @@ class DocumentReadResourceIntegrationTest {
             "{\"%s\":{\"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}}"
                 .formatted(ids[1]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("where", "{\"someStuff.*.value\": {\"$eq\": \"b\"}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -482,7 +482,7 @@ class DocumentReadResourceIntegrationTest {
             "{\"%s\":{\"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}}"
                 .formatted(ids[1]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("where", "{\"someStuff.*.value\": {\"$in\": [\"b\"]}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -510,7 +510,7 @@ class DocumentReadResourceIntegrationTest {
             "{\"%s\":{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}}"
                 .formatted(ids[1]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam(
                 "where", "{\"value\": {\"$eq\": \"b\"}, \"someStuff.*.value\": {\"$eq\": \"b\"}}")
             .when()
@@ -539,7 +539,7 @@ class DocumentReadResourceIntegrationTest {
             "{\"%s\":{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}}"
                 .formatted(ids[1]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam(
                 "where", "{\"value\": {\"$eq\": \"b\"}, \"someStuff.*.value\": {\"$in\": [\"b\"]}}")
             .when()
@@ -568,7 +568,7 @@ class DocumentReadResourceIntegrationTest {
             "{\"%s\":{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"other\": \"b\"}}}}"
                 .formatted(ids[1]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam(
                 "where",
                 "{\"value\": {\"$eq\": \"b\"}, \"someStuff.*.other\": {\"$exists\": true}}")
@@ -595,7 +595,7 @@ class DocumentReadResourceIntegrationTest {
         // assert
         String expected = "{\"%s\":{\"value\":[{\"n\":{\"value\":5}}]}}".formatted(ids[0]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("where", "{\"value.[0].n.value\": {\"$eq\": 5}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -629,7 +629,7 @@ class DocumentReadResourceIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("where", "{\"value.[0],[1].n.value\": {\"$lt\": 6}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -656,7 +656,7 @@ class DocumentReadResourceIntegrationTest {
         String expected =
             "{\"%s\":{\"value\":[{\"n\":{\"value\":5}},{\"n\":{\"value\":8}}]}}".formatted(ids[0]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("where", "{\"value.[0],[1].n.value\": {\"$in\": [8]}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -682,7 +682,7 @@ class DocumentReadResourceIntegrationTest {
         String expected =
             "{\"%s\":{\"value\":[{\"n\":{\"value\":5}},{\"n\":{\"value\":8}}]}}".formatted(ids[0]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("where", "{\"value.[*].n.value\": {\"$eq\": 8}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -709,7 +709,7 @@ class DocumentReadResourceIntegrationTest {
             "{\"%s\":{\"first\": 5, \"value\":[{\"n\":{\"value\":5}},{\"n\":{\"value\":8}}]}}"
                 .formatted(ids[0]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("where", "{\"first\": {\"$gt\": 0}, \"value.[*].n.value\": {\"$eq\": 8}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -735,7 +735,7 @@ class DocumentReadResourceIntegrationTest {
         String expected =
             "{\"%s\":{\"value\":[{\"n\":{\"value\":5}},{\"n\":{\"value\":8}}]}}".formatted(ids[0]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("where", "{\"value.[*].n.value\": {\"$in\": [8]}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -762,7 +762,7 @@ class DocumentReadResourceIntegrationTest {
             "{\"%s\":{\"first\": 5, \"value\":[{\"n\":{\"value\":5}},{\"n\":{\"value\":8}}]}}"
                 .formatted(ids[0]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam(
                 "where", "{\"first\": {\"$gte\": 1}, \"value.[*].n.value\": {\"$in\": [8]}}")
             .when()
@@ -790,7 +790,7 @@ class DocumentReadResourceIntegrationTest {
             "{\"%s\":{\"first\": 5, \"value\":[{\"n\":{\"value\":5}},{\"m\":{\"value\":8}}]}}"
                 .formatted(ids[0]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam(
                 "where", "{\"first\": {\"$gte\": 1}, \"value.[*].m.value\": {\"$exists\": true}}")
             .when()
@@ -822,7 +822,7 @@ class DocumentReadResourceIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam(
                 "where",
                 "{\"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"value\": {\"$eq\": \"b\"}}]}")
@@ -855,7 +855,7 @@ class DocumentReadResourceIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam(
                 "where",
                 "{\"$or\": [{\"value\": {\"$in\": [\"a\"]}}, {\"value\": {\"$in\": [\"b\"]}}]}")
@@ -888,7 +888,7 @@ class DocumentReadResourceIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam(
                 "where",
                 "{\"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"value\": {\"$in\": [\"a\", \"b\"]}}]}")
@@ -915,7 +915,7 @@ class DocumentReadResourceIntegrationTest {
         String firstExpected = "{\"a\":{\"value\":\"a\"}}";
         String body =
             given()
-                .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
                 .queryParam(
                     "where",
                     "{\"$or\": [{\"value\": {\"$eq\": \"b\"}}, {\"value\": {\"$in\": [\"a\"]}}]}")
@@ -934,7 +934,7 @@ class DocumentReadResourceIntegrationTest {
         String pageState = objectMapper.readTree(body).requiredAt("/pageState").textValue();
         String secondExpected = "{\"b\":{\"value\":\"b\"}}";
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam(
                 "where",
                 "{\"$or\": [{\"value\": {\"$eq\": \"b\"}}, {\"value\": {\"$in\": [\"a\"]}}]}")
@@ -972,7 +972,7 @@ class DocumentReadResourceIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam(
                 "where",
                 "{\"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"count\": {\"$in\": [2,4]}}]}")
@@ -1008,7 +1008,7 @@ class DocumentReadResourceIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam(
                 "where",
                 "{\"count\": {\"$gt\": 0}, \"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"value\": {\"$in\": [\"b\"]}}]}")
@@ -1041,7 +1041,7 @@ class DocumentReadResourceIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam(
                 "where",
                 "{\"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"other\": {\"$exists\": true}}]}")
@@ -1074,7 +1074,7 @@ class DocumentReadResourceIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam(
                 "where",
                 "{\"$or\": [{\"value\": {\"$nin\": [\"b\",\"c\"]}}, {\"value\": {\"$eq\": \"a\"}}]}")
@@ -1110,7 +1110,7 @@ class DocumentReadResourceIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam(
                 "where",
                 "{\"$or\": [{\"value.[*].*.value\": {\"$eq\": 20}}, {\"value.[1],[2].n,m.value\": {\"$eq\": 8}}]}")
@@ -1129,7 +1129,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void withProfile() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("where", "{\"value\": {\"$eq\": \"a\"}}")
           .queryParam("profile", true)
           .when()
@@ -1149,7 +1149,7 @@ class DocumentReadResourceIntegrationTest {
         // assert
         String expected = "{\"%s\":{\"value\":[null,{\"m\":{\"value\":8}}]}}".formatted(ids[0]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("fields", "[\"value.[1].m\"]")
             .queryParam("raw", true)
             .when()
@@ -1173,7 +1173,7 @@ class DocumentReadResourceIntegrationTest {
         String expected =
             "{\"%s\":{\"value\":[{\"n\":{\"value\":5}},{\"m\":{\"value\":8}}]}}".formatted(ids[0]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("fields", "[\"value.[*].m,n\"]")
             .queryParam("raw", true)
             .when()
@@ -1196,7 +1196,7 @@ class DocumentReadResourceIntegrationTest {
         // assert
         String expected = "{\"%s\":{\"value\":[{\"n\":{\"value\":5}}]}}".formatted(ids[0]);
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("fields", "[\"*.[*].n\"]")
             .queryParam("raw", true)
             .when()
@@ -1218,7 +1218,7 @@ class DocumentReadResourceIntegrationTest {
         // assert
         String expected = "{\"a\": {\"value\": 1},\"b\": {\"value\": 2}, \"bb\": {\"value\": 4}}";
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("fields", "[\"a.value\",\"b.value\",\"bb.value\"]")
             .queryParam("raw", true)
             .when()
@@ -1251,7 +1251,7 @@ class DocumentReadResourceIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("where", "{\"someStuff.*.value\": {\"$exists\": false}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -1285,7 +1285,7 @@ class DocumentReadResourceIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam(
                 "where",
                 "{\"value\": {\"$eq\": \"b\"}, \"someStuff.*.value\": {\"$exists\": false}}")
@@ -1311,7 +1311,7 @@ class DocumentReadResourceIntegrationTest {
       try {
         // assert
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("where", "{\"a\":{\"$eq\":\"b\"},\"c\":{\"$lt\":3}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -1322,7 +1322,7 @@ class DocumentReadResourceIntegrationTest {
             .body("data", jsonPartEquals(ids[0], firstDocument));
 
         given()
-            .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("where", "{\"a\":{\"$eq\":\"b\"},\"c\":{\"$lt\":0}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -1334,7 +1334,7 @@ class DocumentReadResourceIntegrationTest {
 
         String body =
             given()
-                .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
                 .queryParam(
                     "where",
                     "{\"quiz.sport.q1.question\":{\"$in\": [\"Which one is correct team name in NBA?\"]}}")
@@ -1372,7 +1372,7 @@ class DocumentReadResourceIntegrationTest {
         for (int i = 0; i < 3; i += pageSize) {
           String body =
               given()
-                  .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                  .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
                   .queryParam("page-size", pageSize)
                   .queryParam("page-state", pageState)
                   .when()
@@ -1413,7 +1413,7 @@ class DocumentReadResourceIntegrationTest {
         for (int i = 0; i < 3; i += pageSize) {
           String body =
               given()
-                  .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                  .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
                   .queryParam("page-size", pageSize)
                   .queryParam("page-state", pageState)
                   .queryParam("fields", "[\"a\"]")
@@ -1471,7 +1471,7 @@ class DocumentReadResourceIntegrationTest {
         for (int i = 0; i < 3; i += pageSize) {
           String body =
               given()
-                  .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                  .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
                   .queryParam("page-size", pageSize)
                   .queryParam("page-state", pageState)
                   .queryParam("fields", "[\"quiz\"]")
@@ -1505,7 +1505,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void whereMalformed() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("where", "{\"a\":}")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -1521,7 +1521,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void fieldsMalformed() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("fields", "[\"a\"")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -1537,7 +1537,7 @@ class DocumentReadResourceIntegrationTest {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH, namespace, DEFAULT_COLLECTION)
           .then()
@@ -1553,7 +1553,7 @@ class DocumentReadResourceIntegrationTest {
       String collection = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, collection)
           .then()
@@ -1565,7 +1565,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void invalidPageSize() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("page-size", -1)
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -1576,7 +1576,7 @@ class DocumentReadResourceIntegrationTest {
               is("Request invalid: the minimum number of documents to return is one."));
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("page-size", 21)
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -1603,7 +1603,7 @@ class DocumentReadResourceIntegrationTest {
       exampleResource = CharStreams.toString(resource("documents/example.json"));
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(exampleResource)
           .when()
@@ -1615,7 +1615,7 @@ class DocumentReadResourceIntegrationTest {
     @AfterEach
     public void deleteDoc() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .delete(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -1627,7 +1627,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void happyPath() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -1639,7 +1639,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void happyPathRaw() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -1651,7 +1651,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void withProfile() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("profile", true)
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -1663,7 +1663,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void matchEq() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}")
           .when()
@@ -1675,7 +1675,7 @@ class DocumentReadResourceIntegrationTest {
 
       // not matched
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.electronics.Pixel_3a.price\": {\"$eq\": 700}}")
           .when()
@@ -1687,7 +1687,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void matchEqWithSelection() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}")
           .queryParam("fields", "[\"name\", \"price\", \"model\", \"manufacturer\"]")
@@ -1703,7 +1703,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void matchLt() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.food.*.price\": {\"$lt\": 600}}")
           .when()
@@ -1718,7 +1718,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void matchLtWithSelection() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.food.*.price\": {\"$lt\": 600}}")
           .queryParam("fields", "[\"name\", \"price\", \"model\"]")
@@ -1734,7 +1734,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void matchLte() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.food.*.price\": {\"$lte\": 0.99}}")
           .when()
@@ -1749,7 +1749,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void matchLteWithSelection() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.food.*.price\": {\"$lte\": 0.99}}")
           .queryParam("fields", "[\"price\", \"sku\"]")
@@ -1765,7 +1765,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void matchGt() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.electronics.*.price\": {\"$gt\": 600}}")
           .when()
@@ -1779,7 +1779,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void matchGtWithSelection() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.electronics.*.price\": {\"$gt\": 600}}")
           .queryParam("fields", "[\"price\", \"throwaway\"]")
@@ -1794,7 +1794,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void matchGte() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.electronics.*.price\": {\"$gte\": 600}}")
           .when()
@@ -1809,7 +1809,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void matchGteWithSelection() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.electronics.*.price\": {\"$gte\": 600}}")
           .queryParam("fields", "[\"price\"]")
@@ -1834,7 +1834,7 @@ class DocumentReadResourceIntegrationTest {
           ]""";
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.*.*.price\": {\"$exists\": true}}")
           .when()
@@ -1856,7 +1856,7 @@ class DocumentReadResourceIntegrationTest {
           ]""";
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.*.*.price\": {\"$exists\": true}}")
           .queryParam("fields", "[\"price\", \"name\", \"manufacturer\", \"model\", \"sku\"]")
@@ -1870,7 +1870,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void matchNot() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam(
               "where", "{\"$not\": {\"products.electronics.Pixel_3a.price\": {\"$ne\": 600}}}")
@@ -1886,7 +1886,7 @@ class DocumentReadResourceIntegrationTest {
     public void matchNe() {
       // NE with String
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.electronics.*.model\": {\"$ne\": \"3a\"}}")
           .when()
@@ -1899,7 +1899,7 @@ class DocumentReadResourceIntegrationTest {
 
       // NE with Boolean
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"quiz.nests.q1.options.[3].this\": {\"$ne\": false}}")
           .when()
@@ -1912,7 +1912,7 @@ class DocumentReadResourceIntegrationTest {
 
       // NE integer compared to double
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"quiz.maths.q1.answer\": {\"$ne\": 12}}")
           .when()
@@ -1923,7 +1923,7 @@ class DocumentReadResourceIntegrationTest {
 
       // NE with double compared to integer
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"quiz.maths.q2.answer\": {\"$ne\": 4.0}}")
           .when()
@@ -1936,7 +1936,7 @@ class DocumentReadResourceIntegrationTest {
     public void matchIn() {
       // IN with String
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.electronics.*.model\": {\"$in\": [\"11\", \"3a\"]}}")
           .when()
@@ -1949,7 +1949,7 @@ class DocumentReadResourceIntegrationTest {
 
       // IN with int
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.*.*.price\": {\"$in\": [600, 900]}}")
           .when()
@@ -1962,7 +1962,7 @@ class DocumentReadResourceIntegrationTest {
 
       // IN with double
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.*.*.price\": {\"$in\": [0.99, 0.89]}}")
           .when()
@@ -1975,7 +1975,7 @@ class DocumentReadResourceIntegrationTest {
 
       // IN with null
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.*.*.sku\": {\"$in\": [null]}}")
           .when()
@@ -1989,7 +1989,7 @@ class DocumentReadResourceIntegrationTest {
     public void matchNin() {
       // NIN with String
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.electronics.*.model\": {\"$nin\": [\"12\"]}}")
           .when()
@@ -2002,7 +2002,7 @@ class DocumentReadResourceIntegrationTest {
 
       // NIN with int
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.*.*.price\": {\"$nin\": [600, 900]}}")
           .when()
@@ -2015,7 +2015,7 @@ class DocumentReadResourceIntegrationTest {
 
       // NIN with double
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.*.*.price\": {\"$nin\": [0.99, 0.89]}}")
           .when()
@@ -2028,7 +2028,7 @@ class DocumentReadResourceIntegrationTest {
 
       // NIN with null
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"products.*.*.sku\": {\"$nin\": [null]}}")
           .when()
@@ -2044,7 +2044,7 @@ class DocumentReadResourceIntegrationTest {
     public void matchFiltersCombo() {
       // NIN (limited support) with GT (full support)
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam(
               "where", "{\"products.electronics.*.model\": {\"$nin\": [\"11\"], \"$gt\": \"\"}}")
@@ -2058,7 +2058,7 @@ class DocumentReadResourceIntegrationTest {
 
       // IN (limited support) with NE (limited support)
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam(
               "where", "{\"products.electronics.*.model\": {\"$nin\": [\"11\"], \"$gt\": \"\"}}")
@@ -2074,7 +2074,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void matchMultipleOperators() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam(
               "where", "{\"products.food.Orange.info.price\": {\"$gt\": 600, \"$lt\": 600.05}}")
@@ -2090,7 +2090,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void matchArrayPaths() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"quiz.maths.q1.options.[0]\": {\"$lt\": 13.3}}")
           .when()
@@ -2110,7 +2110,7 @@ class DocumentReadResourceIntegrationTest {
               ]""";
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"quiz.nests.q1,q2.options.[0]\": {\"$eq\": \"nest\"}}")
           .when()
@@ -2123,7 +2123,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void matchMultiplePathsAndGlob() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"quiz.nests.q2,q3.options.*.this.them\": {\"$eq\": false}}")
           .when()
@@ -2145,7 +2145,7 @@ class DocumentReadResourceIntegrationTest {
               }""";
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", where)
           .when()
@@ -2162,7 +2162,7 @@ class DocumentReadResourceIntegrationTest {
       String json = "{\"a\\\\.b\":\"somedata\",\"some,data\":\"something\",\"*\":\"star\"}";
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -2172,7 +2172,7 @@ class DocumentReadResourceIntegrationTest {
 
       // with escaped period
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"a\\\\.b\": {\"$eq\": \"somedata\"}}")
           .when()
@@ -2183,7 +2183,7 @@ class DocumentReadResourceIntegrationTest {
 
       // with commas
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"some\\\\,data\": {\"$eq\": \"something\"}}")
           .when()
@@ -2194,7 +2194,7 @@ class DocumentReadResourceIntegrationTest {
 
       // with asterisk
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam("where", "{\"\\\\*\": {\"$eq\": \"star\"}}")
           .when()
@@ -2210,7 +2210,7 @@ class DocumentReadResourceIntegrationTest {
       exampleResource = CharStreams.toString(resource("documents/long-search.json"));
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(exampleResource)
           .when()
@@ -2219,7 +2219,7 @@ class DocumentReadResourceIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("where", "{\"*.value\": {\"$gt\": 0}}")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
@@ -2235,7 +2235,7 @@ class DocumentReadResourceIntegrationTest {
       exampleResource = CharStreams.toString(resource("documents/long-search.json"));
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(exampleResource)
           .when()
@@ -2245,7 +2245,7 @@ class DocumentReadResourceIntegrationTest {
 
       String bodyFirstPage =
           given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
               .queryParam("where", "{\"*.value\": {\"$gt\": 0}}")
               .queryParam("page-size", 20)
               .when()
@@ -2262,7 +2262,7 @@ class DocumentReadResourceIntegrationTest {
       String pageState = objectMapper.readTree(bodyFirstPage).requiredAt("/pageState").textValue();
       String bodySecondPage =
           given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
               .queryParam("where", "{\"*.value\": {\"$gt\": 0}}")
               .queryParam("page-size", 20)
               .queryParam("page-state", pageState)
@@ -2287,7 +2287,7 @@ class DocumentReadResourceIntegrationTest {
     public void matchInvalid() {
       // not JSON
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("where", "hello")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2296,7 +2296,7 @@ class DocumentReadResourceIntegrationTest {
 
       // array
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("where", "[\"a\"]")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2306,7 +2306,7 @@ class DocumentReadResourceIntegrationTest {
 
       // no-op
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("where", "{\"a\": true}")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2316,7 +2316,7 @@ class DocumentReadResourceIntegrationTest {
 
       // op not found
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("where", "{\"a\": {\"exists\": true}}}")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2326,7 +2326,7 @@ class DocumentReadResourceIntegrationTest {
 
       // op value not valid
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("where", "{\"a\": {\"$eq\": null}}}")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2336,7 +2336,7 @@ class DocumentReadResourceIntegrationTest {
 
       // op value empty
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("where", "{\"a\": {\"$eq\": {}}}}")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2346,7 +2346,7 @@ class DocumentReadResourceIntegrationTest {
 
       // op value array
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("where", "{\"a\": {\"$eq\": []}}}")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2356,7 +2356,7 @@ class DocumentReadResourceIntegrationTest {
 
       // in not array
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("where", "{\"a\": {\"$in\": 2}}}")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2366,7 +2366,7 @@ class DocumentReadResourceIntegrationTest {
 
       // multiple field conditions
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("where", "{\"a\": {\"$eq\": 300}, \"b\": {\"$lt\": 500}}")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2381,7 +2381,7 @@ class DocumentReadResourceIntegrationTest {
     public void matchWhereAndFieldsDifferentTarget() {
       // not JSON
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("where", "{\"a\": {\"$in\": [1]}}")
           .queryParam("fields", "[\"b\"]")
           .when()
@@ -2398,7 +2398,7 @@ class DocumentReadResourceIntegrationTest {
     public void matchPageSizeNotPositive() {
       // not JSON
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("page-size", 0)
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2412,7 +2412,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void whereMalformed() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("where", "{\"a\":}")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2428,7 +2428,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void fieldsMalformed() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("fields", "[\"a\"")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2444,7 +2444,7 @@ class DocumentReadResourceIntegrationTest {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/{document-id}", namespace, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -2460,7 +2460,7 @@ class DocumentReadResourceIntegrationTest {
       String collection = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, collection, DOCUMENT_ID)
           .then()
@@ -2474,7 +2474,7 @@ class DocumentReadResourceIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -2489,7 +2489,7 @@ class DocumentReadResourceIntegrationTest {
       String collection = "local";
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/{document-id}", namespace, collection, DOCUMENT_ID)
           .then()
@@ -2523,7 +2523,7 @@ class DocumentReadResourceIntegrationTest {
       exampleResource = CharStreams.toString(resource("documents/example.json"));
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(exampleResource)
           .when()
@@ -2535,7 +2535,7 @@ class DocumentReadResourceIntegrationTest {
     @AfterEach
     public void deleteDoc() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .delete(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -2548,7 +2548,7 @@ class DocumentReadResourceIntegrationTest {
     public void happyPath() throws Exception {
       Object dataMap =
           given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
               .when()
               .get(
                   BASE_PATH + "/{document-id}/quiz/maths",
@@ -2571,7 +2571,7 @@ class DocumentReadResourceIntegrationTest {
     public void happyPathRaw() {
       String body =
           given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
               .queryParam("raw", true)
               .when()
               .get(
@@ -2594,7 +2594,7 @@ class DocumentReadResourceIntegrationTest {
     public void array() {
       String first =
           given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
               .queryParam("raw", true)
               .when()
               .get(
@@ -2614,7 +2614,7 @@ class DocumentReadResourceIntegrationTest {
 
       String second =
           given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
               .queryParam("raw", true)
               .when()
               .get(
@@ -2639,7 +2639,7 @@ class DocumentReadResourceIntegrationTest {
       String json = "{\"a\\\\.b\":\"somedata\",\"some,data\":\"something\",\"*\":\"star\"}";
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -2648,7 +2648,7 @@ class DocumentReadResourceIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .when()
           .get(BASE_PATH + "/{document-id}/a%5C.b", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
@@ -2657,7 +2657,7 @@ class DocumentReadResourceIntegrationTest {
           .body(jsonEquals("somedata"));
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .when()
           .get(BASE_PATH + "/{document-id}/some%5C,data", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
@@ -2666,7 +2666,7 @@ class DocumentReadResourceIntegrationTest {
           .body(jsonEquals("something"));
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .when()
           .get(BASE_PATH + "/{document-id}/%5C*", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
@@ -2678,7 +2678,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void matchOrWithSelection() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .queryParam(
               "where",
@@ -2701,7 +2701,7 @@ class DocumentReadResourceIntegrationTest {
     public void matchOrWithPaging() throws Exception {
       String body =
           given()
-              .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
               .queryParam(
                   "where",
                   "{\"$or\":[{\"*.name\":{\"$eq\":\"pear\"}},{\"*.name\":{\"$eq\":\"orange\"}}]}")
@@ -2726,7 +2726,7 @@ class DocumentReadResourceIntegrationTest {
       // paging only second with state
       String pageState = objectMapper.readTree(body).requiredAt("/pageState").textValue();
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam(
               "where",
               "{\"$or\":[{\"*.name\":{\"$eq\":\"pear\"}},{\"*.name\":{\"$eq\":\"orange\"}}]}")
@@ -2751,7 +2751,7 @@ class DocumentReadResourceIntegrationTest {
     @Test
     public void invalidPath() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .when()
           .get(
@@ -2768,7 +2768,7 @@ class DocumentReadResourceIntegrationTest {
                       .formatted(DOCUMENT_ID)));
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .when()
           .get(
@@ -2786,7 +2786,7 @@ class DocumentReadResourceIntegrationTest {
 
       // out of bounds
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .when()
           .get(

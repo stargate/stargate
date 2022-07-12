@@ -2,7 +2,7 @@ package io.stargate.sgv2.docsapi.config;
 
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
-import io.stargate.sgv2.docsapi.config.constants.Constants;
+import io.stargate.sgv2.docsapi.config.constants.HttpConstants;
 import java.util.Optional;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
@@ -25,10 +25,10 @@ public interface AuthConfig {
 
     /**
      * @return Name of the authentication header. Defaults to {@value
-     *     Constants#AUTHENTICATION_TOKEN_HEADER_NAME}.
+     *     HttpConstants#AUTHENTICATION_TOKEN_HEADER_NAME}.
      */
     @NotBlank
-    @WithDefault(Constants.AUTHENTICATION_TOKEN_HEADER_NAME)
+    @WithDefault(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME)
     String headerName();
   }
 
@@ -68,10 +68,10 @@ public interface AuthConfig {
 
       /**
        * @return Name of the header to read the Cassandra token. Defaults to {@value
-       *     Constants#AUTHENTICATION_TOKEN_HEADER_NAME}.
+       *     HttpConstants#AUTHENTICATION_TOKEN_HEADER_NAME}.
        */
       @NotBlank
-      @WithDefault(Constants.AUTHENTICATION_TOKEN_HEADER_NAME)
+      @WithDefault(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME)
       String headerName();
     }
 

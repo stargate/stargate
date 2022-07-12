@@ -31,7 +31,7 @@ import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.common.cql.builder.Replication;
-import io.stargate.sgv2.docsapi.config.constants.Constants;
+import io.stargate.sgv2.docsapi.config.constants.HttpConstants;
 import io.stargate.sgv2.docsapi.service.schema.NamespaceManager;
 import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.testprofiles.IntegrationTestProfile;
@@ -95,7 +95,7 @@ class DocumentUpdateResourceIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(exampleResource)
           .when()
@@ -104,7 +104,7 @@ class DocumentUpdateResourceIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
           .body(jsonPartEquals("documentId", id))
@@ -116,7 +116,7 @@ class DocumentUpdateResourceIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("profile", true)
           .contentType(ContentType.JSON)
           .body(exampleResource)
@@ -132,7 +132,7 @@ class DocumentUpdateResourceIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("ttl", 3)
           .contentType(ContentType.JSON)
           .body(exampleResource)
@@ -147,7 +147,7 @@ class DocumentUpdateResourceIntegrationTest {
           .untilAsserted(
               () ->
                   given()
-                      .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                      .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
                       .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
                       .then()
                       .statusCode(404));
@@ -158,7 +158,7 @@ class DocumentUpdateResourceIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body("{ \"periods\\\\.\": \"are allowed if escaped\" }")
           .when()
@@ -167,7 +167,7 @@ class DocumentUpdateResourceIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
           .body(jsonPartEquals("documentId", id))
@@ -176,7 +176,7 @@ class DocumentUpdateResourceIntegrationTest {
       // overwrite with asterisks
       String asterisksJson = "{ \"*aste*risks*\": \"are allowed\" }";
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(asterisksJson)
           .when()
@@ -185,7 +185,7 @@ class DocumentUpdateResourceIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
           .body(jsonPartEquals("documentId", id))
@@ -198,7 +198,7 @@ class DocumentUpdateResourceIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -207,7 +207,7 @@ class DocumentUpdateResourceIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
           .body(jsonPartEquals("documentId", id))
@@ -221,7 +221,7 @@ class DocumentUpdateResourceIntegrationTest {
           "{\"abc\": [], \"bcd\": {}, \"cde\": null, \"abcd\": { \"nest1\": [], \"nest2\": {}}}";
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -230,21 +230,21 @@ class DocumentUpdateResourceIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
           .body(jsonPartEquals("documentId", id))
           .body(jsonPartEquals("data", json));
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .get(BASE_PATH + "/abc", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
           .body(jsonPartEquals("documentId", id))
           .body(jsonPartEquals("data", "[]"));
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .get(BASE_PATH + "/abcd/nest1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
           .body(jsonPartEquals("documentId", id))
@@ -257,7 +257,7 @@ class DocumentUpdateResourceIntegrationTest {
       String json = "[1, 2, 3, 4, 5]";
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -266,14 +266,14 @@ class DocumentUpdateResourceIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
           .body(jsonPartEquals("documentId", id))
           .body(jsonPartEquals("data", json));
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .get(BASE_PATH + "/[000002]", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
           .body(jsonPartEquals("documentId", id))
@@ -287,7 +287,7 @@ class DocumentUpdateResourceIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("ttl", -1)
           .contentType(ContentType.JSON)
           .body(exampleResource)
@@ -305,7 +305,7 @@ class DocumentUpdateResourceIntegrationTest {
       String json = CharStreams.toString(resource("documents/too-deep.json"));
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -321,7 +321,7 @@ class DocumentUpdateResourceIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body("{ \"bracketedarraypaths[100]\": \"are not allowed\" }")
           .when()
@@ -335,7 +335,7 @@ class DocumentUpdateResourceIntegrationTest {
                   "Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names, invalid field bracketedarraypaths[100]"));
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body("{ \"periods.something\": \"are not allowed\" }")
           .when()
@@ -349,7 +349,7 @@ class DocumentUpdateResourceIntegrationTest {
                   "Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names, invalid field periods.something"));
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body("{ \"single'quotes\": \"are not allowed\" }")
           .when()
@@ -363,7 +363,7 @@ class DocumentUpdateResourceIntegrationTest {
                   "Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names, invalid field single'quotes"));
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body("{ \"back\\\\\\\\slashes\": \"are not allowed\" }")
           .when()
@@ -383,7 +383,7 @@ class DocumentUpdateResourceIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(primitiveJson)
           .when()
@@ -402,7 +402,7 @@ class DocumentUpdateResourceIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body("{\"some\":")
           .when()
@@ -418,7 +418,7 @@ class DocumentUpdateResourceIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .when()
           .put(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
@@ -434,7 +434,7 @@ class DocumentUpdateResourceIntegrationTest {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(exampleResource)
           .when()
@@ -454,7 +454,7 @@ class DocumentUpdateResourceIntegrationTest {
       String collection = "local";
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(exampleResource)
           .when()
@@ -498,7 +498,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       String updateJson = "{\"q5000\": \"hello?\"}";
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("profile", true)
           .contentType(ContentType.JSON)
           .body(updateJson)
@@ -514,7 +514,7 @@ class DocumentUpdateResourceIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(exampleResource)
           .when()
@@ -524,7 +524,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       String updateJson = "{\"q5000\": \"hello?\"}";
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(updateJson)
           .when()
@@ -534,7 +534,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       // assert at full doc
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -542,7 +542,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       // assert at path
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/quiz/sport", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -554,7 +554,7 @@ class DocumentUpdateResourceIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(exampleResource)
           .when()
@@ -564,7 +564,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       String updateJson = "{\"q5000\": \"hello?\"}";
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(updateJson)
           .when()
@@ -574,7 +574,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       // assert at full doc
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -582,7 +582,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       // assert at path
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/quiz/nests/q1/options/[0]", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -594,7 +594,7 @@ class DocumentUpdateResourceIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(exampleResource)
           .when()
@@ -605,7 +605,7 @@ class DocumentUpdateResourceIntegrationTest {
       // replace object with array
       String updateJson = "[{\"array\": \"at\"}, \"sub\", \"doc\"]";
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(updateJson)
           .when()
@@ -615,7 +615,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       // assert at full doc
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -623,7 +623,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       // assert at path
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/quiz", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -632,7 +632,7 @@ class DocumentUpdateResourceIntegrationTest {
       // then replace array with a pre path
       updateJson = "[0, \"a\", \"2\", true]";
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(updateJson)
           .when()
@@ -642,7 +642,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       // assert at full doc
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -650,7 +650,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       // assert at path
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/quiz/nests/q1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -659,7 +659,7 @@ class DocumentUpdateResourceIntegrationTest {
       // then again with the array
       updateJson = "[{\"array\": \"at\"}, \"\", \"doc\"]";
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(updateJson)
           .when()
@@ -669,7 +669,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       // assert at full doc
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -677,7 +677,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       // assert at path
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/quiz", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -686,7 +686,7 @@ class DocumentUpdateResourceIntegrationTest {
       // and then with final object
       updateJson = "{\"we\": {\"are\": \"done\"}}";
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(updateJson)
           .when()
@@ -696,7 +696,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       // assert at full doc
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -704,7 +704,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       // assert at path
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/quiz", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -717,7 +717,7 @@ class DocumentUpdateResourceIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(exampleResource)
           .when()
@@ -726,7 +726,7 @@ class DocumentUpdateResourceIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(updateJson)
           .when()
@@ -736,7 +736,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       // assert at full doc
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -744,7 +744,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       // assert at path
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/quiz", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -757,7 +757,7 @@ class DocumentUpdateResourceIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(exampleResource)
           .when()
@@ -766,7 +766,7 @@ class DocumentUpdateResourceIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(primitiveJson)
           .when()
@@ -776,7 +776,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       String objectJson = "{\"some\": \"value\"}";
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(objectJson)
           .when()
@@ -786,7 +786,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       // assert at full doc
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -794,7 +794,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       // assert at path
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/quiz", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -806,7 +806,7 @@ class DocumentUpdateResourceIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("ttl", 2)
           .contentType(ContentType.JSON)
           .body("{ \"delete this\": \"in 2 seconds\" }")
@@ -816,7 +816,7 @@ class DocumentUpdateResourceIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("ttl-auto", true)
           .contentType(ContentType.JSON)
           .body("{ \"match the parent\": \"this\", \"a\": \"b\" }")
@@ -830,7 +830,7 @@ class DocumentUpdateResourceIntegrationTest {
           .untilAsserted(
               () ->
                   given()
-                      .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                      .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
                       .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
                       .then()
                       .statusCode(404));
@@ -841,7 +841,7 @@ class DocumentUpdateResourceIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("ttl", 2)
           .contentType(ContentType.JSON)
           .body("{ \"delete this\": \"in 2 seconds\" }")
@@ -852,7 +852,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       String addedJson = "{ \"match the parent\": \"this\", \"a\": \"b\" }";
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(addedJson)
           .when()
@@ -865,7 +865,7 @@ class DocumentUpdateResourceIntegrationTest {
           .untilAsserted(
               () ->
                   given()
-                      .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                      .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
                       .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
                       .then()
                       .statusCode(200)
@@ -880,7 +880,7 @@ class DocumentUpdateResourceIntegrationTest {
       // $
       String json = "{ \"$\": \"weird but allowed\" }";
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -888,7 +888,7 @@ class DocumentUpdateResourceIntegrationTest {
           .then()
           .statusCode(200);
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/path", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -896,7 +896,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       json = "{ \"$30\": \"not as weird\" }";
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -904,7 +904,7 @@ class DocumentUpdateResourceIntegrationTest {
           .then()
           .statusCode(200);
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/path", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -913,7 +913,7 @@ class DocumentUpdateResourceIntegrationTest {
       // @
       json = "{ \"@\": \"weird but allowed\" }";
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -921,7 +921,7 @@ class DocumentUpdateResourceIntegrationTest {
           .then()
           .statusCode(200);
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/path", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -929,7 +929,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       json = "{ \"meet me @ the place\": \"not as weird\" }";
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -937,7 +937,7 @@ class DocumentUpdateResourceIntegrationTest {
           .then()
           .statusCode(200);
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/path", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -946,7 +946,7 @@ class DocumentUpdateResourceIntegrationTest {
       // ?
       json = "{ \"?\": \"weird but allowed\" }";
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -954,7 +954,7 @@ class DocumentUpdateResourceIntegrationTest {
           .then()
           .statusCode(200);
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/path", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -963,7 +963,7 @@ class DocumentUpdateResourceIntegrationTest {
       // spaces
       json = "{ \"spac es\": \"weird but allowed\" }";
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -971,7 +971,7 @@ class DocumentUpdateResourceIntegrationTest {
           .then()
           .statusCode(200);
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/path", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -980,7 +980,7 @@ class DocumentUpdateResourceIntegrationTest {
       // number
       json = "{ \"3\": [\"totally allowed\"] }";
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -988,13 +988,13 @@ class DocumentUpdateResourceIntegrationTest {
           .then()
           .statusCode(200);
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/path", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
           .body(jsonPartEquals("data", json));
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/path/3/[0]", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -1002,7 +1002,7 @@ class DocumentUpdateResourceIntegrationTest {
 
       json = "{ \"-1\": \"totally allowed\" }";
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -1010,13 +1010,13 @@ class DocumentUpdateResourceIntegrationTest {
           .then()
           .statusCode(200);
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/path", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
           .body(jsonPartEquals("data", json));
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/path/-1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -1025,7 +1025,7 @@ class DocumentUpdateResourceIntegrationTest {
       // esc
       json = "{ \"Eric says \\\"hello\\\"\": \"totally allowed\" }";
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -1033,7 +1033,7 @@ class DocumentUpdateResourceIntegrationTest {
           .then()
           .statusCode(200);
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH + "/path", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -1047,7 +1047,7 @@ class DocumentUpdateResourceIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body("{ \"some\": \"json\" }")
           .when()

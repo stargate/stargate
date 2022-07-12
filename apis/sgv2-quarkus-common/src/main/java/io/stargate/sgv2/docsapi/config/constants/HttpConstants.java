@@ -18,7 +18,7 @@
 package io.stargate.sgv2.docsapi.config.constants;
 
 /** Static constants. */
-public interface Constants {
+public interface HttpConstants {
 
   /** Authentication token header name. */
   String AUTHENTICATION_TOKEN_HEADER_NAME = "X-Cassandra-Token";

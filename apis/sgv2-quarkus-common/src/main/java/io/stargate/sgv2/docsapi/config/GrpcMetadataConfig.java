@@ -19,7 +19,7 @@ package io.stargate.sgv2.docsapi.config;
 
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
-import io.stargate.sgv2.docsapi.config.constants.Constants;
+import io.stargate.sgv2.docsapi.config.constants.HttpConstants;
 import javax.validation.constraints.NotBlank;
 
 /** Configuration for the gRPC metadata passed to the Bridge. */
@@ -28,17 +28,17 @@ public interface GrpcMetadataConfig {
 
   /**
    * @return Metadata key for passing the tenant-id to the Bridge. Defaults to {@value
-   *     Constants#TENANT_ID_HEADER_NAME}
+   *     HttpConstants#TENANT_ID_HEADER_NAME}
    */
   @NotBlank
-  @WithDefault(Constants.TENANT_ID_HEADER_NAME)
+  @WithDefault(HttpConstants.TENANT_ID_HEADER_NAME)
   String tenantIdKey();
 
   /**
    * @return Metadata key for passing the cassandra token to the Bridge. Defaults to {@value
-   *     Constants#AUTHENTICATION_TOKEN_HEADER_NAME}
+   *     HttpConstants#AUTHENTICATION_TOKEN_HEADER_NAME}
    */
   @NotBlank
-  @WithDefault(Constants.AUTHENTICATION_TOKEN_HEADER_NAME)
+  @WithDefault(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME)
   String cassandraTokenKey();
 }

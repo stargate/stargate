@@ -1,7 +1,7 @@
 package io.stargate.sgv2.docsapi;
 
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
-import io.stargate.sgv2.docsapi.config.constants.Constants;
+import io.stargate.sgv2.docsapi.config.constants.HttpConstants;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.MediaType;
@@ -33,7 +33,7 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                   securitySchemeName = OpenApiConstants.SecuritySchemes.TOKEN,
                   type = SecuritySchemeType.APIKEY,
                   in = SecuritySchemeIn.HEADER,
-                  apiKeyName = Constants.AUTHENTICATION_TOKEN_HEADER_NAME)
+                  apiKeyName = HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME)
             },
 
             // reusable parameters

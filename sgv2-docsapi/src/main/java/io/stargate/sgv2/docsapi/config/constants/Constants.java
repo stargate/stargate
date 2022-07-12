@@ -23,12 +23,6 @@ import io.stargate.bridge.proto.QueryOuterClass.Value;
 /** Static constants. */
 public interface Constants {
 
-  /** Authentication token header name. */
-  String AUTHENTICATION_TOKEN_HEADER_NAME = "X-Cassandra-Token";
-
-  /** Tenant identifier header name. */
-  String TENANT_ID_HEADER_NAME = "X-Tenant-Id";
-
   /** Default name of the key column in the document table. */
   String KEY_COLUMN_NAME = "key";
 
