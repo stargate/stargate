@@ -15,8 +15,6 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <quarkus.container-image.group>stargateio</quarkus.container-image.group>
     <quarkus.container-image.name>docsapi</quarkus.container-image.name>
-    <quarkus.generate-code.grpc.scan-for-imports>com.google.protobuf:protobuf-java,com.google.api.grpc:proto-google-common-protos</quarkus.generate-code.grpc.scan-for-imports>
-    <quarkus.generate-code.grpc.scan-for-proto>io.stargate.grpc:bridge-proto</quarkus.generate-code.grpc.scan-for-proto>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
     <quarkus.platform.version>2.10.1.Final</quarkus.platform.version>
@@ -75,6 +73,10 @@
     <dependency>
       <groupId>io.quarkus</groupId>
       <artifactId>quarkus-smallrye-openapi</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-grpc</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
