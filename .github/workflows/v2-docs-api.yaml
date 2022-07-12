@@ -188,6 +188,12 @@ jobs:
           path: ~/.m2/repository/io/stargate
           key: snapshots-${{ github.sha }}
 
+      - name: Build & Test Quarkus Common (temporary)
+        run: |
+          cd apis/sgv2-quarkus-common/
+          ./mvnw -B install test
+          cd ../../
+
       - name: Build & Test
         run: |
           cd sgv2-docsapi/
@@ -313,6 +319,12 @@ jobs:
         if: ${{ matrix.repository-login }}
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Install Quarkus Common (temporary)
+        run: |
+          cd apis/sgv2-quarkus-common/
+          ./mvnw -B install
+          cd ../../
 
       # run finally the int tests
       - name: Integration Test
