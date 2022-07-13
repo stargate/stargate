@@ -1,5 +1,24 @@
 # Changelog
 
+**Closed issues:**
+
+- Upgrade DropWizard to latest \(2.0.32\), dependencies [\#1968](https://github.com/stargate/stargate/issues/1968)
+
+## [v1.0.61](https://github.com/stargate/stargate/tree/v1.0.61) (2022-07-12)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.60...v1.0.61)
+
+**Closed issues:**
+
+- Allow yaml configuration file overrides per-service [\#1953](https://github.com/stargate/stargate/issues/1953)
+- Test out running full IT suite for one backend \(C\*4.0\) using Github Actions [\#1913](https://github.com/stargate/stargate/issues/1913)
+
+**Merged pull requests:**
+
+- Fix for \#1953: add ability to override DropWizard app config file [\#1954](https://github.com/stargate/stargate/pull/1954) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Continuation of CI/IT experiment -- build all 3 backends in parallel [\#1914](https://github.com/stargate/stargate/pull/1914) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#1968: update DropWizard dep 2.0.28-\>2.0.32, its dependencies [\#1969](https://github.com/stargate/stargate/pull/1969) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v1.0.60](https://github.com/stargate/stargate/tree/v1.0.60) (2022-07-05)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.59...v1.0.60)
