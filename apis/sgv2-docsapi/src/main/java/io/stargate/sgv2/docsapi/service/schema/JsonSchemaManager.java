@@ -10,7 +10,7 @@ import com.github.fge.jsonschema.main.JsonSchemaFactory;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridge;
-import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
+import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.service.schema.query.JsonSchemaQueryProvider;

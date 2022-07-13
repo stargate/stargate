@@ -24,7 +24,7 @@ import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.Batch;
 import io.stargate.bridge.proto.QueryOuterClass.ResultSet;
 import io.stargate.bridge.proto.StargateBridge;
-import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
+import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;

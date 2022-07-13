@@ -1,7 +1,7 @@
 package io.stargate.sgv2.docsapi.service.schema.query;
 
 import io.stargate.bridge.proto.QueryOuterClass;
-import io.stargate.sgv2.common.cql.builder.QueryBuilder;
+import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.docsapi.config.QueriesConfig;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;

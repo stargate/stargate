@@ -28,7 +28,7 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.converters.multi.MultiRx3Converters;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.StargateBridge;
-import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
+import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
 import io.stargate.sgv2.docsapi.config.QueriesConfig;

@@ -22,9 +22,9 @@ import static io.stargate.sgv2.docsapi.config.constants.Constants.GLOB_VALUE;
 
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
-import io.stargate.sgv2.common.cql.builder.BuiltCondition;
-import io.stargate.sgv2.common.cql.builder.Predicate;
-import io.stargate.sgv2.common.cql.builder.Term;
+import io.stargate.sgv2.api.common.cql.builder.BuiltCondition;
+import io.stargate.sgv2.api.common.cql.builder.Predicate;
+import io.stargate.sgv2.api.common.cql.builder.Term;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
 import io.stargate.sgv2.docsapi.service.query.search.db.AbstractSearchQueryBuilder;

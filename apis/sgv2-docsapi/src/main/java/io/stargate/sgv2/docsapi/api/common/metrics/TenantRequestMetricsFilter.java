@@ -20,7 +20,7 @@ package io.stargate.sgv2.docsapi.api.common.metrics;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
-import io.stargate.sgv2.docsapi.api.common.StargateRequestInfo;
+import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.docsapi.config.MetricsConfig;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;

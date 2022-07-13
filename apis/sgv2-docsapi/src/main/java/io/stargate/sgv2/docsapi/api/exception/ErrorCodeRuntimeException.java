@@ -16,7 +16,7 @@
 
 package io.stargate.sgv2.docsapi.api.exception;
 
-import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
+import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import org.jboss.resteasy.reactive.RestResponse;
 
 /** {@link RuntimeException} that carries an {@link ErrorCode}. */

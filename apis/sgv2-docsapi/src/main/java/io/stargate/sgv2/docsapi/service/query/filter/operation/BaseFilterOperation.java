@@ -16,7 +16,7 @@
 
 package io.stargate.sgv2.docsapi.service.query.filter.operation;
 
-import io.stargate.sgv2.common.cql.builder.Predicate;
+import io.stargate.sgv2.api.common.cql.builder.Predicate;
 import java.util.Optional;
 
 /** Base predicate that can be used in the filter expression. */

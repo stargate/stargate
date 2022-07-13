@@ -19,10 +19,10 @@ package io.stargate.sgv2.docsapi.service.query.search.db.impl;
 
 import com.google.common.collect.ImmutableList;
 import io.stargate.bridge.proto.QueryOuterClass;
-import io.stargate.sgv2.common.cql.builder.BuiltCondition;
-import io.stargate.sgv2.common.cql.builder.Predicate;
-import io.stargate.sgv2.common.cql.builder.QueryBuilderImpl;
-import io.stargate.sgv2.common.cql.builder.Term;
+import io.stargate.sgv2.api.common.cql.builder.BuiltCondition;
+import io.stargate.sgv2.api.common.cql.builder.Predicate;
+import io.stargate.sgv2.api.common.cql.builder.QueryBuilderImpl;
+import io.stargate.sgv2.api.common.cql.builder.Term;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
 import io.stargate.sgv2.docsapi.service.query.search.db.AbstractSearchQueryBuilder;

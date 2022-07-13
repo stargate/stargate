@@ -19,7 +19,7 @@ package io.stargate.sgv2.docsapi.api.v2.namespaces.collections;
 
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.Schema;
-import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
+import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.api.v2.model.dto.SimpleResponseWrapper;

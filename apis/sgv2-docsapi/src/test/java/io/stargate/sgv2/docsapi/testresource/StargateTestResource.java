@@ -20,6 +20,7 @@ package io.stargate.sgv2.docsapi.testresource;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.common.DevServicesContext;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
+import io.stargate.sgv2.api.common.token.impl.FixedTokenResolver;
 import io.stargate.sgv2.docsapi.testprofiles.IntegrationTestProfile;
 import java.net.URI;
 import java.net.http.HttpClient;
@@ -54,7 +55,7 @@ import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
  * </ol>
  *
  * <p>Note that this resource fetches the auth token and sets it via the properties, using the
- * {@link io.stargate.sgv2.docsapi.api.common.token.impl.FixedTokenResolver}.
+ * {@link FixedTokenResolver}.
  */
 public class StargateTestResource
     implements QuarkusTestResourceLifecycleManager, DevServicesContext.ContextAware {

@@ -28,7 +28,7 @@ import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.test.AssertSubscriber;
 import io.stargate.bridge.proto.QueryOuterClass;
-import io.stargate.sgv2.common.cql.builder.QueryBuilder;
+import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.docsapi.OpenMocksTest;
 import io.stargate.sgv2.docsapi.bridge.AbstractValidatingStargateBridgeTest;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;

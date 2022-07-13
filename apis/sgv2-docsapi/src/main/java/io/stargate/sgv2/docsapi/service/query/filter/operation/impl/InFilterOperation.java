@@ -16,7 +16,7 @@
 
 package io.stargate.sgv2.docsapi.service.query.filter.operation.impl;
 
-import io.stargate.sgv2.common.cql.builder.Predicate;
+import io.stargate.sgv2.api.common.cql.builder.Predicate;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.FilterOperationCode;

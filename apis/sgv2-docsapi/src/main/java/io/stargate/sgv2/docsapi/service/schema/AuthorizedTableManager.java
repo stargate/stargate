@@ -3,6 +3,7 @@ package io.stargate.sgv2.docsapi.service.schema;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.Schema;
+import io.stargate.sgv2.api.common.schema.SchemaManager;
 import io.stargate.sgv2.docsapi.service.schema.qualifier.Authorized;
 import java.util.function.Function;
 import javax.enterprise.context.ApplicationScoped;
@@ -20,9 +21,7 @@ public class AuthorizedTableManager extends TableManager {
   /**
    * {@inheritDoc}
    *
-   * <p>Uses {@link
-   * io.stargate.sgv2.docsapi.service.schema.common.SchemaManager#getTableAuthorized(String, String,
-   * Function)}
+   * <p>Uses {@link SchemaManager#getTableAuthorized(String, String, Function)}
    */
   @Override
   protected Uni<Schema.CqlTable> getTable(String keyspaceName, String tableName) {
@@ -32,9 +31,7 @@ public class AuthorizedTableManager extends TableManager {
   /**
    * {@inheritDoc}
    *
-   * <p>Uses {@link
-   * io.stargate.sgv2.docsapi.service.schema.common.SchemaManager#getTablesAuthorized(String,
-   * Function)}
+   * <p>Uses {@link SchemaManager#getTablesAuthorized(String, Function)}
    */
   @Override
   protected Multi<Schema.CqlTable> getAllTables(String keyspaceName) {

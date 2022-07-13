@@ -17,8 +17,8 @@
 
 package io.stargate.sgv2.docsapi.api.common.exception;
 
-import io.stargate.sgv2.common.grpc.BridgeAuthorizationException;
-import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
+import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
+import io.stargate.sgv2.api.common.grpc.BridgeAuthorizationException;
 import javax.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.server.ServerExceptionMapper;

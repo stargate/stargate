@@ -18,7 +18,7 @@ package io.stargate.sgv2.docsapi.service.query.filter.operation.impl;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.stargate.sgv2.common.cql.builder.Predicate;
+import io.stargate.sgv2.api.common.cql.builder.Predicate;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.FilterOperationCode;
 import java.util.Optional;
 import org.apache.commons.lang3.RandomUtils;

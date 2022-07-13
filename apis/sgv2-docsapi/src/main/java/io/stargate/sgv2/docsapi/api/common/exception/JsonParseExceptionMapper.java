@@ -18,7 +18,7 @@
 package io.stargate.sgv2.docsapi.api.common.exception;
 
 import com.fasterxml.jackson.core.JsonParseException;
-import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
+import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import javax.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.server.ServerExceptionMapper;

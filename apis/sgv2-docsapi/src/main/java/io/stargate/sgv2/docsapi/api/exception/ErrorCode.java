@@ -16,7 +16,7 @@
 
 package io.stargate.sgv2.docsapi.api.exception;
 
-import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
+import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;

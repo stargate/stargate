@@ -14,6 +14,7 @@ import io.quarkus.test.junit.TestProfile;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridge;
+import io.stargate.sgv2.api.common.grpc.GrpcClients;
 import io.stargate.sgv2.docsapi.BridgeTest;
 import java.util.Map;
 import java.util.Optional;

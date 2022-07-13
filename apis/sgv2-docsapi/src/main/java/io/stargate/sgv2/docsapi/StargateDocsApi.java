@@ -1,7 +1,7 @@
 package io.stargate.sgv2.docsapi;
 
-import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
-import io.stargate.sgv2.docsapi.config.constants.HttpConstants;
+import io.stargate.sgv2.api.common.config.constants.HttpConstants;
+import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.MediaType;

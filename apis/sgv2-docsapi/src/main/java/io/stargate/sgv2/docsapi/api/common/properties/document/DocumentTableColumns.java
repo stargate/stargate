@@ -1,7 +1,7 @@
 package io.stargate.sgv2.docsapi.api.common.properties.document;
 
-import io.stargate.sgv2.common.cql.builder.Column;
-import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
+import io.stargate.sgv2.api.common.cql.builder.Column;
+import io.stargate.sgv2.api.common.cql.builder.ImmutableColumn;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Stream;
