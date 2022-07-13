@@ -1,15 +1,12 @@
 # Changelog
 
-**Closed issues:**
-
-- Upgrade DropWizard to latest \(2.0.32\), dependencies [\#1968](https://github.com/stargate/stargate/issues/1968)
-
 ## [v1.0.61](https://github.com/stargate/stargate/tree/v1.0.61) (2022-07-12)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.60...v1.0.61)
 
 **Closed issues:**
 
+- Upgrade DropWizard to latest \(2.0.32\), dependencies [\#1968](https://github.com/stargate/stargate/issues/1968)
 - Allow yaml configuration file overrides per-service [\#1953](https://github.com/stargate/stargate/issues/1953)
 - Test out running full IT suite for one backend \(C\*4.0\) using Github Actions [\#1913](https://github.com/stargate/stargate/issues/1913)
 
