@@ -23,8 +23,10 @@ import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.bridge.proto.Schema.CqlTable;
 import io.stargate.bridge.proto.Schema.SchemaRead;
 import io.stargate.bridge.proto.Schema.SupportedFeaturesResponse;
+import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.futures.Futures;
 import io.stargate.sgv2.api.common.grpc.proto.SchemaReads;
+import io.stargate.sgv2.api.common.schema.SchemaManager;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -32,8 +34,11 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 
 /**
- * The client that allows Stargate services to communicate with the "bridge" to the persistence
- * backend.
+ * A future-based/synchronous facade to access the Stargate bridge.
+ *
+ * <p>This is intended as a transitional solution to migrate code that was not previously based on
+ * Quarkus. Most new code should prefer the Mutiny-based APIs: {@link StargateBridge} and {@link
+ * SchemaManager}.
  */
 public interface StargateBridgeClient {
 
@@ -48,9 +53,9 @@ public interface StargateBridgeClient {
    * Builds a CQL query based on the definition of a table, and executes it.
    *
    * @param queryProducer the function that builds the query. It will receive <code>Optional.empty()
-   *     </code> if the table does not exist. Note that it may be invoked more than once (the
-   *     implementation uses an optimistic approach to avoid systematically pre-fetching the table
-   *     definition, so it may have to retry).
+   *                      </code> if the table does not exist. Note that it may be invoked more than
+   *     once (the implementation uses an optimistic approach to avoid systematically pre-fetching
+   *     the table definition, so it may have to retry).
    */
   CompletionStage<Response> executeQueryAsync(
       String keyspaceName, String tableName, Function<Optional<CqlTable>, Query> queryProducer);
