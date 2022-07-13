@@ -206,6 +206,9 @@ public class CqlStrings {
           break;
         case '"':
           idx = findClosingDoubleQuote(fullTypeName, parametersString, idx + 1) - 1;
+          break;
+        default:
+          // intentional fallthrough
       }
       ++idx;
     }

@@ -15,8 +15,6 @@
  */
 package io.stargate.sgv2.api.common.cql.builder;
 
-import static java.lang.String.format;
-
 import com.github.misberner.apcommons.util.AFModifier;
 import com.github.misberner.duzzt.annotations.DSLAction;
 import com.github.misberner.duzzt.annotations.GenerateEmbeddedDSL;
@@ -87,6 +85,7 @@ import java.util.stream.Stream;
               "(drop ((materializedView|index) ifExists?)) | (create ((materializedView ifNotExists? asSelect (column+) from withComment?)"
                   + " | (index ifNotExists? on column (indexKeys|indexValues|indexEntries|indexFull|indexingType)? (custom options?)?)))"),
     })
+@SuppressWarnings("PMD.ExcessiveClassLength")
 public class QueryBuilderImpl {
 
   private boolean isCreate;
@@ -830,7 +829,7 @@ public class QueryBuilderImpl {
   }
 
   private static IllegalArgumentException invalid(String format, Object... args) {
-    return new IllegalArgumentException(format(format, args));
+    return new IllegalArgumentException(String.format(format, args));
   }
 
   private static String cqlName(String name) {
@@ -1064,11 +1063,11 @@ public class QueryBuilderImpl {
     }
     query.append(")");
     if (customIndexClass != null) {
-      query.append(" USING").append(format(" '%s'", customIndexClass));
+      query.append(" USING").append(String.format(" '%s'", customIndexClass));
       if (customIndexOptions != null && !customIndexOptions.isEmpty()) {
         query.append(
             customIndexOptions.entrySet().stream()
-                .map(e -> format("'%s': '%s'", e.getKey(), e.getValue()))
+                .map(e -> String.format("'%s': '%s'", e.getKey(), e.getValue()))
                 .collect(Collectors.joining(", ", " WITH OPTIONS = { ", " }")));
       }
     }

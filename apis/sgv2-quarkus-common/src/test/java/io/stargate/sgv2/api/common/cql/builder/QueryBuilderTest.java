@@ -38,6 +38,7 @@ public class QueryBuilderTest {
     assertThat(actualCql).isEqualTo(expectedCql);
   }
 
+  @SuppressWarnings("PMD.ExcessiveMethodLength")
   public static Arguments[] sampleQueries() {
     return new Arguments[] {
       arguments(
