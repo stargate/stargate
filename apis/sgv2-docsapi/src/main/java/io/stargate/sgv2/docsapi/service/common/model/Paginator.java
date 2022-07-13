@@ -15,8 +15,8 @@
  */
 package io.stargate.sgv2.docsapi.service.common.model;
 
+import io.stargate.sgv2.api.common.util.ByteBufferUtils;
 import io.stargate.sgv2.docsapi.service.query.model.RawDocument;
-import io.stargate.sgv2.docsapi.service.util.ByteBufferUtils;
 import java.nio.ByteBuffer;
 import java.util.List;
 

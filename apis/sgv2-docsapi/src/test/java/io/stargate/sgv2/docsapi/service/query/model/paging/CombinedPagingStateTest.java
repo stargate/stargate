@@ -24,7 +24,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.google.common.collect.ImmutableList;
-import io.stargate.sgv2.docsapi.service.util.ByteBufferUtils;
+import io.stargate.sgv2.api.common.util.ByteBufferUtils;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Collections;

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.sgv2.docsapi.service.util;
+package io.stargate.sgv2.api.common.util;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;

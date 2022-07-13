@@ -15,7 +15,7 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.service.util;
+package io.stargate.sgv2.api.common.util;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
