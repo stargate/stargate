@@ -33,7 +33,7 @@ import javax.inject.Inject;
 @ApplicationScoped
 public class PopFunction implements BuiltInFunction {
 
-  @Inject ReadDocumentsService readBridgeService;
+  @Inject ReadDocumentsService readDocumentsService;
 
   @Inject WriteDocumentsService writeDocumentsService;
 
@@ -47,7 +47,7 @@ public class PopFunction implements BuiltInFunction {
   @Override
   public Uni<JsonNode> execute(Uni<Schema.CqlTable> table, BuiltInFunction.Data data) {
     // get the doc at the path
-    return readBridgeService
+    return readDocumentsService
         .getDocument(
             data.namespace(),
             data.collection(),
