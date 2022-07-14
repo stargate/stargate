@@ -269,6 +269,7 @@ public class ValidatingDataStore implements DataStore {
     private int pageSize = Integer.MAX_VALUE;
     private BatchType batchType;
     private List<Map<String, Object>> rows;
+    private RuntimeException executionException;
 
     private QueryExpectation(Table table, String cqlRegEx, Object[] params) {
       this.cqlPattern = Pattern.compile(cqlRegEx);
@@ -289,6 +290,11 @@ public class ValidatingDataStore implements DataStore {
 
     public QueryExpectation inBatch(BatchType batchType) {
       this.batchType = batchType;
+      return this;
+    }
+
+    public QueryExpectation withExecutionException(RuntimeException e) {
+      this.executionException = e;
       return this;
     }
 
@@ -314,6 +320,13 @@ public class ValidatingDataStore implements DataStore {
     }
 
     private CompletableFuture<ResultSet> execute(Parameters parameters, BatchType batchType) {
+      if (null != executionException) {
+        return CompletableFuture.supplyAsync(
+            () -> {
+              throw executionException;
+            });
+      }
+
       Optional<ByteBuffer> pagingState = parameters.pagingState();
       int pageSize;
       if (this.pageSize < Integer.MAX_VALUE) {
