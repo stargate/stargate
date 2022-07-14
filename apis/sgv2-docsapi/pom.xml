@@ -137,6 +137,14 @@
       <version>2.35.0</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>io.stargate</groupId>
+      <artifactId>sgv2-quarkus-common</artifactId>
+      <version>${project.version}</version>
+      <classifier>tests</classifier>
+      <type>test-jar</type>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>

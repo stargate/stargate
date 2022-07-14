@@ -27,7 +27,7 @@ import io.quarkus.grpc.GrpcClient;
 import io.quarkus.test.junit.QuarkusTest;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridgeGrpc;
-import io.stargate.sgv2.docsapi.BridgeTest;
+import io.stargate.sgv2.api.common.BridgeTest;
 import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;
 import io.stargate.sgv2.docsapi.config.DataStoreConfig;
 import javax.inject.Inject;
