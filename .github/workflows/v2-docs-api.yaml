@@ -213,6 +213,7 @@ jobs:
       # image - final image name to use when running int tests (-Dtesting.containers.stargate-image)
       matrix:
         name: [ cassandra-40, cassandra-311, dse-68, c2-dse-68 ]
+        project: [ sgv2-docsapi ]
         include:
           - name: cassandra-40
             profile: cassandra-40
@@ -315,10 +316,11 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
 
       # run finally the int tests
+      # runs dedicated project with -pl, but also picks depending projects with -am
       - name: Integration Test
         run: |
           cd apis/
-          ./mvnw -B verify -DskipUnitTests -P ${{ matrix.profile }} -Dtesting.containers.stargate-image=${{ matrix.image }}
+          ./mvnw -B verify -DskipUnitTests -pl ${{ matrix.project }} -am -P ${{ matrix.profile }} -Dtesting.containers.stargate-image=${{ matrix.image }}
 
   # runs always, deletes built docker image artifacts
   clean-up:
