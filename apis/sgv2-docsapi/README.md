@@ -75,7 +75,7 @@ Note that this project uses Java 17, please ensure that you have the target JDK 
 
 You can run your application in dev mode that enables live coding using:
 ```shell script
-./mvnw compile quarkus:dev
+../mvnw compile quarkus:dev
 ```
 
 > **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at http://localhost:8180/stargate/dev/.
@@ -93,13 +93,13 @@ See [Debugging](https://quarkus.io/guides/maven-tooling#debugging) for more info
 
 > **_PREREQUISITES:_**  You need to build the coordinator docker image(s) first. In the root Stargate repo directory run:
 > ```
-> ./mvnw clean install -P dse -DskipTests && ./build_docker_images.sh
+> ../mvnw clean install -P dse -DskipTests && ./build_docker_images.sh
 > ```
 
 Integration tests are using the [Testcontainers](https://www.testcontainers.org/) library in order to set up all needed dependencies, a Stargate coordinator and a Cassandra data store. 
 They are separated from the unit tests and are running as part of the `integration-test` and `verify` Maven phases:
 ```shell script
-./mvnw integration-test
+../mvnw integration-test
 ```
 
 #### Data store selection
@@ -114,14 +114,14 @@ The available profiles are:
 The required profile can be activated using the `-P` option:
 
 ```shell script
-./mvnw integration-test -P cassandra-311
+../mvnw integration-test -P cassandra-311
 ```
 
 #### Running from IDE
 
 > **_PREREQUISITES:_**  You need to build the coordinator docker image(s) first and tag them with `latest` tag. In the root Stargate repo directory run:
 > ```
-> ./mvnw clean install -P dse -DskipTests && ./build_docker_images.sh -t latest
+> ../mvnw clean install -P dse -DskipTests && ./build_docker_images.sh -t latest
 > ```
 
 Running integration tests from IDE is supported out of the box.
@@ -138,14 +138,14 @@ Running a test with a different version of the data store or the Stargate coordi
 You can skip the integration tests during the maven build by disabling the `int-tests` profile using the `-DskipITs` property:
 
 ```shell script
-./mvnw verify -DskipITs
+../mvnw verify -DskipITs
 ```
 
 ### Packaging and running the application
 
 The application can be packaged using:
 ```shell script
-./mvnw package
+../mvnw package
 ```
 It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
 Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
@@ -154,7 +154,7 @@ The application is now runnable using `java -jar target/quarkus-app/quarkus-run.
 
 If you want to build an _über-jar_, execute the following command:
 ```shell script
-./mvnw package -Dquarkus.package.type=uber-jar
+../mvnw package -Dquarkus.package.type=uber-jar
 ```
 
 The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
@@ -163,12 +163,12 @@ The application, packaged as an _über-jar_, is now runnable using `java -jar ta
 
 You can create a native executable using: 
 ```shell script
-./mvnw package -Pnative
+../mvnw package -Pnative
 ```
 
 Or, if you don't have GraalVM installed, you can run the native executable build in a container using: 
 ```shell script
-./mvnw package -Pnative -Dquarkus.native.container-build=true
+../mvnw package -Pnative -Dquarkus.native.container-build=true
 ```
 
 You can then execute your native executable with: `./target/sgv2-docsapi-${project.version}-runner`
@@ -179,12 +179,12 @@ If you want to learn more about building native executables, please consult [Mav
 
 You can create a docker image named `io.stargate/docsapi` using:
 ```shell script
-./mvnw clean package -Dquarkus.container-image.build=true
+../mvnw clean package -Dquarkus.container-image.build=true
 ```
 
 Or, if you want to create a native-runnable docker image named `io.stargate/docsapi-native` using:
 ```shell script
-./mvnw clean package -Pnative -Dquarkus.native.container-build=true -Dquarkus.container-image.build=true
+../mvnw clean package -Pnative -Dquarkus.native.container-build=true -Dquarkus.container-image.build=true
 ```
 
 If you want to learn more about building container images, please consult [Container images](https://quarkus.io/guides/container-image).
