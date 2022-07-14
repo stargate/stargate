@@ -37,9 +37,9 @@ import java.util.function.Function;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
-/** Table manager provides basic operations on tables that are used for storing collections. */
+/** Collection manager provides basic operations on tables that are used for storing collections. */
 @ApplicationScoped
-public class TableManager {
+public class CollectionManager {
 
   private static final Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>>
       MISSING_KEYSPACE_FUNCTION =

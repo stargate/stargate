@@ -26,8 +26,8 @@ import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
 import io.stargate.sgv2.common.cql.builder.Replication;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
+import io.stargate.sgv2.docsapi.service.schema.CollectionManager;
 import io.stargate.sgv2.docsapi.service.schema.NamespaceManager;
-import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.testprofiles.IntegrationTestProfile;
 import java.time.Duration;
 import javax.enterprise.context.control.ActivateRequestContext;
@@ -55,7 +55,7 @@ class DocumentDeleteResourceIntegrationTest {
 
   @Inject NamespaceManager namespaceManager;
 
-  @Inject TableManager tableManager;
+  @Inject CollectionManager collectionManager;
 
   @BeforeAll
   public void init() {
@@ -67,7 +67,7 @@ class DocumentDeleteResourceIntegrationTest {
         .await()
         .atMost(Duration.ofSeconds(10));
 
-    tableManager
+    collectionManager
         .createCollectionTable(DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
         .await()
         .atMost(Duration.ofSeconds(10));

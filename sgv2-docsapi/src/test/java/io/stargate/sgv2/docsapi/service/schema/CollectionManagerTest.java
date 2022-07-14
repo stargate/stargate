@@ -53,9 +53,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 @QuarkusTest
-class TableManagerTest extends BridgeTest {
+class CollectionManagerTest extends BridgeTest {
 
-  @Inject TableManager tableManager;
+  @Inject CollectionManager collectionManager;
 
   @Inject CollectionQueryProvider queryProvider;
 
@@ -126,7 +126,7 @@ class TableManagerTest extends BridgeTest {
           .describeKeyspace(any(), any());
 
       UniAssertSubscriber<Schema.CqlTable> result =
-          tableManager
+          collectionManager
               .getValidCollectionTable(namespace, collection)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
@@ -161,7 +161,7 @@ class TableManagerTest extends BridgeTest {
           .describeKeyspace(any(), any());
 
       UniAssertSubscriber<Schema.CqlTable> result =
-          tableManager
+          collectionManager
               .getValidCollectionTable(namespace, collection)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
@@ -198,7 +198,7 @@ class TableManagerTest extends BridgeTest {
           .describeKeyspace(any(), any());
 
       UniAssertSubscriber<Schema.CqlTable> result =
-          tableManager
+          collectionManager
               .getValidCollectionTable(namespace, collection)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
@@ -229,7 +229,7 @@ class TableManagerTest extends BridgeTest {
           .describeKeyspace(any(), any());
 
       UniAssertSubscriber<Schema.CqlTable> result =
-          tableManager
+          collectionManager
               .getValidCollectionTable(namespace, collection)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
@@ -269,7 +269,7 @@ class TableManagerTest extends BridgeTest {
           .describeKeyspace(any(), any());
 
       List<Schema.CqlTable> result =
-          tableManager
+          collectionManager
               .getValidCollectionTables(namespace)
               .subscribe()
               .withSubscriber(AssertSubscriber.create(2))
@@ -307,7 +307,7 @@ class TableManagerTest extends BridgeTest {
           .describeKeyspace(any(), any());
 
       Schema.CqlTable result =
-          tableManager
+          collectionManager
               .ensureValidDocumentTable(namespace, collection)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
@@ -372,7 +372,7 @@ class TableManagerTest extends BridgeTest {
           .executeQuery(any(), any());
 
       Schema.CqlTable result =
-          tableManager
+          collectionManager
               .ensureValidDocumentTable(namespace, collection)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create())
@@ -420,7 +420,7 @@ class TableManagerTest extends BridgeTest {
           .executeQuery(any(), any());
 
       UniAssertSubscriber<Boolean> result =
-          tableManager
+          collectionManager
               .createCollectionTable(namespace, collection)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
@@ -439,7 +439,7 @@ class TableManagerTest extends BridgeTest {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
 
       UniAssertSubscriber<Boolean> result =
-          tableManager
+          collectionManager
               .createCollectionTable(namespace, "not-valid-name")
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
@@ -493,7 +493,7 @@ class TableManagerTest extends BridgeTest {
           .executeQuery(any(), any());
 
       UniAssertSubscriber<Void> result =
-          tableManager
+          collectionManager
               .dropCollectionTable(namespace, collection)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
@@ -514,7 +514,7 @@ class TableManagerTest extends BridgeTest {
     public void wrongPartitionSize() {
       Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
 
-      boolean result = tableManager.isValidCollectionTable(table);
+      boolean result = collectionManager.isValidCollectionTable(table);
 
       assertThat(result).isFalse();
     }
@@ -527,7 +527,7 @@ class TableManagerTest extends BridgeTest {
                   QueryOuterClass.ColumnSpec.newBuilder().setName("my-name").build())
               .build();
 
-      boolean result = tableManager.isValidCollectionTable(table);
+      boolean result = collectionManager.isValidCollectionTable(table);
 
       assertThat(result).isFalse();
     }
@@ -542,7 +542,7 @@ class TableManagerTest extends BridgeTest {
                       .build())
               .build();
 
-      boolean result = tableManager.isValidCollectionTable(table);
+      boolean result = collectionManager.isValidCollectionTable(table);
 
       assertThat(result).isFalse();
     }
@@ -565,7 +565,7 @@ class TableManagerTest extends BridgeTest {
                       .collect(Collectors.toSet()))
               .build();
 
-      boolean result = tableManager.isValidCollectionTable(table);
+      boolean result = collectionManager.isValidCollectionTable(table);
 
       assertThat(result).isFalse();
     }
@@ -589,7 +589,7 @@ class TableManagerTest extends BridgeTest {
                       .collect(Collectors.toSet()))
               .build();
 
-      boolean result = tableManager.isValidCollectionTable(table);
+      boolean result = collectionManager.isValidCollectionTable(table);
 
       assertThat(result).isFalse();
     }
@@ -627,7 +627,7 @@ class TableManagerTest extends BridgeTest {
                   QueryOuterClass.ColumnSpec.newBuilder().setName("my-double-column").build())
               .build();
 
-      boolean result = tableManager.isValidCollectionTable(table);
+      boolean result = collectionManager.isValidCollectionTable(table);
 
       assertThat(result).isFalse();
     }

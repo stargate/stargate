@@ -21,7 +21,7 @@ import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
-import io.stargate.sgv2.docsapi.service.schema.TableManager;
+import io.stargate.sgv2.docsapi.service.schema.CollectionManager;
 import io.stargate.sgv2.docsapi.service.write.WriteDocumentsService;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -57,7 +57,7 @@ public class DocumentDeleteResource {
 
   @Inject WriteDocumentsService documentWriteService;
 
-  @Inject TableManager tableManager;
+  @Inject CollectionManager collectionManager;
 
   @Operation(summary = "Delete a document", description = "Delete a document with a given ID.")
   @Parameters(
@@ -100,7 +100,7 @@ public class DocumentDeleteResource {
       @PathParam("document-id") String documentId,
       @QueryParam("profile") boolean profile) {
     ExecutionContext context = ExecutionContext.create(profile);
-    return tableManager
+    return collectionManager
         .getValidCollectionTable(namespace, collection)
         .onItem()
         .transformToUni(
@@ -159,7 +159,7 @@ public class DocumentDeleteResource {
     ExecutionContext context = ExecutionContext.create(profile);
     List<String> subPath =
         documentPath.stream().map(PathSegment::getPath).collect(Collectors.toList());
-    return tableManager
+    return collectionManager
         .getValidCollectionTable(namespace, collection)
         .onItem()
         .transformToUni(

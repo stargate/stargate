@@ -26,7 +26,7 @@ import io.stargate.sgv2.docsapi.models.ExecutionProfile;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.common.model.Paginator;
 import io.stargate.sgv2.docsapi.service.query.ReadDocumentsService;
-import io.stargate.sgv2.docsapi.service.schema.TableManager;
+import io.stargate.sgv2.docsapi.service.schema.CollectionManager;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -70,7 +70,7 @@ public class DocumentReadResource {
 
   @Inject ReadDocumentsService readDocumentsService;
 
-  @Inject TableManager tableManager;
+  @Inject CollectionManager collectionManager;
 
   @Operation(
       summary = "Search documents in a collection",
@@ -154,7 +154,7 @@ public class DocumentReadResource {
       @QueryParam("raw") boolean raw) {
 
     // fetch a valid table to ensure read is from a collection table
-    return tableManager
+    return collectionManager
         .getValidCollectionTable(namespace, collection)
 
         // if exists, then map to the read action
@@ -337,7 +337,7 @@ public class DocumentReadResource {
       @QueryParam("raw") boolean raw) {
 
     // fetch a valid table to ensure read is from a collection table
-    return tableManager
+    return collectionManager
         .getValidCollectionTable(namespace, collection)
 
         // if exists, then map to the read action

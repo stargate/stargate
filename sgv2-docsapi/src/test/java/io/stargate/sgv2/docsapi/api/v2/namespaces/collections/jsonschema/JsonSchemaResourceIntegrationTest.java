@@ -26,8 +26,8 @@ import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.common.cql.builder.Replication;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
+import io.stargate.sgv2.docsapi.service.schema.CollectionManager;
 import io.stargate.sgv2.docsapi.service.schema.NamespaceManager;
-import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.testprofiles.IntegrationTestProfile;
 import java.time.Duration;
 import javax.enterprise.context.control.ActivateRequestContext;
@@ -57,7 +57,7 @@ public class JsonSchemaResourceIntegrationTest {
   public static final String DEFAULT_COLLECTION = RandomStringUtils.randomAlphanumeric(16);
 
   @Inject NamespaceManager namespaceManager;
-  @Inject TableManager tableManager;
+  @Inject CollectionManager collectionManager;
 
   @BeforeAll
   public void init() {
@@ -68,7 +68,7 @@ public class JsonSchemaResourceIntegrationTest {
         .await()
         .atMost(Duration.ofSeconds(10));
 
-    tableManager
+    collectionManager
         .createCollectionTable(DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
         .await()
         .atMost(Duration.ofSeconds(10));
@@ -234,7 +234,7 @@ public class JsonSchemaResourceIntegrationTest {
     @Order(2)
     public void noSchemaAvailable() {
       // Create a fresh table for this test, to have no schema
-      tableManager
+      collectionManager
           .createCollectionTable(DEFAULT_NAMESPACE, "freshtable")
           .await()
           .atMost(Duration.ofSeconds(10));

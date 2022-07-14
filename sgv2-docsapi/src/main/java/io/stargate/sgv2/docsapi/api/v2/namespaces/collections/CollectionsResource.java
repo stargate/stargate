@@ -28,7 +28,7 @@ import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.model.dto.Collecti
 import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.model.dto.CreateCollectionDto;
 import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.model.dto.UpgradeCollectionDto;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
-import io.stargate.sgv2.docsapi.service.schema.TableManager;
+import io.stargate.sgv2.docsapi.service.schema.CollectionManager;
 import io.stargate.sgv2.docsapi.service.schema.qualifier.Authorized;
 import java.net.URI;
 import java.util.Collections;
@@ -76,7 +76,7 @@ public class CollectionsResource {
 
   public static final String BASE_PATH = "/v2/namespaces/{namespace:\\w+}/collections";
 
-  @Inject @Authorized TableManager tableManager;
+  @Inject @Authorized CollectionManager collectionManager;
 
   @Operation(
       summary = "List collections",
@@ -129,7 +129,7 @@ public class CollectionsResource {
       @PathParam("namespace") String namespace, @QueryParam("raw") boolean raw) {
 
     // get all valid collection tables
-    return tableManager
+    return collectionManager
         .getValidCollectionTables(namespace)
 
         // map to DTO and collect list
@@ -221,7 +221,7 @@ public class CollectionsResource {
     String collection = body.name();
 
     // go get the existing table
-    return tableManager
+    return collectionManager
         .getValidCollectionTable(namespace, collection)
 
         // in case there is a table, ensure we report as error
@@ -245,7 +245,7 @@ public class CollectionsResource {
             })
         .recoverWithUni(
             () ->
-                tableManager
+                collectionManager
                     .createCollectionTable(namespace, collection)
                     .map(
                         created -> {
@@ -314,7 +314,7 @@ public class CollectionsResource {
 
     // currently no upgrade possible
     // fetch the table and if valid signal exception
-    return tableManager
+    return collectionManager
         .getValidCollectionTable(namespace, collection)
 
         // fail with DOCS_API_GENERAL_UPGRADE_INVALID
@@ -355,7 +355,7 @@ public class CollectionsResource {
   public Uni<RestResponse<Object>> deleteCollection(
       @PathParam("namespace") String namespace, @PathParam("collection") String collection) {
     // go delete the table
-    return tableManager
+    return collectionManager
         .dropCollectionTable(namespace, collection)
         .map(any -> RestResponse.noContent());
   }

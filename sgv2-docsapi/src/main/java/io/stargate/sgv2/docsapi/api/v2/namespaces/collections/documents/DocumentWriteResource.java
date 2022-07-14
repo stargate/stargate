@@ -25,7 +25,7 @@ import io.stargate.sgv2.docsapi.api.v2.model.dto.MultiDocsResponse;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
 import io.stargate.sgv2.docsapi.models.ExecutionProfile;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
-import io.stargate.sgv2.docsapi.service.schema.TableManager;
+import io.stargate.sgv2.docsapi.service.schema.CollectionManager;
 import io.stargate.sgv2.docsapi.service.write.WriteDocumentsService;
 import java.net.URI;
 import javax.inject.Inject;
@@ -69,7 +69,7 @@ public class DocumentWriteResource {
 
   @Inject WriteDocumentsService documentWriteService;
 
-  @Inject TableManager tableManager;
+  @Inject CollectionManager collectionManager;
 
   @Operation(
       summary = "Create a document",
@@ -138,7 +138,7 @@ public class DocumentWriteResource {
       @QueryParam("profile") boolean profile,
       @NotNull(message = "payload must not be empty") JsonNode body) {
     ExecutionContext context = ExecutionContext.create(profile);
-    Uni<Schema.CqlTable> table = tableManager.ensureValidDocumentTable(namespace, collection);
+    Uni<Schema.CqlTable> table = collectionManager.ensureValidDocumentTable(namespace, collection);
     return documentWriteService
         .writeDocument(table, namespace, collection, body, ttl, context)
         .onItem()
@@ -221,7 +221,7 @@ public class DocumentWriteResource {
       @QueryParam("profile") boolean profile,
       @NotNull(message = "payload must not be empty") JsonNode body) {
     ExecutionContext context = ExecutionContext.create(profile);
-    Uni<Schema.CqlTable> table = tableManager.ensureValidDocumentTable(namespace, collection);
+    Uni<Schema.CqlTable> table = collectionManager.ensureValidDocumentTable(namespace, collection);
     return documentWriteService
         .writeDocuments(table, namespace, collection, body, idPath, ttl, context)
         .onItem()
