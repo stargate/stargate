@@ -73,6 +73,13 @@ Note that this project uses Java 17, please ensure that you have the target JDK 
 
 ### Running the application in dev mode
 
+Before being able to run the application, make sure you install the root [../apis/pom.xml](../pom.xml):
+
+```shell script
+cd ../
+./mvnw install -DskipTests
+```
+
 You can run your application in dev mode that enables live coding using:
 ```shell script
 ../mvnw compile quarkus:dev
