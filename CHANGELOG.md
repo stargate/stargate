@@ -30,21 +30,6 @@
 - closes \#1729: port write paths of ReactiveDocumentService v1 to v2 [\#1899](https://github.com/stargate/stargate/pull/1899)
 - DEV\_GUIDE: Add MacOS loopback address [\#1812](https://github.com/stargate/stargate/pull/1812)
 
-## [v1.0.60](https://github.com/stargate/stargate/tree/v1.0.60) (2022-07-05)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.59...v1.0.60)
-
-**Fixed bugs:**
-
-- NPE thrown when the system property `stargate.proxy\_protocol.dns\_name` is not provided [\#1934](https://github.com/stargate/stargate/issues/1934)
-
-**Closed issues:**
-
-**Merged pull requests:**
-
-- Revert "Fix `ByteBuf` leak caused by not releasing `HAProxyMessage` \(… [\#1943](https://github.com/stargate/stargate/pull/1943) ([mpenick](https://github.com/mpenick))
-- Change generic NPE to IllegalArgumentException with descriptive message [\#1939](https://github.com/stargate/stargate/pull/1939) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-
 ## [v2.0.0-ALPHA-14](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-14) (2022-06-21)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-13...v2.0.0-ALPHA-14)
@@ -320,6 +305,37 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Rest integration test - initial work (#1359)
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
+
+## [v1.0.61](https://github.com/stargate/stargate/tree/v1.0.61) (2022-07-12)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.60...v1.0.61)
+
+**Closed issues:**
+
+- Upgrade DropWizard to latest \(2.0.32\), dependencies [\#1968](https://github.com/stargate/stargate/issues/1968)
+- Allow yaml configuration file overrides per-service [\#1953](https://github.com/stargate/stargate/issues/1953)
+- Test out running full IT suite for one backend \(C\*4.0\) using Github Actions [\#1913](https://github.com/stargate/stargate/issues/1913)
+
+**Merged pull requests:**
+
+- Fix for \#1953: add ability to override DropWizard app config file [\#1954](https://github.com/stargate/stargate/pull/1954) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Continuation of CI/IT experiment -- build all 3 backends in parallel [\#1914](https://github.com/stargate/stargate/pull/1914) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#1968: update DropWizard dep 2.0.28-\>2.0.32, its dependencies [\#1969](https://github.com/stargate/stargate/pull/1969) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v1.0.60](https://github.com/stargate/stargate/tree/v1.0.60) (2022-07-05)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.59...v1.0.60)
+
+**Fixed bugs:**
+
+- NPE thrown when the system property `stargate.proxy\_protocol.dns\_name` is not provided [\#1934](https://github.com/stargate/stargate/issues/1934)
+
+**Closed issues:**
+
+**Merged pull requests:**
+
+- Revert "Fix `ByteBuf` leak caused by not releasing `HAProxyMessage` \(… [\#1943](https://github.com/stargate/stargate/pull/1943) ([mpenick](https://github.com/mpenick))
+- Change generic NPE to IllegalArgumentException with descriptive message [\#1939](https://github.com/stargate/stargate/pull/1939) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 
 ## [v1.0.58](https://github.com/stargate/stargate/tree/v1.0.58) (2022-06-15)
 
