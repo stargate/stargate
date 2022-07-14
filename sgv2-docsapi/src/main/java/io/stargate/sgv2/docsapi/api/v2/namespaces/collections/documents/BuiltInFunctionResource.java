@@ -24,7 +24,7 @@ import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents.model.dt
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.function.FunctionService;
-import io.stargate.sgv2.docsapi.service.schema.TableManager;
+import io.stargate.sgv2.docsapi.service.schema.CollectionManager;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -65,7 +65,7 @@ public class BuiltInFunctionResource {
 
   @Inject FunctionService functionService;
 
-  @Inject TableManager tableManager;
+  @Inject CollectionManager collectionManager;
 
   @Operation(
       summary = "Executes a a built-in function",
@@ -127,7 +127,7 @@ public class BuiltInFunctionResource {
         documentPath.stream().map(PathSegment::getPath).collect(Collectors.toList());
 
     // call table manager for valid table
-    return tableManager
+    return collectionManager
         .getValidCollectionTable(namespace, collection)
 
         // if there execute the function

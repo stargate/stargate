@@ -24,7 +24,7 @@ import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
 import io.stargate.sgv2.docsapi.models.ExecutionProfile;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
-import io.stargate.sgv2.docsapi.service.schema.TableManager;
+import io.stargate.sgv2.docsapi.service.schema.CollectionManager;
 import io.stargate.sgv2.docsapi.service.write.WriteDocumentsService;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -64,7 +64,7 @@ public class DocumentPatchResource {
 
   @Inject WriteDocumentsService documentWriteService;
 
-  @Inject TableManager tableManager;
+  @Inject CollectionManager collectionManager;
 
   @Operation(
       summary = "Patch a document",
@@ -132,7 +132,7 @@ public class DocumentPatchResource {
       @QueryParam("profile") boolean profile,
       @NotNull(message = "payload must not be empty") JsonNode body) {
     ExecutionContext context = ExecutionContext.create(profile);
-    Uni<Schema.CqlTable> table = tableManager.ensureValidDocumentTable(namespace, collection);
+    Uni<Schema.CqlTable> table = collectionManager.ensureValidDocumentTable(namespace, collection);
     return documentWriteService
         .patchDocument(table, namespace, collection, documentId, body, ttlAuto, context)
         .onItem()
@@ -222,7 +222,7 @@ public class DocumentPatchResource {
     ExecutionContext context = ExecutionContext.create(profile);
     List<String> subPath =
         documentPath.stream().map(PathSegment::getPath).collect(Collectors.toList());
-    Uni<Schema.CqlTable> table = tableManager.ensureValidDocumentTable(namespace, collection);
+    Uni<Schema.CqlTable> table = collectionManager.ensureValidDocumentTable(namespace, collection);
     return documentWriteService
         .patchSubDocument(table, namespace, collection, documentId, subPath, body, ttlAuto, context)
         .onItem()

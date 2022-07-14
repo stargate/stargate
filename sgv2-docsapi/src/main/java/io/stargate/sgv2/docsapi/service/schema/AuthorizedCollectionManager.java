@@ -24,14 +24,15 @@ import java.util.function.Function;
 import javax.enterprise.context.ApplicationScoped;
 
 /**
- * A version of the {@link TableManager} that ensures authorized schema reads are performed on each
- * op.
+ * A version of the {@link CollectionManager} that ensures authorized schema reads are performed on
+ * each op.
  *
- * <p>You can auto-wire this bean using: <code>@Inject @Authorized TableManager tableManager.</code>
+ * <p>You can auto-wire this bean using: <code>
+ * @Inject @Authorized CollectionManager collectionManager.</code>
  */
 @ApplicationScoped
 @Authorized
-public class AuthorizedTableManager extends TableManager {
+public class AuthorizedCollectionManager extends CollectionManager {
 
   /**
    * {@inheritDoc}

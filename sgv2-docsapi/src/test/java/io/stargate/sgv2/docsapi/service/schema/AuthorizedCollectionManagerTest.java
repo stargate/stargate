@@ -47,11 +47,11 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 @QuarkusTest
-class AuthorizedTableManagerTest extends BridgeTest {
+class AuthorizedCollectionManagerTest extends BridgeTest {
 
   // only one test to assert authorized schema fetch
 
-  @Inject @Authorized TableManager tableManager;
+  @Inject @Authorized CollectionManager collectionManager;
 
   @Inject DocumentProperties documentProperties;
 
@@ -134,7 +134,7 @@ class AuthorizedTableManagerTest extends BridgeTest {
           .when(bridgeService)
           .describeKeyspace(any(), any());
 
-      tableManager
+      collectionManager
           .getValidCollectionTable(namespace, collection)
           .subscribe()
           .withSubscriber(UniAssertSubscriber.create())
@@ -181,7 +181,7 @@ class AuthorizedTableManagerTest extends BridgeTest {
           .when(bridgeService)
           .authorizeSchemaReads(any(), any());
 
-      tableManager
+      collectionManager
           .getValidCollectionTable(namespace, collection)
           .subscribe()
           .withSubscriber(UniAssertSubscriber.create())
@@ -232,7 +232,7 @@ class AuthorizedTableManagerTest extends BridgeTest {
           .when(bridgeService)
           .describeKeyspace(any(), any());
 
-      tableManager
+      collectionManager
           .getValidCollectionTables(namespace)
           .subscribe()
           .withSubscriber(AssertSubscriber.create(1))

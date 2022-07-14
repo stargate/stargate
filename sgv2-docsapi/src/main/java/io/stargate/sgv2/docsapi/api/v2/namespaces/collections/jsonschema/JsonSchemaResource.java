@@ -24,8 +24,8 @@ import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.model.dto.JsonSchemaDto;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
+import io.stargate.sgv2.docsapi.service.schema.CollectionManager;
 import io.stargate.sgv2.docsapi.service.schema.JsonSchemaManager;
-import io.stargate.sgv2.docsapi.service.schema.TableManager;
 import io.stargate.sgv2.docsapi.service.schema.qualifier.Authorized;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
@@ -63,7 +63,7 @@ public class JsonSchemaResource {
   public static final String BASE_PATH =
       "/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}/json-schema";
 
-  @Inject @Authorized TableManager tableManager;
+  @Inject @Authorized CollectionManager collectionManager;
 
   @Inject JsonSchemaManager jsonSchemaManager;
 
@@ -136,7 +136,7 @@ public class JsonSchemaResource {
       @NotNull(message = "json schema not provided") JsonNode body) {
     return jsonSchemaManager
         .attachJsonSchema(
-            namespace, tableManager.getValidCollectionTable(namespace, collection), body)
+            namespace, collectionManager.getValidCollectionTable(namespace, collection), body)
         .map(schema -> RestResponse.ok(new JsonSchemaDto(schema)));
   }
 
@@ -188,7 +188,7 @@ public class JsonSchemaResource {
 
     // get schema from the existing table
     return jsonSchemaManager
-        .getJsonSchema(tableManager.getValidCollectionTable(namespace, collection))
+        .getJsonSchema(collectionManager.getValidCollectionTable(namespace, collection))
         .flatMap(
             schema -> {
               if (schema == null) {

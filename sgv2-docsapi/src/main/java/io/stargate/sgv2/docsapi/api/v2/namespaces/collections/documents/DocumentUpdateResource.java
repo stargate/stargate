@@ -24,7 +24,7 @@ import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
 import io.stargate.sgv2.docsapi.models.ExecutionProfile;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
-import io.stargate.sgv2.docsapi.service.schema.TableManager;
+import io.stargate.sgv2.docsapi.service.schema.CollectionManager;
 import io.stargate.sgv2.docsapi.service.write.WriteDocumentsService;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -65,7 +65,7 @@ public class DocumentUpdateResource {
 
   @Inject WriteDocumentsService documentWriteService;
 
-  @Inject TableManager tableManager;
+  @Inject CollectionManager collectionManager;
 
   @Operation(
       summary = "Create or update a document",
@@ -135,7 +135,7 @@ public class DocumentUpdateResource {
       @QueryParam("profile") boolean profile,
       @NotNull(message = "payload must not be empty") JsonNode body) {
     ExecutionContext context = ExecutionContext.create(profile);
-    Uni<Schema.CqlTable> table = tableManager.ensureValidDocumentTable(namespace, collection);
+    Uni<Schema.CqlTable> table = collectionManager.ensureValidDocumentTable(namespace, collection);
     return documentWriteService
         .updateDocument(table, namespace, collection, documentId, body, ttl, context)
         .onItem()
@@ -213,7 +213,7 @@ public class DocumentUpdateResource {
     ExecutionContext context = ExecutionContext.create(profile);
     List<String> subPath =
         documentPath.stream().map(PathSegment::getPath).collect(Collectors.toList());
-    Uni<Schema.CqlTable> table = tableManager.ensureValidDocumentTable(namespace, collection);
+    Uni<Schema.CqlTable> table = collectionManager.ensureValidDocumentTable(namespace, collection);
     return documentWriteService
         .updateSubDocument(
             table, namespace, collection, documentId, subPath, body, ttlAuto, context)
