@@ -19,11 +19,11 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.inject.Singleton;
 
 /** Responsible for turning gRPC Row values into JSON. */
-@Singleton
+@ApplicationScoped
 public class JsonConverter {
   private final ObjectMapper mapper;
   private final DocumentProperties docsProperties;

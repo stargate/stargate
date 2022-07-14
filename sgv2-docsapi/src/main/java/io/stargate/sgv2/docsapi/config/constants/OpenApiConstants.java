@@ -75,6 +75,11 @@ public interface OpenApiConstants {
     String SUB_DOCUMENT_SINGLE_WITH_WHERE = "Sub-document with where condition";
     String SEARCH_DOCUMENTS = "Search documents result";
     String SEARCH_DOCUMENTS_UNWRAPPED = "Search documents result unwrapped";
+
+    // function
+    String FUNCTION_POP_BODY = "Function `$pop`";
+    String FUNCTION_PUSH_BODY = "Function `$push`";
+    String FUNCTION_RESPONSE = "Function execution result";
   }
 
   /** Request bodies reference names. */
@@ -84,6 +89,7 @@ public interface OpenApiConstants {
     String WRITE = "WRITE";
     String WRITE_SUB_DOCUMENT = "WRITE_SUB_DOCUMENT";
     String WRITE_BATCH = "WRITE_BATCH";
+    String FUNCTION = "FUNCTION";
   }
 
   /** Response reference names. */
