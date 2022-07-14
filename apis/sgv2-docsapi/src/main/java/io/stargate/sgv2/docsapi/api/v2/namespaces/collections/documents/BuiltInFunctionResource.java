@@ -18,7 +18,7 @@
 package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents;
 
 import io.smallrye.mutiny.Uni;
-import io.stargate.sgv2.docsapi.api.common.exception.model.dto.ApiError;
+import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.docsapi.api.v2.model.dto.DocumentResponseWrapper;
 import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents.model.dto.BuiltInFunctionDto;
 import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;

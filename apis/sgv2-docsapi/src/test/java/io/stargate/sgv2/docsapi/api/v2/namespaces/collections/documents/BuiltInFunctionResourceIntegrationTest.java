@@ -25,8 +25,8 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
-import io.stargate.sgv2.common.cql.builder.Replication;
-import io.stargate.sgv2.docsapi.config.constants.Constants;
+import io.stargate.sgv2.api.common.config.constants.HttpConstants;
+import io.stargate.sgv2.api.common.cql.builder.Replication;
 import io.stargate.sgv2.docsapi.service.schema.CollectionManager;
 import io.stargate.sgv2.docsapi.service.schema.NamespaceManager;
 import io.stargate.sgv2.docsapi.testprofiles.IntegrationTestProfile;
@@ -75,7 +75,7 @@ class BuiltInFunctionResourceIntegrationTest {
   @BeforeEach
   public void setup() {
     given()
-        .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
         .contentType(ContentType.JSON)
         .body("{\"array\": [1, 2, 3], \"object\": {}}")
         .when()
@@ -87,7 +87,7 @@ class BuiltInFunctionResourceIntegrationTest {
   @AfterEach
   public void cleanUp() {
     given()
-        .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
         .when()
         .delete(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
         .then()
@@ -104,7 +104,7 @@ class BuiltInFunctionResourceIntegrationTest {
     @Test
     public void pop() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(POP_PAYLOAD)
           .when()
@@ -116,7 +116,7 @@ class BuiltInFunctionResourceIntegrationTest {
 
       // assert whole document
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -128,7 +128,7 @@ class BuiltInFunctionResourceIntegrationTest {
     @Test
     public void popRaw() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .contentType(ContentType.JSON)
           .body(POP_PAYLOAD)
@@ -142,7 +142,7 @@ class BuiltInFunctionResourceIntegrationTest {
     @Test
     public void popEmpty() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(POP_PAYLOAD)
           .when()
@@ -153,7 +153,7 @@ class BuiltInFunctionResourceIntegrationTest {
           .body("data", jsonEquals(3));
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(POP_PAYLOAD)
           .when()
@@ -164,7 +164,7 @@ class BuiltInFunctionResourceIntegrationTest {
           .body("data", jsonEquals(2));
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(POP_PAYLOAD)
           .when()
@@ -175,7 +175,7 @@ class BuiltInFunctionResourceIntegrationTest {
           .body("data", jsonEquals(1));
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(POP_PAYLOAD)
           .when()
@@ -189,7 +189,7 @@ class BuiltInFunctionResourceIntegrationTest {
     @Test
     public void popNoArray() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(POP_PAYLOAD)
           .when()
@@ -203,7 +203,7 @@ class BuiltInFunctionResourceIntegrationTest {
     @Test
     public void push() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(PUSH_PAYLOAD)
           .when()
@@ -215,7 +215,7 @@ class BuiltInFunctionResourceIntegrationTest {
 
       // assert whole document
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -227,7 +227,7 @@ class BuiltInFunctionResourceIntegrationTest {
     @Test
     public void pushObject() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body("{\"operation\": \"$push\", \"value\": { \"p\": true}}")
           .when()
@@ -239,7 +239,7 @@ class BuiltInFunctionResourceIntegrationTest {
 
       // assert whole document
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -251,7 +251,7 @@ class BuiltInFunctionResourceIntegrationTest {
     @Test
     public void pushArray() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body("{\"operation\": \"$push\", \"value\": [4, 5, 6]}")
           .when()
@@ -263,7 +263,7 @@ class BuiltInFunctionResourceIntegrationTest {
 
       // assert whole document
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -275,7 +275,7 @@ class BuiltInFunctionResourceIntegrationTest {
     @Test
     public void pushRaw() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .queryParam("raw", true)
           .contentType(ContentType.JSON)
           .body(PUSH_PAYLOAD)
@@ -291,7 +291,7 @@ class BuiltInFunctionResourceIntegrationTest {
       String payload = "{\"operation\": \"$push\", \"value\": null}";
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(payload)
           .when()
@@ -305,7 +305,7 @@ class BuiltInFunctionResourceIntegrationTest {
     @Test
     public void pushNoArray() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(PUSH_PAYLOAD)
           .when()
@@ -319,7 +319,7 @@ class BuiltInFunctionResourceIntegrationTest {
     @Test
     public void invalidOperation() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body("{\"operation\": \"$dollar\"}")
           .when()
@@ -337,7 +337,7 @@ class BuiltInFunctionResourceIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(PUSH_PAYLOAD)
           .when()
@@ -355,7 +355,7 @@ class BuiltInFunctionResourceIntegrationTest {
     @Test
     public void invalidCollection() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(PUSH_PAYLOAD)
           .when()
@@ -369,7 +369,7 @@ class BuiltInFunctionResourceIntegrationTest {
     @Test
     public void invalidNamespace() {
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(PUSH_PAYLOAD)
           .when()
@@ -388,7 +388,7 @@ class BuiltInFunctionResourceIntegrationTest {
       String collection = "local";
 
       given()
-          .header(Constants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
           .body(PUSH_PAYLOAD)
           .when()
