@@ -21,6 +21,7 @@
     <quarkus.platform.version>2.10.1.Final</quarkus.platform.version>
     <skipTests>false</skipTests>
     <skipUnitTests>${skipTests}</skipUnitTests>
+    <surefire-plugin.version>3.0.0-M7</surefire-plugin.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -66,7 +67,7 @@
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.0.0-M7</version>
+        <version>${surefire-plugin.version}</version>
         <configuration>
           <argLine>-Xmx4g</argLine>
           <systemPropertyVariables>
