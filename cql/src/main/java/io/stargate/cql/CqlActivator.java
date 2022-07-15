@@ -91,9 +91,7 @@ public class CqlActivator extends BaseActivator {
     try {
       Config c;
 
-      // This is the same system property as used by persistence backends for custom configuration
-      // using `cassandra.yaml`.
-      String cassandraConfigPath = System.getProperty("stargate.unsafe.cassandra_config_path", "");
+      String cassandraConfigPath = System.getProperty("stargate.cql.cassandra_config_path", "");
       if (cassandraConfigPath.isEmpty()) {
         c = new Config();
       } else {
