@@ -23,7 +23,7 @@ import io.stargate.bridge.proto.QueryOuterClass.BatchQuery;
 import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.api.common.cql.builder.ValueModifier;
-import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
+import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.service.JsonShreddedRow;
 import java.util.List;

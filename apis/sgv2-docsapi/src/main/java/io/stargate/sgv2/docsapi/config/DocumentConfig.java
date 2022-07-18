@@ -19,6 +19,7 @@ package io.stargate.sgv2.docsapi.config;
 
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
+import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
 import javax.validation.constraints.Max;
 import javax.validation.constraints.NotBlank;
@@ -27,8 +28,7 @@ import javax.validation.constraints.Positive;
 /**
  * Configuration for the documents.
  *
- * <p><b>IMPORTANT:</b> Do not inject this class, but rather {@link
- * io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties}.
+ * <p><b>IMPORTANT:</b> Do not inject this class, but rather {@link DocumentProperties}.
  */
 @ConfigMapping(prefix = "stargate.document")
 public interface DocumentConfig {

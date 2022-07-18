@@ -15,7 +15,7 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api.common.properties.datastore;
+package io.stargate.sgv2.api.common.properties.datastore;
 
 /** Properties of the data store. */
 public interface DataStoreProperties {

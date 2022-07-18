@@ -15,13 +15,13 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api.common.properties.document.impl;
+package io.stargate.sgv2.docsapi.api.properties.document.impl;
 
 import com.google.common.collect.ImmutableSet;
 import io.stargate.bridge.grpc.TypeSpecs;
 import io.stargate.sgv2.api.common.cql.builder.Column;
 import io.stargate.sgv2.api.common.cql.builder.ImmutableColumn;
-import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableColumns;
+import io.stargate.sgv2.docsapi.api.properties.document.DocumentTableColumns;
 import io.stargate.sgv2.docsapi.config.DocumentConfig;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -60,7 +60,6 @@ public interface DocumentTableColumnsImpl extends DocumentTableColumns {
         .add(table.booleanValueColumnName())
         .build();
   }
-  ;
 
   /** @return All the JSON path columns based on the max depth as ordered {@link List}. */
   @Value.Derived
@@ -71,7 +70,6 @@ public interface DocumentTableColumnsImpl extends DocumentTableColumns {
 
     return IntStream.range(0, depth).mapToObj(i -> table.pathColumnPrefix() + i).toList();
   }
-  ;
 
   /** @return All the JSON path columns based on the max depth as {@link Set}. */
   @Value.Derived
@@ -80,7 +78,6 @@ public interface DocumentTableColumnsImpl extends DocumentTableColumns {
     List<String> columns = pathColumnNamesList();
     return Set.copyOf(columns);
   }
-  ;
 
   /** @return All columns as the {@link ImmutableColumn} representation. */
   @Value.Derived
@@ -158,7 +155,6 @@ public interface DocumentTableColumnsImpl extends DocumentTableColumns {
     // return unmodifiable
     return Collections.unmodifiableList(result);
   }
-  ;
 
   /** @return all column names */
   @Value.Derived
@@ -166,5 +162,4 @@ public interface DocumentTableColumnsImpl extends DocumentTableColumns {
   default String[] allColumnNamesArray() {
     return allColumns().stream().map(Column::name).toArray(String[]::new);
   }
-  ;
 }

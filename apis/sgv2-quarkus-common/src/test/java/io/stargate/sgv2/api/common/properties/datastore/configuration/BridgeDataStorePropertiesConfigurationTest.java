@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-package io.stargate.sgv2.docsapi.api.common.properties.datastore.configuration;
+package io.stargate.sgv2.api.common.properties.datastore.configuration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -28,8 +28,8 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.api.common.BridgeTest;
-import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;
-import io.stargate.sgv2.docsapi.config.DataStoreConfig;
+import io.stargate.sgv2.api.common.config.DataStoreConfig;
+import io.stargate.sgv2.api.common.properties.datastore.DataStoreProperties;
 import javax.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

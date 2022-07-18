@@ -20,7 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
+import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
 import io.stargate.sgv2.docsapi.service.query.condition.impl.BooleanCondition;
 import io.stargate.sgv2.docsapi.service.query.condition.impl.NumberCondition;

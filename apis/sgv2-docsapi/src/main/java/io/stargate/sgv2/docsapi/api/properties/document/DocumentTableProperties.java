@@ -15,7 +15,7 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api.common.properties.document;
+package io.stargate.sgv2.docsapi.api.properties.document;
 
 /** Properties of a document table. */
 public interface DocumentTableProperties {
