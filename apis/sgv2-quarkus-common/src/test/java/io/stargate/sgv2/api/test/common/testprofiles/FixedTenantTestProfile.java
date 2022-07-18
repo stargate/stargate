@@ -15,7 +15,7 @@
  *
  */
 
-package io.stargate.sgv2.api.common.testprofiles;
+package io.stargate.sgv2.api.test.common.testprofiles;
 
 import com.google.common.collect.ImmutableMap;
 import io.quarkus.test.junit.QuarkusTestProfile;

@@ -32,7 +32,7 @@ import io.quarkus.test.junit.TestProfile;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
-import io.stargate.sgv2.docsapi.testprofiles.IntegrationTestProfile;
+import io.stargate.sgv2.api.test.common.testprofiles.IntegrationTestProfile;
 import javax.ws.rs.core.HttpHeaders;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeAll;

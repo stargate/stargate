@@ -101,13 +101,9 @@
       <version>2.2.14</version>
     </dependency>
     <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-junit5</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-junit5-mockito</artifactId>
+      <groupId>io.stargate</groupId>
+      <artifactId>sgv2-quarkus-test-common</artifactId>
+      <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -116,32 +112,9 @@
       <scope>test</scope>
     </dependency>
     <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-junit-jupiter</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.testcontainers</groupId>
-      <artifactId>junit-jupiter</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.assertj</groupId>
-      <artifactId>assertj-core</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
       <groupId>net.javacrumbs.json-unit</groupId>
       <artifactId>json-unit</artifactId>
       <version>2.35.0</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>io.stargate</groupId>
-      <artifactId>sgv2-quarkus-common</artifactId>
-      <version>${project.version}</version>
-      <classifier>tests</classifier>
-      <type>test-jar</type>
       <scope>test</scope>
     </dependency>
   </dependencies>

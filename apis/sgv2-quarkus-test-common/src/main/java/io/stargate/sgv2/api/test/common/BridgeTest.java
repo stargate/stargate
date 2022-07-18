@@ -15,7 +15,7 @@
  *
  */
 
-package io.stargate.sgv2.api.common;
+package io.stargate.sgv2.api.test.common;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;

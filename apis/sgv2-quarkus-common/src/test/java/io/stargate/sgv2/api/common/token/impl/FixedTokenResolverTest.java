@@ -21,8 +21,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import io.stargate.sgv2.api.common.testprofiles.FixedTokenTestProfile;
 import io.stargate.sgv2.api.common.token.CassandraTokenResolver;
+import io.stargate.sgv2.api.test.common.testprofiles.FixedTokenTestProfile;
 import java.util.Optional;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;

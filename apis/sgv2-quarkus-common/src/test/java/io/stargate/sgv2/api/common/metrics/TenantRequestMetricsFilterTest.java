@@ -22,7 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.google.common.collect.ImmutableMap;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import io.stargate.sgv2.api.common.testprofiles.FixedTenantTestProfile;
+import io.stargate.sgv2.api.test.common.testprofiles.FixedTenantTestProfile;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;

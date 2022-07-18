@@ -14,27 +14,20 @@
  * limitations under the License.
  *
  */
+package io.stargate.sgv2.api.test.common.testprofiles;
 
-package io.stargate.sgv2.api.common.testprofiles;
-
-import com.google.common.collect.ImmutableMap;
 import io.quarkus.test.junit.QuarkusTestProfile;
-import java.util.Map;
+import io.stargate.sgv2.api.test.common.testresource.StargateTestResource;
+import java.util.Collections;
+import java.util.List;
 
-/**
- * Simple test profile to enable fixed Cassandra token with value {@value #TOKEN}.
- *
- * <p>Annotate test class with @TestProfile(FixedTokenTestProfile.class) to use.
- */
-public class FixedTokenTestProfile implements QuarkusTestProfile {
+/** Test profile for integration tests. Includes the {@link StargateTestResource}. */
+public class IntegrationTestProfile implements QuarkusTestProfile {
 
-  public static final String TOKEN = "cassandra-rules";
-
+  /** Adds StargateTestResource to the test resources. */
   @Override
-  public Map<String, String> getConfigOverrides() {
-    return ImmutableMap.<String, String>builder()
-        .put("stargate.auth.token-resolver.type", "fixed")
-        .put("stargate.auth.token-resolver.fixed.token", TOKEN)
-        .build();
+  public List<TestResourceEntry> testResources() {
+    TestResourceEntry stargateResource = new TestResourceEntry(StargateTestResource.class);
+    return Collections.singletonList(stargateResource);
   }
 }
