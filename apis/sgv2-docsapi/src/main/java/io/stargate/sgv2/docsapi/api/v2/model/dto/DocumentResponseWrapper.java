@@ -18,7 +18,6 @@
 package io.stargate.sgv2.docsapi.api.v2.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import io.stargate.sgv2.docsapi.models.ExecutionProfile;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 /**

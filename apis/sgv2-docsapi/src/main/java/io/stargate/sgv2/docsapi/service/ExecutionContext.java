@@ -15,9 +15,8 @@
  */
 package io.stargate.sgv2.docsapi.service;
 
-import io.stargate.sgv2.docsapi.models.ExecutionProfile;
-import io.stargate.sgv2.docsapi.models.ImmutableExecutionProfile;
-import io.stargate.sgv2.docsapi.models.QueryInfo;
+import io.stargate.sgv2.docsapi.api.v2.model.dto.ExecutionProfile;
+import io.stargate.sgv2.docsapi.api.v2.model.dto.QueryInfo;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -109,16 +108,14 @@ public abstract class ExecutionContext {
       List<QueryInfo> queries = new ArrayList<>(executionInfoMap.values());
       // Sort by most fetched pages (i.e. execution count), then by fetched rows
       queries.sort(
-          Comparator.comparing(QueryInfo::execCount)
+          Comparator.comparing(QueryInfo::executionCount)
               .thenComparing(QueryInfo::rowCount)
-              .thenComparing(QueryInfo::preparedCQL)
+              .thenComparing(QueryInfo::cql)
               .reversed());
 
-      return ImmutableExecutionProfile.builder()
-          .description(description)
-          .queries(queries)
-          .nested(steps.stream().map(ProfilingContext::toProfile).collect(Collectors.toList()))
-          .build();
+      List<ExecutionProfile> nested =
+          steps.stream().map(ProfilingContext::toProfile).collect(Collectors.toList());
+      return new ExecutionProfile(description, queries, nested);
     }
   }
 }

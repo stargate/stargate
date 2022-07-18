@@ -167,7 +167,7 @@ class OrExpressionDocumentsResolverTest extends AbstractValidatingStargateBridge
                     .hasSize(2)
                     .allSatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         });
               });
@@ -259,7 +259,7 @@ class OrExpressionDocumentsResolverTest extends AbstractValidatingStargateBridge
                     .hasSize(2)
                     .allSatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         });
               });
@@ -343,12 +343,12 @@ class OrExpressionDocumentsResolverTest extends AbstractValidatingStargateBridge
                     .hasSize(2)
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         })
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(0);
                         });
               });
@@ -422,7 +422,7 @@ class OrExpressionDocumentsResolverTest extends AbstractValidatingStargateBridge
                     .hasSize(2)
                     .allSatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(0);
                         });
               });
@@ -524,7 +524,7 @@ class OrExpressionDocumentsResolverTest extends AbstractValidatingStargateBridge
                     .hasSize(2)
                     .allSatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         });
               });
@@ -617,12 +617,12 @@ class OrExpressionDocumentsResolverTest extends AbstractValidatingStargateBridge
                     .hasSize(2)
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         })
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(0);
                         });
               });
@@ -705,12 +705,12 @@ class OrExpressionDocumentsResolverTest extends AbstractValidatingStargateBridge
                     .hasSize(2)
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         })
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(0);
                         });
               });
@@ -787,7 +787,7 @@ class OrExpressionDocumentsResolverTest extends AbstractValidatingStargateBridge
                     .hasSize(2)
                     .allSatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(0);
                         });
               });
@@ -862,7 +862,7 @@ class OrExpressionDocumentsResolverTest extends AbstractValidatingStargateBridge
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         });
               });
@@ -927,7 +927,7 @@ class OrExpressionDocumentsResolverTest extends AbstractValidatingStargateBridge
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         });
               });
@@ -1007,7 +1007,7 @@ class OrExpressionDocumentsResolverTest extends AbstractValidatingStargateBridge
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         });
               });
@@ -1077,7 +1077,7 @@ class OrExpressionDocumentsResolverTest extends AbstractValidatingStargateBridge
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         });
               });
