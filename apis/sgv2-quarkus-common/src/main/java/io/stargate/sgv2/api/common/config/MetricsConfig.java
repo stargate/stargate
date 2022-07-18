@@ -15,7 +15,7 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.config;
+package io.stargate.sgv2.api.common.config;
 
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
@@ -39,6 +39,7 @@ public interface MetricsConfig {
   interface TenantRequestCounterConfig {
 
     /** @return If tenant request counter is enabled. */
+    @WithDefault("${stargate.multi-tenancy.enabled}")
     boolean enabled();
 
     /**

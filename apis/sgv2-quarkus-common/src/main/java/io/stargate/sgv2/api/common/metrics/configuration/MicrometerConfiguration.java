@@ -15,12 +15,12 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api.common.metrics.configuration;
+package io.stargate.sgv2.api.common.metrics.configuration;
 
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.config.MeterFilter;
-import io.stargate.sgv2.docsapi.config.MetricsConfig;
+import io.stargate.sgv2.api.common.config.MetricsConfig;
 import java.util.Collection;
 import java.util.Map;
 import java.util.stream.Collectors;

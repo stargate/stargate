@@ -15,13 +15,13 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api.common.metrics;
+package io.stargate.sgv2.api.common.metrics;
 
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
-import io.stargate.sgv2.docsapi.config.MetricsConfig;
+import io.stargate.sgv2.api.common.config.MetricsConfig;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.container.ContainerResponseContext;
