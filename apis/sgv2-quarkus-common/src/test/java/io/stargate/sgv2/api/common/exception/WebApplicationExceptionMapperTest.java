@@ -15,7 +15,7 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api.common.exception;
+package io.stargate.sgv2.api.common.exception;
 
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;

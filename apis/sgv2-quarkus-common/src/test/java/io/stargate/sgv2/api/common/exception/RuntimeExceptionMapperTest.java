@@ -15,27 +15,23 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api.common.exception;
+package io.stargate.sgv2.api.common.exception;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
-import io.stargate.sgv2.api.common.grpc.BridgeAuthorizationException;
-import io.stargate.sgv2.api.common.grpc.UnauthorizedKeyspaceException;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.junit.jupiter.api.Test;
 
-class BridgeAuthorizationExceptionMapperTest {
-
+public class RuntimeExceptionMapperTest {
   @Test
-  public void happyPath() {
-    BridgeAuthorizationExceptionMapper mapper = new BridgeAuthorizationExceptionMapper();
-    BridgeAuthorizationException error = new UnauthorizedKeyspaceException("my_keyspace");
+  public void testErrorCodeMappings() {
+    RuntimeExceptionMapper mapper = new RuntimeExceptionMapper();
+    RuntimeException error = new RuntimeException("internal error");
 
-    try (RestResponse<ApiError> response = mapper.bridgeAuthorizationException(error)) {
-      assertThat(response.getStatus()).isEqualTo(401);
-      assertThat(response.getEntity().description())
-          .isEqualTo("Unauthorized keyspace: my_keyspace");
+    try (RestResponse<ApiError> response = mapper.runtimeException(error)) {
+      assertThat(response.getStatus()).isEqualTo(500);
+      assertThat(response.getEntity().description()).isEqualTo("internal error");
     }
   }
 }
