@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-package io.stargate.sgv2.docsapi.config;
+package io.stargate.sgv2.api.common.config;
 
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
