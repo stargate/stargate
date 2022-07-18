@@ -15,22 +15,24 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api.common.exception;
+package io.stargate.sgv2.docsapi.api.exception;
 
+import com.fasterxml.jackson.core.JsonParseException;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
-import io.stargate.sgv2.api.common.grpc.BridgeAuthorizationException;
 import javax.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 
-/** Simple exception mapper for the {@link BridgeAuthorizationException}. */
-public class BridgeAuthorizationExceptionMapper {
+/** Simple exception mapper for the {@link JsonParseException}. */
+public class JsonParseExceptionMapper {
 
   @ServerExceptionMapper
-  public RestResponse<ApiError> bridgeAuthorizationException(
-      BridgeAuthorizationException exception) {
-    int code = Response.Status.UNAUTHORIZED.getStatusCode();
-    ApiError error = new ApiError(exception.getMessage(), code);
-    return RestResponse.ResponseBuilder.create(Response.Status.UNAUTHORIZED, error).build();
+  public RestResponse<ApiError> jsonParseException(JsonParseException exception) {
+    // enrich the message with the exception message
+    // this gives more details to the user
+    int code = Response.Status.BAD_REQUEST.getStatusCode();
+    String msg = "Unable to process JSON: %s.".formatted(exception.getMessage());
+    ApiError error = new ApiError(msg, code);
+    return RestResponse.ResponseBuilder.create(Response.Status.BAD_REQUEST, error).build();
   }
 }

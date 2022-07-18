@@ -15,7 +15,7 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api.common.exception;
+package io.stargate.sgv2.api.common.exception;
 
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import java.util.Set;
