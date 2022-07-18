@@ -243,7 +243,7 @@ class PersistenceCandidatesFilterTest extends AbstractValidatingStargateBridgeTe
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         });
               });
@@ -311,7 +311,7 @@ class PersistenceCandidatesFilterTest extends AbstractValidatingStargateBridgeTe
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         });
               });
@@ -364,7 +364,7 @@ class PersistenceCandidatesFilterTest extends AbstractValidatingStargateBridgeTe
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(0);
                         });
               });
