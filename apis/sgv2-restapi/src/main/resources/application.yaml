@@ -1,0 +1,47 @@
+stargate:
+
+quarkus:
+  # general app properties
+  application:
+    name: Stargate REST API
+
+  # banner for the startup
+  banner:
+    path: banner/banner.txt
+  # properties for the gRPC clients
+  grpc:
+    clients:
+      bridge:
+        host: localhost
+        port: 8091
+    # force no grpc server start in dev as we have no grpc service
+    dev-mode:
+      force-server-start: false
+  http:
+    port: 8082
+  # built-in micrometer properties
+  micrometer:
+    binder:
+      http-server:
+        # ignore all non-application uris, as well as the custom set
+        suppress-non-application-uris: true
+        ignore-patterns: /,/metrics,/swagger-ui.*,.*\.html
+  # information for the generated Open API definitions
+  smallrye-openapi:
+    info-title: ${quarkus.application.name}
+    info-version: ${quarkus.application.version:}
+    info-description:
+    info-terms-of-service:
+    info-contact-name: Stargate
+    info-contact-url: https://stargate.io
+    info-license-name: Apache 2.0
+    info-license-url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+  # swagger UI settings
+  swagger-ui:
+    path: /swagger-ui
+    always-include: true
+    title: ${quarkus.application.name}
+
+greeting:
+  message: "hello"
