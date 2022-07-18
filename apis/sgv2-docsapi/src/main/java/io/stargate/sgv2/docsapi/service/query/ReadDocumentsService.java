@@ -34,7 +34,7 @@ import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentPropertie
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.api.v2.model.dto.DocumentResponseWrapper;
-import io.stargate.sgv2.docsapi.models.ExecutionProfile;
+import io.stargate.sgv2.docsapi.api.v2.model.dto.ExecutionProfile;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.common.model.Paginator;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;

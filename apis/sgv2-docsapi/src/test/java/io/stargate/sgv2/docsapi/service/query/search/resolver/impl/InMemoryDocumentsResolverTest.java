@@ -161,7 +161,7 @@ class InMemoryDocumentsResolverTest extends AbstractValidatingStargateBridgeTest
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         });
               });
@@ -219,7 +219,7 @@ class InMemoryDocumentsResolverTest extends AbstractValidatingStargateBridgeTest
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         });
               });
@@ -279,7 +279,7 @@ class InMemoryDocumentsResolverTest extends AbstractValidatingStargateBridgeTest
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         });
               });
@@ -347,7 +347,7 @@ class InMemoryDocumentsResolverTest extends AbstractValidatingStargateBridgeTest
                       .singleElement()
                       .satisfies(
                           queryInfo -> {
-                            assertThat(queryInfo.execCount()).isEqualTo(1);
+                            assertThat(queryInfo.executionCount()).isEqualTo(1);
                             assertThat(queryInfo.rowCount()).isEqualTo(2);
                           }));
     }
@@ -481,7 +481,7 @@ class InMemoryDocumentsResolverTest extends AbstractValidatingStargateBridgeTest
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         });
               });

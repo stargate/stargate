@@ -13,19 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.sgv2.docsapi.models;
+package io.stargate.sgv2.docsapi.api.v2.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonPropertyOrder;
-import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import java.util.List;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
-import org.immutables.value.Value;
 
-@JsonSerialize(as = ImmutableExecutionProfile.class)
-@JsonDeserialize(as = ImmutableExecutionProfile.class)
 @JsonPropertyOrder({"description", "queries", "nested"})
-@Value.Immutable(lazyhash = true)
 @Schema(
     description =
         "Profiling information related to the execution of the request. Only set if the endpoint supports profiling and `profile` query parameter is set to `true`.",
@@ -61,14 +55,9 @@ import org.immutables.value.Value;
                      ]
                   }
                   """)
-public interface ExecutionProfile {
-
-  @Schema(description = "Brief information about this execution step.")
-  String description();
-
-  @Schema(description = "A set of CQL queries performed under this execution step.")
-  List<QueryInfo> queries();
-
-  @Schema(description = "Nested execution steps.", nullable = true)
-  List<ExecutionProfile> nested();
-}
+public record ExecutionProfile(
+    @Schema(description = "Brief information about this execution step.") String description,
+    @Schema(description = "A set of CQL queries performed under this execution step.")
+        List<QueryInfo> queries,
+    @Schema(description = "Nested execution steps.", nullable = true)
+        List<ExecutionProfile> nested) {}
