@@ -14,9 +14,9 @@
  * limitations under the License.
  *
  */
-package io.stargate.sgv2.docsapi.api.common.properties.datastore.impl;
+package io.stargate.sgv2.api.common.properties.datastore.impl;
 
-import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;
+import io.stargate.sgv2.api.common.properties.datastore.DataStoreProperties;
 
 /**
  * Immutable implementation of the {@link DataStoreProperties}.

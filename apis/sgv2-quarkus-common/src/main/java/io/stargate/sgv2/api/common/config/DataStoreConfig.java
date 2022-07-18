@@ -15,21 +15,22 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.config;
+package io.stargate.sgv2.api.common.config;
 
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
+import io.stargate.sgv2.api.common.properties.datastore.DataStoreProperties;
 
 /**
  * Configuration for the data store.
  *
- * <p><b>IMPORTANT:</b> Do not inject this class, but rather {@link
- * io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties}.
+ * <p><b>IMPORTANT:</b> Do not inject this class, but rather {@link DataStoreProperties}.
  */
 @ConfigMapping(prefix = "stargate.data-store")
 public interface DataStoreConfig {
 
   /** @return If the data store config should not be read from the bridge. */
+  @WithDefault("${stargate.multi-tenancy.enabled}")
   boolean ignoreBridge();
 
   /** @return If the secondary indexes are enabled, defaults to <code>true</code>. */

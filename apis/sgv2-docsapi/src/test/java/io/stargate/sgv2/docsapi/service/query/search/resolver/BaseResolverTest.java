@@ -24,7 +24,7 @@ import com.bpodgursky.jbool_expressions.Literal;
 import com.bpodgursky.jbool_expressions.Not;
 import com.bpodgursky.jbool_expressions.Or;
 import io.quarkus.test.junit.QuarkusTest;
-import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
+import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.query.FilterExpression;
 import io.stargate.sgv2.docsapi.service.query.FilterPath;

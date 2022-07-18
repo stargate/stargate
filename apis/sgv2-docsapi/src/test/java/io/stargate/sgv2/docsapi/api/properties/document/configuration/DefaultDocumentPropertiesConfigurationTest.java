@@ -14,15 +14,15 @@
  * limitations under the License.
  *
  */
-package io.stargate.sgv2.docsapi.api.common.properties.document.configuration;
+package io.stargate.sgv2.docsapi.api.properties.document.configuration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.stargate.sgv2.api.common.cql.builder.Column;
-import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
-import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableColumns;
-import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
+import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
+import io.stargate.sgv2.docsapi.api.properties.document.DocumentTableColumns;
+import io.stargate.sgv2.docsapi.api.properties.document.DocumentTableProperties;
 import java.util.stream.IntStream;
 import javax.inject.Inject;
 import org.junit.jupiter.api.Nested;

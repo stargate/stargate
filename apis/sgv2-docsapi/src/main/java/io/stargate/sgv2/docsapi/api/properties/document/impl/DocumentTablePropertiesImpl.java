@@ -15,9 +15,9 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api.common.properties.document.impl;
+package io.stargate.sgv2.docsapi.api.properties.document.impl;
 
-import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentTableProperties;
+import io.stargate.sgv2.docsapi.api.properties.document.DocumentTableProperties;
 import io.stargate.sgv2.docsapi.config.DocumentConfig;
 
 /**

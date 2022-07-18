@@ -15,15 +15,15 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.api.common.properties.datastore.configuration;
+package io.stargate.sgv2.api.common.properties.datastore.configuration;
 
 import io.quarkus.grpc.GrpcClient;
 import io.quarkus.runtime.Startup;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridgeGrpc;
-import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;
-import io.stargate.sgv2.docsapi.api.common.properties.datastore.impl.DataStorePropertiesImpl;
-import io.stargate.sgv2.docsapi.config.DataStoreConfig;
+import io.stargate.sgv2.api.common.config.DataStoreConfig;
+import io.stargate.sgv2.api.common.properties.datastore.DataStoreProperties;
+import io.stargate.sgv2.api.common.properties.datastore.impl.DataStorePropertiesImpl;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import org.slf4j.Logger;

@@ -33,7 +33,7 @@ import io.stargate.sgv2.api.common.BridgeTest;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.grpc.GrpcClients;
 import io.stargate.sgv2.api.common.grpc.UnauthorizedTableException;
-import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
+import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.schema.qualifier.Authorized;
 import java.util.Arrays;
 import java.util.Optional;
