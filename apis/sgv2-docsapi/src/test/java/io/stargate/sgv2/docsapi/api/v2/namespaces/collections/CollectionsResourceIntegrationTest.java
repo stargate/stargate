@@ -24,51 +24,33 @@ import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
-import io.restassured.RestAssured;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
-import io.stargate.sgv2.api.common.cql.builder.Replication;
-import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
-import io.stargate.sgv2.docsapi.service.schema.NamespaceManager;
-import java.time.Duration;
-import javax.enterprise.context.control.ActivateRequestContext;
-import javax.inject.Inject;
+import io.stargate.sgv2.common.testresource.StargateTestResource;
+import io.stargate.sgv2.docsapi.api.v2.DocsApiIntegrationTest;
+import java.util.Optional;
 import javax.ws.rs.core.HttpHeaders;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestClassOrder;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
 
-@QuarkusTest
-@TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
-@TestClassOrder(ClassOrderer.OrderAnnotation.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class CollectionsResourceIntegrationTest {
+@QuarkusIntegrationTest
+@QuarkusTestResource(StargateTestResource.class)
+public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
 
   // base path for the test
   public static final String BASE_PATH = "/v2/namespaces/{namespace}/collections";
   public static final String DEFAULT_NAMESPACE = RandomStringUtils.randomAlphanumeric(16);
   public static final String DEFAULT_COLLECTION = RandomStringUtils.randomAlphanumeric(16);
 
-  @Inject NamespaceManager namespaceManager;
-
-  @BeforeAll
-  public void init() {
-    RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
-
-    namespaceManager
-        .createNamespace(DEFAULT_NAMESPACE, Replication.simpleStrategy(1))
-        .await()
-        .atMost(Duration.ofSeconds(10));
+  @Override
+  public Optional<String> createNamespace() {
+    return Optional.of(DEFAULT_NAMESPACE);
   }
 
   @Nested

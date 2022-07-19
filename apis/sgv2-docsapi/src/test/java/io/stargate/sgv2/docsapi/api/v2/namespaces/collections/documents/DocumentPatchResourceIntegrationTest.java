@@ -24,32 +24,23 @@ import static org.hamcrest.Matchers.notNullValue;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
-import io.restassured.RestAssured;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
-import io.stargate.sgv2.api.common.cql.builder.Replication;
-import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
-import io.stargate.sgv2.docsapi.service.schema.CollectionManager;
-import io.stargate.sgv2.docsapi.service.schema.NamespaceManager;
-import java.time.Duration;
+import io.stargate.sgv2.common.testresource.StargateTestResource;
+import io.stargate.sgv2.docsapi.api.v2.DocsApiIntegrationTest;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import javax.enterprise.context.control.ActivateRequestContext;
-import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 
-@QuarkusTest
-@TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class DocumentPatchResourceIntegrationTest {
+@QuarkusIntegrationTest
+@QuarkusTestResource(StargateTestResource.class)
+class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
 
   public static final String BASE_PATH =
       "/v2/namespaces/{namespace}/collections/{collection}/{document-id}";
@@ -60,26 +51,16 @@ class DocumentPatchResourceIntegrationTest {
       "{\"test\": \"document\", \"this\": [\"is\", 1, true]}";
   public static final String MALFORMED_PAYLOAD = "{\"malformed\": ";
 
-  @Inject NamespaceManager namespaceManager;
+  final ObjectMapper objectMapper = new ObjectMapper();
 
-  @Inject CollectionManager collectionManager;
+  @Override
+  public Optional<String> createNamespace() {
+    return Optional.of(DEFAULT_NAMESPACE);
+  }
 
-  @Inject ObjectMapper objectMapper;
-
-  @BeforeAll
-  public void init() {
-
-    RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
-
-    namespaceManager
-        .createNamespace(DEFAULT_NAMESPACE, Replication.simpleStrategy(1))
-        .await()
-        .atMost(Duration.ofSeconds(10));
-
-    collectionManager
-        .createCollectionTable(DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
-        .await()
-        .atMost(Duration.ofSeconds(10));
+  @Override
+  public Optional<String> createCollection() {
+    return Optional.of(DEFAULT_COLLECTION);
   }
 
   @BeforeEach

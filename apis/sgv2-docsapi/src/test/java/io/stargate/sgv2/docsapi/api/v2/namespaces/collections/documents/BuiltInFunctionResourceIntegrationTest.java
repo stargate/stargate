@@ -21,31 +21,22 @@ import static net.javacrumbs.jsonunit.JsonMatchers.jsonEquals;
 import static net.javacrumbs.jsonunit.JsonMatchers.jsonPartEquals;
 import static org.hamcrest.Matchers.equalTo;
 
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
-import io.restassured.RestAssured;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
-import io.stargate.sgv2.api.common.cql.builder.Replication;
-import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
-import io.stargate.sgv2.docsapi.service.schema.CollectionManager;
-import io.stargate.sgv2.docsapi.service.schema.NamespaceManager;
-import java.time.Duration;
-import javax.enterprise.context.control.ActivateRequestContext;
-import javax.inject.Inject;
+import io.stargate.sgv2.common.testresource.StargateTestResource;
+import io.stargate.sgv2.docsapi.api.v2.DocsApiIntegrationTest;
+import java.util.Optional;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
-@TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class BuiltInFunctionResourceIntegrationTest {
+@QuarkusIntegrationTest
+@QuarkusTestResource(StargateTestResource.class)
+class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
 
   public static final String BASE_PATH =
       "/v2/namespaces/{namespace}/collections/{collection}/{document-id}";
@@ -53,45 +44,14 @@ class BuiltInFunctionResourceIntegrationTest {
   public static final String DEFAULT_COLLECTION = RandomStringUtils.randomAlphanumeric(16);
   public static final String DOCUMENT_ID = RandomStringUtils.randomAlphanumeric(16);
 
-  @Inject NamespaceManager namespaceManager;
-
-  @Inject CollectionManager collectionManager;
-
-  @BeforeAll
-  public void init() {
-    RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
-
-    namespaceManager
-        .createNamespace(DEFAULT_NAMESPACE, Replication.simpleStrategy(1))
-        .await()
-        .atMost(Duration.ofSeconds(10));
-
-    collectionManager
-        .createCollectionTable(DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
-        .await()
-        .atMost(Duration.ofSeconds(10));
+  @Override
+  public Optional<String> createNamespace() {
+    return Optional.of(DEFAULT_NAMESPACE);
   }
 
-  @BeforeEach
-  public void setup() {
-    given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-        .contentType(ContentType.JSON)
-        .body("{\"array\": [1, 2, 3], \"object\": {}}")
-        .when()
-        .put(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-        .then()
-        .statusCode(200);
-  }
-
-  @AfterEach
-  public void cleanUp() {
-    given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-        .when()
-        .delete(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-        .then()
-        .statusCode(204);
+  @Override
+  public Optional<String> createCollection() {
+    return Optional.of(DEFAULT_COLLECTION);
   }
 
   @Nested
@@ -100,6 +60,28 @@ class BuiltInFunctionResourceIntegrationTest {
     public static final String PUSH_PAYLOAD = "{\"operation\": \"$push\", \"value\": true}";
 
     public static final String POP_PAYLOAD = "{\"operation\": \"$pop\"}";
+
+    @BeforeEach
+    public void setup() {
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .body("{\"array\": [1, 2, 3], \"object\": {}}")
+          .when()
+          .put(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(200);
+    }
+
+    @AfterEach
+    public void cleanUp() {
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .when()
+          .delete(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(204);
+    }
 
     @Test
     public void pop() {

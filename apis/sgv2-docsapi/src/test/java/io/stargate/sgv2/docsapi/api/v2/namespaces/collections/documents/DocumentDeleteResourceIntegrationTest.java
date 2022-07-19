@@ -21,29 +21,20 @@ import static net.javacrumbs.jsonunit.JsonMatchers.jsonEquals;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
-import io.restassured.RestAssured;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
-import io.stargate.sgv2.api.common.cql.builder.Replication;
-import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
-import io.stargate.sgv2.docsapi.service.schema.CollectionManager;
-import io.stargate.sgv2.docsapi.service.schema.NamespaceManager;
-import java.time.Duration;
-import javax.enterprise.context.control.ActivateRequestContext;
-import javax.inject.Inject;
+import io.stargate.sgv2.common.testresource.StargateTestResource;
+import io.stargate.sgv2.docsapi.api.v2.DocsApiIntegrationTest;
+import java.util.Optional;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
-@TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class DocumentDeleteResourceIntegrationTest {
+@QuarkusIntegrationTest
+@QuarkusTestResource(StargateTestResource.class)
+class DocumentDeleteResourceIntegrationTest extends DocsApiIntegrationTest {
 
   public static final String BASE_PATH =
       "/v2/namespaces/{namespace}/collections/{collection}/{document-id}";
@@ -53,28 +44,17 @@ class DocumentDeleteResourceIntegrationTest {
   public static final String DEFAULT_PAYLOAD =
       "{\"test\": \"document\", \"this\": [\"is\", 1, true]}";
 
-  @Inject NamespaceManager namespaceManager;
-
-  @Inject CollectionManager collectionManager;
-
-  @BeforeAll
-  public void init() {
-
-    RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
-
-    namespaceManager
-        .createNamespace(DEFAULT_NAMESPACE, Replication.simpleStrategy(1))
-        .await()
-        .atMost(Duration.ofSeconds(10));
-
-    collectionManager
-        .createCollectionTable(DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
-        .await()
-        .atMost(Duration.ofSeconds(10));
+  @Override
+  public Optional<String> createNamespace() {
+    return Optional.of(DEFAULT_NAMESPACE);
   }
 
-  @BeforeEach
-  public void setup() {
+  @Override
+  public Optional<String> createCollection() {
+    return Optional.of(DEFAULT_COLLECTION);
+  }
+
+  public void createDocument() {
     given()
         .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
         .header("Content-Type", "application/json")
@@ -87,6 +67,12 @@ class DocumentDeleteResourceIntegrationTest {
 
   @Nested
   class DeleteDocument {
+
+    @BeforeEach
+    public void setup() {
+      createDocument();
+    }
+
     @Test
     public void happyPath() {
       given()
@@ -161,6 +147,12 @@ class DocumentDeleteResourceIntegrationTest {
 
   @Nested
   class DeleteDocumentPath {
+
+    @BeforeEach
+    public void setup() {
+      createDocument();
+    }
+
     @Test
     public void testDeletePath() {
       given()
