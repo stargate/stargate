@@ -10,11 +10,11 @@ import com.google.protobuf.BytesValue;
 import com.google.protobuf.Int32Value;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
+import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.restapi.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restapi.grpc.FromProtoConverter;
 import io.stargate.sgv2.restapi.grpc.ToProtoConverter;
-import io.stargate.sgv2.restapi.service.models.RestServiceError;
 import io.stargate.sgv2.restapi.service.models.Sgv2RowsResponse;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -22,7 +22,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import javax.inject.Inject;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
@@ -39,8 +38,6 @@ public abstract class ResourceBase {
       BridgeProtoValueConverters.instance();
   protected static final QueryOuterClass.QueryParameters PARAMETERS_FOR_LOCAL_QUORUM =
       parametersBuilderForLocalQuorum().build();
-
-  @Inject protected StargateBridgeClient bridge;
 
   // // // Helper methods for Schema access
 
@@ -204,7 +201,7 @@ public abstract class ResourceBase {
 
   protected static Response restServiceError(Response.Status httpStatus, String failMessage) {
     return Response.status(httpStatus)
-        .entity(new RestServiceError(failMessage, httpStatus.getStatusCode()))
+        .entity(new ApiError(failMessage, httpStatus.getStatusCode()))
         .build();
   }
 }

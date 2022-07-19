@@ -1,22 +1,20 @@
 package io.stargate.sgv2.restapi.service.resources;
 
+import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
-import io.stargate.sgv2.restapi.service.models.RestServiceError;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2RowsResponse;
 import java.util.List;
-import java.util.Map;
 import javax.ws.rs.*;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
-import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 /**
  * Definition of REST API endpoint methods including both JAX-RS and Swagger annotations. No
@@ -25,9 +23,6 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
  * <p>NOTE: JAX-RS class annotations cannot be included in the interface and must be included in the
  * implementation class. Swagger annotations are ok tho.
  */
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
-@Tag(ref = RestOpenApiConstants.Tags.DATA)
 public interface Sgv2RowsResourceApi {
   @GET
   @Operation(
@@ -38,9 +33,10 @@ public interface Sgv2RowsResourceApi {
         @APIResponse(
             responseCode = "200",
             description = "OK",
-            content = @Content(schema = @Schema(implementation = Sgv2RowsResponse.class))),
-        //      response = Sgv2RowsResponse.class,
-        //      responseContainer = "List")
+            content =
+                @Content(
+                    schema =
+                        @Schema(implementation = Sgv2RowsResponse.class, type = SchemaType.ARRAY))),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_400),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
@@ -90,7 +86,10 @@ public interface Sgv2RowsResourceApi {
         @APIResponse(
             responseCode = "200",
             description = "OK",
-            content = @Content(schema = @Schema(implementation = Sgv2RowsResponse.class))),
+            content =
+                @Content(
+                    schema =
+                        @Schema(implementation = Sgv2RowsResponse.class, type = SchemaType.ARRAY))),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_400),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
@@ -133,7 +132,9 @@ public interface Sgv2RowsResourceApi {
         @APIResponse(
             responseCode = "404",
             description = "Not Found",
-            content = @Content(schema = @Schema(implementation = RestServiceError.class))),
+            content =
+                @Content(
+                    schema = @Schema(implementation = ApiError.class, type = SchemaType.ARRAY))),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_400),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
@@ -165,7 +166,7 @@ public interface Sgv2RowsResourceApi {
         @APIResponse(
             responseCode = "201",
             description = "Resource created",
-            content = @Content(schema = @Schema(implementation = Map.class))),
+            content = @Content(schema = @Schema(type = SchemaType.OBJECT))),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_400),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),

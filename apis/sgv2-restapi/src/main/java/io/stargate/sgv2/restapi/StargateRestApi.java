@@ -3,7 +3,6 @@ package io.stargate.sgv2.restapi;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
-import io.stargate.sgv2.restapi.service.models.RestServiceError;
 import javax.ws.rs.core.MediaType;
 import org.eclipse.microprofile.openapi.annotations.Components;
 import org.eclipse.microprofile.openapi.annotations.OpenAPIDefinition;
@@ -83,18 +82,18 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
               @APIResponse(
                   name = RestOpenApiConstants.Responses.GENERAL_400,
                   responseCode = "400",
-                  description = "Bad request.",
+                  description = "Bad request",
                   content =
                       @Content(
                           mediaType = MediaType.APPLICATION_JSON,
                           examples = {
                             @ExampleObject(ref = RestOpenApiConstants.Examples.GENERAL_BAD_REQUEST)
                           },
-                          schema = @Schema(implementation = RestServiceError.class))),
+                          schema = @Schema(implementation = ApiError.class))),
               @APIResponse(
                   name = RestOpenApiConstants.Responses.GENERAL_401,
                   responseCode = "401",
-                  description = "Unauthorized.",
+                  description = "Unauthorized",
                   content =
                       @Content(
                           mediaType = MediaType.APPLICATION_JSON,
@@ -114,6 +113,6 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                             @ExampleObject(
                                 ref = RestOpenApiConstants.Examples.GENERAL_SERVER_SIDE_ERROR),
                           },
-                          schema = @Schema(implementation = RestServiceError.class))),
+                          schema = @Schema(implementation = ApiError.class))),
             }))
 public class StargateRestApi {}
