@@ -22,6 +22,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import javax.inject.Inject;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
@@ -38,6 +39,8 @@ public abstract class ResourceBase {
       BridgeProtoValueConverters.instance();
   protected static final QueryOuterClass.QueryParameters PARAMETERS_FOR_LOCAL_QUORUM =
       parametersBuilderForLocalQuorum().build();
+
+  @Inject protected StargateBridgeClient bridge;
 
   // // // Helper methods for Schema access
 
