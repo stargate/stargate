@@ -25,7 +25,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
-import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
+import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.query.FilterExpression;
 import io.stargate.sgv2.docsapi.service.query.FilterPath;
 import io.stargate.sgv2.docsapi.service.query.ImmutableFilterPath;

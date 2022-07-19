@@ -20,7 +20,7 @@ package io.stargate.sgv2.docsapi.service.query.search.resolver;
 import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.Literal;
-import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
+import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.query.FilterExpression;
 import io.stargate.sgv2.docsapi.service.query.rules.ExpressionUtils;
