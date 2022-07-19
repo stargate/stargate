@@ -17,9 +17,9 @@
 package io.stargate.sgv2.docsapi.service.query.condition.provider.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
+import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
 import io.stargate.sgv2.docsapi.service.query.condition.impl.GenericCondition;
 import io.stargate.sgv2.docsapi.service.query.condition.impl.ImmutableGenericCondition;

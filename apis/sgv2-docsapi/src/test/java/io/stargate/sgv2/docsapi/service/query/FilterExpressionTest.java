@@ -30,7 +30,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
-import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
+import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
 import io.stargate.sgv2.docsapi.service.query.model.RawDocument;

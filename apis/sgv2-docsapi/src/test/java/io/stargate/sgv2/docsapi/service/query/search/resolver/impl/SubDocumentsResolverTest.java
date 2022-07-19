@@ -34,7 +34,7 @@ import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
 import io.stargate.sgv2.docsapi.OpenMocksTest;
-import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
+import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.bridge.AbstractValidatingStargateBridgeTest;
 import io.stargate.sgv2.docsapi.bridge.ValidatingStargateBridge;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
@@ -169,7 +169,7 @@ class SubDocumentsResolverTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(2);
                         });
               });
@@ -287,7 +287,7 @@ class SubDocumentsResolverTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(4);
                         });
               });
@@ -383,7 +383,7 @@ class SubDocumentsResolverTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(2);
                         });
               });
@@ -461,7 +461,7 @@ class SubDocumentsResolverTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(2);
                         });
               });
@@ -516,7 +516,7 @@ class SubDocumentsResolverTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(0);
                         });
               });

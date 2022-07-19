@@ -19,6 +19,7 @@ package io.stargate.web.docsapi.rx;
 
 import io.reactivex.rxjava3.core.Single;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.function.Supplier;
 
 public final class RxUtils {
@@ -33,16 +34,24 @@ public final class RxUtils {
                 .whenComplete(
                     (e, t) -> {
                       if (null != t) {
-                        emitter.onError(t);
+                        emitter.onError(getEmittingThrowable(t));
                       } else {
                         emitter.onSuccess(e);
                       }
                     })
                 .whenComplete(
                     (e, t) -> {
-                      if (null != t) {
-                        emitter.onError(t);
+                      if (null != t && !emitter.isDisposed()) {
+                        emitter.onError(getEmittingThrowable(t));
                       }
                     }));
+  }
+
+  private static Throwable getEmittingThrowable(Throwable t) {
+    if (t instanceof CompletionException && null != t.getCause()) {
+      return t.getCause();
+    } else {
+      return t;
+    }
   }
 }

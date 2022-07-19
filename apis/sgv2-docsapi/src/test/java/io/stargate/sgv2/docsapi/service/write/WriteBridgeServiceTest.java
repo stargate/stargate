@@ -27,11 +27,11 @@ import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.Batch;
+import io.stargate.sgv2.api.common.properties.datastore.DataStoreProperties;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
-import io.stargate.sgv2.docsapi.api.common.properties.datastore.DataStoreProperties;
-import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
+import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.bridge.AbstractValidatingStargateBridgeTest;
 import io.stargate.sgv2.docsapi.bridge.ValidatingStargateBridge;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
@@ -160,8 +160,8 @@ class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL()).isEqualTo(insertCql);
-                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.cql()).isEqualTo(insertCql);
+                          assertThat(queryInfo.executionCount()).isEqualTo(2);
                           assertThat(queryInfo.rowCount()).isEqualTo(2);
                         });
               });
@@ -244,8 +244,8 @@ class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL()).isEqualTo(insertCql);
-                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.cql()).isEqualTo(insertCql);
+                          assertThat(queryInfo.executionCount()).isEqualTo(2);
                           assertThat(queryInfo.rowCount()).isEqualTo(2);
                         });
               });
@@ -337,15 +337,15 @@ class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .hasSize(2)
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL()).isEqualTo(deleteCql);
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.cql()).isEqualTo(deleteCql);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         })
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(String.format(insertCql, keyspaceName + "." + tableName));
-                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.executionCount()).isEqualTo(2);
                           assertThat(queryInfo.rowCount()).isEqualTo(2);
                         });
               });
@@ -435,15 +435,15 @@ class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .hasSize(2)
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL()).isEqualTo(deleteCql);
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.cql()).isEqualTo(deleteCql);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         })
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(String.format(insertCql, keyspaceName + "." + tableName));
-                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.executionCount()).isEqualTo(2);
                           assertThat(queryInfo.rowCount()).isEqualTo(2);
                         });
               });
@@ -533,15 +533,15 @@ class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .hasSize(2)
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL()).isEqualTo(deleteCql);
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.cql()).isEqualTo(deleteCql);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         })
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(String.format(insertCql, keyspaceName + "." + tableName));
-                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.executionCount()).isEqualTo(2);
                           assertThat(queryInfo.rowCount()).isEqualTo(2);
                         });
               });
@@ -724,30 +724,30 @@ class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .hasSize(4)
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(
                                   String.format(deleteExactCql, keyspaceName + "." + tableName));
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                         })
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(
                                   String.format(deletePatchedKeys, keyspaceName + "." + tableName));
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                         })
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(
                                   String.format(deleteArray, keyspaceName + "." + tableName));
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                         })
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(String.format(insertCql, keyspaceName + "." + tableName));
-                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.executionCount()).isEqualTo(2);
                           assertThat(queryInfo.rowCount()).isEqualTo(2);
                         });
               });
@@ -875,30 +875,30 @@ class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .hasSize(4)
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(
                                   String.format(deleteExactCql, keyspaceName + "." + tableName));
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                         })
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(
                                   String.format(deletePatchedKeys, keyspaceName + "." + tableName));
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                         })
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(
                                   String.format(deleteArray, keyspaceName + "." + tableName));
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                         })
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(String.format(insertCql, keyspaceName + "." + tableName));
-                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.executionCount()).isEqualTo(2);
                           assertThat(queryInfo.rowCount()).isEqualTo(2);
                         });
               });
@@ -1027,30 +1027,30 @@ class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .hasSize(4)
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(
                                   String.format(deleteExactCql, keyspaceName + "." + tableName));
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                         })
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(
                                   String.format(deletePatchedKeys, keyspaceName + "." + tableName));
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                         })
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(
                                   String.format(deleteArray, keyspaceName + "." + tableName));
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                         })
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(String.format(insertCql, keyspaceName + "." + tableName));
-                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.executionCount()).isEqualTo(2);
                           assertThat(queryInfo.rowCount()).isEqualTo(2);
                         });
               });
@@ -1153,8 +1153,8 @@ class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL()).isEqualTo(deleteCql);
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.cql()).isEqualTo(deleteCql);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         });
               });
@@ -1192,8 +1192,8 @@ class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL()).isEqualTo(deleteCql);
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.cql()).isEqualTo(deleteCql);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
                         });
               });
@@ -1280,18 +1280,18 @@ class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .hasSize(3)
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL()).isEqualTo(deleteFirst);
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.cql()).isEqualTo(deleteFirst);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                         })
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL()).isEqualTo(deleteSecond);
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.cql()).isEqualTo(deleteSecond);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                         })
                     .anySatisfy(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL()).isEqualTo(deleteThird);
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.cql()).isEqualTo(deleteThird);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                         });
               });
     }
@@ -1387,8 +1387,8 @@ class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.preparedCQL()).isEqualTo(insertCql);
-                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.cql()).isEqualTo(insertCql);
+                          assertThat(queryInfo.executionCount()).isEqualTo(2);
                           assertThat(queryInfo.rowCount()).isEqualTo(2);
                         });
               });

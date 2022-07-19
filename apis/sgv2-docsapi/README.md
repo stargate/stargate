@@ -1,16 +1,14 @@
 # Stargate Docs API V2
 
-> **IMPORTANT:**  This project is currently an independent project in this monorepo, and it's not connected to the root `io.stargate:stargate` project.
-
 This project represents the stand-alone Docs API microservice for Stargate V2, extracted from monolithic Stargate V1 Coordinator.
+The project depends on [sgv2-quarkus-common](../sgv2-quarkus-common) module, which defines general common project for all Stargate V2 APIs.
 
 The high-level design of the application is described in the [Document API in Stargate V2 discussion](https://github.com/stargate/stargate/discussions/1742).
 All issues related to the Docs API V2 are marked with the `stargate-v2` and `documents API` [labels](https://github.com/stargate/stargate/issues?q=is%3Aopen+is%3Aissue+label%3Astargate-v2+label%3A%22documents+API%22).
 
 ##### Table of Contents
 * [Concepts](#concepts)
-   * [Authentication](#authentication) 
-   * [Multi-tenancy](#multi-tenancy) 
+   * [Shared concepts](#shared-concepts) 
    * [Partitioner limitations](#partitioner-limitations) 
 * [Configuration properties](#configuration-properties)  
 * [Development guide](#development-guide)  
@@ -23,25 +21,9 @@ All issues related to the Docs API V2 are marked with the `stargate-v2` and `doc
 
 ## Concepts
 
-### Authentication
+### Shared concepts
 
-By default, the application uses the header-based authentication mechanism.
-All requests must include the `X-Cassandra-Token` in order to be considered as authenticated.
-The actual authentication and authorization is delegated to the Stargate V2 Bridge, by passing the value of that header as the Cassandra token.
-
-The header-based authentication can be switched off and any [Quarkus Build-in Authentication Mechanism](https://quarkus.io/guides/security-built-in-authentication) can be used.
-In that case,you need to provide a correct [CassandraTokenResolver](src/main/java/io/stargate/sgv2/docsapi/api/common/token/CassandraTokenResolver.java) implementation, in order to resolve the C* token when calling the Stargate V2 Bridge.
-
-The [Configuration properties](#configuration-properties) provides detailed view on available configuration options.
-
-### Multi-tenancy
-
-The Stargate V2 explicitly supports the multi-tenancy.
-Multi-tenancy is optional and is controlled by the configured [TenantResolver](src/main/java/io/stargate/sgv2/docsapi/api/common/tenant/TenantResolver.java) implementation.
-If a tenant is resolved for an HTTP request, the information about the tenant will be propagated to the Stargate V2 Bridge.
-In addition, the tenant identifier could be added to metrics, traces, logs, etc.
-
-The [Configuration properties](#configuration-properties) provides detailed view on available configuration options.
+Please read the [Stargate V2 Shared Concepts](../sgv2-quarkus-common/README.md#shared-concepts) in order to get basic concepts shared between all V2 API implementations. 
 
 ### Partitioner limitations
 
@@ -57,7 +39,7 @@ There are two main configuration property prefixes used, `stargate.` and `quarku
 The `quarkus.` properties are defined by the Quarkus framework, and the complete list of available properties can be found on [All configuration options](https://quarkus.io/guides/all-config) page.
 In addition, the related guide of each [Quarkus extension](#quarkus-extensions) used in the project, gives overview on the available config options as well.
 
-The `stargate.` properties are defined by this project itself.
+The `stargate.` properties are defined by this project itself and by the [sgv2-quarkus-common configuration](../sgv2-quarkus-common/CONFIGURATION.md).
 The properties are defined by dedicated config classes annotated with the `@ConfigMapping`.
 The list of currently available properties is documented in the [Configuration Guide](CONFIGURATION.md).
 
@@ -74,7 +56,6 @@ Note that this project uses Java 17, please ensure that you have the target JDK 
 ### Running the application in dev mode
 
 Before being able to run the application, make sure you install the root [../apis/pom.xml](../pom.xml):
-
 ```shell script
 cd ../
 ./mvnw install -DskipTests
@@ -82,7 +63,7 @@ cd ../
 
 You can run your application in dev mode that enables live coding using:
 ```shell script
-../mvnw compile quarkus:dev
+../mvnw quarkus:dev
 ```
 
 > **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at http://localhost:8180/stargate/dev/.
@@ -228,7 +209,7 @@ The [pom.xml](pom.xml) file defines what proto files should be used for generati
 ```
 
 The clients are configured using the `quarkus.grpc.clients.[client-name]` properties.
-In order to pass the request context information to the Bridge, the client should be obtained using the [GrpcClients](src/main/java/io/stargate/sgv2/docsapi/grpc/GrpcClients.java) utility class.
+In order to pass the request context information to the Bridge, the client should be obtained using the [GrpcClients](../sgv2-quarkus-common/src/main/java/io/stargate/sgv2/api/common/grpc/GrpcClients.java) utility class.
 
 ### `quarkus-hibernate-validator`
 [Related guide](https://quarkus.io/guides/validation)

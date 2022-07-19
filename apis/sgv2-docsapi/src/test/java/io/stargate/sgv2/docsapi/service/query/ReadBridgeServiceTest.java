@@ -29,10 +29,10 @@ import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
-import io.stargate.sgv2.docsapi.api.common.properties.document.DocumentProperties;
+import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
+import io.stargate.sgv2.docsapi.api.v2.model.dto.ExecutionProfile;
 import io.stargate.sgv2.docsapi.bridge.AbstractValidatingStargateBridgeTest;
 import io.stargate.sgv2.docsapi.bridge.ValidatingStargateBridge;
-import io.stargate.sgv2.docsapi.models.ExecutionProfile;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.common.model.Paginator;
 import io.stargate.sgv2.docsapi.service.query.condition.BaseCondition;
@@ -217,9 +217,9 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(2);
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(
                                   String.format(
                                       candidatesCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
@@ -232,9 +232,9 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(2);
+                          assertThat(queryInfo.executionCount()).isEqualTo(2);
                           assertThat(queryInfo.rowCount()).isEqualTo(4);
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(
                                   String.format(
                                       populateCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
@@ -347,9 +347,9 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(2);
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(
                                   String.format(
                                       candidatesCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
@@ -362,9 +362,9 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(2);
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(
                                   String.format(
                                       populateCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
@@ -420,9 +420,9 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(0);
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(
                                   String.format(
                                       candidatesCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
@@ -561,9 +561,9 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(4);
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(
                                   String.format(searchCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
                         });
@@ -670,9 +670,9 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(2);
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(String.format(cql, KEYSPACE_NAME + "." + COLLECTION_NAME));
                         });
               });
@@ -761,9 +761,9 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(String.format(cql, KEYSPACE_NAME + "." + COLLECTION_NAME));
                         });
               });
@@ -877,9 +877,9 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(3);
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(String.format(cql, KEYSPACE_NAME + "." + COLLECTION_NAME));
                         });
               });
@@ -970,9 +970,9 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(3);
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(String.format(cql, KEYSPACE_NAME + "." + COLLECTION_NAME));
                         });
               });
@@ -1024,9 +1024,9 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
           .singleElement()
           .satisfies(
               queryInfo -> {
-                assertThat(queryInfo.execCount()).isEqualTo(1);
+                assertThat(queryInfo.executionCount()).isEqualTo(1);
                 assertThat(queryInfo.rowCount()).isEqualTo(1);
-                assertThat(queryInfo.preparedCQL())
+                assertThat(queryInfo.cql())
                     .isEqualTo(String.format(cql, KEYSPACE_NAME + "." + COLLECTION_NAME));
               });
     }
@@ -1132,9 +1132,9 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(1);
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(
                                   String.format(
                                       candidatesCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
@@ -1157,9 +1157,9 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                               .singleElement()
                               .satisfies(
                                   queryInfo -> {
-                                    assertThat(queryInfo.execCount()).isEqualTo(1);
+                                    assertThat(queryInfo.executionCount()).isEqualTo(1);
                                     assertThat(queryInfo.rowCount()).isEqualTo(1);
-                                    assertThat(queryInfo.preparedCQL())
+                                    assertThat(queryInfo.cql())
                                         .isEqualTo(
                                             String.format(
                                                 filterCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
@@ -1176,9 +1176,9 @@ class ReadBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                     .singleElement()
                     .satisfies(
                         queryInfo -> {
-                          assertThat(queryInfo.execCount()).isEqualTo(1);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
                           assertThat(queryInfo.rowCount()).isEqualTo(2);
-                          assertThat(queryInfo.preparedCQL())
+                          assertThat(queryInfo.cql())
                               .isEqualTo(
                                   String.format(
                                       populateCql, KEYSPACE_NAME + "." + COLLECTION_NAME));
