@@ -9,6 +9,7 @@ import javax.ws.rs.*;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.enums.ParameterIn;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -42,13 +43,23 @@ public interface Sgv2RowsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
   Response getRowWithWhere(
-      @Parameter(description = "Name of the keyspace to use for the request.", required = true)
+      @Parameter(
+              in = ParameterIn.PATH,
+              name = "keyspaceName",
+              description = "Name of the keyspace to use for the request.",
+              required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @Parameter(description = "Name of the table to use for the request.", required = true)
+      @Parameter(
+              in = ParameterIn.PATH,
+              name = "tableName",
+              description = "Name of the table to use for the request.",
+              required = true)
           @PathParam("tableName")
           final String tableName,
       @Parameter(
+              in = ParameterIn.QUERY,
+              name = "where",
               description =
                   "URL escaped JSON query using the following keys: \n "
                       + "| Key | Operation | \n "
@@ -67,15 +78,28 @@ public interface Sgv2RowsResourceApi {
               required = true)
           @QueryParam("where")
           final String where,
-      @Parameter(description = "URL escaped, comma delimited list of keys to include")
+      @Parameter(
+              in = ParameterIn.QUERY,
+              name = "fields",
+              description = "URL escaped, comma delimited list of keys to include")
           @QueryParam("fields")
           final String fields,
-      @Parameter(description = "Restrict the number of returned items") @QueryParam("page-size")
+      @Parameter(
+              in = ParameterIn.QUERY,
+              name = "page-size",
+              description = "Restrict the number of returned items")
+          @QueryParam("page-size")
           final int pageSizeParam,
-      @Parameter(description = "Move the cursor to a particular result") @QueryParam("page-state")
+      @Parameter(
+              in = ParameterIn.QUERY,
+              name = "page-state",
+              description = "Move the cursor to a particular result")
+          @QueryParam("page-state")
           final String pageStateParam,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) final boolean raw,
-      @Parameter(description = "Keys to sort by") @QueryParam("sort") final String sort);
+      @Parameter(in = ParameterIn.QUERY, name = "sort", description = "Keys to sort by")
+          @QueryParam("sort")
+          final String sort);
 
   @GET
   @Operation(
@@ -96,13 +120,23 @@ public interface Sgv2RowsResourceApi {
       })
   @Path("/{primaryKey: .*}")
   Response getRows(
-      @Parameter(description = "Name of the keyspace to use for the request.", required = true)
+      @Parameter(
+              in = ParameterIn.PATH,
+              name = "keyspaceName",
+              description = "Name of the keyspace to use for the request.",
+              required = true)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @Parameter(description = "Name of the table to use for the request.", required = true)
+      @Parameter(
+              in = ParameterIn.PATH,
+              name = "tableName",
+              description = "Name of the table to use for the request.",
+              required = true)
           @PathParam("tableName")
           final String tableName,
       @Parameter(
+              in = ParameterIn.PATH,
+              name = "primaryKey",
               description =
                   "Value from the primary key column for the table. Define composite keys by separating values"
                       + " with slashes (`val1/val2...`) in the order they were defined. </br>"
@@ -111,15 +145,28 @@ public interface Sgv2RowsResourceApi {
               required = true)
           @PathParam("primaryKey")
           List<PathSegment> path,
-      @Parameter(description = "URL escaped, comma delimited list of keys to include")
+      @Parameter(
+              in = ParameterIn.QUERY,
+              name = "field",
+              description = "URL escaped, comma delimited list of keys to include")
           @QueryParam("fields")
           final String fields,
-      @Parameter(description = "Restrict the number of returned items") @QueryParam("page-size")
+      @Parameter(
+              in = ParameterIn.QUERY,
+              name = "page-size",
+              description = "Restrict the number of returned items")
+          @QueryParam("page-size")
           final int pageSizeParam,
-      @Parameter(description = "Move the cursor to a particular result") @QueryParam("page-state")
+      @Parameter(
+              in = ParameterIn.QUERY,
+              name = "page-state",
+              description = "Move the cursor to a particular result")
+          @QueryParam("page-state")
           final String pageStateParam,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) final boolean raw,
-      @Parameter(description = "Keys to sort by") @QueryParam("sort") final String sort);
+      @Parameter(in = ParameterIn.QUERY, name = "sort", description = "Keys to sort by")
+          @QueryParam("sort")
+          final String sort);
 
   @GET
   @Operation(summary = "Retrieve all rows", description = "Get all rows from a table.")
