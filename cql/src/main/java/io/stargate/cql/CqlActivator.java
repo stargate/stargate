@@ -22,12 +22,15 @@ import io.stargate.cql.impl.CqlImpl;
 import io.stargate.db.DbActivator;
 import io.stargate.db.Persistence;
 import io.stargate.db.metrics.api.ClientInfoMetricsTagProvider;
+import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.util.Arrays;
 import java.util.List;
 import javax.annotation.Nullable;
-import org.apache.cassandra.config.Config;
+import org.apache.cassandra.stargate.config.Config;
+import org.apache.cassandra.stargate.config.YamlConfigurationLoader;
 
 public class CqlActivator extends BaseActivator {
   private CqlImpl cql;
@@ -86,6 +89,16 @@ public class CqlActivator extends BaseActivator {
 
   private static Config makeConfig() {
     try {
+      Config c;
+
+      String cqlConfigPath = System.getProperty("stargate.cql.config_path", "");
+      if (cqlConfigPath.isEmpty()) {
+        c = new Config();
+      } else {
+        File configFile = new File(cqlConfigPath);
+        c = new YamlConfigurationLoader().loadConfig(configFile.toURI().toURL());
+      }
+
       String listenAddress =
           System.getProperty(
               "stargate.listen_address", InetAddress.getLocalHost().getHostAddress());
@@ -93,8 +106,6 @@ public class CqlActivator extends BaseActivator {
       if (!Boolean.getBoolean("stargate.bind_to_listen_address")) listenAddress = "0.0.0.0";
 
       Integer cqlPort = Integer.getInteger("stargate.cql_port", 9042);
-
-      Config c = new Config();
 
       c.rpc_address = listenAddress;
       c.native_transport_port = cqlPort;
@@ -113,8 +124,8 @@ public class CqlActivator extends BaseActivator {
               Runtime.getRuntime().maxMemory() / 40);
 
       return c;
-    } catch (UnknownHostException e) {
-      throw new RuntimeException(e);
+    } catch (IOException e) {
+      throw new UncheckedIOException(e);
     }
   }
 }

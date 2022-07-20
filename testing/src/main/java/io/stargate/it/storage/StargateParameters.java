@@ -52,6 +52,11 @@ public interface StargateParameters {
     return 9043;
   }
 
+  @Value.Default
+  default boolean useSSLForCQL() {
+    return false;
+  }
+
   static Builder builder() {
     return ImmutableStargateParameters.builder();
   }
@@ -66,6 +71,8 @@ public interface StargateParameters {
     Builder proxyDnsName(String name);
 
     Builder proxyPort(int port);
+
+    Builder useSSLForCQL(boolean enabled);
 
     StargateParameters build();
   }
