@@ -7,6 +7,7 @@ import javax.ws.rs.core.MediaType;
 import org.eclipse.microprofile.openapi.annotations.Components;
 import org.eclipse.microprofile.openapi.annotations.OpenAPIDefinition;
 import org.eclipse.microprofile.openapi.annotations.enums.ParameterIn;
+import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.enums.SecuritySchemeIn;
 import org.eclipse.microprofile.openapi.annotations.enums.SecuritySchemeType;
 import org.eclipse.microprofile.openapi.annotations.info.Info;
@@ -40,9 +41,47 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
             parameters = {
               @Parameter(
                   in = ParameterIn.QUERY,
+                  name = RestOpenApiConstants.Parameters.FIELDS,
+                  description = "Comma delimited list of keys to include",
+                  example = "name,title",
+                  required = false,
+                  schema = @Schema(implementation = String.class)),
+              @Parameter(
+                  in = ParameterIn.PATH,
+                  name = RestOpenApiConstants.Parameters.KEYSPACE_NAME,
+                  description = "Name of the keyspace to use for the request",
+                  example = "cycling",
+                  required = true,
+                  schema = @Schema(implementation = String.class)),
+              @Parameter(
+                  in = ParameterIn.QUERY,
                   name = RestOpenApiConstants.Parameters.RAW,
                   description = "Whether to 'unwrap' results object (omit wrapper)",
+                  required = false,
                   schema = @Schema(implementation = boolean.class)),
+              @Parameter(
+                  in = ParameterIn.QUERY,
+                  name = RestOpenApiConstants.Parameters.SORT,
+                  description =
+                      "JSON Object with key(s) to sort results by as keys and 'ASC' or 'DESC' as value",
+                  required = false,
+                  schema = @Schema(type = SchemaType.OBJECT),
+                  examples = {
+                    @ExampleObject(
+                        name = "sort.single",
+                        summary = "Single sorting column",
+                        value =
+                            """
+                            {"count": "DESC"}}
+                            """)
+                  }),
+              @Parameter(
+                  in = ParameterIn.PATH,
+                  name = RestOpenApiConstants.Parameters.TABLE_NAME,
+                  description = "Name of the table to use for the request",
+                  required = true,
+                  example = "cycling_events",
+                  schema = @Schema(implementation = String.class)),
             },
 
             // reusable examples

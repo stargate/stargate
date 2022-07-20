@@ -44,18 +44,10 @@ public interface Sgv2RowsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
   Response getRowWithWhere(
-      @Parameter(
-              in = ParameterIn.PATH,
-              name = "keyspaceName",
-              description = "Name of the keyspace to use for the request.",
-              required = true)
+      @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @Parameter(
-              in = ParameterIn.PATH,
-              name = "tableName",
-              description = "Name of the table to use for the request.",
-              required = true)
+      @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
           final String tableName,
       @Parameter(
@@ -79,10 +71,7 @@ public interface Sgv2RowsResourceApi {
               required = true)
           @QueryParam("where")
           final String where,
-      @Parameter(
-              in = ParameterIn.QUERY,
-              name = "fields",
-              description = "URL escaped, comma delimited list of keys to include")
+      @Parameter(name = "fields", ref = RestOpenApiConstants.Parameters.FIELDS)
           @QueryParam("fields")
           final String fields,
       @Parameter(
@@ -99,8 +88,7 @@ public interface Sgv2RowsResourceApi {
           final String pageStateParam,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw,
-      @Parameter(in = ParameterIn.QUERY, name = "sort", description = "Keys to sort by")
-          @QueryParam("sort")
+      @Parameter(name = "sort", ref = RestOpenApiConstants.Parameters.SORT) @QueryParam("sort")
           final String sort);
 
   @GET
@@ -122,18 +110,10 @@ public interface Sgv2RowsResourceApi {
       })
   @Path("/{primaryKey: .*}")
   Response getRows(
-      @Parameter(
-              in = ParameterIn.PATH,
-              name = "keyspaceName",
-              description = "Name of the keyspace to use for the request.",
-              required = true)
+      @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @Parameter(
-              in = ParameterIn.PATH,
-              name = "tableName",
-              description = "Name of the table to use for the request.",
-              required = true)
+      @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
           final String tableName,
       @Parameter(
@@ -147,10 +127,7 @@ public interface Sgv2RowsResourceApi {
               required = true)
           @PathParam("primaryKey")
           List<PathSegment> path,
-      @Parameter(
-              in = ParameterIn.QUERY,
-              name = "field",
-              description = "URL escaped, comma delimited list of keys to include")
+      @Parameter(name = "fields", ref = RestOpenApiConstants.Parameters.FIELDS)
           @QueryParam("fields")
           final String fields,
       @Parameter(
@@ -167,8 +144,7 @@ public interface Sgv2RowsResourceApi {
           final String pageStateParam,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw,
-      @Parameter(in = ParameterIn.QUERY, name = "sort", description = "Keys to sort by")
-          @QueryParam("sort")
+      @Parameter(name = "sort", ref = RestOpenApiConstants.Parameters.SORT) @QueryParam("sort")
           final String sort);
 
   @GET
@@ -191,20 +167,23 @@ public interface Sgv2RowsResourceApi {
       })
   @Path("/rows")
   Response getAllRows(
-      @Parameter(description = "Name of the keyspace to use for the request.", required = true)
+      @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @Parameter(description = "Name of the table to use for the request.", required = true)
+      @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
           final String tableName,
-      @QueryParam("fields") String fields,
+      @Parameter(name = "fields", ref = RestOpenApiConstants.Parameters.FIELDS)
+          @QueryParam("fields")
+          String fields,
       @Parameter(description = "Restrict the number of returned items") @QueryParam("page-size")
           final int pageSizeParam,
       @Parameter(description = "Move the cursor to a particular result") @QueryParam("page-state")
           final String pageStateParam,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw,
-      @Parameter(description = "Keys to sort by") @QueryParam("sort") final String sort);
+      @Parameter(name = "sort", ref = RestOpenApiConstants.Parameters.SORT) @QueryParam("sort")
+          final String sort);
 
   @POST
   @Operation(
@@ -223,10 +202,10 @@ public interface Sgv2RowsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
   Response createRow(
-      @Parameter(description = "Name of the keyspace to use for the request.", required = true)
+      @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @Parameter(description = "Name of the table to use for the request.", required = true)
+      @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
           final String tableName,
       @RequestBody(description = "Fields of the Row to create as JSON", required = true)
@@ -246,10 +225,10 @@ public interface Sgv2RowsResourceApi {
       })
   @Path("/{primaryKey: .*}")
   Response updateRows(
-      @Parameter(description = "Name of the keyspace to use for the request.", required = true)
+      @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @Parameter(description = "Name of the table to use for the request.", required = true)
+      @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
           final String tableName,
       @Parameter(
@@ -277,10 +256,10 @@ public interface Sgv2RowsResourceApi {
       })
   @Path("/{primaryKey: .*}")
   Response deleteRows(
-      @Parameter(description = "Name of the keyspace to use for the request.", required = true)
+      @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @Parameter(description = "Name of the table to use for the request.", required = true)
+      @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
           final String tableName,
       @Parameter(
@@ -309,10 +288,10 @@ public interface Sgv2RowsResourceApi {
       })
   @Path("/{primaryKey: .*}")
   Response patchRows(
-      @Parameter(description = "Name of the keyspace to use for the request.", required = true)
+      @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @Parameter(description = "Name of the table to use for the request.", required = true)
+      @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
           final String tableName,
       @Parameter(

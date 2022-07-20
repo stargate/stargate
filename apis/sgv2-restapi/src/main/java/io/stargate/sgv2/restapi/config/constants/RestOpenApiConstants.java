@@ -32,10 +32,11 @@ public interface RestOpenApiConstants {
 
   /** Parameters reference names. */
   interface Parameters {
-    String KEYSPACE = "keyspace";
+    String FIELDS = "fields";
+    String KEYSPACE_NAME = "keyspaceName";
     String RAW = "raw";
-    String TABLE_NAME = "table_name";
-    String WHERE = "where";
+    String TABLE_NAME = "tableName";
+    String SORT = "sort";
   }
 
   /** Reused example snippets, mostly for error codes */
