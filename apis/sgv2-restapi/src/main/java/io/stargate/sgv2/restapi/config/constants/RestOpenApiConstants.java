@@ -34,6 +34,9 @@ public interface RestOpenApiConstants {
   interface Parameters {
     String FIELDS = "fields";
     String KEYSPACE_NAME = "keyspaceName";
+    String PAGE_SIZE = "page-size";
+    String PAGE_STATE = "page-state";
+    String PRIMARY_KEY = "primaryKey";
     String RAW = "raw";
     String TABLE_NAME = "tableName";
     String SORT = "sort";

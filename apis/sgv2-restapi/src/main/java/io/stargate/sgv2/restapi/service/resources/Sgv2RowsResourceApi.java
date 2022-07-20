@@ -54,7 +54,7 @@ public interface Sgv2RowsResourceApi {
               in = ParameterIn.QUERY,
               name = "where",
               description =
-                  "URL escaped JSON query using the following keys: \n "
+                  "JSON query using the following keys: \n "
                       + "| Key | Operation | \n "
                       + "|-|-| \n "
                       + "| $lt | Less Than | \n "
@@ -68,22 +68,17 @@ public interface Sgv2RowsResourceApi {
                       + "| $containsKey | Contains the given key (for maps) | \n "
                       + "| $containsEntry | Contains the given key/value entry (for maps) | \n "
                       + "| $exists | Returns the rows whose column (boolean type) value is true | ",
+              schema = @Schema(type = SchemaType.OBJECT),
               required = true)
           @QueryParam("where")
           final String where,
       @Parameter(name = "fields", ref = RestOpenApiConstants.Parameters.FIELDS)
           @QueryParam("fields")
           final String fields,
-      @Parameter(
-              in = ParameterIn.QUERY,
-              name = "page-size",
-              description = "Restrict the number of returned items")
+      @Parameter(name = "page-size", ref = RestOpenApiConstants.Parameters.PAGE_SIZE)
           @QueryParam("page-size")
           final int pageSizeParam,
-      @Parameter(
-              in = ParameterIn.QUERY,
-              name = "page-state",
-              description = "Move the cursor to a particular result")
+      @Parameter(name = "page-state", ref = RestOpenApiConstants.Parameters.PAGE_STATE)
           @QueryParam("page-state")
           final String pageStateParam,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
@@ -116,30 +111,16 @@ public interface Sgv2RowsResourceApi {
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
           final String tableName,
-      @Parameter(
-              in = ParameterIn.PATH,
-              name = "primaryKey",
-              description =
-                  "Value from the primary key column for the table. Define composite keys by separating values"
-                      + " with slashes (`val1/val2...`) in the order they were defined. </br>"
-                      + "For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)`"
-                      + " then the primary key in the path would be `race_year/race_name` ",
-              required = true)
+      @Parameter(name = "primaryKey", ref = RestOpenApiConstants.Parameters.PRIMARY_KEY)
           @PathParam("primaryKey")
           List<PathSegment> path,
       @Parameter(name = "fields", ref = RestOpenApiConstants.Parameters.FIELDS)
           @QueryParam("fields")
           final String fields,
-      @Parameter(
-              in = ParameterIn.QUERY,
-              name = "page-size",
-              description = "Restrict the number of returned items")
+      @Parameter(name = "page-size", ref = RestOpenApiConstants.Parameters.PAGE_SIZE)
           @QueryParam("page-size")
           final int pageSizeParam,
-      @Parameter(
-              in = ParameterIn.QUERY,
-              name = "page-state",
-              description = "Move the cursor to a particular result")
+      @Parameter(name = "page-state", ref = RestOpenApiConstants.Parameters.PAGE_STATE)
           @QueryParam("page-state")
           final String pageStateParam,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
@@ -176,9 +157,11 @@ public interface Sgv2RowsResourceApi {
       @Parameter(name = "fields", ref = RestOpenApiConstants.Parameters.FIELDS)
           @QueryParam("fields")
           String fields,
-      @Parameter(description = "Restrict the number of returned items") @QueryParam("page-size")
+      @Parameter(name = "page-size", ref = RestOpenApiConstants.Parameters.PAGE_SIZE)
+          @QueryParam("page-size")
           final int pageSizeParam,
-      @Parameter(description = "Move the cursor to a particular result") @QueryParam("page-state")
+      @Parameter(name = "page-state", ref = RestOpenApiConstants.Parameters.PAGE_STATE)
+          @QueryParam("page-state")
           final String pageStateParam,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw,
@@ -231,13 +214,7 @@ public interface Sgv2RowsResourceApi {
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
           final String tableName,
-      @Parameter(
-              description =
-                  "Value from the primary key column for the table. Define composite keys by separating"
-                      + " values with slashes (`val1/val2...`) in the order they were defined. </br>"
-                      + "For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)`"
-                      + " then the primary key in the path would be `race_year/race_name` ",
-              required = true)
+      @Parameter(name = "primaryKey", ref = RestOpenApiConstants.Parameters.PRIMARY_KEY)
           @PathParam("primaryKey")
           List<PathSegment> path,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
@@ -262,13 +239,7 @@ public interface Sgv2RowsResourceApi {
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
           final String tableName,
-      @Parameter(
-              description =
-                  "Value from the primary key column for the table. Define composite keys by separating values"
-                      + " with slashes (`val1/val2...`) in the order they were defined. </br>"
-                      + "For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)`"
-                      + " then the primary key in the path would be `race_year/race_name` ",
-              required = true)
+      @Parameter(name = "primaryKey", ref = RestOpenApiConstants.Parameters.PRIMARY_KEY)
           @PathParam("primaryKey")
           List<PathSegment> path);
 
@@ -294,13 +265,7 @@ public interface Sgv2RowsResourceApi {
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
           final String tableName,
-      @Parameter(
-              description =
-                  "Value from the primary key column for the table. Define composite keys by separating values"
-                      + " with slashes (`val1/val2...`) in the order they were defined. </br>"
-                      + "For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)`"
-                      + " then the primary key in the path would be `race_year/race_name` ",
-              required = true)
+      @Parameter(name = "primaryKey", ref = RestOpenApiConstants.Parameters.PRIMARY_KEY)
           @PathParam("primaryKey")
           List<PathSegment> path,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")

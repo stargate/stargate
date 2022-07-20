@@ -45,14 +45,37 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                   description = "Comma delimited list of keys to include",
                   example = "name,title",
                   required = false,
-                  schema = @Schema(implementation = String.class)),
+                  schema = @Schema(type = SchemaType.STRING)),
               @Parameter(
                   in = ParameterIn.PATH,
                   name = RestOpenApiConstants.Parameters.KEYSPACE_NAME,
                   description = "Name of the keyspace to use for the request",
                   example = "cycling",
                   required = true,
-                  schema = @Schema(implementation = String.class)),
+                  schema = @Schema(type = SchemaType.STRING)),
+              @Parameter(
+                  in = ParameterIn.QUERY,
+                  name = RestOpenApiConstants.Parameters.PAGE_SIZE,
+                  description = "Restrict the number of returned items",
+                  example = "10",
+                  required = false,
+                  schema = @Schema(implementation = Integer.class)),
+              @Parameter(
+                  in = ParameterIn.QUERY,
+                  name = RestOpenApiConstants.Parameters.PAGE_STATE,
+                  description = "Cassandra page state, used for pagination on consecutive requests",
+                  required = false,
+                  schema = @Schema(type = SchemaType.STRING)),
+              @Parameter(
+                  in = ParameterIn.PATH,
+                  name = RestOpenApiConstants.Parameters.PRIMARY_KEY,
+                  description =
+                      "Value from the primary key column for the table. Define composite keys by separating values"
+                          + " with slashes (`val1/val2...`) in the order they were defined. </br>"
+                          + "For example, if the composite key was defined as `PRIMARY KEY(race_year, race_name)`"
+                          + " then the primary key in the path would be `race_year/race_name` ",
+                  required = true,
+                  schema = @Schema(implementation = String.class, type = SchemaType.ARRAY)),
               @Parameter(
                   in = ParameterIn.QUERY,
                   name = RestOpenApiConstants.Parameters.RAW,
@@ -81,7 +104,7 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                   description = "Name of the table to use for the request",
                   required = true,
                   example = "cycling_events",
-                  schema = @Schema(implementation = String.class)),
+                  schema = @Schema(type = SchemaType.STRING)),
             },
 
             // reusable examples
