@@ -14,6 +14,7 @@ import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 
@@ -96,7 +97,8 @@ public interface Sgv2RowsResourceApi {
               description = "Move the cursor to a particular result")
           @QueryParam("page-state")
           final String pageStateParam,
-      @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) final boolean raw,
+      @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
+          final boolean raw,
       @Parameter(in = ParameterIn.QUERY, name = "sort", description = "Keys to sort by")
           @QueryParam("sort")
           final String sort);
@@ -163,7 +165,8 @@ public interface Sgv2RowsResourceApi {
               description = "Move the cursor to a particular result")
           @QueryParam("page-state")
           final String pageStateParam,
-      @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) final boolean raw,
+      @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
+          final boolean raw,
       @Parameter(in = ParameterIn.QUERY, name = "sort", description = "Keys to sort by")
           @QueryParam("sort")
           final String sort);
@@ -199,7 +202,8 @@ public interface Sgv2RowsResourceApi {
           final int pageSizeParam,
       @Parameter(description = "Move the cursor to a particular result") @QueryParam("page-state")
           final String pageStateParam,
-      @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) final boolean raw,
+      @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
+          final boolean raw,
       @Parameter(description = "Keys to sort by") @QueryParam("sort") final String sort);
 
   @POST
@@ -225,7 +229,8 @@ public interface Sgv2RowsResourceApi {
       @Parameter(description = "Name of the table to use for the request.", required = true)
           @PathParam("tableName")
           final String tableName,
-      @Parameter(description = "", required = true) final String payloadAsString);
+      @RequestBody(description = "Fields of the Row to create as JSON", required = true)
+          final String payloadAsString);
 
   @PUT
   @Operation(summary = "Replace row(s)", description = "Update existing rows in a table.")
@@ -256,8 +261,10 @@ public interface Sgv2RowsResourceApi {
               required = true)
           @PathParam("primaryKey")
           List<PathSegment> path,
-      @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) final boolean raw,
-      @Parameter(description = "", required = true) String payload);
+      @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
+          final boolean raw,
+      @RequestBody(description = "Fields of the Row to update as JSON", required = true)
+          String payloadAsString);
 
   @DELETE
   @Operation(summary = "Delete row(s)", description = "Delete one or more rows in a table")
@@ -317,6 +324,8 @@ public interface Sgv2RowsResourceApi {
               required = true)
           @PathParam("primaryKey")
           List<PathSegment> path,
-      @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) final boolean raw,
-      @Parameter(description = "document", required = true) String payload);
+      @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
+          final boolean raw,
+      @RequestBody(description = "Fields of the Row to patch as JSON", required = true)
+          String payloadAsString);
 }
