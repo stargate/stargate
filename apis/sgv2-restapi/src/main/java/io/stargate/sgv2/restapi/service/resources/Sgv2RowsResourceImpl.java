@@ -9,7 +9,6 @@ import io.stargate.sgv2.api.common.cql.builder.Predicate;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.api.common.cql.builder.Term;
 import io.stargate.sgv2.api.common.cql.builder.ValueModifier;
-import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.grpc.ToProtoConverter;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
@@ -24,7 +23,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -43,8 +41,6 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 @Consumes(MediaType.APPLICATION_JSON)
 @Tag(ref = RestOpenApiConstants.Tags.DATA)
 public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResourceApi {
-  @Inject protected StargateBridgeClient bridge;
-
   /*
   /////////////////////////////////////////////////////////////////////////
   // REST API endpoint implementation methods
@@ -77,7 +73,6 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
     QueryOuterClass.Response response =
         queryWithTable(
-            bridge,
             keyspaceName,
             tableName,
             tableDef -> {
@@ -135,7 +130,6 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
 
     QueryOuterClass.Response response =
         queryWithTable(
-            bridge,
             keyspaceName,
             tableName,
             tableDef -> {
@@ -191,7 +185,7 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
               .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
               .build();
     }
-    return fetchRows(bridge, query, raw);
+    return fetchRows(query, raw);
   }
 
   @Override
@@ -207,7 +201,6 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
     }
 
     queryWithTable(
-        bridge,
         keyspaceName,
         tableName,
         tableDef -> {
@@ -239,7 +232,6 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
       final String keyspaceName, final String tableName, final List<PathSegment> path) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     queryWithTable(
-        bridge,
         keyspaceName,
         tableName,
         (tableDef) -> {
@@ -276,7 +268,6 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
           "Invalid JSON payload: " + e.getMessage(), Status.BAD_REQUEST);
     }
     queryWithTable(
-        bridge,
         keyspaceName,
         tableName,
         tableDef -> {

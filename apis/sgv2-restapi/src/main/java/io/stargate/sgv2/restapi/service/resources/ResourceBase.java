@@ -22,6 +22,7 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import javax.inject.Inject;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
@@ -39,6 +40,8 @@ public abstract class ResourceBase {
   protected static final QueryOuterClass.QueryParameters PARAMETERS_FOR_LOCAL_QUORUM =
       parametersBuilderForLocalQuorum().build();
 
+  @Inject protected StargateBridgeClient bridge;
+
   // // // Helper methods for Schema access
 
   /**
@@ -47,8 +50,7 @@ public abstract class ResourceBase {
    * <p>This should be used for "schema" resources. If you are going to build and run another query
    * based on the metadata, use {@link #queryWithTable} instead.
    */
-  protected Schema.CqlTable getTable(
-      StargateBridgeClient bridge, String keyspaceName, String tableName) {
+  protected Schema.CqlTable getTable(String keyspaceName, String tableName) {
     return bridge
         .getTable(keyspaceName, tableName, true)
         .orElseThrow(
@@ -60,7 +62,6 @@ public abstract class ResourceBase {
 
   /** Gets the metadata of a table, then uses it to build another CQL query and executes it. */
   protected QueryOuterClass.Response queryWithTable(
-      StargateBridgeClient bridge,
       String keyspaceName,
       String tableName,
       Function<Schema.CqlTable, QueryOuterClass.Query> queryProducer) {
@@ -134,8 +135,7 @@ public abstract class ResourceBase {
     return PROTO_CONVERTERS.toProtoConverter(tableDef);
   }
 
-  protected Response fetchRows(
-      StargateBridgeClient bridge, QueryOuterClass.Query query, boolean raw) {
+  protected Response fetchRows(QueryOuterClass.Query query, boolean raw) {
     QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
     return toHttpResponse(grpcResponse, raw);
   }
