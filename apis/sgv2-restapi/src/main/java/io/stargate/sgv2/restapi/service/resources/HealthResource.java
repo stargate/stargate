@@ -31,9 +31,4 @@ public class HealthResource {
   public Response health() {
     return Response.status(Response.Status.OK).entity("UP").build();
   }
-
-  @GET
-  public Response ping() {
-    return Response.status(Response.Status.OK).entity("It's Alive").build();
-  }
 }
