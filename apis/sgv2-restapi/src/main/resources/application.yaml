@@ -1,4 +1,12 @@
 stargate:
+  # security and authentication configuration
+  # see io.stargate.sgv2.api.common.config.AuthConfig for all config properties and options
+  auth:
+    # header-based security by default
+    # if changed, adapt token resolver type
+    header-based:
+      enabled: true
+
   metrics:
     global-tags:
       module: sgv2-restapi
@@ -22,7 +30,7 @@ quarkus:
   grpc:
     clients:
       bridge:
-        host: localhost
+        host: 127.0.0.2
         port: 8091
     # force no grpc server start in dev as we have no grpc service
     dev-mode:
