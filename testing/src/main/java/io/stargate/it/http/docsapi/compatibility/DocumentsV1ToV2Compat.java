@@ -9,7 +9,10 @@ import java.io.IOException;
 public class DocumentsV1ToV2Compat {
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static String authToken;
-  private static String host = "127.0.0.1";
+  private static String v2Host;
+  private static String v2Port;
+  private static String v1Host;
+  private static String v1Port;
   private static String namespace = "test_namespace";
   private static String collection = "test_collection";
   private static String documentId = "test_document";
@@ -24,14 +27,18 @@ public class DocumentsV1ToV2Compat {
    * 6) Get the document using Documents API V1 and check that it no longer exists
    */
   public static void main(String[] args) throws IOException {
-    authToken = RestUtils.getAuthToken(host);
+    v1Host = System.getProperty("doccapi.v1.host", "127.0.0.1");
+    v1Port = System.getProperty("doccapi.v1.port", "8083");
+    v2Host = System.getProperty("doccapi.v2.host", "127.0.0.1");
+    v2Port = System.getProperty("doccapi.v2.port", "8180");
+    authToken = RestUtils.getAuthToken(v2Host);
     String document = "{\"a\": {}, \"b\": [], \"c\": true, \"d\": {\"nested\": \"value\"}}";
     // Create a document using V1
     RestUtils.put(
         authToken,
         String.format(
-            "http://%s:8083/v2/namespaces/%s/collections/%s/%s",
-            host, namespace, collection, documentId),
+            "http://%s:%s/v2/namespaces/%s/collections/%s/%s",
+            v1Host, v1Port, namespace, collection, documentId),
         document,
         200);
     // Get using documents API V2
@@ -39,24 +46,24 @@ public class DocumentsV1ToV2Compat {
         RestUtils.get(
             authToken,
             String.format(
-                "http://%s:8180/v2/namespaces/%s/collections/%s/%s?raw=true",
-                host, namespace, collection, documentId),
+                "http://%s:%s/v2/namespaces/%s/collections/%s/%s?raw=true",
+                v2Host, v2Port, namespace, collection, documentId),
             200);
     assertThat(OBJECT_MAPPER.readTree(resp)).isEqualTo(OBJECT_MAPPER.readTree(document));
     // Update using documents API V2
     RestUtils.put(
         authToken,
         String.format(
-            "http://%s:8180/v2/namespaces/%s/collections/%s/%s/a?raw=true",
-            host, namespace, collection, documentId),
+            "http://%s:%s/v2/namespaces/%s/collections/%s/%s/a?raw=true",
+            v2Host, v2Port, namespace, collection, documentId),
         "{\"new\": \"data\"}",
         200);
     resp =
         RestUtils.get(
             authToken,
             String.format(
-                "http://%s:8180/v2/namespaces/%s/collections/%s/%s?raw=true",
-                host, namespace, collection, documentId),
+                "http://%s:%s/v2/namespaces/%s/collections/%s/%s?raw=true",
+                v2Host, v2Port, namespace, collection, documentId),
             200);
 
     String updated =
@@ -67,8 +74,8 @@ public class DocumentsV1ToV2Compat {
     RestUtils.patch(
         authToken,
         String.format(
-            "http://%s:8180/v2/namespaces/%s/collections/%s/%s/d?raw=true",
-            host, namespace, collection, documentId),
+            "http://%s:%s/v2/namespaces/%s/collections/%s/%s/d?raw=true",
+            v2Host, v2Port, namespace, collection, documentId),
         "{\"new\": \"data\"}",
         200);
 
@@ -76,8 +83,8 @@ public class DocumentsV1ToV2Compat {
         RestUtils.get(
             authToken,
             String.format(
-                "http://%s:8180/v2/namespaces/%s/collections/%s/%s?raw=true",
-                host, namespace, collection, documentId),
+                "http://%s:%s/v2/namespaces/%s/collections/%s/%s?raw=true",
+                v2Host, v2Port, namespace, collection, documentId),
             200);
 
     String patched =
@@ -88,23 +95,23 @@ public class DocumentsV1ToV2Compat {
     RestUtils.delete(
         authToken,
         String.format(
-            "http://%s:8180/v2/namespaces/%s/collections/%s/%s?raw=true",
-            host, namespace, collection, documentId),
+            "http://%s:%s/v2/namespaces/%s/collections/%s/%s?raw=true",
+            v2Host, v2Port, namespace, collection, documentId),
         204);
 
     RestUtils.get(
         authToken,
         String.format(
-            "http://%s:8180/v2/namespaces/%s/collections/%s/%s?raw=true",
-            host, namespace, collection, documentId),
+            "http://%s:%s/v2/namespaces/%s/collections/%s/%s?raw=true",
+            v2Host, v2Port, namespace, collection, documentId),
         404);
 
     // And get with V1
     RestUtils.get(
         authToken,
         String.format(
-            "http://%s:8083/v2/namespaces/%s/collections/%s/%s?raw=true",
-            host, namespace, collection, documentId),
+            "http://%s:%s/v2/namespaces/%s/collections/%s/%s?raw=true",
+            v1Host, v1Port, namespace, collection, documentId),
         404);
   }
 }
