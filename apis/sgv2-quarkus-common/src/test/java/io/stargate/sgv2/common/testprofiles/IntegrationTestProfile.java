@@ -14,10 +14,10 @@
  * limitations under the License.
  *
  */
-package io.stargate.sgv2.docsapi.testprofiles;
+package io.stargate.sgv2.common.testprofiles;
 
 import io.quarkus.test.junit.QuarkusTestProfile;
-import io.stargate.sgv2.docsapi.testresource.StargateTestResource;
+import io.stargate.sgv2.common.testresource.StargateTestResource;
 import java.util.Collections;
 import java.util.List;
 
