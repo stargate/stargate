@@ -18,7 +18,9 @@ quarkus:
     dev-mode:
       force-server-start: false
   http:
-    port: 8082
+    # 21-Jul-2022, tatu: Until we disable/remove main level SGv2/REST (which runs on 8082)
+    #    need to use different port
+    port: 9092
   # built-in micrometer properties
   micrometer:
     binder:
