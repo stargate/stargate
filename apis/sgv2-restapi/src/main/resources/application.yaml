@@ -21,6 +21,11 @@ quarkus:
     # 21-Jul-2022, tatu: Until we disable/remove main level SGv2/REST (which runs on 8082)
     #    need to use different port
     port: 9092
+
+  metrics:
+    global-tags:
+      module: sgv2-restapi
+
   # built-in micrometer properties
   micrometer:
     binder:
@@ -28,6 +33,10 @@ quarkus:
         # ignore all non-application uris, as well as the custom set
         suppress-non-application-uris: true
         ignore-patterns: /,/metrics,/swagger-ui.*,.*\.html
+    export:
+      prometheus:
+        path: /metrics
+
   # information for the generated Open API definitions
   smallrye-openapi:
     info-title: ${quarkus.application.name}
