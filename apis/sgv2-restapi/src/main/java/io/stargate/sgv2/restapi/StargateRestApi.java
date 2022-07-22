@@ -3,6 +3,7 @@ package io.stargate.sgv2.restapi;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
+import javax.ws.rs.core.Application;
 import javax.ws.rs.core.MediaType;
 import org.eclipse.microprofile.openapi.annotations.Components;
 import org.eclipse.microprofile.openapi.annotations.OpenAPIDefinition;
@@ -189,4 +190,4 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                           },
                           schema = @Schema(implementation = ApiError.class))),
             }))
-public class StargateRestApi {}
+public class StargateRestApi extends Application {}
