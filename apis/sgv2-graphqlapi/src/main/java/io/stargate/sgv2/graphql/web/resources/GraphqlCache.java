@@ -20,6 +20,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 import graphql.GraphQL;
 import graphql.execution.AsyncExecutionStrategy;
 import graphql.schema.GraphQLSchema;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.futures.Futures;
 import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
@@ -145,11 +146,12 @@ public class GraphqlCache {
       CompletionStage<Optional<Schema.CqlKeyspaceDescribe>> keyspaceFuture =
           bridge.getKeyspaceAsync(keyspaceName, true);
 
-      return keyspaceFuture.thenCompose(
+      return keyspaceFuture.thenComposeAsync(
           maybeKeyspace ->
               maybeKeyspace
                   .map(keyspace -> handleExisting(keyspace, bridge))
-                  .orElse(handleMissing()));
+                  .orElse(handleMissing()),
+          Infrastructure.getDefaultWorkerPool());
     }
 
     // Handles a possible state change when we know the keyspace doesn't exist.
@@ -166,7 +168,7 @@ public class GraphqlCache {
       CompletionStage<Optional<SchemaSource>> sourceFuture =
           new SchemaSourceDao(bridge).getLatestVersionAsync(keyspaceName);
 
-      return sourceFuture.thenCompose(
+      return sourceFuture.thenComposeAsync(
           maybeSource -> {
             GraphqlHolderState newState =
                 new GraphqlHolderState(keyspace.getHash().getValue(), maybeSource);
@@ -183,7 +185,8 @@ public class GraphqlCache {
               newState = stateRef.get();
             }
             return newState.graphqlFuture;
-          });
+          },
+          Infrastructure.getDefaultWorkerPool());
     }
 
     private void compute(
