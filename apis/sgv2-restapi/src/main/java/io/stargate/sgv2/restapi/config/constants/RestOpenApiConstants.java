@@ -44,18 +44,19 @@ public interface RestOpenApiConstants {
 
   /** Reused example snippets, mostly for error codes */
   interface Examples {
-
     // general ones
     String GENERAL_BAD_REQUEST = "Generic bad request";
     String GENERAL_UNAUTHORIZED = "Unauthorized";
+    String GENERAL_NOT_FOUND = "Not found";
     String GENERAL_SERVER_SIDE_ERROR = "Server-side error";
   }
 
   /** Response reference names. */
   interface Responses {
-
+    String GENERAL_204 = "GENERAL_204";
     String GENERAL_400 = "GENERAL_400";
     String GENERAL_401 = "GENERAL_401";
+    String GENERAL_404 = "GENERAL_404";
     String GENERAL_500 = "GENERAL_500";
     String GENERAL_503 = "GENERAL_503";
   }

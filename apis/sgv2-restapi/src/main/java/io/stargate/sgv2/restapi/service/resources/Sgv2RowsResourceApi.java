@@ -5,7 +5,9 @@ import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2RowsResponse;
 import java.util.List;
+import javax.enterprise.context.ApplicationScoped;
 import javax.ws.rs.*;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
@@ -17,14 +19,17 @@ import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 /**
- * Definition of REST API endpoint methods including both JAX-RS and Swagger annotations. No
+ * Definition of REST API DML endpoint methods including JAX-RS and OpenAPI annotations. No
  * implementations.
- *
- * <p>NOTE: JAX-RS class annotations cannot be included in the interface and must be included in the
- * implementation class. Swagger annotations are ok tho.
  */
+@ApplicationScoped
+@Path("/v2/keyspaces/{keyspaceName}/{tableName}")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+@Tag(ref = RestOpenApiConstants.Tags.DATA)
 public interface Sgv2RowsResourceApi {
   @GET
   @Operation(
@@ -135,13 +140,14 @@ public interface Sgv2RowsResourceApi {
         @APIResponse(
             responseCode = "200",
             description = "OK",
-            content = @Content(schema = @Schema(implementation = Sgv2RowsResponse.class))),
+            content =
+                @Content(
+                    schema =
+                        @Schema(implementation = Sgv2RowsResponse.class, type = SchemaType.ARRAY))),
         @APIResponse(
             responseCode = "404",
             description = "Not Found",
-            content =
-                @Content(
-                    schema = @Schema(implementation = ApiError.class, type = SchemaType.ARRAY))),
+            content = @Content(schema = @Schema(implementation = ApiError.class))),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_400),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),

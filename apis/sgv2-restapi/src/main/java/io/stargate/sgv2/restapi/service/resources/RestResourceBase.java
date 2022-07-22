@@ -30,7 +30,7 @@ import javax.ws.rs.core.Response;
  * Base class for resource classes; contains utility/helper methods for which there is no more
  * specific place.
  */
-public abstract class ResourceBase {
+public abstract class RestResourceBase {
   protected static final ObjectMapper JSON_MAPPER = new JsonMapper();
   protected static final ObjectReader MAP_READER = JSON_MAPPER.readerFor(Map.class);
   protected static final int DEFAULT_PAGE_SIZE = 100;

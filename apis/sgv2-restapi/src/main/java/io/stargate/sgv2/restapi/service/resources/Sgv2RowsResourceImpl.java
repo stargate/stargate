@@ -9,7 +9,6 @@ import io.stargate.sgv2.api.common.cql.builder.Predicate;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.api.common.cql.builder.Term;
 import io.stargate.sgv2.api.common.cql.builder.ValueModifier;
-import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.grpc.ToProtoConverter;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import java.util.ArrayList;
@@ -22,31 +21,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.enterprise.context.ApplicationScoped;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
-import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
-// note: JAX-RS Class Annotations MUST be in the impl class; only method annotations inherited
-// (but Swagger allows inheritance)
-@ApplicationScoped
-@Path("/v2/keyspaces/{keyspaceName}/{tableName}")
-@Produces(MediaType.APPLICATION_JSON)
-@Consumes(MediaType.APPLICATION_JSON)
-@Tag(ref = RestOpenApiConstants.Tags.DATA)
-public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResourceApi {
-  /*
-  /////////////////////////////////////////////////////////////////////////
-  // REST API endpoint implementation methods
-  /////////////////////////////////////////////////////////////////////////
-   */
-
+public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsResourceApi {
   @Override
   public Response getRowWithWhere(
       final String keyspaceName,

@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.sgv2.restsvc.resources.schemas;
+package io.stargate.sgv2.restapi.service.resources.schemas;
 
 import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -22,35 +22,25 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
-import io.stargate.sgv2.common.cql.builder.QueryBuilder;
-import io.stargate.sgv2.common.cql.builder.Replication;
-import io.stargate.sgv2.common.grpc.StargateBridgeClient;
-import io.stargate.sgv2.common.http.CreateStargateBridgeClient;
-import io.stargate.sgv2.restsvc.models.Sgv2Keyspace;
-import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
-import io.stargate.sgv2.restsvc.resources.ResourceBase;
+import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
+import io.stargate.sgv2.api.common.cql.builder.Replication;
+import io.stargate.sgv2.restapi.service.models.Sgv2Keyspace;
+import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
+import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import javax.inject.Singleton;
-import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Path("/v2/schemas/keyspaces")
-@Produces(MediaType.APPLICATION_JSON)
-@Singleton
-@CreateStargateBridgeClient
-public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2KeyspacesResourceApi {
+public class Sgv2KeyspacesResourceImpl extends RestResourceBase
+    implements Sgv2KeyspacesResourceApi {
   private static final Logger LOGGER = LoggerFactory.getLogger(Sgv2KeyspacesResourceImpl.class);
 
   private static final JsonMapper JSON_MAPPER = new JsonMapper();
@@ -60,8 +50,7 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
   private static final SchemaBuilderHelper schemaBuilder = new SchemaBuilderHelper(JSON_MAPPER);
 
   @Override
-  public Response getAllKeyspaces(
-      final StargateBridgeClient bridge, final boolean raw, final HttpServletRequest request) {
+  public Response getAllKeyspaces(final boolean raw) {
 
     List<Sgv2Keyspace> keyspaces =
         bridge.getAllKeyspaces().stream()
@@ -73,8 +62,7 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
   }
 
   @Override
-  public Response getOneKeyspace(
-      final StargateBridgeClient bridge, final String keyspaceName, final boolean raw) {
+  public Response getOneKeyspace(final String keyspaceName, final boolean raw) {
     return bridge
         .getKeyspace(keyspaceName, true)
         .map(
@@ -89,8 +77,7 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
   }
 
   @Override
-  public Response createKeyspace(
-      final StargateBridgeClient bridge, final JsonNode payload, final HttpServletRequest request) {
+  public Response createKeyspace(final JsonNode payload) {
     SchemaBuilderHelper.KeyspaceCreateDefinition ksCreateDef;
     try {
       ksCreateDef = schemaBuilder.readKeyspaceCreateDefinition(payload);
@@ -127,10 +114,7 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
   }
 
   @Override
-  public Response deleteKeyspace(
-      final StargateBridgeClient bridge,
-      final String keyspaceName,
-      final HttpServletRequest request) {
+  public Response deleteKeyspace(final String keyspaceName) {
     Query query = new QueryBuilder().drop().keyspace(keyspaceName).ifExists().build();
     /*QueryOuterClass.Response grpcResponse =*/ bridge.executeQuery(query);
     return Response.status(Status.NO_CONTENT).build();

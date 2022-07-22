@@ -13,114 +13,95 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package io.stargate.sgv2.restsvc.resources.schemas;
+package io.stargate.sgv2.restapi.service.resources.schemas;
 
-import com.codahale.metrics.annotation.Timed;
 import com.fasterxml.jackson.databind.JsonNode;
-import io.stargate.sgv2.common.grpc.StargateBridgeClient;
-import io.stargate.sgv2.restsvc.models.RestServiceError;
-import io.stargate.sgv2.restsvc.models.Sgv2Keyspace;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiImplicitParam;
-import io.swagger.annotations.ApiImplicitParams;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import java.util.Map;
-import javax.servlet.http.HttpServletRequest;
+import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
+import io.stargate.sgv2.restapi.service.models.Sgv2Keyspace;
+import javax.enterprise.context.ApplicationScoped;
+import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.eclipse.microprofile.openapi.annotations.Operation;
+import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
+import org.eclipse.microprofile.openapi.annotations.media.Content;
+import org.eclipse.microprofile.openapi.annotations.media.Schema;
+import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
+import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
+import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
-@Api(
-    produces = MediaType.APPLICATION_JSON,
-    consumes = MediaType.APPLICATION_JSON,
-    tags = {"schemas"})
-@ApiImplicitParams({
-  @ApiImplicitParam(
-      name = "X-Cassandra-Token",
-      paramType = "header",
-      value = "The token returned from the authorization endpoint. Use this token in each request.",
-      required = true)
-})
+/**
+ * Definition of REST API DDL endpoint methods for Keyspace access including JAX-RS and OpenAPI
+ * annotations. No implementations.
+ */
+@ApplicationScoped
+@Path("/v2/schemas/keyspaces")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+@Tag(ref = RestOpenApiConstants.Tags.SCHEMA)
 public interface Sgv2KeyspacesResourceApi {
-  @Timed
   @GET
-  @ApiOperation(
-      value = "Get all keyspaces",
-      notes = "Retrieve all available keyspaces.",
-      response = Sgv2Keyspace.class,
-      responseContainer = "List")
-  @ApiResponses(
+  @Operation(summary = "Get all keyspaces", description = "Retrieve all available keyspaces.")
+  @APIResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = Sgv2Keyspace.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
-        @ApiResponse(
-            code = 500,
-            message = "Internal server error",
-            response = RestServiceError.class)
+        @APIResponse(
+            responseCode = "200",
+            description = "OK",
+            content =
+                @Content(
+                    schema =
+                        @Schema(implementation = Sgv2Keyspace.class, type = SchemaType.ARRAY))),
+        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
+        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500)
       })
   Response getAllKeyspaces(
-      @Context StargateBridgeClient bridge,
-      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
-          final boolean raw,
-      @Context HttpServletRequest request);
+      @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
+          final boolean raw);
 
-  @Timed
   @GET
-  @ApiOperation(
-      value = "Get a keyspace",
-      notes = "Return a single keyspace specification.",
-      response = Sgv2Keyspace.class)
-  @ApiResponses(
+  @Operation(summary = "Get a keyspace", description = "Return a single keyspace specification.")
+  @APIResponses(
       value = {
-        @ApiResponse(code = 200, message = "OK", response = Sgv2Keyspace.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = RestServiceError.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
-        @ApiResponse(code = 404, message = "Not Found", response = RestServiceError.class),
-        @ApiResponse(
-            code = 500,
-            message = "Internal server error",
-            response = RestServiceError.class)
+        @APIResponse(
+            responseCode = "200",
+            description = "OK",
+            content = @Content(schema = @Schema(implementation = Sgv2Keyspace.class))),
+        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_400),
+        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
+        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_404),
+        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
   @Path("/{keyspaceName}")
   Response getOneKeyspace(
-      @Context StargateBridgeClient bridge,
-      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+      @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
-      @ApiParam(value = "Unwrap results", defaultValue = "false") @QueryParam("raw")
+      @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw);
 
-  @Timed
   @POST
-  @ApiOperation(
-      value = "Create a keyspace",
-      notes = "Create a new keyspace.",
-      response = Map.class,
-      code = 201)
-  @ApiResponses(
+  @Operation(summary = "Create a keyspace", description = "Create a new keyspace.")
+  @APIResponses(
       value = {
-        @ApiResponse(code = 201, message = "Created", response = Map.class),
-        @ApiResponse(code = 400, message = "Bad Request", response = RestServiceError.class),
-        @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
-        @ApiResponse(code = 409, message = "Conflict", response = RestServiceError.class),
-        @ApiResponse(
-            code = 500,
-            message = "Internal server error",
-            response = RestServiceError.class)
+        @APIResponse(
+            responseCode = "201",
+            description = "Created",
+            content = @Content(schema = @Schema(type = SchemaType.OBJECT))),
+        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
+        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500)
       })
   Response createKeyspace(
-      @Context StargateBridgeClient bridge,
-      @ApiParam(
-              value =
+      @RequestBody(
+              description =
                   "A map representing a keyspace with SimpleStrategy or NetworkTopologyStrategy with default replicas of 1 and 3 respectively \n"
                       + "Simple:\n"
                       + "```json\n"
@@ -137,26 +118,19 @@ public interface Sgv2KeyspacesResourceApi {
                       + "      ],\n"
                       + "}\n"
                       + "```")
-          JsonNode payload,
-      @Context HttpServletRequest request);
+          JsonNode payload);
 
-  @Timed
   @DELETE
-  @ApiOperation(value = "Delete a keyspace", notes = "Delete a single keyspace.")
-  @ApiResponses(
+  @Operation(summary = "Delete a keyspace", description = "Delete a single keyspace.")
+  @APIResponses(
       value = {
-        @ApiResponse(code = 204, message = "No Content"),
-        @ApiResponse(code = 401, message = "Unauthorized", response = RestServiceError.class),
-        @ApiResponse(
-            code = 500,
-            message = "Internal server error",
-            response = RestServiceError.class)
+        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_204),
+        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
+        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
   @Path("/{keyspaceName}")
   Response deleteKeyspace(
-      @Context StargateBridgeClient bridge,
-      @ApiParam(value = "Name of the keyspace to use for the request.", required = true)
+      @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
-          final String keyspaceName,
-      @Context HttpServletRequest request);
+          final String keyspaceName);
 }

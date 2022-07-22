@@ -142,6 +142,10 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
             // reusable response
             responses = {
               @APIResponse(
+                  name = RestOpenApiConstants.Responses.GENERAL_204,
+                  responseCode = "204",
+                  description = "No content"),
+              @APIResponse(
                   name = RestOpenApiConstants.Responses.GENERAL_400,
                   responseCode = "400",
                   description = "Bad request",
@@ -149,7 +153,7 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                       @Content(
                           mediaType = MediaType.APPLICATION_JSON,
                           examples = {
-                            @ExampleObject(ref = RestOpenApiConstants.Examples.GENERAL_BAD_REQUEST)
+                            @ExampleObject(ref = RestOpenApiConstants.Examples.GENERAL_BAD_REQUEST),
                           },
                           schema = @Schema(implementation = ApiError.class))),
               @APIResponse(
@@ -163,6 +167,14 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                             @ExampleObject(
                                 ref = RestOpenApiConstants.Examples.GENERAL_UNAUTHORIZED),
                           },
+                          schema = @Schema(implementation = ApiError.class))),
+              @APIResponse(
+                  name = RestOpenApiConstants.Responses.GENERAL_404,
+                  responseCode = "404",
+                  description = "Not Found",
+                  content =
+                      @Content(
+                          mediaType = MediaType.APPLICATION_JSON,
                           schema = @Schema(implementation = ApiError.class))),
               @APIResponse(
                   name = RestOpenApiConstants.Responses.GENERAL_500,
