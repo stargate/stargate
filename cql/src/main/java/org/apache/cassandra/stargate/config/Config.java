@@ -1,16 +1,16 @@
 package org.apache.cassandra.stargate.config;
 
+/**
+ * This is the same as {@link org.apache.cassandra.config.Config}, but with only the subset of
+ * options that are relevant for CQL transport. This object is used to deserialize configuration
+ * from a yaml file using {@link YamlConfigurationLoader}. In general, these options should not be
+ * accessed directly using this class, but code should instead use {@link
+ * org.apache.cassandra.stargate.transport.internal.TransportDescriptor}.
+ */
 public class Config {
 
   public static final String PROPERTY_PREFIX = "stargate.cql.";
 
-  /*
-   * RPC address and interface refer to the address/interface used for the native protocol used to communicate with
-   * clients. It's still called RPC in some places even though Thrift RPC is gone. If you see references to native
-   * address or native port it's derived from the RPC address configuration.
-   *
-   * native_transport_port is the port that is paired with RPC address to bind on.
-   */
   public String rpc_address;
   public String rpc_interface;
   public boolean rpc_interface_prefer_ipv6 = false;

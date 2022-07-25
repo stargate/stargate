@@ -53,8 +53,8 @@ public interface StargateParameters {
   }
 
   @Value.Default
-  default boolean useSSLForCQL() {
-    return false;
+  default SslForCqlParameters sslForCqlParameters() {
+    return SslForCqlParameters.builder().build();
   }
 
   static Builder builder() {
@@ -72,7 +72,7 @@ public interface StargateParameters {
 
     Builder proxyPort(int port);
 
-    Builder useSSLForCQL(boolean enabled);
+    Builder sslForCqlParameters(SslForCqlParameters parameters);
 
     StargateParameters build();
   }

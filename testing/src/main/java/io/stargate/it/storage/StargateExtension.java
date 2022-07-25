@@ -350,6 +350,10 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
     private static final String SERVER_KEYSTORE_PATH = "/server.keystore";
     private static final String SERVER_KEYSTORE_PASSWORD = "fakePasswordForTests";
 
+    private static final String SERVER_TRUSTSTORE_PATH = "/server.truststore";
+
+    private static final String SERVER_TRUSTSTORE_PASSWORD = "fakePasswordForTests";
+
     private final UUID id = UUID.randomUUID();
     private final int nodeIndex;
     private final String listenAddress;
@@ -398,16 +402,26 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
         cmd.addArgument("-D" + e.getKey() + "=" + e.getValue());
       }
 
-      if (params.useSSLForCQL()) {
+      if (params.sslForCqlParameters().enabled()) {
         Yaml yaml = new Yaml();
         Config config = new Config();
         config.client_encryption_options =
             config
                 .client_encryption_options
                 .withEnabled(true)
-                .withOptional(false)
+                .withOptional(params.sslForCqlParameters().optional())
                 .withKeyStore(createTempStore(SERVER_KEYSTORE_PATH).getAbsolutePath())
                 .withKeyStorePassword(SERVER_KEYSTORE_PASSWORD);
+
+        if (params.sslForCqlParameters().requireClientCertificates()) {
+          config.client_encryption_options =
+              config
+                  .client_encryption_options
+                  .withRequireClientAuth(true)
+                  .withTrustStore(createTempStore(SERVER_TRUSTSTORE_PATH).getAbsolutePath())
+                  .withTrustStorePassword(SERVER_TRUSTSTORE_PASSWORD);
+        }
+
         yaml.dump(config, new PrintWriter(cqlConfigFile));
         cmd.addArgument("-Dstargate.cql.config_path=" + cqlConfigFile.getAbsolutePath());
       }
