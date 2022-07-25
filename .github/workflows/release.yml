@@ -100,6 +100,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      # TODO remove after testing
+      - name: Warn publish
+        if: ${{ inputs.publish != false }}
+        run: |
+          echo "ATTENTION: This job will publish JARs to the OOSRH!"
+
       # TODO resolve if this is needed at all
       - name: Set version
         id: vars
