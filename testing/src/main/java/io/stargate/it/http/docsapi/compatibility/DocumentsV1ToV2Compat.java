@@ -13,7 +13,7 @@ public class DocumentsV1ToV2Compat {
   private static String v2Port;
   private static String v1Host;
   private static String v1Port;
-  private static String namespace = "test_namespace";
+  private static String namespace;
   private static String collection = "test_collection";
   private static String documentId = "test_document";
 
@@ -27,11 +27,12 @@ public class DocumentsV1ToV2Compat {
    * 6) Get the document using Documents API V1 and check that it no longer exists
    */
   public static void main(String[] args) throws IOException {
-    v1Host = System.getProperty("doccapi.v1.host", "127.0.0.1");
-    v1Port = System.getProperty("doccapi.v1.port", "8083");
-    v2Host = System.getProperty("doccapi.v2.host", "127.0.0.1");
-    v2Port = System.getProperty("doccapi.v2.port", "8180");
-    authToken = RestUtils.getAuthToken(v2Host);
+    v1Host = System.getProperty("docsapi.v1.host", "127.0.0.1");
+    v1Port = System.getProperty("docsapi.v1.port", "8083");
+    v2Host = System.getProperty("docsapi.v2.host", "127.0.0.1");
+    v2Port = System.getProperty("docsapi.v2.port", "8180");
+    namespace = System.getProperty("docsapi.testnamespace", "test_namespace");
+    authToken = RestUtils.getAuthToken(v1Host);
     String document = "{\"a\": {}, \"b\": [], \"c\": true, \"d\": {\"nested\": \"value\"}}";
     // Create a document using V1
     RestUtils.put(
