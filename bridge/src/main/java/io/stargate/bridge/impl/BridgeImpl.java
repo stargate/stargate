@@ -45,6 +45,7 @@ public class BridgeImpl {
 
   private final Server server;
   private final ScheduledExecutorService executor;
+  private final ScheduledExecutorService executor2;
 
   public BridgeImpl(
       Persistence persistence,
@@ -69,6 +70,9 @@ public class BridgeImpl {
     executor =
         Executors.newScheduledThreadPool(
             EXECUTOR_SIZE, GrpcUtil.getThreadFactory("bridge-stargate-executor", true));
+    executor2 =
+        Executors.newScheduledThreadPool(
+            EXECUTOR_SIZE, GrpcUtil.getThreadFactory("bridge-stargate-executor-2", true));
     server =
         NettyServerBuilder.forAddress(new InetSocketAddress(listenAddress, port))
             // `Persistence` operations are done asynchronously so there isn't a need for a separate

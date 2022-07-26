@@ -42,18 +42,16 @@ public class StargateRequestInfo {
 
   private final Optional<String> cassandraToken;
 
-  private final StargateBridge stargateBridge;
+  private final StargateBridge stargateBridge = null;
 
   @Inject
   public StargateRequestInfo(
       RoutingContext routingContext,
       SecurityContext securityContext,
-      GrpcClients grpcClients,
       Instance<TenantResolver> tenantResolver,
       Instance<CassandraTokenResolver> tokenResolver) {
     this.tenantId = tenantResolver.get().resolve(routingContext, securityContext);
     this.cassandraToken = tokenResolver.get().resolve(routingContext, securityContext);
-    this.stargateBridge = grpcClients.bridgeClient(tenantId, cassandraToken);
   }
 
   public Optional<String> getTenantId() {
