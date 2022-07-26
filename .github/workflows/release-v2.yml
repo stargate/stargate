@@ -8,10 +8,17 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: 'Should the publishing of docker images and JARs to OSSRH happen?'
+        description: 'Publish docker images and JARs to OSSRH?'
         required: true
         default: false
         type: boolean
+      tag:
+        description: 'Custom release tag value.'
+        required: true
+        type: string
+
+env:
+  MAVEN_OPTS: '-Xmx4g'
 
 jobs:
 
@@ -21,16 +28,24 @@ jobs:
     name: Create release
     runs-on: ubuntu-latest
     outputs:
+      release-tag: ${{ steps.resolve_tag.outputs.tag }}
       release-upload-url: ${{ steps.create_release.outputs.upload_url }}
     steps:
-      - name: Create Release
+      - name: Resolve tag
+        id: resolve_tag
+        run: |
+          TAG=${{ inputs.tag != null && inputs.tag || github.ref }}
+          echo "Resolved tag for the release $TAG"
+          echo "::set-output name=tag::${TAG}"
+
+      - name: Create release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          tag_name: ${{ steps.resolve_tag.outputs.tag }}
+          release_name: Release ${{ steps.resolve_tag.outputs.tag }}
           draft: false
           prerelease: true
 
@@ -53,7 +68,6 @@ jobs:
         env:
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          MAVEN_OPTS: '-Xmx4g'
         run: |
           mkdir -p ~/.m2
           cat <<EOF > ~/.m2/settings.xml
@@ -98,15 +112,7 @@ jobs:
     name: Publish to OSSRH
     runs-on: ubuntu-latest
     steps:
-
       - uses: actions/checkout@v3
-
-      # TODO this below is some magic I don't get, why not using ${{ github.ref }} as in create-release
-      - name: Set version
-        id: vars
-        run: |
-          echo "DEBUG: github ref points to ${{ github.ref }}"
-          echo ::set-output name=tag::${GITHUB_REF#refs/*/}
 
       - name: Set up JDK 8
         uses: actions/setup-java@v3
@@ -121,7 +127,6 @@ jobs:
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_TOKEN: ${{ secrets.OSSRH_TOKEN }}
-          MAVEN_OPTS: '-Xmx4g'
         run: |
           mkdir -p ~/.m2
           cat <<EOF > ~/.m2/settings.xml
@@ -160,17 +165,10 @@ jobs:
   # publishes the docker images for the coordinator and the APIs
   publish-docker:
     name: Publish docker images
+    needs: create-release
     runs-on: ubuntu-latest
     steps:
-
       - uses: actions/checkout@v3
-
-      # TODO this below is some magic I don't get, why not using ${{ github.ref }} as in create-release
-      - name: Set version
-        id: vars
-        run: |
-          echo "DEBUG: github ref points to ${{ github.ref }}"
-          echo ::set-output name=tag::${GITHUB_REF#refs/*/}
 
       # install both Java 8 & Java 17, keep paths in vars
       - name: Set up JDK 8
@@ -193,7 +191,6 @@ jobs:
         env:
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
           ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
-          MAVEN_OPTS: '-Xmx4g'
         run: |
           mkdir -p ~/.m2
           cat <<EOF > ~/.m2/settings.xml
@@ -243,25 +240,25 @@ jobs:
       - name: Build and push (coordinator, DockerHub)
         if: ${{ inputs.publish != false }}
         run: |
-          ./build_docker_images.sh -p -t ${{ steps.vars.outputs.tag }}
+          ./build_docker_images.sh -p -t ${{needs.create-release.outputs.release-upload-url}}
 
       - name: Build without push (coordinator, DockerHub)
         if: ${{ inputs.publish == false }}
         run: |
-          ./build_docker_images.sh -t ${{ steps.vars.outputs.tag }}
+          ./build_docker_images.sh -t ${{needs.create-release.outputs.release-upload-url}}
 
       - name: Build and push (apis, DockerHub)
         if: ${{ inputs.publish != false }}
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.tag=${{ steps.vars.outputs.tag }}
+          JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.tag=${{needs.create-release.outputs.release-upload-url}}
           cd ../
 
       - name: Build without push (apis, DockerHub)
         if: ${{ inputs.publish == false }}
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.tag=${{ steps.vars.outputs.tag }}
+          JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.tag=${{needs.create-release.outputs.release-upload-url}}
           cd ../
 
       # repeat the same for the AWS ECR
@@ -279,13 +276,13 @@ jobs:
       - name: Build and push (coordinator, Amazon ECR)
         if: ${{ inputs.publish != false }}
         run: |
-          ./build_docker_images.sh -p -t ${{ steps.vars.outputs.tag }} -r ${{ secrets.ECR_REPOSITORY }} -a
+          ./build_docker_images.sh -p -t ${{needs.create-release.outputs.release-upload-url}} -r ${{ secrets.ECR_REPOSITORY }} -a
 
       - name: Build and push (apis, Amazon ECR)
         if: ${{ inputs.publish != false }}
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{ steps.vars.outputs.tag }}
+          JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.create-release.outputs.release-upload-url}}
           cd ../
 
   # creates a PR for bumping the versions to the next snapshot
@@ -293,7 +290,6 @@ jobs:
     name: Version upgrade PR
     runs-on: ubuntu-latest
     steps:
-
       - uses: actions/checkout@v3
 
       # since we only bump the versions, Java 17 only is fine here
