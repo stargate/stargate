@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import org.apache.commons.io.FileUtils;
@@ -46,17 +47,16 @@ public class StargateV1ConfigurationSourceProviderTest {
   // Test to verify that inclusion of an alternate configuration based on naming convention
   @Test
   public void testNamingConventionBased() throws Exception {
-    // Bit unclean as we need be able to co-locate alternative config file to our CWD,
-    // ensuring it is not seen during other tests
-    final String originalCWD = System.getProperty("user.dir");
+    // simply copy src/test/resources/cwd/testapi-config.yaml
+    // to the working directory
+    Path configFile = Paths.get("src", "test", "resources", "cwd", "testapi-config.yaml");
+    Path targetFile = Paths.get("testapi-config.yaml");
+
     try {
-      Path path = Paths.get(originalCWD, "src", "test", "resources", "cwd");
-      String value = path.toAbsolutePath().toString();
-      System.out.printf("Setting user.dir to point to %s%n", value);
-      System.setProperty("user.dir", value);
+      Files.copy(configFile, targetFile);
       assertThat(readConfig()).isEqualTo("config: custom");
     } finally {
-      System.setProperty("user.dir", originalCWD);
+      Files.deleteIfExists(targetFile);
     }
   }
 
