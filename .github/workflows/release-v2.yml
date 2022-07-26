@@ -17,12 +17,16 @@ on:
         required: true
         type: string
 
+# global env vars, available in all jobs and steps
 env:
+  ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+  ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
   MAVEN_OPTS: '-Xmx4g'
 
 jobs:
 
   # creates a new release if it's not existing
+  # outputs the resolved release tag value in the release-tag output var
   # outputs the upload URL in the release-upload-url output var
   create-release:
     name: Create release
@@ -65,9 +69,6 @@ jobs:
           cache: maven
 
       - name: Setup Maven
-        env:
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
         run: |
           mkdir -p ~/.m2
           cat <<EOF > ~/.m2/settings.xml
@@ -123,8 +124,6 @@ jobs:
 
       - name: Setup Maven
         env:
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_TOKEN: ${{ secrets.OSSRH_TOKEN }}
         run: |
@@ -188,9 +187,6 @@ jobs:
       - run: echo "JAVA_17=$JAVA_HOME" >> $GITHUB_ENV
 
       - name: Setup Maven
-        env:
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
         run: |
           mkdir -p ~/.m2
           cat <<EOF > ~/.m2/settings.xml
@@ -301,9 +297,6 @@ jobs:
           cache: maven
 
       - name: Setup Maven
-        env:
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
         run: |
           mkdir -p ~/.m2
           cat <<EOF > ~/.m2/settings.xml
