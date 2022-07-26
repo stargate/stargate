@@ -240,25 +240,25 @@ jobs:
       - name: Build and push (coordinator, DockerHub)
         if: ${{ inputs.publish != false }}
         run: |
-          ./build_docker_images.sh -p -t ${{needs.create-release.outputs.release-upload-url}}
+          ./build_docker_images.sh -p -t ${{needs.create-release.outputs.release-tag}}
 
       - name: Build without push (coordinator, DockerHub)
         if: ${{ inputs.publish == false }}
         run: |
-          ./build_docker_images.sh -t ${{needs.create-release.outputs.release-upload-url}}
+          ./build_docker_images.sh -t ${{needs.create-release.outputs.release-tag}}
 
       - name: Build and push (apis, DockerHub)
         if: ${{ inputs.publish != false }}
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.tag=${{needs.create-release.outputs.release-upload-url}}
+          JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.tag=${{needs.create-release.outputs.release-tag}}
           cd ../
 
       - name: Build without push (apis, DockerHub)
         if: ${{ inputs.publish == false }}
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.tag=${{needs.create-release.outputs.release-upload-url}}
+          JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.tag=${{needs.create-release.outputs.release-tag}}
           cd ../
 
       # repeat the same for the AWS ECR
@@ -276,13 +276,13 @@ jobs:
       - name: Build and push (coordinator, Amazon ECR)
         if: ${{ inputs.publish != false }}
         run: |
-          ./build_docker_images.sh -p -t ${{needs.create-release.outputs.release-upload-url}} -r ${{ secrets.ECR_REPOSITORY }} -a
+          ./build_docker_images.sh -p -t ${{needs.create-release.outputs.release-tag}} -r ${{ secrets.ECR_REPOSITORY }} -a
 
       - name: Build and push (apis, Amazon ECR)
         if: ${{ inputs.publish != false }}
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.create-release.outputs.release-upload-url}}
+          JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.create-release.outputs.release-tag}}
           cd ../
 
   # creates a PR for bumping the versions to the next snapshot
