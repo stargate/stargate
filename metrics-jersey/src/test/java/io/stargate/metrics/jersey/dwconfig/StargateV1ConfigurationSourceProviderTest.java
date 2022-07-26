@@ -53,7 +53,9 @@ public class StargateV1ConfigurationSourceProviderTest {
       f = new File(f, "test");
       f = new File(f, "resources");
       f = new File(f, "cwd");
-      System.setProperty("user.dir", f.toString());
+      String value = f.toString();
+      System.out.printf("Setting user.dir to point to %s%n", value);
+      System.setProperty("user.dir", value);
       assertThat(readConfig()).isEqualTo("config: custom");
     } finally {
       System.setProperty("user.dir", originalCWD);
