@@ -18,45 +18,43 @@ package io.stargate.sgv2.api.common.grpc;
 import io.grpc.CallCredentials;
 import io.grpc.Metadata;
 import io.grpc.Status;
-
 import java.util.Optional;
 import java.util.concurrent.Executor;
 
 public class StargateRequestCallCredentials extends CallCredentials {
 
-    private final Metadata.Key<String> tenantIdKey;
-    private final Metadata.Key<String> cassandraTokenKey;
-    private final Optional<String> tenantId;
-    private final Optional<String> cassandraToken;
+  private final Metadata.Key<String> tenantIdKey;
+  private final Metadata.Key<String> cassandraTokenKey;
+  private final Optional<String> tenantId;
+  private final Optional<String> cassandraToken;
 
-    public StargateRequestCallCredentials(
-            Metadata.Key<String> tenantIdKey,
-            Metadata.Key<String> cassandraTokenKey,
-            Optional<String> tenantId,
-            Optional<String> cassandraToken
-    ) {
-        this.tenantIdKey = tenantIdKey;
-        this.cassandraTokenKey = cassandraTokenKey;
-        this.tenantId = tenantId;
-        this.cassandraToken = cassandraToken;
-    }
+  public StargateRequestCallCredentials(
+      Metadata.Key<String> tenantIdKey,
+      Metadata.Key<String> cassandraTokenKey,
+      Optional<String> tenantId,
+      Optional<String> cassandraToken) {
+    this.tenantIdKey = tenantIdKey;
+    this.cassandraTokenKey = cassandraTokenKey;
+    this.tenantId = tenantId;
+    this.cassandraToken = cassandraToken;
+  }
 
-    @Override
-    public void applyRequestMetadata(
-            RequestInfo requestInfo, Executor appExecutor, MetadataApplier applier) {
-        appExecutor.execute(
-                () -> {
-                    try {
-                        Metadata metadata = new Metadata();
-                        tenantId.ifPresent(t -> metadata.put(tenantIdKey, t));
-                        cassandraToken.ifPresent(t -> metadata.put(cassandraTokenKey, t));
-                        applier.apply(metadata);
-                    } catch (Exception e) {
-                        applier.fail(Status.UNAUTHENTICATED.withCause(e));
-                    }
-                });
-    }
+  @Override
+  public void applyRequestMetadata(
+      RequestInfo requestInfo, Executor appExecutor, MetadataApplier applier) {
+    appExecutor.execute(
+        () -> {
+          try {
+            Metadata metadata = new Metadata();
+            tenantId.ifPresent(t -> metadata.put(tenantIdKey, t));
+            cassandraToken.ifPresent(t -> metadata.put(cassandraTokenKey, t));
+            applier.apply(metadata);
+          } catch (Exception e) {
+            applier.fail(Status.UNAUTHENTICATED.withCause(e));
+          }
+        });
+  }
 
-    @Override
-    public void thisUsesUnstableApi() {}
+  @Override
+  public void thisUsesUnstableApi() {}
 }

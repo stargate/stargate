@@ -18,7 +18,6 @@
 package io.stargate.sgv2.api.common;
 
 import io.stargate.bridge.proto.StargateBridge;
-import io.stargate.sgv2.api.common.grpc.GrpcClients;
 import io.stargate.sgv2.api.common.tenant.TenantResolver;
 import io.stargate.sgv2.api.common.token.CassandraTokenResolver;
 import io.vertx.ext.web.RoutingContext;
