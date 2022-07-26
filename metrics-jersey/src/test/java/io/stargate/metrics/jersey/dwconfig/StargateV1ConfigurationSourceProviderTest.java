@@ -5,6 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.File;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Test;
@@ -48,12 +50,8 @@ public class StargateV1ConfigurationSourceProviderTest {
     // ensuring it is not seen during other tests
     final String originalCWD = System.getProperty("user.dir");
     try {
-      File f = new File(originalCWD);
-      f = new File(f, "src");
-      f = new File(f, "test");
-      f = new File(f, "resources");
-      f = new File(f, "cwd");
-      String value = f.toString();
+      Path path = Paths.get(originalCWD, "src", "test", "resources", "cwd");
+      String value = path.toAbsolutePath().toString();
       System.out.printf("Setting user.dir to point to %s%n", value);
       System.setProperty("user.dir", value);
       assertThat(readConfig()).isEqualTo("config: custom");
