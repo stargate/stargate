@@ -17,11 +17,15 @@ package io.stargate.web.restapi.models;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.swagger.annotations.ApiModel;
 import io.swagger.annotations.ApiModelProperty;
+import javax.validation.constraints.NotNull;
 
+@ApiModel
 public class ColumnModel {
-
+  @NotNull(message = "Name of the column cannot be null")
   private String name;
+
   private String value;
 
   @ApiModelProperty(

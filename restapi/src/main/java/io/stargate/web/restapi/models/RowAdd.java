@@ -17,8 +17,12 @@ package io.stargate.web.restapi.models;
 
 import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 
 public class RowAdd {
+  @NotNull(message = "Columns cannot be null")
+  @Valid
   private List<ColumnModel> columns;
 
   @ApiModelProperty(required = true, value = "The column definitions belonging to the row to add.")

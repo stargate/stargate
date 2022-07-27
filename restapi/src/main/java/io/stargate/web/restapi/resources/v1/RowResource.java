@@ -68,6 +68,7 @@ import java.util.stream.IntStream;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.http.HttpServletRequest;
+import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -414,7 +415,9 @@ public class RowResource {
       @ApiParam(value = "Name of the table to use for the request.", required = true)
           @PathParam("tableName")
           final String tableName,
-      @ApiParam(value = "Row object that needs to be added to the table", required = true) @NotNull
+      @ApiParam(value = "Row object that needs to be added to the table", required = true)
+          @NotNull
+          @Valid
           final RowAdd rowAdd,
       @Context HttpServletRequest request) {
     return RequestHandler.handle(
