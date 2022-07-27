@@ -47,14 +47,6 @@ public class GrpcClients {
     this.bridge = bridge;
   }
 
-  public Metadata.Key<String> getTenantIdKey() {
-    return this.tenantIdKey;
-  }
-
-  public Metadata.Key<String> getCassandraTokenKey() {
-    return this.cassandraTokenKey;
-  }
-
   /**
    * Returns the reactive gRPC Bridge Client, with attached information about the tenant and C*
    * token.
