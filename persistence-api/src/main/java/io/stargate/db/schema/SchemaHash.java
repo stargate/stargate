@@ -2,9 +2,7 @@ package io.stargate.db.schema;
 
 import java.util.Collection;
 
-/**
- * An interface for calculating deterministic hash codes for schema objects.
- */
+/** An interface for calculating deterministic hash codes for schema objects. */
 public interface SchemaHash {
 
   /**
