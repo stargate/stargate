@@ -8,7 +8,10 @@ public interface SchemaHash {
 
   /**
    * Calculates a deterministic hash code for the schema object that does not change between
-   * invocations of the JVM.
+   * invocations of the JVM. This was mostly because it was determined that hash codes of
+   * enums could change between different executions of the JVM and schema hash codes need to
+   * be deterministic across JVM instances because these codes are distributed to Stargate
+   * bridge clients.
    *
    * <p>When calculating the schema hash code it advised that one of the `SchemaHash#hashCode()`
    * methods in this interface be used instead of using `obj.hashCode()`, {@link Object#hashCode()},
