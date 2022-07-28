@@ -78,6 +78,11 @@ public abstract class ParameterizedType implements Column.ColumnType {
     return rawType().javaType();
   }
 
+  @Override
+  public int schemaHashCode() {
+    return SchemaHash.hash(parameters());
+  }
+
   protected abstract ParameterizedType withIsFrozen(boolean value);
 
   @Override
@@ -151,6 +156,11 @@ public abstract class ParameterizedType implements Column.ColumnType {
     public Column.ColumnType fieldType(String name) {
       return parameters().get(0);
     }
+
+    @Override
+    public int schemaHashCode() {
+      return SchemaHash.combine(Boolean.hashCode(isFrozen()), super.schemaHashCode());
+    }
   }
 
   @Value.Immutable(prehash = true)
@@ -216,6 +226,11 @@ public abstract class ParameterizedType implements Column.ColumnType {
     @Override
     public Column.ColumnType fieldType(String name) {
       return parameters().get(0);
+    }
+
+    @Override
+    public int schemaHashCode() {
+      return SchemaHash.combine(Boolean.hashCode(isFrozen()), super.schemaHashCode());
     }
   }
 
@@ -301,6 +316,11 @@ public abstract class ParameterizedType implements Column.ColumnType {
     @Override
     public Column.ColumnType fieldType(String name) {
       throw new UnsupportedOperationException("Map type does not support nested access");
+    }
+
+    @Override
+    public int schemaHashCode() {
+      return SchemaHash.combine(Boolean.hashCode(isFrozen()), super.schemaHashCode());
     }
   }
 

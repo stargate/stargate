@@ -17,6 +17,7 @@ package io.stargate.db.schema;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -155,5 +156,16 @@ public abstract class Keyspace implements SchemaEntity {
       return materializedView(name);
     }
     return table;
+  }
+
+  @Override
+  public int schemaHashCode() {
+    // TODO: Make this cached, performance optimization
+    return SchemaHash.combine(
+        name().hashCode(),
+        SchemaHash.hash(tables()),
+        SchemaHash.hash(userDefinedTypes()),
+        replication().hashCode(),
+        Objects.hashCode(durableWrites()));
   }
 }

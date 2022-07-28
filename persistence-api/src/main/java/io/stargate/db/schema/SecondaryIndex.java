@@ -83,4 +83,9 @@ public abstract class SecondaryIndex implements Index, QualifiedSchemaEntity {
   public String indexTypeName() {
     return "Secondary index";
   }
+
+  @Override
+  public int schemaHashCode() {
+    return hashCode();
+  }
 }

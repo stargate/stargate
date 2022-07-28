@@ -67,4 +67,14 @@ public abstract class MaterializedView extends AbstractTable implements Index {
   public String indexTypeName() {
     return "Materialized view";
   }
+
+  @Override
+  public int schemaHashCode() {
+    return SchemaHash.combine(
+        name().hashCode(),
+        keyspace().hashCode(),
+        SchemaHash.hash(columns()),
+        comment().hashCode(),
+        ttl());
+  }
 }

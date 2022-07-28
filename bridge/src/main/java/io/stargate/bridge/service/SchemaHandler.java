@@ -66,7 +66,7 @@ class SchemaHandler {
     if (keyspace == null) {
       responseObserver.onError(
           Status.NOT_FOUND.withDescription("Keyspace not found").asException());
-    } else if (query.hasHash() && query.getHash().getValue() == keyspace.hashCode()) {
+    } else if (query.hasHash() && query.getHash().getValue() == keyspace.schemaHashCode()) {
       // Client already has the latest version, don't resend
       responseObserver.onNext(EMPTY_KEYSPACE_DESCRIPTION);
       responseObserver.onCompleted();
@@ -86,7 +86,7 @@ class SchemaHandler {
       Keyspace keyspace, String simpleName, String decoratedName) throws StatusException {
 
     CqlKeyspaceDescribe.Builder describeResultBuilder =
-        CqlKeyspaceDescribe.newBuilder().setHash(Int32Value.of(keyspace.hashCode()));
+        CqlKeyspaceDescribe.newBuilder().setHash(Int32Value.of(keyspace.schemaHashCode()));
     CqlKeyspace.Builder cqlKeyspaceBuilder =
         CqlKeyspace.newBuilder().setName(simpleName).setGlobalName(decoratedName);
 
