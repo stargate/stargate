@@ -163,12 +163,13 @@ public abstract class Keyspace implements SchemaEntity {
   public int schemaHashCode() {
     int h = this.schemaHashCode;
     if (h == 0) {
-      h = SchemaHash.combine(
-          SchemaHash.hashCode(name()),
-          SchemaHash.hash(tables()),
-          SchemaHash.hash(userDefinedTypes()),
-          SchemaHash.hashCode(replication()),
-          SchemaHash.hashCode(durableWrites()));
+      h =
+          SchemaHash.combine(
+              SchemaHash.hashCode(name()),
+              SchemaHash.hash(tables()),
+              SchemaHash.hash(userDefinedTypes()),
+              SchemaHash.hashCode(replication()),
+              SchemaHash.hashCode(durableWrites()));
       this.schemaHashCode = h;
     }
     return h;
