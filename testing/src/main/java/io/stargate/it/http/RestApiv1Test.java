@@ -45,12 +45,7 @@ import io.stargate.web.restapi.models.TableResponse;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
@@ -703,6 +698,41 @@ public class RestApiv1Test extends BaseIntegrationTest {
     assertThat(rowsResponse.getSuccess()).isTrue();
 
     getRow(tableName, rowIdentifier);
+  }
+
+  @Test
+  public void addRowValidation() throws IOException {
+    String tableName = "tbl_addrow_" + System.currentTimeMillis();
+    createTable(tableName);
+
+    okhttp3.Response response =
+        RestUtils.postRaw(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspace, tableName),
+            "",
+            422);
+    Map<String, String> map = objectMapper.readValue(response.body().string(), Map.class);
+    assertThat(map.get("description")).isEqualTo("Request invalid: Row data cannot be null.");
+
+    response =
+        RestUtils.postRaw(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspace, tableName),
+            "{}",
+            422);
+    map = objectMapper.readValue(response.body().string(), Map.class);
+    assertThat(map.get("description"))
+        .isEqualTo("Request invalid: Columns cannot be null or empty.");
+
+    response =
+        RestUtils.postRaw(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspace, tableName),
+            "{\"columns\":[{\"value\":\"firstname\"}]}",
+            422);
+    map = objectMapper.readValue(response.body().string(), Map.class);
+    assertThat(map.get("description"))
+        .isEqualTo("Request invalid: Name of the column cannot be null or blank.");
   }
 
   @Test

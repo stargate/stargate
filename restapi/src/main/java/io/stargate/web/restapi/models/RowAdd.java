@@ -18,10 +18,10 @@ package io.stargate.web.restapi.models;
 import io.swagger.annotations.ApiModelProperty;
 import java.util.List;
 import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import javax.validation.constraints.NotEmpty;
 
 public class RowAdd {
-  @NotNull(message = "Columns cannot be null")
+  @NotEmpty(message = "Columns cannot be null or empty")
   @Valid
   private List<ColumnModel> columns;
 

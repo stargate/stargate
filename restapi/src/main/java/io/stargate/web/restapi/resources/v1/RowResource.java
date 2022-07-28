@@ -416,7 +416,7 @@ public class RowResource {
           @PathParam("tableName")
           final String tableName,
       @ApiParam(value = "Row object that needs to be added to the table", required = true)
-          @NotNull
+          @NotNull(message = "Row data cannot be null")
           @Valid
           final RowAdd rowAdd,
       @Context HttpServletRequest request) {
