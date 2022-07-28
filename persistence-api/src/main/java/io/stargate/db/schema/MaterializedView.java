@@ -71,10 +71,10 @@ public abstract class MaterializedView extends AbstractTable implements Index {
   @Override
   public int schemaHashCode() {
     return SchemaHash.combine(
-        name().hashCode(),
-        keyspace().hashCode(),
+        SchemaHash.hashCode(name()),
+        SchemaHash.hashCode(keyspace()),
         SchemaHash.hash(columns()),
-        comment().hashCode(),
-        ttl());
+        SchemaHash.hashCode(comment()),
+        SchemaHash.hashCode(ttl()));
   }
 }

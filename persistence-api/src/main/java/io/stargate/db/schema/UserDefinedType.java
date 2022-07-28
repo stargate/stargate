@@ -179,9 +179,9 @@ public abstract class UserDefinedType implements Column.ColumnType, SchemaEntity
   @Override
   public int schemaHashCode() {
     return SchemaHash.combine(
-        Boolean.hashCode(isFrozen()),
-        name().hashCode(),
-        keyspace().hashCode(),
+        SchemaHash.hashCode(isFrozen()),
+        SchemaHash.hashCode(name()),
+        SchemaHash.hashCode(keyspace()),
         SchemaHash.hash(columns()));
   }
 }

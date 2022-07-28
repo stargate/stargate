@@ -43,7 +43,6 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -964,11 +963,11 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
   @Override
   public int schemaHashCode() {
     return SchemaHash.combine(
-        name().hashCode(),
+        SchemaHash.hashCode(name()),
         SchemaHash.hashCode(type()),
         SchemaHash.enumHashCode(kind()),
-        Objects.hashCode(keyspace()),
-        Objects.hashCode(table()),
+        SchemaHash.hashCode(keyspace()),
+        SchemaHash.hashCode(table()),
         SchemaHash.enumHashCode(order()));
   }
 

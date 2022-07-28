@@ -1,17 +1,22 @@
 package io.stargate.db.schema;
 
 import java.util.Collection;
+import java.util.Objects;
+import java.util.Optional;
 
-/**
- * An interface for calculating deterministic hash codes for schema objects.
- */
+/** An interface for calculating deterministic hash codes for schema objects. */
 public interface SchemaHash {
 
   /**
    * Calculates a deterministic hash code for the schema object that does not change between
    * invocations of the JVM.
    *
-   * @return a "stable" hash code for the schema object.
+   * <p>When calculating the schema hash code it advised that one of the `SchemaHash#hashCode()`
+   * methods in this interface be used instead of using `obj.hashCode()`, {@link Object#hashCode()},
+   * or {@link System#identityHashCode(Object)}, etc. to avoid an error that produces a
+   * non-deterministic hash code.
+   *
+   * @return a deterministic hash code for the schema object.
    */
   int schemaHashCode();
 
@@ -22,6 +27,24 @@ public interface SchemaHash {
     return object.schemaHashCode();
   }
 
+  static int hashCode(Object object) {
+    // It's still possible that something like `Optional<Enum>` would make it through. So that's
+    // something to look out for.
+    if (object instanceof Enum || object instanceof SchemaHash) {
+      throw new AssertionError(
+          "Using `SchemaHash#hashCode(Object object)` on this object type (`Enum`, `SchemaHash`) may produce an non-deterministic hash code");
+    }
+    return Objects.hashCode(object);
+  }
+
+  static int hashCode(int i) {
+    return Integer.hashCode(i);
+  }
+
+  static int hashCode(boolean b) {
+    return Boolean.hashCode(b);
+  }
+
   static int enumHashCode(Enum<?> object) {
     if (object == null) {
       return 0;
@@ -30,9 +53,9 @@ public interface SchemaHash {
     return object.ordinal() + 1; // Add one so that it's not ambiguous with null
   }
 
-  static int combine(int... codes) {
+  static int combine(int... hashCodes) {
     int result = 1;
-    for (int code : codes) result = 31 * result + code;
+    for (int code : hashCodes) result = 31 * result + code;
     return result;
   }
 

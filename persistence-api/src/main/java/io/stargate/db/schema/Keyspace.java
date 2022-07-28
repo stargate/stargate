@@ -17,7 +17,6 @@ package io.stargate.db.schema;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
@@ -29,6 +28,8 @@ import org.javatuples.Pair;
 public abstract class Keyspace implements SchemaEntity {
 
   private static final long serialVersionUID = -337891773492616286L;
+
+  private int schemaHashCode; // Lazily loaded schema hash code
 
   public abstract Set<Table> tables();
 
@@ -160,12 +161,16 @@ public abstract class Keyspace implements SchemaEntity {
 
   @Override
   public int schemaHashCode() {
-    // TODO: Make this cached, performance optimization
-    return SchemaHash.combine(
-        name().hashCode(),
-        SchemaHash.hash(tables()),
-        SchemaHash.hash(userDefinedTypes()),
-        replication().hashCode(),
-        Objects.hashCode(durableWrites()));
+    int h = this.schemaHashCode;
+    if (h == 0) {
+      h = SchemaHash.combine(
+          SchemaHash.hashCode(name()),
+          SchemaHash.hash(tables()),
+          SchemaHash.hash(userDefinedTypes()),
+          SchemaHash.hashCode(replication()),
+          SchemaHash.hashCode(durableWrites()));
+      this.schemaHashCode = h;
+    }
+    return h;
   }
 }

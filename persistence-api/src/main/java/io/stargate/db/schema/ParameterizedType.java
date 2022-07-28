@@ -159,7 +159,7 @@ public abstract class ParameterizedType implements Column.ColumnType {
 
     @Override
     public int schemaHashCode() {
-      return SchemaHash.combine(Boolean.hashCode(isFrozen()), super.schemaHashCode());
+      return SchemaHash.combine(SchemaHash.hashCode(isFrozen()), super.schemaHashCode());
     }
   }
 

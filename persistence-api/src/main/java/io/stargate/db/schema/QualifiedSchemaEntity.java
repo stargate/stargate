@@ -29,4 +29,12 @@ public interface QualifiedSchemaEntity extends SchemaEntity {
   default String cqlQualifiedName() {
     return cqlKeyspace() + '.' + cqlName();
   }
+
+  @Override
+  default int schemaHashCode() {
+    return SchemaHash.combine(
+        SchemaHash.hashCode(keyspace()),
+        SchemaHash.hashCode(cqlKeyspace()),
+        SchemaHash.hashCode(cqlQualifiedName()));
+  }
 }

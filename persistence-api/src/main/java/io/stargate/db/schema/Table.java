@@ -119,11 +119,11 @@ public abstract class Table extends AbstractTable {
   @Override
   public int schemaHashCode() {
     return SchemaHash.combine(
-        name().hashCode(),
-        keyspace().hashCode(),
+        SchemaHash.hashCode(name()),
+        SchemaHash.hashCode(keyspace()),
         SchemaHash.hash(columns()),
         SchemaHash.hash(indexes()),
-        comment().hashCode(),
-        ttl());
+        SchemaHash.hashCode(comment()),
+        SchemaHash.hashCode(ttl()));
   }
 }
