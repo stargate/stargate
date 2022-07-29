@@ -728,7 +728,27 @@ public class RestApiv1Test extends BaseIntegrationTest {
         RestUtils.postRaw(
             authToken,
             String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspace, tableName),
+            "{\"columns\":[]}",
+            422);
+    map = objectMapper.readValue(response.body().string(), Map.class);
+    assertThat(map.get("description"))
+        .isEqualTo("Request invalid: Columns cannot be null or empty.");
+
+    response =
+        RestUtils.postRaw(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspace, tableName),
             "{\"columns\":[{\"value\":\"firstname\"}]}",
+            422);
+    map = objectMapper.readValue(response.body().string(), Map.class);
+    assertThat(map.get("description"))
+        .isEqualTo("Request invalid: Name of the column cannot be null or blank.");
+
+    response =
+        RestUtils.postRaw(
+            authToken,
+            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspace, tableName),
+            "{\"columns\":[{\"name\":\"\"}]}",
             422);
     map = objectMapper.readValue(response.body().string(), Map.class);
     assertThat(map.get("description"))
