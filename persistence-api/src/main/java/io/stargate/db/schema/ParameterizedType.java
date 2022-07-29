@@ -78,11 +78,6 @@ public abstract class ParameterizedType implements Column.ColumnType {
     return rawType().javaType();
   }
 
-  @Override
-  public int schemaHashCode() {
-    return SchemaHash.hash(parameters());
-  }
-
   protected abstract ParameterizedType withIsFrozen(boolean value);
 
   @Override
@@ -158,8 +153,10 @@ public abstract class ParameterizedType implements Column.ColumnType {
     }
 
     @Override
+    @Value.Derived
+    @Value.Auxiliary
     public int schemaHashCode() {
-      return SchemaHash.combine(SchemaHash.hashCode(isFrozen()), super.schemaHashCode());
+      return SchemaHash.combine(SchemaHash.hashCode(isFrozen()), SchemaHash.hashCode(parameters()));
     }
   }
 
@@ -229,8 +226,10 @@ public abstract class ParameterizedType implements Column.ColumnType {
     }
 
     @Override
+    @Value.Derived
+    @Value.Auxiliary
     public int schemaHashCode() {
-      return SchemaHash.combine(Boolean.hashCode(isFrozen()), super.schemaHashCode());
+      return SchemaHash.combine(SchemaHash.hashCode(isFrozen()), SchemaHash.hashCode(parameters()));
     }
   }
 
@@ -319,8 +318,10 @@ public abstract class ParameterizedType implements Column.ColumnType {
     }
 
     @Override
+    @Value.Derived
+    @Value.Auxiliary
     public int schemaHashCode() {
-      return SchemaHash.combine(Boolean.hashCode(isFrozen()), super.schemaHashCode());
+      return SchemaHash.combine(SchemaHash.hashCode(isFrozen()), SchemaHash.hashCode(parameters()));
     }
   }
 
@@ -450,6 +451,13 @@ public abstract class ParameterizedType implements Column.ColumnType {
       Preconditions.checkArgument(
           null != parameterType, "Tuple type '%s' does not have field '%s'", cqlDefinition(), name);
       return parameterType;
+    }
+
+    @Override
+    @Value.Derived
+    @Value.Auxiliary
+    public int schemaHashCode() {
+      return SchemaHash.hash(parameters());
     }
   }
 }

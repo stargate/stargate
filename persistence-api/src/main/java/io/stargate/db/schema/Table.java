@@ -117,6 +117,8 @@ public abstract class Table extends AbstractTable {
   }
 
   @Override
+  @Value.Derived
+  @Value.Auxiliary
   public int schemaHashCode() {
     return SchemaHash.combine(
         SchemaHash.hashCode(name()),

@@ -177,6 +177,8 @@ public abstract class UserDefinedType implements Column.ColumnType, SchemaEntity
   }
 
   @Override
+  @Value.Derived
+  @Value.Auxiliary
   public int schemaHashCode() {
     return SchemaHash.combine(
         SchemaHash.hashCode(isFrozen()),
