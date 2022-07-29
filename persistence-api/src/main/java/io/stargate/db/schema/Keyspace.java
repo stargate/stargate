@@ -22,14 +22,13 @@ import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
+import org.immutables.value.Value.Derived;
 import org.javatuples.Pair;
 
 @Value.Immutable(prehash = true)
 public abstract class Keyspace implements SchemaEntity {
 
   private static final long serialVersionUID = -337891773492616286L;
-
-  private int schemaHashCode; // Lazily loaded schema hash code
 
   public abstract Set<Table> tables();
 
@@ -160,18 +159,14 @@ public abstract class Keyspace implements SchemaEntity {
   }
 
   @Override
+  @Value.Derived
+  @Value.Auxiliary
   public int schemaHashCode() {
-    int h = this.schemaHashCode;
-    if (h == 0) {
-      h =
-          SchemaHash.combine(
-              SchemaHash.hashCode(name()),
-              SchemaHash.hash(tables()),
-              SchemaHash.hash(userDefinedTypes()),
-              SchemaHash.hashCode(replication()),
-              SchemaHash.hashCode(durableWrites()));
-      this.schemaHashCode = h;
-    }
-    return h;
+    return SchemaHash.combine(
+            SchemaHash.hashCode(name()),
+            SchemaHash.hash(tables()),
+            SchemaHash.hash(userDefinedTypes()),
+            SchemaHash.hashCode(replication()),
+            SchemaHash.hashCode(durableWrites()));
   }
 }
