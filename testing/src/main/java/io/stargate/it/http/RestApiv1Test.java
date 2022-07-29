@@ -716,7 +716,8 @@ public class RestApiv1Test extends BaseRestApiTest {
     okhttp3.Response response =
         RestUtils.postRaw(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspace, tableName),
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
             "",
             422);
     Map<String, String> map = objectMapper.readValue(response.body().string(), Map.class);
@@ -725,7 +726,8 @@ public class RestApiv1Test extends BaseRestApiTest {
     response =
         RestUtils.postRaw(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspace, tableName),
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
             "{}",
             422);
     map = objectMapper.readValue(response.body().string(), Map.class);
@@ -735,7 +737,8 @@ public class RestApiv1Test extends BaseRestApiTest {
     response =
         RestUtils.postRaw(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspace, tableName),
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
             "{\"columns\":[]}",
             422);
     map = objectMapper.readValue(response.body().string(), Map.class);
@@ -745,7 +748,8 @@ public class RestApiv1Test extends BaseRestApiTest {
     response =
         RestUtils.postRaw(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspace, tableName),
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
             "{\"columns\":[{\"value\":\"firstname\"}]}",
             422);
     map = objectMapper.readValue(response.body().string(), Map.class);
@@ -755,7 +759,8 @@ public class RestApiv1Test extends BaseRestApiTest {
     response =
         RestUtils.postRaw(
             authToken,
-            String.format("%s:8082/v1/keyspaces/%s/tables/%s/rows", host, keyspace, tableName),
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
             "{\"columns\":[{\"name\":\"\"}]}",
             422);
     map = objectMapper.readValue(response.body().string(), Map.class);
