@@ -3,6 +3,7 @@ package io.stargate.db.dse.impl;
 import static io.stargate.db.dse.impl.Conversion.toPreparedMetadata;
 import static io.stargate.db.dse.impl.Conversion.toResultMetadata;
 
+import com.datastax.bdp.config.DseConfig;
 import com.datastax.bdp.db.nodes.Nodes;
 import com.datastax.bdp.db.util.ProductType;
 import com.datastax.bdp.db.util.ProductVersion;
@@ -33,6 +34,7 @@ import io.stargate.db.dse.impl.interceptors.DefaultQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.ProxyProtocolQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
 import io.stargate.db.schema.TableName;
+import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
@@ -199,6 +201,12 @@ public class DsePersistence
     }
 
     DatabaseDescriptor.daemonInitialization(true, config);
+
+    String dseConfigPath = System.getProperty("stargate.unsafe.dse_config_path", "");
+    if (!dseConfigPath.isEmpty()) {
+      System.setProperty("dse.config", new File(dseConfigPath).toURI().toString());
+      DseConfig.init();
+    }
 
     String hostId = System.getProperty("stargate.host_id");
     if (hostId != null && !hostId.isEmpty()) {
