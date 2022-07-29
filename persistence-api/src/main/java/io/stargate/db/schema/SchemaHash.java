@@ -51,8 +51,7 @@ public interface SchemaHash {
     if (object == null) {
       return 0;
     }
-    // FIXME: Is this good enough of a hash?
-    return object.ordinal() + 1; // Add one so that it's not ambiguous with null
+    return object.name().hashCode();
   }
 
   static int combine(int... hashCodes) {
