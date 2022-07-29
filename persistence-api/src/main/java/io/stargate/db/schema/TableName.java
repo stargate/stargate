@@ -47,4 +47,11 @@ public interface TableName extends QualifiedSchemaEntity {
 
     return tables.iterator().next();
   }
+
+  @Override
+  @Value.Derived
+  @Value.Auxiliary
+  default int schemaHashCode() {
+    return SchemaHash.combine(SchemaHash.hashCode(keyspace()), SchemaHash.hashCode(name()));
+  }
 }
