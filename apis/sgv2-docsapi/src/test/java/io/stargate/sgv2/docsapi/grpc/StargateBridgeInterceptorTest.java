@@ -16,6 +16,7 @@
  */
 package io.stargate.sgv2.docsapi.grpc;
 
+import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
@@ -24,38 +25,40 @@ import static org.mockito.Mockito.verify;
 import com.google.common.collect.ImmutableMap;
 import io.grpc.Metadata;
 import io.grpc.stub.StreamObserver;
+import io.quarkus.grpc.GrpcClient;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
+import io.stargate.bridge.proto.MutinyStargateBridgeGrpc;
 import io.stargate.bridge.proto.Schema;
-import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.BridgeTest;
-import io.stargate.sgv2.api.common.grpc.GrpcClients;
+import io.stargate.sgv2.api.common.config.constants.HttpConstants;
+import io.stargate.sgv2.api.common.testprofiles.FixedTenantTestProfile;
+import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents.DocumentReadResource;
 import java.util.Map;
-import java.util.Optional;
-import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 @QuarkusTest
-@TestProfile(GrpcClientsTest.Profile.class)
-class GrpcClientsTest extends BridgeTest {
+@TestProfile(StargateBridgeInterceptorTest.Profile.class)
+class StargateBridgeInterceptorTest extends BridgeTest {
 
-  public static class Profile implements QuarkusTestProfile {
+  public static class Profile extends FixedTenantTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {
       return ImmutableMap.<String, String>builder()
+          .putAll(super.getConfigOverrides())
           .put("stargate.grpc-metadata.tenant-id-key", "custom-tenant-key")
           .put("stargate.grpc-metadata.cassandra-token-key", "custom-token-key")
           .build();
     }
   }
 
-  @Inject GrpcClients grpcClients;
+  @GrpcClient("bridge")
+  MutinyStargateBridgeGrpc.MutinyStargateBridgeStub client;
 
   ArgumentCaptor<Metadata> headersCaptor;
 
@@ -66,11 +69,9 @@ class GrpcClientsTest extends BridgeTest {
 
   @Test
   public void happyPath() {
+    // call bridge in during the http call
     String token = RandomStringUtils.randomAlphanumeric(16);
-    String tenant = RandomStringUtils.randomAlphanumeric(16);
     String keyspaceName = RandomStringUtils.randomAlphanumeric(16);
-    Schema.DescribeKeyspaceQuery query =
-        Schema.DescribeKeyspaceQuery.newBuilder().setKeyspaceName(keyspaceName).build();
     Schema.CqlKeyspaceDescribe response =
         Schema.CqlKeyspaceDescribe.newBuilder()
             .setCqlKeyspace(Schema.CqlKeyspace.newBuilder().setName(keyspaceName).build())
@@ -85,12 +86,12 @@ class GrpcClientsTest extends BridgeTest {
         .when(bridgeService)
         .describeKeyspace(any(), any());
 
-    StargateBridge client = grpcClients.bridgeClient(Optional.of(tenant), Optional.of(token));
-    UniAssertSubscriber<Schema.CqlKeyspaceDescribe> result =
-        client.describeKeyspace(query).subscribe().withSubscriber(UniAssertSubscriber.create());
-
-    // verify result
-    result.awaitItem().assertItem(response).assertCompleted();
+    // fake document read, to fetch needed keyspace
+    given()
+        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, token)
+        .queryParam("raw", true)
+        .when()
+        .get(DocumentReadResource.BASE_PATH + "/{collection}/id", keyspaceName, "collection");
 
     // verify metadata
     verify(bridgeInterceptor).interceptCall(any(), headersCaptor.capture(), any());
@@ -100,7 +101,7 @@ class GrpcClientsTest extends BridgeTest {
             metadata -> {
               Metadata.Key<String> tenantKey =
                   Metadata.Key.of("custom-tenant-key", Metadata.ASCII_STRING_MARSHALLER);
-              assertThat(metadata.get(tenantKey)).isEqualTo(tenant);
+              assertThat(metadata.get(tenantKey)).isEqualTo(FixedTenantTestProfile.TENANT_ID);
               Metadata.Key<String> tokenKey =
                   Metadata.Key.of("custom-token-key", Metadata.ASCII_STRING_MARSHALLER);
               assertThat(metadata.get(tokenKey)).isEqualTo(token);
@@ -109,6 +110,7 @@ class GrpcClientsTest extends BridgeTest {
 
   @Test
   public void noExtraMetadata() {
+    // call bridge without http call
     String keyspaceName = RandomStringUtils.randomAlphanumeric(16);
     Schema.DescribeKeyspaceQuery query =
         Schema.DescribeKeyspaceQuery.newBuilder().setKeyspaceName(keyspaceName).build();
@@ -126,7 +128,6 @@ class GrpcClientsTest extends BridgeTest {
         .when(bridgeService)
         .describeKeyspace(any(), any());
 
-    StargateBridge client = grpcClients.bridgeClient(Optional.empty(), Optional.empty());
     UniAssertSubscriber<Schema.CqlKeyspaceDescribe> result =
         client.describeKeyspace(query).subscribe().withSubscriber(UniAssertSubscriber.create());
 
