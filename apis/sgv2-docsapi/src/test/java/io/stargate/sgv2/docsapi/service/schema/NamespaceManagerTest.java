@@ -27,6 +27,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
+import io.quarkus.grpc.GrpcClient;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.smallrye.mutiny.helpers.test.AssertSubscriber;
@@ -34,17 +35,16 @@ import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.BridgeTest;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.cql.builder.Replication;
-import io.stargate.sgv2.api.common.grpc.GrpcClients;
 import io.stargate.sgv2.api.common.grpc.UnauthorizedKeyspaceException;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.service.schema.query.NamespaceQueryProvider;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Optional;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -59,7 +59,8 @@ class NamespaceManagerTest extends BridgeTest {
 
   @Inject NamespaceQueryProvider queryProvider;
 
-  @Inject GrpcClients grpcClients;
+  @GrpcClient("bridge")
+  StargateBridge bridge;
 
   @InjectMock StargateRequestInfo requestInfo;
 
@@ -68,9 +69,7 @@ class NamespaceManagerTest extends BridgeTest {
   @BeforeEach
   public void init() {
     queryCaptor = ArgumentCaptor.forClass(QueryOuterClass.Query.class);
-    doAnswer(invocation -> grpcClients.bridgeClient(Optional.empty(), Optional.empty()))
-        .when(requestInfo)
-        .getStargateBridge();
+    doAnswer(invocation -> bridge).when(requestInfo).getStargateBridge();
   }
 
   @Nested

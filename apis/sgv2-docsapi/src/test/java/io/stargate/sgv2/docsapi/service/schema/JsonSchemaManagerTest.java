@@ -26,18 +26,18 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.grpc.stub.StreamObserver;
+import io.quarkus.grpc.GrpcClient;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.BridgeTest;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
-import io.stargate.sgv2.api.common.grpc.GrpcClients;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
-import java.util.Optional;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -51,7 +51,8 @@ class JsonSchemaManagerTest extends BridgeTest {
 
   @Inject ObjectMapper objectMapper;
 
-  @Inject GrpcClients grpcClients;
+  @GrpcClient("bridge")
+  StargateBridge bridge;
 
   @InjectMock StargateRequestInfo requestInfo;
 
@@ -62,9 +63,7 @@ class JsonSchemaManagerTest extends BridgeTest {
   @BeforeEach
   public void init() {
     queryCaptor = ArgumentCaptor.forClass(QueryOuterClass.Query.class);
-    doAnswer(invocation -> grpcClients.bridgeClient(Optional.empty(), Optional.empty()))
-        .when(requestInfo)
-        .getStargateBridge();
+    doAnswer(invocation -> bridge).when(requestInfo).getStargateBridge();
   }
 
   @Nested
