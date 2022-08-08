@@ -33,7 +33,7 @@ public interface SchemaHash {
     // It's still possible that something like `Optional<Enum>` would make it through. So that's
     // something to look out for.
     if (object instanceof Enum || object instanceof SchemaHash) {
-      throw new AssertionError(
+      throw new IllegalArgumentException(
           "Using `SchemaHash#hashCode(Object object)` on this object type (`Enum`, `SchemaHash`) may produce an non-deterministic hash code");
     }
     return Objects.hashCode(object);
