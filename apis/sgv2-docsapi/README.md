@@ -148,7 +148,7 @@ If your Integration Test run fails with some generic, non-descriptive error like
 
 there are some things you may try:
 
-* Make sure your Docker Engine has enough resources
+* Make sure your Docker Engine has enough resources. For example following have been observed:
     * Docker Desktop defaults of 2 gigabytes of memory on Mac are not enough: try at least 4
 
 ### Packaging and running the application
