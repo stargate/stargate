@@ -5,46 +5,70 @@ on:
     tags:
       - 'v1.*.*'
 
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publishing JARs to OSSRH?'
+        required: true
+        default: false
+        type: boolean
+      tag:
+        description: 'Custom release tag value.'
+        required: true
+        type: string
+
+# global env vars, available in all jobs and steps
+env:
+  ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+  ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+  MAVEN_OPTS: '-Xmx4g'
+
 jobs:
+
+  # creates a new release if it's not existing
+  # outputs the resolved release tag value in the release-tag output var
+  # outputs the upload URL in the release-upload-url output var
   create-release:
-    name: create release
+    name: Create release
     runs-on: ubuntu-latest
+    outputs:
+      release-tag: ${{ steps.resolve_tag.outputs.tag }}
+      release-upload-url: ${{ steps.create_release.outputs.upload_url }}
     steps:
-      - name: Create Release
+      - name: Resolve tag
+        id: resolve_tag
+        run: |
+          TAG=${{ inputs.tag != null && inputs.tag || github.ref }}
+          echo "Resolved tag for the release $TAG"
+          echo "::set-output name=tag::${TAG}"
+
+      - name: Create release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
+          tag_name: ${{ steps.resolve_tag.outputs.tag }}
+          release_name: Release ${{ steps.resolve_tag.outputs.tag }}
           draft: false
           prerelease: false
-      - name: Copy release URL into file
-        run: |
-          mkdir release
-          printf "%s" "${{ steps.create_release.outputs.upload_url }}" > release/url.txt
-      - name: Stash file containing the release URL as an artifact
-        uses: actions/upload-artifact@v1
-        with:
-          name: release-url
-          path: ./release
 
+  # builds coordinator, zips stargate-lib folder and uploads the zip to the created release
   build:
     name: Build
+    needs: create-release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v3
         with:
-          ref: "master"
-      - name: Setup Java JDK
-        uses: actions/setup-java@v1
-        with:
-          java-version: 1.8
+          distribution: 'temurin'
+          java-version: '8'
+          cache: maven
+
       - name: Setup Maven
-        env:
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
         run: |
           mkdir -p ~/.m2
           cat <<EOF > ~/.m2/settings.xml
@@ -63,46 +87,43 @@ jobs:
            </servers>
           </settings>
           EOF
+
       - name: Build with Maven
         run: |
           mvn versions:set -DremoveSnapshot versions:commit
           mvn -P dse -q -ff clean package -DskipTests
-      - name: zip-up
+
+      - name: Zip-up `stargate-lib`
         run: |
           zip stargate-jars.zip starctl stargate-lib/logback.xml stargate-lib/*.jar
-      - name: Retrieve stashed release URL
-        uses: actions/download-artifact@v1
-        with:
-          name: release-url
-      - name: Read release URL
-        id: get_release_url
-        run: echo ::set-output name=URL::$(cat release-url/url.txt)
+          
+      # uploads the jars by referencing the release-upload-url from create-release job
       - name: Upload jars
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          upload_url: ${{ steps.get_release_url.outputs.URL }}
+          upload_url: ${{needs.create-release.outputs.release-upload-url}}
           asset_path: stargate-jars.zip
           asset_name: stargate-jars.zip
           asset_content_type: text/html
 
+  # publish coordinator JARs to the OSSRH
   publish:
+    name: Publish to OSSRH
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK 8
+        uses: actions/setup-java@v3
         with:
-          ref: "master"
-      - name: Set version
-        id: vars
-        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
-      - uses: actions/setup-java@v1
-        with:
-          java-version: 1.8
+          distribution: 'temurin'
+          java-version: '8'
+          cache: maven
+
       - name: Setup Maven
         env:
-          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
-          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
           OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
           OSSRH_TOKEN: ${{ secrets.OSSRH_TOKEN }}
         run: |
@@ -128,16 +149,22 @@ jobs:
            </servers>
           </settings>
           EOF
-      - id: install-secret-key
-        name: Install gpg secret key
+
+      - name: Install gpg secret key
         run: |
           cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
+
       - name: Publish package
+        if: ${{ inputs.publish != false }}
         run: |
           mvn versions:set -DremoveSnapshot versions:commit && \
           mvn -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse && \
+
+      - name: Bump versions
+        run: |
           mvn -B release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse && \
           mvn xml-format:xml-format fmt:format -Pdse
+
       - name: Rev Version
         if: success()
         uses: peter-evans/create-pull-request@v3
