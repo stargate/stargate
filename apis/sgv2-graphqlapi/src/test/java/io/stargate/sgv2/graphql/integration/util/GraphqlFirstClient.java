@@ -206,7 +206,7 @@ public class GraphqlFirstClient extends GraphqlClient {
   }
 
   private String buildSchemaFileUri(String keyspace, String version) {
-    String url = baseUrl + FILES + "/" + urlEncode(keyspace);
+    String url = baseUrl + FILES + "/keyspace/" + urlEncode(keyspace) + ".graphql";
     if (version != null) {
       url = url + "?version=" + urlEncode(version);
     }

@@ -16,6 +16,11 @@
  */
 package io.stargate.sgv2.graphql.integration.util;
 
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import io.stargate.bridge.proto.Schema;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 
 public class GraphqlFirstIntegrationTest extends GraphqlIntegrationTest {
@@ -27,5 +32,39 @@ public class GraphqlFirstIntegrationTest extends GraphqlIntegrationTest {
     client =
         new GraphqlFirstClient(
             baseUrl, requestInfo.getCassandraToken().orElseThrow(AssertionError::new));
+  }
+
+  protected void deleteAllGraphqlSchemas() {
+    try {
+      Schema.CqlKeyspaceDescribe keyspace =
+          bridge
+              .describeKeyspace(
+                  Schema.DescribeKeyspaceQuery.newBuilder()
+                      .setKeyspaceName("stargate_graphql")
+                      .build())
+              .await()
+              .indefinitely();
+      if (keyspace.getTablesList().stream().anyMatch(t -> t.getName().equals("schema_source"))) {
+        executeCql(
+            "DELETE FROM stargate_graphql.schema_source WHERE keyspace_name = '"
+                + keyspaceName
+                + "'");
+      }
+    } catch (StatusRuntimeException e) {
+      if (Status.Code.NOT_FOUND.equals(e.getStatus().getCode())) {
+        // If keyspace stargate_graphql does not exist yet, nothing to do
+        return;
+      }
+      throw e;
+    }
+  }
+
+  @SuppressWarnings("unchecked")
+  protected String getMappingErrors(Map<String, Object> errors) {
+    Map<String, Object> value =
+        ((Map<String, List<Map<String, Object>>>) errors.get("extensions"))
+            .get("mappingErrors")
+            .get(0);
+    return (String) value.get("message");
   }
 }
