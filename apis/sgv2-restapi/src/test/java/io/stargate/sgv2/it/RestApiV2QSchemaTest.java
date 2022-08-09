@@ -45,11 +45,11 @@ public class RestApiV2QSchemaTest {
   @BeforeAll
   public void init() {
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
-    bridge = stargateRequestInfo.getStargateBridge();
   }
 
   @BeforeEach
   public void initPerTest(TestInfo testInfo) {
+    bridge = stargateRequestInfo.getStargateBridge();
     String testName = testInfo.getTestMethod().map(ti -> ti.getName()).get();
     testKeyspaceName = "ks_" + testName + "_" + System.currentTimeMillis();
 
@@ -61,7 +61,7 @@ public class RestApiV2QSchemaTest {
     given()
         .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
         .when()
-        .get(baseUrl, "/v2/schemas/keyspaces")
+        .get("/v2/schemas/keyspaces")
         .then()
         .statusCode(HttpStatus.SC_OK);
   }
