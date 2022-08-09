@@ -1066,6 +1066,37 @@ public class RestApiv1Test extends BaseIntegrationTest {
   }
 
   @Test
+  public void queryWithUdtCol() throws IOException {
+    String tableName = "tbl_query_" + System.currentTimeMillis();
+    // createTable(tableName);
+    session.execute("create type " + keyspace + ".udt_167785279 (a int, b int)");
+    session.execute(
+        "create table "
+            + keyspace
+            + "."
+            + tableName
+            + " (   pk0 varint,     pk1 varint,     pk2 smallint,     pk3 int,     pk4 int,     ck0 smallint,     ck1 text,     col0 frozen<udt_167785279>,     col1 date,     col10 map<tinyint, double>,     col11 float,     col2 timestamp,     col3 timeuuid,     col4 bigint,     col5 ascii,     col6 map<tinyint, varint>,     col7 float,     col8 duration,     col9 map<ascii, decimal>,     PRIMARY KEY ((pk0, pk1, pk2, pk3, pk4), ck0, ck1))");
+    session.execute(
+        "insert into "
+            + keyspace
+            + "."
+            + tableName
+            + " (pk0,pk1,pk2,pk3,pk4,ck0,ck1,col0) values(8275984804989873180, 5276317386634354038, 28639,1005107841,1544552257, 10,'a',{a:1, b:2})");
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows/8275984804989873180;5276317386634354038;28639;1005107841;1544552257",
+                host, keyspace, tableName),
+            HttpStatus.SC_OK);
+
+    RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
+    assertThat(rowResponse.getCount()).isEqualTo(1);
+    assertThat(rowResponse.getRows().get(0).get("col0")).isNotNull();
+  }
+
+  @Test
   public void deleteRowWithClustering() throws IOException {
     String tableName = "tbl_deleterows_clustering_" + System.currentTimeMillis();
     createTableWithClustering(tableName);

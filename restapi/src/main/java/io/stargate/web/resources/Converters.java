@@ -115,6 +115,20 @@ public class Converters {
       if (value instanceof Object[]) {
         value = Arrays.asList((Object[]) value);
       }
+      if (value instanceof UdtValue) {
+        UdtValue udtValue = (UdtValue) value;
+        com.datastax.oss.driver.api.core.type.UserDefinedType udtType = udtValue.getType();
+        Map<String, Object> jsonObject = Maps.newLinkedHashMapWithExpectedSize(udtValue.size());
+        for (int i = 0; i < udtValue.size(); i++) {
+          CqlIdentifier fieldName = udtType.getFieldNames().get(i);
+          Object internalValue = udtValue.getObject(fieldName);
+          if (internalValue instanceof Object[]) {
+            internalValue = Arrays.asList((Object[]) internalValue);
+          }
+          jsonObject.put(fieldName.asInternal(), internalValue);
+        }
+        value = jsonObject;
+      }
       map.put(column.name(), value);
     }
     return map;
