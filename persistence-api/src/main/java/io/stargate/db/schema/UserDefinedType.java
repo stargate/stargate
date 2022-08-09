@@ -180,10 +180,10 @@ public abstract class UserDefinedType implements Column.ColumnType, SchemaEntity
   @Value.Derived
   @Value.Auxiliary
   public int schemaHashCode() {
-    return SchemaHash.combine(
-        SchemaHash.hashCode(isFrozen()),
-        SchemaHash.hashCode(name()),
-        SchemaHash.hashCode(keyspace()),
-        SchemaHash.hash(columns()));
+    return SchemaHashable.combine(
+        SchemaHashable.hashCode(isFrozen()),
+        SchemaHashable.hashCode(name()),
+        SchemaHashable.hashCode(keyspace()),
+        SchemaHashable.hash(columns()));
   }
 }

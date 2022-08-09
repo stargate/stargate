@@ -4,7 +4,7 @@ import java.util.Collection;
 import java.util.Objects;
 
 /** An interface for calculating deterministic hash codes for schema objects. */
-public interface SchemaHash {
+public interface SchemaHashable {
 
   /**
    * Calculates a deterministic hash code for the schema object that does not change between
@@ -22,7 +22,7 @@ public interface SchemaHash {
    */
   int schemaHashCode();
 
-  static int hashCode(SchemaHash object) {
+  static int hashCode(SchemaHashable object) {
     if (object == null) {
       return 0;
     }
@@ -32,7 +32,7 @@ public interface SchemaHash {
   static int hashCode(Object object) {
     // It's still possible that something like `Optional<Enum>` would make it through. So that's
     // something to look out for.
-    if (object instanceof Enum || object instanceof SchemaHash) {
+    if (object instanceof Enum || object instanceof SchemaHashable) {
       throw new IllegalArgumentException(
           "Using `SchemaHash#hashCode(Object object)` on this object type (`Enum`, `SchemaHash`) may produce an non-deterministic hash code");
     }
@@ -60,7 +60,7 @@ public interface SchemaHash {
     return result;
   }
 
-  static int hash(Collection<? extends SchemaHash> collection) {
+  static int hash(Collection<? extends SchemaHashable> collection) {
     return collection.stream()
         .map(o -> o == null ? 0 : o.schemaHashCode())
         .reduce(1, (r, h) -> 31 * r + h);

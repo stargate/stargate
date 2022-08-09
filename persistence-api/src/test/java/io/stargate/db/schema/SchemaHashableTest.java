@@ -9,7 +9,7 @@ import io.stargate.db.schema.Column.Type;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-public class SchemaHashTest {
+public class SchemaHashableTest {
 
   @Nested
   class KeyspaceHashCode {

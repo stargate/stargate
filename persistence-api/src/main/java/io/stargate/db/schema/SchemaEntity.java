@@ -18,7 +18,7 @@ package io.stargate.db.schema;
 import java.io.Serializable;
 import org.immutables.value.Value;
 
-public interface SchemaEntity extends Serializable, SchemaHash {
+public interface SchemaEntity extends Serializable, SchemaHashable {
   String name();
 
   @Value.Lazy

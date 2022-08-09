@@ -120,12 +120,12 @@ public abstract class Table extends AbstractTable {
   @Value.Derived
   @Value.Auxiliary
   public int schemaHashCode() {
-    return SchemaHash.combine(
-        SchemaHash.hashCode(name()),
-        SchemaHash.hashCode(keyspace()),
-        SchemaHash.hash(columns()),
-        SchemaHash.hash(indexes()),
-        SchemaHash.hashCode(comment()),
-        SchemaHash.hashCode(ttl()));
+    return SchemaHashable.combine(
+        SchemaHashable.hashCode(name()),
+        SchemaHashable.hashCode(keyspace()),
+        SchemaHashable.hash(columns()),
+        SchemaHashable.hash(indexes()),
+        SchemaHashable.hashCode(comment()),
+        SchemaHashable.hashCode(ttl()));
   }
 }

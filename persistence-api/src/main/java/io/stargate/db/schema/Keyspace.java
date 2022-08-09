@@ -161,11 +161,11 @@ public abstract class Keyspace implements SchemaEntity {
   @Value.Derived
   @Value.Auxiliary
   public int schemaHashCode() {
-    return SchemaHash.combine(
-        SchemaHash.hashCode(name()),
-        SchemaHash.hash(tables()),
-        SchemaHash.hash(userDefinedTypes()),
-        SchemaHash.hashCode(replication()),
-        SchemaHash.hashCode(durableWrites()));
+    return SchemaHashable.combine(
+        SchemaHashable.hashCode(name()),
+        SchemaHashable.hash(tables()),
+        SchemaHashable.hash(userDefinedTypes()),
+        SchemaHashable.hashCode(replication()),
+        SchemaHashable.hashCode(durableWrites()));
   }
 }
