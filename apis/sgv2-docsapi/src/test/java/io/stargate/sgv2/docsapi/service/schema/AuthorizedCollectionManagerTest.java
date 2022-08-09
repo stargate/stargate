@@ -23,20 +23,20 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import io.grpc.stub.StreamObserver;
+import io.quarkus.grpc.GrpcClient;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.smallrye.mutiny.helpers.test.AssertSubscriber;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.BridgeTest;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
-import io.stargate.sgv2.api.common.grpc.GrpcClients;
 import io.stargate.sgv2.api.common.grpc.UnauthorizedTableException;
 import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.schema.qualifier.Authorized;
 import java.util.Arrays;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -55,7 +55,8 @@ class AuthorizedCollectionManagerTest extends BridgeTest {
 
   @Inject DocumentProperties documentProperties;
 
-  @Inject GrpcClients grpcClients;
+  @GrpcClient("bridge")
+  StargateBridge bridge;
 
   @InjectMock StargateRequestInfo requestInfo;
 
@@ -67,9 +68,7 @@ class AuthorizedCollectionManagerTest extends BridgeTest {
   public void init() {
     queryCaptor = ArgumentCaptor.forClass(QueryOuterClass.Query.class);
     schemaReadsCaptor = ArgumentCaptor.forClass(Schema.AuthorizeSchemaReadsRequest.class);
-    doAnswer(invocation -> grpcClients.bridgeClient(Optional.empty(), Optional.empty()))
-        .when(requestInfo)
-        .getStargateBridge();
+    doAnswer(invocation -> bridge).when(requestInfo).getStargateBridge();
   }
 
   Schema.CqlKeyspaceDescribe.Builder getValidTableAndKeyspaceBuilder(

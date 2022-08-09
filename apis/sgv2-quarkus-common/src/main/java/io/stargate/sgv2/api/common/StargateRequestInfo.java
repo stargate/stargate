@@ -17,8 +17,8 @@
 
 package io.stargate.sgv2.api.common;
 
+import io.quarkus.grpc.GrpcClient;
 import io.stargate.bridge.proto.StargateBridge;
-import io.stargate.sgv2.api.common.grpc.GrpcClients;
 import io.stargate.sgv2.api.common.tenant.TenantResolver;
 import io.stargate.sgv2.api.common.token.CassandraTokenResolver;
 import io.vertx.ext.web.RoutingContext;
@@ -48,12 +48,12 @@ public class StargateRequestInfo {
   public StargateRequestInfo(
       RoutingContext routingContext,
       SecurityContext securityContext,
-      GrpcClients grpcClients,
+      @GrpcClient("bridge") StargateBridge bridge,
       Instance<TenantResolver> tenantResolver,
       Instance<CassandraTokenResolver> tokenResolver) {
     this.tenantId = tenantResolver.get().resolve(routingContext, securityContext);
     this.cassandraToken = tokenResolver.get().resolve(routingContext, securityContext);
-    this.stargateBridge = grpcClients.bridgeClient(tenantId, cassandraToken);
+    this.stargateBridge = bridge;
   }
 
   public Optional<String> getTenantId() {
