@@ -117,6 +117,9 @@ public class DsePersistence
         UserType,
         IndexMetadata,
         ViewTableMetadata> {
+
+  // Visible for testing
+  static final String SYSPROP_UNSAFE_DSE_CONFIG_PATH = "stargate.unsafe.dse_config_path";
   private static final Logger logger = LoggerFactory.getLogger(DsePersistence.class);
 
   public static final Boolean USE_PROXY_PROTOCOL =
@@ -202,8 +205,10 @@ public class DsePersistence
 
     DatabaseDescriptor.daemonInitialization(true, config);
 
-    String dseConfigPath = System.getProperty("stargate.unsafe.dse_config_path", "");
+    String dseConfigPath = System.getProperty(SYSPROP_UNSAFE_DSE_CONFIG_PATH, "");
     if (!dseConfigPath.isEmpty()) {
+      // {@link com.datastax.bdp.config.DseConfigYamlLoader} uses a {@link URL} so it expects
+      // a `file:` prefix for the "dse.config" system property.
       System.setProperty("dse.config", new File(dseConfigPath).toURI().toString());
       DseConfig.init();
     }
