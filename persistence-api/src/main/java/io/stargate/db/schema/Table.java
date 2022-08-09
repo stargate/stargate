@@ -115,4 +115,17 @@ public abstract class Table extends AbstractTable {
   public String indexTypeName() {
     return "Table: " + name();
   }
+
+  @Override
+  @Value.Derived
+  @Value.Auxiliary
+  public int schemaHashCode() {
+    return SchemaHashable.combine(
+        SchemaHashable.hashCode(name()),
+        SchemaHashable.hashCode(keyspace()),
+        SchemaHashable.hash(columns()),
+        SchemaHashable.hash(indexes()),
+        SchemaHashable.hashCode(comment()),
+        SchemaHashable.hashCode(ttl()));
+  }
 }

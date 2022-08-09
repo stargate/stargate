@@ -103,7 +103,7 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
               .setNoKeyspace(Schema.QueryWithSchemaResponse.NoKeyspace.getDefaultInstance())
               .build());
       responseObserver.onCompleted();
-    } else if (keyspace.hashCode() != keyspaceHash) {
+    } else if (keyspace.schemaHashCode() != keyspaceHash) {
       try {
         responseObserver.onNext(
             Schema.QueryWithSchemaResponse.newBuilder()

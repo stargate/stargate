@@ -151,6 +151,14 @@ public abstract class ParameterizedType implements Column.ColumnType {
     public Column.ColumnType fieldType(String name) {
       return parameters().get(0);
     }
+
+    @Override
+    @Value.Derived
+    @Value.Auxiliary
+    public int schemaHashCode() {
+      return SchemaHashable.combine(
+          SchemaHashable.hashCode(isFrozen()), SchemaHashable.hashCode(parameters()));
+    }
   }
 
   @Value.Immutable(prehash = true)
@@ -216,6 +224,14 @@ public abstract class ParameterizedType implements Column.ColumnType {
     @Override
     public Column.ColumnType fieldType(String name) {
       return parameters().get(0);
+    }
+
+    @Override
+    @Value.Derived
+    @Value.Auxiliary
+    public int schemaHashCode() {
+      return SchemaHashable.combine(
+          SchemaHashable.hashCode(isFrozen()), SchemaHashable.hashCode(parameters()));
     }
   }
 
@@ -301,6 +317,14 @@ public abstract class ParameterizedType implements Column.ColumnType {
     @Override
     public Column.ColumnType fieldType(String name) {
       throw new UnsupportedOperationException("Map type does not support nested access");
+    }
+
+    @Override
+    @Value.Derived
+    @Value.Auxiliary
+    public int schemaHashCode() {
+      return SchemaHashable.combine(
+          SchemaHashable.hashCode(isFrozen()), SchemaHashable.hashCode(parameters()));
     }
   }
 
@@ -430,6 +454,13 @@ public abstract class ParameterizedType implements Column.ColumnType {
       Preconditions.checkArgument(
           null != parameterType, "Tuple type '%s' does not have field '%s'", cqlDefinition(), name);
       return parameterType;
+    }
+
+    @Override
+    @Value.Derived
+    @Value.Auxiliary
+    public int schemaHashCode() {
+      return SchemaHashable.hash(parameters());
     }
   }
 }
