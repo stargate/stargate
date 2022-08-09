@@ -71,9 +71,7 @@ public class BridgeImpl {
             EXECUTOR_SIZE, GrpcUtil.getThreadFactory("bridge-stargate-executor", true));
     server =
         NettyServerBuilder.forAddress(new InetSocketAddress(listenAddress, port))
-            // `Persistence` operations are done asynchronously so there isn't a need for a separate
-            // thread pool for handling gRPC callbacks in `GrpcService`.
-            .directExecutor()
+            .executor(Executors.newScheduledThreadPool(16))
             .intercept(new NewConnectionInterceptor(persistence, authenticationService))
             .intercept(new MetricCollectingServerInterceptor(metrics.getMeterRegistry()))
             .addService(new BridgeService(persistence, authorizationService, executor))
