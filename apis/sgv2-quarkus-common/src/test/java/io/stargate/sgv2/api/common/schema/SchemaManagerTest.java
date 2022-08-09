@@ -33,6 +33,7 @@ import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheName;
 import io.quarkus.cache.CaffeineCache;
 import io.quarkus.cache.CompositeCacheKey;
+import io.quarkus.grpc.GrpcClient;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.smallrye.mutiny.Uni;
@@ -41,9 +42,9 @@ import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.BridgeTest;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
-import io.stargate.sgv2.api.common.grpc.GrpcClients;
 import io.stargate.sgv2.api.common.grpc.UnauthorizedKeyspaceException;
 import io.stargate.sgv2.api.common.grpc.UnauthorizedTableException;
 import java.util.Arrays;
@@ -74,7 +75,8 @@ class SchemaManagerTest extends BridgeTest {
   @CacheName("keyspace-cache")
   Cache keyspaceCache;
 
-  @Inject GrpcClients grpcClients;
+  @GrpcClient("bridge")
+  StargateBridge bridge;
 
   @InjectMock StargateRequestInfo requestInfo;
 
@@ -89,9 +91,7 @@ class SchemaManagerTest extends BridgeTest {
     describeKeyspaceCaptor = ArgumentCaptor.forClass(Schema.DescribeKeyspaceQuery.class);
     schemaReadsCaptor = ArgumentCaptor.forClass(Schema.AuthorizeSchemaReadsRequest.class);
     queryCaptor = ArgumentCaptor.forClass(QueryOuterClass.Query.class);
-    doAnswer(invocation -> grpcClients.bridgeClient(Optional.empty(), Optional.empty()))
-        .when(requestInfo)
-        .getStargateBridge();
+    doAnswer(invocation -> bridge).when(requestInfo).getStargateBridge();
   }
 
   @Nested
