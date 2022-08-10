@@ -503,16 +503,16 @@ public class WriteDocumentsService {
             .map(
                 p -> {
                   JsonNode node = jsonNode.at(p);
-                  if (!node.isTextual()) {
+                  if (!node.isValueNode()) {
                     String nodeDes = node.isMissingNode() ? "missing node" : node.toString();
                     String format =
                         String.format(
-                            "JSON document %s requires a String value at the path %s in order to resolve document ID, found %s. Batch write failed.",
+                            "JSON document %s requires a scalar value at the path %s in order to resolve document ID, found %s. Batch write failed.",
                             jsonNode, p, nodeDes);
                     throw new ErrorCodeRuntimeException(
                         ErrorCode.DOCS_API_WRITE_BATCH_INVALID_ID_PATH, format);
                   }
-                  return node.textValue();
+                  return node.asText();
                 })
             .orElseGet(() -> UUID.randomUUID().toString());
   }

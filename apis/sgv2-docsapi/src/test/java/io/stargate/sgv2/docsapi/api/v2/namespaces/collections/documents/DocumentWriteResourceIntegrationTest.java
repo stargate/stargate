@@ -538,7 +538,7 @@ class DocumentWriteResourceIntegrationTest {
           .body(
               "description",
               equalTo(
-                  "JSON document {\"test\":\"document\",\"this\":[\"is\",1,true]} requires a String value at the path /not/valid/path in order to resolve document ID, found missing node. Batch write failed."));
+                  "JSON document {\"test\":\"document\",\"this\":[\"is\",1,true]} requires a scalar value at the path /not/valid/path in order to resolve document ID, found missing node. Batch write failed."));
     }
 
     @Test
