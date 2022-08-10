@@ -33,7 +33,11 @@ import org.junit.jupiter.api.TestInstance;
 @TestClassOrder(ClassOrderer.DisplayName.class) // prefer stable even if arbitrary ordering
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
-  private static final String BASE_PATH = "/v2/schemas/keyspaces";
+  private final static String BASE_PATH = "/v2/schemas/keyspaces";
+
+  // 10-Aug-2022, tatu: For our current C*/DSE Docker image, this is the one DC
+  //    that is defined and can be referenced
+  private final static String TEST_DC = "datacenter1";
 
   public RestApiV2QSchemaKeyspacesIT() {
     super("ks_");
@@ -178,16 +182,16 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   // configured, with a single node. But this is only about constructing keyspace anyway,
   // including handling of variant request structure; as long as that maps to query builder
   // we should be good.
-  // 09-Aug-2022, tatu: Fails somehow even tho code hasn't changed; need to Ignore for now
-  @Ignore
+  // 09-Aug-2022, tatu: Datacenter in image is actually "datacenter1"
+  @Test
   public void keyspaceCreateWithExplicitDC() throws IOException {
     String keyspaceName = "ks_createwithdcs_" + System.currentTimeMillis();
     String requestJSON =
         String.format(
             "{\"name\": \"%s\", \"datacenters\" : [\n"
-                + "       { \"name\":\"dc1\", \"replicas\":1}\n"
+                + "       { \"name\":\"%s\", \"replicas\":1}\n"
                 + "]}",
-            keyspaceName);
+            keyspaceName, TEST_DC);
     given()
         .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
         .contentType(ContentType.JSON)
@@ -213,7 +217,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
     assertThat(keyspace.getName()).isEqualTo(keyspaceName);
 
     Map<String, Sgv2Keyspace.Datacenter> expectedDCs = new HashMap<>();
-    expectedDCs.put("dc1", new Sgv2Keyspace.Datacenter("dc1", 1));
+    expectedDCs.put(TEST_DC, new Sgv2Keyspace.Datacenter(TEST_DC, 1));
     Optional<List<Sgv2Keyspace.Datacenter>> dcs = Optional.ofNullable(keyspace.getDatacenters());
     Map<String, Sgv2Keyspace.Datacenter> actualDCs =
         dcs.orElse(Collections.emptyList()).stream()
