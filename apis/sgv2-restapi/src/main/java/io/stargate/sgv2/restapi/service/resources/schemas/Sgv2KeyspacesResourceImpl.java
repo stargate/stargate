@@ -73,14 +73,21 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
               return Response.status(Status.OK).entity(payload).build();
             })
         .orElseThrow(
-            () -> new WebApplicationException("unable to describe keyspace", Status.NOT_FOUND));
+            () ->
+                new WebApplicationException(
+                    "Unable to describe keyspace '" + keyspaceName + "'", Status.NOT_FOUND));
   }
 
   @Override
-  public Response createKeyspace(final JsonNode payload) {
+  public Response createKeyspace(final String payloadString) {
     SchemaBuilderHelper.KeyspaceCreateDefinition ksCreateDef;
     try {
+      JsonNode payload = JSON_MAPPER.readTree(payloadString);
       ksCreateDef = schemaBuilder.readKeyspaceCreateDefinition(payload);
+    } catch (IOException e) { // really JsonProcessingException
+      throw new WebApplicationException(
+          String.format("Invalid JSON payload for Keyspace creation, problem: %s", e.getMessage()),
+          Status.BAD_REQUEST);
     } catch (IllegalArgumentException e) {
       throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
     }

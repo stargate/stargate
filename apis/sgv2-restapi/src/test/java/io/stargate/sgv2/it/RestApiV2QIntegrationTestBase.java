@@ -27,6 +27,8 @@ public class RestApiV2QIntegrationTestBase {
 
   @TestHTTPResource protected String baseUrl;
 
+  private final String keyspacePrefix;
+
   private String testKeyspaceName;
 
   /*
@@ -34,6 +36,10 @@ public class RestApiV2QIntegrationTestBase {
   // Initialization, Dependency Injection
   /////////////////////////////////////////////////////////////////////////
    */
+
+  protected RestApiV2QIntegrationTestBase(String keyspacePrefix) {
+    this.keyspacePrefix = keyspacePrefix;
+  }
 
   @BeforeAll
   public void init() {
@@ -44,7 +50,7 @@ public class RestApiV2QIntegrationTestBase {
   public void initPerTest(TestInfo testInfo) {
     bridge = stargateRequestInfo.getStargateBridge();
     String testName = testInfo.getTestMethod().map(ti -> ti.getName()).get();
-    testKeyspaceName = "ks_" + testName + "_" + System.currentTimeMillis();
+    testKeyspaceName = keyspacePrefix + testName + "_" + System.currentTimeMillis();
 
     createKeyspace(testKeyspaceName);
   }

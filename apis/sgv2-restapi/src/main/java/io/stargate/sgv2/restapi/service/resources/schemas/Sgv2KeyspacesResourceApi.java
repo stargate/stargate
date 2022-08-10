@@ -15,7 +15,6 @@
  */
 package io.stargate.sgv2.restapi.service.resources.schemas;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.service.models.Sgv2Keyspace;
 import javax.enterprise.context.ApplicationScoped;
@@ -118,7 +117,7 @@ public interface Sgv2KeyspacesResourceApi {
                       + "      ],\n"
                       + "}\n"
                       + "```")
-          JsonNode payload);
+          String payload);
 
   @DELETE
   @Operation(summary = "Delete a keyspace", description = "Delete a single keyspace.")
