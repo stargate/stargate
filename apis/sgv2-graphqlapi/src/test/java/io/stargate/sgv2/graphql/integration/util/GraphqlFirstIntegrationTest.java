@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 
-public class GraphqlFirstIntegrationTest extends GraphqlIntegrationTest {
+public abstract class GraphqlFirstIntegrationTest extends GraphqlIntegrationTest {
 
   protected GraphqlFirstClient client;
 

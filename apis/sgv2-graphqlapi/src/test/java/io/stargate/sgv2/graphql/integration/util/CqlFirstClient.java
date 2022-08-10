@@ -20,21 +20,14 @@ import org.apache.http.HttpStatus;
 
 public class CqlFirstClient extends GraphqlClient {
 
-  private final String host;
-  private final int port;
+  private final String baseUrl;
   private final String authToken;
   private final String dmlUrl;
 
-  /** Hard-codes the port to 8080 for Stargate v1 tests. */
-  public CqlFirstClient(String host, String authToken) {
-    this(host, 8080, authToken);
-  }
-
-  public CqlFirstClient(String host, int port, String authToken) {
-    this.host = host;
-    this.port = port;
+  public CqlFirstClient(String baseUrl, String authToken) {
+    this.baseUrl = baseUrl;
     this.authToken = authToken;
-    this.dmlUrl = String.format("http://%s:%d/graphql-schema", host, port);
+    this.dmlUrl = String.format("%sgraphql-schema", baseUrl);
   }
 
   /** Executes a GraphQL query for a keyspace, expecting a successful response. */
@@ -69,7 +62,7 @@ public class CqlFirstClient extends GraphqlClient {
 
   private String buildKeyspaceUrl(String keyspaceId) {
     return (keyspaceId == null)
-        ? String.format("http://%s:%d/graphql", host, port)
-        : String.format("http://%s:%d/graphql/%s", host, port, urlEncode(keyspaceId));
+        ? String.format("%sgraphql", baseUrl)
+        : String.format("%sgraphql/%s", baseUrl, urlEncode(keyspaceId));
   }
 }

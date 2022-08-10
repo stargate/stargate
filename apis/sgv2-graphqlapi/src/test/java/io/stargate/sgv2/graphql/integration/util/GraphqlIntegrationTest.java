@@ -39,19 +39,19 @@ public abstract class GraphqlIntegrationTest {
   @TestHTTPResource protected String baseUrl;
 
   @BeforeAll
-  public void createBridge() {
+  public final void createBridge() {
     bridge = requestInfo.getStargateBridge();
   }
 
   @BeforeAll
-  public void createKeyspace() {
+  public final void createKeyspace() {
     executeCql(
         "CREATE KEYSPACE IF NOT EXISTS %s WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}"
             .formatted(keyspaceName));
   }
 
   @AfterAll
-  public void dropKeyspace() {
+  public final void dropKeyspace() {
     executeCql("DROP KEYSPACE %s".formatted(keyspaceName));
   }
 
