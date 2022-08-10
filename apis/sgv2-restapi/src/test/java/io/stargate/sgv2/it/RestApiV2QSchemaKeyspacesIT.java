@@ -33,14 +33,14 @@ import org.junit.jupiter.api.TestInstance;
 @TestClassOrder(ClassOrderer.DisplayName.class) // prefer stable even if arbitrary ordering
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
-  private final static String BASE_PATH = "/v2/schemas/keyspaces";
+  private static final String BASE_PATH = "/v2/schemas/keyspaces";
 
   // 10-Aug-2022, tatu: For our current C*/DSE Docker image, this is the one DC
   //    that is defined and can be referenced
-  private final static String TEST_DC = "datacenter1";
+  private static final String TEST_DC = "datacenter1";
 
   public RestApiV2QSchemaKeyspacesIT() {
-    super("ks_");
+    super("ks_ks_", "ks_t_");
   }
 
   /*

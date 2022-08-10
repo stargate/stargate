@@ -27,18 +27,23 @@ public class RestApiV2QIntegrationTestBase {
 
   @TestHTTPResource protected String baseUrl;
 
-  private final String keyspacePrefix;
+  private final String testKeyspacePrefix;
+
+  private final String testTablePrefix;
 
   private String testKeyspaceName;
 
+  private String testTableName;
+
   /*
   /////////////////////////////////////////////////////////////////////////
-  // Initialization, Dependency Injection
+  // Initialization
   /////////////////////////////////////////////////////////////////////////
    */
 
-  protected RestApiV2QIntegrationTestBase(String keyspacePrefix) {
-    this.keyspacePrefix = keyspacePrefix;
+  protected RestApiV2QIntegrationTestBase(String keyspacePrefix, String tablePrefix) {
+    this.testKeyspacePrefix = keyspacePrefix;
+    this.testTablePrefix = tablePrefix;
   }
 
   @BeforeAll
@@ -49,10 +54,29 @@ public class RestApiV2QIntegrationTestBase {
   @BeforeEach
   public void initPerTest(TestInfo testInfo) {
     bridge = stargateRequestInfo.getStargateBridge();
-    String testName = testInfo.getTestMethod().map(ti -> ti.getName()).get();
-    testKeyspaceName = keyspacePrefix + testName + "_" + System.currentTimeMillis();
+    // Let's force lower-case keyspace and table names for defaults; case-sensitive testing
+    // needs to use explicitly different values
+    String testName = testInfo.getTestMethod().map(ti -> ti.getName()).get(); // .toLowerCase();
+    testKeyspaceName = testKeyspacePrefix + testName + "_" + System.currentTimeMillis();
+    testTableName = testTablePrefix + testName + System.currentTimeMillis();
 
+    // Create keyspace automatically (same as before)
     createKeyspace(testKeyspaceName);
+    // But not table (won't have definition anyway)
+  }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Accessors
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  public String testKeyspaceName() {
+    return testKeyspaceName;
+  }
+
+  public String testTableName() {
+    return testTableName;
   }
 
   /*
@@ -63,7 +87,7 @@ public class RestApiV2QIntegrationTestBase {
 
   protected void createKeyspace(String keyspaceName) {
     String cql =
-        "CREATE KEYSPACE IF NOT EXISTS %s WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}"
+        "CREATE KEYSPACE IF NOT EXISTS \"%s\" WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}"
             .formatted(keyspaceName);
     QueryOuterClass.Query.Builder query =
         QueryOuterClass.Query.newBuilder()
@@ -108,6 +132,14 @@ public class RestApiV2QIntegrationTestBase {
   protected <T> T readJsonAs(String body, Class<T> asType) {
     try {
       return objectMapper.readValue(body, asType);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  protected String asJsonString(Object value) {
+    try {
+      return objectMapper.writeValueAsString(value);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
