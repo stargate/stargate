@@ -1091,7 +1091,7 @@ public class RestApiv1Test extends BaseIntegrationTest {
                 host, keyspace, tableName),
             HttpStatus.SC_OK);
 
-    RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
+    RowResponse rowResponse = objectMapper.readValue(body, RowResponse.class);
     assertThat(rowResponse.getCount()).isEqualTo(1);
     assertThat(rowResponse.getRows().get(0).get("col0")).isNotNull();
   }
