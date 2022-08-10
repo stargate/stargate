@@ -1251,7 +1251,7 @@ public class ReactiveDocumentService {
             .map(
                 p -> {
                   JsonNode node = jsonNode.at(p);
-                  if (!node.isValueNode() || node.isMissingNode()) {
+                  if (!node.isValueNode()) {
                     String nodeDes = node.isMissingNode() ? "missing node" : node.toString();
                     String format =
                         String.format(

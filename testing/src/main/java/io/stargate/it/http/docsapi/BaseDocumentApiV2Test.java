@@ -950,7 +950,7 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
     JsonNode respBody = OBJECT_MAPPER.readTree(resp);
     assertThat(respBody.requiredAt("/description").asText())
         .isEqualTo(
-            "JSON document {\"id\":[\"a\"],\"a\":\"b\"} requires a String value at the path /no/good/path in order to resolve document ID, found missing node. Batch write failed.");
+            "JSON document {\"id\":[\"a\"],\"a\":\"b\"} requires a scalar value at the path /no/good/path in order to resolve document ID, found missing node. Batch write failed.");
   }
 
   @Test
