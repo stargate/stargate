@@ -15,6 +15,8 @@
  */
 package io.stargate.sgv2.graphql.integration.cqlfirst;
 
+import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
+
 import com.jayway.jsonpath.JsonPath;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
@@ -26,8 +28,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
-
-import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
 @QuarkusTest
 @TestProfile(IntegrationTestProfile.class)

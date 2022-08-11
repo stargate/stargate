@@ -1,0 +1,16 @@
+mutation BulkInsertProductsWithAtomic(
+    $values: [ProductsInput!]
+    $ifNotExists: Boolean
+    $options: MutationOptions
+) @atomic {
+    bulkInsertProducts(values: $values, ifNotExists: $ifNotExists, options: $options) {
+        applied
+        value {
+            id
+            name
+            price
+            created
+            description
+        }
+    }
+}

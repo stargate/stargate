@@ -1,0 +1,15 @@
+query GetOrdersWithFilter($filter: OrdersFilterInput, $options: QueryOptions) {
+    Orders(filter: $filter, options: $options) {
+        pageState
+        values {
+            id
+            prodId
+            prodName
+            customerName
+            address
+            description
+            price
+            sellPrice
+        }
+    }
+}

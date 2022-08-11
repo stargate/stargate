@@ -89,6 +89,12 @@
       <version>2.5.0</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.apollographql.apollo</groupId>
+      <artifactId>apollo-runtime</artifactId>
+      <version>2.2.3</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
@@ -104,6 +110,51 @@
               <goal>generate-code</goal>
               <goal>generate-code-tests</goal>
             </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>com.github.sparow199</groupId>
+        <artifactId>apollo-client-maven-plugin</artifactId>
+        <version>3.2.2</version>
+        <executions>
+          <execution>
+            <id>generate-graphql-client</id>
+            <goals>
+              <goal>generate</goal>
+            </goals>
+            <configuration>
+              <rootPackageName>com.example.graphql.client.betterbotz</rootPackageName>
+              <introspectionFile>${project.basedir}/src/test/graphql/betterbotz/schema.json</introspectionFile>
+              <sourceDirName>${project.basedir}/src/test/graphql/betterbotz</sourceDirName>
+              <outputDirectory>${project.build.directory}/generated-test-sources/graphql-client/</outputDirectory>
+              <!-- Disable this because we want to add these sources as test code, not production.
+                   See build-helper-maven-plugin execution below. -->
+              <addSourceRoot>false</addSourceRoot>
+              <customTypeMap>
+                <Timestamp>java.time.Instant</Timestamp>
+                <Float32>java.lang.Float</Float32>
+              </customTypeMap>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <version>3.3.0</version>
+        <executions>
+          <execution>
+            <id>add-generated-graphql-client-test-sources</id>
+            <phase>generate-test-sources</phase>
+            <goals>
+              <goal>add-test-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>${project.build.directory}/generated-test-sources/graphql-client/</source>
+              </sources>
+            </configuration>
           </execution>
         </executions>
       </plugin>

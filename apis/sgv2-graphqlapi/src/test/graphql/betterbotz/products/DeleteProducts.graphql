@@ -1,0 +1,22 @@
+mutation DeleteProducts(
+    $value: ProductsInput!
+    $ifExists: Boolean
+    $ifCondition: ProductsFilterInput
+    $options: MutationOptions
+) {
+    deleteProducts(
+        value: $value
+        ifExists: $ifExists
+        ifCondition: $ifCondition
+        options: $options
+    ) {
+        applied
+        value {
+            id
+            name
+            price
+            created
+            description
+        }
+    }
+}

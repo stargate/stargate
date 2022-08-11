@@ -1,0 +1,15 @@
+query GetOrdersByValue($value: OrdersInput) {
+    Orders(value: $value) {
+        pageState
+        values {
+            id
+            prodId
+            prodName
+            customerName
+            address
+            description
+            price
+            sellPrice
+        }
+    }
+}

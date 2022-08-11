@@ -15,13 +15,13 @@
  */
 package io.stargate.sgv2.graphql.integration.util;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.jayway.jsonpath.JsonPath;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 /** Base class for GraphQL CQL-first tests that share the data model below. */
 public abstract class BetterBotzIntegrationTestBase extends CqlFirstIntegrationTest {

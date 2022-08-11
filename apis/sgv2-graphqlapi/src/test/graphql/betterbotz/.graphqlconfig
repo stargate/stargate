@@ -1,0 +1,16 @@
+{
+  "name": "Untitled GraphQL Schema",
+  "schemaPath": "schema.json",
+  "extensions": {
+    "endpoints": {
+      "Default GraphQL Endpoint": {
+        "url": "http://localhost:8080/graphql/betterbotz",
+        "headers": {
+          "user-agent": "JS GraphQL",
+          "x-cassandra-token": "fb1fb7d8-42dd-402d-824a-bade053a8151"
+        },
+        "introspect": false
+      }
+    }
+  }
+}
