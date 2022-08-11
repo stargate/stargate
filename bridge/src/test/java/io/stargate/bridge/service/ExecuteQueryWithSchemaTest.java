@@ -62,7 +62,7 @@ public class ExecuteQueryWithSchemaTest extends BaseBridgeServiceTest {
   @Test
   public void shouldReturnResponseWhenSchemaUpToDate() {
     QueryWithSchemaResponse withSchemaResponse =
-        queryWithSchema(KEYSPACE.name(), KEYSPACE.hashCode());
+        queryWithSchema(KEYSPACE.name(), KEYSPACE.schemaHashCode());
 
     assertThat(withSchemaResponse.hasResponse()).isTrue();
     assertThat(withSchemaResponse.getResponse())
@@ -76,13 +76,13 @@ public class ExecuteQueryWithSchemaTest extends BaseBridgeServiceTest {
 
   @Test
   public void shouldReturnNewSchemaWhenOutOfDate() {
-    int wrongKeyspaceHash = KEYSPACE.hashCode() + 1;
+    int wrongKeyspaceHash = KEYSPACE.schemaHashCode() + 1;
     QueryWithSchemaResponse withSchemaResponse =
         queryWithSchema(KEYSPACE.name(), wrongKeyspaceHash);
 
     assertThat(withSchemaResponse.hasNewKeyspace()).isTrue();
     assertThat(withSchemaResponse.getNewKeyspace().getHash().getValue())
-        .isEqualTo(KEYSPACE.hashCode());
+        .isEqualTo(KEYSPACE.schemaHashCode());
   }
 
   @Test

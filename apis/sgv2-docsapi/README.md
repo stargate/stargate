@@ -79,7 +79,7 @@ See [Debugging](https://quarkus.io/guides/maven-tooling#debugging) for more info
 
 ### Running integration tests
 
-> **_PREREQUISITES:_**  You need to build the coordinator docker image(s) first. In the root Stargate repo directory run:
+> **_PREREQUISITES:_**  You need to build the coordinator docker image(s) first. In the Stargate repo directory `/apis` run:
 > ```
 > ../mvnw clean install -P dse -DskipTests && ./build_docker_images.sh
 > ```
@@ -107,16 +107,16 @@ The required profile can be activated using the `-P` option:
 
 #### Running from IDE
 
-> **_PREREQUISITES:_**  You need to build the coordinator docker image(s) first and tag them with `latest` tag. In the root Stargate repo directory run:
+> **_PREREQUISITES:_**  You need to build the coordinator docker image(s) first. In the Stargate repo directory `/apis` run:
 > ```
-> ../mvnw clean install -P dse -DskipTests && ./build_docker_images.sh -t latest
+> ../mvnw clean install -P dse -DskipTests && ./build_docker_images.sh
 > ```
 
 Running integration tests from IDE is supported out of the box.
 The tests will use the Cassandra 4.0 as the data store by default.
 Running a test with a different version of the data store or the Stargate coordinator, requires changing the run configuration and specifying the following system properties:
 
-* `testing.containers.cassandra-image` - version of the Cassandra docker image to use, for example: `cassandra:4.0.3`
+* `testing.containers.cassandra-image` - version of the Cassandra docker image to use, for example: `cassandra:4.0.4`
 * `testing.containers.stargate-image` - version of the Stargate coordinator docker image to use, for example: `stargateio/coordinator-4_0:v2.0.0-ALPHA-10-SNAPSHOT` (must be V2 coordinator for the target data store)
 * `testing.containers.cluster-version` - version of the cluster, for example: `4.0` (should be one of `3.11`, `4.0` or `6.8`)
 * `testing.containers.cluster-dse` - optional and only needed if DSE is used
@@ -128,6 +128,28 @@ You can skip the integration tests during the maven build by disabling the `int-
 ```shell script
 ../mvnw verify -DskipITs
 ```
+
+#### Skipping unit tests
+
+Alternatively you may want to run only integration tests but not unit tests (especially when changing integration tests).
+This can be achieved with
+
+```
+../mvnw verify -DskipUnitTests
+```
+
+#### Troubleshooting failure to run ITs
+
+If your Integration Test run fails with some generic, non-descriptive error like:
+
+```
+[ERROR]   CollectionsResourceIntegrationTest » Runtime java.lang.reflect.InvocationTargetException
+```
+
+there are some things you may try:
+
+* Make sure your Docker Engine has enough resources. For example following have been observed:
+    * Docker Desktop defaults of 2 gigabytes of memory on Mac are not enough: try at least 4
 
 ### Packaging and running the application
 

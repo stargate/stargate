@@ -15,13 +15,13 @@
  *
  */
 
-package io.stargate.sgv2.docsapi.testresource;
+package io.stargate.sgv2.common.testresource;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.common.DevServicesContext;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import io.stargate.sgv2.api.common.token.impl.FixedTokenResolver;
-import io.stargate.sgv2.docsapi.testprofiles.IntegrationTestProfile;
+import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;

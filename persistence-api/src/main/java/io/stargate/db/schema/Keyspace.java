@@ -156,4 +156,16 @@ public abstract class Keyspace implements SchemaEntity {
     }
     return table;
   }
+
+  @Override
+  @Value.Derived
+  @Value.Auxiliary
+  public int schemaHashCode() {
+    return SchemaHashable.combine(
+        SchemaHashable.hashCode(name()),
+        SchemaHashable.hash(tables()),
+        SchemaHashable.hash(userDefinedTypes()),
+        SchemaHashable.hashCode(replication()),
+        SchemaHashable.hashCode(durableWrites()));
+  }
 }
