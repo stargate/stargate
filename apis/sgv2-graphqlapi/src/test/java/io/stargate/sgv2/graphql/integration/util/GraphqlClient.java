@@ -47,7 +47,7 @@ public abstract class GraphqlClient {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
-  private final OkHttpClient okHttpClient;
+  protected final OkHttpClient okHttpClient;
 
   protected GraphqlClient() {
     okHttpClient =

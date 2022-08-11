@@ -8,9 +8,39 @@ stargate:
     # Whether to expose the GraphQL Playground in-browser IDE at /playground.
     enable-playground: true
 
+  metrics:
+    global-tags:
+      module: sgv2-graphqlapi
+    tenant-request-counter:
+      enabled: ${stargate.multi-tenancy.enabled}
+
+  multi-tenancy:
+    enabled: false
+
 quarkus:
+
+  cache:
+    caffeine:
+      # keyspace cache for the schema management
+      keyspace-cache:
+        maximum-size: 1000
+        expire-after-access: PT5M
+        metrics-enabled: true
+
   grpc:
     clients:
       bridge:
         host: localhost
         port: 8091
+
+  micrometer:
+    binder:
+      http-server:
+        # ignore all non-application uris, as well as the custom set
+        suppress-non-application-uris: true
+        ignore-patterns: /,/metrics,/playground,/swagger-ui.*,.*\.html
+
+    # exports at prometheus default path
+    export:
+      prometheus:
+        path: /metrics

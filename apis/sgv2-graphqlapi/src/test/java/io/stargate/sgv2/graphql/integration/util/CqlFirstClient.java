@@ -15,7 +15,13 @@
  */
 package io.stargate.sgv2.graphql.integration.util;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
+
+import java.io.IOException;
 import java.util.Map;
+import java.util.Objects;
+import okhttp3.Request;
 import org.apache.http.HttpStatus;
 
 public class CqlFirstClient extends GraphqlClient {
@@ -58,6 +64,17 @@ public class CqlFirstClient extends GraphqlClient {
    */
   public String getDdlQueryError(String query) {
     return getGraphqlError(authToken, dmlUrl, query, HttpStatus.SC_OK);
+  }
+
+  public String getMetrics() {
+    try {
+      Request.Builder requestBuilder = new Request.Builder().get().url(baseUrl + "metrics");
+      okhttp3.Response response = okHttpClient.newCall(requestBuilder.build()).execute();
+      assertThat(response.code()).isEqualTo(200);
+      return Objects.requireNonNull(response.body()).string();
+    } catch (IOException e) {
+      return fail("Unexpected error while sending POST request", e);
+    }
   }
 
   private String buildKeyspaceUrl(String keyspaceId) {
