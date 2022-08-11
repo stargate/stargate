@@ -503,7 +503,7 @@ public class WriteDocumentsService {
             .map(
                 p -> {
                   JsonNode node = jsonNode.at(p);
-                  if (!node.isValueNode()) {
+                  if (!node.isValueNode() || node.isNull()) {
                     String nodeDes = node.isMissingNode() ? "missing node" : node.toString();
                     String format =
                         String.format(

@@ -406,6 +406,56 @@ class DocumentWriteResourceIntegrationTest {
     }
 
     @Test
+    public void idPathNumeric() {
+      String doc1 = "{\"id\": 1, \"name\":\"a\"}";
+      String doc2 = "{\"id\": 2, \"name\":\"b\"}";
+      String doc3 = "{\"id\": 3, \"name\":\"c\"}";
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .queryParam("id-path", "id")
+          .body(String.format("[%s, %s, %s]", doc1, doc2, doc3))
+          .when()
+          .post(BASE_PATH + "/batch", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .then()
+          .statusCode(202)
+          .body("documentIds", containsInAnyOrder("1", "2", "3"));
+    }
+
+    @Test
+    public void idPathDouble() {
+      String doc1 = "{\"id\": 1.1, \"name\":\"a\"}";
+      String doc2 = "{\"id\": 2.2, \"name\":\"b\"}";
+      String doc3 = "{\"id\": 3.3, \"name\":\"c\"}";
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .queryParam("id-path", "id")
+          .body(String.format("[%s, %s, %s]", doc1, doc2, doc3))
+          .when()
+          .post(BASE_PATH + "/batch", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .then()
+          .statusCode(202)
+          .body("documentIds", containsInAnyOrder("1.1", "2.2", "3.3"));
+    }
+
+    @Test
+    public void idPathBoolean() {
+      String doc1 = "{\"id\": true, \"name\":\"a\"}";
+      String doc2 = "{\"id\": false, \"name\":\"b\"}";
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .queryParam("id-path", "id")
+          .body(String.format("[%s, %s]", doc1, doc2))
+          .when()
+          .post(BASE_PATH + "/batch", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+          .then()
+          .statusCode(202)
+          .body("documentIds", containsInAnyOrder("true", "false"));
+    }
+
+    @Test
     public void idPathOverwrite() {
       given()
           .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
