@@ -11,9 +11,11 @@ import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
 import io.stargate.sgv2.restapi.service.models.Sgv2Table;
 import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
-import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import javax.enterprise.context.control.ActivateRequestContext;
 import org.apache.http.HttpStatus;
 import org.assertj.core.api.Assertions;
@@ -80,17 +82,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
     final String tableName = testTableName();
     createSimpleTestTable(testKeyspaceName(), tableName);
 
-    String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-            .queryParam("raw", "true")
-            .when()
-            .get(endpointPathForTable(testKeyspaceName(), tableName))
-            .then()
-            .statusCode(HttpStatus.SC_OK)
-            .extract()
-            .asString();
-    final Sgv2Table table = readJsonAs(response, Sgv2Table.class);
+    final Sgv2Table table = findTable(testKeyspaceName(), tableName);
 
     assertThat(table.getKeyspace()).isEqualTo(testKeyspaceName());
     assertThat(table.getName()).isEqualTo(tableName);
@@ -99,22 +91,146 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
 
   @Test
   public void tableCreateWithNullOptions() {
-    Assertions.fail("Test not implemented");
+    final String tableName = "t1"; // not sure why but was that way in original test
+    final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
+    final List<Sgv2ColumnDefinition> columns =
+        Arrays.asList(
+            new Sgv2ColumnDefinition("id", "uuid", false),
+            new Sgv2ColumnDefinition("lastName", "text", false),
+            new Sgv2ColumnDefinition("firstName", "text", false));
+    tableAdd.setColumnDefinitions(columns);
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
+    primaryKey.setPartitionKey(Arrays.asList("id"));
+    tableAdd.setPrimaryKey(primaryKey);
+    tableAdd.setTableOptions(null);
+
+    // First verify response
+    TableNameResponse response = createTable(testKeyspaceName(), tableAdd);
+    assertThat(response.name).isEqualTo(tableName);
+
+    // And then find the table itself
+    final Sgv2Table table = findTable(testKeyspaceName(), tableName);
+    assertThat(table.getName()).isEqualTo(tableName);
+    // Alas, returned column order unpredictable, so:
+    assertThat(table.getColumnDefinitions()).hasSameElementsAs(columns);
   }
 
   @Test
   public void tableCreateWithNoClustering() {
-    Assertions.fail("Test not implemented");
+    final String tableName = testTableName();
+    final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
+
+    final List<Sgv2ColumnDefinition> columns =
+        Arrays.asList(
+            new Sgv2ColumnDefinition("pk1", "int", false),
+            new Sgv2ColumnDefinition("ck1", "int", false));
+    tableAdd.setColumnDefinitions(columns);
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
+    primaryKey.setPartitionKey(Arrays.asList("pk1"));
+    primaryKey.setClusteringKey(Arrays.asList("ck1"));
+    tableAdd.setPrimaryKey(primaryKey);
+    tableAdd.setTableOptions(new Sgv2Table.TableOptions(0, null));
+
+    // First verify response
+    TableNameResponse response = createTable(testKeyspaceName(), tableAdd);
+    assertThat(response.name).isEqualTo(tableAdd.getName());
+
+    // And then find the table itself
+    final Sgv2Table table = findTable(testKeyspaceName(), tableName);
+    assertThat(table.getName()).isEqualTo(tableAdd.getName());
+    assertThat(table.getColumnDefinitions()).hasSameElementsAs(columns);
+    assertThat(table.getTableOptions().getClusteringExpression().get(0).getOrder())
+        .isEqualTo("ASC");
   }
 
   @Test
   public void tableCreateWithMultClustering() {
-    Assertions.fail("Test not implemented");
+    final String tableName = testTableName();
+    final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
+    final List<Sgv2ColumnDefinition> columns =
+        Arrays.asList(
+            new Sgv2ColumnDefinition("value", "int", false),
+            new Sgv2ColumnDefinition("ck2", "int", false),
+            new Sgv2ColumnDefinition("ck1", "int", false),
+            new Sgv2ColumnDefinition("pk2", "int", false),
+            new Sgv2ColumnDefinition("pk1", "int", false));
+    tableAdd.setColumnDefinitions(columns);
+    // Create partition and clustering keys in order different from that of all-columns
+    // definitions
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
+    primaryKey.setPartitionKey(Arrays.asList("pk1", "pk2"));
+    primaryKey.setClusteringKey(Arrays.asList("ck1", "ck2"));
+    tableAdd.setPrimaryKey(primaryKey);
+    tableAdd.setTableOptions(new Sgv2Table.TableOptions(0, null));
+    createTable(testKeyspaceName(), tableAdd);
+
+    final Sgv2Table table = findTable(testKeyspaceName(), tableName);
+    // First, verify that partition key ordering is like we expect
+    assertThat(table.getTableOptions().getClusteringExpression().size()).isEqualTo(2);
+    assertThat(table.getTableOptions().getClusteringExpression().get(0).getColumn())
+        .isEqualTo("ck1");
+    assertThat(table.getTableOptions().getClusteringExpression().get(1).getColumn())
+        .isEqualTo("ck2");
+
+    // And then the same wrt full primary key definition
+    Sgv2Table.PrimaryKey pk = table.getPrimaryKey();
+    assertThat(pk.getPartitionKey().size()).isEqualTo(2);
+    assertThat(pk.getPartitionKey()).isEqualTo(Arrays.asList("pk1", "pk2"));
+    assertThat(pk.getClusteringKey().size()).isEqualTo(2);
+    assertThat(pk.getClusteringKey()).isEqualTo(Arrays.asList("ck1", "ck2"));
   }
 
   @Test
-  public void tableCreaateWithMixedCaseNames() {
-    Assertions.fail("Test not implemented");
+  public void tableCreateWithMixedCaseNames() {
+    final String tableName = testTableName();
+    final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
+
+    final List<Sgv2ColumnDefinition> columns =
+        Arrays.asList(
+            new Sgv2ColumnDefinition("ID", "uuid", false),
+            new Sgv2ColumnDefinition("Lastname", "text", false),
+            new Sgv2ColumnDefinition("Firstname", "text", false));
+    tableAdd.setColumnDefinitions(columns);
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
+    primaryKey.setPartitionKey(Arrays.asList("ID"));
+    tableAdd.setPrimaryKey(primaryKey);
+
+    TableNameResponse response = createTable(testKeyspaceName(), tableAdd);
+    assertThat(response.name).isEqualTo(tableName);
+
+    // Then insert row: should use convenience methods in future but for now done inline
+    String rowIdentifier = UUID.randomUUID().toString();
+    Map<String, String> row = new HashMap<>();
+    row.put("ID", rowIdentifier);
+    row.put("Firstname", "John");
+    row.put("Lastname", "Doe");
+
+    given()
+        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        .contentType(ContentType.JSON)
+        .body(asJsonString(row))
+        .when()
+        .post("/v2/keyspaces/{keyspaceName}/{tableName}", testKeyspaceName(), tableName)
+        .then()
+        .statusCode(HttpStatus.SC_CREATED);
+
+    String whereClause = String.format("{\"ID\":{\"$eq\":\"%s\"}}", rowIdentifier);
+    String body =
+        given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header("where", whereClause)
+            .contentType(ContentType.JSON)
+            .when()
+            .get("/v2/keyspaces/{keyspaceName}/{tableName}", testKeyspaceName(), tableName)
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    ListOfMapsGetResponseWrapper wrapper = readJsonAs(body, ListOfMapsGetResponseWrapper.class);
+    List<Map<String, Object>> data = wrapper.getData();
+    assertThat(data.get(0).get("ID")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("Firstname")).isEqualTo("John");
+    assertThat(data.get(0).get("Lastname")).isEqualTo("Doe");
   }
 
   /*
@@ -141,7 +257,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
 
   /*
   /////////////////////////////////////////////////////////////////////////
-  // Utility methods
+  // Utility methods, classes
   /////////////////////////////////////////////////////////////////////////
    */
 
@@ -153,30 +269,52 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
     return String.format("/v2/schemas/keyspaces/%s/tables/%s", ksName, tableName);
   }
 
-  private void createSimpleTestTable(String keyspaceName, String tableName) {
-    Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest();
-    tableAdd.setName(tableName);
-
-    List<Sgv2ColumnDefinition> columnDefinitions = new ArrayList<>();
-
-    columnDefinitions.add(new Sgv2ColumnDefinition("id", "uuid", false));
-    columnDefinitions.add(new Sgv2ColumnDefinition("lastName", "text", false));
-    columnDefinitions.add(new Sgv2ColumnDefinition("firstName", "text", false));
-    columnDefinitions.add(new Sgv2ColumnDefinition("age", "int", false));
-
-    tableAdd.setColumnDefinitions(columnDefinitions);
+  private TableNameResponse createSimpleTestTable(String keyspaceName, String tableName) {
+    final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
+    tableAdd.setColumnDefinitions(
+        Arrays.asList(
+            new Sgv2ColumnDefinition("id", "uuid", false),
+            new Sgv2ColumnDefinition("lastName", "text", false),
+            new Sgv2ColumnDefinition("firstName", "text", false),
+            new Sgv2ColumnDefinition("age", "int", false)));
 
     Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
     primaryKey.setPartitionKey(Arrays.asList("id"));
     tableAdd.setPrimaryKey(primaryKey);
 
-    given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-        .contentType(ContentType.JSON)
-        .body(asJsonString(tableAdd))
-        .when()
-        .post(endpointPathForTables(keyspaceName))
-        .then()
-        .statusCode(HttpStatus.SC_CREATED);
+    return createTable(keyspaceName, tableAdd);
+  }
+
+  private TableNameResponse createTable(String keyspaceName, Sgv2TableAddRequest addRequest) {
+    String response =
+        given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .contentType(ContentType.JSON)
+            .body(asJsonString(addRequest))
+            .when()
+            .post(endpointPathForTables(keyspaceName))
+            .then()
+            .statusCode(HttpStatus.SC_CREATED)
+            .extract()
+            .asString();
+    return readJsonAs(response, TableNameResponse.class);
+  }
+
+  private Sgv2Table findTable(String keyspaceName, String tableName) {
+    String response =
+        given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .queryParam("raw", "true")
+            .when()
+            .get(endpointPathForTable(keyspaceName, tableName))
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    return readJsonAs(response, Sgv2Table.class);
+  }
+
+  protected static class TableNameResponse {
+    public String name;
   }
 }

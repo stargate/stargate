@@ -10,9 +10,16 @@ public class Sgv2TableAddRequest {
   @NotNull private Sgv2Table.PrimaryKey primaryKey;
   @NotNull private List<Sgv2ColumnDefinition> columnDefinitions;
 
-  boolean ifNotExists = false;
+  boolean ifNotExists;
 
   Sgv2Table.TableOptions tableOptions = new Sgv2Table.TableOptions();
+
+  // For Deserializers
+  public Sgv2TableAddRequest() {}
+
+  public Sgv2TableAddRequest(String tableName) {
+    this.name = tableName;
+  }
 
   @Schema(required = true, description = "The name of the table to add.")
   public String getName() {

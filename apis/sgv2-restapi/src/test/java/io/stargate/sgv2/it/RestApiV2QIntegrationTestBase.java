@@ -9,10 +9,13 @@ import io.restassured.RestAssured;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
+import io.stargate.sgv2.restapi.service.models.Sgv2GetResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
 import javax.inject.Inject;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -57,8 +60,17 @@ public class RestApiV2QIntegrationTestBase {
     // Let's force lower-case keyspace and table names for defaults; case-sensitive testing
     // needs to use explicitly different values
     String testName = testInfo.getTestMethod().map(ti -> ti.getName()).get(); // .toLowerCase();
-    testKeyspaceName = testKeyspacePrefix + testName + "_" + System.currentTimeMillis();
-    testTableName = testTablePrefix + testName + System.currentTimeMillis();
+    String timestamp = "_" + System.currentTimeMillis();
+
+    int len = testKeyspacePrefix.length() + testName.length() + timestamp.length();
+
+    // Alas, may well hit the keyspace name limit so:
+    if (len > 48) {
+      // need to truncate testName, NOT timestamp, so:
+      testName = testName.substring(0, testName.length() - (len - 48));
+    }
+    testKeyspaceName = testKeyspacePrefix + testName + timestamp;
+    testTableName = testTablePrefix + testName + timestamp;
 
     // Create keyspace automatically (same as before)
     createKeyspace(testKeyspaceName);
@@ -142,6 +154,19 @@ public class RestApiV2QIntegrationTestBase {
       return objectMapper.writeValueAsString(value);
     } catch (IOException e) {
       throw new RuntimeException(e);
+    }
+  }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // JSON helper classes
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  protected static class ListOfMapsGetResponseWrapper
+      extends Sgv2GetResponse<List<Map<String, Object>>> {
+    public ListOfMapsGetResponseWrapper() {
+      super(-1, null, null);
     }
   }
 }

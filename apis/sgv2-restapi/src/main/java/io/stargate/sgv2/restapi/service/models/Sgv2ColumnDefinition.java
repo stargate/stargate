@@ -3,6 +3,7 @@ package io.stargate.sgv2.restapi.service.models;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import java.util.Objects;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 // Copied from SGv1 ColumnDefinition
@@ -55,5 +56,35 @@ public class Sgv2ColumnDefinition {
 
   public void setIsStatic(boolean isStatic) {
     this.isStatic = isStatic;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (o == this) return true;
+    if (!(o instanceof Sgv2ColumnDefinition)) return false;
+    Sgv2ColumnDefinition other = (Sgv2ColumnDefinition) o;
+    return (this.isStatic == other.isStatic)
+        && Objects.equals(this.name, other.name)
+        && Objects.equals(this.typeDefinition, other.typeDefinition);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(isStatic, name, typeDefinition);
+  }
+
+  @Override
+  public String toString() {
+    return new StringBuilder(60)
+        .append("[")
+        .append(getClass().getSimpleName())
+        .append(":name=")
+        .append(name)
+        .append(",typeDefinition=")
+        .append(typeDefinition)
+        .append(",isStatic=")
+        .append(isStatic)
+        .append("]")
+        .toString();
   }
 }
