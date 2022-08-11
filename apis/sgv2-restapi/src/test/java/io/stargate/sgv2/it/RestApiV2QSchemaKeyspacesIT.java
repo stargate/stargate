@@ -10,7 +10,6 @@ import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.restapi.service.models.Sgv2Keyspace;
-import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -80,7 +79,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
 
   // 09-Aug-2022, tatu: Alas, Auth token seems not to be checked
   @Ignore("Auth token handling hard-coded, won't fail as expected")
-  public void keyspacesGetAllMissingToken() throws IOException {
+  public void keyspacesGetAllMissingToken() {
     String response =
         given()
             .when()
@@ -93,7 +92,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
 
   // 09-Aug-2022, tatu: Alas, Auth token seems not to be checked
   @Ignore("Auth token handling hard-coded, won't fail as expected")
-  public void keyspacesGetAllBadToken() throws IOException {
+  public void keyspacesGetAllBadToken() {
     String response =
         given()
             .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "NotAPassword")
@@ -121,7 +120,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   }
 
   @Test
-  public void keyspaceGetRaw() throws IOException {
+  public void keyspaceGetRaw() {
     String response =
         given()
             .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
@@ -184,7 +183,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   // we should be good.
   // 09-Aug-2022, tatu: Datacenter in image is actually "datacenter1"
   @Test
-  public void keyspaceCreateWithExplicitDC() throws IOException {
+  public void keyspaceCreateWithExplicitDC() {
     String keyspaceName = "ks_createwithdcs_" + System.currentTimeMillis();
     String requestJSON =
         String.format(
@@ -226,7 +225,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   }
 
   @Test
-  public void keyspaceCreateWithInvalidJson() throws IOException {
+  public void keyspaceCreateWithInvalidJson() {
     String response =
         given()
             .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
@@ -275,7 +274,6 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
         .statusCode(HttpStatus.SC_NO_CONTENT);
 
     // And finally verify it's gone
-
     given()
         .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
         .when()

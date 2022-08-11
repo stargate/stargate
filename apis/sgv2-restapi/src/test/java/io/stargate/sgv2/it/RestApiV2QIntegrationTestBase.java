@@ -1,22 +1,30 @@
 package io.stargate.sgv2.it;
 
+import static io.restassured.RestAssured.given;
+
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.google.protobuf.StringValue;
 import io.quarkus.test.common.http.TestHTTPResource;
 import io.restassured.RestAssured;
+import io.restassured.http.ContentType;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
+import io.stargate.sgv2.api.common.config.constants.HttpConstants;
+import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
 import io.stargate.sgv2.restapi.service.models.Sgv2GetResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
+import io.stargate.sgv2.restapi.service.models.Sgv2Table;
+import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import javax.inject.Inject;
+import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.TestInfo;
@@ -93,20 +101,9 @@ public class RestApiV2QIntegrationTestBase {
 
   /*
   /////////////////////////////////////////////////////////////////////////
-  // Schema initialization
+  // Schema initialization, CQL Access
   /////////////////////////////////////////////////////////////////////////
    */
-
-  protected void createKeyspace(String keyspaceName) {
-    String cql =
-        "CREATE KEYSPACE IF NOT EXISTS \"%s\" WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}"
-            .formatted(keyspaceName);
-    QueryOuterClass.Query.Builder query =
-        QueryOuterClass.Query.newBuilder()
-            .setCql(cql)
-            .setParameters(QueryOuterClass.QueryParameters.getDefaultInstance());
-    bridge.executeQuery(query.build()).await().atMost(Duration.ofSeconds(10));
-  }
 
   protected QueryOuterClass.Response executeCql(String cql, QueryOuterClass.Value... values) {
     return executeCql(cql, testKeyspaceName, values);
@@ -126,7 +123,21 @@ public class RestApiV2QIntegrationTestBase {
 
   /*
   /////////////////////////////////////////////////////////////////////////
-  // JSON handling
+  // Endpoint construction
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  protected String endpointPathForTables(String ksName) {
+    return String.format("/v2/schemas/keyspaces/%s/tables", ksName);
+  }
+
+  protected String endpointPathForTable(String ksName, String tableName) {
+    return String.format("/v2/schemas/keyspaces/%s/tables/%s", ksName, tableName);
+  }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // JSON handling, generic
   /////////////////////////////////////////////////////////////////////////
    */
 
@@ -168,5 +179,93 @@ public class RestApiV2QIntegrationTestBase {
     public ListOfMapsGetResponseWrapper() {
       super(-1, null, null);
     }
+  }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Helper methods for Keyspace creation
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  protected void createKeyspace(String keyspaceName) {
+    String cql =
+        "CREATE KEYSPACE IF NOT EXISTS \"%s\" WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}"
+            .formatted(keyspaceName);
+    QueryOuterClass.Query.Builder query =
+        QueryOuterClass.Query.newBuilder()
+            .setCql(cql)
+            .setParameters(QueryOuterClass.QueryParameters.getDefaultInstance());
+    bridge.executeQuery(query.build()).await().atMost(Duration.ofSeconds(10));
+  }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Helper methods for Table CRUD
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  protected TableNameResponse createSimpleTestTable(String keyspaceName, String tableName) {
+    final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
+    tableAdd.setColumnDefinitions(
+        Arrays.asList(
+            new Sgv2ColumnDefinition("id", "uuid", false),
+            new Sgv2ColumnDefinition("lastName", "text", false),
+            new Sgv2ColumnDefinition("firstName", "text", false),
+            new Sgv2ColumnDefinition("age", "int", false)));
+
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
+    primaryKey.setPartitionKey(Arrays.asList("id"));
+    tableAdd.setPrimaryKey(primaryKey);
+
+    return createTable(keyspaceName, tableAdd);
+  }
+
+  protected TableNameResponse createComplexTestTable(String keyspaceName, String tableName) {
+    final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
+    tableAdd.setColumnDefinitions(
+        Arrays.asList(
+            new Sgv2ColumnDefinition("pk0", "uuid", false),
+            new Sgv2ColumnDefinition("col1", "frozen<map<date, text>>", false),
+            new Sgv2ColumnDefinition("col2", "frozen<set<boolean>>", false),
+            new Sgv2ColumnDefinition("col3", "tuple<duration, inet>", false)));
+
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
+    primaryKey.setPartitionKey(Arrays.asList("pk0"));
+    tableAdd.setPrimaryKey(primaryKey);
+
+    return createTable(keyspaceName, tableAdd);
+  }
+
+  protected TableNameResponse createTable(String keyspaceName, Sgv2TableAddRequest addRequest) {
+    String response =
+        given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .contentType(ContentType.JSON)
+            .body(asJsonString(addRequest))
+            .when()
+            .post(endpointPathForTables(keyspaceName))
+            .then()
+            .statusCode(HttpStatus.SC_CREATED)
+            .extract()
+            .asString();
+    return readJsonAs(response, TableNameResponse.class);
+  }
+
+  protected Sgv2Table findTable(String keyspaceName, String tableName) {
+    String response =
+        given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .queryParam("raw", "true")
+            .when()
+            .get(endpointPathForTable(keyspaceName, tableName))
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    return readJsonAs(response, Sgv2Table.class);
+  }
+
+  protected static class TableNameResponse {
+    public String name;
   }
 }
