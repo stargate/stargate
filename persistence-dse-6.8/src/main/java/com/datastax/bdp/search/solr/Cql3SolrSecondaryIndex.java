@@ -2,6 +2,7 @@ package com.datastax.bdp.search.solr;
 
 import java.util.Optional;
 import java.util.concurrent.Callable;
+import javax.annotation.Nullable;
 import org.apache.cassandra.cql3.Operator;
 import org.apache.cassandra.db.ColumnFamilyStore;
 import org.apache.cassandra.db.DecoratedKey;
@@ -18,7 +19,6 @@ import org.apache.cassandra.index.transactions.IndexTransaction;
 import org.apache.cassandra.schema.ColumnMetadata;
 import org.apache.cassandra.schema.IndexMetadata;
 import org.apache.cassandra.utils.concurrent.OpOrder;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * Empty implementation for DSE search indexes.
