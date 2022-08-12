@@ -39,8 +39,7 @@ public class CassandraFetcherExceptionHandler extends SimpleDataFetcherException
   }
 
   private boolean isOverloaded(Throwable t) {
-    if (t instanceof StatusRuntimeException) {
-      StatusRuntimeException e = (StatusRuntimeException) t;
+    if (t instanceof StatusRuntimeException e) {
       // This is how the bridge reports Cassandra OVERLOADED errors.
       return e.getStatus().getCode() == Status.Code.RESOURCE_EXHAUSTED;
     }

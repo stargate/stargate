@@ -254,8 +254,13 @@ public abstract class GraphqlResourceBase {
                 LOG.error("Unexpected error while processing GraphQL request", error);
                 throw graphqlError(Response.Status.INTERNAL_SERVER_ERROR, "Internal server error");
               } else {
-                // TODO handle context.isOverloaded()
-                asyncResponse.resume(result.toSpecification());
+                Object context = input.getContext();
+                if (context instanceof StargateGraphqlContext
+                    && ((StargateGraphqlContext) context).isOverloaded()) {
+                  throw graphqlError(Response.Status.TOO_MANY_REQUESTS, "Database is overloaded");
+                } else {
+                  asyncResponse.resume(result.toSpecification());
+                }
               }
             });
   }
