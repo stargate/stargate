@@ -116,7 +116,9 @@ public abstract class GraphqlTestBase {
     graphqlSchema = createGraphqlSchema();
     graphql =
         GraphQL.newGraphQL(graphqlSchema)
-            .mutationExecutionStrategy(new AsyncExecutionStrategy())
+            .defaultDataFetcherExceptionHandler(CassandraFetcherExceptionHandler.INSTANCE)
+            .mutationExecutionStrategy(
+                new AsyncExecutionStrategy(CassandraFetcherExceptionHandler.INSTANCE))
             .build();
   }
 

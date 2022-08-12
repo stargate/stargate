@@ -15,6 +15,7 @@
  */
 package io.stargate.sgv2.graphql.schema;
 
+import graphql.ExceptionWhileDataFetching;
 import graphql.execution.DataFetcherExceptionHandlerParameters;
 import graphql.execution.DataFetcherExceptionHandlerResult;
 import graphql.execution.SimpleDataFetcherExceptionHandler;
@@ -36,6 +37,12 @@ public class CassandraFetcherExceptionHandler extends SimpleDataFetcherException
     }
 
     return super.onException(handlerParameters);
+  }
+
+  @Override
+  protected void logException(ExceptionWhileDataFetching error, Throwable exception) {
+    // 24-Jun-2022, tatu: [stargate#1279] Since we handle exception at an outer level,
+    //    should not log it here.
   }
 
   private boolean isOverloaded(Throwable t) {
