@@ -44,7 +44,13 @@ import io.stargate.web.restapi.models.TableResponse;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.time.Duration;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
@@ -1100,8 +1106,8 @@ public class RestApiv1Test extends BaseRestApiTest {
         RestUtils.get(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows/8275984804989873180;5276317386634354038;28639;1005107841;1544552257",
-                host, keyspace, tableName),
+                "%s/v1/keyspaces/%s/tables/%s/rows/8275984804989873180;5276317386634354038;28639;1005107841;1544552257",
+                restUrlBase, keyspace, tableName),
             HttpStatus.SC_OK);
 
     RowResponse rowResponse = objectMapper.readValue(body, RowResponse.class);
