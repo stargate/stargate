@@ -156,13 +156,13 @@ jobs:
       - name: Publish package
         if: ${{ inputs.publish != false }}
         run: |
-          mvn versions:set -DremoveSnapshot versions:commit && \
-          mvn -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse && \
+          ./mvnw versions:set -DremoveSnapshot versions:commit
+          ./mvnw -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse
 
       - name: Bump versions
         run: |
-          mvn -B release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse && \
-          mvn xml-format:xml-format fmt:format -Pdse
+          ./mvnw -B release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse
+          ./mvnw xml-format:xml-format fmt:format -Pdse
 
       - name: Rev Version
         if: success()
