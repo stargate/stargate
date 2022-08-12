@@ -2,11 +2,11 @@ package io.stargate.sgv2.it;
 
 import static io.restassured.RestAssured.given;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.google.protobuf.StringValue;
-import io.quarkus.test.common.http.TestHTTPResource;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.stargate.bridge.proto.QueryOuterClass;
@@ -23,6 +23,7 @@ import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 import javax.inject.Inject;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
@@ -35,8 +36,6 @@ public class RestApiV2QIntegrationTestBase {
   @Inject protected StargateRequestInfo stargateRequestInfo;
 
   protected StargateBridge bridge;
-
-  @TestHTTPResource protected String baseUrl;
 
   private final String testKeyspacePrefix;
 
@@ -135,6 +134,10 @@ public class RestApiV2QIntegrationTestBase {
     return String.format("/v2/schemas/keyspaces/%s/tables/%s", ksName, tableName);
   }
 
+  protected String endpointPathForRowAdd(String ksName, String tableName) {
+    return String.format("/v2/keyspaces/%s/%s", ksName, tableName);
+  }
+
   /*
   /////////////////////////////////////////////////////////////////////////
   // JSON handling, generic
@@ -155,6 +158,14 @@ public class RestApiV2QIntegrationTestBase {
   protected <T> T readJsonAs(String body, Class<T> asType) {
     try {
       return objectMapper.readValue(body, asType);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  protected <T> T readJsonAs(String body, TypeReference asType) {
+    try {
+      return (T) objectMapper.readValue(body, asType);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -236,6 +247,30 @@ public class RestApiV2QIntegrationTestBase {
     return createTable(keyspaceName, tableAdd);
   }
 
+  protected TableNameResponse createTestTable(
+      String keyspaceName,
+      String tableName,
+      List<String> columns,
+      List<String> partitionKey,
+      List<String> clusteringKey) {
+    Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
+
+    List<Sgv2ColumnDefinition> columnDefinitions =
+        columns.stream()
+            .map(x -> x.split(" "))
+            .map(y -> new Sgv2ColumnDefinition(y[0], y[1], false))
+            .collect(Collectors.toList());
+    tableAdd.setColumnDefinitions(columnDefinitions);
+
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
+    primaryKey.setPartitionKey(partitionKey);
+    if (clusteringKey != null) {
+      primaryKey.setClusteringKey(clusteringKey);
+    }
+    tableAdd.setPrimaryKey(primaryKey);
+    return createTable(keyspaceName, tableAdd);
+  }
+
   protected TableNameResponse createTable(String keyspaceName, Sgv2TableAddRequest addRequest) {
     String response =
         given()
@@ -267,5 +302,51 @@ public class RestApiV2QIntegrationTestBase {
 
   protected static class TableNameResponse {
     public String name;
+  }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Helper methods for Rows CRUD
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  protected String insertRow(String keyspaceName, String tableName, Map<?, ?> row) {
+    return insertRowExpectStatus(keyspaceName, tableName, row, HttpStatus.SC_CREATED);
+  }
+
+  protected String insertRowExpectStatus(
+      String keyspaceName, String tableName, Map<?, ?> row, int expectedStatus) {
+    return given()
+        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        .contentType(ContentType.JSON)
+        .body(asJsonString(row))
+        .when()
+        .post(endpointPathForRowAdd(keyspaceName, tableName))
+        .then()
+        .statusCode(expectedStatus)
+        .extract()
+        .asString();
+  }
+
+  protected List<Map<String, Object>> findRows(
+      String keyspaceName, String tableName, String... primaryKeys) {
+    StringBuilder sb =
+        new StringBuilder(String.format("/v2/keyspaces/%s/%s", keyspaceName, tableName));
+    for (String key : primaryKeys) {
+      sb.append('/').append(key);
+    }
+    String response =
+        given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .queryParam("raw", "true")
+            .when()
+            .get(sb.toString())
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    List<Map<String, Object>> data =
+        readJsonAs(response, new TypeReference<List<Map<String, Object>>>() {});
+    return data;
   }
 }
