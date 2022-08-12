@@ -10,7 +10,6 @@ on:
       publish:
         description: 'Publish docker images and JARs to OSSRH?'
         required: true
-        default: false
         type: boolean
       tag:
         description: 'Custom release tag value.'
