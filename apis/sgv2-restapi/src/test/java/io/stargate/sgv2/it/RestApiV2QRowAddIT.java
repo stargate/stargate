@@ -99,7 +99,7 @@ public class RestApiV2QRowAddIT extends RestApiV2QIntegrationTestBase {
     insertRow(testKeyspaceName(), tableName, row);
 
     // And verify
-    List<Map<String, Object>> data = findRows(testKeyspaceName(), tableName, "alice");
+    List<Map<String, Object>> data = findRowsAsList(testKeyspaceName(), tableName, "alice");
     assertThat(data.get(0).get("name")).isEqualTo("alice");
     assertThat(data.get(0).get("email"))
         .isEqualTo(Arrays.asList("foo@example.com", "bar@example.com"));

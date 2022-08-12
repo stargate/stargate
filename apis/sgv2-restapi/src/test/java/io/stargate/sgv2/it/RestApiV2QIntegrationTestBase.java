@@ -6,6 +6,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.protobuf.StringValue;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -136,6 +137,14 @@ public class RestApiV2QIntegrationTestBase {
 
   protected String endpointPathForRowAdd(String ksName, String tableName) {
     return String.format("/v2/keyspaces/%s/%s", ksName, tableName);
+  }
+
+  protected String endpointPathForRowByPK(String ksName, String tableName, String... primaryKeys) {
+    StringBuilder sb = new StringBuilder(String.format("/v2/keyspaces/%s/%s", ksName, tableName));
+    for (String key : primaryKeys) {
+      sb.append('/').append(key);
+    }
+    return sb.toString();
   }
 
   /*
@@ -328,19 +337,15 @@ public class RestApiV2QIntegrationTestBase {
         .asString();
   }
 
-  protected List<Map<String, Object>> findRows(
+  protected List<Map<String, Object>> findRowsAsList(
       String keyspaceName, String tableName, String... primaryKeys) {
-    StringBuilder sb =
-        new StringBuilder(String.format("/v2/keyspaces/%s/%s", keyspaceName, tableName));
-    for (String key : primaryKeys) {
-      sb.append('/').append(key);
-    }
+    final String path = endpointPathForRowByPK(keyspaceName, tableName, primaryKeys);
     String response =
         given()
             .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
             .queryParam("raw", "true")
             .when()
-            .get(sb.toString())
+            .get(path)
             .then()
             .statusCode(HttpStatus.SC_OK)
             .extract()
@@ -348,5 +353,21 @@ public class RestApiV2QIntegrationTestBase {
     List<Map<String, Object>> data =
         readJsonAs(response, new TypeReference<List<Map<String, Object>>>() {});
     return data;
+  }
+
+  protected ArrayNode findRowsAsJsonNode(
+      String keyspaceName, String tableName, String... primaryKeys) {
+    final String path = endpointPathForRowByPK(keyspaceName, tableName, primaryKeys);
+    String response =
+        given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .queryParam("raw", "true")
+            .when()
+            .get(path)
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    return readJsonAs(response, ArrayNode.class);
   }
 }
