@@ -9,11 +9,20 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
+import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
+
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import javax.enterprise.context.control.ActivateRequestContext;
+
+import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
+import io.stargate.sgv2.restapi.service.models.Sgv2Table;
+import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.Test;
@@ -90,32 +99,129 @@ public class RestApiV2QRowUpdateIT extends RestApiV2QIntegrationTestBase {
     assertThat(json.at("/0").size()).isEqualTo(4);
   }
 
-  private String updateRowReturnResponse(String updatePath, boolean raw, Map<?, ?> payload) {
-    return given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-        .queryParam("raw", raw)
-        .contentType(ContentType.JSON)
-        .body(asJsonString(payload))
-        .when()
-        .put(updatePath)
-        .then()
-        .statusCode(HttpStatus.SC_OK)
-        .extract()
-        .asString();
-  }
-
   @Test
   public void updateRowWithCounter() {
     final String tableName = testTableName();
+    final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
+    tableAdd.setColumnDefinitions(
+            Arrays.asList(
+                    new Sgv2ColumnDefinition("id", "text", false),
+                    new Sgv2ColumnDefinition("counter", "counter", false)));
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
+    primaryKey.setPartitionKey(Arrays.asList("id"));
+    tableAdd.setPrimaryKey(primaryKey);
+    createTable(testKeyspaceName(), tableAdd);
+
+    // Since create row cannot increase counter we have to use PUT
+    final String rowIdentifier = UUID.randomUUID().toString();
+    Map<String, String> rowForPlus1 = Collections.singletonMap("counter", "+1");
+    String updateResponse =
+            updateRowReturnResponse(
+                    endpointPathForRowByPK(testKeyspaceName(), tableName, rowIdentifier), true, rowForPlus1);
+    Map<String, Object> responseMap = (Map<String, Object>) readJsonAs(updateResponse, Map.class);
+    assertThat(responseMap).containsAllEntriesOf(rowForPlus1)
+            .hasSize(1);
+
+    // But let's also explicitly find the row verify counter was increased
+    List<Map<String, Object>> rows = findRowsAsList(testKeyspaceName(), tableName, rowIdentifier);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(rows.get(0).get("counter")).isEqualTo("1");
+
+    // And increase again
+    updateRowReturnResponse(
+            endpointPathForRowByPK(testKeyspaceName(), tableName, rowIdentifier), true, rowForPlus1);
+    // and verify further increase
+    rows = findRowsAsList(testKeyspaceName(), tableName, rowIdentifier);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(rows.get(0).get("counter")).isEqualTo("2");
   }
 
   @Test
   public void updateRowWithMultipleCounters() {
     final String tableName = testTableName();
+    final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
+    tableAdd.setColumnDefinitions(
+            Arrays.asList(
+                    new Sgv2ColumnDefinition("id", "text", false),
+                    new Sgv2ColumnDefinition("counter1", "counter", false),
+                    new Sgv2ColumnDefinition("counter2", "counter", false)));
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
+    primaryKey.setPartitionKey(Arrays.asList("id"));
+    tableAdd.setPrimaryKey(primaryKey);
+    createTable(testKeyspaceName(), tableAdd);
+
+    final String rowIdentifier = UUID.randomUUID().toString();
+    Map<String, String> rowUpdate = new HashMap<>();
+    rowUpdate.put("counter1", "+1");
+    rowUpdate.put("counter2", "-1");
+
+    String updateResponse =
+            updateRowReturnResponse(
+                    endpointPathForRowByPK(testKeyspaceName(), tableName, rowIdentifier), true, rowUpdate);
+    Map<String, Object> responseMap = (Map<String, Object>) readJsonAs(updateResponse, Map.class);
+    assertThat(responseMap).containsAllEntriesOf(rowUpdate)
+            .hasSize(2);
+
+    List<Map<String, Object>> rows = findRowsAsList(testKeyspaceName(), tableName, rowIdentifier);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(rows.get(0).get("counter1")).isEqualTo("1");
+    assertThat(rows.get(0).get("counter2")).isEqualTo("-1");
   }
 
   @Test
   public void updateRowWithInvalidJson() {
     final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+
+    final String rowIdentifier = UUID.randomUUID().toString();
+    Map<String, String> row = new HashMap<>();
+    row.put("id", rowIdentifier);
+    row.put("firstName", "Graham");
+    insertRow(testKeyspaceName(), tableName, row);
+
+    // Invalid JSON, missing double-quote after Robert
+    final String invalidJSON = "{\"firstname\": \"Robert,\"lastname\": \"Plant\"}";
+
+    String response =
+            updateRowReturnResponse(
+                    endpointPathForRowByPK(testKeyspaceName(), tableName, rowIdentifier), true, invalidJSON,
+                    HttpStatus.SC_BAD_REQUEST);
+    ApiError error = readJsonAs(response, ApiError.class);
+    assertThat(error.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(error.description()).contains("Invalid JSON payload");
+  }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Helper methods
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  private String updateRowReturnResponse(String updatePath, boolean raw, Map<?, ?> payload) {
+    return updateRowReturnResponse(updatePath, raw, payload, HttpStatus.SC_OK);
+  }
+
+  private String updateRowReturnResponse(String updatePath, boolean raw, Map<?, ?> payloadMap,
+                                         int expectedStatus) {
+    return updateRowReturnResponse(updatePath, raw, asJsonString(payloadMap), expectedStatus);
+  }
+
+  private String updateRowReturnResponse(String updatePath, boolean raw, String payloadJSON,
+                                         int expectedStatus) {
+    return given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .queryParam("raw", raw)
+            .contentType(ContentType.JSON)
+            .body(payloadJSON)
+            .when()
+            .put(updatePath)
+            .then()
+            .statusCode(expectedStatus)
+            .extract()
+            .asString();
   }
 }
+
