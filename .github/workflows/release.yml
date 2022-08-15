@@ -7,10 +7,10 @@ on:
 
   workflow_dispatch:
     inputs:
-      publish:
-        description: 'Publishing JARs to OSSRH?'
+      skipPublish:
+        description: 'Skip publishing JARs to OSSRH?'
         required: true
-        default: false
+        default: true
         type: boolean
       tag:
         description: 'Custom release tag value.'
@@ -155,15 +155,15 @@ jobs:
           cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
 
       - name: Publish package
-        if: ${{ inputs.publish != false }}
+        if: ${{ !inputs.skipPublish }}
         run: |
-          mvn versions:set -DremoveSnapshot versions:commit && \
-          mvn -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse && \
+          ./mvnw versions:set -DremoveSnapshot versions:commit
+          ./mvnw -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse
 
       - name: Bump versions
         run: |
-          mvn -B release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse && \
-          mvn xml-format:xml-format fmt:format -Pdse
+          ./mvnw -B release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse
+          ./mvnw xml-format:xml-format fmt:format -Pdse
 
       - name: Rev Version
         if: success()
