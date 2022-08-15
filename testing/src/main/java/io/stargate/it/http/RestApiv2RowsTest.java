@@ -1267,9 +1267,33 @@ public class RestApiv2RowsTest extends BaseRestApiTest {
             HttpStatus.SC_BAD_REQUEST);
 
     ApiError response = objectMapper.readValue(body, ApiError.class);
-
     assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(response.getDescription()).contains("Unknown field name 'invalid_field'");
+  }
+
+  @Test
+  public void addRowInvalidKey() throws IOException {
+    createTestKeyspace(keyspaceName);
+    createTestTable(keyspaceName, tableName);
+
+    Map<String, String> row = new HashMap<>();
+    row.put("id", "not-really-uuid");
+    row.put("firstname", "John");
+
+    String body =
+        RestUtils.post(
+            authToken,
+            String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
+            objectMapper.writeValueAsString(row),
+            HttpStatus.SC_BAD_REQUEST);
+
+    ApiError response = objectMapper.readValue(body, ApiError.class);
+
+    assertThat(response.getCode()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(response.getDescription())
+        .contains("Invalid String value")
+        .contains("'not-really-uuid'")
+        .contains("not valid representation");
   }
 
   @Test
@@ -1780,6 +1804,29 @@ public class RestApiv2RowsTest extends BaseRestApiTest {
     assertThat(data.get(0).get("v")).isEqualTo(9);
   }
 
+  @Test
+  public void deleteRowNoSuchKey() throws IOException {
+    createTestKeyspace(keyspaceName);
+    createTestTable(keyspaceName, tableName);
+
+    // First, try deleting row with valid UUID but one for which there is no row
+    // We should just get usual "NO_CONTENT" as DELETE is idempotent
+
+    final String rowIdentifier = UUID.randomUUID().toString();
+    RestUtils.delete(
+        authToken,
+        String.format(
+            "%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, rowIdentifier),
+        HttpStatus.SC_NO_CONTENT);
+
+    // But then see what happens with invalid key (String that is not UUID, in this case)
+    RestUtils.delete(
+        authToken,
+        String.format(
+            "%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, "not-really-an-uuid"),
+        HttpStatus.SC_BAD_REQUEST);
+  }
+
   @Test // v2.0.0 - only test
   public void rowCRUDWithTimestamps() throws IOException {
     createTestKeyspace(keyspaceName);
@@ -1904,18 +1951,6 @@ public class RestApiv2RowsTest extends BaseRestApiTest {
     assertThat(data.get(0).get("last_inspected_at")).isEqualTo("2021-12-10");
     assertThat(data.get(0).get("est_unit_cost")).isEqualTo(599.99);
   }
-
-  /*
-  /************************************************************************
-  /* Test methods for Column CRUD operations
-  /************************************************************************
-   */
-
-  /*
-  /************************************************************************
-  /* Test methods for User-Defined Type (UDT) CRUD operations
-  /************************************************************************
-   */
 
   /*
   /************************************************************************
