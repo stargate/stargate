@@ -1,6 +1,7 @@
 package io.stargate.sgv2.docsapi.api.v2;
 
 import static io.restassured.RestAssured.given;
+import static io.stargate.sgv2.common.IntegrationTestUtils.getAuthToken;
 
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -75,7 +76,7 @@ public abstract class DocsApiIntegrationTest {
                 // create
                 given()
                     .contentType(ContentType.JSON)
-                    .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                    .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
                     .body(json)
                     .post(NamespacesResource.BASE_PATH);
               });
@@ -106,7 +107,7 @@ public abstract class DocsApiIntegrationTest {
                 // create
                 given()
                     .contentType(ContentType.JSON)
-                    .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                    .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
                     .body(json)
                     .post(CollectionsResource.BASE_PATH, namespace);
               });

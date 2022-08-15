@@ -18,6 +18,7 @@
 package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents;
 
 import static io.restassured.RestAssured.given;
+import static io.stargate.sgv2.common.IntegrationTestUtils.getAuthToken;
 import static net.javacrumbs.jsonunit.JsonMatchers.jsonEquals;
 import static net.javacrumbs.jsonunit.JsonMatchers.jsonPartEquals;
 import static net.javacrumbs.jsonunit.core.util.ResourceUtils.resource;
@@ -32,6 +33,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.CharStreams;
 import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.ResourceArg;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
@@ -53,7 +55,10 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 @QuarkusIntegrationTest
-@QuarkusTestResource(StargateTestResource.class)
+@QuarkusTestResource(
+    value = StargateTestResource.class,
+    initArgs =
+        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
 class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
   public static final String BASE_PATH = "/v2/namespaces/{namespace}/collections/{collection}";
@@ -95,7 +100,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     // simple util to write documents
     private void writeDocument(String id, String json) {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -108,7 +113,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     void deleteDocuments(String... ids) {
       for (String id : ids) {
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .when()
             .delete(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
             .then()
@@ -126,7 +131,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
         // assert
         String expected = "{\"%s\":{\"value\":\"a\"}}".formatted(ids[0]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("where", "{\"value\": {\"$eq\": \"a\"}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -150,7 +155,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
         // assert
         String expected = "{\"%s\":{\"value\":true}}".formatted(ids[0]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("where", "{\"value\": {\"$eq\": true}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -175,7 +180,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
         // assert
         String expected = "{\"%s\":{\"value\":\"a\",\"n\":{\"value\":5}}}".formatted(ids[0]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("where", "{\"value\": {\"$eq\": \"a\"}, \"n.value\": {\"$lt\": 6}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -208,7 +213,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
         // assert
         String expected = "{\"%s\":{\"value\":\"a\",\"n\":{\"value\":5}}}".formatted(ids[0]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("where", where)
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -239,7 +244,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("where", "{\"value\": {\"$in\": [\"a\", \"b\"]}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -270,7 +275,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("where", "{\"value\": {\"$ne\": \"c\"}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -295,7 +300,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
         // assert
         String expected = "{\"%s\":{\"value\":\"a\",\"n\":{\"value\":5}}}".formatted(ids[0]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam(
                 "where", "{\"value\": {\"$in\": [\"a\", \"b\"]}, \"n.value\": {\"$in\": [5]}}")
             .when()
@@ -322,7 +327,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
         // assert
         String expected = "{\"%s\":{\"value\":\"a\",\"n\":{\"value\":5}}}".formatted(ids[0]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam(
                 "where",
                 "{\"value\": {\"$in\": [\"a\", \"b\"]}, \"n.value\": {\"$gt\": 0, \"$lt\": 10}}")
@@ -349,7 +354,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
         String expected =
             "{\"%s\":{\"someStuff\": {\"someOtherStuff\": {\"value\": \"a\"}}}}".formatted(ids[0]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("where", "{\"someStuff.someOtherStuff.value\": {\"$eq\": \"a\"}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -381,7 +386,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("where", "{\"n,m.value\": {\"$gte\": 5}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -405,7 +410,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
         // assert
         String expected = "{\"%s\":{\"n\":{\"value\":5}}}".formatted(ids[0]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("where", "{\"n,m.value\": {\"$in\": [5]}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -433,7 +438,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
             "{\"%s\":{\"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}}"
                 .formatted(ids[1]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("where", "{\"someStuff.*.value\": {\"$eq\": \"b\"}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -461,7 +466,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
             "{\"%s\":{\"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}}"
                 .formatted(ids[1]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("where", "{\"someStuff.*.value\": {\"$in\": [\"b\"]}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -489,7 +494,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
             "{\"%s\":{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}}"
                 .formatted(ids[1]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam(
                 "where", "{\"value\": {\"$eq\": \"b\"}, \"someStuff.*.value\": {\"$eq\": \"b\"}}")
             .when()
@@ -518,7 +523,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
             "{\"%s\":{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"value\": \"b\"}}}}"
                 .formatted(ids[1]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam(
                 "where", "{\"value\": {\"$eq\": \"b\"}, \"someStuff.*.value\": {\"$in\": [\"b\"]}}")
             .when()
@@ -547,7 +552,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
             "{\"%s\":{\"value\": \"b\", \"someStuff\": {\"1\": {\"value\": \"a\"}, \"2\": {\"other\": \"b\"}}}}"
                 .formatted(ids[1]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam(
                 "where",
                 "{\"value\": {\"$eq\": \"b\"}, \"someStuff.*.other\": {\"$exists\": true}}")
@@ -574,7 +579,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
         // assert
         String expected = "{\"%s\":{\"value\":[{\"n\":{\"value\":5}}]}}".formatted(ids[0]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("where", "{\"value.[0].n.value\": {\"$eq\": 5}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -608,7 +613,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("where", "{\"value.[0],[1].n.value\": {\"$lt\": 6}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -635,7 +640,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
         String expected =
             "{\"%s\":{\"value\":[{\"n\":{\"value\":5}},{\"n\":{\"value\":8}}]}}".formatted(ids[0]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("where", "{\"value.[0],[1].n.value\": {\"$in\": [8]}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -661,7 +666,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
         String expected =
             "{\"%s\":{\"value\":[{\"n\":{\"value\":5}},{\"n\":{\"value\":8}}]}}".formatted(ids[0]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("where", "{\"value.[*].n.value\": {\"$eq\": 8}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -688,7 +693,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
             "{\"%s\":{\"first\": 5, \"value\":[{\"n\":{\"value\":5}},{\"n\":{\"value\":8}}]}}"
                 .formatted(ids[0]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("where", "{\"first\": {\"$gt\": 0}, \"value.[*].n.value\": {\"$eq\": 8}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -714,7 +719,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
         String expected =
             "{\"%s\":{\"value\":[{\"n\":{\"value\":5}},{\"n\":{\"value\":8}}]}}".formatted(ids[0]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("where", "{\"value.[*].n.value\": {\"$in\": [8]}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -741,7 +746,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
             "{\"%s\":{\"first\": 5, \"value\":[{\"n\":{\"value\":5}},{\"n\":{\"value\":8}}]}}"
                 .formatted(ids[0]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam(
                 "where", "{\"first\": {\"$gte\": 1}, \"value.[*].n.value\": {\"$in\": [8]}}")
             .when()
@@ -769,7 +774,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
             "{\"%s\":{\"first\": 5, \"value\":[{\"n\":{\"value\":5}},{\"m\":{\"value\":8}}]}}"
                 .formatted(ids[0]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam(
                 "where", "{\"first\": {\"$gte\": 1}, \"value.[*].m.value\": {\"$exists\": true}}")
             .when()
@@ -801,7 +806,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam(
                 "where",
                 "{\"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"value\": {\"$eq\": \"b\"}}]}")
@@ -834,7 +839,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam(
                 "where",
                 "{\"$or\": [{\"value\": {\"$in\": [\"a\"]}}, {\"value\": {\"$in\": [\"b\"]}}]}")
@@ -867,7 +872,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam(
                 "where",
                 "{\"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"value\": {\"$in\": [\"a\", \"b\"]}}]}")
@@ -894,7 +899,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
         String firstExpected = "{\"a\":{\"value\":\"a\"}}";
         String body =
             given()
-                .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
                 .queryParam(
                     "where",
                     "{\"$or\": [{\"value\": {\"$eq\": \"b\"}}, {\"value\": {\"$in\": [\"a\"]}}]}")
@@ -913,7 +918,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
         String pageState = objectMapper.readTree(body).requiredAt("/pageState").textValue();
         String secondExpected = "{\"b\":{\"value\":\"b\"}}";
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam(
                 "where",
                 "{\"$or\": [{\"value\": {\"$eq\": \"b\"}}, {\"value\": {\"$in\": [\"a\"]}}]}")
@@ -951,7 +956,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam(
                 "where",
                 "{\"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"count\": {\"$in\": [2,4]}}]}")
@@ -987,7 +992,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam(
                 "where",
                 "{\"count\": {\"$gt\": 0}, \"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"value\": {\"$in\": [\"b\"]}}]}")
@@ -1020,7 +1025,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam(
                 "where",
                 "{\"$or\": [{\"value\": {\"$eq\": \"a\"}}, {\"other\": {\"$exists\": true}}]}")
@@ -1053,7 +1058,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam(
                 "where",
                 "{\"$or\": [{\"value\": {\"$nin\": [\"b\",\"c\"]}}, {\"value\": {\"$eq\": \"a\"}}]}")
@@ -1089,7 +1094,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam(
                 "where",
                 "{\"$or\": [{\"value.[*].*.value\": {\"$eq\": 20}}, {\"value.[1],[2].n,m.value\": {\"$eq\": 8}}]}")
@@ -1108,7 +1113,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void withProfile() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("where", "{\"value\": {\"$eq\": \"a\"}}")
           .queryParam("profile", true)
           .when()
@@ -1128,7 +1133,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
         // assert
         String expected = "{\"%s\":{\"value\":[null,{\"m\":{\"value\":8}}]}}".formatted(ids[0]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("fields", "[\"value.[1].m\"]")
             .queryParam("raw", true)
             .when()
@@ -1152,7 +1157,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
         String expected =
             "{\"%s\":{\"value\":[{\"n\":{\"value\":5}},{\"m\":{\"value\":8}}]}}".formatted(ids[0]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("fields", "[\"value.[*].m,n\"]")
             .queryParam("raw", true)
             .when()
@@ -1175,7 +1180,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
         // assert
         String expected = "{\"%s\":{\"value\":[{\"n\":{\"value\":5}}]}}".formatted(ids[0]);
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("fields", "[\"*.[*].n\"]")
             .queryParam("raw", true)
             .when()
@@ -1197,7 +1202,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
         // assert
         String expected = "{\"a\": {\"value\": 1},\"b\": {\"value\": 2}, \"bb\": {\"value\": 4}}";
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("fields", "[\"a.value\",\"b.value\",\"bb.value\"]")
             .queryParam("raw", true)
             .when()
@@ -1230,7 +1235,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("where", "{\"someStuff.*.value\": {\"$exists\": false}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -1264,7 +1269,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
                 .formatted(ids[0], ids[1]);
 
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam(
                 "where",
                 "{\"value\": {\"$eq\": \"b\"}, \"someStuff.*.value\": {\"$exists\": false}}")
@@ -1290,7 +1295,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       try {
         // assert
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("where", "{\"a\":{\"$eq\":\"b\"},\"c\":{\"$lt\":3}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -1301,7 +1306,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
             .body("data", jsonPartEquals(ids[0], firstDocument));
 
         given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
             .queryParam("where", "{\"a\":{\"$eq\":\"b\"},\"c\":{\"$lt\":0}}")
             .when()
             .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -1313,7 +1318,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
         String body =
             given()
-                .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
                 .queryParam(
                     "where",
                     "{\"quiz.sport.q1.question\":{\"$in\": [\"Which one is correct team name in NBA?\"]}}")
@@ -1351,7 +1356,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
         for (int i = 0; i < 3; i += pageSize) {
           String body =
               given()
-                  .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                  .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
                   .queryParam("page-size", pageSize)
                   .queryParam("page-state", pageState)
                   .when()
@@ -1392,7 +1397,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
         for (int i = 0; i < 3; i += pageSize) {
           String body =
               given()
-                  .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                  .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
                   .queryParam("page-size", pageSize)
                   .queryParam("page-state", pageState)
                   .queryParam("fields", "[\"a\"]")
@@ -1450,7 +1455,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
         for (int i = 0; i < 3; i += pageSize) {
           String body =
               given()
-                  .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                  .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
                   .queryParam("page-size", pageSize)
                   .queryParam("page-state", pageState)
                   .queryParam("fields", "[\"quiz\"]")
@@ -1484,7 +1489,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void whereMalformed() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("where", "{\"a\":}")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -1500,7 +1505,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void fieldsMalformed() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("fields", "[\"a\"")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -1516,7 +1521,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH, namespace, DEFAULT_COLLECTION)
           .then()
@@ -1532,7 +1537,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       String collection = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, collection)
           .then()
@@ -1544,7 +1549,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void invalidPageSize() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("page-size", -1)
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -1555,7 +1560,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
               is("Request invalid: the minimum number of documents to return is one."));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("page-size", 21)
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -1582,7 +1587,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       exampleResource = CharStreams.toString(resource("documents/example.json"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(exampleResource)
           .when()
@@ -1594,7 +1599,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @AfterEach
     public void deleteDoc() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .delete(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -1606,7 +1611,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void happyPath() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -1618,7 +1623,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void happyPathRaw() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -1630,7 +1635,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void withProfile() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("profile", true)
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -1642,7 +1647,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void matchEq() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}")
           .when()
@@ -1654,7 +1659,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // not matched
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.electronics.Pixel_3a.price\": {\"$eq\": 700}}")
           .when()
@@ -1666,7 +1671,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void matchEqWithSelection() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.electronics.Pixel_3a.price\": {\"$eq\": 600}}")
           .queryParam("fields", "[\"name\", \"price\", \"model\", \"manufacturer\"]")
@@ -1682,7 +1687,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void matchLt() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.food.*.price\": {\"$lt\": 600}}")
           .when()
@@ -1697,7 +1702,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void matchLtWithSelection() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.food.*.price\": {\"$lt\": 600}}")
           .queryParam("fields", "[\"name\", \"price\", \"model\"]")
@@ -1713,7 +1718,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void matchLte() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.food.*.price\": {\"$lte\": 0.99}}")
           .when()
@@ -1728,7 +1733,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void matchLteWithSelection() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.food.*.price\": {\"$lte\": 0.99}}")
           .queryParam("fields", "[\"price\", \"sku\"]")
@@ -1744,7 +1749,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void matchGt() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.electronics.*.price\": {\"$gt\": 600}}")
           .when()
@@ -1758,7 +1763,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void matchGtWithSelection() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.electronics.*.price\": {\"$gt\": 600}}")
           .queryParam("fields", "[\"price\", \"throwaway\"]")
@@ -1773,7 +1778,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void matchGte() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.electronics.*.price\": {\"$gte\": 600}}")
           .when()
@@ -1788,7 +1793,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void matchGteWithSelection() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.electronics.*.price\": {\"$gte\": 600}}")
           .queryParam("fields", "[\"price\"]")
@@ -1813,7 +1818,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
           ]""";
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.*.*.price\": {\"$exists\": true}}")
           .when()
@@ -1835,7 +1840,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
           ]""";
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.*.*.price\": {\"$exists\": true}}")
           .queryParam("fields", "[\"price\", \"name\", \"manufacturer\", \"model\", \"sku\"]")
@@ -1849,7 +1854,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void matchNot() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam(
               "where", "{\"$not\": {\"products.electronics.Pixel_3a.price\": {\"$ne\": 600}}}")
@@ -1865,7 +1870,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     public void matchNe() {
       // NE with String
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.electronics.*.model\": {\"$ne\": \"3a\"}}")
           .when()
@@ -1878,7 +1883,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // NE with Boolean
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"quiz.nests.q1.options.[3].this\": {\"$ne\": false}}")
           .when()
@@ -1891,7 +1896,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // NE integer compared to double
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"quiz.maths.q1.answer\": {\"$ne\": 12}}")
           .when()
@@ -1902,7 +1907,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // NE with double compared to integer
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"quiz.maths.q2.answer\": {\"$ne\": 4.0}}")
           .when()
@@ -1915,7 +1920,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     public void matchIn() {
       // IN with String
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.electronics.*.model\": {\"$in\": [\"11\", \"3a\"]}}")
           .when()
@@ -1928,7 +1933,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // IN with int
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.*.*.price\": {\"$in\": [600, 900]}}")
           .when()
@@ -1941,7 +1946,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // IN with double
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.*.*.price\": {\"$in\": [0.99, 0.89]}}")
           .when()
@@ -1954,7 +1959,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // IN with null
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.*.*.sku\": {\"$in\": [null]}}")
           .when()
@@ -1968,7 +1973,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     public void matchNin() {
       // NIN with String
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.electronics.*.model\": {\"$nin\": [\"12\"]}}")
           .when()
@@ -1981,7 +1986,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // NIN with int
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.*.*.price\": {\"$nin\": [600, 900]}}")
           .when()
@@ -1994,7 +1999,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // NIN with double
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.*.*.price\": {\"$nin\": [0.99, 0.89]}}")
           .when()
@@ -2007,7 +2012,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // NIN with null
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"products.*.*.sku\": {\"$nin\": [null]}}")
           .when()
@@ -2023,7 +2028,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     public void matchFiltersCombo() {
       // NIN (limited support) with GT (full support)
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam(
               "where", "{\"products.electronics.*.model\": {\"$nin\": [\"11\"], \"$gt\": \"\"}}")
@@ -2037,7 +2042,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // IN (limited support) with NE (limited support)
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam(
               "where", "{\"products.electronics.*.model\": {\"$nin\": [\"11\"], \"$gt\": \"\"}}")
@@ -2053,7 +2058,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void matchMultipleOperators() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam(
               "where", "{\"products.food.Orange.info.price\": {\"$gt\": 600, \"$lt\": 600.05}}")
@@ -2069,7 +2074,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void matchArrayPaths() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"quiz.maths.q1.options.[0]\": {\"$lt\": 13.3}}")
           .when()
@@ -2089,7 +2094,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
               ]""";
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"quiz.nests.q1,q2.options.[0]\": {\"$eq\": \"nest\"}}")
           .when()
@@ -2102,7 +2107,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void matchMultiplePathsAndGlob() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"quiz.nests.q2,q3.options.*.this.them\": {\"$eq\": false}}")
           .when()
@@ -2124,7 +2129,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
               }""";
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", where)
           .when()
@@ -2141,7 +2146,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       String json = "{\"a\\\\.b\":\"somedata\",\"some,data\":\"something\",\"*\":\"star\"}";
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -2151,7 +2156,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // with escaped period
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"a\\\\.b\": {\"$eq\": \"somedata\"}}")
           .when()
@@ -2162,7 +2167,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // with commas
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"some\\\\,data\": {\"$eq\": \"something\"}}")
           .when()
@@ -2173,7 +2178,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // with asterisk
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam("where", "{\"\\\\*\": {\"$eq\": \"star\"}}")
           .when()
@@ -2189,7 +2194,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       exampleResource = CharStreams.toString(resource("documents/long-search.json"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(exampleResource)
           .when()
@@ -2198,7 +2203,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("where", "{\"*.value\": {\"$gt\": 0}}")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
@@ -2214,7 +2219,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       exampleResource = CharStreams.toString(resource("documents/long-search.json"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(exampleResource)
           .when()
@@ -2224,7 +2229,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       String bodyFirstPage =
           given()
-              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
               .queryParam("where", "{\"*.value\": {\"$gt\": 0}}")
               .queryParam("page-size", 20)
               .when()
@@ -2241,7 +2246,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       String pageState = objectMapper.readTree(bodyFirstPage).requiredAt("/pageState").textValue();
       String bodySecondPage =
           given()
-              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
               .queryParam("where", "{\"*.value\": {\"$gt\": 0}}")
               .queryParam("page-size", 20)
               .queryParam("page-state", pageState)
@@ -2266,7 +2271,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     public void matchInvalid() {
       // not JSON
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("where", "hello")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2275,7 +2280,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // array
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("where", "[\"a\"]")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2285,7 +2290,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // no-op
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("where", "{\"a\": true}")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2295,7 +2300,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // op not found
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("where", "{\"a\": {\"exists\": true}}}")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2305,7 +2310,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // op value not valid
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("where", "{\"a\": {\"$eq\": null}}}")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2315,7 +2320,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // op value empty
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("where", "{\"a\": {\"$eq\": {}}}}")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2325,7 +2330,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // op value array
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("where", "{\"a\": {\"$eq\": []}}}")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2335,7 +2340,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // in not array
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("where", "{\"a\": {\"$in\": 2}}}")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2345,7 +2350,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // multiple field conditions
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("where", "{\"a\": {\"$eq\": 300}, \"b\": {\"$lt\": 500}}")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2360,7 +2365,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     public void matchWhereAndFieldsDifferentTarget() {
       // not JSON
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("where", "{\"a\": {\"$in\": [1]}}")
           .queryParam("fields", "[\"b\"]")
           .when()
@@ -2377,7 +2382,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     public void matchPageSizeNotPositive() {
       // not JSON
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("page-size", 0)
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2391,7 +2396,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void whereMalformed() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("where", "{\"a\":}")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2407,7 +2412,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void fieldsMalformed() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("fields", "[\"a\"")
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
@@ -2423,7 +2428,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH + "/{document-id}", namespace, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -2439,7 +2444,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       String collection = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, collection, DOCUMENT_ID)
           .then()
@@ -2453,7 +2458,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
@@ -2468,7 +2473,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       String collection = "local";
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH + "/{document-id}", namespace, collection, DOCUMENT_ID)
           .then()
@@ -2502,7 +2507,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       exampleResource = CharStreams.toString(resource("documents/example.json"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(exampleResource)
           .when()
@@ -2514,7 +2519,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @AfterEach
     public void deleteDoc() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .delete(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -2527,7 +2532,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     public void happyPath() throws Exception {
       Object dataMap =
           given()
-              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
               .when()
               .get(
                   BASE_PATH + "/{document-id}/quiz/maths",
@@ -2550,7 +2555,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     public void happyPathRaw() {
       String body =
           given()
-              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
               .queryParam("raw", true)
               .when()
               .get(
@@ -2573,7 +2578,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     public void array() {
       String first =
           given()
-              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
               .queryParam("raw", true)
               .when()
               .get(
@@ -2593,7 +2598,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       String second =
           given()
-              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
               .queryParam("raw", true)
               .when()
               .get(
@@ -2618,7 +2623,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       String json = "{\"a\\\\.b\":\"somedata\",\"some,data\":\"something\",\"*\":\"star\"}";
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -2627,7 +2632,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .when()
           .get(BASE_PATH + "/{document-id}/a%5C.b", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
@@ -2636,7 +2641,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("somedata"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .when()
           .get(BASE_PATH + "/{document-id}/some%5C,data", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
@@ -2645,7 +2650,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("something"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .when()
           .get(BASE_PATH + "/{document-id}/%5C*", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
@@ -2657,7 +2662,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void matchOrWithSelection() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .queryParam(
               "where",
@@ -2680,7 +2685,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     public void matchOrWithPaging() throws Exception {
       String body =
           given()
-              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
               .queryParam(
                   "where",
                   "{\"$or\":[{\"*.name\":{\"$eq\":\"pear\"}},{\"*.name\":{\"$eq\":\"orange\"}}]}")
@@ -2705,7 +2710,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       // paging only second with state
       String pageState = objectMapper.readTree(body).requiredAt("/pageState").textValue();
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam(
               "where",
               "{\"$or\":[{\"*.name\":{\"$eq\":\"pear\"}},{\"*.name\":{\"$eq\":\"orange\"}}]}")
@@ -2730,7 +2735,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void invalidPath() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .when()
           .get(
@@ -2747,7 +2752,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
                       .formatted(DOCUMENT_ID)));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .when()
           .get(
@@ -2765,7 +2770,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // out of bounds
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .when()
           .get(

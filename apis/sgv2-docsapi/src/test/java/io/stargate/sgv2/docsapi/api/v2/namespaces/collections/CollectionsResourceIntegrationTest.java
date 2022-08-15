@@ -18,6 +18,7 @@
 package io.stargate.sgv2.docsapi.api.v2.namespaces.collections;
 
 import static io.restassured.RestAssured.given;
+import static io.stargate.sgv2.common.IntegrationTestUtils.getAuthToken;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.is;
@@ -25,6 +26,7 @@ import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 
 import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.ResourceArg;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
@@ -40,7 +42,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 @QuarkusIntegrationTest
-@QuarkusTestResource(StargateTestResource.class)
+@QuarkusTestResource(
+    value = StargateTestResource.class,
+    initArgs =
+        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
 public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
 
   // base path for the test
@@ -71,7 +76,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
 
       given()
           .contentType(ContentType.JSON)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .body(body)
           .post(BASE_PATH, DEFAULT_NAMESPACE)
           .then()
@@ -96,7 +101,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
 
       given()
           .contentType(ContentType.JSON)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .body(body)
           .post(BASE_PATH, DEFAULT_NAMESPACE)
           .then()
@@ -121,7 +126,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
       given()
           .contentType(ContentType.JSON)
           .body(body)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .post(BASE_PATH, namespace)
           .then()
@@ -138,7 +143,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
 
       given()
           .contentType(ContentType.JSON)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .post(BASE_PATH, namespace)
           .then()
@@ -159,7 +164,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
       given()
           .contentType(ContentType.JSON)
           .body(body)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .post(BASE_PATH, namespace)
           .then()
@@ -176,7 +181,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
       given()
           .contentType(ContentType.JSON)
           .body(body)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .post(BASE_PATH, namespace)
           .then()
@@ -193,7 +198,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void happyPath() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE)
           .then()
@@ -207,7 +212,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
     public void happyPathRaw() {
       given()
           .queryParam("raw", true)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE)
           .then()
@@ -222,7 +227,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
       String namespace = "system";
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH, namespace)
           .then()
@@ -235,7 +240,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH, namespace)
           .then()
@@ -263,7 +268,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
               """;
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -278,7 +283,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
     public void upgradeNull() {
       String json = "{}";
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -302,7 +307,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
               """;
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -325,7 +330,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
               """;
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -350,7 +355,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
               """;
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -372,7 +377,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void happyPath() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .delete(BASE_PATH + "/{collection}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
           .then()
@@ -384,7 +389,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
       String collection = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .delete(BASE_PATH + "/{collection}", DEFAULT_NAMESPACE, collection)
           .then()
@@ -399,7 +404,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
       String collection = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .delete(BASE_PATH + "/{collection}", namespace, collection)
           .then()
@@ -416,7 +421,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
       String collection = "local";
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .delete(BASE_PATH + "/{collection}", namespace, collection)
           .then()

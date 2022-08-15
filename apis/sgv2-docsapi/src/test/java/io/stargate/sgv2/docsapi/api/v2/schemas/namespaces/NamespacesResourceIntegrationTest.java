@@ -18,6 +18,7 @@
 package io.stargate.sgv2.docsapi.api.v2.schemas.namespaces;
 
 import static io.restassured.RestAssured.given;
+import static io.stargate.sgv2.common.IntegrationTestUtils.getAuthToken;
 import static org.hamcrest.Matchers.allOf;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.endsWith;
@@ -28,6 +29,7 @@ import static org.hamcrest.Matchers.not;
 import static org.hamcrest.Matchers.nullValue;
 
 import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.ResourceArg;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
@@ -40,7 +42,10 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
-@QuarkusTestResource(StargateTestResource.class)
+@QuarkusTestResource(
+    value = StargateTestResource.class,
+    initArgs =
+        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
 class NamespacesResourceIntegrationTest {
 
   public static final String BASE_PATH = "/v2/schemas/namespaces";
@@ -58,7 +63,7 @@ class NamespacesResourceIntegrationTest {
       // expect at least one keyspace, like system
       // rest assured does not support wildcards, so validate only first
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH)
           .then()
@@ -70,7 +75,7 @@ class NamespacesResourceIntegrationTest {
     @Test
     public void happyPathRaw() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .when()
           .get(BASE_PATH)
@@ -88,7 +93,7 @@ class NamespacesResourceIntegrationTest {
       String namespace = "system";
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .when()
           .get(BASE_PATH + "/{namespace}", namespace)
@@ -102,7 +107,7 @@ class NamespacesResourceIntegrationTest {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH + "/{namespace}", namespace)
           .then()
@@ -131,7 +136,7 @@ class NamespacesResourceIntegrationTest {
       // create
       given()
           .contentType(ContentType.JSON)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .body(json)
           .post(BASE_PATH)
           .then()
@@ -140,7 +145,7 @@ class NamespacesResourceIntegrationTest {
 
       // assert
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH + "/{namespace}", namespace)
           .then()
@@ -165,7 +170,7 @@ class NamespacesResourceIntegrationTest {
       // create
       given()
           .contentType(ContentType.JSON)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .body(json)
           .post(BASE_PATH)
           .then()
@@ -175,7 +180,7 @@ class NamespacesResourceIntegrationTest {
       // note that in the tests, we only have a single node,
       // so we can not expect 3 replicas
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH + "/{namespace}", namespace)
           .then()
@@ -202,7 +207,7 @@ class NamespacesResourceIntegrationTest {
       // create
       given()
           .contentType(ContentType.JSON)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .body(json)
           .post(BASE_PATH)
           .then()
@@ -210,7 +215,7 @@ class NamespacesResourceIntegrationTest {
 
       // delete
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .delete(BASE_PATH + "/{namespace}", namespace)
           .then()
@@ -218,7 +223,7 @@ class NamespacesResourceIntegrationTest {
 
       // assert deleted
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH + "/{namespace}", namespace)
           .then()
@@ -230,7 +235,7 @@ class NamespacesResourceIntegrationTest {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .delete(BASE_PATH + "/{namespace}", namespace)
           .then()

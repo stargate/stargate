@@ -17,6 +17,7 @@
 package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents;
 
 import static io.restassured.RestAssured.given;
+import static io.stargate.sgv2.common.IntegrationTestUtils.getAuthToken;
 import static net.javacrumbs.jsonunit.JsonMatchers.jsonEquals;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.notNullValue;
@@ -25,6 +26,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.ResourceArg;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
@@ -39,7 +41,10 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 @QuarkusIntegrationTest
-@QuarkusTestResource(StargateTestResource.class)
+@QuarkusTestResource(
+    value = StargateTestResource.class,
+    initArgs =
+        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
 class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
 
   public static final String BASE_PATH =
@@ -73,7 +78,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void happyPath() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(DEFAULT_PAYLOAD)
           .when()
@@ -83,7 +88,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body("documentId", equalTo(documentId));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -95,7 +100,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void happyPathMergeExisting() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"a\":\"b\"}")
           .when()
@@ -105,7 +110,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body("documentId", equalTo(documentId));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(DEFAULT_PAYLOAD)
           .when()
@@ -115,7 +120,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body("documentId", equalTo(documentId));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -128,7 +133,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
     public void happyPathNoCollection() {
       String tableName = RandomStringUtils.randomAlphanumeric(16);
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(DEFAULT_PAYLOAD)
           .when()
@@ -137,7 +142,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, tableName, documentId)
@@ -149,7 +154,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void rootDocumentPatch() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"abc\": 1}")
           .when()
@@ -158,7 +163,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -167,7 +172,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("{\"abc\": 1}"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"bcd\": true}")
           .when()
@@ -176,7 +181,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -185,7 +190,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("{\"abc\": 1, \"bcd\": true}"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"bcd\": {\"a\": {\"b\": 0 }}}")
           .when()
@@ -194,7 +199,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -203,7 +208,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("{ \"abc\": 1, \"bcd\": {\"a\": {\"b\": 0 }} }"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"bcd\": [1,2,3,4]}")
           .when()
@@ -212,7 +217,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -221,7 +226,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("{ \"abc\": 1, \"bcd\": [1,2,3,4] }"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"bcd\": [5,{\"a\": 23},7,8]}")
           .when()
@@ -230,7 +235,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -239,7 +244,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("{ \"abc\": 1, \"bcd\": [5,{\"a\": 23},7,8] }"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"bcd\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]}")
           .when()
@@ -248,7 +253,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -257,7 +262,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("{ \"abc\": 1, \"bcd\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] }"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"bcd\": {\"replace\": \"array\"}}")
           .when()
@@ -266,7 +271,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -275,7 +280,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("{ \"abc\": 1, \"bcd\": {\"replace\": \"array\"} }"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"done\": \"done\"}")
           .when()
@@ -284,7 +289,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -297,7 +302,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void rootDocumentPatchNulls() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"abc\": null}")
           .when()
@@ -306,7 +311,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -315,7 +320,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("{\"abc\": null}"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"bcd\": null}")
           .when()
@@ -324,7 +329,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -333,7 +338,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("{\"abc\": null, \"bcd\": null}"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"bcd\": {\"a\": {\"b\": null }}}")
           .when()
@@ -342,7 +347,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -351,7 +356,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("{ \"abc\": null, \"bcd\": {\"a\": {\"b\": null }} }"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"bcd\": [null,null,null,null]}")
           .when()
@@ -360,7 +365,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -369,7 +374,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("{ \"abc\": null, \"bcd\": [null,null,null,null] }"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"bcd\": [null,{\"a\": null},null,null]}")
           .when()
@@ -378,7 +383,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -387,7 +392,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("{ \"abc\": null, \"bcd\": [null,{\"a\": null},null,null] }"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(
               "{\"bcd\": [null, null, null, null, null, null, null, null, null, null, null, null, null]}")
@@ -397,7 +402,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -408,7 +413,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
                   "{ \"abc\": null, \"bcd\": [null, null, null, null, null, null, null, null, null, null, null, null, null] }"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"bcd\": {\"replace\": null}}")
           .when()
@@ -417,7 +422,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -426,7 +431,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("{ \"abc\": null, \"bcd\": {\"replace\": null} }"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"done\": null}")
           .when()
@@ -435,7 +440,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -447,7 +452,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void withProfile() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("profile", "true")
           .body(DEFAULT_PAYLOAD)
@@ -461,7 +466,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void withTtlAutoNewDoc() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("ttl-auto", "true")
           .body(DEFAULT_PAYLOAD)
@@ -471,7 +476,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
@@ -481,7 +486,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void withTtlAutoExistingDoc() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("ttl", "5")
           .body("{\"a\":\"b\"}")
@@ -492,7 +497,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body("documentId", equalTo(documentId));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("ttl-auto", "true")
           .body(DEFAULT_PAYLOAD)
@@ -506,7 +511,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .untilAsserted(
               () ->
                   given()
-                      .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                      .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
                       .when()
                       .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
                       .then()
@@ -516,7 +521,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void malformedJson() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(MALFORMED_PAYLOAD)
           .when()
@@ -528,7 +533,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void emptyObject() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{}")
           .when()
@@ -544,7 +549,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void emptyArray() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("[]")
           .when()
@@ -559,7 +564,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void nonEmptyArray() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("[1,2,3]")
           .when()
@@ -574,7 +579,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void singlePrimitive() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("true")
           .when()
@@ -590,7 +595,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void noBody() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .when()
           .patch(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -606,7 +611,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
       String collection = "local";
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(DEFAULT_PAYLOAD)
           .when()
@@ -634,7 +639,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void keyspaceNotExists() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(DEFAULT_PAYLOAD)
           .when()
@@ -653,7 +658,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void happyPath() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(DEFAULT_PAYLOAD)
           .when()
@@ -663,7 +668,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body("documentId", equalTo(documentId));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH + "/path", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -675,7 +680,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void subDocumentPatch() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"abc\": null}")
           .when()
@@ -684,7 +689,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"bcd\": {}}}")
           .when()
@@ -693,7 +698,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -702,7 +707,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("{ \"abc\": { \"bcd\": {} }}}"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("3")
           .when()
@@ -711,7 +716,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -720,7 +725,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("{ \"abc\": { \"bcd\": 3 }}}"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"bcd\": [null,2,null,4]}")
           .when()
@@ -729,7 +734,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -738,7 +743,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("{ \"abc\": {\"bcd\": [null,2,null,4]} }"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"bcd\": [1,{\"a\": null},3,4]}")
           .when()
@@ -747,7 +752,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -756,7 +761,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("{ \"abc\": { \"bcd\": [1,{\"a\": null},3,4] }}"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"bcd\": [null]}")
           .when()
@@ -765,7 +770,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -774,7 +779,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("{ \"abc\": { \"bcd\": [null] }}"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"null\": null}")
           .when()
@@ -783,7 +788,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
@@ -798,7 +803,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
       JsonNode obj2 = objectMapper.readTree("{ \"match the parent\": \"this\", \"a\": \"b\" }");
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("ttl", "5")
           .body(obj1)
@@ -808,7 +813,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("ttl-auto", "true")
           .body(obj2)
@@ -823,7 +828,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
               () -> {
                 // After the TTL is up, obj1 should be gone, with no remnants
                 given()
-                    .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                    .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
                     .when()
                     .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
                     .then()
@@ -838,7 +843,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
       JsonNode obj2 = objectMapper.readTree("{ \"match the parent\": \"this\", \"a\": \"b\" }");
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(obj1)
           .when()
@@ -847,7 +852,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("ttl-auto", "true")
           .body(obj2)
@@ -857,7 +862,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(200);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
@@ -871,7 +876,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void withProfile() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("profile", "true")
           .body(DEFAULT_PAYLOAD)
@@ -885,7 +890,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void malformedJson() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(MALFORMED_PAYLOAD)
           .when()
@@ -906,7 +911,7 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void keyspaceNotExists() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(DEFAULT_PAYLOAD)
           .when()

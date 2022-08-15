@@ -17,11 +17,13 @@
 package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents;
 
 import static io.restassured.RestAssured.given;
+import static io.stargate.sgv2.common.IntegrationTestUtils.getAuthToken;
 import static net.javacrumbs.jsonunit.JsonMatchers.jsonEquals;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.nullValue;
 
 import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.ResourceArg;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
@@ -33,7 +35,10 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
-@QuarkusTestResource(StargateTestResource.class)
+@QuarkusTestResource(
+    value = StargateTestResource.class,
+    initArgs =
+        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
 class DocumentDeleteResourceIntegrationTest extends DocsApiIntegrationTest {
 
   public static final String BASE_PATH =
@@ -56,7 +61,7 @@ class DocumentDeleteResourceIntegrationTest extends DocsApiIntegrationTest {
 
   public void createDocument() {
     given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
         .header("Content-Type", "application/json")
         .body(DEFAULT_PAYLOAD)
         .when()
@@ -76,14 +81,14 @@ class DocumentDeleteResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void happyPath() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .delete(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
           .then()
           .statusCode(204);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
@@ -104,14 +109,14 @@ class DocumentDeleteResourceIntegrationTest extends DocsApiIntegrationTest {
     public void deleteNotFound() {
       // When a delete occurs on an unknown document, it still returns 204 No Content
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .delete(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, "no-id")
           .then()
           .statusCode(204);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, "no-id")
@@ -122,7 +127,7 @@ class DocumentDeleteResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void keyspaceNotExists() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .delete(BASE_PATH, "notakeyspace", DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
           .then()
@@ -135,7 +140,7 @@ class DocumentDeleteResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void tableNotExists() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .delete(BASE_PATH, DEFAULT_NAMESPACE, "notatable", DEFAULT_DOCUMENT_ID)
           .then()
@@ -156,14 +161,14 @@ class DocumentDeleteResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void testDeletePath() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .delete(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
           .then()
           .statusCode(204);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .when()
           .get(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
@@ -171,7 +176,7 @@ class DocumentDeleteResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(404);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
@@ -183,7 +188,7 @@ class DocumentDeleteResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void testDeleteArrayPath() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .delete(
               BASE_PATH + "/this/[2]", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
@@ -191,7 +196,7 @@ class DocumentDeleteResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(204);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .when()
           .get(BASE_PATH + "/this", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
@@ -200,7 +205,7 @@ class DocumentDeleteResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("[\"is\",1]"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .delete(
               BASE_PATH + "/this/[0]", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
@@ -208,7 +213,7 @@ class DocumentDeleteResourceIntegrationTest extends DocsApiIntegrationTest {
           .statusCode(204);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .when()
           .get(BASE_PATH + "/this", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
@@ -217,7 +222,7 @@ class DocumentDeleteResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(jsonEquals("[null,1]"));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
@@ -229,14 +234,14 @@ class DocumentDeleteResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void testDeletePathNotFound() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .delete(BASE_PATH + "/test/a", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
           .then()
           .statusCode(204);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .when()
           .get(BASE_PATH + "/test", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
