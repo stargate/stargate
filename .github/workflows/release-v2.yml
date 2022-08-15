@@ -25,15 +25,13 @@ env:
 
 jobs:
 
-  # creates a new release if it's not existing
+  # resolves tag value
   # outputs the resolved release tag value in the release-tag output var
-  # outputs the upload URL in the release-upload-url output var
-  create-release:
-    name: Create release
+  resolve-tag:
+    name: Resolve tag
     runs-on: ubuntu-latest
     outputs:
       release-tag: ${{ steps.resolve_tag.outputs.tag }}
-      release-upload-url: ${{ steps.create_release.outputs.upload_url }}
     steps:
       - name: Resolve tag
         id: resolve_tag
@@ -42,14 +40,23 @@ jobs:
           echo "Resolved tag for the release $TAG"
           echo "::set-output name=tag::${TAG}"
 
+  # creates a new release if it's not existing
+  # outputs the upload URL in the release-upload-url output var
+  create-release:
+    name: Create release
+    needs: resolve-tag
+    runs-on: ubuntu-latest
+    outputs:
+      release-upload-url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
       - name: Create release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.resolve_tag.outputs.tag }}
-          release_name: Release ${{ steps.resolve_tag.outputs.tag }}
+          tag_name: ${{needs.resolve-tag.outputs.release-tag}}
+          release_name: Release ${{needs.resolve-tag.outputs.release-tag}}
           draft: false
           prerelease: true
 
@@ -164,7 +171,7 @@ jobs:
   # publishes the docker images for the coordinator and the APIs
   publish-docker:
     name: Publish docker images
-    needs: create-release
+    needs: resolve-tag
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
@@ -236,25 +243,25 @@ jobs:
       - name: Build and push (coordinator, DockerHub)
         if: ${{ !inputs.skipPublish }}
         run: |
-          ./build_docker_images.sh -p -t ${{needs.create-release.outputs.release-tag}}
+          ./build_docker_images.sh -p -t ${{needs.resolve-tag.outputs.release-tag}}
 
       - name: Build without push (coordinator, DockerHub)
         if: ${{ inputs.publish == false }}
         run: |
-          ./build_docker_images.sh -t ${{needs.create-release.outputs.release-tag}}
+          ./build_docker_images.sh -t ${{needs.resolve-tag.outputs.release-tag}}
 
       - name: Build and push (apis, DockerHub)
         if: ${{ !inputs.skipPublish }}
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.tag=${{needs.create-release.outputs.release-tag}}
+          JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
           cd ../
 
       - name: Build without push (apis, DockerHub)
         if: ${{ inputs.publish == false }}
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.tag=${{needs.create-release.outputs.release-tag}}
+          JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
           cd ../
 
       # repeat the same for the AWS ECR
@@ -272,13 +279,13 @@ jobs:
       - name: Build and push (coordinator, Amazon ECR)
         if: ${{ !inputs.skipPublish }}
         run: |
-          ./build_docker_images.sh -p -t ${{needs.create-release.outputs.release-tag}} -r ${{ secrets.ECR_REPOSITORY }} -a
+          ./build_docker_images.sh -p -t ${{needs.resolve-tag.outputs.release-tag}} -r ${{ secrets.ECR_REPOSITORY }} -a
 
       - name: Build and push (apis, Amazon ECR)
         if: ${{ !inputs.skipPublish }}
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.create-release.outputs.release-tag}}
+          JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
           cd ../
 
   # creates a PR for bumping the versions to the next snapshot
