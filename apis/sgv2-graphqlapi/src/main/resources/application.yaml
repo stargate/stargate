@@ -19,6 +19,9 @@ stargate:
 
 quarkus:
 
+  http:
+    port: ${STARGATE_GRAPHQL_PORT:8080}
+
   cache:
     caffeine:
       # keyspace cache for the schema management
@@ -30,8 +33,8 @@ quarkus:
   grpc:
     clients:
       bridge:
-        host: localhost
-        port: 8091
+        host: ${STARGATE_BRIDGE_HOST:localhost}
+        port: ${STARGATE_BRIDGE_PORT:8091}
 
   micrometer:
     binder:
