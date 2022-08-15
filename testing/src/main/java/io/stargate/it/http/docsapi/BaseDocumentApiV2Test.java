@@ -909,6 +909,53 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
       respBody = OBJECT_MAPPER.readTree(resp);
       assertThat(respBody.at("/id")).isNotNull();
       assertThat(respBody.at("/b")).isNotNull();
+      assertThat(respBody.at("/aa")).isNotNull();
+    }
+  }
+
+  @Test
+  public void testWriteManyDocsNumberId() throws IOException {
+    // Create documents using multiExample that sets the document ID's using a particular path in
+    // the document.
+    URL url = Resources.getResource("multiExample.json");
+    String body = Resources.toString(url, StandardCharsets.UTF_8);
+    String resp = RestUtils.post(authToken, collectionPath + "/batch?id-path=aa", body, 202);
+    JsonNode respBody = OBJECT_MAPPER.readTree(resp);
+    ArrayNode documentIds = (ArrayNode) respBody.requiredAt("/documentIds");
+    assertThat(documentIds.size()).isEqualTo(27);
+    Iterator<JsonNode> iter = documentIds.iterator();
+    List<String> expectedIds =
+        Arrays.asList(
+            "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15", "16",
+            "17", "18", "19", "20", "21", "22", "23", "24", "25", "26", "27");
+    int i = 0;
+    while (iter.hasNext()) {
+      String docId = iter.next().textValue();
+      assertThat(docId).isEqualTo(expectedIds.get(i++));
+      resp = RestUtils.get(authToken, collectionPath + "/" + docId, 200);
+      respBody = OBJECT_MAPPER.readTree(resp);
+      assertThat(respBody.at("/id")).isNotNull();
+      assertThat(respBody.at("/b")).isNotNull();
+      assertThat(respBody.at("/aa")).isNotNull();
+    }
+  }
+
+  @Test
+  public void testWriteManyDocsBooleanId() throws IOException {
+    String body = "[{\"id\": true}, {\"id\": false}]";
+    String resp = RestUtils.post(authToken, collectionPath + "/batch?id-path=id", body, 202);
+    JsonNode respBody = OBJECT_MAPPER.readTree(resp);
+    ArrayNode documentIds = (ArrayNode) respBody.requiredAt("/documentIds");
+    assertThat(documentIds.size()).isEqualTo(2);
+    Iterator<JsonNode> iter = documentIds.iterator();
+    List<String> expectedIds = Arrays.asList("true", "false");
+    int i = 0;
+    while (iter.hasNext()) {
+      String docId = iter.next().textValue();
+      assertThat(docId).isEqualTo(expectedIds.get(i++));
+      resp = RestUtils.get(authToken, collectionPath + "/" + docId, 200);
+      respBody = OBJECT_MAPPER.readTree(resp);
+      assertThat(respBody.at("/id")).isNotNull();
     }
   }
 
@@ -926,7 +973,8 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
 
     resp = RestUtils.get(authToken, collectionPath + "/aa?raw=true", 200);
     respBody = OBJECT_MAPPER.readTree(resp);
-    assertThat(respBody).isEqualTo(OBJECT_MAPPER.readTree("{\"id\":[\"aa\"], \"b\":\"c\"}"));
+    assertThat(respBody)
+        .isEqualTo(OBJECT_MAPPER.readTree("{\"id\":[\"aa\"], \"b\":\"c\", \"aa\": 27}"));
   }
 
   @Test
@@ -950,7 +998,7 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
     JsonNode respBody = OBJECT_MAPPER.readTree(resp);
     assertThat(respBody.requiredAt("/description").asText())
         .isEqualTo(
-            "JSON document {\"id\":[\"a\"],\"a\":\"b\"} requires a String value at the path /no/good/path in order to resolve document ID, found missing node. Batch write failed.");
+            "JSON document {\"id\":[\"a\"],\"a\":\"b\",\"aa\":1} requires a scalar value at the path /no/good/path in order to resolve document ID, found missing node. Batch write failed.");
   }
 
   @Test
