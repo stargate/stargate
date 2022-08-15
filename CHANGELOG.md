@@ -14,13 +14,7 @@
 
 - Update DSE to 6.8.25 [\#2022](https://github.com/stargate/stargate/issues/2022)
 - CQL module needs to be upgraded [\#2015](https://github.com/stargate/stargate/issues/2015)
-- Avoid creating a new grpc stub for each request in the `StargateRequestInfo` [\#2004](https://github.com/stargate/stargate/issues/2004)
-- `StargateV1ConfigurationSourceProviderTest` failing on v2 branch [\#2001](https://github.com/stargate/stargate/issues/2001)
-- Move all generic and shared components to the `svg2-quarkus-common` [\#1983](https://github.com/stargate/stargate/issues/1983)
-- Consider alternative setup for sgv2-quarkus-common test JAR [\#1976](https://github.com/stargate/stargate/issues/1976)
 - Upgrade DropWizard to latest \(2.0.32\), dependencies [\#1968](https://github.com/stargate/stargate/issues/1968)
-- Final setup for the Docs API V2 [\#1823](https://github.com/stargate/stargate/issues/1823)
-- Support document built-in functions in the Document API V2 [\#1735](https://github.com/stargate/stargate/issues/1735)
 - Result structure for REST GET `/v2/schemas/keyspaces` \(and `/v2/schemas/keyspaces/{keyspaceName}`\) different from Swagger model in "simple" topology case [\#1396](https://github.com/stargate/stargate/issues/1396)
 
 **Merged pull requests:**
