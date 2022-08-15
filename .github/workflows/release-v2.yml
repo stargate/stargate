@@ -156,7 +156,7 @@ jobs:
           cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
 
       - name: Publish package
-        if:  ${{ !inputs.skipPublish }}
+        if: ${{ !inputs.skipPublish }}
         run: |
           ./mvnw versions:set -DremoveSnapshot versions:commit
           ./mvnw -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse
@@ -234,7 +234,7 @@ jobs:
           password: ${{ secrets.DOCKER_TOKEN }}
 
       - name: Build and push (coordinator, DockerHub)
-        if:  ${{ !inputs.skipPublish }}
+        if: ${{ !inputs.skipPublish }}
         run: |
           ./build_docker_images.sh -p -t ${{needs.create-release.outputs.release-tag}}
 
@@ -244,7 +244,7 @@ jobs:
           ./build_docker_images.sh -t ${{needs.create-release.outputs.release-tag}}
 
       - name: Build and push (apis, DockerHub)
-        if:  ${{ !inputs.skipPublish }}
+        if: ${{ !inputs.skipPublish }}
         run: |
           cd apis/
           JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.tag=${{needs.create-release.outputs.release-tag}}
@@ -270,12 +270,12 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Build and push (coordinator, Amazon ECR)
-        if:  ${{ !inputs.skipPublish }}
+        if: ${{ !inputs.skipPublish }}
         run: |
           ./build_docker_images.sh -p -t ${{needs.create-release.outputs.release-tag}} -r ${{ secrets.ECR_REPOSITORY }} -a
 
       - name: Build and push (apis, Amazon ECR)
-        if:  ${{ !inputs.skipPublish }}
+        if: ${{ !inputs.skipPublish }}
         run: |
           cd apis/
           JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.create-release.outputs.release-tag}}
