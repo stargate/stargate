@@ -28,6 +28,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import org.slf4j.Logger;
@@ -117,6 +118,10 @@ public class StargateTestResource
 
   @Override
   public Map<String, String> start() {
+    if (shouldSkip()) {
+      return Collections.emptyMap();
+    }
+
     // TODO make reusable after https://github.com/testcontainers/testcontainers-java/pull/4777
     // boolean reuse = containerNetworkId.isEmpty();
     boolean reuse = false;
@@ -149,6 +154,11 @@ public class StargateTestResource
     ImmutableMap<String, String> props = propsBuilder.build();
     LOG.info("Using props map for the integration tests: %s".formatted(props));
     return props;
+  }
+
+  // skip the resource creation if tests are initiated against the running app
+  private boolean shouldSkip() {
+    return System.getProperty("quarkus.http.test-host") != null;
   }
 
   // start case when api is not a docker image, but app running on host
