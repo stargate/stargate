@@ -306,6 +306,32 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
 
+## [v1.0.62](https://github.com/stargate/stargate/tree/v1.0.62) (2022-08-11)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.61...v1.0.62)
+
+**Fixed bugs:**
+
+- `NullPointerException` on the `RowResource` [\#1994](https://github.com/stargate/stargate/issues/1994)
+- Documents API should handle `OverloadedException` gracefully [\#1972](https://github.com/stargate/stargate/issues/1972)
+- GET by primary key with frozen\<udt\> using REST V1 is returning 500 error [\#205](https://github.com/stargate/stargate/issues/205)
+
+**Closed issues:**
+
+- Update DSE to 6.8.25 [\#2022](https://github.com/stargate/stargate/issues/2022)
+- CQL module needs to be upgraded [\#2015](https://github.com/stargate/stargate/issues/2015)
+- Upgrade DropWizard to latest \(2.0.32\), dependencies [\#1968](https://github.com/stargate/stargate/issues/1968)
+
+**Merged pull requests:**
+
+- Update DSE dependency to 6.8.25 [\#2023](https://github.com/stargate/stargate/pull/2023) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix for Issue \# 205: Fix for Rest V1 API GET by primary key with frozen udt. [\#2018](https://github.com/stargate/stargate/pull/2018) ([maheshrajamani](https://github.com/maheshrajamani))
+- closes \#1994: Validation for Rest v1 row update API [\#2009](https://github.com/stargate/stargate/pull/2009) ([maheshrajamani](https://github.com/maheshrajamani))
+- closes \#2001: fixing `StargateV1ConfigurationSourceProviderTest` on the CI [\#2002](https://github.com/stargate/stargate/pull/2002) ([ivansenic](https://github.com/ivansenic))
+- improving release v1 github workflow [\#1993](https://github.com/stargate/stargate/pull/1993) ([ivansenic](https://github.com/ivansenic))
+- remove codacy result upload in CI [\#1985](https://github.com/stargate/stargate/pull/1985) ([ivansenic](https://github.com/ivansenic))
+- closes \#1972: correctly unwrap data store exceptions in the QueryExec… [\#1975](https://github.com/stargate/stargate/pull/1975) ([ivansenic](https://github.com/ivansenic))
+
 ## [v1.0.61](https://github.com/stargate/stargate/tree/v1.0.61) (2022-07-12)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.60...v1.0.61)

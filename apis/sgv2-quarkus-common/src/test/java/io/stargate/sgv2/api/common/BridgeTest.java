@@ -20,6 +20,8 @@ package io.stargate.sgv2.api.common;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import io.grpc.ManagedChannel;
 import io.grpc.Server;
@@ -64,6 +66,10 @@ public class BridgeTest {
     bridgeService = mock(StargateBridgeGrpc.StargateBridgeImplBase.class);
     bridgeInterceptor = mock(ServerInterceptor.class);
 
+    // ensure service def is not overridden
+    // we also need to ignore it
+    when(bridgeService.bindService()).thenCallRealMethod();
+
     // mock interceptor
     lenient()
         .doAnswer(
@@ -84,6 +90,9 @@ public class BridgeTest {
             .build();
     server.start();
     channel = NettyChannelBuilder.forAddress(address).usePlaintext().build();
+
+    // add verification for the bind service
+    verify(bridgeService).bindService();
   }
 
   @AfterEach
