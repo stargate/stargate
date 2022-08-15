@@ -317,10 +317,13 @@ jobs:
 
       # run finally the int tests
       # runs dedicated project with -pl, but also picks depending projects with -am
+      # container test for docsapi only for now, enable for other when ready
       - name: Integration Test
+        env:
+          CONTAINER_TEST: ${{ matrix.project == 'sgv2-docsapi' && 'true' || 'false' }}
         run: |
           cd apis/
-          ./mvnw -B verify -DskipUnitTests -pl ${{ matrix.project }} -am -P ${{ matrix.profile }} -Dtesting.containers.stargate-image=${{ matrix.image }}
+          ./mvnw -B verify -DskipUnitTests -pl ${{ matrix.project }} -am -P ${{ matrix.profile }} -Dquarkus.container-image.build=$CONTAINER_TEST -Dtesting.containers.stargate-image=${{ matrix.image }}
 
   # runs always, deletes built docker image artifacts
   clean-up:
