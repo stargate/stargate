@@ -216,8 +216,13 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
         tableName,
         (tableDef) -> {
           final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
-          return buildDeleteRowsByPKCQuery(
-              keyspaceName, tableName, path, tableDef, toProtoConverter);
+          try {
+            return buildDeleteRowsByPKCQuery(
+                keyspaceName, tableName, path, tableDef, toProtoConverter);
+          } catch (IllegalArgumentException e) {
+            throw new WebApplicationException(
+                "Invalid path for row to delete, problem: " + e.getMessage(), Status.BAD_REQUEST);
+          }
         });
     return Response.status(Status.NO_CONTENT).build();
   }

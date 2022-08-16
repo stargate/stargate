@@ -1,10 +1,12 @@
 package io.stargate.sgv2.it;
 
 import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
+import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import java.util.HashMap;
 import java.util.Map;
@@ -64,6 +66,18 @@ public class RestApiV2QRowDeleteIT extends RestApiV2QIntegrationTestBase {
     deleteRow(
         endpointPathForRowByPK(testKeyspaceName(), tableName, rowIdentifier),
         HttpStatus.SC_NO_CONTENT);
+
+    // But with invalid key (not UUID) we should fail
+    String response =
+        deleteRow(
+            endpointPathForRowByPK(testKeyspaceName(), tableName, "not-really-uuid"),
+            HttpStatus.SC_BAD_REQUEST);
+    ApiError error = readJsonAs(response, ApiError.class);
+    assertThat(error.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(error.description())
+        .contains("Invalid path for row to delete, problem")
+        .contains("Invalid String value")
+        .contains("'not-really-uuid'");
   }
 
   /*
@@ -72,16 +86,19 @@ public class RestApiV2QRowDeleteIT extends RestApiV2QIntegrationTestBase {
   /////////////////////////////////////////////////////////////////////////
    */
 
-  private void deleteRow(String deletePath) {
-    deleteRow(deletePath, HttpStatus.SC_NO_CONTENT);
+  private String deleteRow(String deletePath) {
+    return deleteRow(deletePath, HttpStatus.SC_NO_CONTENT);
   }
 
-  private void deleteRow(String deletePath, int expectedStatus) {
-    given()
+  private String deleteRow(String deletePath, int expectedStatus) {
+    // Usually "no content" (returns empty String), but for fails gives ApiError
+    return given()
         .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
         .when()
         .delete(deletePath)
         .then()
-        .statusCode(expectedStatus);
+        .statusCode(expectedStatus)
+        .extract()
+        .asString();
   }
 }
