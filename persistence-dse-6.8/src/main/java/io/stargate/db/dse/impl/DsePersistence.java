@@ -203,8 +203,6 @@ public class DsePersistence
           "com.sun.management.jmxremote.host", System.getProperty("stargate.listen_address"));
     }
 
-    DatabaseDescriptor.daemonInitialization(true, config);
-
     String dseConfigPath = System.getProperty(SYSPROP_UNSAFE_DSE_CONFIG_PATH, "");
     if (!dseConfigPath.isEmpty()) {
       // {@link com.datastax.bdp.config.DseConfigYamlLoader} uses a {@link URL} so it expects
@@ -212,6 +210,8 @@ public class DsePersistence
       System.setProperty("dse.config", new File(dseConfigPath).toURI().toString());
       DseConfig.init();
     }
+
+    DatabaseDescriptor.daemonInitialization(true, config);
 
     String hostId = System.getProperty("stargate.host_id");
     if (hostId != null && !hostId.isEmpty()) {
