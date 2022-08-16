@@ -22,6 +22,7 @@ import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -139,9 +140,9 @@ public class RestApiV2QIntegrationTestBase {
     return String.format("/v2/keyspaces/%s/%s", ksName, tableName);
   }
 
-  protected String endpointPathForRowByPK(String ksName, String tableName, String... primaryKeys) {
+  protected String endpointPathForRowByPK(String ksName, String tableName, Object... primaryKeys) {
     StringBuilder sb = new StringBuilder(String.format("/v2/keyspaces/%s/%s", ksName, tableName));
-    for (String key : primaryKeys) {
+    for (Object key : primaryKeys) {
       sb.append('/').append(key);
     }
     return sb.toString();
@@ -220,7 +221,7 @@ public class RestApiV2QIntegrationTestBase {
 
   /*
   /////////////////////////////////////////////////////////////////////////
-  // Helper methods for Table CRUD
+  // Helper methods for Table Creation, Access
   /////////////////////////////////////////////////////////////////////////
    */
 
@@ -338,7 +339,7 @@ public class RestApiV2QIntegrationTestBase {
   }
 
   protected List<Map<String, Object>> findRowsAsList(
-      String keyspaceName, String tableName, String... primaryKeys) {
+      String keyspaceName, String tableName, Object... primaryKeys) {
     final String path = endpointPathForRowByPK(keyspaceName, tableName, primaryKeys);
     String response =
         given()
@@ -356,7 +357,7 @@ public class RestApiV2QIntegrationTestBase {
   }
 
   protected ArrayNode findRowsAsJsonNode(
-      String keyspaceName, String tableName, String... primaryKeys) {
+      String keyspaceName, String tableName, Object... primaryKeys) {
     final String path = endpointPathForRowByPK(keyspaceName, tableName, primaryKeys);
     String response =
         given()
@@ -369,5 +370,102 @@ public class RestApiV2QIntegrationTestBase {
             .extract()
             .asString();
     return readJsonAs(response, ArrayNode.class);
+  }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Helper methods for other test setup
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  /** @return Partition key of the first row */
+  protected Integer setupClusteringTestCase(String keyspaceName, String tableName) {
+    // createTestTableWithClustering
+    final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
+    tableAdd.setColumnDefinitions(
+        Arrays.asList(
+            new Sgv2ColumnDefinition("id", "int", false),
+            new Sgv2ColumnDefinition("lastName", "text", false),
+            new Sgv2ColumnDefinition("firstName", "text", false),
+            new Sgv2ColumnDefinition("age", "int", true),
+            new Sgv2ColumnDefinition("expense_id", "int", false)));
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
+    primaryKey.setPartitionKey(Arrays.asList("id"));
+    primaryKey.setClusteringKey(Arrays.asList("expense_id"));
+    tableAdd.setPrimaryKey(primaryKey);
+    createTable(keyspaceName, tableAdd);
+
+    final Integer firstRowId = 1;
+    Map<String, Object> row = new HashMap<>();
+    row.put("id", firstRowId);
+    row.put("firstName", "John");
+    row.put("expense_id", 1);
+    insertRow(keyspaceName, tableName, row);
+
+    row = new HashMap<>();
+    row.put("id", firstRowId);
+    row.put("firstName", "John");
+    row.put("expense_id", 2);
+    insertRow(keyspaceName, tableName, row);
+
+    row = new HashMap<>();
+    row.put("id", 2);
+    row.put("firstName", "Jane");
+    row.put("expense_id", 1);
+    insertRow(keyspaceName, tableName, row);
+
+    // Duplicate, will only try to update 3rd entry
+    row = new HashMap<>();
+    row.put("id", 2);
+    row.put("firstName", "Jane");
+    row.put("expense_id", 1);
+    insertRow(keyspaceName, tableName, row);
+
+    return firstRowId;
+  }
+
+  protected void setupMixedClusteringTestCase(String keyspaceName, String tableName) {
+    // createTestTableWithMixedClustering(keyspaceName, tableName)
+    final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
+    tableAdd.setColumnDefinitions(
+        Arrays.asList(
+            new Sgv2ColumnDefinition("pk0", "int", false),
+            new Sgv2ColumnDefinition("pk1", "text", false),
+            new Sgv2ColumnDefinition("pk2", "int", false),
+            new Sgv2ColumnDefinition("ck0", "int", false),
+            new Sgv2ColumnDefinition("ck1", "text", false),
+            new Sgv2ColumnDefinition("v", "int", false)));
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
+    primaryKey.setPartitionKey(Arrays.asList("pk0", "pk1", "pk2"));
+    primaryKey.setClusteringKey(Arrays.asList("ck0", "ck1"));
+    tableAdd.setPrimaryKey(primaryKey);
+    createTable(keyspaceName, tableAdd);
+
+    Map<String, Object> row = new HashMap<>();
+    row.put("pk0", 1);
+    row.put("pk1", "one");
+    row.put("pk2", -1);
+    row.put("ck0", 10);
+    row.put("ck1", "foo");
+    row.put("v", 9);
+    insertRow(keyspaceName, tableName, row);
+
+    row = new HashMap<>();
+    row.put("pk0", 1);
+    row.put("pk1", "one");
+    row.put("pk2", -1);
+    row.put("ck0", 20);
+    row.put("ck1", "foo");
+    row.put("v", 19);
+    insertRow(keyspaceName, tableName, row);
+
+    row = new HashMap<>();
+    row.put("pk0", 2);
+    row.put("pk1", "two");
+    row.put("pk2", -2);
+    row.put("ck0", 10);
+    row.put("ck1", "bar");
+    row.put("v", 18);
+    insertRow(keyspaceName, tableName, row);
   }
 }
