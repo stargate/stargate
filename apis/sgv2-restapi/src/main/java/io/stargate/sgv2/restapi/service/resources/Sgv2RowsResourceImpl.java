@@ -39,7 +39,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       final String sortJson) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     if (isStringEmpty(where)) {
-      throw new WebApplicationException("where parameter is required", Status.BAD_REQUEST);
+      throw new WebApplicationException("Missing required 'where' parameter", Status.BAD_REQUEST);
     }
 
     final List<Column> columns =
@@ -48,7 +48,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     try {
       sortOrder = decodeSortOrder(sortJson);
     } catch (IllegalArgumentException e) {
-      throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
+      throw invalidSortParameterException(e);
     }
 
     QueryOuterClass.Response response =
@@ -62,7 +62,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
               try {
                 whereConditions = new WhereParser(tableDef, toProtoConverter).parseWhere(where);
               } catch (IllegalArgumentException e) {
-                throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
+                throw invalidSortParameterException(e);
               }
 
               if (columns.isEmpty()) {
@@ -105,7 +105,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     try {
       sortOrder = decodeSortOrder(sortJson);
     } catch (IllegalArgumentException e) {
-      throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
+      throw invalidSortParameterException(e);
     }
 
     QueryOuterClass.Response response =
@@ -143,7 +143,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     try {
       sortOrder = decodeSortOrder(sortJson);
     } catch (IllegalArgumentException e) {
-      throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
+      throw invalidSortParameterException(e);
     }
     final QueryOuterClass.Query query;
     if (columns.isEmpty()) {
@@ -176,8 +176,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     try {
       payloadMap = parseJsonAsMap(payloadAsString);
     } catch (Exception e) {
-      throw new WebApplicationException(
-          "Invalid JSON payload: " + e.getMessage(), Status.BAD_REQUEST);
+      throw invalidPaylodException(e);
     }
 
     queryWithTable(
@@ -189,7 +188,8 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
           try {
             return buildAddRowQuery(keyspaceName, tableName, payloadMap, toProtoConverter);
           } catch (IllegalArgumentException e) {
-            throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
+            throw new WebApplicationException(
+                "Invalid path for row to create, problem: " + e.getMessage(), Status.BAD_REQUEST);
           }
         });
 
@@ -244,8 +244,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     try {
       payloadMap = parseJsonAsMap(payloadAsString);
     } catch (Exception e) {
-      throw new WebApplicationException(
-          "Invalid JSON payload: " + e.getMessage(), Status.BAD_REQUEST);
+      throw invalidPaylodException(e);
     }
     queryWithTable(
         keyspaceName,
@@ -256,7 +255,8 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
             return buildUpdateRowQuery(
                 keyspaceName, tableName, path, tableDef, payloadMap, toProtoConverter);
           } catch (IllegalArgumentException e) {
-            throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
+            throw new WebApplicationException(
+                "Invalid path for row to update, problem: " + e.getMessage(), Status.BAD_REQUEST);
           }
         });
 
@@ -508,5 +508,21 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     ArrayList<T> result = new ArrayList<>(a);
     result.addAll(b);
     return result;
+  }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Helper methods for error reporting
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  private WebApplicationException invalidSortParameterException(IllegalArgumentException e) {
+    return new WebApplicationException(
+        "Invalid 'sort' parameter, problem: " + e.getMessage(), Status.BAD_REQUEST);
+  }
+
+  private WebApplicationException invalidPaylodException(Exception e) {
+    throw new WebApplicationException(
+        "Invalid JSON payload: " + e.getMessage(), Status.BAD_REQUEST);
   }
 }

@@ -134,7 +134,10 @@ public class RestApiV2QRowAddIT extends RestApiV2QIntegrationTestBase {
         insertRowExpectStatus(testKeyspaceName(), tableName, row, HttpStatus.SC_BAD_REQUEST);
     ApiError error = readJsonAs(response, ApiError.class);
     assertThat(error.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(error.description()).contains("Unknown field name 'invalid_field'");
+    assertThat(error.description())
+        .contains("Invalid path for row to create, problem")
+        .contains("Invalid String value")
+        .contains("'not-really-uuid'");
   }
 
   @Test
