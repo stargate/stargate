@@ -33,10 +33,16 @@ jobs:
     outputs:
       release-tag: ${{ steps.resolve_tag.outputs.tag }}
     steps:
+      - uses: actions/checkout@v3
+
+      - name: Set reference
+        id: vars
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+
       - name: Resolve tag
         id: resolve_tag
         run: |
-          TAG=${{ inputs.tag != null && inputs.tag || github.ref }}
+          TAG=${{ inputs.tag != null && inputs.tag || steps.vars.outputs.tag }}
           echo "Resolved tag for the release $TAG"
           echo "::set-output name=tag::${TAG}"
 
