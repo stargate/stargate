@@ -2,12 +2,26 @@
 
 ## [v2.0.0-ALPHA-17](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-17) (2022-08-16)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.63...v2.0.0-ALPHA-17)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-16...v2.0.0-ALPHA-17)
+
+**Fixed bugs:**
+
+- Document API V2 converts infrastructure exceptions to `5xx` [\#1928](https://github.com/stargate/stargate/issues/1928)
 
 **Closed issues:**
 
-- Update `okhttp3` dependency by `testing` \(integration tests\) [\#2034](https://github.com/stargate/stargate/issues/2034)
-- Update persistence backends to C\*4.0.5, DSE-6.8.25 [\#1991](https://github.com/stargate/stargate/issues/1991)
+- Avoid creating a new grpc stub for each request in the `StargateRequestInfo` [\#2004](https://github.com/stargate/stargate/issues/2004)
+- `StargateV1ConfigurationSourceProviderTest` failing on v2 branch [\#2001](https://github.com/stargate/stargate/issues/2001)
+- Move all generic and shared components to the `svg2-quarkus-common` [\#1983](https://github.com/stargate/stargate/issues/1983)
+- Consider alternative setup for sgv2-quarkus-common test JAR [\#1976](https://github.com/stargate/stargate/issues/1976)
+- Enhanced querying is not needed always in the `QueryExecutor` [\#1960](https://github.com/stargate/stargate/issues/1960)
+- Final setup for the Docs API V2 [\#1823](https://github.com/stargate/stargate/issues/1823)
+- Use comparable bytes API in persistence-cassandra-3.11 and persistence-cassandra-4.0 [\#1761](https://github.com/stargate/stargate/issues/1761)
+- Independent end-to-end tests in Document API V2 [\#1737](https://github.com/stargate/stargate/issues/1737)
+- Support document table upgrade functions in Document API V2 [\#1736](https://github.com/stargate/stargate/issues/1736)
+- Support document built-in functions in the Document API V2 [\#1735](https://github.com/stargate/stargate/issues/1735)
+- REST Controllers for the read and search paths in the Document API V2 [\#1734](https://github.com/stargate/stargate/issues/1734)
+- REST Controllers for the write paths in the Document API V2 [\#1730](https://github.com/stargate/stargate/issues/1730)
 
 **Merged pull requests:**
 
@@ -41,74 +55,6 @@
 - Bumping version to 2.0.0-ALPHA-17-SNAPSHOT [\#1949](https://github.com/stargate/stargate/pull/1949) ([github-actions[bot]](https://github.com/apps/github-actions))
 - relates to \#1730: document write resource tests [\#1942](https://github.com/stargate/stargate/pull/1942) ([EricBorczuk](https://github.com/EricBorczuk))
 - closes \#1734: int tests for search, get document and sub-document [\#1930](https://github.com/stargate/stargate/pull/1930) ([ivansenic](https://github.com/ivansenic))
-
-## [v1.0.63](https://github.com/stargate/stargate/tree/v1.0.63) (2022-08-15)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.61...v1.0.63)
-
-**Fixed bugs:**
-
-- `NullPointerException` on the `RowResource` [\#1994](https://github.com/stargate/stargate/issues/1994)
-- Documents API should handle `OverloadedException` gracefully [\#1972](https://github.com/stargate/stargate/issues/1972)
-- GET by primary key with frozen\<udt\> using REST V1 is returning 500 error [\#205](https://github.com/stargate/stargate/issues/205)
-
-**Closed issues:**
-
-- Update DSE to 6.8.25 [\#2022](https://github.com/stargate/stargate/issues/2022)
-- CQL module needs to be upgraded [\#2015](https://github.com/stargate/stargate/issues/2015)
-- Avoid creating a new grpc stub for each request in the `StargateRequestInfo` [\#2004](https://github.com/stargate/stargate/issues/2004)
-- `StargateV1ConfigurationSourceProviderTest` failing on v2 branch [\#2001](https://github.com/stargate/stargate/issues/2001)
-- Move all generic and shared components to the `svg2-quarkus-common` [\#1983](https://github.com/stargate/stargate/issues/1983)
-- Consider alternative setup for sgv2-quarkus-common test JAR [\#1976](https://github.com/stargate/stargate/issues/1976)
-- Upgrade DropWizard to latest \(2.0.32\), dependencies [\#1968](https://github.com/stargate/stargate/issues/1968)
-- Final setup for the Docs API V2 [\#1823](https://github.com/stargate/stargate/issues/1823)
-- Support document built-in functions in the Document API V2 [\#1735](https://github.com/stargate/stargate/issues/1735)
-- Result structure for REST GET `/v2/schemas/keyspaces` \(and `/v2/schemas/keyspaces/{keyspaceName}`\) different from Swagger model in "simple" topology case [\#1396](https://github.com/stargate/stargate/issues/1396)
-
-**Merged pull requests:**
-
-- fix release workflows input defaults [\#2026](https://github.com/stargate/stargate/pull/2026) ([ivansenic](https://github.com/ivansenic))
-- Bumping version to 1.0.63-SNAPSHOT [\#2025](https://github.com/stargate/stargate/pull/2025) ([github-actions[bot]](https://github.com/apps/github-actions))
-- Update Stargate-builder image to use DSE 6.8.25 [\#2024](https://github.com/stargate/stargate/pull/2024) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Update DSE dependency to 6.8.25 [\#2023](https://github.com/stargate/stargate/pull/2023) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- id-path now accepts a path to a non-string value [\#2020](https://github.com/stargate/stargate/pull/2020) ([EricBorczuk](https://github.com/EricBorczuk))
-- Fix for Issue \# 205: Fix for Rest V1 API GET by primary key with frozen udt. [\#2018](https://github.com/stargate/stargate/pull/2018) ([maheshrajamani](https://github.com/maheshrajamani))
-- closes \#1994: Validation for Rest v1 row update API [\#2009](https://github.com/stargate/stargate/pull/2009) ([maheshrajamani](https://github.com/maheshrajamani))
-- release workflows port-back [\#2003](https://github.com/stargate/stargate/pull/2003) ([ivansenic](https://github.com/ivansenic))
-- closes \#2001: fixing `StargateV1ConfigurationSourceProviderTest` on the CI [\#2002](https://github.com/stargate/stargate/pull/2002) ([ivansenic](https://github.com/ivansenic))
-- improving release v1 github workflow [\#1993](https://github.com/stargate/stargate/pull/1993) ([ivansenic](https://github.com/ivansenic))
-- remove codacy result upload in CI [\#1985](https://github.com/stargate/stargate/pull/1985) ([ivansenic](https://github.com/ivansenic))
-- closes \#1972: correctly unwrap data store exceptions in the QueryExec… [\#1975](https://github.com/stargate/stargate/pull/1975) ([ivansenic](https://github.com/ivansenic))
-- Bumping version to "1.0.62-SNAPSHOT" [\#1973](https://github.com/stargate/stargate/pull/1973) ([github-actions[bot]](https://github.com/apps/github-actions))
-
-## [v1.0.61](https://github.com/stargate/stargate/tree/v1.0.61) (2022-07-12)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-16...v1.0.61)
-
-**Fixed bugs:**
-
-- Document API V2 converts infrastructure exceptions to `5xx` [\#1928](https://github.com/stargate/stargate/issues/1928)
-
-**Closed issues:**
-
-- Enhanced querying is not needed always in the `QueryExecutor` [\#1960](https://github.com/stargate/stargate/issues/1960)
-- Allow yaml configuration file overrides per-service [\#1953](https://github.com/stargate/stargate/issues/1953)
-- Test out running full IT suite for one backend \(C\*4.0\) using Github Actions [\#1913](https://github.com/stargate/stargate/issues/1913)
-- Use comparable bytes API in persistence-cassandra-3.11 and persistence-cassandra-4.0 [\#1761](https://github.com/stargate/stargate/issues/1761)
-- Independent end-to-end tests in Document API V2 [\#1737](https://github.com/stargate/stargate/issues/1737)
-- Support document table upgrade functions in Document API V2 [\#1736](https://github.com/stargate/stargate/issues/1736)
-- REST Controllers for the read and search paths in the Document API V2 [\#1734](https://github.com/stargate/stargate/issues/1734)
-- REST Controllers for the write paths in the Document API V2 [\#1730](https://github.com/stargate/stargate/issues/1730)
-- replace sun.misc.Unsafe with ??? [\#434](https://github.com/stargate/stargate/issues/434)
-- Add core API for password authentication [\#100](https://github.com/stargate/stargate/issues/100)
-- Load selected settings from a cassandra.yaml [\#48](https://github.com/stargate/stargate/issues/48)
-
-**Merged pull requests:**
-
-- Fix for \#1953: add ability to override DropWizard app config file [\#1954](https://github.com/stargate/stargate/pull/1954) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Change CODEOWNERS to use "core" team, not individual accounts [\#1948](https://github.com/stargate/stargate/pull/1948) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Continuation of CI/IT experiment -- build all 3 backends in parallel [\#1914](https://github.com/stargate/stargate/pull/1914) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Fix \#1968: update DropWizard dep 2.0.28-\>2.0.32, its dependencies [\#1969](https://github.com/stargate/stargate/pull/1969) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 
 ## [v2.0.0-ALPHA-16](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-16) (2022-07-05)
 
