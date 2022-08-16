@@ -232,7 +232,7 @@ jobs:
         uses: docker/setup-buildx-action@v2
 
       # build and push images to Docker hub
-      # if input.publish is false we are still having tasks for building images without push
+      # if input.skipPublish is true we are still having tasks for building images without push
       # this enables build docker check without pushing
       - name: Login to DockerHub
         uses: docker/login-action@v2
@@ -246,7 +246,7 @@ jobs:
           ./build_docker_images.sh -p -t ${{needs.resolve-tag.outputs.release-tag}}
 
       - name: Build without push (coordinator, DockerHub)
-        if: ${{ inputs.publish == false }}
+        if: ${{ inputs.skipPublish }}
         run: |
           ./build_docker_images.sh -t ${{needs.resolve-tag.outputs.release-tag}}
 
@@ -258,7 +258,7 @@ jobs:
           cd ../
 
       - name: Build without push (apis, DockerHub)
-        if: ${{ inputs.publish == false }}
+        if: ${{ inputs.skipPublish }}
         run: |
           cd apis/
           JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
