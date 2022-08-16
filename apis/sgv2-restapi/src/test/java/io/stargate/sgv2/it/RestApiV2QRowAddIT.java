@@ -122,6 +122,22 @@ public class RestApiV2QRowAddIT extends RestApiV2QIntegrationTestBase {
   }
 
   @Test
+  public void addRowInvalidKey() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+
+    Map<String, String> row = new HashMap<>();
+    row.put("id", "not-really-uuid");
+    row.put("firstName", "John");
+
+    String response =
+        insertRowExpectStatus(testKeyspaceName(), tableName, row, HttpStatus.SC_BAD_REQUEST);
+    ApiError error = readJsonAs(response, ApiError.class);
+    assertThat(error.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(error.description()).contains("Unknown field name 'invalid_field'");
+  }
+
+  @Test
   public void addRowWithInvalidJson() {
     final String tableName = testTableName();
     createSimpleTestTable(testKeyspaceName(), tableName);
