@@ -194,6 +194,27 @@ public class RestApiV2QRowUpdateIT extends RestApiV2QIntegrationTestBase {
     assertThat(error.description()).contains("Invalid JSON payload");
   }
 
+  @Test
+  public void updateRowWithInvalidKey() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+
+    // No need to actually create a row is there? Will fail regardless
+    Map<String, String> update = Collections.singletonMap("firstName", "Boberta");
+
+    String response =
+        updateRowReturnResponse(
+            endpointPathForRowByPK(testKeyspaceName(), tableName, "not-a-valid-uuid"),
+            true,
+            update,
+            HttpStatus.SC_BAD_REQUEST);
+    ApiError error = readJsonAs(response, ApiError.class);
+    assertThat(error.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(error.description())
+        .contains("Invalid path for row to update")
+        .contains("'not-a-valid-uuid'");
+  }
+
   /*
   /////////////////////////////////////////////////////////////////////////
   // Helper methods
