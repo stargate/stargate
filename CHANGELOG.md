@@ -306,9 +306,9 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
 
-## [v1.0.62](https://github.com/stargate/stargate/tree/v1.0.62) (2022-08-11)
+## [v1.0.63](https://github.com/stargate/stargate/tree/v1.0.63) (2022-08-15)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.61...v1.0.62)
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.61...v1.0.63)
 
 **Fixed bugs:**
 
@@ -321,16 +321,23 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Update DSE to 6.8.25 [\#2022](https://github.com/stargate/stargate/issues/2022)
 - CQL module needs to be upgraded [\#2015](https://github.com/stargate/stargate/issues/2015)
 - Upgrade DropWizard to latest \(2.0.32\), dependencies [\#1968](https://github.com/stargate/stargate/issues/1968)
+- Result structure for REST GET `/v2/schemas/keyspaces` \(and `/v2/schemas/keyspaces/{keyspaceName}`\) different from Swagger model in "simple" topology case [\#1396](https://github.com/stargate/stargate/issues/1396)
 
 **Merged pull requests:**
 
+- fix release workflows input defaults [\#2026](https://github.com/stargate/stargate/pull/2026) ([ivansenic](https://github.com/ivansenic))
+- Bumping version to 1.0.63-SNAPSHOT [\#2025](https://github.com/stargate/stargate/pull/2025) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Update Stargate-builder image to use DSE 6.8.25 [\#2024](https://github.com/stargate/stargate/pull/2024) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Update DSE dependency to 6.8.25 [\#2023](https://github.com/stargate/stargate/pull/2023) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- id-path now accepts a path to a non-string value [\#2020](https://github.com/stargate/stargate/pull/2020) ([EricBorczuk](https://github.com/EricBorczuk))
 - Fix for Issue \# 205: Fix for Rest V1 API GET by primary key with frozen udt. [\#2018](https://github.com/stargate/stargate/pull/2018) ([maheshrajamani](https://github.com/maheshrajamani))
 - closes \#1994: Validation for Rest v1 row update API [\#2009](https://github.com/stargate/stargate/pull/2009) ([maheshrajamani](https://github.com/maheshrajamani))
+- release workflows port-back [\#2003](https://github.com/stargate/stargate/pull/2003) ([ivansenic](https://github.com/ivansenic))
 - closes \#2001: fixing `StargateV1ConfigurationSourceProviderTest` on the CI [\#2002](https://github.com/stargate/stargate/pull/2002) ([ivansenic](https://github.com/ivansenic))
 - improving release v1 github workflow [\#1993](https://github.com/stargate/stargate/pull/1993) ([ivansenic](https://github.com/ivansenic))
 - remove codacy result upload in CI [\#1985](https://github.com/stargate/stargate/pull/1985) ([ivansenic](https://github.com/ivansenic))
 - closes \#1972: correctly unwrap data store exceptions in the QueryExec… [\#1975](https://github.com/stargate/stargate/pull/1975) ([ivansenic](https://github.com/ivansenic))
+- Bumping version to "1.0.62-SNAPSHOT" [\#1973](https://github.com/stargate/stargate/pull/1973) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v1.0.61](https://github.com/stargate/stargate/tree/v1.0.61) (2022-07-12)
 
