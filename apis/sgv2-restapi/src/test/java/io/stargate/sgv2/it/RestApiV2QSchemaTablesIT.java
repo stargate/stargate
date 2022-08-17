@@ -264,9 +264,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
     assertThat(pk.getClusteringKey()).isEqualTo(Arrays.asList("ck1", "ck2"));
   }
 
-  // 11-Aug-2022, tatu: Fails for some reason -- seems like URL mismatch on Get-with-where?!
-  //   Commented out for now, need to revisit ASAP
-  @Ignore("Somehow calls wrong REST endpoint for Row access")
+  @Test
   public void tableCreateWithMixedCaseNames() {
     final String tableName = testTableName();
     final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
@@ -290,30 +288,23 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
     row.put("ID", rowIdentifier);
     row.put("Firstname", "John");
     row.put("Lastname", "Doe");
-
-    given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-        .contentType(ContentType.JSON)
-        .body(asJsonString(row))
-        .when()
-        .post("/v2/keyspaces/{keyspaceName}/{tableName}", testKeyspaceName(), tableName)
-        .then()
-        .statusCode(HttpStatus.SC_CREATED);
+    insertRow(testKeyspaceName(), tableName, row);
 
     String whereClause = String.format("{\"ID\":{\"$eq\":\"%s\"}}", rowIdentifier);
     String body =
         given()
             .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-            .header("where", whereClause)
+            .queryParam("where", whereClause)
             .contentType(ContentType.JSON)
             .when()
-            .get("/v2/keyspaces/{keyspaceName}/{tableName}", testKeyspaceName(), tableName)
+            .get(endpointPathForRowGetWith(testKeyspaceName(), tableName))
             .then()
             .statusCode(HttpStatus.SC_OK)
             .extract()
             .asString();
     ListOfMapsGetResponseWrapper wrapper = readJsonAs(body, ListOfMapsGetResponseWrapper.class);
     List<Map<String, Object>> data = wrapper.getData();
+    assertThat(data).hasSize(1);
     assertThat(data.get(0).get("ID")).isEqualTo(rowIdentifier);
     assertThat(data.get(0).get("Firstname")).isEqualTo("John");
     assertThat(data.get(0).get("Lastname")).isEqualTo("Doe");

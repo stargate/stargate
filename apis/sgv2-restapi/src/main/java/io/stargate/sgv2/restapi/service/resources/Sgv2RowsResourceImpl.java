@@ -1,6 +1,7 @@
 package io.stargate.sgv2.restapi.service.resources;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.cql.builder.BuiltCondition;
@@ -62,7 +63,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
               try {
                 whereConditions = new WhereParser(tableDef, toProtoConverter).parseWhere(where);
               } catch (IllegalArgumentException e) {
-                throw invalidSortParameterException(e);
+                throw invalidWhereParameterException(e);
               }
 
               if (columns.isEmpty()) {
@@ -114,16 +115,21 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
             tableName,
             tableDef -> {
               final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
-              return buildGetRowsByPKQuery(
-                  keyspaceName,
-                  tableName,
-                  path,
-                  columns,
-                  sortOrder,
-                  tableDef,
-                  pageSizeParam,
-                  pageStateParam,
-                  toProtoConverter);
+              try {
+                return buildGetRowsByPKQuery(
+                        keyspaceName,
+                        tableName,
+                        path,
+                        columns,
+                        sortOrder,
+                        tableDef,
+                        pageSizeParam,
+                        pageStateParam,
+                        toProtoConverter);
+              } catch (IllegalArgumentException e) {
+                throw new WebApplicationException(
+                        "Invalid path for row to find, problem: " + e.getMessage(), Status.BAD_REQUEST);
+              }
             });
     return toHttpResponse(response, raw);
   }
@@ -521,13 +527,18 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
   /////////////////////////////////////////////////////////////////////////
    */
 
-  private WebApplicationException invalidSortParameterException(IllegalArgumentException e) {
-    return new WebApplicationException(
-        "Invalid 'sort' parameter, problem: " + e.getMessage(), Status.BAD_REQUEST);
-  }
-
   private WebApplicationException invalidPaylodException(Exception e) {
     throw new WebApplicationException(
         "Invalid JSON payload: " + e.getMessage(), Status.BAD_REQUEST);
+  }
+
+  private WebApplicationException invalidSortParameterException(IllegalArgumentException e) {
+    return new WebApplicationException(
+            "Invalid 'sort' parameter, problem: " + e.getMessage(), Status.BAD_REQUEST);
+  }
+
+  private WebApplicationException invalidWhereParameterException(IllegalArgumentException e) {
+    return new WebApplicationException(
+            "Invalid 'where' parameter, problem: " + e.getMessage(), Status.BAD_REQUEST);
   }
 }

@@ -108,7 +108,7 @@ public interface Sgv2RowsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
-  @Path("/{primaryKey: .*}")
+  @Path("/{primaryKey: .+}")
   Response getRows(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
@@ -212,7 +212,7 @@ public interface Sgv2RowsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
-  @Path("/{primaryKey: .*}")
+  @Path("/{primaryKey: .+}")
   Response updateRows(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
@@ -237,7 +237,7 @@ public interface Sgv2RowsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
-  @Path("/{primaryKey: .*}")
+  @Path("/{primaryKey: .+}")
   Response deleteRows(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
@@ -263,7 +263,7 @@ public interface Sgv2RowsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
-  @Path("/{primaryKey: .*}")
+  @Path("/{primaryKey: .+}")
   Response patchRows(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")

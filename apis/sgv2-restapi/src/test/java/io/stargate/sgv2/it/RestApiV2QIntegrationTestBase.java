@@ -137,11 +137,15 @@ public class RestApiV2QIntegrationTestBase {
     return String.format("/v2/schemas/keyspaces/%s/tables/%s", ksName, tableName);
   }
 
+  protected String endpointPathForRowAdd(String ksName, String tableName) {
+    return String.format("/v2/keyspaces/%s/%s", ksName, tableName);
+  }
+
   protected String endpointPathForAllRows(String ksName, String tableName) {
     return String.format("/v2/keyspaces/%s/%s/rows", ksName, tableName);
   }
 
-  protected String endpointPathForRowAdd(String ksName, String tableName) {
+  protected String endpointPathForRowGetWith(String ksName, String tableName) {
     return String.format("/v2/keyspaces/%s/%s", ksName, tableName);
   }
 

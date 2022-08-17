@@ -6,12 +6,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
+import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import javax.enterprise.context.control.ActivateRequestContext;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.ClassOrderer;
@@ -150,7 +153,29 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
   }
 
   @Test
-  public void getInvalidWhereClause() {}
+  public void getInvalidWhereClause() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+
+    final String rowIdentifier = UUID.randomUUID().toString();
+    insertRow(testKeyspaceName(), tableName, Collections.singletonMap("id", rowIdentifier));
+
+    String whereClause = "{\"invalid_field\":{\"$eq\":\"test\"}}";
+    final String path = endpointPathForRowGetWith(testKeyspaceName(), tableName);
+    String response =
+        given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .queryParam("where", whereClause)
+            .when()
+            .get(path)
+            .then()
+            .statusCode(HttpStatus.SC_BAD_REQUEST)
+            .extract()
+            .asString();
+    ApiError error = readJsonAs(response, ApiError.class);
+    assertThat(error.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(error.description()).contains("Invalid 'where' parameter, problem: ");
+  }
 
   @Test
   public void getRows() {}
