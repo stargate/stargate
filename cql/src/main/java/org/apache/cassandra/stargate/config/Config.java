@@ -17,11 +17,13 @@
  */
 package org.apache.cassandra.stargate.config;
 
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.Nulls;
+
 /**
  * This is the same as {@link org.apache.cassandra.config.Config}, but with only the subset of
- * options that are relevant for CQL transport. This object is used to deserialize configuration
- * from a yaml file using {@link YamlConfigurationLoader}. In general, these options should not be
- * accessed directly using this class, but code should instead use {@link
+ * options that are relevant for CQL transport. In general, these options should not be accessed
+ * directly using this class, but code should instead use {@link
  * org.apache.cassandra.stargate.transport.internal.TransportDescriptor}.
  */
 public class Config {
@@ -45,5 +47,6 @@ public class Config {
 
   public long native_transport_idle_timeout_in_ms = 0L;
 
+  @JsonSetter(nulls = Nulls.FAIL)
   public EncryptionOptions client_encryption_options = new EncryptionOptions();
 }

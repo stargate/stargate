@@ -15,6 +15,9 @@
  */
 package io.stargate.cql;
 
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
@@ -30,9 +33,12 @@ import java.util.Arrays;
 import java.util.List;
 import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.config.Config;
-import org.apache.cassandra.stargate.config.YamlConfigurationLoader;
 
 public class CqlActivator extends BaseActivator {
+  public static ObjectMapper mapper =
+      new ObjectMapper(new YAMLFactory())
+          .configure(DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES, true);
+
   private CqlImpl cql;
   private final ServicePointer<Metrics> metrics = ServicePointer.create(Metrics.class);
   private final ServicePointer<ClientInfoMetricsTagProvider> clientInfoTagProvider =
@@ -96,7 +102,7 @@ public class CqlActivator extends BaseActivator {
         c = new Config();
       } else {
         File configFile = new File(cqlConfigPath);
-        c = new YamlConfigurationLoader().loadConfig(configFile.toURI().toURL());
+        c = mapper.readValue(configFile, Config.class);
       }
 
       String listenAddress =

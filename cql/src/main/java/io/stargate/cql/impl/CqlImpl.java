@@ -121,7 +121,13 @@ public class CqlImpl {
                     return port;
                   })
               .filter(p -> p > 0)
-              .map(p -> builder.withSSL(false).withPort(p).build())
+              .map(
+                  p ->
+                      builder
+                          .withSSL(
+                              TransportDescriptor.getNativeProtocolEncryptionOptions().isEnabled())
+                          .withPort(p)
+                          .build())
               .collect(Collectors.toList());
 
       if (!additionalServers.isEmpty()) {
