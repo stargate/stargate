@@ -1,5 +1,61 @@
 # Changelog
 
+## [v2.0.0-ALPHA-17](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-17) (2022-08-16)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-16...v2.0.0-ALPHA-17)
+
+**Fixed bugs:**
+
+- Document API V2 converts infrastructure exceptions to `5xx` [\#1928](https://github.com/stargate/stargate/issues/1928)
+
+**Closed issues:**
+
+- Avoid creating a new grpc stub for each request in the `StargateRequestInfo` [\#2004](https://github.com/stargate/stargate/issues/2004)
+- `StargateV1ConfigurationSourceProviderTest` failing on v2 branch [\#2001](https://github.com/stargate/stargate/issues/2001)
+- Move all generic and shared components to the `svg2-quarkus-common` [\#1983](https://github.com/stargate/stargate/issues/1983)
+- Consider alternative setup for sgv2-quarkus-common test JAR [\#1976](https://github.com/stargate/stargate/issues/1976)
+- Enhanced querying is not needed always in the `QueryExecutor` [\#1960](https://github.com/stargate/stargate/issues/1960)
+- Final setup for the Docs API V2 [\#1823](https://github.com/stargate/stargate/issues/1823)
+- Use comparable bytes API in persistence-cassandra-3.11 and persistence-cassandra-4.0 [\#1761](https://github.com/stargate/stargate/issues/1761)
+- Independent end-to-end tests in Document API V2 [\#1737](https://github.com/stargate/stargate/issues/1737)
+- Support document table upgrade functions in Document API V2 [\#1736](https://github.com/stargate/stargate/issues/1736)
+- Support document built-in functions in the Document API V2 [\#1735](https://github.com/stargate/stargate/issues/1735)
+- REST Controllers for the read and search paths in the Document API V2 [\#1734](https://github.com/stargate/stargate/issues/1734)
+- REST Controllers for the write paths in the Document API V2 [\#1730](https://github.com/stargate/stargate/issues/1730)
+
+**Merged pull requests:**
+
+- Add one more IT for RESTv2/DELETE to cover missing/invalid item refs [\#2036](https://github.com/stargate/stargate/pull/2036) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#2034: update okhttp test dependency [\#2035](https://github.com/stargate/stargate/pull/2035) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release [\#2033](https://github.com/stargate/stargate/pull/2033) ([github-actions[bot]](https://github.com/apps/github-actions))
+- using skipPublish for the build without publish as well [\#2032](https://github.com/stargate/stargate/pull/2032) ([ivansenic](https://github.com/ivansenic))
+- upgrade Quarkus to 2.11.2, DSE to 6.8.25 [\#2030](https://github.com/stargate/stargate/pull/2030) ([ivansenic](https://github.com/ivansenic))
+- Fix merge issue [\#2027](https://github.com/stargate/stargate/pull/2027) ([olim7t](https://github.com/olim7t))
+- V2 fix: id-path now accepts a path to a non-string value [\#2021](https://github.com/stargate/stargate/pull/2021) ([EricBorczuk](https://github.com/EricBorczuk))
+- Update README with notes on troubelshooting IT run failure [\#2017](https://github.com/stargate/stargate/pull/2017) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- SGv2: Deterministic hash codes for schema objects [\#2010](https://github.com/stargate/stargate/pull/2010) ([mpenick](https://github.com/mpenick))
+- Avoid creating a new grpc stub for each request in the StargateRequestInfo [\#2008](https://github.com/stargate/stargate/pull/2008) ([EricBorczuk](https://github.com/EricBorczuk))
+- fix bugs in application props and configuration readme [\#1998](https://github.com/stargate/stargate/pull/1998) ([ivansenic](https://github.com/ivansenic))
+- Move integration test utilities to sgv2-quarkus-common [\#1995](https://github.com/stargate/stargate/pull/1995) ([olim7t](https://github.com/olim7t))
+- V1/V2 Docs API compat test [\#1990](https://github.com/stargate/stargate/pull/1990) ([EricBorczuk](https://github.com/EricBorczuk))
+- Upgrade Quarkus 2.10.1-final -\> 2.10.3-final [\#1989](https://github.com/stargate/stargate/pull/1989) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- updated release workflow for V2 [\#1987](https://github.com/stargate/stargate/pull/1987) ([ivansenic](https://github.com/ivansenic))
+- closes \#1823: fixes all warnings in docs api V2 [\#1986](https://github.com/stargate/stargate/pull/1986) ([ivansenic](https://github.com/ivansenic))
+- closes \#1983: moving other common components to common project [\#1984](https://github.com/stargate/stargate/pull/1984) ([ivansenic](https://github.com/ivansenic))
+- relates to \#1823: final setup for the docs api v2 [\#1970](https://github.com/stargate/stargate/pull/1970) ([ivansenic](https://github.com/ivansenic))
+- closes \#1903: decrease fetch of the comparable bytes [\#1966](https://github.com/stargate/stargate/pull/1966) ([ivansenic](https://github.com/ivansenic))
+- Extract common module for Quarkus-based services [\#1965](https://github.com/stargate/stargate/pull/1965) ([olim7t](https://github.com/olim7t))
+- closes \#1735: execute builtin functions functionality [\#1964](https://github.com/stargate/stargate/pull/1964) ([EricBorczuk](https://github.com/EricBorczuk))
+- closes \#1761: copy and implement needed comprable bytes API for D… [\#1959](https://github.com/stargate/stargate/pull/1959) ([ivansenic](https://github.com/ivansenic))
+- closes \#1736: upgrade actions for collections [\#1958](https://github.com/stargate/stargate/pull/1958) ([ivansenic](https://github.com/ivansenic))
+- closes \#1737: update Quarkus to 2.10.1.Final, finalize int tests [\#1957](https://github.com/stargate/stargate/pull/1957) ([ivansenic](https://github.com/ivansenic))
+- closes \#1928: web app exceptions to be intercepted [\#1952](https://github.com/stargate/stargate/pull/1952) ([ivansenic](https://github.com/ivansenic))
+- relates to \#1730: document update resource tests [\#1951](https://github.com/stargate/stargate/pull/1951) ([ivansenic](https://github.com/ivansenic))
+- relates to \#1730: document patch resource tests [\#1950](https://github.com/stargate/stargate/pull/1950) ([EricBorczuk](https://github.com/EricBorczuk))
+- Bumping version to 2.0.0-ALPHA-17-SNAPSHOT [\#1949](https://github.com/stargate/stargate/pull/1949) ([github-actions[bot]](https://github.com/apps/github-actions))
+- relates to \#1730: document write resource tests [\#1942](https://github.com/stargate/stargate/pull/1942) ([EricBorczuk](https://github.com/EricBorczuk))
+- closes \#1734: int tests for search, get document and sub-document [\#1930](https://github.com/stargate/stargate/pull/1930) ([ivansenic](https://github.com/ivansenic))
+
 ## [v2.0.0-ALPHA-16](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-16) (2022-07-05)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-15...v2.0.0-ALPHA-16)

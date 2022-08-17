@@ -43,7 +43,7 @@ while getopts ":t:r:pa" opt; do
       SGTAG=$OPTARG
       ;;
     r)
-      REPO=$OPTARG
+      REPO="$OPTARG/stargateio"
       ;;
     a)
       API_ONLY=true
