@@ -23,7 +23,9 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -35,6 +37,9 @@ import org.junit.jupiter.api.TestInfo;
 
 public class RestApiV2QIntegrationTestBase {
   protected static final ObjectMapper objectMapper = JsonMapper.builder().build();
+
+  protected static final TypeReference LIST_OF_MAPS_TYPE =
+      new TypeReference<List<Map<String, Object>>>() {};
 
   @Inject protected StargateRequestInfo stargateRequestInfo;
 
@@ -155,6 +160,32 @@ public class RestApiV2QIntegrationTestBase {
       sb.append('/').append(key);
     }
     return sb.toString();
+  }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Map construction
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  protected Map<String, Object> map(String key, Object value) {
+    return Collections.singletonMap(key, value);
+  }
+
+  protected Map<String, Object> map(String key1, Object value1, String key2, Object value2) {
+    Map<String, Object> map = new LinkedHashMap<>();
+    map.put(key1, value1);
+    map.put(key2, value2);
+    return map;
+  }
+
+  protected Map<String, Object> map(
+      String key1, Object value1, String key2, Object value2, String key3, Object value3) {
+    Map<String, Object> map = new LinkedHashMap<>();
+    map.put(key1, value1);
+    map.put(key2, value2);
+    map.put(key3, value3);
+    return map;
   }
 
   /*
@@ -378,9 +409,23 @@ public class RestApiV2QIntegrationTestBase {
             .statusCode(HttpStatus.SC_OK)
             .extract()
             .asString();
-    List<Map<String, Object>> data =
-        readJsonAs(response, new TypeReference<List<Map<String, Object>>>() {});
-    return data;
+    return readJsonAs(response, LIST_OF_MAPS_TYPE);
+  }
+
+  protected ListOfMapsGetResponseWrapper findRowsAsWrapped(
+      String keyspaceName, String tableName, Object... primaryKeys) {
+    final String path = endpointPathForRowByPK(keyspaceName, tableName, primaryKeys);
+    String response =
+        given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .queryParam("raw", "false")
+            .when()
+            .get(path)
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    return readJsonAs(response, ListOfMapsGetResponseWrapper.class);
   }
 
   protected ArrayNode findRowsAsJsonNode(

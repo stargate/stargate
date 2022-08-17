@@ -10,7 +10,6 @@ import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -158,7 +157,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     createSimpleTestTable(testKeyspaceName(), tableName);
 
     final String rowIdentifier = UUID.randomUUID().toString();
-    insertRow(testKeyspaceName(), tableName, Collections.singletonMap("id", rowIdentifier));
+    insertRow(testKeyspaceName(), tableName, map("id", rowIdentifier));
 
     String whereClause = "{\"invalid_field\":{\"$eq\":\"test\"}}";
     final String path = endpointPathForRowGetWith(testKeyspaceName(), tableName);
@@ -178,10 +177,47 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
   }
 
   @Test
-  public void getRows() {}
+  public void getRows() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+
+    // To try to ensure we actually find the right entry, create one other entry first
+    insertRow(
+        testKeyspaceName(),
+        tableName,
+        map("id", UUID.randomUUID().toString(), "firstName", "Michael"));
+
+    // and then the row we are actually looking for:
+    String rowIdentifier = UUID.randomUUID().toString();
+    insertRow(testKeyspaceName(), tableName, map("id", rowIdentifier, "firstName", "John"));
+
+    ListOfMapsGetResponseWrapper wrapper =
+        findRowsAsWrapped(testKeyspaceName(), tableName, rowIdentifier);
+    // Verify we fetch one and only one entry
+    assertThat(wrapper.getCount()).isEqualTo(1);
+    List<Map<String, Object>> data = wrapper.getData();
+    assertThat(data.size()).isEqualTo(1);
+    // and that its contents match
+    assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(data.get(0).get("firstName")).isEqualTo("John");
+  }
 
   @Test
-  public void getRowsNotFound() {}
+  public void getRowsNotFound() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+
+    insertRow(
+        testKeyspaceName(),
+        tableName,
+        map("id", UUID.randomUUID().toString(), "firstName", "Michael"));
+
+    final String NOT_MATCHING_ID = "f0014be3-b69f-4884-b9a6-49765fb40df3";
+    ListOfMapsGetResponseWrapper wrapper =
+        findRowsAsWrapped(testKeyspaceName(), tableName, NOT_MATCHING_ID);
+    assertThat(wrapper.getCount()).isEqualTo(0);
+    assertThat(wrapper.getData()).isEmpty();
+  }
 
   @Test
   public void getRowsPaging() {}
