@@ -21,6 +21,7 @@ import io.stargate.sgv2.restapi.service.models.Sgv2Table;
 import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -134,6 +135,10 @@ public class RestApiV2QIntegrationTestBase {
 
   protected String endpointPathForTable(String ksName, String tableName) {
     return String.format("/v2/schemas/keyspaces/%s/tables/%s", ksName, tableName);
+  }
+
+  protected String endpointPathForAllRows(String ksName, String tableName) {
+    return String.format("/v2/keyspaces/%s/%s/rows", ksName, tableName);
   }
 
   protected String endpointPathForRowAdd(String ksName, String tableName) {
@@ -319,6 +324,24 @@ public class RestApiV2QIntegrationTestBase {
   // Helper methods for Rows CRUD
   /////////////////////////////////////////////////////////////////////////
    */
+
+  protected List<Map<String, String>> insertRows(
+      String keyspaceName, String tableName, List<List<String>> rows) {
+    final List<Map<String, String>> insertedRows = new ArrayList<>();
+    for (List<String> row : rows) {
+      Map<String, String> rowMap = new HashMap<>();
+      for (String kv : row) {
+        // Split on first space, leave others in (with no limit we'd silently
+        // drop later space-separated parts)
+        String[] parts = kv.split(" ", 2);
+        rowMap.put(parts[0].trim(), parts[1].trim());
+      }
+      insertRow(keyspaceName, tableName, rowMap);
+      insertedRows.add(rowMap);
+    }
+
+    return insertedRows;
+  }
 
   protected String insertRow(String keyspaceName, String tableName, Map<?, ?> row) {
     return insertRowExpectStatus(keyspaceName, tableName, row, HttpStatus.SC_CREATED);
