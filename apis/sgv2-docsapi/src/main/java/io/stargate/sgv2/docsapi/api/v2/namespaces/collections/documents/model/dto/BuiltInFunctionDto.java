@@ -27,12 +27,15 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 /** DTO for a namespace. */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record BuiltInFunctionDto(
-    @Schema(description = "The operation to execute", pattern = "\\$pop|\\$push", example = "$push")
+    @Schema(
+            description = "The operation to execute",
+            pattern = "\\$pop|\\$push|\\$set",
+            example = "$push")
         @NotNull(message = "`operation` is required for function execution")
         @NotBlank(message = "`operation` is required for function execution")
         @Pattern(
-            regexp = "\\$pop|\\$push",
-            message = "available built-in functions are $pop and $push")
+            regexp = "\\$pop|\\$push|\\$set",
+            message = "available built-in functions are [$pop, $push, $set]")
         String operation,
     @Schema(
             description = "The value to use for the operation",
