@@ -1,7 +1,6 @@
 package io.stargate.sgv2.restapi.service.resources;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.cql.builder.BuiltCondition;
@@ -117,18 +116,18 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
               final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
               try {
                 return buildGetRowsByPKQuery(
-                        keyspaceName,
-                        tableName,
-                        path,
-                        columns,
-                        sortOrder,
-                        tableDef,
-                        pageSizeParam,
-                        pageStateParam,
-                        toProtoConverter);
+                    keyspaceName,
+                    tableName,
+                    path,
+                    columns,
+                    sortOrder,
+                    tableDef,
+                    pageSizeParam,
+                    pageStateParam,
+                    toProtoConverter);
               } catch (IllegalArgumentException e) {
                 throw new WebApplicationException(
-                        "Invalid path for row to find, problem: " + e.getMessage(), Status.BAD_REQUEST);
+                    "Invalid path for row to find, problem: " + e.getMessage(), Status.BAD_REQUEST);
               }
             });
     return toHttpResponse(response, raw);
@@ -534,11 +533,11 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
 
   private WebApplicationException invalidSortParameterException(IllegalArgumentException e) {
     return new WebApplicationException(
-            "Invalid 'sort' parameter, problem: " + e.getMessage(), Status.BAD_REQUEST);
+        "Invalid 'sort' parameter, problem: " + e.getMessage(), Status.BAD_REQUEST);
   }
 
   private WebApplicationException invalidWhereParameterException(IllegalArgumentException e) {
     return new WebApplicationException(
-            "Invalid 'where' parameter, problem: " + e.getMessage(), Status.BAD_REQUEST);
+        "Invalid 'where' parameter, problem: " + e.getMessage(), Status.BAD_REQUEST);
   }
 }
