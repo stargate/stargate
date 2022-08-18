@@ -363,7 +363,7 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void setUpdateManyValues() {
       String setOperation =
-          "{ \"b.[1].nested\": \"newvalue\", \"b.[1].other\": \"awesome\", \"b.[0].new\": true, \"a\": 9000 }";
+          "{ \"b.[1].different\": \"newvalue\", \"b.[1].other\": \"awesome\", \"b.[0].new\": true, \"a\": 9000 }";
       given()
           .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
@@ -381,7 +381,8 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
           .body("documentId", equalTo(DOCUMENT_ID))
-          .body("data", jsonPartEquals("object.b[1].nested", "newvalue"))
+          .body("data", jsonPartEquals("object.b[1].nested", "value"))
+          .body("data", jsonPartEquals("object.b[1].different", "newvalue"))
           .body("data", jsonPartEquals("object.b[1].other", "awesome"))
           .body("data", jsonPartEquals("object.b[0].new", true))
           .body("data", jsonPartEquals("object.a", 9000))
@@ -411,6 +412,32 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
           .body("documentId", equalTo(DOCUMENT_ID))
           .body("data", jsonPartEquals("object.b[1].newdata", true))
           .body("data", jsonNodeAbsent("object.b[1].nested"))
+          .statusCode(200);
+    }
+
+    @Test
+    public void setWithNestedArray() {
+      String setOperation = "{ \"b.[1].nested.[2].d\": \"hello\" }";
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .body(String.format(SET_PAYLOAD, setOperation))
+          .when()
+          .post(BASE_PATH + "/object/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .statusCode(200);
+
+      // get whole document and check the value
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .body("data", jsonPartEquals("object.b[1].nested[2].d", "hello"))
+          .body("data", jsonPartEquals("object.b[1].nested[0]", null))
+          .body("data", jsonPartEquals("object.b[1].nested[1]", null))
           .statusCode(200);
     }
 
