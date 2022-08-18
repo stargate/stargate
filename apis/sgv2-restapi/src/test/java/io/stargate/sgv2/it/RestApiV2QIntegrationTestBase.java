@@ -4,6 +4,7 @@ import static io.restassured.RestAssured.given;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -216,6 +217,14 @@ public class RestApiV2QIntegrationTestBase {
   protected <T> T readJsonAs(String body, TypeReference asType) {
     try {
       return (T) objectMapper.readValue(body, asType);
+    } catch (IOException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  protected JsonNode readJsonAsTree(String body) {
+    try {
+      return objectMapper.readTree(body);
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
