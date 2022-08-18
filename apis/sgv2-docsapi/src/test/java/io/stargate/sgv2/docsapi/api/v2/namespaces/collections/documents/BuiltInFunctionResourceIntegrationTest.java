@@ -315,19 +315,6 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void setUpdateOneValue() {
       String setOperation = "{ \"b.[1].nested\": \"newvalue\" }";
-      // get whole document and check the value
-      given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-          .when()
-          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-          .then()
-          .body(
-              equalTo(
-                  String.format(
-                      "{\"documentId\":\"%s\",\"data\":{\"array\":[1,2,3],\"object\":{\"a\":3,\"b\":[{},{\"nested\":\"value\"},[]]}}}",
-                      DOCUMENT_ID)))
-          .statusCode(200);
-
       given()
           .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
           .contentType(ContentType.JSON)
@@ -335,7 +322,7 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
           .when()
           .post(BASE_PATH + "/object/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
-          .body(equalTo(""))
+          .body("documentId", equalTo(DOCUMENT_ID))
           .statusCode(200);
 
       // get whole document and check the value
@@ -344,7 +331,7 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
-          .body(equalTo(""))
+          .body("documentId", equalTo(DOCUMENT_ID))
           .body("data", jsonPartEquals("object/b/1/nested", "newvalue"))
           .statusCode(200);
     }
@@ -359,7 +346,7 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
           .when()
           .post(BASE_PATH + "/object/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
-          .body(equalTo(""))
+          .body("documentId", equalTo(DOCUMENT_ID))
           .statusCode(200);
 
       // get whole document and check the value
@@ -368,7 +355,7 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
-          .body(equalTo(""))
+          .body("documentId", equalTo(DOCUMENT_ID))
           .body("data", jsonPartEquals("object/c/nested", "newvalue"))
           .statusCode(200);
     }
@@ -384,7 +371,7 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
           .when()
           .post(BASE_PATH + "/object/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
-          .body(equalTo(""))
+          .body("documentId", equalTo(DOCUMENT_ID))
           .statusCode(200);
 
       // get whole document and check the value
@@ -393,7 +380,7 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
-          .body(equalTo(""))
+          .body("documentId", equalTo(DOCUMENT_ID))
           .body("data", jsonPartEquals("object/b/1/nested", "newvalue"))
           .body("data", jsonPartEquals("object/b/1/other", "awesome"))
           .body("data", jsonPartEquals("object/b/0/new", true))
@@ -421,7 +408,7 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
-          .body(equalTo(""))
+          .body("documentId", equalTo(DOCUMENT_ID))
           .body("data", jsonPartEquals("object/b/1/newdata", true))
           .body("data", jsonNodeAbsent("object/b/1/nested"))
           .statusCode(200);

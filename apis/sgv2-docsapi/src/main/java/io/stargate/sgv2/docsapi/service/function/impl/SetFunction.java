@@ -1,6 +1,7 @@
 package io.stargate.sgv2.docsapi.service.function.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -24,6 +25,8 @@ import javax.inject.Inject;
 @ApplicationScoped
 public class SetFunction implements BuiltInFunction {
   @Inject WriteDocumentsService writeDocumentsService;
+
+  @Inject ObjectMapper mapper;
 
   /** {@inheritDoc} */
   @Override
@@ -65,6 +68,6 @@ public class SetFunction implements BuiltInFunction {
         .collect()
         .asList()
         .onItem()
-        .transform(__ -> null);
+        .transform(__ -> mapper.createObjectNode());
   }
 }
