@@ -397,7 +397,7 @@ class DocumentWriteResourceIntegrationTest extends DocsApiIntegrationTest {
       String doc2 = "{\"id\": 2, \"name\":\"b\"}";
       String doc3 = "{\"id\": 3, \"name\":\"c\"}";
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("id-path", "id")
           .body(String.format("[%s, %s, %s]", doc1, doc2, doc3))
@@ -414,7 +414,7 @@ class DocumentWriteResourceIntegrationTest extends DocsApiIntegrationTest {
       String doc2 = "{\"id\": 2.2, \"name\":\"b\"}";
       String doc3 = "{\"id\": 3.3, \"name\":\"c\"}";
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("id-path", "id")
           .body(String.format("[%s, %s, %s]", doc1, doc2, doc3))
@@ -430,7 +430,7 @@ class DocumentWriteResourceIntegrationTest extends DocsApiIntegrationTest {
       String doc1 = "{\"id\": true, \"name\":\"a\"}";
       String doc2 = "{\"id\": false, \"name\":\"b\"}";
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("id-path", "id")
           .body(String.format("[%s, %s]", doc1, doc2))
