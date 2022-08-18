@@ -33,13 +33,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.stargate.bridge.proto.QueryOuterClass.ResultSet;
 import io.stargate.bridge.proto.Schema;
+import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
 import io.stargate.sgv2.docsapi.OpenMocksTest;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
@@ -69,7 +69,7 @@ import org.mockito.Mock;
 @TestProfile(WriteDocumentsServiceTest.Profile.class)
 public class WriteDocumentsServiceTest {
 
-  public static class Profile implements QuarkusTestProfile {
+  public static class Profile implements NoGlobalResourcesTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
       return ImmutableMap.<String, String>builder()

@@ -20,9 +20,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.google.common.collect.ImmutableMap;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
 import io.stargate.sgv2.docsapi.testprofiles.SaiEnabledTestProfile;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +35,7 @@ import org.junit.jupiter.api.Test;
 @TestProfile(CollectionQueryProviderTest.Profile.class)
 class CollectionQueryProviderTest {
 
-  public static class Profile implements QuarkusTestProfile {
+  public static class Profile implements NoGlobalResourcesTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
       // adapt consistency, depth and column name(s)

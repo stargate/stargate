@@ -22,6 +22,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Or;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
+import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
 import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.query.FilterExpression;
@@ -49,6 +51,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockitoAnnotations;
 
 @QuarkusTest
+@TestProfile(NoGlobalResourcesTestProfile.Impl.class)
 class CnfResolverTest {
 
   @Inject DocumentProperties documentProperties;

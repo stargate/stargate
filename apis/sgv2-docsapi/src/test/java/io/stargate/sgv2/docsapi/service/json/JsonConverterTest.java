@@ -25,11 +25,11 @@ import com.fasterxml.jackson.databind.node.BooleanNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.collect.ImmutableMap;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.bridge.proto.QueryOuterClass.Row;
 import io.stargate.bridge.proto.QueryOuterClass.Value;
+import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import java.util.ArrayList;
@@ -47,7 +47,7 @@ import org.junit.jupiter.api.Test;
 @TestProfile(JsonConverterTest.Profile.class)
 public class JsonConverterTest {
 
-  public static class Profile implements QuarkusTestProfile {
+  public static class Profile implements NoGlobalResourcesTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
       return ImmutableMap.<String, String>builder().put("stargate.document.max-depth", "6").build();

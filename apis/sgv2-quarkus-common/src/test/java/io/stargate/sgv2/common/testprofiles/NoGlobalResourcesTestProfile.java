@@ -14,14 +14,19 @@
  * limitations under the License.
  *
  */
-package io.stargate.sgv2.docsapi.testprofiles;
 
-import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
-import java.util.Map;
+package io.stargate.sgv2.common.testprofiles;
 
-public class MaxDepth4TestProfile implements NoGlobalResourcesTestProfile {
+import io.quarkus.test.junit.QuarkusTestProfile;
+
+/** Test profile that ignores global resources. */
+public interface NoGlobalResourcesTestProfile extends QuarkusTestProfile {
+
   @Override
-  public Map<String, String> getConfigOverrides() {
-    return Map.of("stargate.document.max-depth", "4");
+  default boolean disableGlobalTestResources() {
+    return true;
   }
+
+  /** Implementation of the {@link NoGlobalResourcesTestProfile} */
+  class Impl implements NoGlobalResourcesTestProfile {}
 }
