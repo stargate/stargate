@@ -98,22 +98,29 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
     Keyspace keyspace = persistence.schema().keyspace(decoratedName);
 
     if (keyspace == null) {
-      responseObserver.onNext(
-          Schema.QueryWithSchemaResponse.newBuilder()
-              .setNoKeyspace(Schema.QueryWithSchemaResponse.NoKeyspace.getDefaultInstance())
-              .build());
-      responseObserver.onCompleted();
+      executor.execute(
+          () -> {
+            responseObserver.onNext(
+                Schema.QueryWithSchemaResponse.newBuilder()
+                    .setNoKeyspace(Schema.QueryWithSchemaResponse.NoKeyspace.getDefaultInstance())
+                    .build());
+            responseObserver.onCompleted();
+          });
     } else if (keyspace.schemaHashCode() != keyspaceHash) {
-      try {
-        responseObserver.onNext(
-            Schema.QueryWithSchemaResponse.newBuilder()
-                .setNewKeyspace(
-                    SchemaHandler.buildKeyspaceDescription(keyspace, keyspaceName, decoratedName))
-                .build());
-        responseObserver.onCompleted();
-      } catch (StatusException e) {
-        responseObserver.onError(e);
-      }
+      executor.execute(
+          () -> {
+            try {
+              responseObserver.onNext(
+                  Schema.QueryWithSchemaResponse.newBuilder()
+                      .setNewKeyspace(
+                          SchemaHandler.buildKeyspaceDescription(
+                              keyspace, keyspaceName, decoratedName))
+                      .build());
+              responseObserver.onCompleted();
+            } catch (StatusException e) {
+              responseObserver.onError(e);
+            }
+          });
     } else {
       executeQuery(
           request.getQuery(),
@@ -148,7 +155,7 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
   public void describeKeyspace(
       Schema.DescribeKeyspaceQuery request,
       StreamObserver<Schema.CqlKeyspaceDescribe> responseObserver) {
-    SchemaHandler.describeKeyspace(request, persistence, responseObserver);
+    executor.execute(() -> SchemaHandler.describeKeyspace(request, persistence, responseObserver));
   }
 
   @Override
