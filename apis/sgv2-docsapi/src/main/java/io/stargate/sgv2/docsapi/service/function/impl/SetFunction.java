@@ -3,7 +3,6 @@ package io.stargate.sgv2.docsapi.service.function.impl;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.docsapi.api.v2.model.dto.DocumentResponseWrapper;
@@ -52,21 +51,22 @@ public class SetFunction implements BuiltInFunction {
       // Turn the dottedPath into expected path format
       String[] pathSegments = dottedPath.split("\\.");
       List<String> subPath = Arrays.asList(pathSegments);
+      List<String> fullPath = new ArrayList<>(data.documentPath());
+      fullPath.addAll(subPath);
       setResults.add(
           writeDocumentsService.updateSubDocument(
               table,
               data.namespace(),
               data.collection(),
               data.documentId(),
-              subPath,
+              fullPath,
               subDoc,
               false,
               data.executionContext()));
     }
-    return Multi.createFrom()
-        .iterable(setResults)
-        .collect()
-        .asList()
+    return Uni.join()
+        .all(setResults)
+        .andFailFast()
         .onItem()
         .transform(__ -> mapper.createObjectNode());
   }

@@ -332,7 +332,7 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
           .body("documentId", equalTo(DOCUMENT_ID))
-          .body("data", jsonPartEquals("object/b/1/nested", "newvalue"))
+          .body("data", jsonPartEquals("object.b[1].nested", "newvalue"))
           .statusCode(200);
     }
 
@@ -356,7 +356,7 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
           .body("documentId", equalTo(DOCUMENT_ID))
-          .body("data", jsonPartEquals("object/c/nested", "newvalue"))
+          .body("data", jsonPartEquals("object.c.nested", "newvalue"))
           .statusCode(200);
     }
 
@@ -381,10 +381,10 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
           .body("documentId", equalTo(DOCUMENT_ID))
-          .body("data", jsonPartEquals("object/b/1/nested", "newvalue"))
-          .body("data", jsonPartEquals("object/b/1/other", "awesome"))
-          .body("data", jsonPartEquals("object/b/0/new", true))
-          .body("data", jsonPartEquals("object/a", 9000))
+          .body("data", jsonPartEquals("object.b[1].nested", "newvalue"))
+          .body("data", jsonPartEquals("object.b[1].other", "awesome"))
+          .body("data", jsonPartEquals("object.b[0].new", true))
+          .body("data", jsonPartEquals("object.a", 9000))
           .statusCode(200);
     }
 
@@ -409,8 +409,8 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
           .body("documentId", equalTo(DOCUMENT_ID))
-          .body("data", jsonPartEquals("object/b/1/newdata", true))
-          .body("data", jsonNodeAbsent("object/b/1/nested"))
+          .body("data", jsonPartEquals("object.b[1].newdata", true))
+          .body("data", jsonNodeAbsent("object.b[1].nested"))
           .statusCode(200);
     }
 
