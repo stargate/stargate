@@ -319,19 +319,99 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
   }
 
   @Test
-  public void getRowsPartitionAndClusterKeys() {}
+  public void getRowsPartitionAndClusterKeys() {
+    final String tableName = testTableName();
+    final Object rowIdentifier = setupClusteringTestCase(testKeyspaceName(), tableName);
+
+    ListOfMapsGetResponseWrapper wrapper =
+        findRowsAsWrapped(testKeyspaceName(), tableName, rowIdentifier, 2);
+    assertThat(wrapper.getCount()).isEqualTo(1);
+    List<Map<String, Object>> data = wrapper.getData();
+    assertThat(data).hasSize(1);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
+    assertThat(data.get(0).get("firstName")).isEqualTo("John");
+    assertThat(data.get(0).get("expense_id")).isEqualTo(2);
+  }
 
   @Test
-  public void getRowsPartitionKeyOnly() {}
+  public void getRowsPartitionKeyOnly() {
+    final String tableName = testTableName();
+    final Object rowIdentifier = setupClusteringTestCase(testKeyspaceName(), tableName);
+
+    ListOfMapsGetResponseWrapper wrapper =
+        findRowsAsWrapped(testKeyspaceName(), tableName, rowIdentifier);
+    assertThat(wrapper.getCount()).isEqualTo(2);
+    List<Map<String, Object>> data = wrapper.getData();
+    assertThat(data).hasSize(2);
+    assertThat(data.get(0).get("id")).isEqualTo(1);
+    assertThat(data.get(0).get("firstName")).isEqualTo("John");
+    assertThat(data.get(0).get("expense_id")).isEqualTo(1);
+    assertThat(data.get(1).get("id")).isEqualTo(1);
+    assertThat(data.get(1).get("firstName")).isEqualTo("John");
+    assertThat(data.get(1).get("expense_id")).isEqualTo(2);
+  }
 
   @Test
-  public void getRowsRaw() {}
+  public void getRowsRaw() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+
+    final String rowIdentifier = UUID.randomUUID().toString();
+    insertRow(testKeyspaceName(), tableName, map("id", rowIdentifier, "firstName", "Bob"));
+
+    List<Map<String, Object>> rows = findRowsAsList(testKeyspaceName(), tableName, rowIdentifier);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.get(0).get("id")).isEqualTo(rowIdentifier);
+    assertThat(rows.get(0).get("firstName")).isEqualTo("Bob");
+  }
 
   @Test
-  public void getRowsRawAndSort() {}
+  public void getRowsRawAndSort() {
+    final String tableName = testTableName();
+    final Object rowIdentifier = setupClusteringTestCase(testKeyspaceName(), tableName);
+
+    final String path = endpointPathForRowByPK(testKeyspaceName(), tableName, rowIdentifier);
+    String response =
+        given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .queryParam("raw", "true")
+            .queryParam("sort", "{\"expense_id\": \"desc\"}")
+            .when()
+            .get(path)
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    List<Map<String, Object>> rows = readJsonAs(response, LIST_OF_MAPS_TYPE);
+    assertThat(rows).hasSize(2);
+    assertThat(rows.get(0).get("id")).isEqualTo(1);
+    assertThat(rows.get(0).get("firstName")).isEqualTo("John");
+    assertThat(rows.get(0).get("expense_id")).isEqualTo(2);
+  }
 
   @Test
-  public void getRowsSort() {}
+  public void getRowsSort() {
+    final String tableName = testTableName();
+    final Object rowIdentifier = setupClusteringTestCase(testKeyspaceName(), tableName);
+
+    final String path = endpointPathForRowByPK(testKeyspaceName(), tableName, rowIdentifier);
+    String response =
+        given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .queryParam("sort", "{\"expense_id\": \"desc\"}")
+            .when()
+            .get(path)
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    ListOfMapsGetResponseWrapper wrapper = readJsonAs(response, ListOfMapsGetResponseWrapper.class);
+    assertThat(wrapper.getCount()).isEqualTo(2);
+    List<Map<String, Object>> rows = wrapper.getData();
+    assertThat(rows.get(0).get("id")).isEqualTo(1);
+    assertThat(rows.get(0).get("firstName")).isEqualTo("John");
+    assertThat(rows.get(0).get("expense_id")).isEqualTo(2);
+  }
 
   @Test
   public void getRowsWithContainsEntryQuery() {}
