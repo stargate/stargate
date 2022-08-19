@@ -307,7 +307,7 @@ jobs:
         image: [restapi, graphqlapi, docsapi]
 
     env:
-      # TODO newest version is 1.10.1, this reflects riptano action target version
+      # not a newest version, this reflects riptano action target version
       COSIGN_VERSION: v1.9.0
 
     steps:
@@ -335,7 +335,6 @@ jobs:
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD}}
           COSIGN_KEY_FILE: _cosign_key_
           AUX_KEY: signedby
-          # TODO Sign by stargate, or datastax?
           AUX_VALUE: stargate
         run: |
           echo $COSIGN_PRIVATE_BASE64 | base64 --decode > $COSIGN_KEY_FILE
