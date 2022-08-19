@@ -193,11 +193,24 @@ public final class DocsApiUtils {
    * @return true if the String has an illegal character
    */
   public static boolean containsIllegalSequences(String value) {
+    return containsIllegalSequences(value, false);
+  }
+
+  /**
+   * Returns true if the String contains illegal characters. Used during writes to ensure that all
+   * special characters are escaped.
+   *
+   * @param value A String
+   * @param allowDottedPaths whether paths with a `.` (and []) are allowed in this check
+   * @return true if the String has an illegal character
+   */
+  public static boolean containsIllegalSequences(String value, boolean allowDottedPaths) {
     String replaced = ESCAPED_PATTERN.matcher(value).replaceAll("");
-    return replaced.contains("[")
-        || replaced.contains(".")
-        || replaced.contains("'")
-        || replaced.contains("\\");
+    boolean condition = replaced.contains("'") || replaced.contains("\\");
+    if (!allowDottedPaths) {
+      condition = condition || replaced.contains(".") || replaced.contains("[");
+    }
+    return condition;
   }
 
   /**

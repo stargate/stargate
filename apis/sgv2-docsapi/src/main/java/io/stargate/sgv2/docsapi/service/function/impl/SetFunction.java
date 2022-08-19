@@ -2,17 +2,10 @@ package io.stargate.sgv2.docsapi.service.function.impl;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.Schema;
-import io.stargate.sgv2.docsapi.api.v2.model.dto.DocumentResponseWrapper;
 import io.stargate.sgv2.docsapi.service.function.BuiltInFunction;
 import io.stargate.sgv2.docsapi.service.write.WriteDocumentsService;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
@@ -41,33 +34,15 @@ public class SetFunction implements BuiltInFunction {
       return null;
     }
 
-    ObjectNode objInput = (ObjectNode) data.input();
-    Iterator<Map.Entry<String, JsonNode>> iter = objInput.fields();
-    List<Uni<DocumentResponseWrapper<Void>>> setResults = new ArrayList<>();
-    while (iter.hasNext()) {
-      Map.Entry<String, JsonNode> field = iter.next();
-      String dottedPath = field.getKey();
-      JsonNode subDoc = field.getValue();
-      // Turn the dottedPath into expected path format
-      String[] pathSegments = dottedPath.split("\\.");
-      List<String> subPath = Arrays.asList(pathSegments);
-      List<String> fullPath = new ArrayList<>(data.documentPath());
-      fullPath.addAll(subPath);
-      setResults.add(
-          writeDocumentsService.updateSubDocument(
-              table,
-              data.namespace(),
-              data.collection(),
-              data.documentId(),
-              fullPath,
-              subDoc,
-              false,
-              data.executionContext()));
-    }
-    return Uni.join()
-        .all(setResults)
-        .andFailFast()
-        .onItem()
-        .transform(__ -> mapper.createObjectNode());
+    return writeDocumentsService
+        .setPathsOnDocument(
+            table,
+            data.namespace(),
+            data.collection(),
+            data.documentId(),
+            data.input(),
+            true,
+            data.executionContext())
+        .map(__ -> mapper.createObjectNode());
   }
 }

@@ -56,7 +56,7 @@ public class JsonDocumentShredder {
   public List<JsonShreddedRow> shred(String payload, List<String> subDocumentPath) {
     try {
       JsonNode node = objectMapper.readTree(payload);
-      return shred(node, subDocumentPath);
+      return shred(node, subDocumentPath, false);
     } catch (JsonProcessingException e) {
       throw new ErrorCodeRuntimeException(
           ErrorCode.DOCS_API_INVALID_JSON_VALUE,
@@ -74,8 +74,13 @@ public class JsonDocumentShredder {
    *     are given, without any modifications.
    * @return List of shredded rows
    */
-  @WithSpan
   public List<JsonShreddedRow> shred(JsonNode node, List<String> subDocumentPath) {
+    return shred(node, subDocumentPath, false);
+  }
+
+  @WithSpan
+  public List<JsonShreddedRow> shred(
+      JsonNode node, List<String> subDocumentPath, boolean allowDottedFields) {
     // check if this is a valid root node
     if (subDocumentPath.isEmpty()) {
       checkRoot(node);
@@ -88,7 +93,7 @@ public class JsonDocumentShredder {
                 .addAllPath(subDocumentPath);
 
     List<JsonShreddedRow> result = new ArrayList<>();
-    processNode(node, rowBuilder, result);
+    processNode(node, rowBuilder, result, allowDottedFields);
     return result;
   }
 
@@ -111,20 +116,22 @@ public class JsonDocumentShredder {
   private void processNode(
       JsonNode node,
       Supplier<ImmutableJsonShreddedRow.Builder> rowBuilder,
-      List<JsonShreddedRow> result) {
+      List<JsonShreddedRow> result,
+      boolean allowDottedFields) {
     if (node.isArray()) {
-      processArrayNode(node, rowBuilder, result);
+      processArrayNode(node, rowBuilder, result, allowDottedFields);
     } else if (node.isObject()) {
-      processObjectNode(node, rowBuilder, result);
+      processObjectNode(node, rowBuilder, result, allowDottedFields);
     } else {
-      processValueNode(node, rowBuilder, result);
+      processValueNode(node, rowBuilder, result, allowDottedFields);
     }
   }
 
   private void processArrayNode(
       JsonNode node,
       Supplier<ImmutableJsonShreddedRow.Builder> rowBuilder,
-      List<JsonShreddedRow> result) {
+      List<JsonShreddedRow> result,
+      boolean allowDottedFields) {
     // empty array, simply create a reference to empty node and return
     if (node.isEmpty()) {
       ImmutableJsonShreddedRow row =
@@ -148,7 +155,7 @@ public class JsonDocumentShredder {
           () -> rowBuilder.get().addPath(arrayPath);
 
       // process inner node and increase the index
-      processNode(inner, nextRowBuilder, result);
+      processNode(inner, nextRowBuilder, result, allowDottedFields);
       idx++;
     }
   }
@@ -156,7 +163,8 @@ public class JsonDocumentShredder {
   private void processObjectNode(
       JsonNode node,
       Supplier<ImmutableJsonShreddedRow.Builder> rowBuilder,
-      List<JsonShreddedRow> result) {
+      List<JsonShreddedRow> result,
+      boolean allowDottedFields) {
     // empty object, simply create a reference to empty node and return
     if (node.isEmpty()) {
       ImmutableJsonShreddedRow row =
@@ -178,30 +186,44 @@ public class JsonDocumentShredder {
               }
 
               // check for valid field name
-              if (DocsApiUtils.containsIllegalSequences(fieldName)) {
+              if (DocsApiUtils.containsIllegalSequences(fieldName, allowDottedFields)) {
                 String msg =
                     String.format(
-                        "Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names, invalid field %s",
-                        fieldName);
+                        "Array paths contained in%s single quotes, and backslash are not allowed in field names, invalid field %s",
+                        allowDottedFields ? "" : " square brackets, periods,", fieldName);
                 throw new ErrorCodeRuntimeException(
                     ErrorCode.DOCS_API_GENERAL_INVALID_FIELD_NAME, msg);
               }
 
               // escape the field path
               // then create new next row builder
-              String fieldPath = DocsApiUtils.convertEscapedCharacters(fieldName);
-              Supplier<ImmutableJsonShreddedRow.Builder> nextRowBuilder =
-                  () -> rowBuilder.get().addPath(fieldPath);
+              // if there is a dotted path in the field name, then add multiple row paths at once
+              Supplier<ImmutableJsonShreddedRow.Builder> nextRowBuilder;
+              if (allowDottedFields) {
+                String[] fieldPaths = fieldName.split("\\.");
+                nextRowBuilder =
+                    () -> {
+                      for (String p : fieldPaths) {
+                        String fieldPath = DocsApiUtils.convertEscapedCharacters(fieldName);
+                        rowBuilder.get().addPath(fieldPath);
+                      }
+                      return rowBuilder.get();
+                    };
+              } else {
+                String fieldPath = DocsApiUtils.convertEscapedCharacters(fieldName);
+                nextRowBuilder = () -> rowBuilder.get().addPath(fieldPath);
+              }
 
               // process inner node and increase the index
-              processNode(field.getValue(), nextRowBuilder, result);
+              processNode(field.getValue(), nextRowBuilder, result, allowDottedFields);
             });
   }
 
   private void processValueNode(
       JsonNode node,
       Supplier<ImmutableJsonShreddedRow.Builder> rowBuilder,
-      List<JsonShreddedRow> result) {
+      List<JsonShreddedRow> result,
+      boolean allowDottedFields) {
     ImmutableJsonShreddedRow.Builder builder = rowBuilder.get();
 
     // depending on the value type set values

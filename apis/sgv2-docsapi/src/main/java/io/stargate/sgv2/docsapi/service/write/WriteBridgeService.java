@@ -43,6 +43,7 @@ import io.stargate.sgv2.docsapi.service.write.db.DeleteSubDocumentPathQueryBuild
 import io.stargate.sgv2.docsapi.service.write.db.InsertQueryBuilder;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -353,6 +354,62 @@ public class WriteBridgeService {
             boundQueries ->
                 executeBatch(
                     requestInfo.getStargateBridge(), boundQueries, context.nested("ASYNC PATCH")));
+  }
+
+  /**
+   * Sets data at various paths on a single document, relative to its root. This allows partial
+   * updates of any data in a document, without touching unrelated data.
+   *
+   * @param keyspace Keyspace to store document in.
+   * @param collection Collection the document belongs to.
+   * @param documentId Document ID.
+   * @param rows Rows of the patch.
+   * @param ttl the time-to-live of the rows (seconds)
+   * @param context Execution content for profiling.
+   * @return Uni containing the {@link ResultSet} of the batch execution.
+   */
+  @WithSpan
+  public Uni<ResultSet> setPathsOnDocument(
+      String keyspace,
+      String collection,
+      String documentId,
+      List<JsonShreddedRow> rows,
+      Integer ttl,
+      ExecutionContext context) {
+    return Uni.createFrom()
+        .item(
+            () -> {
+              long timestamp = timeSource.currentTimeMicros();
+              Set<List<String>> distinctDocumentPaths = new HashSet<>();
+              rows.forEach(row -> distinctDocumentPaths.add(row.getPath()));
+              List<QueryOuterClass.BatchQuery> queries = new ArrayList<>(rows.size() + 3);
+
+              // For each distinct path that is going to be set, delete the exact path first.
+              distinctDocumentPaths.forEach(
+                  path ->
+                      queries.add(
+                          new DeleteSubDocumentPathQueryBuilder(path, true, documentProperties)
+                              .buildAndBind(keyspace, collection, documentId, timestamp - 1)));
+
+              // Finally, insert the new data.
+              rows.forEach(
+                  row ->
+                      queries.add(
+                          insertQueryBuilder.buildAndBind(
+                              keyspace,
+                              collection,
+                              ttl,
+                              documentId,
+                              row,
+                              timestamp,
+                              treatBooleansAsNumeric)));
+
+              return queries;
+            })
+        .flatMap(
+            boundQueries ->
+                executeBatch(
+                    requestInfo.getStargateBridge(), boundQueries, context.nested("ASYNC SET")));
   }
 
   /**
