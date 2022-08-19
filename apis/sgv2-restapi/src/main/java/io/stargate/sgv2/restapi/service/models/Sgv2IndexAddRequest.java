@@ -32,6 +32,14 @@ public class Sgv2IndexAddRequest {
 
   private boolean ifNotExists = false;
 
+  // For deserializer
+  protected Sgv2IndexAddRequest() {}
+
+  public Sgv2IndexAddRequest(String columnName, String indexName) {
+    column = columnName;
+    name = indexName;
+  }
+
   public void setColumn(String column) {
     this.column = column;
   }

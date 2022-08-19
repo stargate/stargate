@@ -1,6 +1,7 @@
 package io.stargate.sgv2.it;
 
 import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
@@ -15,8 +16,10 @@ import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
+import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
 import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
 import io.stargate.sgv2.restapi.service.models.Sgv2GetResponse;
+import io.stargate.sgv2.restapi.service.models.Sgv2IndexAddRequest;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2Table;
 import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
@@ -145,6 +148,10 @@ public class RestApiV2QIntegrationTestBase {
 
   protected String endpointPathForRowAdd(String ksName, String tableName) {
     return String.format("/v2/keyspaces/%s/%s", ksName, tableName);
+  }
+
+  protected String endpointPathForIndexAdd(String ksName, String tableName) {
+    return String.format("/v2/schemas/keyspaces/%s/tables/%s/indexes", ksName, tableName);
   }
 
   protected String endpointPathForAllRows(String ksName, String tableName) {
@@ -365,6 +372,42 @@ public class RestApiV2QIntegrationTestBase {
 
   /*
   /////////////////////////////////////////////////////////////////////////
+  // Helper methods for Index creation
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  protected void createTestIndex(
+      String keyspaceName,
+      String tableName,
+      String columnName,
+      String indexName,
+      boolean ifNotExists,
+      CollectionIndexingType kind) {
+    Sgv2IndexAddRequest indexAdd = new Sgv2IndexAddRequest(columnName, indexName);
+    indexAdd.setIfNotExists(ifNotExists);
+    indexAdd.setKind(kind);
+
+    String response =
+        given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .contentType(ContentType.JSON)
+            .body(asJsonString(indexAdd))
+            .when()
+            .post(endpointPathForIndexAdd(keyspaceName, tableName))
+            .then()
+            .statusCode(HttpStatus.SC_CREATED)
+            .extract()
+            .asString();
+    IndexResponse successResponse = readJsonAs(response, IndexResponse.class);
+    assertThat(successResponse.success).isTrue();
+  }
+
+  protected static class IndexResponse {
+    public Boolean success;
+  }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
   // Helper methods for Rows CRUD
   /////////////////////////////////////////////////////////////////////////
    */
@@ -384,6 +427,16 @@ public class RestApiV2QIntegrationTestBase {
       insertedRows.add(rowMap);
     }
 
+    return insertedRows;
+  }
+
+  protected List<Map<String, Object>> insertTypedRows(
+      String keyspaceName, String tableName, List<Map<String, Object>> rows) {
+    final List<Map<String, Object>> insertedRows = new ArrayList<>();
+    for (Map<String, Object> row : rows) {
+      insertRow(keyspaceName, tableName, row);
+      insertedRows.add(row);
+    }
     return insertedRows;
   }
 
@@ -451,6 +504,22 @@ public class RestApiV2QIntegrationTestBase {
             .extract()
             .asString();
     return readJsonAs(response, ArrayNode.class);
+  }
+
+  protected ArrayNode findRowsWithWhereAsJsonNode(
+      String keyspaceName, String tableName, String whereClause) {
+    String response =
+        given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .queryParam("raw", true)
+            .queryParam("where", whereClause)
+            .when()
+            .get(endpointPathForRowGetWith(testKeyspaceName(), tableName))
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    return (ArrayNode) readJsonAsTree(response);
   }
 
   /*

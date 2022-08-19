@@ -4,9 +4,12 @@ import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.stargate.bridge.grpc.CqlDuration;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
+import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import java.util.ArrayList;
@@ -414,16 +417,133 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
   }
 
   @Test
-  public void getRowsWithContainsEntryQuery() {}
+  public void getRowsWithContainsEntryQuery() {
+    final String tableName = testTableName();
+    createTestTable(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList("id text", "attributes map<text,text>", "firstName text"),
+        Arrays.asList("id"),
+        Arrays.asList("firstName"));
+    // Cannot query against non-key columns, unless there's an index, so:
+    createTestIndex(
+        testKeyspaceName(),
+        tableName,
+        "attributes",
+        "attributes_map_index",
+        false,
+        CollectionIndexingType.ENTRIES);
+
+    insertTypedRows(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList(
+            map("id", 1, "firstName", "Bob", "attributes", map("a", 1)),
+            map("id", 1, "firstName", "Dave", "attributes", map("b", 2)),
+            map("id", 1, "firstName", "Fred", "attributes", map("c", 3))));
+
+    // First, no match
+    String noMatchesClause =
+        "{\"id\":{\"$eq\":\"1\"},\"attributes\":{\"$containsEntry\":{\"key\":\"b\",\"value\":\"1\"}}}";
+    ArrayNode rows = findRowsWithWhereAsJsonNode(testKeyspaceName(), tableName, noMatchesClause);
+    assertThat(rows).hasSize(0);
+
+    // and then a single match
+    String matchingClause =
+        "{\"id\":{\"$eq\":\"1\"},\"attributes\":{\"$containsEntry\":{\"key\":\"c\",\"value\":\"3\"}}}";
+    rows = findRowsWithWhereAsJsonNode(testKeyspaceName(), tableName, matchingClause);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.at("/0/firstName").asText()).isEqualTo("Fred");
+  }
 
   @Test
-  public void getRowsWithContainsKeyQuery() {}
+  public void getRowsWithContainsKeyQuery() {
+    final String tableName = testTableName();
+    createTestTable(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList("id text", "attributes map<text,text>", "firstName text"),
+        Arrays.asList("id"),
+        Arrays.asList("firstName"));
+    // Cannot query against non-key columns, unless there's an index, so:
+    createTestIndex(
+        testKeyspaceName(),
+        tableName,
+        "attributes",
+        "attributes_map_index",
+        false,
+        CollectionIndexingType.KEYS);
+    insertTypedRows(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList(
+            map("id", 1, "firstName", "Bob", "attributes", map("a", 1)),
+            map("id", 1, "firstName", "Dave", "attributes", map("b", 2)),
+            map("id", 1, "firstName", "Fred", "attributes", map("c", 3))));
+    // First, no match
+    String noMatchesClause = "{\"id\":{\"$eq\":\"1\"},\"attributes\":{\"$containsKey\":\"d\"}}";
+    ArrayNode rows = findRowsWithWhereAsJsonNode(testKeyspaceName(), tableName, noMatchesClause);
+    assertThat(rows).hasSize(0);
+
+    // and then a single match
+    String matchingClause = "{\"id\":{\"$eq\":\"1\"},\"attributes\":{\"$containsKey\":\"b\"}}";
+    rows = findRowsWithWhereAsJsonNode(testKeyspaceName(), tableName, matchingClause);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.at("/0/firstName").asText()).isEqualTo("Dave");
+  }
 
   @Test
-  public void getRowsWithDurationValue() {}
+  public void getRowsWithDurationValue() {
+    final String tableName = testTableName();
+    createTestTable(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList("id text", "firstName text", "time duration"),
+        Arrays.asList("id"),
+        Arrays.asList("firstName"));
 
+    final CqlDuration expDuration = CqlDuration.from("2w");
+    insertTypedRows(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList(
+            map("id", 1, "firstName", "John", "time", "2d"),
+            // NOTE! Since test mapper might not have serializer for duration, pre-serialize as
+            // String
+            map("id", 2, "firstName", "Sarah", "time", expDuration.toString()),
+            map("id", 3, "firstName", "Jane", "time", "30h20m")));
+    ArrayNode rows = findRowsAsJsonNode(testKeyspaceName(), tableName, 2);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.at("/0/firstName").asText()).isEqualTo("Sarah");
+    // NOTE: "2 weeks" may become "14 days" (or vice versa); so let's compare CqlDuration equality
+    assertThat(CqlDuration.from(rows.at("/0/time").asText())).isEqualTo(expDuration);
+  }
+
+  // 04-Jan-2022, tatu: Verifies existing behavior of Stargate REST 1.0,
+  //   which seems to differ from Documents API. Whether right or wrong,
+  //   this behavior is what exists.
   @Test
-  public void getRowsWithExistsQuery() {}
+  public void getRowsWithExistsQuery() {
+    final String tableName = testTableName();
+    createTestTable(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList("id text", "firstName text", "enabled boolean"),
+        Arrays.asList("id"),
+        Arrays.asList("enabled"));
+    insertTypedRows(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList(
+            map("id", 1, "firstName", "Bob", "enabled", false),
+            map("id", 1, "firstName", "Dave", "enabled", true),
+            map("id", 2, "firstName", "Frank", "enabled", true),
+            map("id", 1, "firstName", "Pete", "enabled", false)));
+    String whereClause = "{\"id\":{\"$eq\":\"1\"},\"enabled\":{\"$exists\":true}}";
+    ArrayNode rows = findRowsWithWhereAsJsonNode(testKeyspaceName(), tableName, whereClause);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.at("/0/firstName").asText()).isEqualTo("Dave");
+  }
 
   @Test
   public void getRowsWithInQuery() {}
