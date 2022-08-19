@@ -20,6 +20,7 @@ package io.stargate.sgv2.docsapi.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.opentelemetry.extension.annotations.WithSpan;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
@@ -27,8 +28,12 @@ import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
@@ -56,7 +61,7 @@ public class JsonDocumentShredder {
   public List<JsonShreddedRow> shred(String payload, List<String> subDocumentPath) {
     try {
       JsonNode node = objectMapper.readTree(payload);
-      return shred(node, subDocumentPath, false);
+      return shred(node, subDocumentPath);
     } catch (JsonProcessingException e) {
       throw new ErrorCodeRuntimeException(
           ErrorCode.DOCS_API_INVALID_JSON_VALUE,
@@ -74,13 +79,8 @@ public class JsonDocumentShredder {
    *     are given, without any modifications.
    * @return List of shredded rows
    */
-  public List<JsonShreddedRow> shred(JsonNode node, List<String> subDocumentPath) {
-    return shred(node, subDocumentPath, false);
-  }
-
   @WithSpan
-  public List<JsonShreddedRow> shred(
-      JsonNode node, List<String> subDocumentPath, boolean allowDottedFields) {
+  public List<JsonShreddedRow> shred(JsonNode node, List<String> subDocumentPath) {
     // check if this is a valid root node
     if (subDocumentPath.isEmpty()) {
       checkRoot(node);
@@ -93,7 +93,52 @@ public class JsonDocumentShredder {
                 .addAllPath(subDocumentPath);
 
     List<JsonShreddedRow> result = new ArrayList<>();
-    processNode(node, rowBuilder, result, allowDottedFields);
+    processNode(node, rowBuilder, result);
+    return result;
+  }
+
+  /**
+   * Shreds the {@link JsonNode} and returns the list of {@link JsonShreddedRow} for each value that
+   * should be stored in the data store. This method assumes that each field in the JsonNode has a
+   * dotted-path syntax representing a location in the document, and that the root node is a JSON
+   * Object.
+   *
+   * @param node {@link JsonNode}
+   * @return List of shredded rows
+   */
+  public List<JsonShreddedRow> shredFromDottedPaths(JsonNode node, List<String> subDocumentPath) {
+    if (!node.isObject()) {
+      throw new ErrorCodeRuntimeException(
+          ErrorCode.DOCS_API_PUT_PAYLOAD_INVALID,
+          "Using dotted-path JSON processing requires a JSON object at root");
+    }
+    ObjectNode objectNode = (ObjectNode) node;
+    List<JsonShreddedRow> result = new ArrayList<>();
+
+    for (Iterator<Map.Entry<String, JsonNode>> it = objectNode.fields(); it.hasNext(); ) {
+      Map.Entry<String, JsonNode> entry = it.next();
+      String path = entry.getKey();
+      Supplier<ImmutableJsonShreddedRow.Builder> rowBuilder =
+          () -> ImmutableJsonShreddedRow.builder().maxDepth(properties.maxDepth());
+      List<String> separatedPath =
+          Arrays.asList(path.split("\\.")).stream()
+              .map(
+                  pathSeg -> {
+                    if (pathSeg.startsWith("[")) {
+                      return "["
+                          + DocsApiUtils.leftPadTo6(pathSeg.substring(1, pathSeg.length() - 1))
+                          + "]";
+                    }
+                    return pathSeg;
+                  })
+              .collect(Collectors.toList());
+      processNode(
+          entry.getValue(),
+          () -> rowBuilder.get().addAllPath(subDocumentPath).addAllPath(separatedPath),
+          result);
+    }
+
+    System.out.println("RESULT: " + result);
     return result;
   }
 
@@ -116,22 +161,20 @@ public class JsonDocumentShredder {
   private void processNode(
       JsonNode node,
       Supplier<ImmutableJsonShreddedRow.Builder> rowBuilder,
-      List<JsonShreddedRow> result,
-      boolean allowDottedFields) {
+      List<JsonShreddedRow> result) {
     if (node.isArray()) {
-      processArrayNode(node, rowBuilder, result, allowDottedFields);
+      processArrayNode(node, rowBuilder, result);
     } else if (node.isObject()) {
-      processObjectNode(node, rowBuilder, result, allowDottedFields);
+      processObjectNode(node, rowBuilder, result);
     } else {
-      processValueNode(node, rowBuilder, result, allowDottedFields);
+      processValueNode(node, rowBuilder, result);
     }
   }
 
   private void processArrayNode(
       JsonNode node,
       Supplier<ImmutableJsonShreddedRow.Builder> rowBuilder,
-      List<JsonShreddedRow> result,
-      boolean allowDottedFields) {
+      List<JsonShreddedRow> result) {
     // empty array, simply create a reference to empty node and return
     if (node.isEmpty()) {
       ImmutableJsonShreddedRow row =
@@ -155,7 +198,7 @@ public class JsonDocumentShredder {
           () -> rowBuilder.get().addPath(arrayPath);
 
       // process inner node and increase the index
-      processNode(inner, nextRowBuilder, result, allowDottedFields);
+      processNode(inner, nextRowBuilder, result);
       idx++;
     }
   }
@@ -163,8 +206,7 @@ public class JsonDocumentShredder {
   private void processObjectNode(
       JsonNode node,
       Supplier<ImmutableJsonShreddedRow.Builder> rowBuilder,
-      List<JsonShreddedRow> result,
-      boolean allowDottedFields) {
+      List<JsonShreddedRow> result) {
     // empty object, simply create a reference to empty node and return
     if (node.isEmpty()) {
       ImmutableJsonShreddedRow row =
@@ -186,44 +228,30 @@ public class JsonDocumentShredder {
               }
 
               // check for valid field name
-              if (DocsApiUtils.containsIllegalSequences(fieldName, allowDottedFields)) {
+              if (DocsApiUtils.containsIllegalSequences(fieldName)) {
                 String msg =
                     String.format(
-                        "Array paths contained in%s single quotes, and backslash are not allowed in field names, invalid field %s",
-                        allowDottedFields ? "" : " square brackets, periods,", fieldName);
+                        "Array paths contained in square brackets, periods, single quotes, and backslash are not allowed in field names, invalid field %s",
+                        fieldName);
                 throw new ErrorCodeRuntimeException(
                     ErrorCode.DOCS_API_GENERAL_INVALID_FIELD_NAME, msg);
               }
 
               // escape the field path
               // then create new next row builder
-              // if there is a dotted path in the field name, then add multiple row paths at once
-              Supplier<ImmutableJsonShreddedRow.Builder> nextRowBuilder;
-              if (allowDottedFields) {
-                String[] fieldPaths = fieldName.split("\\.");
-                nextRowBuilder =
-                    () -> {
-                      for (String p : fieldPaths) {
-                        String fieldPath = DocsApiUtils.convertEscapedCharacters(fieldName);
-                        rowBuilder.get().addPath(fieldPath);
-                      }
-                      return rowBuilder.get();
-                    };
-              } else {
-                String fieldPath = DocsApiUtils.convertEscapedCharacters(fieldName);
-                nextRowBuilder = () -> rowBuilder.get().addPath(fieldPath);
-              }
+              String fieldPath = DocsApiUtils.convertEscapedCharacters(fieldName);
+              Supplier<ImmutableJsonShreddedRow.Builder> nextRowBuilder =
+                  () -> rowBuilder.get().addPath(fieldPath);
 
               // process inner node and increase the index
-              processNode(field.getValue(), nextRowBuilder, result, allowDottedFields);
+              processNode(field.getValue(), nextRowBuilder, result);
             });
   }
 
   private void processValueNode(
       JsonNode node,
       Supplier<ImmutableJsonShreddedRow.Builder> rowBuilder,
-      List<JsonShreddedRow> result,
-      boolean allowDottedFields) {
+      List<JsonShreddedRow> result) {
     ImmutableJsonShreddedRow.Builder builder = rowBuilder.get();
 
     // depending on the value type set values

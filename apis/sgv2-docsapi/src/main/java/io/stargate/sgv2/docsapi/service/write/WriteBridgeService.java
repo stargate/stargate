@@ -43,7 +43,6 @@ import io.stargate.sgv2.docsapi.service.write.db.DeleteSubDocumentPathQueryBuild
 import io.stargate.sgv2.docsapi.service.write.db.InsertQueryBuilder;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -363,6 +362,7 @@ public class WriteBridgeService {
    * @param keyspace Keyspace to store document in.
    * @param collection Collection the document belongs to.
    * @param documentId Document ID.
+   * @param setPaths the paths that are being set by the JSON fields.
    * @param rows Rows of the patch.
    * @param ttl the time-to-live of the rows (seconds)
    * @param context Execution content for profiling.
@@ -373,6 +373,7 @@ public class WriteBridgeService {
       String keyspace,
       String collection,
       String documentId,
+      Set<List<String>> setPaths,
       List<JsonShreddedRow> rows,
       Integer ttl,
       ExecutionContext context) {
@@ -380,16 +381,15 @@ public class WriteBridgeService {
         .item(
             () -> {
               long timestamp = timeSource.currentTimeMicros();
-              Set<List<String>> distinctDocumentPaths = new HashSet<>();
-              rows.forEach(row -> distinctDocumentPaths.add(row.getPath()));
               List<QueryOuterClass.BatchQuery> queries = new ArrayList<>(rows.size() + 3);
 
               // For each distinct path that is going to be set, delete the exact path first.
-              distinctDocumentPaths.forEach(
+              setPaths.forEach(
                   path ->
                       queries.add(
-                          new DeleteSubDocumentPathQueryBuilder(path, true, documentProperties)
+                          new DeleteSubDocumentPathQueryBuilder(path, false, documentProperties)
                               .buildAndBind(keyspace, collection, documentId, timestamp - 1)));
+              System.out.println("PATHS TO BE SET: " + setPaths);
 
               // Finally, insert the new data.
               rows.forEach(

@@ -33,8 +33,11 @@ import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.ReadBridgeService;
 import io.stargate.sgv2.docsapi.service.schema.JsonSchemaManager;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -350,6 +353,7 @@ public class WriteDocumentsService {
       String namespace,
       String collection,
       String documentId,
+      List<String> subPath,
       JsonNode payload,
       boolean ttlAuto,
       ExecutionContext context) {
@@ -362,7 +366,21 @@ public class WriteDocumentsService {
         .transformToUni(
             ttl ->
                 setPathsOnDocumentInternal(
-                    table, namespace, collection, documentId, payload, ttl, context));
+                    table, namespace, collection, documentId, subPath, payload, ttl, context));
+  }
+
+  private Set<List<String>> gatherAllPaths(
+      Iterator<String> fieldsIterator, List<String> subPathProcessed) {
+    Set<List<String>> allPaths = new HashSet<>();
+    while (fieldsIterator.hasNext()) {
+      String dottedField = fieldsIterator.next();
+      List<String> fieldPaths = processSubDocumentPath(Arrays.asList(dottedField.split("\\.")));
+      List<String> fullPath = new ArrayList<>();
+      fullPath.addAll(subPathProcessed);
+      fullPath.addAll(fieldPaths);
+      allPaths.add(fullPath);
+    }
+    return allPaths;
   }
 
   private Uni<DocumentResponseWrapper<Void>> setPathsOnDocumentInternal(
@@ -370,6 +388,7 @@ public class WriteDocumentsService {
       String namespace,
       String collection,
       String documentId,
+      List<String> subPath,
       JsonNode payload,
       Integer ttl,
       ExecutionContext context) {
@@ -379,13 +398,17 @@ public class WriteDocumentsService {
         .onItem()
         .transformToUni(
             __ -> {
+              final List<String> subPathProcessed = processSubDocumentPath(subPath);
+              Iterator<String> pathsIterator = payload.fieldNames();
+              Set<List<String>> setPaths = gatherAllPaths(pathsIterator, subPathProcessed);
               // shred rows
               List<JsonShreddedRow> rows =
-                  documentShredder.shred(payload, Collections.emptyList(), true);
+                  documentShredder.shredFromDottedPaths(payload, subPathProcessed);
 
               // call patch document
               return writeBridgeService
-                  .setPathsOnDocument(namespace, collection, documentId, rows, ttl, context)
+                  .setPathsOnDocument(
+                      namespace, collection, documentId, setPaths, rows, ttl, context)
                   .map(
                       result ->
                           new DocumentResponseWrapper<>(

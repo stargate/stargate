@@ -40,6 +40,7 @@ public class SetFunction implements BuiltInFunction {
             data.namespace(),
             data.collection(),
             data.documentId(),
+            data.documentPath(),
             data.input(),
             true,
             data.executionContext())
