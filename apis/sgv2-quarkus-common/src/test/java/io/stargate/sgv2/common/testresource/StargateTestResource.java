@@ -142,6 +142,11 @@ public class StargateTestResource
     // add auth token via prop
     propsBuilder.put(IntegrationTestUtils.AUTH_TOKEN_PROP, token);
 
+    propsBuilder.put(IntegrationTestUtils.CASSANDRA_HOST_PROP, cassandraContainer.getHost());
+    propsBuilder.put(
+        IntegrationTestUtils.CASSANDRA_CQL_PORT_PROP,
+        cassandraContainer.getMappedPort(9042).toString());
+
     // TODO if no end-to-end tests, inject the token instead of fixing it
     //  keep fixed token until restapi and gqlapi are not updated
     // enable fixed token
@@ -225,7 +230,7 @@ public class StargateTestResource
                 "JVM_EXTRA_OPTS",
                 "-Dcassandra.skip_wait_for_gossip_to_settle=0 -Dcassandra.load_ring_state=false -Dcassandra.initial_token=1")
             .withNetworkAliases("cassandra")
-            .withExposedPorts(7000)
+            .withExposedPorts(7000, 9042)
             .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("cassandra-docker")))
             .waitingFor(Wait.forLogMessage(".*Created default superuser role.*\\n", 1))
             .withStartupTimeout(Duration.ofMinutes(2))
