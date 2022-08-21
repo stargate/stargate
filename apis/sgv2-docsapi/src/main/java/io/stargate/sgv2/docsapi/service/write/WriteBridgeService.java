@@ -402,7 +402,6 @@ public class WriteBridgeService {
                               row,
                               timestamp,
                               treatBooleansAsNumeric)));
-
               return queries;
             })
         .flatMap(

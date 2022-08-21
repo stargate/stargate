@@ -1266,9 +1266,8 @@ class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
       String insertCql =
           String.format(
               "INSERT INTO %s.%s (key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value) "
-                  + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) USING TTL = ? AND TIMESTAMP ?",
+                  + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) USING TTL ? AND TIMESTAMP ?",
               keyspaceName, tableName);
-      System.out.println("WHAT: " + keyspaceName + tableName + documentId);
       ValidatingStargateBridge.QueryAssert row1QueryAssert =
           withQuery(
                   insertCql,
