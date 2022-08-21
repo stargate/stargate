@@ -138,7 +138,6 @@ public class JsonDocumentShredder {
           result);
     }
 
-    System.out.println("RESULT: " + result);
     return result;
   }
 

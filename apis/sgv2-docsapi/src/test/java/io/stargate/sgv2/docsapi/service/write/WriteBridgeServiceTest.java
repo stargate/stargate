@@ -19,6 +19,7 @@ package io.stargate.sgv2.docsapi.service.write;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
@@ -43,6 +44,7 @@ import io.stargate.sgv2.docsapi.service.util.TimeSource;
 import io.stargate.sgv2.docsapi.testprofiles.MaxDepth4TestProfile;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -1120,6 +1122,216 @@ class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
                       .isInstanceOf(ErrorCodeRuntimeException.class)
                       .hasFieldOrPropertyWithValue(
                           "errorCode", ErrorCode.DOCS_API_PATCH_EMPTY_NOT_ACCEPTED));
+    }
+  }
+
+  @Nested
+  class SetPathsOnDocument {
+
+    @Test
+    public void happyPath() {
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addPath("key1")
+              .stringValue("value1")
+              .build();
+      JsonShreddedRow row2 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addPath("key2")
+              .addPath("nested")
+              .doubleValue(2.2d)
+              .build();
+
+      Set<List<String>> setPaths = new HashSet<>();
+      setPaths.add(ImmutableList.of("key1"));
+      setPaths.add(ImmutableList.of("key2", "nested"));
+      List<JsonShreddedRow> rows = Arrays.asList(row1, row2);
+
+      String insertCql =
+          String.format(
+              "INSERT INTO %s.%s (key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value) "
+                  + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) USING TIMESTAMP ?",
+              keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert row1QueryAssert =
+          withQuery(
+                  insertCql,
+                  Values.of(documentId),
+                  Values.of("key1"),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of("key1"),
+                  Values.of("value1"),
+                  Values.NULL,
+                  Values.NULL,
+                  Values.of(timestamp))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+      ValidatingStargateBridge.QueryAssert row2QueryAssert =
+          withQuery(
+                  insertCql,
+                  Values.of(documentId),
+                  Values.of("key2"),
+                  Values.of("nested"),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of("nested"),
+                  Values.NULL,
+                  Values.of(2.2d),
+                  Values.NULL,
+                  Values.of(timestamp))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      String deleteCql =
+          String.format(
+              "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ? AND p0 = ?",
+              keyspaceName, tableName);
+      String deleteCql2 =
+          String.format(
+              "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ?",
+              keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert deleteQueryAssert =
+          withQuery(deleteCql, Values.of(timestamp - 1), Values.of(documentId), Values.of("key1"))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+      ValidatingStargateBridge.QueryAssert deleteQueryAssert2 =
+          withQuery(
+                  deleteCql2,
+                  Values.of(timestamp - 1),
+                  Values.of(documentId),
+                  Values.of("key2"),
+                  Values.of("nested"))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      service
+          .setPathsOnDocument(keyspaceName, tableName, documentId, setPaths, rows, null, context)
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitItem()
+          .assertCompleted();
+
+      row1QueryAssert.assertExecuteCount().isEqualTo(1);
+      row2QueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteQueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteQueryAssert2.assertExecuteCount().isEqualTo(1);
+
+      // execution context
+      assertThat(context.toProfile().nested())
+          .singleElement()
+          .satisfies(
+              nested -> {
+                assertThat(nested.description()).isEqualTo("ASYNC SET");
+                assertThat(nested.queries())
+                    .hasSize(3)
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.cql()).isEqualTo(deleteCql);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.cql()).isEqualTo(deleteCql2);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.cql())
+                              .isEqualTo(String.format(insertCql, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.executionCount()).isEqualTo(2);
+                          assertThat(queryInfo.rowCount()).isEqualTo(2);
+                        });
+              });
+    }
+
+    @Test
+    public void happyPathWithTtl() {
+      JsonShreddedRow row1 =
+          ImmutableJsonShreddedRow.builder()
+              .maxDepth(documentProperties.maxDepth())
+              .addPath("key2")
+              .addPath("nested")
+              .doubleValue(2.2d)
+              .build();
+
+      Set<List<String>> setPaths = new HashSet<>();
+      setPaths.add(ImmutableList.of("key2", "nested"));
+      List<JsonShreddedRow> rows = Arrays.asList(row1);
+
+      String insertCql =
+          String.format(
+              "INSERT INTO %s.%s (key, p0, p1, p2, p3, leaf, text_value, dbl_value, bool_value) "
+                  + "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?) USING TTL = ? AND TIMESTAMP ?",
+              keyspaceName, tableName);
+      System.out.println("WHAT: " + keyspaceName + tableName + documentId);
+      ValidatingStargateBridge.QueryAssert row1QueryAssert =
+          withQuery(
+                  insertCql,
+                  Values.of(documentId),
+                  Values.of("key2"),
+                  Values.of("nested"),
+                  Values.of(""),
+                  Values.of(""),
+                  Values.of("nested"),
+                  Values.NULL,
+                  Values.of(2.2d),
+                  Values.NULL,
+                  Values.of(100L),
+                  Values.of(timestamp))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      String deleteCql =
+          String.format(
+              "DELETE FROM %s.%s USING TIMESTAMP ? WHERE key = ? AND p0 = ? AND p1 = ?",
+              keyspaceName, tableName);
+      ValidatingStargateBridge.QueryAssert deleteQueryAssert =
+          withQuery(
+                  deleteCql,
+                  Values.of(timestamp - 1),
+                  Values.of(documentId),
+                  Values.of("key2"),
+                  Values.of("nested"))
+              .inBatch(expectedBatchType)
+              .returningNothing();
+
+      service
+          .setPathsOnDocument(keyspaceName, tableName, documentId, setPaths, rows, 100, context)
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitItem()
+          .assertCompleted();
+
+      row1QueryAssert.assertExecuteCount().isEqualTo(1);
+      deleteQueryAssert.assertExecuteCount().isEqualTo(1);
+
+      // execution context
+      assertThat(context.toProfile().nested())
+          .singleElement()
+          .satisfies(
+              nested -> {
+                assertThat(nested.description()).isEqualTo("ASYNC SET");
+                assertThat(nested.queries())
+                    .hasSize(2)
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.cql()).isEqualTo(deleteCql);
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(1);
+                        })
+                    .anySatisfy(
+                        queryInfo -> {
+                          assertThat(queryInfo.cql())
+                              .isEqualTo(String.format(insertCql, keyspaceName + "." + tableName));
+                          assertThat(queryInfo.executionCount()).isEqualTo(1);
+                          assertThat(queryInfo.rowCount()).isEqualTo(1);
+                        });
+              });
     }
   }
 

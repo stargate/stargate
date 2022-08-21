@@ -389,7 +389,6 @@ public class WriteBridgeService {
                       queries.add(
                           new DeleteSubDocumentPathQueryBuilder(path, false, documentProperties)
                               .buildAndBind(keyspace, collection, documentId, timestamp - 1)));
-              System.out.println("PATHS TO BE SET: " + setPaths);
 
               // Finally, insert the new data.
               rows.forEach(

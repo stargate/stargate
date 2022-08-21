@@ -405,7 +405,7 @@ public class WriteDocumentsService {
               List<JsonShreddedRow> rows =
                   documentShredder.shredFromDottedPaths(payload, subPathProcessed);
 
-              // call patch document
+              // call set paths on document
               return writeBridgeService
                   .setPathsOnDocument(
                       namespace, collection, documentId, setPaths, rows, ttl, context)
