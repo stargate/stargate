@@ -2,6 +2,7 @@ package io.stargate.sgv2.it;
 
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -774,26 +775,156 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
   public void getRowsWithQueryRawAndSort() {
     final String tableName = testTableName();
     final Object rowIdentifier = setupClusteringTestCase(testKeyspaceName(), tableName);
+
+    String sortClause = "{\"expense_id\":\"desc\"}";
+    String whereClause = String.format("{\"id\":{\"$eq\":\"%s\"}}", rowIdentifier);
+    String response =
+        given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .queryParam("sort", sortClause)
+            .queryParam("where", whereClause)
+            .queryParam("raw", "true")
+            .when()
+            .get(endpointPathForRowGetWith(testKeyspaceName(), tableName))
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    JsonNode rows = readJsonAsTree(response);
+    assertThat(rows).hasSize(2);
+
+    assertThat(rows.at("/0/id").intValue()).isEqualTo(1);
+    assertThat(rows.at("/0/firstName").textValue()).isEqualTo("John");
+    assertThat(rows.at("/0/expense_id").intValue()).isEqualTo(2);
+    assertThat(rows.at("/1/id").intValue()).isEqualTo(1);
+    assertThat(rows.at("/1/firstName").textValue()).isEqualTo("John");
+    assertThat(rows.at("/1/expense_id").intValue()).isEqualTo(1);
   }
 
   @Test
   public void getRowsWithSetContainsQuery() {
     final String tableName = testTableName();
+    createTestTable(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList("id text", "tags set<text>", "firstName text"),
+        Arrays.asList("id"),
+        Arrays.asList("firstName"));
+    // Cannot query against non-key columns, unless there's an index, so:
+    createTestIndex(
+        testKeyspaceName(), tableName, "tags", "tags_index", false, CollectionIndexingType.VALUES);
+
+    insertTypedRows(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList(
+            map("id", 1, "firstName", "Bob", "tags", Arrays.asList("a", "b")),
+            map("id", 1, "firstName", "Dave", "tags", Arrays.asList("b", "c")),
+            map("id", 1, "firstName", "Fred", "tags", Arrays.asList("x"))));
+
+    // First, no match
+    String noMatchesClause = "{\"id\":{\"$eq\":\"1\"},\"tags\":{\"$contains\":\"z\"}}";
+    ArrayNode rows = findRowsWithWhereAsJsonNode(testKeyspaceName(), tableName, noMatchesClause);
+    assertThat(rows).hasSize(0);
+
+    // and then 2 matches
+    String matchingClause = "{\"id\":{\"$eq\":\"1\"},\"tags\": {\"$contains\": \"b\"}}";
+    rows = findRowsWithWhereAsJsonNode(testKeyspaceName(), tableName, matchingClause);
+    assertThat(rows).hasSize(2);
+    assertThat(rows.at("/0/firstName").asText()).isEqualTo("Bob");
+    assertThat(rows.at("/1/firstName").asText()).isEqualTo("Dave");
+
+    // 05-Jan-2022, tatu: API does allow specifying an ARRAY of things to contain, but,
+    //    alas, resulting query will not work ("need to ALLOW FILTERING").
+    //    So not testing that case.
   }
 
   @Test
   public void getRowsWithTimestampQuery() {
     final String tableName = testTableName();
+    createTestTable(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList("id int", "firstName text", "created timestamp"),
+        Arrays.asList("id"),
+        Arrays.asList("created"));
+    final String timestamp = "2021-04-23T18:42:22.139Z";
+    insertTypedRows(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList(
+            map("id", 1, "firstName", "John", "created", timestamp),
+            map("id", 1, "firstName", "Sarah", "created", "2021-04-20T18:42:22.139Z"),
+            map("id", 2, "firstName", "Jane", "created", "2021-04-22T18:42:22.139Z")));
+
+    String whereClause =
+        String.format("{\"id\":{\"$eq\":\"1\"},\"created\":{\"$in\":[\"%s\"]}}", timestamp);
+    ArrayNode rows = findRowsWithWhereAsJsonNode(testKeyspaceName(), tableName, whereClause);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.at("/0/id").intValue()).isEqualTo(1);
+    assertThat(rows.at("/0/firstName").textValue()).isEqualTo("John");
+    assertThat(rows.at("/0/created").textValue()).isEqualTo(timestamp);
   }
 
+  // Test for inserting and fetching row(s) with Tuple values: inserts using
+  // "Stringified" (non-JSON, CQL literal) notation.
   @Test
   public void getRowsWithTupleStringified() {
     final String tableName = testTableName();
+    createTestTable(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList("id text", "data tuple<int,boolean,text>", "alt_id uuid"),
+        Arrays.asList("id"),
+        Arrays.asList());
+    String altUid1 = UUID.randomUUID().toString();
+    insertRows(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList(
+            // Put UUID for the first row; leave second one empty/missing
+            Arrays.asList("id 1", "data (28,false,'foobar')", "alt_id " + altUid1),
+            Arrays.asList("id 2", "data (39,true,'bingo')")));
+    ArrayNode rows = findRowsAsJsonNode(testKeyspaceName(), tableName, "2");
+    assertThat(rows).hasSize(1);
+    assertThat(rows.at("/0/id").asText()).isEqualTo("2");
+    assertThat(rows.at("/0/data/0").intValue()).isEqualTo(39);
+    assertThat(rows.at("/0/data/1").booleanValue()).isTrue();
+    assertThat(rows.at("/0/data").size()).isEqualTo(3);
+    assertTrue(rows.at("/0/alt_id").isNull());
   }
 
+  // Test for inserting and fetching row(s) with Tuple values: inserts using
+  // standard JSON payload
   @Test
   public void getRowsWithTupleTyped() {
     final String tableName = testTableName();
+    createTestTable(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList("id text", "data tuple<int,boolean,text>", "alt_id uuid"),
+        Arrays.asList("id"),
+        Arrays.asList());
+    String altUid1 = UUID.randomUUID().toString();
+    insertTypedRows(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList(
+            map("id", "1", "data", Arrays.asList(28, false, "foobar"), "alt_id", altUid1),
+            map(
+                "id",
+                "2",
+                "data",
+                Arrays.asList(39, true, "bingo"),
+                "alt_id",
+                objectMapper.nullNode())));
+    ArrayNode rows = findRowsAsJsonNode(testKeyspaceName(), tableName, "2");
+    assertThat(rows).hasSize(1);
+    assertThat(rows.at("/0/id").asText()).isEqualTo("2");
+    assertThat(rows.at("/0/data/0").intValue()).isEqualTo(39);
+    assertThat(rows.at("/0/data/1").booleanValue()).isTrue();
+    assertThat(rows.at("/0/data").size()).isEqualTo(3);
+    assertTrue(rows.at("/0/alt_id").isNull());
   }
 
   @Test
