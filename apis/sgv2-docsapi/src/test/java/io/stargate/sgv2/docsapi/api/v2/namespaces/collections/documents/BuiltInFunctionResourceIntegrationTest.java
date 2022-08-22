@@ -74,7 +74,8 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
       given()
           .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
-          .body("{\"array\": [1, 2, 3], \"object\": {\"a\": 3, \"b\": [{}, {\"nested\": \"value\"}, []]}}")
+          .body(
+              "{\"array\": [1, 2, 3], \"object\": {\"a\": 3, \"b\": [{}, {\"nested\": \"value\"}, []]}}")
           .when()
           .put(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -316,7 +317,7 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
     public void setUpdateOneValue() {
       String setOperation = "{ \"b.[1].nested\": \"newvalue\" }";
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(String.format(SET_PAYLOAD, setOperation))
           .when()
@@ -327,7 +328,7 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // get whole document and check the value
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -340,7 +341,7 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
     public void setUpdateOneValueCreate() {
       String setOperation = "{ \"c.nested\": \"newvalue\" }";
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(String.format(SET_PAYLOAD, setOperation))
           .when()
@@ -351,7 +352,7 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // get whole document and check the value
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -365,7 +366,7 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
       String setOperation =
           "{ \"b.[1].different\": \"newvalue\", \"b.[1].other\": \"awesome\", \"b.[0].new\": true, \"a\": 9000 }";
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(String.format(SET_PAYLOAD, setOperation))
           .when()
@@ -376,7 +377,7 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // get whole document and check the value
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -394,7 +395,7 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
       // This should blow away the `nested` field
       String setOperation = "{ \"b.[1]\": { \"newdata\": true } }";
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(String.format(SET_PAYLOAD, setOperation))
           .when()
@@ -405,7 +406,7 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // get whole document and check the value
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -419,7 +420,7 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
     public void setWithNestedArray() {
       String setOperation = "{ \"b.[1].nested.[2].d\": \"hello\" }";
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(String.format(SET_PAYLOAD, setOperation))
           .when()
@@ -430,7 +431,7 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
 
       // get whole document and check the value
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
