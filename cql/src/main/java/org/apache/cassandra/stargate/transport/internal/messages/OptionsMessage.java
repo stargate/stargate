@@ -23,10 +23,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
+import org.apache.cassandra.stargate.transport.internal.Compressor;
 import org.apache.cassandra.stargate.transport.internal.Message;
-import org.apache.cassandra.stargate.transport.internal.frame.compress.SnappyCompressor;
-import org.apache.cassandra.utils.ChecksumType;
 
 /** Message to indicate that the server is ready to receive requests. */
 public class OptionsMessage extends Message.Request {
@@ -52,9 +52,11 @@ public class OptionsMessage extends Message.Request {
 
   @Override
   protected CompletableFuture<? extends Response> execute(long queryStartNanoTime) {
+    List<String> cqlVersions = new ArrayList<String>();
+    cqlVersions.add(QueryProcessor.CQL_VERSION.toString());
 
     List<String> compressions = new ArrayList<>();
-    if (SnappyCompressor.INSTANCE != null) compressions.add("snappy");
+    if (Compressor.SnappyCompressor.instance != null) compressions.add("snappy");
     // LZ4 is always available since worst case scenario it default to a pure JAVA implem.
     compressions.add("lz4");
 
@@ -63,13 +65,6 @@ public class OptionsMessage extends Message.Request {
 
     supported.put(StartupMessage.COMPRESSION, compressions);
     supported.put(StartupMessage.PROTOCOL_VERSIONS, ProtocolVersion.supportedVersions());
-
-    if (connection.getVersion().supportsChecksums()) {
-      ChecksumType[] types = ChecksumType.values();
-      List<String> checksumImpls = new ArrayList<>(types.length);
-      for (ChecksumType type : types) checksumImpls.add(type.toString());
-      supported.put(StartupMessage.CHECKSUM, checksumImpls);
-    }
 
     return CompletableFuture.completedFuture(new SupportedMessage(supported));
   }
