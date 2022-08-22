@@ -964,6 +964,36 @@ public class WriteDocumentsServiceTest {
       verify(jsonSchemaManager).validateJsonDocument(any(), any(), anyBoolean());
       verifyNoMoreInteractions(writeBridgeService, jsonSchemaManager);
     }
+
+    @Test
+    public void withSchemaCheck() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+      JsonNode schema = objectMapper.createObjectNode();
+      JsonNode obj = objectMapper.readTree(payload);
+
+      when(jsonSchemaManager.getJsonSchema(any())).thenReturn(Uni.createFrom().item(schema));
+      when(jsonSchemaManager.validateJsonDocument(any(), any(), anyBoolean())).thenCallRealMethod();
+
+      documentWriteService
+          .setPathsOnDocument(
+              Uni.createFrom().item(table),
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              obj,
+              false,
+              context)
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitFailure()
+          .assertFailedWith(ErrorCodeRuntimeException.class);
+    }
   }
 
   @Nested

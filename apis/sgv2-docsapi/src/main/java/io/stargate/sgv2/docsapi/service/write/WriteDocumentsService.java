@@ -34,7 +34,6 @@ import io.stargate.sgv2.docsapi.service.query.ReadBridgeService;
 import io.stargate.sgv2.docsapi.service.schema.JsonSchemaManager;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -336,87 +335,6 @@ public class WriteDocumentsService {
   }
 
   /**
-   * Sets data on a document with given ID in the given namespace and collection. Data will not get
-   * overwritten, allowing for partial updates of arrays and objects at various paths, all at once.
-   *
-   * @param table a CqlTable to be used for schema/validity checks
-   * @param namespace Namespace
-   * @param collection Collection name
-   * @param documentId The ID of the document to patch
-   * @param payload Document represented as JSON node, with all partial updates
-   * @param ttlAuto Whether to automatically determine TTL from the surrounding document
-   * @param context Execution content
-   * @return Document response wrapper containing the generated ID.
-   */
-  public Uni<DocumentResponseWrapper<Void>> setPathsOnDocument(
-      Uni<Schema.CqlTable> table,
-      String namespace,
-      String collection,
-      String documentId,
-      List<String> subPath,
-      JsonNode payload,
-      boolean ttlAuto,
-      ExecutionContext context) {
-    Uni<Integer> ttlValue = Uni.createFrom().item(0);
-    if (ttlAuto) {
-      ttlValue = determineTtl(namespace, collection, documentId, context);
-    }
-    return ttlValue
-        .onItem()
-        .transformToUni(
-            ttl ->
-                setPathsOnDocumentInternal(
-                    table, namespace, collection, documentId, subPath, payload, ttl, context));
-  }
-
-  private Set<List<String>> gatherAllPaths(
-      Iterator<String> fieldsIterator, List<String> subPathProcessed) {
-    Set<List<String>> allPaths = new HashSet<>();
-    while (fieldsIterator.hasNext()) {
-      String dottedField = fieldsIterator.next();
-      List<String> fieldPaths = processSubDocumentPath(Arrays.asList(dottedField.split("\\.")));
-      List<String> fullPath = new ArrayList<>();
-      fullPath.addAll(subPathProcessed);
-      fullPath.addAll(fieldPaths);
-      allPaths.add(fullPath);
-    }
-    return allPaths;
-  }
-
-  private Uni<DocumentResponseWrapper<Void>> setPathsOnDocumentInternal(
-      Uni<Schema.CqlTable> table,
-      String namespace,
-      String collection,
-      String documentId,
-      List<String> subPath,
-      JsonNode payload,
-      Integer ttl,
-      ExecutionContext context) {
-    // the payload will have a representation of all paths that need a partial update
-    return jsonSchemaManager
-        .validateJsonDocument(table, payload, true)
-        .onItem()
-        .transformToUni(
-            __ -> {
-              final List<String> subPathProcessed = processSubDocumentPath(subPath);
-              Iterator<String> pathsIterator = payload.fieldNames();
-              Set<List<String>> setPaths = gatherAllPaths(pathsIterator, subPathProcessed);
-              // shred rows
-              List<JsonShreddedRow> rows =
-                  documentShredder.shredFromDottedPaths(payload, subPathProcessed);
-
-              // call set paths on document
-              return writeBridgeService
-                  .setPathsOnDocument(
-                      namespace, collection, documentId, setPaths, rows, ttl, context)
-                  .map(
-                      result ->
-                          new DocumentResponseWrapper<>(
-                              documentId, null, null, context.toProfile()));
-            });
-  }
-
-  /**
    * Patches a document with given ID in the given namespace and collection at the specified
    * sub-path. Any previously existing patched keys at the given path will be overwritten, as well
    * as any existing array.
@@ -498,6 +416,88 @@ public class WriteDocumentsService {
               return writeBridgeService
                   .patchDocument(
                       namespace, collection, documentId, subPathProcessed, rows, ttl, context)
+                  .map(
+                      result ->
+                          new DocumentResponseWrapper<>(
+                              documentId, null, null, context.toProfile()));
+            });
+  }
+
+  /**
+   * Sets data on a document with given ID in the given namespace and collection. Data will not get
+   * overwritten, allowing for partial updates of arrays and objects at various paths, all at once.
+   *
+   * @param table a CqlTable to be used for schema/validity checks
+   * @param namespace Namespace
+   * @param collection Collection name
+   * @param documentId The ID of the document to patch
+   * @param payload Document represented as JSON node, with all partial updates
+   * @param ttlAuto Whether to automatically determine TTL from the surrounding document
+   * @param context Execution content
+   * @return Document response wrapper containing the generated ID.
+   */
+  public Uni<DocumentResponseWrapper<Void>> setPathsOnDocument(
+      Uni<Schema.CqlTable> table,
+      String namespace,
+      String collection,
+      String documentId,
+      List<String> subPath,
+      JsonNode payload,
+      boolean ttlAuto,
+      ExecutionContext context) {
+    Uni<Integer> ttlValue = Uni.createFrom().item(0);
+    if (ttlAuto) {
+      ttlValue = determineTtl(namespace, collection, documentId, context);
+    }
+    return ttlValue
+        .onItem()
+        .transformToUni(
+            ttl ->
+                setPathsOnDocumentInternal(
+                    table, namespace, collection, documentId, subPath, payload, ttl, context));
+  }
+
+  private Set<List<String>> gatherAllPaths(
+      Iterator<String> fieldsIterator, List<String> subPathProcessed) {
+    Set<List<String>> allPaths = new HashSet<>();
+    while (fieldsIterator.hasNext()) {
+      String dottedField = fieldsIterator.next();
+      List<String> fieldPaths =
+          DocsApiUtils.getFieldPath(dottedField, configuration.maxArrayLength());
+      List<String> fullPath = new ArrayList<>();
+      fullPath.addAll(subPathProcessed);
+      fullPath.addAll(fieldPaths);
+      allPaths.add(fullPath);
+    }
+    return allPaths;
+  }
+
+  private Uni<DocumentResponseWrapper<Void>> setPathsOnDocumentInternal(
+      Uni<Schema.CqlTable> table,
+      String namespace,
+      String collection,
+      String documentId,
+      List<String> subPath,
+      JsonNode payload,
+      Integer ttl,
+      ExecutionContext context) {
+    // the payload will have a representation of all paths that need a partial update
+    return jsonSchemaManager
+        .validateJsonDocument(table, payload, true)
+        .onItem()
+        .transformToUni(
+            __ -> {
+              final List<String> subPathProcessed = processSubDocumentPath(subPath);
+              Iterator<String> pathsIterator = payload.fieldNames();
+              Set<List<String>> setPaths = gatherAllPaths(pathsIterator, subPathProcessed);
+              // shred rows
+              List<JsonShreddedRow> rows =
+                  documentShredder.shredFromDottedPaths(payload, subPathProcessed);
+
+              // call set paths on document
+              return writeBridgeService
+                  .setPathsOnDocument(
+                      namespace, collection, documentId, setPaths, rows, ttl, context)
                   .map(
                       result ->
                           new DocumentResponseWrapper<>(

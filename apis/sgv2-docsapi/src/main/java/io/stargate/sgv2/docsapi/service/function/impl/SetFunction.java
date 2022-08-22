@@ -29,11 +29,6 @@ public class SetFunction implements BuiltInFunction {
   /** {@inheritDoc} */
   @Override
   public Uni<JsonNode> execute(Uni<Schema.CqlTable> table, BuiltInFunction.Data data) {
-    // convert data input into rows
-    if (!data.input().isObject()) {
-      return null;
-    }
-
     return writeDocumentsService
         .setPathsOnDocument(
             table,
@@ -44,6 +39,6 @@ public class SetFunction implements BuiltInFunction {
             data.input(),
             true,
             data.executionContext())
-        .map(__ -> mapper.createObjectNode());
+        .map(__ -> mapper.nullNode());
   }
 }

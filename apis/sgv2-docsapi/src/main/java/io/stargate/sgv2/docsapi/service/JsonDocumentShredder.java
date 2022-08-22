@@ -20,7 +20,6 @@ package io.stargate.sgv2.docsapi.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.opentelemetry.extension.annotations.WithSpan;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
@@ -112,29 +111,24 @@ public class JsonDocumentShredder {
           ErrorCode.DOCS_API_PUT_PAYLOAD_INVALID,
           "Using dotted-path JSON processing requires a JSON object at root");
     }
-    ObjectNode objectNode = (ObjectNode) node;
     List<JsonShreddedRow> result = new ArrayList<>();
 
-    for (Iterator<Map.Entry<String, JsonNode>> it = objectNode.fields(); it.hasNext(); ) {
+    for (Iterator<Map.Entry<String, JsonNode>> it = node.fields(); it.hasNext(); ) {
       Map.Entry<String, JsonNode> entry = it.next();
       String path = entry.getKey();
-      Supplier<ImmutableJsonShreddedRow.Builder> rowBuilder =
-          () -> ImmutableJsonShreddedRow.builder().maxDepth(properties.maxDepth());
       List<String> separatedPath =
           Arrays.asList(path.split("\\.")).stream()
               .map(
-                  pathSeg -> {
-                    if (pathSeg.startsWith("[")) {
-                      return "["
-                          + DocsApiUtils.leftPadTo6(pathSeg.substring(1, pathSeg.length() - 1))
-                          + "]";
-                    }
-                    return pathSeg;
-                  })
+                  pathSeg ->
+                      DocsApiUtils.convertSingleArrayPath(pathSeg, properties.maxArrayLength()))
               .collect(Collectors.toList());
       processNode(
           entry.getValue(),
-          () -> rowBuilder.get().addAllPath(subDocumentPath).addAllPath(separatedPath),
+          () ->
+              ImmutableJsonShreddedRow.builder()
+                  .maxDepth(properties.maxDepth())
+                  .addAllPath(subDocumentPath)
+                  .addAllPath(separatedPath),
           result);
     }
 
