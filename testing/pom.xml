@@ -49,6 +49,11 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>io.stargate.cql</groupId>
+      <artifactId>cql</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>io.stargate.starter</groupId>
       <artifactId>stargate-starter</artifactId>
       <version>${project.version}</version>
