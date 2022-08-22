@@ -20,35 +20,29 @@ package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.jsonschema;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
 
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
-import io.restassured.RestAssured;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.ResourceArg;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
-import io.stargate.sgv2.api.common.cql.builder.Replication;
-import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
-import io.stargate.sgv2.docsapi.service.schema.CollectionManager;
-import io.stargate.sgv2.docsapi.service.schema.NamespaceManager;
-import java.time.Duration;
-import javax.enterprise.context.control.ActivateRequestContext;
-import javax.inject.Inject;
+import io.stargate.sgv2.common.IntegrationTestUtils;
+import io.stargate.sgv2.common.testresource.StargateTestResource;
+import io.stargate.sgv2.docsapi.api.v2.DocsApiIntegrationTest;
+import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.CollectionsResource;
+import java.util.Optional;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestClassOrder;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
 
-@QuarkusTest
-@TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
-@TestClassOrder(ClassOrderer.OrderAnnotation.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class JsonSchemaResourceIntegrationTest {
+@QuarkusIntegrationTest
+@QuarkusTestResource(
+    value = StargateTestResource.class,
+    initArgs =
+        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
+public class JsonSchemaResourceIntegrationTest extends DocsApiIntegrationTest {
 
   // base path for the test
   public static final String BASE_PATH =
@@ -56,22 +50,14 @@ public class JsonSchemaResourceIntegrationTest {
   public static final String DEFAULT_NAMESPACE = RandomStringUtils.randomAlphanumeric(16);
   public static final String DEFAULT_COLLECTION = RandomStringUtils.randomAlphanumeric(16);
 
-  @Inject NamespaceManager namespaceManager;
-  @Inject CollectionManager collectionManager;
+  @Override
+  public Optional<String> createNamespace() {
+    return Optional.of(DEFAULT_NAMESPACE);
+  }
 
-  @BeforeAll
-  public void init() {
-    RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
-
-    namespaceManager
-        .createNamespace(DEFAULT_NAMESPACE, Replication.simpleStrategy(1))
-        .await()
-        .atMost(Duration.ofSeconds(10));
-
-    collectionManager
-        .createCollectionTable(DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
-        .await()
-        .atMost(Duration.ofSeconds(10));
+  @Override
+  public Optional<String> createCollection() {
+    return Optional.of(DEFAULT_COLLECTION);
   }
 
   @Nested
@@ -89,7 +75,8 @@ public class JsonSchemaResourceIntegrationTest {
 
       given()
           .contentType(ContentType.JSON)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(
+              HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, IntegrationTestUtils.getAuthToken())
           .body(body)
           .put(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
           .then()
@@ -107,7 +94,8 @@ public class JsonSchemaResourceIntegrationTest {
 
       given()
           .contentType(ContentType.JSON)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(
+              HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, IntegrationTestUtils.getAuthToken())
           .body(body)
           .put(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
           .then()
@@ -125,7 +113,8 @@ public class JsonSchemaResourceIntegrationTest {
 
       given()
           .contentType(ContentType.JSON)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(
+              HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, IntegrationTestUtils.getAuthToken())
           .body(body)
           .put(BASE_PATH, DEFAULT_NAMESPACE, "notatable")
           .then()
@@ -144,7 +133,8 @@ public class JsonSchemaResourceIntegrationTest {
 
       given()
           .contentType(ContentType.JSON)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(
+              HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, IntegrationTestUtils.getAuthToken())
           .body(body)
           .put(BASE_PATH, "notexist", DEFAULT_COLLECTION)
           .then()
@@ -169,7 +159,8 @@ public class JsonSchemaResourceIntegrationTest {
       given()
           .contentType(ContentType.JSON)
           .body(body)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(
+              HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, IntegrationTestUtils.getAuthToken())
           .when()
           .put(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
           .then()
@@ -186,7 +177,8 @@ public class JsonSchemaResourceIntegrationTest {
     public void noPayload() {
       given()
           .contentType(ContentType.JSON)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(
+              HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, IntegrationTestUtils.getAuthToken())
           .when()
           .put(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
           .then()
@@ -201,7 +193,8 @@ public class JsonSchemaResourceIntegrationTest {
       given()
           .contentType(ContentType.JSON)
           .body("{}")
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(
+              HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, IntegrationTestUtils.getAuthToken())
           .when()
           .put(BASE_PATH, "system", "peers")
           .then()
@@ -222,7 +215,8 @@ public class JsonSchemaResourceIntegrationTest {
     @Order(1)
     public void happyPath() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(
+              HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, IntegrationTestUtils.getAuthToken())
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
           .then()
@@ -234,12 +228,22 @@ public class JsonSchemaResourceIntegrationTest {
     @Order(2)
     public void noSchemaAvailable() {
       // Create a fresh table for this test, to have no schema
-      collectionManager
-          .createCollectionTable(DEFAULT_NAMESPACE, "freshtable")
-          .await()
-          .atMost(Duration.ofSeconds(10));
+      String json =
+          """
+              {
+                  "name": "freshtable"
+              }
+              """;
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .contentType(ContentType.JSON)
+          .header(
+              HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, IntegrationTestUtils.getAuthToken())
+          .body(json)
+          .post(CollectionsResource.BASE_PATH, DEFAULT_NAMESPACE);
+
+      given()
+          .header(
+              HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, IntegrationTestUtils.getAuthToken())
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, "freshtable")
           .then()
@@ -253,7 +257,8 @@ public class JsonSchemaResourceIntegrationTest {
     public void tableNotExisting() {
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(
+              HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, IntegrationTestUtils.getAuthToken())
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, "notatable")
           .then()
@@ -267,7 +272,8 @@ public class JsonSchemaResourceIntegrationTest {
     public void keyspaceNotExisting() {
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(
+              HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, IntegrationTestUtils.getAuthToken())
           .when()
           .get(BASE_PATH, "notexist", DEFAULT_COLLECTION)
           .then()
@@ -280,7 +286,8 @@ public class JsonSchemaResourceIntegrationTest {
     @Order(5)
     public void notDocumentTable() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(
+              HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, IntegrationTestUtils.getAuthToken())
           .when()
           .get(BASE_PATH, "system", "peers")
           .then()

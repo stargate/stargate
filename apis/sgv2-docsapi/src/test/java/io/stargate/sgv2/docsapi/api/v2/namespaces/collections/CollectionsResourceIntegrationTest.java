@@ -18,57 +18,44 @@
 package io.stargate.sgv2.docsapi.api.v2.namespaces.collections;
 
 import static io.restassured.RestAssured.given;
+import static io.stargate.sgv2.common.IntegrationTestUtils.getAuthToken;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
 import static org.hamcrest.Matchers.startsWith;
 
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
-import io.restassured.RestAssured;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.ResourceArg;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
-import io.stargate.sgv2.api.common.cql.builder.Replication;
-import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
-import io.stargate.sgv2.docsapi.service.schema.NamespaceManager;
-import java.time.Duration;
-import javax.enterprise.context.control.ActivateRequestContext;
-import javax.inject.Inject;
+import io.stargate.sgv2.common.testresource.StargateTestResource;
+import io.stargate.sgv2.docsapi.api.v2.DocsApiIntegrationTest;
+import java.util.Optional;
 import javax.ws.rs.core.HttpHeaders;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestClassOrder;
-import org.junit.jupiter.api.TestInstance;
 import org.junit.jupiter.api.TestMethodOrder;
 
-@QuarkusTest
-@TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
-@TestClassOrder(ClassOrderer.OrderAnnotation.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class CollectionsResourceIntegrationTest {
+@QuarkusIntegrationTest
+@QuarkusTestResource(
+    value = StargateTestResource.class,
+    initArgs =
+        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
+public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
 
   // base path for the test
   public static final String BASE_PATH = "/v2/namespaces/{namespace}/collections";
   public static final String DEFAULT_NAMESPACE = RandomStringUtils.randomAlphanumeric(16);
   public static final String DEFAULT_COLLECTION = RandomStringUtils.randomAlphanumeric(16);
 
-  @Inject NamespaceManager namespaceManager;
-
-  @BeforeAll
-  public void init() {
-    RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
-
-    namespaceManager
-        .createNamespace(DEFAULT_NAMESPACE, Replication.simpleStrategy(1))
-        .await()
-        .atMost(Duration.ofSeconds(10));
+  @Override
+  public Optional<String> createNamespace() {
+    return Optional.of(DEFAULT_NAMESPACE);
   }
 
   @Nested
@@ -89,7 +76,7 @@ public class CollectionsResourceIntegrationTest {
 
       given()
           .contentType(ContentType.JSON)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .body(body)
           .post(BASE_PATH, DEFAULT_NAMESPACE)
           .then()
@@ -114,7 +101,7 @@ public class CollectionsResourceIntegrationTest {
 
       given()
           .contentType(ContentType.JSON)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .body(body)
           .post(BASE_PATH, DEFAULT_NAMESPACE)
           .then()
@@ -139,7 +126,7 @@ public class CollectionsResourceIntegrationTest {
       given()
           .contentType(ContentType.JSON)
           .body(body)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .post(BASE_PATH, namespace)
           .then()
@@ -156,7 +143,7 @@ public class CollectionsResourceIntegrationTest {
 
       given()
           .contentType(ContentType.JSON)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .post(BASE_PATH, namespace)
           .then()
@@ -177,7 +164,7 @@ public class CollectionsResourceIntegrationTest {
       given()
           .contentType(ContentType.JSON)
           .body(body)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .post(BASE_PATH, namespace)
           .then()
@@ -194,7 +181,7 @@ public class CollectionsResourceIntegrationTest {
       given()
           .contentType(ContentType.JSON)
           .body(body)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .post(BASE_PATH, namespace)
           .then()
@@ -211,7 +198,7 @@ public class CollectionsResourceIntegrationTest {
     @Test
     public void happyPath() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE)
           .then()
@@ -225,7 +212,7 @@ public class CollectionsResourceIntegrationTest {
     public void happyPathRaw() {
       given()
           .queryParam("raw", true)
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE)
           .then()
@@ -240,7 +227,7 @@ public class CollectionsResourceIntegrationTest {
       String namespace = "system";
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH, namespace)
           .then()
@@ -253,7 +240,7 @@ public class CollectionsResourceIntegrationTest {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH, namespace)
           .then()
@@ -281,7 +268,7 @@ public class CollectionsResourceIntegrationTest {
               """;
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -296,7 +283,7 @@ public class CollectionsResourceIntegrationTest {
     public void upgradeNull() {
       String json = "{}";
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -320,7 +307,7 @@ public class CollectionsResourceIntegrationTest {
               """;
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -343,7 +330,7 @@ public class CollectionsResourceIntegrationTest {
               """;
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -368,7 +355,7 @@ public class CollectionsResourceIntegrationTest {
               """;
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(json)
           .when()
@@ -390,7 +377,7 @@ public class CollectionsResourceIntegrationTest {
     @Test
     public void happyPath() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .delete(BASE_PATH + "/{collection}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
           .then()
@@ -402,7 +389,7 @@ public class CollectionsResourceIntegrationTest {
       String collection = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .delete(BASE_PATH + "/{collection}", DEFAULT_NAMESPACE, collection)
           .then()
@@ -417,7 +404,7 @@ public class CollectionsResourceIntegrationTest {
       String collection = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .delete(BASE_PATH + "/{collection}", namespace, collection)
           .then()
@@ -434,7 +421,7 @@ public class CollectionsResourceIntegrationTest {
       String collection = "local";
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .delete(BASE_PATH + "/{collection}", namespace, collection)
           .then()
