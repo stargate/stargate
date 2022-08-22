@@ -17,7 +17,7 @@ package io.stargate.sgv2.graphql.integration.cqlfirst;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.CqlFirstIntegrationTest;
@@ -28,7 +28,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -39,7 +39,7 @@ public class MetricsIntegrationTest extends CqlFirstIntegrationTest {
 
   @BeforeAll
   public void createSchema() {
-    executeCql("CREATE TABLE \"Foo\"(k int PRIMARY KEY, v int)");
+    session.execute("CREATE TABLE \"Foo\"(k int PRIMARY KEY, v int)");
   }
 
   @Test
@@ -47,11 +47,11 @@ public class MetricsIntegrationTest extends CqlFirstIntegrationTest {
 
     // Execute a first query before getting the count, because it is initialized lazily.
     client.executeDmlQuery(
-        keyspaceName, "mutation { insertFoo(value: { k: 1, v: 1 } ) { applied} }");
+        keyspaceId.asInternal(), "mutation { insertFoo(value: { k: 1, v: 1 } ) { applied} }");
 
     int countBefore = getQueryCount();
-    client.executeDmlQuery(keyspaceName, "{ Foo(value: { k: 1 }) { values { v } } }");
-    client.executeDmlQuery(keyspaceName, "{ Foo(value: { k: 1 }) { values { v } } }");
+    client.executeDmlQuery(keyspaceId.asInternal(), "{ Foo(value: { k: 1 }) { values { v } } }");
+    client.executeDmlQuery(keyspaceId.asInternal(), "{ Foo(value: { k: 1 }) { values { v } } }");
     int countAfter = getQueryCount();
 
     // Don't require an exact match in case other tests are running concurrently

@@ -18,7 +18,7 @@ package io.stargate.sgv2.graphql.integration.cqlfirst;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.CqlFirstIntegrationTest;
@@ -30,7 +30,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -38,14 +38,14 @@ public class AtomicBatchIntegrationTest extends CqlFirstIntegrationTest {
 
   @BeforeAll
   public void createSchema() {
-    executeCql("CREATE TABLE foo(k int, cc int, v int, PRIMARY KEY (k, cc))");
+    session.execute("CREATE TABLE foo(k int, cc int, v int, PRIMARY KEY (k, cc))");
   }
 
   @BeforeEach
   public void cleanup() {
-    executeCql("TRUNCATE TABLE foo");
-    executeCql("INSERT INTO foo (k, cc, v) VALUES (1, 1, 1)");
-    executeCql("INSERT INTO foo (k, cc, v) VALUES (1, 2, 2)");
+    session.execute("TRUNCATE TABLE foo");
+    session.execute("INSERT INTO foo (k, cc, v) VALUES (1, 1, 1)");
+    session.execute("INSERT INTO foo (k, cc, v) VALUES (1, 2, 2)");
   }
 
   @Test
@@ -63,7 +63,7 @@ public class AtomicBatchIntegrationTest extends CqlFirstIntegrationTest {
             + "}";
 
     // When
-    Map<String, Object> response = client.executeDmlQuery(keyspaceName, query);
+    Map<String, Object> response = client.executeDmlQuery(keyspaceId.asInternal(), query);
 
     // Then
     assertThat(JsonPath.<Boolean>read(response, "$.update1.applied")).isFalse();
@@ -94,7 +94,7 @@ public class AtomicBatchIntegrationTest extends CqlFirstIntegrationTest {
             + "}";
 
     // When
-    Map<String, Object> response = client.executeDmlQuery(keyspaceName, query);
+    Map<String, Object> response = client.executeDmlQuery(keyspaceId.asInternal(), query);
 
     // Then
     assertThat(JsonPath.<Boolean>read(response, "$.update1.applied")).isFalse();
@@ -123,7 +123,7 @@ public class AtomicBatchIntegrationTest extends CqlFirstIntegrationTest {
             + "}";
 
     // When
-    Map<String, Object> response = client.executeDmlQuery(keyspaceName, query);
+    Map<String, Object> response = client.executeDmlQuery(keyspaceId.asInternal(), query);
 
     // Then
     // None of the queries are applied. For the regular one, we don't have any data to echo back:
@@ -153,7 +153,7 @@ public class AtomicBatchIntegrationTest extends CqlFirstIntegrationTest {
             + "}";
 
     // When
-    Map<String, Object> response = client.executeDmlQuery(keyspaceName, query);
+    Map<String, Object> response = client.executeDmlQuery(keyspaceId.asInternal(), query);
 
     // Then
     assertThat(JsonPath.<Boolean>read(response, "$.update1.applied")).isFalse();
@@ -182,7 +182,7 @@ public class AtomicBatchIntegrationTest extends CqlFirstIntegrationTest {
             + "}";
 
     // When
-    Map<String, Object> response = client.executeDmlQuery(keyspaceName, query);
+    Map<String, Object> response = client.executeDmlQuery(keyspaceId.asInternal(), query);
 
     // Then
     assertThat(JsonPath.<Boolean>read(response, "$.update1.applied")).isTrue();
@@ -215,7 +215,7 @@ public class AtomicBatchIntegrationTest extends CqlFirstIntegrationTest {
             + "}";
 
     // When
-    Map<String, Object> response = client.executeDmlQuery(keyspaceName, query);
+    Map<String, Object> response = client.executeDmlQuery(keyspaceId.asInternal(), query);
 
     // Then
     assertThat(JsonPath.<Boolean>read(response, "$.updatefoo.applied")).isFalse();
@@ -251,7 +251,7 @@ public class AtomicBatchIntegrationTest extends CqlFirstIntegrationTest {
             + "}";
 
     // When
-    Map<String, Object> response = client.executeDmlQuery(keyspaceName, query);
+    Map<String, Object> response = client.executeDmlQuery(keyspaceId.asInternal(), query);
 
     // Then
     assertThat(JsonPath.<Boolean>read(response, "$.updatefoo.applied")).isTrue();

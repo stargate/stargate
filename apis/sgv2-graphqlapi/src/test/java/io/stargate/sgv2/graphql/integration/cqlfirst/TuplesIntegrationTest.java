@@ -18,7 +18,7 @@ package io.stargate.sgv2.graphql.integration.cqlfirst;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.CqlFirstIntegrationTest;
@@ -28,7 +28,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -36,14 +36,14 @@ public class TuplesIntegrationTest extends CqlFirstIntegrationTest {
 
   @BeforeAll
   public void createSchema() {
-    executeCql(
+    session.execute(
         "CREATE TABLE IF NOT EXISTS \"Tuples\"(\n"
             + "    id uuid PRIMARY KEY,\n"
             + "    tuple1 tuple<bigint>,\n"
             + "    tuple2 tuple<float, float>,\n"
             + "    tuple3 tuple<timeuuid, int, boolean>\n"
             + ")");
-    executeCql("CREATE TABLE IF NOT EXISTS \"TuplesPk\"(id tuple<int, int> PRIMARY KEY)");
+    session.execute("CREATE TABLE IF NOT EXISTS \"TuplesPk\"(id tuple<int, int> PRIMARY KEY)");
   }
 
   @Test
@@ -51,7 +51,7 @@ public class TuplesIntegrationTest extends CqlFirstIntegrationTest {
     // When inserting a new row:
     Map<String, Object> response =
         client.executeDmlQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation {\n"
                 + "  insertTuples: insertTuplx65_s(value: {\n"
                 + "    id: \"792d0a56-bb46-4bc2-bc41-5f4a94a83da9\"\n"
@@ -77,7 +77,7 @@ public class TuplesIntegrationTest extends CqlFirstIntegrationTest {
             + "    }\n"
             + "  }\n"
             + "}";
-    response = client.executeDmlQuery(keyspaceName, getQuery);
+    response = client.executeDmlQuery(keyspaceId.asInternal(), getQuery);
     assertThat(JsonPath.<String>read(response, "$.Tuples.values[0].tuple1.item0")).isEqualTo("1");
 
     assertThat(JsonPath.<Double>read(response, "$.Tuples.values[0].tuple2.item0")).isEqualTo(1.3);
@@ -91,7 +91,7 @@ public class TuplesIntegrationTest extends CqlFirstIntegrationTest {
     // When updating the row:
     response =
         client.executeDmlQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation {\n"
                 + "  updateTuples: updateTuplx65_s(\n"
                 + "    value: {\n"
@@ -105,7 +105,7 @@ public class TuplesIntegrationTest extends CqlFirstIntegrationTest {
     assertThat(JsonPath.<Boolean>read(response, "$.updateTuples.applied")).isTrue();
 
     // Then the changes are reflected:
-    response = client.executeDmlQuery(keyspaceName, getQuery);
+    response = client.executeDmlQuery(keyspaceId.asInternal(), getQuery);
     assertThat(JsonPath.<String>read(response, "$.Tuples.values[0].tuple1.item0")).isEqualTo("-1");
 
     assertThat(JsonPath.<Double>read(response, "$.Tuples.values[0].tuple2.item0")).isEqualTo(0);
@@ -123,7 +123,7 @@ public class TuplesIntegrationTest extends CqlFirstIntegrationTest {
     // When inserting a new row:
     Map<String, Object> response =
         client.executeDmlQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation {\n"
                 + "  insertTuplesPk: insertTuplx65_sPk(value: {\n"
                 + "    id: { item0: 0, item1: 1}\n"
@@ -142,7 +142,7 @@ public class TuplesIntegrationTest extends CqlFirstIntegrationTest {
             + "    }\n"
             + "  }\n"
             + "}";
-    response = client.executeDmlQuery(keyspaceName, getQuery);
+    response = client.executeDmlQuery(keyspaceId.asInternal(), getQuery);
     assertThat(JsonPath.<Integer>read(response, "$.TuplesPk.values[0].id.item0")).isEqualTo(0);
     assertThat(JsonPath.<Integer>read(response, "$.TuplesPk.values[0].id.item1")).isEqualTo(1);
   }
@@ -152,7 +152,7 @@ public class TuplesIntegrationTest extends CqlFirstIntegrationTest {
     // When inserting a new row:
     Map<String, Object> response =
         client.executeDmlQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation {\n"
                 + "  insertTuples: insertTuplx65_s(value: {\n"
                 + "    id: \"792d0a56-bb46-4bc2-bc41-5f4a94a83da9\"\n"
@@ -172,7 +172,7 @@ public class TuplesIntegrationTest extends CqlFirstIntegrationTest {
             + "    }\n"
             + "  }\n"
             + "}";
-    response = client.executeDmlQuery(keyspaceName, getQuery);
+    response = client.executeDmlQuery(keyspaceId.asInternal(), getQuery);
     assertThat(JsonPath.<Object>read(response, "$.Tuples.values[0].tuple1")).isNull();
   }
 }

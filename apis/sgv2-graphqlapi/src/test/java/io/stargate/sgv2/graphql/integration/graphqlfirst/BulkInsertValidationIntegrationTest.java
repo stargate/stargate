@@ -17,7 +17,7 @@ package io.stargate.sgv2.graphql.integration.graphqlfirst;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
@@ -27,7 +27,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -40,7 +40,7 @@ public class BulkInsertValidationIntegrationTest extends GraphqlFirstIntegration
     Map<String, Object> errors =
         client
             .getDeploySchemaErrors(
-                keyspaceName,
+                keyspaceId.asInternal(),
                 null,
                 "type User @cql_input {\n"
                     + "  id: ID!\n"

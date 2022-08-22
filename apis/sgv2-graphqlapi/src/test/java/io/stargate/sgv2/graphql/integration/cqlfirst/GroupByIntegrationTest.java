@@ -18,7 +18,7 @@ package io.stargate.sgv2.graphql.integration.cqlfirst;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.CqlFirstIntegrationTest;
@@ -29,7 +29,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -37,15 +37,18 @@ public class GroupByIntegrationTest extends CqlFirstIntegrationTest {
 
   @BeforeAll
   public void createSchema() {
-    executeCql(
+    session.execute(
         "CREATE TABLE IF NOT EXISTS readings (\n"
             + "    id int, year int, month int, day int,\n"
             + "    value decimal,\n"
             + "    PRIMARY KEY (id, year, month, day)"
             + ") WITH CLUSTERING ORDER BY (year DESC, month DESC, day DESC)\n");
-    executeCql("INSERT INTO readings (id, year, month, day, value) VALUES (1, 2021, 8, 30, 1.0)");
-    executeCql("INSERT INTO readings (id, year, month, day, value) VALUES (1, 2021, 8, 31, 2.1)");
-    executeCql("INSERT INTO readings (id, year, month, day, value) VALUES (1, 2021, 9, 1, 3.7)");
+    session.execute(
+        "INSERT INTO readings (id, year, month, day, value) VALUES (1, 2021, 8, 30, 1.0)");
+    session.execute(
+        "INSERT INTO readings (id, year, month, day, value) VALUES (1, 2021, 8, 31, 2.1)");
+    session.execute(
+        "INSERT INTO readings (id, year, month, day, value) VALUES (1, 2021, 9, 1, 3.7)");
   }
 
   @Test
@@ -53,7 +56,7 @@ public class GroupByIntegrationTest extends CqlFirstIntegrationTest {
   public void groupBy() {
     Map<String, Object> response =
         client.executeDmlQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "{ readings(value: {id: 1}, groupBy: {month: true, year: true}) { "
                 + "values { "
                 + "  id"

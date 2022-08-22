@@ -18,7 +18,7 @@ package io.stargate.sgv2.graphql.integration.graphqlfirst;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
@@ -30,7 +30,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -52,12 +52,12 @@ public class FederationIntegrationTest extends GraphqlFirstIntegrationTest {
 
   @BeforeAll
   public void deploySchema() {
-    client.deploySchema(keyspaceName, SCHEMA);
+    client.deploySchema(keyspaceId.asInternal(), SCHEMA);
 
-    executeCql("INSERT INTO \"Entity1\" (k) VALUES (%s)".formatted(UUID_KEY));
-    executeCql("INSERT INTO \"Entity2\" (k) VALUES (1)");
-    executeCql("INSERT INTO \"Entity3\" (k1,k2,cc1,cc2) VALUES (1,2,3,4)");
-    executeCql("INSERT INTO \"Entity4\" (k) VALUES ({k: 1})");
+    session.execute("INSERT INTO \"Entity1\" (k) VALUES (%s)".formatted(UUID_KEY));
+    session.execute("INSERT INTO \"Entity2\" (k) VALUES (1)");
+    session.execute("INSERT INTO \"Entity3\" (k1,k2,cc1,cc2) VALUES (1,2,3,4)");
+    session.execute("INSERT INTO \"Entity4\" (k) VALUES ({k: 1})");
   }
 
   @Test
@@ -65,7 +65,7 @@ public class FederationIntegrationTest extends GraphqlFirstIntegrationTest {
   public void idKeyTest() {
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "query {\n"
                 + "_entities(representations: [ "
                 + String.format("{ __typename: \"Entity1\", k: \"%s\" }, ", UUID_KEY)
@@ -81,7 +81,7 @@ public class FederationIntegrationTest extends GraphqlFirstIntegrationTest {
   public void intKeyTest() {
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "query {\n"
                 + "_entities(representations: [ "
                 + "{ __typename: \"Entity2\", k: 1 }, "
@@ -97,7 +97,7 @@ public class FederationIntegrationTest extends GraphqlFirstIntegrationTest {
   public void compositeKeyTest() {
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "query {\n"
                 + "_entities(representations: [ "
                 + "{ __typename: \"Entity3\", k1: 1, k2: 2, cc1: 3, cc2: 4 }, "
@@ -116,7 +116,7 @@ public class FederationIntegrationTest extends GraphqlFirstIntegrationTest {
   public void udtKeyTest() {
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "query {\n"
                 + "_entities(representations: [ "
                 + "{ __typename: \"Entity4\", k: { k: 1 } }, "
@@ -133,7 +133,7 @@ public class FederationIntegrationTest extends GraphqlFirstIntegrationTest {
     Object response =
         client.getKeyspaceFullResponse(
             Collections.singletonMap("apollo-federation-include-trace", "ftv1"),
-            keyspaceName,
+            keyspaceId.asInternal(),
             "query {\n"
                 + "_entities(representations: [ "
                 + "{ __typename: \"Entity2\", k: 1 }, "

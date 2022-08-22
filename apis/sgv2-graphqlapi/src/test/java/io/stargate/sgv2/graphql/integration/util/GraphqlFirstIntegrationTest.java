@@ -16,9 +16,7 @@
  */
 package io.stargate.sgv2.graphql.integration.util;
 
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
-import io.stargate.bridge.proto.Schema;
+import io.stargate.sgv2.common.IntegrationTestUtils;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
@@ -29,34 +27,19 @@ public abstract class GraphqlFirstIntegrationTest extends GraphqlIntegrationTest
 
   @BeforeAll
   public void createClient() {
-    client =
-        new GraphqlFirstClient(
-            baseUrl, requestInfo.getCassandraToken().orElseThrow(AssertionError::new));
+    client = new GraphqlFirstClient(baseUrl, IntegrationTestUtils.getAuthToken());
   }
 
   protected void deleteAllGraphqlSchemas() {
-    try {
-      Schema.CqlKeyspaceDescribe keyspace =
-          bridge
-              .describeKeyspace(
-                  Schema.DescribeKeyspaceQuery.newBuilder()
-                      .setKeyspaceName("stargate_graphql")
-                      .build())
-              .await()
-              .indefinitely();
-      if (keyspace.getTablesList().stream().anyMatch(t -> t.getName().equals("schema_source"))) {
-        executeCql(
-            "DELETE FROM stargate_graphql.schema_source WHERE keyspace_name = '"
-                + keyspaceName
-                + "'");
-      }
-    } catch (StatusRuntimeException e) {
-      if (Status.Code.NOT_FOUND.equals(e.getStatus().getCode())) {
-        // If keyspace stargate_graphql does not exist yet, nothing to do
-        return;
-      }
-      throw e;
-    }
+    session
+        .getMetadata()
+        .getKeyspace("stargate_graphql")
+        .flatMap(ks -> ks.getTable("schema_source"))
+        .ifPresent(
+            __ ->
+                session.execute(
+                    "DELETE FROM stargate_graphql.schema_source WHERE keyspace_name = ?",
+                    keyspaceId.asInternal()));
   }
 
   @SuppressWarnings("unchecked")

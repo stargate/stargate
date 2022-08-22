@@ -18,7 +18,7 @@ package io.stargate.sgv2.graphql.integration.graphqlfirst;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
@@ -29,7 +29,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -38,7 +38,7 @@ public class UpdateIntegrationTest extends GraphqlFirstIntegrationTest {
   @BeforeAll
   public void deploySchema() {
     client.deploySchema(
-        keyspaceName,
+        keyspaceId.asInternal(),
         "type User @cql_input {\n"
             + "  pk: Int! @cql_column(partitionKey: true)\n"
             + "  cc1: Int! @cql_column(clusteringOrder: ASC)\n"
@@ -58,7 +58,7 @@ public class UpdateIntegrationTest extends GraphqlFirstIntegrationTest {
 
   @BeforeEach
   public void cleanupData() {
-    executeCql("truncate table \"User\"");
+    session.execute("truncate table \"User\"");
   }
 
   @Test
@@ -87,7 +87,7 @@ public class UpdateIntegrationTest extends GraphqlFirstIntegrationTest {
   private void updateUser(int pk1, int cc1, int cc2, String username) {
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             String.format(
                 "mutation {\n"
                     + "  result: updateUser(user: {pk: %s, cc1: %s, cc2: %s, username: \"%s\"}) {applied}\n"
@@ -101,7 +101,7 @@ public class UpdateIntegrationTest extends GraphqlFirstIntegrationTest {
 
   private String updateUserPartialPk(int pk1, int cc1, String username) {
     return client.getKeyspaceError(
-        keyspaceName,
+        keyspaceId.asInternal(),
         String.format(
             "mutation {\n"
                 + "  result: updateUserPartialPk(user: {pk: %s, cc1: %s, username: \"%s\"}) {applied} \n"

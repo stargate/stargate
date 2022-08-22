@@ -20,9 +20,8 @@ import static org.assertj.core.data.Offset.offset;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
-import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
 import java.util.List;
@@ -38,7 +37,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -50,7 +49,7 @@ public class TtlIntegrationTest extends GraphqlFirstIntegrationTest {
   public void deploySchema() {
     schemaVersion =
         client.deploySchema(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "type Foo @cql_input{\n"
                 + "  k: Int @cql_column(partitionKey:true)\n"
                 + "  v: Int\n"
@@ -68,15 +67,11 @@ public class TtlIntegrationTest extends GraphqlFirstIntegrationTest {
   @DisplayName("Should insert with TTL")
   public void insertTest() {
     // Given
-    client.executeKeyspaceQuery(keyspaceName, "mutation { insertFoo(foo:{k:1, v:1}) {v} }");
+    client.executeKeyspaceQuery(
+        keyspaceId.asInternal(), "mutation { insertFoo(foo:{k:1, v:1}) {v} }");
 
     // When
-    Integer ttl =
-        Values.int_(
-            executeCql("SELECT ttl(v) FROM \"Foo\" WHERE k = 1")
-                .getResultSet()
-                .getRows(0)
-                .getValues(0));
+    Integer ttl = session.execute("SELECT ttl(v) FROM \"Foo\" WHERE k = 1").one().getInt(0);
 
     // Then
     assertThat(ttl).isCloseTo(3600, offset(60));
@@ -86,15 +81,10 @@ public class TtlIntegrationTest extends GraphqlFirstIntegrationTest {
   @DisplayName("Should update with TTL")
   public void updateTest() {
     // Given
-    client.executeKeyspaceQuery(keyspaceName, "mutation { updateFoo(k:2, v:1) }");
+    client.executeKeyspaceQuery(keyspaceId.asInternal(), "mutation { updateFoo(k:2, v:1) }");
 
     // When
-    Integer ttl =
-        Values.int_(
-            executeCql("SELECT ttl(v) FROM \"Foo\" WHERE k = 2")
-                .getResultSet()
-                .getRows(0)
-                .getValues(0));
+    Integer ttl = session.execute("SELECT ttl(v) FROM \"Foo\" WHERE k = 2").one().getInt(0);
 
     // Then
     assertThat(ttl).isCloseTo(7200, offset(60));
@@ -118,7 +108,7 @@ public class TtlIntegrationTest extends GraphqlFirstIntegrationTest {
                 + "}",
             ttl);
     List<Map<String, Object>> errors =
-        client.getDeploySchemaErrors(keyspaceName, schemaVersion.toString(), schema);
+        client.getDeploySchemaErrors(keyspaceId.asInternal(), schemaVersion.toString(), schema);
     assertThat(errors).hasSize(1);
     Map<String, Object> schemaError = JsonPath.read(errors.get(0), "$.extensions.mappingErrors[0]");
     assertThat(schemaError.get("message"))

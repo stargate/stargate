@@ -18,7 +18,7 @@ package io.stargate.sgv2.graphql.integration.cqlfirst;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.CqlFirstIntegrationTest;
@@ -29,7 +29,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -37,11 +37,11 @@ public class UdtsIntegrationTest extends CqlFirstIntegrationTest {
 
   @BeforeAll
   public void createSchema() {
-    executeCql("CREATE TYPE IF NOT EXISTS \"B\"(i int)");
-    executeCql("CREATE TYPE IF NOT EXISTS \"A\"(b frozen<\"B\">)");
-    executeCql(
+    session.execute("CREATE TYPE IF NOT EXISTS \"B\"(i int)");
+    session.execute("CREATE TYPE IF NOT EXISTS \"A\"(b frozen<\"B\">)");
+    session.execute(
         "CREATE TABLE IF NOT EXISTS \"Udts\"(a frozen<\"A\"> PRIMARY KEY, bs list<frozen<\"B\">>)");
-    executeCql("CREATE TABLE IF NOT EXISTS \"Udts2\"(k int PRIMARY KEY, a \"A\")");
+    session.execute("CREATE TABLE IF NOT EXISTS \"Udts2\"(k int PRIMARY KEY, a \"A\")");
   }
 
   @Test
@@ -49,7 +49,7 @@ public class UdtsIntegrationTest extends CqlFirstIntegrationTest {
   public void udtsTest() {
     Map<String, Object> response =
         client.executeDmlQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation {\n"
                 + "  insertUdts(value: {\n"
                 + "    a: { b: {i:1} }\n"
@@ -62,7 +62,7 @@ public class UdtsIntegrationTest extends CqlFirstIntegrationTest {
 
     response =
         client.executeDmlQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "{\n"
                 + "    Udts(value: { a: { b: {i:1} } }) {\n"
                 + "        values {\n"
@@ -81,7 +81,7 @@ public class UdtsIntegrationTest extends CqlFirstIntegrationTest {
   public void nullUdtTest() {
     Map<String, Object> response =
         client.executeDmlQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation {\n"
                 + "  insertUdts2(value: {\n"
                 + "    k: 1\n"
@@ -94,7 +94,7 @@ public class UdtsIntegrationTest extends CqlFirstIntegrationTest {
 
     response =
         client.executeDmlQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "{\n"
                 + "    Udts2(value: { k: 1 }) {\n"
                 + "        values {\n"

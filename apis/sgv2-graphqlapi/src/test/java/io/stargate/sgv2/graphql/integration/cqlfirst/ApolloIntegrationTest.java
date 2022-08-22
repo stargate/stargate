@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 import com.apollographql.apollo.ApolloClient;
 import com.apollographql.apollo.ApolloQueryCall;
+import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.example.graphql.client.betterbotz.atomic.ProductsAndOrdersMutation;
 import com.example.graphql.client.betterbotz.orders.GetOrdersByValueQuery;
 import com.example.graphql.client.betterbotz.products.DeleteProductsMutation;
@@ -29,11 +30,8 @@ import com.example.graphql.client.betterbotz.products.InsertProductsMutation;
 import com.example.graphql.client.betterbotz.products.UpdateProductsMutation;
 import com.example.graphql.client.betterbotz.type.OrdersInput;
 import com.example.graphql.client.betterbotz.type.ProductsInput;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
-import io.stargate.bridge.grpc.Values;
-import io.stargate.bridge.proto.QueryOuterClass;
-import io.stargate.sgv2.api.common.grpc.proto.Rows;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.ApolloIntegrationTestBase;
 import io.stargate.sgv2.graphql.integration.util.CqlFirstClient;
@@ -70,7 +68,7 @@ import org.junit.jupiter.api.TestInstance;
  *       You can see generated code in `target/generated-test-sources/graphql-client`.
  * </ul>
  */
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -78,7 +76,7 @@ public class ApolloIntegrationTest extends ApolloIntegrationTestBase {
 
   @Test
   public void getOrdersByValue() throws ExecutionException, InterruptedException {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceName);
+    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
 
     OrdersInput ordersInput = OrdersInput.builder().prodName("Medium Lift Arms").build();
 
@@ -111,7 +109,7 @@ public class ApolloIntegrationTest extends ApolloIntegrationTestBase {
 
   @Test
   public void insertProducts() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceName);
+    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
 
     String productId = UUID.randomUUID().toString();
     ProductsInput input =
@@ -154,7 +152,7 @@ public class ApolloIntegrationTest extends ApolloIntegrationTestBase {
 
   @Test
   public void updateProducts() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceName);
+    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
 
     String productId = UUID.randomUUID().toString();
     ProductsInput insertInput =
@@ -205,7 +203,7 @@ public class ApolloIntegrationTest extends ApolloIntegrationTestBase {
 
   @Test
   public void updateProductsMissingIfExistsTrue() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceName);
+    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
 
     String productId = UUID.randomUUID().toString();
     ProductsInput input =
@@ -239,7 +237,7 @@ public class ApolloIntegrationTest extends ApolloIntegrationTestBase {
 
   @Test
   public void deleteProducts() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceName);
+    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
 
     String productId = UUID.randomUUID().toString();
     ProductsInput insertInput =
@@ -281,7 +279,7 @@ public class ApolloIntegrationTest extends ApolloIntegrationTestBase {
 
   @Test
   public void deleteProductsIfExistsTrue() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceName);
+    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
 
     String productId = UUID.randomUUID().toString();
     ProductsInput insertInput =
@@ -322,7 +320,7 @@ public class ApolloIntegrationTest extends ApolloIntegrationTestBase {
     String price = "123";
     String description = "desc " + id;
 
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceName);
+    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
     ProductsAndOrdersMutation mutation =
         ProductsAndOrdersMutation.builder()
             .productValue(
@@ -346,25 +344,28 @@ public class ApolloIntegrationTest extends ApolloIntegrationTestBase {
 
     getObservable(client.mutate(mutation));
 
-    QueryOuterClass.ResultSet resultSet =
-        executeCql("SELECT * FROM \"Products\" WHERE id = ?", Values.of(id)).getResultSet();
-    QueryOuterClass.Row row = resultSet.getRows(0);
-    assertThat(Rows.getString(row, "prodName", resultSet.getColumnsList())).isEqualTo(productName);
-    assertThat(Rows.getString(row, "description", resultSet.getColumnsList()))
-        .isEqualTo(description);
+    assertThat(
+            session
+                .execute(SimpleStatement.newInstance("SELECT * FROM \"Products\" WHERE id = ?", id))
+                .one())
+        .isNotNull()
+        .extracting(r -> r.getString("\"prodName\""), r -> r.getString("description"))
+        .containsExactly(productName, description);
 
-    resultSet =
-        executeCql("SELECT * FROM \"Orders\" WHERE \"prodName\" = ?", Values.of(productName))
-            .getResultSet();
-    row = resultSet.getRows(0);
-    assertThat(Rows.getString(row, "customerName", resultSet.getColumnsList())).isEqualTo(customer);
-    assertThat(Rows.getString(row, "description", resultSet.getColumnsList()))
-        .isEqualTo(description);
+    assertThat(
+            session
+                .execute(
+                    SimpleStatement.newInstance(
+                        "SELECT * FROM \"Orders\" WHERE \"prodName\" = ?", productName))
+                .one())
+        .isNotNull()
+        .extracting(r -> r.getString("\"customerName\""), r -> r.getString("description"))
+        .containsExactly(customer, description);
   }
 
   @Test
   public void invalidTypeMappingReturnsErrorResponse() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceName);
+    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
     // Expected UUID format
     GraphQLTestException ex =
         catchThrowableOfType(() -> getProduct(client, "zzz"), GraphQLTestException.class);
@@ -374,7 +375,7 @@ public class ApolloIntegrationTest extends ApolloIntegrationTestBase {
 
   @Test
   public void queryWithPaging() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceName);
+    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
 
     for (String name : Arrays.asList("a", "b", "c")) {
       insertProduct(

@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.CqlFirstIntegrationTest;
@@ -39,7 +39,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -47,7 +47,7 @@ public class ScalarsIntegrationTest extends CqlFirstIntegrationTest {
 
   @BeforeAll
   public void createSchema() {
-    executeCql(
+    session.execute(
         "CREATE TABLE IF NOT EXISTS \"Scalars\" (\n"
             + "    id uuid PRIMARY KEY,\n"
             + "    asciivalue ascii,\n"
@@ -84,7 +84,7 @@ public class ScalarsIntegrationTest extends CqlFirstIntegrationTest {
     // When writing a value of this type:
     Map<String, Object> response =
         client.executeDmlQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             String.format(
                 "mutation { updateScalars(value: {id: \"%s\", %s: %s}) { applied } }",
                 id, fieldName, graphqlValue));
@@ -93,7 +93,7 @@ public class ScalarsIntegrationTest extends CqlFirstIntegrationTest {
     // Should read back the same value:
     response =
         client.executeDmlQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             String.format("{ Scalars(value: {id: \"%s\"}) { values { %s } } }", id, fieldName));
     String fieldPath = String.format("$.Scalars.values[0].%s", fieldName);
     assertThat(JsonPath.<Object>read(response, fieldPath)).isEqualTo(value);

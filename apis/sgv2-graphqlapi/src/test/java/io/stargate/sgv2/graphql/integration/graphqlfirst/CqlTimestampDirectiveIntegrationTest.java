@@ -17,13 +17,14 @@ package io.stargate.sgv2.graphql.integration.graphqlfirst;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
-import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
 import java.time.ZonedDateTime;
+import java.util.Objects;
 import javax.enterprise.context.control.ActivateRequestContext;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,21 +32,21 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class CqlTimestampDirectiveIntegrationTest extends GraphqlFirstIntegrationTest {
 
   private Long getUserWriteTimestamp(int k) {
-    String cql = "SELECT writetime(v) FROM \"User\" WHERE k = %d ".formatted(k);
-    return Values.bigint(executeCql(cql).getResultSet().getRows(0).getValues(0));
+    ResultSet resultSet = session.execute("SELECT writetime(v) FROM \"User\" WHERE k = ? ", k);
+    return Objects.requireNonNull(resultSet.one()).getLong(0);
   }
 
   @BeforeAll
   public void deploySchema() {
     client.deploySchema(
-        keyspaceName,
+        keyspaceId.asInternal(),
         "type User @cql_input {\n"
             + "  k: Int! @cql_column(partitionKey: true)\n"
             + "  v: Int\n"
@@ -72,7 +73,7 @@ public class CqlTimestampDirectiveIntegrationTest extends GraphqlFirstIntegratio
 
   @BeforeEach
   public void cleanupData() {
-    executeCql("truncate table \"User\"");
+    session.execute("truncate table \"User\"");
   }
 
   @Test
@@ -85,7 +86,7 @@ public class CqlTimestampDirectiveIntegrationTest extends GraphqlFirstIntegratio
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             String.format(
                 "mutation { updateWithWriteTimestamp(k: 1, v: 100, write_timestamp: \"%s\" ) }",
                 writeTimestamp));
@@ -105,7 +106,7 @@ public class CqlTimestampDirectiveIntegrationTest extends GraphqlFirstIntegratio
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             String.format(
                 "mutation { insertWithWriteTimestamp(user: { k: 1, v: 100 }, write_timestamp: \"%s\" ) { \n"
                     + " applied, user { k, v } }\n"
@@ -127,7 +128,7 @@ public class CqlTimestampDirectiveIntegrationTest extends GraphqlFirstIntegratio
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             String.format(
                 "mutation { updateWithWriteTimestamp(k: 1, v: 100, write_timestamp: \"%s\" ) }",
                 writeTimestampNanos));
@@ -147,7 +148,7 @@ public class CqlTimestampDirectiveIntegrationTest extends GraphqlFirstIntegratio
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             String.format(
                 "mutation { updateWithWriteTimestamp(k: 1, v: 100, write_timestamp: \"%s\" ) }",
                 writeTimestampNanos));
@@ -166,7 +167,7 @@ public class CqlTimestampDirectiveIntegrationTest extends GraphqlFirstIntegratio
     // when
     String response =
         client.getKeyspaceError(
-            keyspaceName,
+            keyspaceId.asInternal(),
             String.format(
                 "mutation { insertWithWriteTimestamp(user: { k: 1, v: 100 }, write_timestamp: \"%s\" ) { \n"
                     + " applied, user { k, v } }\n"

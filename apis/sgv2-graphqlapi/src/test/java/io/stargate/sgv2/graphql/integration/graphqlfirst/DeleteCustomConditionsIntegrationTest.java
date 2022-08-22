@@ -17,8 +17,9 @@ package io.stargate.sgv2.graphql.integration.graphqlfirst;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
+import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
@@ -29,7 +30,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -38,7 +39,7 @@ public class DeleteCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
   @BeforeAll
   public void deploySchema() {
     client.deploySchema(
-        keyspaceName,
+        keyspaceId.asInternal(),
         "type Foo @cql_input {\n"
             + "  pk: Int! @cql_column(partitionKey: true)\n"
             + "  v: Int\n"
@@ -96,18 +97,16 @@ public class DeleteCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
 
   @BeforeEach
   public void cleanupData() {
-    executeCql("truncate table \"Foo\"");
+    session.execute("truncate table \"Foo\"");
   }
 
   private void insert(int pk, int value) {
-    executeCql("INSERT INTO \"Foo\"(pk, v) VALUES (%d, %d)".formatted(pk, value));
+    session.execute("INSERT INTO \"Foo\"(pk, v) VALUES (%d, %d)".formatted(pk, value));
   }
 
   private boolean exists(int pk) {
-    return executeCql("SELECT * FROM \"Foo\" WHERE pk = %d ".formatted(pk))
-            .getResultSet()
-            .getRowsCount()
-        > 0;
+    ResultSet resultSet = session.execute("SELECT * FROM \"Foo\" WHERE pk = ? ", pk);
+    return resultSet.one() != null;
   }
 
   @Test
@@ -118,7 +117,8 @@ public class DeleteCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
 
     // when
     Object response =
-        client.executeKeyspaceQuery(keyspaceName, "mutation { deleteFooEQ(pk: 1, v: 999) }");
+        client.executeKeyspaceQuery(
+            keyspaceId.asInternal(), "mutation { deleteFooEQ(pk: 1, v: 999) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFooEQ")).isFalse();
@@ -126,7 +126,8 @@ public class DeleteCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
 
     // when
     response =
-        client.executeKeyspaceQuery(keyspaceName, "mutation { deleteFooEQ(pk: 1, v: 1000) }");
+        client.executeKeyspaceQuery(
+            keyspaceId.asInternal(), "mutation { deleteFooEQ(pk: 1, v: 1000) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFooEQ")).isTrue();
@@ -141,14 +142,17 @@ public class DeleteCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
 
     // when
     Object response =
-        client.executeKeyspaceQuery(keyspaceName, "mutation { deleteFooGT(pk: 1, v: 100) }");
+        client.executeKeyspaceQuery(
+            keyspaceId.asInternal(), "mutation { deleteFooGT(pk: 1, v: 100) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFooGT")).isFalse();
     assertThat(exists(1)).isTrue();
 
     // when
-    response = client.executeKeyspaceQuery(keyspaceName, "mutation { deleteFooGT(pk: 1, v: 99) }");
+    response =
+        client.executeKeyspaceQuery(
+            keyspaceId.asInternal(), "mutation { deleteFooGT(pk: 1, v: 99) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFooGT")).isTrue();
@@ -163,7 +167,8 @@ public class DeleteCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
 
     // when
     Object response =
-        client.executeKeyspaceQuery(keyspaceName, "mutation { deleteFooGTE(pk: 1, v: 100) }");
+        client.executeKeyspaceQuery(
+            keyspaceId.asInternal(), "mutation { deleteFooGTE(pk: 1, v: 100) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFooGTE")).isTrue();
@@ -178,14 +183,17 @@ public class DeleteCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
 
     // when
     Object response =
-        client.executeKeyspaceQuery(keyspaceName, "mutation { deleteFooLT(pk: 1, v: 100) }");
+        client.executeKeyspaceQuery(
+            keyspaceId.asInternal(), "mutation { deleteFooLT(pk: 1, v: 100) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFooLT")).isFalse();
     assertThat(exists(1)).isTrue();
 
     // when
-    response = client.executeKeyspaceQuery(keyspaceName, "mutation { deleteFooLT(pk: 1, v: 101) }");
+    response =
+        client.executeKeyspaceQuery(
+            keyspaceId.asInternal(), "mutation { deleteFooLT(pk: 1, v: 101) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFooLT")).isTrue();
@@ -200,7 +208,8 @@ public class DeleteCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
 
     // when
     Object response =
-        client.executeKeyspaceQuery(keyspaceName, "mutation { deleteFooLTE(pk: 1, v: 100) }");
+        client.executeKeyspaceQuery(
+            keyspaceId.asInternal(), "mutation { deleteFooLTE(pk: 1, v: 100) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFooLTE")).isTrue();
@@ -215,7 +224,8 @@ public class DeleteCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
 
     // when
     Object response =
-        client.executeKeyspaceQuery(keyspaceName, "mutation { deleteFooNEQ(pk: 1, v: 100) }");
+        client.executeKeyspaceQuery(
+            keyspaceId.asInternal(), "mutation { deleteFooNEQ(pk: 1, v: 100) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFooNEQ")).isFalse();
@@ -223,7 +233,9 @@ public class DeleteCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
 
     // Deleting a non-existing row always returns true:
     // when
-    response = client.executeKeyspaceQuery(keyspaceName, "mutation { deleteFooNEQ(pk: 1, v: 99) }");
+    response =
+        client.executeKeyspaceQuery(
+            keyspaceId.asInternal(), "mutation { deleteFooNEQ(pk: 1, v: 99) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFooNEQ")).isTrue();
@@ -238,7 +250,8 @@ public class DeleteCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
 
     // when
     Object response =
-        client.executeKeyspaceQuery(keyspaceName, "mutation { deleteFooIN(pk: 1, vs: [99]) }");
+        client.executeKeyspaceQuery(
+            keyspaceId.asInternal(), "mutation { deleteFooIN(pk: 1, vs: [99]) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFooIN")).isFalse();
@@ -246,7 +259,8 @@ public class DeleteCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
 
     // when
     response =
-        client.executeKeyspaceQuery(keyspaceName, "mutation { deleteFooIN(pk: 1, vs: [99, 100]) }");
+        client.executeKeyspaceQuery(
+            keyspaceId.asInternal(), "mutation { deleteFooIN(pk: 1, vs: [99, 100]) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFooIN")).isTrue();
@@ -262,7 +276,7 @@ public class DeleteCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // When
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation { d: deleteFooWithResponsePayload(pk: 1, v: 42) {\n"
                 + "  applied, foo { v } }\n"
                 + "}");

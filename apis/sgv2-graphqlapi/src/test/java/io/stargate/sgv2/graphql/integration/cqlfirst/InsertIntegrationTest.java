@@ -18,7 +18,7 @@ package io.stargate.sgv2.graphql.integration.cqlfirst;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.BetterBotzIntegrationTestBase;
@@ -30,7 +30,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -40,7 +40,7 @@ public class InsertIntegrationTest extends BetterBotzIntegrationTestBase {
 
   @AfterEach
   public void cleanup() {
-    executeCql(String.format("DELETE FROM \"Products\" WHERE id = %s", ID));
+    session.execute(String.format("DELETE FROM \"Products\" WHERE id = %s", ID));
   }
 
   @Test
@@ -121,7 +121,7 @@ public class InsertIntegrationTest extends BetterBotzIntegrationTestBase {
       String description,
       boolean ifNotExists) {
     return client.executeDmlQuery(
-        keyspaceName,
+        keyspaceId.asInternal(),
         String.format(
             "mutation {\n"
                 + "  insertProducts(\n"
@@ -143,7 +143,7 @@ public class InsertIntegrationTest extends BetterBotzIntegrationTestBase {
 
   private Map<String, Object> selectProduct(String id) {
     return client.executeDmlQuery(
-        keyspaceName,
+        keyspaceId.asInternal(),
         String.format(
             "{\n"
                 + "  Products(\n"

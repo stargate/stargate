@@ -18,7 +18,7 @@ package io.stargate.sgv2.graphql.integration.cqlfirst;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.CqlFirstIntegrationTest;
@@ -29,7 +29,7 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -37,14 +37,14 @@ public class CollectionsIntegrationTest extends CqlFirstIntegrationTest {
 
   @BeforeAll
   public void createSchema() {
-    executeCql(
+    session.execute(
         "CREATE TABLE IF NOT EXISTS \"CollectionsSimple\" (\n"
             + "    id uuid PRIMARY KEY,\n"
             + "    \"listValue1\" frozen<list<int>>,\n"
             + "    \"setValue1\" frozen<set<text>>,\n"
             + "    \"mapValue1\" frozen<map<int, text>>,\n"
             + ")");
-    executeCql(
+    session.execute(
         "CREATE TABLE IF NOT EXISTS \"CollectionsNested\" (\n"
             + "    id uuid PRIMARY KEY,\n"
             + "    \"listValue1\" frozen<list<frozen<map<int, text>>>>,\n"
@@ -58,7 +58,7 @@ public class CollectionsIntegrationTest extends CqlFirstIntegrationTest {
     // When inserting a new row:
     Map<String, Object> response =
         client.executeDmlQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation {\n"
                 + "  insertCollectionsSimple(value: {\n"
                 + "      id: \"792d0a56-bb46-4bc2-bc41-5f4a94a83da9\"\n"
@@ -77,7 +77,7 @@ public class CollectionsIntegrationTest extends CqlFirstIntegrationTest {
             + "  CollectionsSimple(value: {id: \"792d0a56-bb46-4bc2-bc41-5f4a94a83da9\"}) {\n"
             + "    values { listValue1, setValue1, mapValue1 { key, value } }\n"
             + "  }}";
-    response = client.executeDmlQuery(keyspaceName, getQuery);
+    response = client.executeDmlQuery(keyspaceId.asInternal(), getQuery);
     List<Integer> listValue1 = JsonPath.read(response, "$.CollectionsSimple.values[0].listValue1");
     assertThat(listValue1).containsExactly(1, 2, 3);
     List<String> setValue1 = JsonPath.read(response, "$.CollectionsSimple.values[0].setValue1");
@@ -91,7 +91,7 @@ public class CollectionsIntegrationTest extends CqlFirstIntegrationTest {
     // When updating the row:
     response =
         client.executeDmlQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation {\n"
                 + "  updateCollectionsSimple(\n"
                 + "    value: {\n"
@@ -103,7 +103,7 @@ public class CollectionsIntegrationTest extends CqlFirstIntegrationTest {
     assertThat(JsonPath.<Boolean>read(response, "$.updateCollectionsSimple.applied")).isTrue();
 
     // Then the changes are reflected:
-    response = client.executeDmlQuery(keyspaceName, getQuery);
+    response = client.executeDmlQuery(keyspaceId.asInternal(), getQuery);
     listValue1 = JsonPath.read(response, "$.CollectionsSimple.values[0].listValue1");
     assertThat(listValue1).containsExactly(4, 5);
     setValue1 = JsonPath.read(response, "$.CollectionsSimple.values[0].setValue1");
@@ -118,7 +118,7 @@ public class CollectionsIntegrationTest extends CqlFirstIntegrationTest {
     // When inserting a new row:
     Map<String, Object> response =
         client.executeDmlQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation {\n"
                 + "  insertCollectionsNested(value: {\n"
                 + "      id: \"792d0a56-bb46-4bc2-bc41-5f4a94a83da9\"\n"
@@ -142,7 +142,7 @@ public class CollectionsIntegrationTest extends CqlFirstIntegrationTest {
             + "      setValue1\n"
             + "      mapValue1 { key, value { key, value } } }\n"
             + "  }}";
-    response = client.executeDmlQuery(keyspaceName, getQuery);
+    response = client.executeDmlQuery(keyspaceId.asInternal(), getQuery);
     List<List<Map<String, Object>>> listValue1 =
         JsonPath.read(response, "$.CollectionsNested.values[0].listValue1");
     assertThat(listValue1).hasSize(1);
@@ -179,7 +179,7 @@ public class CollectionsIntegrationTest extends CqlFirstIntegrationTest {
     // When inserting a new row:
     Map<String, Object> response =
         client.executeDmlQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation {\n"
                 + "  insertCollectionsSimple(value: {\n"
                 + "      id: \"792d0a56-bb46-4bc2-bc41-5f4a94a83da9\"\n"
@@ -195,7 +195,7 @@ public class CollectionsIntegrationTest extends CqlFirstIntegrationTest {
             + "  CollectionsSimple(value: {id: \"792d0a56-bb46-4bc2-bc41-5f4a94a83da9\"}) {\n"
             + "    values { listValue1, setValue1, mapValue1 { key, value } }\n"
             + "  }}";
-    response = client.executeDmlQuery(keyspaceName, getQuery);
+    response = client.executeDmlQuery(keyspaceId.asInternal(), getQuery);
     List<Integer> listValue1 = JsonPath.read(response, "$.CollectionsSimple.values[0].listValue1");
     assertThat(listValue1).isNull();
     List<String> setValue1 = JsonPath.read(response, "$.CollectionsSimple.values[0].setValue1");

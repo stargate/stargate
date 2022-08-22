@@ -35,6 +35,7 @@ import com.example.graphql.client.betterbotz.type.ProductsInput;
 import com.example.graphql.client.betterbotz.type.QueryConsistency;
 import com.example.graphql.client.betterbotz.type.QueryOptions;
 import com.example.graphql.client.betterbotz.type.UuidFilterInput;
+import io.stargate.sgv2.common.IntegrationTestUtils;
 import io.stargate.sgv2.graphql.integration.cqlfirst.ApolloIntegrationTest;
 import io.stargate.sgv2.graphql.integration.cqlfirst.InsertIntegrationTest;
 import io.stargate.sgv2.graphql.integration.cqlfirst.SelectIntegrationTest;
@@ -71,7 +72,7 @@ public abstract class ApolloIntegrationTestBase extends BetterBotzIntegrationTes
 
   @AfterEach
   public void cleanUpProducts() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceName);
+    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
 
     getProducts(client, 100, Optional.empty())
         .flatMap(GetProductsWithFilterQuery.Products::getValues)
@@ -167,7 +168,7 @@ public abstract class ApolloIntegrationTestBase extends BetterBotzIntegrationTes
   }
 
   protected OkHttpClient getHttpClient() {
-    String token = requestInfo.getCassandraToken().orElseThrow(AssertionError::new);
+    String token = IntegrationTestUtils.getAuthToken();
     return new OkHttpClient.Builder()
         .connectTimeout(Duration.ofMinutes(3))
         .callTimeout(Duration.ofMinutes(3))

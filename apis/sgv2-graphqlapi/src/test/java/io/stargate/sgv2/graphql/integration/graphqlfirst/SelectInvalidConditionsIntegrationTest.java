@@ -18,7 +18,7 @@ package io.stargate.sgv2.graphql.integration.graphqlfirst;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
@@ -30,7 +30,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -51,7 +51,7 @@ public class SelectInvalidConditionsIntegrationTest extends GraphqlFirstIntegrat
 
     // When
     List<Map<String, Object>> errors =
-        client.getDeploySchemaErrors(keyspaceName, null, invalidSchema);
+        client.getDeploySchemaErrors(keyspaceId.asInternal(), null, invalidSchema);
 
     // Then
     assertThat(errors).hasSize(1);
@@ -76,7 +76,7 @@ public class SelectInvalidConditionsIntegrationTest extends GraphqlFirstIntegrat
 
     // When
     List<Map<String, Object>> errors =
-        client.getDeploySchemaErrors(keyspaceName, null, invalidSchema);
+        client.getDeploySchemaErrors(keyspaceId.asInternal(), null, invalidSchema);
 
     // Then
     assertThat(errors).hasSize(1);
@@ -105,7 +105,7 @@ public class SelectInvalidConditionsIntegrationTest extends GraphqlFirstIntegrat
 
     // When
     List<Map<String, Object>> errors =
-        client.getDeploySchemaErrors(keyspaceName, null, invalidSchema);
+        client.getDeploySchemaErrors(keyspaceId.asInternal(), null, invalidSchema);
 
     // Then
     assertThat(errors).hasSize(1);

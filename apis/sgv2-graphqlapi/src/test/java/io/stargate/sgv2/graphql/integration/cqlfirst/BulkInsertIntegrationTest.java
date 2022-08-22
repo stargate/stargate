@@ -3,6 +3,7 @@ package io.stargate.sgv2.graphql.integration.cqlfirst;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.apollographql.apollo.ApolloClient;
+import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.example.graphql.client.betterbotz.atomic.BulkInsertProductsAndOrdersWithAtomicMutation;
 import com.example.graphql.client.betterbotz.atomic.BulkInsertProductsWithAtomicMutation;
 import com.example.graphql.client.betterbotz.atomic.InsertOrdersAndBulkInsertProductsWithAtomicMutation;
@@ -10,11 +11,8 @@ import com.example.graphql.client.betterbotz.products.BulkInsertProductsMutation
 import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery;
 import com.example.graphql.client.betterbotz.type.OrdersInput;
 import com.example.graphql.client.betterbotz.type.ProductsInput;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
-import io.stargate.bridge.grpc.Values;
-import io.stargate.bridge.proto.QueryOuterClass;
-import io.stargate.sgv2.api.common.grpc.proto.Rows;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.ApolloIntegrationTestBase;
 import io.stargate.sgv2.graphql.integration.util.CqlFirstClient;
@@ -31,7 +29,7 @@ import org.junit.jupiter.api.TestInstance;
  * TODO refactor this to use {@link CqlFirstClient} instead of extending {@link
  * ApolloIntegrationTestBase}.
  */
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -39,7 +37,7 @@ public class BulkInsertIntegrationTest extends ApolloIntegrationTestBase {
 
   @Test
   public void bulkInsertProducts() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceName);
+    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
 
     String productId1 = UUID.randomUUID().toString();
     String productId2 = UUID.randomUUID().toString();
@@ -101,7 +99,7 @@ public class BulkInsertIntegrationTest extends ApolloIntegrationTestBase {
 
   @Test
   public void bulkInsertProductsWithAtomic() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceName);
+    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
 
     String productId1 = UUID.randomUUID().toString();
     String productId2 = UUID.randomUUID().toString();
@@ -174,7 +172,7 @@ public class BulkInsertIntegrationTest extends ApolloIntegrationTestBase {
             .description(description)
             .build();
 
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceName);
+    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
     BulkInsertProductsAndOrdersWithAtomicMutation mutation =
         BulkInsertProductsAndOrdersWithAtomicMutation.builder()
             .values(Arrays.asList(product1, product2))
@@ -217,14 +215,15 @@ public class BulkInsertIntegrationTest extends ApolloIntegrationTestBase {
     assertThat(product2Result.getCreated()).hasValue(product2.created());
     assertThat(product2Result.getDescription()).hasValue(product2.description());
 
-    QueryOuterClass.ResultSet resultSet =
-        executeCql("SELECT * FROM \"Orders\" WHERE \"prodName\" = ?", Values.of(productName))
-            .getResultSet();
-    QueryOuterClass.Row row = resultSet.getRows(0);
-    assertThat(Rows.getString(row, "customerName", resultSet.getColumnsList()))
-        .isEqualTo(customerName);
-    assertThat(Rows.getString(row, "description", resultSet.getColumnsList()))
-        .isEqualTo(description);
+    assertThat(
+            session
+                .execute(
+                    SimpleStatement.newInstance(
+                        "SELECT * FROM \"Orders\" WHERE \"prodName\" = ?", productName))
+                .one())
+        .isNotNull()
+        .extracting(r -> r.getString("\"customerName\""), r -> r.getString("description"))
+        .containsExactly(customerName, description);
   }
 
   @Test
@@ -254,7 +253,7 @@ public class BulkInsertIntegrationTest extends ApolloIntegrationTestBase {
             .description(description)
             .build();
 
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceName);
+    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
     BulkInsertProductsAndOrdersWithAtomicMutation mutation =
         BulkInsertProductsAndOrdersWithAtomicMutation.builder()
             .values(productsInputs)
@@ -273,14 +272,15 @@ public class BulkInsertIntegrationTest extends ApolloIntegrationTestBase {
       assertThat(product1Result.getDescription()).hasValue(product.description());
     }
 
-    QueryOuterClass.ResultSet resultSet =
-        executeCql("SELECT * FROM \"Orders\" WHERE \"prodName\" = ?", Values.of(productName))
-            .getResultSet();
-    QueryOuterClass.Row row = resultSet.getRows(0);
-    assertThat(Rows.getString(row, "customerName", resultSet.getColumnsList()))
-        .isEqualTo(customerName);
-    assertThat(Rows.getString(row, "description", resultSet.getColumnsList()))
-        .isEqualTo(description);
+    assertThat(
+            session
+                .execute(
+                    SimpleStatement.newInstance(
+                        "SELECT * FROM \"Orders\" WHERE \"prodName\" = ?", productName))
+                .one())
+        .isNotNull()
+        .extracting(r -> r.getString("\"customerName\""), r -> r.getString("description"))
+        .containsExactly(customerName, description);
   }
 
   @Test
@@ -316,7 +316,7 @@ public class BulkInsertIntegrationTest extends ApolloIntegrationTestBase {
             .description(description)
             .build();
 
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceName);
+    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
     InsertOrdersAndBulkInsertProductsWithAtomicMutation mutation =
         InsertOrdersAndBulkInsertProductsWithAtomicMutation.builder()
             .values(Arrays.asList(product1, product2))
@@ -341,14 +341,15 @@ public class BulkInsertIntegrationTest extends ApolloIntegrationTestBase {
     assertThat(product2Result.getCreated()).hasValue(product2.created());
     assertThat(product2Result.getDescription()).hasValue(product2.description());
 
-    QueryOuterClass.ResultSet resultSet =
-        executeCql("SELECT * FROM \"Orders\" WHERE \"prodName\" = ?", Values.of(productName))
-            .getResultSet();
-    QueryOuterClass.Row row = resultSet.getRows(0);
-    assertThat(Rows.getString(row, "customerName", resultSet.getColumnsList()))
-        .isEqualTo(customerName);
-    assertThat(Rows.getString(row, "description", resultSet.getColumnsList()))
-        .isEqualTo(description);
+    assertThat(
+            session
+                .execute(
+                    SimpleStatement.newInstance(
+                        "SELECT * FROM \"Orders\" WHERE \"prodName\" = ?", productName))
+                .one())
+        .isNotNull()
+        .extracting(r -> r.getString("\"customerName\""), r -> r.getString("description"))
+        .containsExactly(customerName, description);
   }
 
   private InsertOrdersAndBulkInsertProductsWithAtomicMutation.Data

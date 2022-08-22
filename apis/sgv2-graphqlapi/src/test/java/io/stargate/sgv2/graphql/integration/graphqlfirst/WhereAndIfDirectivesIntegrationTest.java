@@ -15,18 +15,19 @@
  */
 package io.stargate.sgv2.graphql.integration.graphqlfirst;
 
-import io.quarkus.test.junit.QuarkusTest;
+import static org.assertj.core.api.Assertions.assertThat;
+
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
 import java.util.Map;
 import javax.enterprise.context.control.ActivateRequestContext;
-import org.assertj.core.api.AssertionsForClassTypes;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -40,7 +41,7 @@ public class WhereAndIfDirectivesIntegrationTest extends GraphqlFirstIntegration
     Map<String, Object> errors =
         client
             .getDeploySchemaErrors(
-                keyspaceName,
+                keyspaceId.asInternal(),
                 null,
                 "type Foo @cql_input {\n"
                     + "  pk: Int! @cql_column(partitionKey: true)\n"
@@ -66,7 +67,7 @@ public class WhereAndIfDirectivesIntegrationTest extends GraphqlFirstIntegration
             .get(0);
 
     // then
-    AssertionsForClassTypes.assertThat(getMappingErrors(errors))
+    assertThat(getMappingErrors(errors))
         .contains(
             "Operation deleteFooWhereAndIfOnTheSameField: argument v can only use one of @cql_where,@cql_if");
   }
@@ -78,7 +79,7 @@ public class WhereAndIfDirectivesIntegrationTest extends GraphqlFirstIntegration
     Map<String, Object> errors =
         client
             .getDeploySchemaErrors(
-                keyspaceName,
+                keyspaceId.asInternal(),
                 null,
                 "type Foo @cql_input {\n"
                     + "  pk: Int! @cql_column(partitionKey: true)\n"
@@ -94,7 +95,7 @@ public class WhereAndIfDirectivesIntegrationTest extends GraphqlFirstIntegration
             .get(0);
 
     // then
-    AssertionsForClassTypes.assertThat(getMappingErrors(errors))
+    assertThat(getMappingErrors(errors))
         .contains("Operation foo: @cql_if is not allowed on SELECT arguments (pk)");
   }
 }

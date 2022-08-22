@@ -17,7 +17,7 @@ package io.stargate.sgv2.graphql.integration.graphqlfirst;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
@@ -30,7 +30,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -45,7 +45,7 @@ public class FilesResourceIntegrationTest extends GraphqlFirstIntegrationTest {
 
   @BeforeAll
   public void deploySchema() {
-    DEPLOYED_SCHEMA_VERSION = client.deploySchema(keyspaceName, SCHEMA_CONTENTS);
+    DEPLOYED_SCHEMA_VERSION = client.deploySchema(keyspaceId.asInternal(), SCHEMA_CONTENTS);
     assertThat(DEPLOYED_SCHEMA_VERSION).isNotEqualTo(WRONG_SCHEMA_VERSION);
   }
 
@@ -58,8 +58,10 @@ public class FilesResourceIntegrationTest extends GraphqlFirstIntegrationTest {
   @Test
   @DisplayName("Should download schema file")
   public void schemaFile() {
-    assertThat(client.getSchemaFile(keyspaceName)).contains("type User").contains("type Query");
-    assertThat(client.getSchemaFile(keyspaceName, DEPLOYED_SCHEMA_VERSION.toString()))
+    assertThat(client.getSchemaFile(keyspaceId.asInternal()))
+        .contains("type User")
+        .contains("type Query");
+    assertThat(client.getSchemaFile(keyspaceId.asInternal(), DEPLOYED_SCHEMA_VERSION.toString()))
         .contains("type User")
         .contains("type Query");
   }
@@ -68,14 +70,15 @@ public class FilesResourceIntegrationTest extends GraphqlFirstIntegrationTest {
   @DisplayName("Should return 404 if schema file coordinates do not exist")
   public void schemaFileNotFound() {
     client.expectSchemaFileStatus("unknown_keyspace", Status.NOT_FOUND);
-    client.expectSchemaFileStatus(keyspaceName, WRONG_SCHEMA_VERSION.toString(), Status.NOT_FOUND);
+    client.expectSchemaFileStatus(
+        keyspaceId.asInternal(), WRONG_SCHEMA_VERSION.toString(), Status.NOT_FOUND);
   }
 
   @Test
   @DisplayName("Should return 400 if schema file coordinates are malformed")
   public void schemaFileMalformed() {
     client.expectSchemaFileStatus("malformed keyspace #!?", Status.BAD_REQUEST);
-    client.expectSchemaFileStatus(keyspaceName, "NOT A UUID", Status.BAD_REQUEST);
+    client.expectSchemaFileStatus(keyspaceId.asInternal(), "NOT A UUID", Status.BAD_REQUEST);
   }
 
   @Test

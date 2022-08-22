@@ -18,9 +18,8 @@ package io.stargate.sgv2.graphql.integration.graphqlfirst;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
-import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
 import java.util.List;
@@ -32,7 +31,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -41,7 +40,7 @@ public class AtomicIntegrationTest extends GraphqlFirstIntegrationTest {
   @BeforeAll
   public void deploySchema() {
     client.deploySchema(
-        keyspaceName,
+        keyspaceId.asInternal(),
         "type Foo @cql_input {\n"
             + "  k: Int @cql_column(partitionKey: true)\n"
             + "  cc: Int @cql_column(clusteringOrder: ASC)\n"
@@ -66,7 +65,7 @@ public class AtomicIntegrationTest extends GraphqlFirstIntegrationTest {
 
   @BeforeEach
   public void cleanupData() {
-    executeCql("truncate table \"Foo\"");
+    session.execute("truncate table \"Foo\"");
   }
 
   @Test
@@ -80,7 +79,7 @@ public class AtomicIntegrationTest extends GraphqlFirstIntegrationTest {
             + "}\n";
 
     // When
-    Object response = client.executeKeyspaceQuery(keyspaceName, query);
+    Object response = client.executeKeyspaceQuery(keyspaceId.asInternal(), query);
 
     // Then
     assertThat(JsonPath.<Boolean>read(response, "$.insert1.applied")).isTrue();
@@ -104,7 +103,7 @@ public class AtomicIntegrationTest extends GraphqlFirstIntegrationTest {
             + "}\n";
 
     // When
-    Object response = client.executeKeyspaceQuery(keyspaceName, query);
+    Object response = client.executeKeyspaceQuery(keyspaceId.asInternal(), query);
 
     // Then
     assertThat(JsonPath.<Boolean>read(response, "$.insertFoos[0].applied")).isTrue();
@@ -129,7 +128,7 @@ public class AtomicIntegrationTest extends GraphqlFirstIntegrationTest {
             + "}\n";
 
     // When
-    Object response = client.executeKeyspaceQuery(keyspaceName, query);
+    Object response = client.executeKeyspaceQuery(keyspaceId.asInternal(), query);
 
     // Then
     assertThat(JsonPath.<Boolean>read(response, "$.insertFoos[0].applied")).isTrue();
@@ -158,7 +157,7 @@ public class AtomicIntegrationTest extends GraphqlFirstIntegrationTest {
             + "}\n";
 
     // When
-    Object response = client.executeKeyspaceQuery(keyspaceName, query);
+    Object response = client.executeKeyspaceQuery(keyspaceId.asInternal(), query);
 
     // Then
     assertThat(JsonPath.<Boolean>read(response, "$.insert1.applied")).isTrue();
@@ -180,7 +179,7 @@ public class AtomicIntegrationTest extends GraphqlFirstIntegrationTest {
   @DisplayName("Should handle failed conditional batch with non-LWT queries")
   public void failedConditionalBatch() {
     // Given
-    executeCql("INSERT INTO \"Foo\" (k, cc, v) VALUES (1, 1, 2)");
+    session.execute("INSERT INTO \"Foo\" (k, cc, v) VALUES (1, 1, 2)");
     String query =
         "mutation @atomic {\n"
             + "  insert1: insertFooIfNotExists(foo: { k: 1, cc: 1, v: 1 }) {\n"
@@ -192,7 +191,7 @@ public class AtomicIntegrationTest extends GraphqlFirstIntegrationTest {
             + "}\n";
 
     // When
-    Object response = client.executeKeyspaceQuery(keyspaceName, query);
+    Object response = client.executeKeyspaceQuery(keyspaceId.asInternal(), query);
 
     // Then
     assertThat(JsonPath.<Boolean>read(response, "$.insert1.applied")).isFalse();
@@ -212,8 +211,8 @@ public class AtomicIntegrationTest extends GraphqlFirstIntegrationTest {
   @DisplayName("Should handle failed conditional batch when queries are not in PK order")
   public void failedConditionalBatchOutOfOrder() {
     // Given
-    executeCql("INSERT INTO \"Foo\" (k, cc, v) VALUES (1, 1, 2)");
-    executeCql("INSERT INTO \"Foo\" (k, cc, v) VALUES (1, 2, 3)");
+    session.execute("INSERT INTO \"Foo\" (k, cc, v) VALUES (1, 1, 2)");
+    session.execute("INSERT INTO \"Foo\" (k, cc, v) VALUES (1, 2, 3)");
     String query =
         "mutation @atomic {\n"
             + "  insert2: insertFooIfNotExists(foo: { k: 1, cc: 2, v: 2 }) {\n"
@@ -225,7 +224,7 @@ public class AtomicIntegrationTest extends GraphqlFirstIntegrationTest {
             + "}\n";
 
     // When
-    Object response = client.executeKeyspaceQuery(keyspaceName, query);
+    Object response = client.executeKeyspaceQuery(keyspaceId.asInternal(), query);
 
     // Then
     assertThat(JsonPath.<Boolean>read(response, "$.insert2.applied")).isFalse();
@@ -244,7 +243,7 @@ public class AtomicIntegrationTest extends GraphqlFirstIntegrationTest {
       "Should handle failed conditional batch when multiple queries operate on the same PK")
   public void failedConditionalDuplicatePks() {
     // Given
-    executeCql("INSERT INTO \"Foo\" (k, cc, v) VALUES (1, 1, 2)");
+    session.execute("INSERT INTO \"Foo\" (k, cc, v) VALUES (1, 1, 2)");
     String query =
         "mutation @atomic {\n"
             + "  insert1: insertFooIfNotExists(foo: { k: 1, cc: 1, v: 1 }) {\n"
@@ -256,7 +255,7 @@ public class AtomicIntegrationTest extends GraphqlFirstIntegrationTest {
             + "}\n";
 
     // When
-    Object response = client.executeKeyspaceQuery(keyspaceName, query);
+    Object response = client.executeKeyspaceQuery(keyspaceId.asInternal(), query);
 
     // Then
     assertThat(JsonPath.<Boolean>read(response, "$.insert1.applied")).isFalse();
@@ -282,7 +281,7 @@ public class AtomicIntegrationTest extends GraphqlFirstIntegrationTest {
             + "}\n";
 
     // When
-    List<Map<String, Object>> errors = client.getKeyspaceErrors(keyspaceName, query);
+    List<Map<String, Object>> errors = client.getKeyspaceErrors(keyspaceId.asInternal(), query);
 
     // Then
     assertThat(errors).hasSize(3);
@@ -306,7 +305,9 @@ public class AtomicIntegrationTest extends GraphqlFirstIntegrationTest {
   }
 
   private long getWriteTime(int k, int cc) {
-    String cql = "SELECT writetime(v) FROM \"Foo\" WHERE k = %d AND cc = %d".formatted(k, cc);
-    return Values.bigint(executeCql(cql).getResultSet().getRows(0).getValues(0));
+    return session
+        .execute("SELECT writetime(v) FROM \"Foo\" WHERE k = ? AND cc = ?", k, cc)
+        .one()
+        .getLong(0);
   }
 }

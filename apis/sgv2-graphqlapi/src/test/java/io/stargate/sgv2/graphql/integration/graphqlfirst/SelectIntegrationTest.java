@@ -16,10 +16,10 @@
  */
 package io.stargate.sgv2.graphql.integration.graphqlfirst;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
@@ -29,7 +29,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -38,7 +38,7 @@ public class SelectIntegrationTest extends GraphqlFirstIntegrationTest {
   @BeforeAll
   public void deploySchema() {
     client.deploySchema(
-        keyspaceName,
+        keyspaceId.asInternal(),
         "type Foo @cql_input {\n"
             + "  pk1: Int! @cql_column(partitionKey: true)\n"
             + "  pk2: Int! @cql_column(partitionKey: true)\n"
@@ -82,7 +82,7 @@ public class SelectIntegrationTest extends GraphqlFirstIntegrationTest {
 
   private void insert(int pk1, int pk2, int cc1, int cc2, int v) {
     client.executeKeyspaceQuery(
-        keyspaceName,
+        keyspaceId.asInternal(),
         String.format(
             "mutation {\n"
                 + "  result: insertFoo(foo: {pk1: %d, pk2: %d, cc1: %d, cc2: %d, v: %d}) {\n"
@@ -98,7 +98,7 @@ public class SelectIntegrationTest extends GraphqlFirstIntegrationTest {
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "query {\n"
                 + "  result: foo(pk1: 1, pk2: 2, cc1: 1, cc2: 1) {\n"
                 + "    pk1,pk2,cc1,cc2\n"
@@ -118,7 +118,7 @@ public class SelectIntegrationTest extends GraphqlFirstIntegrationTest {
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "query {\n"
                 + "  results: fooByPkAndCc1(pk1: 1, pk2: 2, cc1: 1) {\n"
                 + "    pk1,pk2,cc1,cc2\n"
@@ -136,7 +136,7 @@ public class SelectIntegrationTest extends GraphqlFirstIntegrationTest {
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "query {\n"
                 + "  results: fooByPk(pk1: 1, pk2: 2) {\n"
                 + "    pk1,pk2,cc1,cc2\n"
@@ -162,7 +162,7 @@ public class SelectIntegrationTest extends GraphqlFirstIntegrationTest {
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "query {\n"
                 + "  results: fooByPkLimit(pk1: 1, pk2: 2) {\n"
                 + "    pk1,pk2,cc1,cc2\n"
@@ -184,7 +184,7 @@ public class SelectIntegrationTest extends GraphqlFirstIntegrationTest {
   public void selectFullPartitionWithPagination() {
     Object page1 =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "query {\n"
                 + "  results: fooByPkPaginated(pk1: 1, pk2: 2) {\n"
                 + "    data { pk1, pk2, cc1, cc2 }\n"
@@ -204,7 +204,7 @@ public class SelectIntegrationTest extends GraphqlFirstIntegrationTest {
 
     Object page2 =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             String.format(
                 "query {\n"
                     + "  results: fooByPkPaginated(pk1: 1, pk2: 2, pagingState: \"%s\") {\n"
@@ -226,7 +226,7 @@ public class SelectIntegrationTest extends GraphqlFirstIntegrationTest {
   @Test
   @DisplayName("Should fail if not all partition keys are present")
   public void selectWithMissingPartitionKey() {
-    assertThat(client.getKeyspaceError(keyspaceName, "{ fooByPk(pk1: 1) { pk1 } }"))
+    assertThat(client.getKeyspaceError(keyspaceId.asInternal(), "{ fooByPk(pk1: 1) { pk1 } }"))
         .contains(
             "Invalid arguments: every partition key field of type Foo must be present "
                 + "(expected: pk1, pk2)");
@@ -235,7 +235,9 @@ public class SelectIntegrationTest extends GraphqlFirstIntegrationTest {
   @Test
   @DisplayName("Should fail if partial primary key is not a prefix")
   public void selectByPartialPrimaryKeyNotPrefix() {
-    assertThat(client.getKeyspaceError(keyspaceName, "{ foo(pk1: 1, pk2: 2, cc2: 1) { pk1 } }"))
+    assertThat(
+            client.getKeyspaceError(
+                keyspaceId.asInternal(), "{ foo(pk1: 1, pk2: 2, cc2: 1) { pk1 } }"))
         .contains(
             "Invalid arguments: clustering field cc1 is not restricted by EQ or IN, "
                 + "so no other clustering field after it can be restricted (offending: cc2).");
@@ -247,7 +249,7 @@ public class SelectIntegrationTest extends GraphqlFirstIntegrationTest {
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName, "query { results: fooByV(v: 1) { pk1,pk2,cc1,cc2 } }");
+            keyspaceId.asInternal(), "query { results: fooByV(v: 1) { pk1,pk2,cc1,cc2 } }");
 
     // then
     assertResults(
@@ -264,7 +266,7 @@ public class SelectIntegrationTest extends GraphqlFirstIntegrationTest {
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "query { results: fooByPkAndV(pk1: 1, pk2: 2, v: 1) { pk1,pk2,cc1,cc2 } }");
 
     // then
@@ -279,7 +281,9 @@ public class SelectIntegrationTest extends GraphqlFirstIntegrationTest {
   @Test
   @DisplayName("Should fail with partial partition key and index")
   public void selectByPartialPartitionKeyAndIndex() {
-    assertThat(client.getKeyspaceError(keyspaceName, "{ fooByPkAndV(pk1: 1, v: 1) { pk1 } }"))
+    assertThat(
+            client.getKeyspaceError(
+                keyspaceId.asInternal(), "{ fooByPkAndV(pk1: 1, v: 1) { pk1 } }"))
         .contains(
             "Invalid arguments: when an indexed field is present, either none or all "
                 + "of the partition key fields must be present (expected pk1, pk2).");

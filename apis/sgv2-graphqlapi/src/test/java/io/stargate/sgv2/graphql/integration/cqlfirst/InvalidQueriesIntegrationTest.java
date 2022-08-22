@@ -18,7 +18,7 @@ package io.stargate.sgv2.graphql.integration.cqlfirst;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.CqlFirstIntegrationTest;
@@ -30,7 +30,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -38,14 +38,14 @@ public class InvalidQueriesIntegrationTest extends CqlFirstIntegrationTest {
 
   @BeforeAll
   public void createSchema() {
-    executeCql("CREATE TABLE \"Foo\"(k int PRIMARY KEY, v int)");
+    session.execute("CREATE TABLE \"Foo\"(k int PRIMARY KEY, v int)");
   }
 
   @ParameterizedTest
   @MethodSource("dmlErrors")
   @DisplayName("Should return expected error for bad DML query")
   public void ddlQuery(String query, String expectedError) {
-    assertThat(client.getDmlQueryError(keyspaceName, query)).contains(expectedError);
+    assertThat(client.getDmlQueryError(keyspaceId.asInternal(), query)).contains(expectedError);
   }
 
   @SuppressWarnings("unused") // referenced by @MethodSource

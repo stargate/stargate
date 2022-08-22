@@ -17,9 +17,8 @@ package io.stargate.sgv2.graphql.integration.cqlfirst;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
-import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.CqlFirstIntegrationTest;
 import javax.enterprise.context.control.ActivateRequestContext;
@@ -28,7 +27,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -36,7 +35,7 @@ public class AtomicBulkInsertIntegrationTest extends CqlFirstIntegrationTest {
 
   @BeforeAll
   public void createSchema() {
-    executeCql("CREATE TABLE foo(k int, cc int, v int, PRIMARY KEY (k, cc))");
+    session.execute("CREATE TABLE foo(k int, cc int, v int, PRIMARY KEY (k, cc))");
   }
 
   @Test
@@ -51,23 +50,15 @@ public class AtomicBulkInsertIntegrationTest extends CqlFirstIntegrationTest {
             + "}";
 
     // When
-    client.executeDmlQuery(keyspaceName, query);
+    client.executeDmlQuery(keyspaceId.asInternal(), query);
 
     // Then
     // The write times can only be equal if the CQL queries have been executed atomically.
     // Otherwise, Cassandra will always order one before the other.
     long writetime1 =
-        Values.bigint(
-            executeCql("SELECT writetime(v) FROM foo WHERE k = 1 and cc = 1")
-                .getResultSet()
-                .getRows(0)
-                .getValues(0));
+        session.execute("SELECT writetime(v) FROM foo WHERE k = 1 and cc = 1").one().getLong(0);
     long writetime2 =
-        Values.bigint(
-            executeCql("SELECT writetime(v) FROM foo WHERE k = 1 and cc = 2")
-                .getResultSet()
-                .getRows(0)
-                .getValues(0));
+        session.execute("SELECT writetime(v) FROM foo WHERE k = 1 and cc = 2").one().getLong(0);
     assertThat(writetime1).isEqualTo(writetime2);
   }
 }

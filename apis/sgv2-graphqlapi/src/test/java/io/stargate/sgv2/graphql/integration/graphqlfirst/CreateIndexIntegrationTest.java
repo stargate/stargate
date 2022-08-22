@@ -16,10 +16,13 @@
 package io.stargate.sgv2.graphql.integration.graphqlfirst;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.fail;
 
-import io.quarkus.test.junit.QuarkusTest;
+import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.CqlSession;
+import com.datastax.oss.driver.api.core.metadata.schema.IndexMetadata;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
-import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
 import java.util.UUID;
@@ -29,7 +32,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -37,11 +40,12 @@ public class CreateIndexIntegrationTest extends GraphqlFirstIntegrationTest {
 
   private static final String SAI_INDEX_CLASS_NAME =
       "org.apache.cassandra.index.sai.StorageAttachedIndex";
+  private static final CqlIdentifier USER_TABLE_ID = CqlIdentifier.fromInternal("User");
 
   @AfterEach
   public void cleanup() {
     deleteAllGraphqlSchemas();
-    executeCql("DROP TABLE IF EXISTS \"User\"");
+    session.execute("DROP TABLE IF EXISTS \"User\"");
   }
 
   @Test
@@ -54,9 +58,10 @@ public class CreateIndexIntegrationTest extends GraphqlFirstIntegrationTest {
             + "  name: String @cql_index\n"
             + "}\n"
             + "type Query { user(id: ID!): User }";
-    Schema.CqlIndex index = deploySchemaAndGetIndex(schema, "User_name_idx");
+    CqlIdentifier indexId = CqlIdentifier.fromInternal("User_name_idx");
+    IndexMetadata index = deploySchemaAndGetIndex(keyspaceId, schema, indexId, session);
 
-    assertThat(index.getColumnName()).isEqualTo("name");
+    assertThat(index.getTarget()).isEqualTo("name");
     assertDefaultOrSai(index, "name");
   }
 
@@ -70,7 +75,8 @@ public class CreateIndexIntegrationTest extends GraphqlFirstIntegrationTest {
             + "  name: String @cql_index(name: \"myIndex\")\n"
             + "}\n"
             + "type Query { user(id: ID!): User }";
-    Schema.CqlIndex index = deploySchemaAndGetIndex(schema, "myIndex");
+    CqlIdentifier indexId = CqlIdentifier.fromInternal("myIndex");
+    IndexMetadata index = deploySchemaAndGetIndex(keyspaceId, schema, indexId, session);
 
     assertDefaultOrSai(index, "name");
   }
@@ -88,13 +94,13 @@ public class CreateIndexIntegrationTest extends GraphqlFirstIntegrationTest {
             + "                          options: \"'mode': 'CONTAINS'\")\n"
             + "}\n"
             + "type Query { user(id: ID!): User }";
-    Schema.CqlIndex index = deploySchemaAndGetIndex(schema, "User_name_idx");
+    CqlIdentifier indexId = CqlIdentifier.fromInternal("User_name_idx");
+    IndexMetadata index = deploySchemaAndGetIndex(keyspaceId, schema, indexId, session);
 
-    assertThat(index.getColumnName()).isEqualTo("name");
-    assertThat(index.getCustom()).isTrue();
-    assertThat(index.getIndexingClass().getValue())
-        .contains("org.apache.cassandra.index.sasi.SASIIndex");
-    assertThat(index.getOptionsMap())
+    assertThat(index.getTarget()).isEqualTo("name");
+    assertThat(index.getKind()).isEqualTo(IndexKind.CUSTOM);
+    assertThat(index.getClassName()).contains("org.apache.cassandra.index.sasi.SASIIndex");
+    assertThat(index.getOptions())
         .hasSize(3)
         .containsEntry("target", "name")
         .containsEntry("class_name", "org.apache.cassandra.index.sasi.SASIIndex")
@@ -111,9 +117,10 @@ public class CreateIndexIntegrationTest extends GraphqlFirstIntegrationTest {
             + "  names: [String] @cql_index(target: VALUES)\n"
             + "}\n"
             + "type Query { user(id: ID!): User }";
-    Schema.CqlIndex index = deploySchemaAndGetIndex(schema, "User_names_idx");
+    CqlIdentifier indexId = CqlIdentifier.fromInternal("User_names_idx");
+    IndexMetadata index = deploySchemaAndGetIndex(keyspaceId, schema, indexId, session);
 
-    assertDefaultOrSai(index, "names");
+    assertDefaultOrSai(index, "values(names)");
   }
 
   @Test
@@ -125,7 +132,7 @@ public class CreateIndexIntegrationTest extends GraphqlFirstIntegrationTest {
             + "  name: String @cql_index(target: VALUES)\n"
             + "}\n"
             + "type Query { user(id: ID!): User }";
-    String error = client.getDeploySchemaError(keyspaceName, null, schema);
+    String error = client.getDeploySchemaError(keyspaceId.asInternal(), null, schema);
     assertThat(error).contains("The GraphQL schema that you provided contains CQL mapping errors");
   }
 
@@ -134,7 +141,7 @@ public class CreateIndexIntegrationTest extends GraphqlFirstIntegrationTest {
   public void createIndexExistingTable() {
     UUID version1 =
         client.deploySchema(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "type User {\n"
                 + "  id: ID!\n"
                 + "  name: String\n"
@@ -147,48 +154,57 @@ public class CreateIndexIntegrationTest extends GraphqlFirstIntegrationTest {
             + "  name: String @cql_index\n"
             + "}\n"
             + "type Query { user(id: ID!): User }";
-    Schema.CqlIndex index = deploySchemaAndGetIndex(version1, newSchema, "User_name_idx");
+    CqlIdentifier indexId = CqlIdentifier.fromInternal("User_name_idx");
+    IndexMetadata index =
+        deploySchemaAndGetIndex(keyspaceId, version1, newSchema, indexId, session);
 
     assertDefaultOrSai(index, "name");
   }
 
-  private Schema.CqlIndex deploySchemaAndGetIndex(String schema, String indexName) {
-    return deploySchemaAndGetIndex(null, schema, indexName);
+  private IndexMetadata deploySchemaAndGetIndex(
+      CqlIdentifier keyspaceId, String schema, CqlIdentifier indexId, CqlSession session) {
+    return deploySchemaAndGetIndex(keyspaceId, null, schema, indexId, session);
   }
 
-  private Schema.CqlIndex deploySchemaAndGetIndex(
-      UUID expectedVersion, String schema, String indexName) {
+  private IndexMetadata deploySchemaAndGetIndex(
+      CqlIdentifier keyspaceId,
+      UUID expectedVersion,
+      String schema,
+      CqlIdentifier indexId,
+      CqlSession session) {
     client.deploySchema(
-        keyspaceName, expectedVersion == null ? null : expectedVersion.toString(), schema);
-    Schema.CqlKeyspaceDescribe keyspace =
-        bridge
-            .describeKeyspace(
-                Schema.DescribeKeyspaceQuery.newBuilder().setKeyspaceName(keyspaceName).build())
-            .await()
-            .indefinitely();
-    Schema.CqlTable table =
-        keyspace.getTablesList().stream()
-            .filter(t -> t.getName().equals("User"))
-            .findFirst()
-            .orElseThrow(AssertionError::new);
-    return table.getIndexesList().stream()
-        .filter(i -> i.getName().equals(indexName))
-        .findFirst()
+        keyspaceId.asInternal(),
+        expectedVersion == null ? null : expectedVersion.toString(),
+        schema);
+    return session
+        .refreshSchema()
+        .getKeyspace(keyspaceId)
+        .flatMap(k -> k.getTable(USER_TABLE_ID))
+        .flatMap(
+            t -> {
+              return t.getIndex(indexId);
+            })
         .orElseThrow(AssertionError::new);
   }
 
   // Some storage backends default to SAI instead of regular secondary when no class name is
   // specified. Handle both so that the test can run everywhere.
-  private void assertDefaultOrSai(Schema.CqlIndex index, String expectedTarget) {
-    System.out.println(">>> Options: " + index.getOptionsMap());
-    assertThat(index.getColumnName()).isEqualTo(expectedTarget);
-    if (index.getCustom()) {
-      assertThat(index.getIndexingClass().getValue()).contains(SAI_INDEX_CLASS_NAME);
-      assertThat(index.getOptionsMap())
-          .hasSize(1)
-          .containsEntry("class_name", SAI_INDEX_CLASS_NAME);
-    } else {
-      assertThat(index.hasIndexingClass()).isFalse();
+  private void assertDefaultOrSai(IndexMetadata index, String expectedTarget) {
+    assertThat(index.getTarget()).isEqualTo(expectedTarget);
+    switch (index.getKind()) {
+      case COMPOSITES:
+        assertThat(index.getClassName()).isEmpty();
+        assertThat(index.getOptions()).hasSize(1).containsEntry("target", expectedTarget);
+        break;
+      case CUSTOM:
+        assertThat(index.getClassName()).contains(SAI_INDEX_CLASS_NAME);
+        assertThat(index.getOptions())
+            .hasSize(2)
+            .containsEntry("target", expectedTarget)
+            .containsEntry("class_name", SAI_INDEX_CLASS_NAME);
+        break;
+      default:
+        fail("Unexpected index kind %s".formatted(index.getKind()));
     }
   }
 }

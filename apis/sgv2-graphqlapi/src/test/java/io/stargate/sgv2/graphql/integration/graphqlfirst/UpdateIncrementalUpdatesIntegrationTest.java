@@ -17,15 +17,16 @@ package io.stargate.sgv2.graphql.integration.graphqlfirst;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
-import io.stargate.bridge.grpc.Values;
-import io.stargate.bridge.proto.QueryOuterClass;
-import io.stargate.sgv2.api.common.grpc.proto.Rows;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
-import java.util.List;
+import java.util.Arrays;
+import java.util.Collections;
 import javax.enterprise.context.control.ActivateRequestContext;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,27 +34,20 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class UpdateIncrementalUpdatesIntegrationTest extends GraphqlFirstIntegrationTest {
 
-  private long getCounter(int k, String columnName) {
-    QueryOuterClass.ResultSet resultSet =
-        executeCql("SELECT * FROM \"Counters\" WHERE k = %d".formatted(k)).getResultSet();
-    return Rows.getBigint(resultSet.getRows(0), columnName, resultSet.getColumnsList());
+  private Row getCounterRow(int k) {
+    ResultSet resultSet = session.execute("SELECT * FROM \"Counters\" WHERE k = ? ", k);
+    return resultSet.one();
   }
 
-  private List<Long> getCounterList(int k, String columnName) {
-    QueryOuterClass.ResultSet resultSet =
-        executeCql("SELECT * FROM \"ListCounters\" WHERE k = %d".formatted(k)).getResultSet();
-    return Rows.getValue(resultSet.getRows(0), columnName, resultSet.getColumnsList())
-        .getCollection()
-        .getElementsList()
-        .stream()
-        .map(Values::bigint)
-        .toList();
+  private Row getListCounterRow(int k) {
+    ResultSet resultSet = session.execute("SELECT * FROM \"ListCounters\" WHERE k = ? ", k);
+    return resultSet.one();
   }
 
   @BeforeAll
@@ -61,7 +55,7 @@ public class UpdateIncrementalUpdatesIntegrationTest extends GraphqlFirstIntegra
     // we need a dedicated table for counter because:
     // "Cannot mix counter and non counter columns in the same table"
     client.deploySchema(
-        keyspaceName,
+        keyspaceId.asInternal(),
         "type Counters @cql_input {\n"
             + "  k: Int! @cql_column(partitionKey: true)\n"
             + "  c: Counter\n"
@@ -99,8 +93,8 @@ public class UpdateIncrementalUpdatesIntegrationTest extends GraphqlFirstIntegra
 
   @BeforeEach
   public void cleanupData() {
-    executeCql("truncate table \"Counters\"");
-    executeCql("truncate table \"ListCounters\"");
+    session.execute("truncate table \"Counters\"");
+    session.execute("truncate table \"ListCounters\"");
   }
 
   @Test
@@ -109,19 +103,19 @@ public class UpdateIncrementalUpdatesIntegrationTest extends GraphqlFirstIntegra
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName, "mutation { updateCountersIncrement(k: 1, cInc: 2) }");
+            keyspaceId.asInternal(), "mutation { updateCountersIncrement(k: 1, cInc: 2) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.updateCountersIncrement")).isTrue();
-    assertThat(getCounter(1, "c")).isEqualTo(2);
+    assertThat(getCounterRow(1).get("c", TypeCodecs.COUNTER)).isEqualTo(2);
 
     // when
     response =
         client.executeKeyspaceQuery(
-            keyspaceName, "mutation { updateCountersIncrement(k: 1, cInc: 10) }");
+            keyspaceId.asInternal(), "mutation { updateCountersIncrement(k: 1, cInc: 10) }");
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.updateCountersIncrement")).isTrue();
-    assertThat(getCounter(1, "c")).isEqualTo(12);
+    assertThat(getCounterRow(1).get("c", TypeCodecs.COUNTER)).isEqualTo(12);
   }
 
   @Test
@@ -130,21 +124,25 @@ public class UpdateIncrementalUpdatesIntegrationTest extends GraphqlFirstIntegra
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName, "mutation { updateTwoCountersIncrement(k: 1, cInc: 2, cInc2: 4) }");
+            keyspaceId.asInternal(),
+            "mutation { updateTwoCountersIncrement(k: 1, cInc: 2, cInc2: 4) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.updateTwoCountersIncrement")).isTrue();
-    assertThat(getCounter(1, "c")).isEqualTo(2);
-    assertThat(getCounter(1, "c2")).isEqualTo(4);
+    Row row = getCounterRow(1);
+    assertThat(row.get("c", TypeCodecs.COUNTER)).isEqualTo(2);
+    assertThat(getCounterRow(1).get("c2", TypeCodecs.COUNTER)).isEqualTo(4);
 
     // when
     response =
         client.executeKeyspaceQuery(
-            keyspaceName, "mutation { updateTwoCountersIncrement(k: 1, cInc: 10, cInc2: 12) }");
+            keyspaceId.asInternal(),
+            "mutation { updateTwoCountersIncrement(k: 1, cInc: 10, cInc2: 12) }");
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.updateTwoCountersIncrement")).isTrue();
-    assertThat(getCounter(1, "c")).isEqualTo(12);
-    assertThat(getCounter(1, "c2")).isEqualTo(16);
+    row = getCounterRow(1);
+    assertThat(row.get("c", TypeCodecs.COUNTER)).isEqualTo(12);
+    assertThat(row.get("c2", TypeCodecs.COUNTER)).isEqualTo(16);
   }
 
   @Test
@@ -154,19 +152,19 @@ public class UpdateIncrementalUpdatesIntegrationTest extends GraphqlFirstIntegra
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName, "mutation { updateCountersIncrement(k: 1, cInc: 2) }");
+            keyspaceId.asInternal(), "mutation { updateCountersIncrement(k: 1, cInc: 2) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.updateCountersIncrement")).isTrue();
-    assertThat(getCounter(1, "c")).isEqualTo(2);
+    assertThat(getCounterRow(1).get("c", TypeCodecs.COUNTER)).isEqualTo(2);
 
     // when
     response =
         client.executeKeyspaceQuery(
-            keyspaceName, "mutation { updateCountersIncrement(k: 1, cInc: -1) }");
+            keyspaceId.asInternal(), "mutation { updateCountersIncrement(k: 1, cInc: -1) }");
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.updateCountersIncrement")).isTrue();
-    assertThat(getCounter(1, "c")).isEqualTo(1);
+    assertThat(getCounterRow(1).get("c", TypeCodecs.COUNTER)).isEqualTo(1);
   }
 
   @Test
@@ -174,17 +172,20 @@ public class UpdateIncrementalUpdatesIntegrationTest extends GraphqlFirstIntegra
   public void testUpdateListAppend() {
     // when
     Object response =
-        client.executeKeyspaceQuery(keyspaceName, "mutation { appendList(k: 1, l: 2) }");
+        client.executeKeyspaceQuery(keyspaceId.asInternal(), "mutation { appendList(k: 1, l: 2) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.appendList")).isTrue();
-    assertThat(getCounterList(1, "l")).containsExactly(2L);
+    assertThat(getListCounterRow(1).getList("l", Integer.class))
+        .isEqualTo(Collections.singletonList(2));
 
     // when
-    response = client.executeKeyspaceQuery(keyspaceName, "mutation { appendList(k: 1, l: 10) }");
+    response =
+        client.executeKeyspaceQuery(
+            keyspaceId.asInternal(), "mutation { appendList(k: 1, l: 10) }");
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.appendList")).isTrue();
-    assertThat(getCounterList(1, "l")).containsExactly(2L, 10L);
+    assertThat(getListCounterRow(1).getList("l", Integer.class)).isEqualTo(Arrays.asList(2, 10));
   }
 
   @Test
@@ -192,16 +193,20 @@ public class UpdateIncrementalUpdatesIntegrationTest extends GraphqlFirstIntegra
   public void testUpdateListPrepend() {
     // when
     Object response =
-        client.executeKeyspaceQuery(keyspaceName, "mutation { prependList(k: 1, l: 2) }");
+        client.executeKeyspaceQuery(
+            keyspaceId.asInternal(), "mutation { prependList(k: 1, l: 2) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.prependList")).isTrue();
-    assertThat(getCounterList(1, "l")).containsExactly(2L);
+    assertThat(getListCounterRow(1).getList("l", Integer.class))
+        .isEqualTo(Collections.singletonList(2));
 
     // when
-    response = client.executeKeyspaceQuery(keyspaceName, "mutation { prependList(k: 1, l: 10) }");
+    response =
+        client.executeKeyspaceQuery(
+            keyspaceId.asInternal(), "mutation { prependList(k: 1, l: 10) }");
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.prependList")).isTrue();
-    assertThat(getCounterList(1, "l")).containsExactly(10L, 2L);
+    assertThat(getListCounterRow(1).getList("l", Integer.class)).isEqualTo(Arrays.asList(10, 2));
   }
 }

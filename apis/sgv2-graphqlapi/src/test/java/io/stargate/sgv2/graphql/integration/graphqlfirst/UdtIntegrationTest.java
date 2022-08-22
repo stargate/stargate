@@ -15,22 +15,25 @@
  */
 package io.stargate.sgv2.graphql.integration.graphqlfirst;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.collect.ImmutableMap;
+import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
+import com.datastax.oss.driver.api.core.type.UserDefinedType;
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
-import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
+import java.util.Arrays;
+import java.util.Optional;
 import javax.enterprise.context.control.ActivateRequestContext;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -39,7 +42,7 @@ public class UdtIntegrationTest extends GraphqlFirstIntegrationTest {
   @BeforeAll
   public void deploySchema() {
     client.deploySchema(
-        keyspaceName,
+        keyspaceId.asInternal(),
         "type Key @cql_entity(target: UDT) @cql_input {\n"
             + "  k: Int\n"
             + "}\n"
@@ -68,14 +71,23 @@ public class UdtIntegrationTest extends GraphqlFirstIntegrationTest {
             + "  ): [Foo]\n"
             + "}\n");
 
+    Optional<KeyspaceMetadata> keyspace = session.refreshSchema().getKeyspace(keyspaceId);
+    UserDefinedType keyType =
+        keyspace
+            .flatMap(ks -> ks.getUserDefinedType(CqlIdentifier.fromInternal("Key")))
+            .orElseThrow(AssertionError::new);
+    UserDefinedType valueType =
+        keyspace
+            .flatMap(ks -> ks.getUserDefinedType(CqlIdentifier.fromInternal("Value")))
+            .orElseThrow(AssertionError::new);
     // Just insert one row. We just want to check that the queries run and things get serialized and
     // deserialized correctly, we're not testing the backend.
-    executeCql(
+    session.execute(
         "INSERT INTO \"Foo\"(k, v, vs1, vs2) VALUES(?, ?, ?, ?)",
-        Values.udtOf(ImmutableMap.of("k", Values.of(1))),
-        Values.udtOf(ImmutableMap.of("v", Values.of(2))),
-        Values.of(Values.udtOf(ImmutableMap.of("v", Values.of(3)))),
-        Values.of(Values.udtOf(ImmutableMap.of("v", Values.of(4)))));
+        keyType.newValue(1),
+        valueType.newValue(2),
+        Arrays.asList(valueType.newValue(3)),
+        Arrays.asList(valueType.newValue(4)));
   }
 
   @Test
@@ -83,7 +95,8 @@ public class UdtIntegrationTest extends GraphqlFirstIntegrationTest {
   public void queryByPrimaryKey() {
     // when
     Object response =
-        client.executeKeyspaceQuery(keyspaceName, "query { result: foo(k: {k: 1}) { k { k } } }");
+        client.executeKeyspaceQuery(
+            keyspaceId.asInternal(), "query { result: foo(k: {k: 1}) { k { k } } }");
 
     // then
     assertThat(JsonPath.<Integer>read(response, "$.result.k.k")).isEqualTo(1);
@@ -95,7 +108,7 @@ public class UdtIntegrationTest extends GraphqlFirstIntegrationTest {
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName, "query { result: foosByV(v: {v: 2}) { k { k } } }");
+            keyspaceId.asInternal(), "query { result: foosByV(v: {v: 2}) { k { k } } }");
 
     // then
     assertThat(JsonPath.<Integer>read(response, "$.result[0].k.k")).isEqualTo(1);
@@ -107,7 +120,7 @@ public class UdtIntegrationTest extends GraphqlFirstIntegrationTest {
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName, "query { result: foosByVs1(v: {v: 3}) { k { k } } }");
+            keyspaceId.asInternal(), "query { result: foosByVs1(v: {v: 3}) { k { k } } }");
 
     // then
     assertThat(JsonPath.<Integer>read(response, "$.result[0].k.k")).isEqualTo(1);
@@ -119,7 +132,7 @@ public class UdtIntegrationTest extends GraphqlFirstIntegrationTest {
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName, "query { result: foosByVs2(vs2: [{v: 4}]) { k { k } } }");
+            keyspaceId.asInternal(), "query { result: foosByVs2(vs2: [{v: 4}]) { k { k } } }");
 
     // then
     assertThat(JsonPath.<Integer>read(response, "$.result[0].k.k")).isEqualTo(1);

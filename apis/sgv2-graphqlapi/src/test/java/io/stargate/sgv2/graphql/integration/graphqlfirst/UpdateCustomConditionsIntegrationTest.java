@@ -17,13 +17,14 @@ package io.stargate.sgv2.graphql.integration.graphqlfirst;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.datastax.oss.driver.api.core.cql.ResultSet;
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
-import io.stargate.bridge.proto.QueryOuterClass;
-import io.stargate.sgv2.api.common.grpc.proto.Rows;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
+import java.util.Objects;
 import javax.enterprise.context.control.ActivateRequestContext;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,30 +32,26 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrationTest {
 
   private String getUserName(int pk) {
-    QueryOuterClass.ResultSet resultSet =
-        executeCql("SELECT * FROM \"User\" WHERE pk = %d".formatted(pk)).getResultSet();
-    return Rows.getString(resultSet.getRows(0), "username", resultSet.getColumnsList());
+    ResultSet resultSet = session.execute("SELECT * FROM \"User\" WHERE pk = ? ", pk);
+    return Objects.requireNonNull(resultSet.one()).getString("username");
   }
 
-  private void assertNoUserRow(int pk) {
-    assertThat(
-            executeCql("SELECT * FROM \"User\" WHERE pk = %d".formatted(pk))
-                .getResultSet()
-                .getRowsCount())
-        .isEqualTo(0);
+  private Row getUserRow(int pk) {
+    ResultSet resultSet = session.execute("SELECT * FROM \"User\" WHERE pk = ? ", pk);
+    return resultSet.one();
   }
 
   @BeforeAll
   public void deploySchema() {
     client.deploySchema(
-        keyspaceName,
+        keyspaceId.asInternal(),
         "type User @cql_input {\n"
             + "  pk: Int! @cql_column(partitionKey: true)\n"
             + "  username: String"
@@ -113,7 +110,7 @@ public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
 
   @BeforeEach
   public void cleanupData() {
-    executeCql("truncate table \"User\"");
+    session.execute("truncate table \"User\"");
   }
 
   @Test
@@ -126,7 +123,8 @@ public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName, "mutation { updateUserWherePkIn(pks: [1,2], username: \"Pat\") }");
+            keyspaceId.asInternal(),
+            "mutation { updateUserWherePkIn(pks: [1,2], username: \"Pat\") }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.updateUserWherePkIn")).isTrue();
@@ -143,7 +141,7 @@ public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation { updateUserIfAgeEQ(pk: 1, age: 100, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
@@ -160,7 +158,7 @@ public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when
     response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation { updateUserIfAgeEQ(pk: 1, age: 18, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
@@ -184,7 +182,7 @@ public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation { updateUserIfAgeNEQ(pk: 1, age: 18, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
@@ -201,7 +199,7 @@ public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when
     response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation { updateUserIfAgeNEQ(pk: 1, age: 19, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
@@ -225,7 +223,7 @@ public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation { updateUserIfAgeGT(pk: 1, age: 100, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
@@ -242,7 +240,7 @@ public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when
     response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation { updateUserIfAgeGT(pk: 1, age: 17, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
@@ -266,7 +264,7 @@ public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation { updateUserIfAgeGTE(pk: 1, age: 19, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
@@ -283,7 +281,7 @@ public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when
     response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation { updateUserIfAgeGTE(pk: 1, age: 18, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
@@ -307,7 +305,7 @@ public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation { updateUserIfAgeLT(pk: 1, age: 18, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
@@ -324,7 +322,7 @@ public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when
     response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation { updateUserIfAgeLT(pk: 1, age: 19, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
@@ -348,7 +346,7 @@ public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation { updateUserIfAgeLTE(pk: 1, age: 17, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
@@ -365,7 +363,7 @@ public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when
     response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation { updateUserIfAgeLTE(pk: 1, age: 18, username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
@@ -386,12 +384,12 @@ public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation { updateUserIfExists(user: { pk: 1, age: 100, username: \"John\" } ) {applied} }");
 
     // then should not update user, because it does not exists
     assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfExists.applied")).isFalse();
-    assertNoUserRow(1);
+    assertThat(getUserRow(1)).isNull();
 
     // given inserted user
     updateUser(1, 100, "Max");
@@ -399,7 +397,7 @@ public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when update existing user
     response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation { updateUserIfExists(user: { pk: 1, age: 18,  username: \"John\" } ) {applied} }");
 
     // then should update the user
@@ -413,13 +411,13 @@ public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation { updateUserIfExistsCustomPayload(user: { pk: 1, age: 100, username: \"John\" } ) {applied} }");
 
     // then should not update user, because it does not exists
     assertThat(JsonPath.<Boolean>read(response, "$.updateUserIfExistsCustomPayload.applied"))
         .isFalse();
-    assertNoUserRow(1);
+    assertThat(getUserRow(1)).isNull();
 
     // given inserted user
     updateUser(1, 100, "Max");
@@ -427,7 +425,7 @@ public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when update existing user
     response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation { updateUserIfExistsCustomPayload(user: { pk: 1, age: 18,  username: \"John\" } ) {applied} }");
 
     // then should update the user
@@ -445,7 +443,7 @@ public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation { updateUserIfAgeIN(pk: 1, ages: [100], username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
@@ -462,7 +460,7 @@ public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when
     response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation { updateUserIfAgeIN(pk: 1, ages: [18], username: \"John\") { \n"
                 + "    applied"
                 + "    user { age, username }\n"
@@ -479,7 +477,7 @@ public class UpdateCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
   private void updateUser(int pk1, int age, String username) {
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             String.format(
                 "mutation {\n"
                     + "  result: updateUser(user: {pk: %s, age: %s, username: \"%s\"}) \n "

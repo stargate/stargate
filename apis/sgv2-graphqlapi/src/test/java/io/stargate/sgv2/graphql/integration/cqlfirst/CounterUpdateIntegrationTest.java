@@ -18,7 +18,7 @@ package io.stargate.sgv2.graphql.integration.cqlfirst;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.CqlFirstIntegrationTest;
@@ -29,7 +29,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -37,7 +37,7 @@ public class CounterUpdateIntegrationTest extends CqlFirstIntegrationTest {
 
   @BeforeAll
   public void createSchema() {
-    executeCql(
+    session.execute(
         "CREATE TABLE IF NOT EXISTS counters (\n"
             + "    k int PRIMARY KEY,\n"
             + "    c1 counter,\n"
@@ -53,16 +53,16 @@ public class CounterUpdateIntegrationTest extends CqlFirstIntegrationTest {
     String selectQuery = "{ counters(value: { k: 1 }) { values { c1 c2 } } }";
 
     // When
-    client.executeDmlQuery(keyspaceName, updateQuery);
-    Map<String, Object> response = client.executeDmlQuery(keyspaceName, selectQuery);
+    client.executeDmlQuery(keyspaceId.asInternal(), updateQuery);
+    Map<String, Object> response = client.executeDmlQuery(keyspaceId.asInternal(), selectQuery);
 
     // Then
     assertThat(JsonPath.<String>read(response, "$.counters.values[0].c1")).isEqualTo("1");
     assertThat(JsonPath.<String>read(response, "$.counters.values[0].c2")).isEqualTo("-2");
 
     // When
-    client.executeDmlQuery(keyspaceName, updateQuery);
-    response = client.executeDmlQuery(keyspaceName, selectQuery);
+    client.executeDmlQuery(keyspaceId.asInternal(), updateQuery);
+    response = client.executeDmlQuery(keyspaceId.asInternal(), selectQuery);
 
     // Then
     assertThat(JsonPath.<String>read(response, "$.counters.values[0].c1")).isEqualTo("2");

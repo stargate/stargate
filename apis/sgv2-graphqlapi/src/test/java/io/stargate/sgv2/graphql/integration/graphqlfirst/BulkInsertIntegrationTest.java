@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
@@ -31,7 +31,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -40,7 +40,7 @@ public class BulkInsertIntegrationTest extends GraphqlFirstIntegrationTest {
   @BeforeAll
   public void deploySchema() {
     client.deploySchema(
-        keyspaceName,
+        keyspaceId.asInternal(),
         "type User @cql_input {\n"
             + "  id: ID!\n"
             + "  name: String\n"
@@ -60,7 +60,7 @@ public class BulkInsertIntegrationTest extends GraphqlFirstIntegrationTest {
 
   @BeforeEach
   public void cleanupData() {
-    executeCql("truncate table \"User\"");
+    session.execute("truncate table \"User\"");
   }
 
   @Test
@@ -69,7 +69,7 @@ public class BulkInsertIntegrationTest extends GraphqlFirstIntegrationTest {
     // given, when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation {\n"
                 + "bulkInsertUsers (users: [\n"
                 + " { name: \"Ada Lovelace\", username: \"@ada\"},\n"
@@ -101,7 +101,7 @@ public class BulkInsertIntegrationTest extends GraphqlFirstIntegrationTest {
     // given, when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation {\n"
                 + "bulkInsertUsersCustom (users: [\n"
                 + " { name: \"Ada Lovelace\", username: \"@ada\"},\n"
@@ -136,7 +136,7 @@ public class BulkInsertIntegrationTest extends GraphqlFirstIntegrationTest {
     // given, when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation {\n"
                 + "bulkInsertUsersBoolean (users: [\n"
                 + " { name: \"Ada Lovelace\", username: \"@ada\" },\n"

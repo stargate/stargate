@@ -18,7 +18,7 @@ package io.stargate.sgv2.graphql.integration.graphqlfirst;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
@@ -30,7 +30,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -39,7 +39,7 @@ public class SelectCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
   @BeforeAll
   public void deploySchema() {
     client.deploySchema(
-        keyspaceName,
+        keyspaceId.asInternal(),
         "type Foo @cql_input {\n"
             + "  pk: Int! @cql_column(partitionKey: true)\n"
             + "  cc1: Int! @cql_column(clusteringOrder: ASC)\n"
@@ -82,7 +82,7 @@ public class SelectCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
 
   private void insert(int pk, int cc1, int cc2) {
     client.executeKeyspaceQuery(
-        keyspaceName,
+        keyspaceId.asInternal(),
         String.format(
             "mutation {\n"
                 + "  result: insertFoo(foo: {pk: %d, cc1: %d, cc2: %d}) {\n"
@@ -98,7 +98,7 @@ public class SelectCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "{\n" + "  results: foosByPks(pks: [1, 3]) {\n" + "    pk, cc1, cc2\n" + "  }\n" + "}");
 
     // then
@@ -115,7 +115,7 @@ public class SelectCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "{\n"
                 + "  results: foosByCc1Range(pk: 1, minCc1: 2, maxCc1: 3) {\n"
                 + "    pk, cc1, cc2\n"
@@ -129,7 +129,7 @@ public class SelectCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when
     response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "{\n"
                 + "  results: foosByCc1Range(pk: 1, minCc1: 3) {\n"
                 + "    pk, cc1, cc2\n"
@@ -146,7 +146,7 @@ public class SelectCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "{\n"
                 + "  results: foosByCc1sAndCc2(pk: 2, cc1s: [2, 3, 4], cc2: 1) {\n"
                 + "    pk, cc1, cc2\n"
@@ -162,7 +162,7 @@ public class SelectCustomConditionsIntegrationTest extends GraphqlFirstIntegrati
   public void selectWithInvalidClusteringKeyCombination() {
     assertThat(
             client.getKeyspaceError(
-                keyspaceName,
+                keyspaceId.asInternal(),
                 "{\n"
                     + "  results: foosByCc1sAndCc2(pk: 2, cc2: 1) {\n"
                     + "    pk, cc1, cc2\n"

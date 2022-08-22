@@ -20,7 +20,7 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 import com.jayway.jsonpath.JsonPath;
 import graphql.com.google.common.collect.ImmutableMap;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
@@ -38,7 +38,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -49,9 +49,9 @@ public class DataTypesIntegrationTest extends GraphqlFirstIntegrationTest {
   @BeforeEach
   public void cleanupDb() {
     deleteAllGraphqlSchemas();
-    executeCql("DROP TABLE IF EXISTS \"Holder\"");
-    executeCql("DROP TYPE IF EXISTS \"Location\"");
-    executeCql("DROP TYPE IF EXISTS \"Address\"");
+    session.execute("DROP TABLE IF EXISTS \"Holder\"");
+    session.execute("DROP TYPE IF EXISTS \"Location\"");
+    session.execute("DROP TYPE IF EXISTS \"Address\"");
   }
 
   /**
@@ -67,7 +67,7 @@ public class DataTypesIntegrationTest extends GraphqlFirstIntegrationTest {
       String typeName, String literalValue, Object expectedResponseValue, String cqlTypeHint) {
 
     client.deploySchema(
-        keyspaceName,
+        keyspaceId.asInternal(),
         String.format(
             "type Address @cql_entity(target: UDT) @cql_input { street: String } "
                 + "type Location @cql_entity(target: UDT) @cql_input { id: String, address: Address } "
@@ -78,7 +78,7 @@ public class DataTypesIntegrationTest extends GraphqlFirstIntegrationTest {
             (cqlTypeHint == null) ? "" : "@cql_column(typeHint: \"" + cqlTypeHint + "\")"));
 
     client.executeKeyspaceQuery(
-        keyspaceName,
+        keyspaceId.asInternal(),
         String.format(
             "mutation { insertHolder(holder: {id: \"%s\", value: %s}) { id } }", ID, literalValue));
     String selection;
@@ -91,7 +91,8 @@ public class DataTypesIntegrationTest extends GraphqlFirstIntegrationTest {
     }
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName, String.format("{ getHolder(id: \"%s\") { %s } }", ID, selection));
+            keyspaceId.asInternal(),
+            String.format("{ getHolder(id: \"%s\") { %s } }", ID, selection));
     assertThat(JsonPath.<Object>read(response, "$.getHolder.value"))
         .isEqualTo(expectedResponseValue);
   }

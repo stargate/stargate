@@ -17,20 +17,20 @@ package io.stargate.sgv2.graphql.integration.graphqlfirst;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
+import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
 import javax.enterprise.context.control.ActivateRequestContext;
-import org.assertj.core.api.AssertionsForClassTypes;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -39,7 +39,7 @@ public class DeleteIntegrationTest extends GraphqlFirstIntegrationTest {
   @BeforeAll
   public void deploySchema() {
     client.deploySchema(
-        keyspaceName,
+        keyspaceId.asInternal(),
         "type Foo @cql_input {\n"
             + "  pk: Int! @cql_column(partitionKey: true)\n"
             + "  cc1: Int! @cql_column(clusteringOrder: ASC)\n"
@@ -66,20 +66,17 @@ public class DeleteIntegrationTest extends GraphqlFirstIntegrationTest {
 
   @BeforeEach
   public void cleanupData() {
-    executeCql("truncate table \"Foo\"");
+    session.execute("truncate table \"Foo\"");
   }
 
   private void insert(int pk, int cc1, int cc2) {
-    executeCql("INSERT INTO \"Foo\"(pk, cc1, cc2) VALUES (%d, %d, %d)".formatted(pk, cc1, cc2));
+    session.execute("INSERT INTO \"Foo\"(pk, cc1, cc2) VALUES (?, ?, ?)", pk, cc1, cc2);
   }
 
   private boolean exists(int pk, int cc1, int cc2) {
-    return executeCql(
-                "SELECT * FROM \"Foo\" WHERE pk = %d AND cc1 = %d AND cc2 = %d"
-                    .formatted(pk, cc1, cc2))
-            .getResultSet()
-            .getRowsCount()
-        > 0;
+    ResultSet resultSet =
+        session.execute("SELECT * FROM \"Foo\" WHERE pk = ? AND cc1 = ? AND cc2 = ?", pk, cc1, cc2);
+    return resultSet.one() != null;
   }
 
   @Test
@@ -91,7 +88,7 @@ public class DeleteIntegrationTest extends GraphqlFirstIntegrationTest {
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName, "mutation { deleteFoo(foo: {pk: 1, cc1: 1, cc2: 1}) }");
+            keyspaceId.asInternal(), "mutation { deleteFoo(foo: {pk: 1, cc1: 1, cc2: 1}) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFoo")).isTrue();
@@ -101,7 +98,7 @@ public class DeleteIntegrationTest extends GraphqlFirstIntegrationTest {
     // when
     response =
         client.executeKeyspaceQuery(
-            keyspaceName, "mutation { deleteFoo(foo: {pk: 1, cc1: 1, cc2: 1}) }");
+            keyspaceId.asInternal(), "mutation { deleteFoo(foo: {pk: 1, cc1: 1, cc2: 1}) }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFoo")).isTrue();
@@ -116,7 +113,7 @@ public class DeleteIntegrationTest extends GraphqlFirstIntegrationTest {
     insert(1, 3, 3);
 
     // when
-    client.executeKeyspaceQuery(keyspaceName, "mutation { deleteFoo2(pk: 1, cc1: 3) }");
+    client.executeKeyspaceQuery(keyspaceId.asInternal(), "mutation { deleteFoo2(pk: 1, cc1: 3) }");
 
     // then
     assertThat(exists(1, 1, 1)).isTrue();
@@ -124,7 +121,7 @@ public class DeleteIntegrationTest extends GraphqlFirstIntegrationTest {
     assertThat(exists(1, 3, 3)).isFalse();
 
     // when
-    client.executeKeyspaceQuery(keyspaceName, "mutation { deleteFoo2(pk: 1) }");
+    client.executeKeyspaceQuery(keyspaceId.asInternal(), "mutation { deleteFoo2(pk: 1) }");
 
     // then
     assertThat(exists(1, 1, 1)).isFalse();
@@ -134,8 +131,9 @@ public class DeleteIntegrationTest extends GraphqlFirstIntegrationTest {
   @Test
   @DisplayName("Should fail if not all partition keys are present")
   public void deleteWithMissingPartitionKey() {
-    AssertionsForClassTypes.assertThat(
-            client.getKeyspaceError(keyspaceName, "mutation { deleteFoo2(cc1: 1, cc2: 1) }"))
+    assertThat(
+            client.getKeyspaceError(
+                keyspaceId.asInternal(), "mutation { deleteFoo2(cc1: 1, cc2: 1) }"))
         .contains(
             "Invalid arguments: every partition key field of type Foo must be present (expected: pk)");
   }
@@ -143,8 +141,9 @@ public class DeleteIntegrationTest extends GraphqlFirstIntegrationTest {
   @Test
   @DisplayName("Should fail if partial primary key is not a prefix")
   public void deleteByPartialPrimaryKeyNotPrefix() {
-    AssertionsForClassTypes.assertThat(
-            client.getKeyspaceError(keyspaceName, "mutation { deleteFoo2(pk: 1, cc2: 1) }"))
+    assertThat(
+            client.getKeyspaceError(
+                keyspaceId.asInternal(), "mutation { deleteFoo2(pk: 1, cc2: 1) }"))
         .contains(
             "Invalid arguments: clustering field cc1 is not restricted by EQ or IN, "
                 + "so no other clustering field after it can be restricted (offending: cc2).");
@@ -159,7 +158,8 @@ public class DeleteIntegrationTest extends GraphqlFirstIntegrationTest {
     // when
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName, "mutation { deleteFooIfExists(foo: {pk: 1, cc1: 1, cc2: 1}) {applied} }");
+            keyspaceId.asInternal(),
+            "mutation { deleteFooIfExists(foo: {pk: 1, cc1: 1, cc2: 1}) {applied} }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFooIfExists.applied")).isTrue();
@@ -169,7 +169,8 @@ public class DeleteIntegrationTest extends GraphqlFirstIntegrationTest {
     // when
     response =
         client.executeKeyspaceQuery(
-            keyspaceName, "mutation { deleteFooIfExists(foo: {pk: 1, cc1: 1, cc2: 1}) {applied} }");
+            keyspaceId.asInternal(),
+            "mutation { deleteFooIfExists(foo: {pk: 1, cc1: 1, cc2: 1}) {applied} }");
 
     // then
     assertThat(JsonPath.<Boolean>read(response, "$.deleteFooIfExists.applied")).isFalse();
@@ -185,7 +186,8 @@ public class DeleteIntegrationTest extends GraphqlFirstIntegrationTest {
 
     // When
     Object response =
-        client.executeKeyspaceQuery(keyspaceName, "mutation { deleteFooPartition(pk: 1) }");
+        client.executeKeyspaceQuery(
+            keyspaceId.asInternal(), "mutation { deleteFooPartition(pk: 1) }");
 
     // Then
     assertThat(exists(1, 1, 1)).isFalse();
@@ -201,7 +203,8 @@ public class DeleteIntegrationTest extends GraphqlFirstIntegrationTest {
 
     // When
     // we call an operation that takes the whole PK, but only provide the partition key arguments
-    Object response = client.executeKeyspaceQuery(keyspaceName, "mutation { deleteFoo2(pk: 1) }");
+    Object response =
+        client.executeKeyspaceQuery(keyspaceId.asInternal(), "mutation { deleteFoo2(pk: 1) }");
 
     // Then
     assertThat(exists(1, 1, 1)).isFalse();

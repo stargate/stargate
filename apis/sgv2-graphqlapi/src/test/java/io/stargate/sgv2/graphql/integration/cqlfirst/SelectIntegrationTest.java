@@ -16,7 +16,7 @@
 package io.stargate.sgv2.graphql.integration.cqlfirst;
 
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.BetterBotzIntegrationTestBase;
@@ -25,7 +25,7 @@ import javax.enterprise.context.control.ActivateRequestContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -35,7 +35,7 @@ public class SelectIntegrationTest extends BetterBotzIntegrationTestBase {
   public void getOrdersByValue() {
     Map<String, Object> response =
         client.executeDmlQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "{\n"
                 + "  Orders(value: {prodName: \"Medium Lift Arms\"}) {\n"
                 + "    values {\n"
@@ -60,7 +60,7 @@ public class SelectIntegrationTest extends BetterBotzIntegrationTestBase {
   public void getOrdersWithFilter() {
     Map<String, Object> response =
         client.executeDmlQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "{\n"
                 + "  Orders(\n"
                 + "    filter: {\n"
@@ -90,7 +90,7 @@ public class SelectIntegrationTest extends BetterBotzIntegrationTestBase {
   public void getOrdersWithFilterAndLimit() {
     Map<String, Object> response =
         client.executeDmlQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "{\n"
                 + "  Orders(\n"
                 + "    filter: {\n"

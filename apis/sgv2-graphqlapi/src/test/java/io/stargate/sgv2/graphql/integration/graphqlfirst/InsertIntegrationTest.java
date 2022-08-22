@@ -19,7 +19,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatCode;
 
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
@@ -30,7 +30,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -39,7 +39,7 @@ public class InsertIntegrationTest extends GraphqlFirstIntegrationTest {
   @BeforeAll
   public void deploySchema() {
     client.deploySchema(
-        keyspaceName,
+        keyspaceId.asInternal(),
         "type User @cql_input {\n"
             + "  id: ID!\n"
             + "  name: String\n"
@@ -71,7 +71,7 @@ public class InsertIntegrationTest extends GraphqlFirstIntegrationTest {
   public void testSimpleInsertReturnBoolean() {
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation {\n"
                 + "  result: insertUserReturnBoolean(user: {name: \"Ada Lovelace\", username: \"@ada\"})\n"
                 + "}");
@@ -90,7 +90,7 @@ public class InsertIntegrationTest extends GraphqlFirstIntegrationTest {
   private void testSimpleInsert(String mutationName) {
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             String.format(
                 "mutation {\n"
                     + "  result: %s(user: {name: \"Ada Lovelace\", username: \"@ada\"}) {\n"
@@ -114,7 +114,7 @@ public class InsertIntegrationTest extends GraphqlFirstIntegrationTest {
   public void testSimpleInsertReturningPayload() {
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             "mutation {\n"
                 + "  insertUser2(user: {name: \"Ada Lovelace\", username: \"@ada\"}) {\n"
                 + "    applied"
@@ -150,7 +150,7 @@ public class InsertIntegrationTest extends GraphqlFirstIntegrationTest {
   private void testConditionalInsert(String mutationName) {
     Object response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             String.format(
                 "mutation {\n"
                     + "  result: %s(user: {name: \"Ada Lovelace\", username: \"@ada\"}) {\n"
@@ -171,7 +171,7 @@ public class InsertIntegrationTest extends GraphqlFirstIntegrationTest {
     UUID id = UUID.fromString(JsonPath.read(response, "$.result.user.id"));
     response =
         client.executeKeyspaceQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             String.format(
                 "mutation {\n"
                     + "  result: %s(user: { id: \"%s\", name: \"Alan Turing\", username: \"@complete\"}) {\n"

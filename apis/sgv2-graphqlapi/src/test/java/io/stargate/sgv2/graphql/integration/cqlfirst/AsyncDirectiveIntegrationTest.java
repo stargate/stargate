@@ -18,7 +18,7 @@ package io.stargate.sgv2.graphql.integration.cqlfirst;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.BetterBotzIntegrationTestBase;
@@ -30,7 +30,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -41,8 +41,8 @@ public class AsyncDirectiveIntegrationTest extends BetterBotzIntegrationTestBase
 
   @AfterEach
   public void cleanup() {
-    executeCql(String.format("DELETE FROM \"Products\" WHERE id = %s", FIRST_PRODUCT_ID));
-    executeCql(String.format("DELETE FROM \"Products\" WHERE id = %s", SECOND_PRODUCT_ID));
+    session.execute(String.format("DELETE FROM \"Products\" WHERE id = %s", FIRST_PRODUCT_ID));
+    session.execute(String.format("DELETE FROM \"Products\" WHERE id = %s", SECOND_PRODUCT_ID));
   }
 
   @Test
@@ -97,7 +97,7 @@ public class AsyncDirectiveIntegrationTest extends BetterBotzIntegrationTestBase
 
   private Map<String, Object> insertProductWithDirectives(String id, String directives) {
     return client.executeDmlQuery(
-        keyspaceName,
+        keyspaceId.asInternal(),
         String.format(
             "mutation %s {\n"
                 + "  insertProducts(\n"
@@ -124,7 +124,7 @@ public class AsyncDirectiveIntegrationTest extends BetterBotzIntegrationTestBase
   private Map<String, Object> bulkInsertProductWithDirectives(
       String firstProductId, String secondProductId, String directives) {
     return client.executeDmlQuery(
-        keyspaceName,
+        keyspaceId.asInternal(),
         String.format(
             "mutation %s {\n"
                 + "  bulkInsertProducts(\n"

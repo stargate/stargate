@@ -17,12 +17,10 @@ package io.stargate.sgv2.graphql.integration.graphqlfirst;
 
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
+import com.datastax.oss.driver.api.core.cql.Row;
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
-import io.stargate.bridge.proto.QueryOuterClass.ResultSet;
-import io.stargate.bridge.proto.QueryOuterClass.Row;
-import io.stargate.sgv2.api.common.grpc.proto.Rows;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
 import io.stargate.sgv2.graphql.schema.Uuids;
@@ -38,7 +36,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -53,39 +51,41 @@ public class SchemaDeploymentIntegrationTest extends GraphqlFirstIntegrationTest
   @BeforeEach
   public void cleanupDb() {
     deleteAllGraphqlSchemas();
-    executeCql("DROP TABLE IF EXISTS  \"User\"");
+    session.execute("DROP TABLE IF EXISTS  \"User\"");
   }
 
   @Test
   @DisplayName("Should deploy schema and set the deployment_in_progress column to null")
   public void deploySchemaAndSetDeploymentInProgressToNull() {
     // when
-    client.deploySchema(keyspaceName, SCHEMA_CONTENTS);
+    client.deploySchema(keyspaceId.asInternal(), SCHEMA_CONTENTS);
 
     // then
-    ResultSet resultSet =
-        executeCql(
-                "select * from stargate_graphql.schema_source WHERE keyspace_name = '%s'"
-                    .formatted(keyspaceName))
-            .getResultSet();
-    Row row = resultSet.getRows(0);
-    assertThat(Rows.getBoolean(row, "deployment_in_progress", resultSet.getColumnsList()))
-        .isFalse();
+    Row row =
+        session
+            .execute(
+                "select * from stargate_graphql.schema_source wHERE keyspace_name = ?",
+                keyspaceId.asInternal())
+            .one();
+    assertThat(row).isNotNull();
+    assertThat(row.isNull("deployment_in_progress")).isFalse();
+    assertThat(row.getBoolean("deployment_in_progress")).isFalse();
   }
 
   @Test
   @DisplayName("Should fail to deploy schema_source when already in progress")
   public void deploySchemaWhenInProgress() {
     // given
-    UUID currentVersion = client.deploySchema(keyspaceName, SCHEMA_CONTENTS);
-    executeCql(
+    UUID currentVersion = client.deploySchema(keyspaceId.asInternal(), SCHEMA_CONTENTS);
+    session.execute(
         "UPDATE stargate_graphql.schema_source "
             + "SET deployment_in_progress = true WHERE keyspace_name = '%s'"
-                .formatted(keyspaceName));
+                .formatted(keyspaceId.asInternal()));
 
     // when
     String error =
-        client.getDeploySchemaError(keyspaceName, currentVersion.toString(), SCHEMA_CONTENTS);
+        client.getDeploySchemaError(
+            keyspaceId.asInternal(), currentVersion.toString(), SCHEMA_CONTENTS);
 
     // then
     assertThat(error).contains("It looks like someone else is deploying a new schema");
@@ -96,38 +96,39 @@ public class SchemaDeploymentIntegrationTest extends GraphqlFirstIntegrationTest
   public void forceDeploySchemaWhenInProgress() {
     // given
 
-    UUID currentVersion = client.deploySchema(keyspaceName, SCHEMA_CONTENTS);
-    executeCql(
+    UUID currentVersion = client.deploySchema(keyspaceId.asInternal(), SCHEMA_CONTENTS);
+    session.execute(
         "UPDATE stargate_graphql.schema_source "
             + "SET deployment_in_progress = true WHERE keyspace_name = '%s'"
-                .formatted(keyspaceName));
+                .formatted(keyspaceId.asInternal()));
 
     // when
-    client.deploySchema(keyspaceName, currentVersion.toString(), true, SCHEMA_CONTENTS);
+    client.deploySchema(keyspaceId.asInternal(), currentVersion.toString(), true, SCHEMA_CONTENTS);
 
     // then
-    ResultSet resultSet =
-        executeCql(
-                "select * from stargate_graphql.schema_source WHERE keyspace_name = '%s'"
-                    .formatted(keyspaceName))
-            .getResultSet();
-    Row row = resultSet.getRows(0);
+    Row row =
+        session
+            .execute(
+                "select * from stargate_graphql.schema_source wHERE keyspace_name = ?",
+                keyspaceId.asInternal())
+            .one();
     assertThat(row).isNotNull();
-    assertThat(Rows.getBoolean(row, "deployment_in_progress", resultSet.getColumnsList()))
-        .isFalse();
+    assertThat(row.isNull("deployment_in_progress")).isFalse();
+    assertThat(row.getBoolean("deployment_in_progress")).isFalse();
   }
 
   @Test
   @DisplayName("Should fail to deploy schema when version doesn't match")
   public void deploySchemaWhenVersionMismatch() {
     // given
-    UUID currentVersion = client.deploySchema(keyspaceName, SCHEMA_CONTENTS);
+    UUID currentVersion = client.deploySchema(keyspaceId.asInternal(), SCHEMA_CONTENTS);
     UUID wrongExpectedVersion = Uuids.timeBased();
     assertThat(wrongExpectedVersion).isNotEqualTo(currentVersion);
 
     // when
     String error =
-        client.getDeploySchemaError(keyspaceName, wrongExpectedVersion.toString(), SCHEMA_CONTENTS);
+        client.getDeploySchemaError(
+            keyspaceId.asInternal(), wrongExpectedVersion.toString(), SCHEMA_CONTENTS);
 
     // then
     assertThat(error)
@@ -142,18 +143,18 @@ public class SchemaDeploymentIntegrationTest extends GraphqlFirstIntegrationTest
   public void forceDeploySchemaWhenVersionMismatch() {
     // given
 
-    UUID currentVersion = client.deploySchema(keyspaceName, SCHEMA_CONTENTS);
-    executeCql(
+    UUID currentVersion = client.deploySchema(keyspaceId.asInternal(), SCHEMA_CONTENTS);
+    session.execute(
         "UPDATE stargate_graphql.schema_source "
             + "SET deployment_in_progress = true WHERE keyspace_name = '%s'"
-                .formatted(keyspaceName));
+                .formatted(keyspaceId.asInternal()));
     UUID wrongExpectedVersion = Uuids.timeBased();
     assertThat(wrongExpectedVersion).isNotEqualTo(currentVersion);
 
     // when
     String error =
         client.getDeploySchemaError(
-            keyspaceName, wrongExpectedVersion.toString(), true, SCHEMA_CONTENTS);
+            keyspaceId.asInternal(), wrongExpectedVersion.toString(), true, SCHEMA_CONTENTS);
 
     // then
     assertThat(error)
@@ -169,7 +170,8 @@ public class SchemaDeploymentIntegrationTest extends GraphqlFirstIntegrationTest
     // when
     UUID wrongExpectedVersion = Uuids.timeBased();
     String error =
-        client.getDeploySchemaError(keyspaceName, wrongExpectedVersion.toString(), SCHEMA_CONTENTS);
+        client.getDeploySchemaError(
+            keyspaceId.asInternal(), wrongExpectedVersion.toString(), SCHEMA_CONTENTS);
 
     // then
     assertThat(error).contains("You specified expectedVersion but no previous version was found");
@@ -191,7 +193,9 @@ public class SchemaDeploymentIntegrationTest extends GraphqlFirstIntegrationTest
     for (int i = 0; i < numberOfVersionsToInsert; i++) {
       lastVersion =
           client.deploySchema(
-              keyspaceName, lastVersion == null ? null : lastVersion.toString(), SCHEMA_CONTENTS);
+              keyspaceId.asInternal(),
+              lastVersion == null ? null : lastVersion.toString(),
+              SCHEMA_CONTENTS);
       schemasVersions.add(lastVersion);
     }
 
@@ -202,11 +206,11 @@ public class SchemaDeploymentIntegrationTest extends GraphqlFirstIntegrationTest
     // all removed versions should return 404
     for (UUID version : removedVersions) {
       client.getSchemaFile(
-          keyspaceName, version.toString(), Response.Status.NOT_FOUND.getStatusCode());
+          keyspaceId.asInternal(), version.toString(), Response.Status.NOT_FOUND.getStatusCode());
     }
     // rest of the schemas should be present
     for (UUID version : presentVersions) {
-      assertThat(client.getSchemaFile(keyspaceName, version.toString())).isNotNull();
+      assertThat(client.getSchemaFile(keyspaceId.asInternal(), version.toString())).isNotNull();
     }
   }
 
@@ -215,23 +219,23 @@ public class SchemaDeploymentIntegrationTest extends GraphqlFirstIntegrationTest
   public void undeploySchema() {
     // given
 
-    UUID version1 = client.deploySchema(keyspaceName, SCHEMA_CONTENTS);
-    UUID version2 = client.deploySchema(keyspaceName, version1.toString(), SCHEMA_CONTENTS);
+    UUID version1 = client.deploySchema(keyspaceId.asInternal(), SCHEMA_CONTENTS);
+    UUID version2 =
+        client.deploySchema(keyspaceId.asInternal(), version1.toString(), SCHEMA_CONTENTS);
 
     // when
-    client.undeploySchema(keyspaceName, version2.toString());
+    client.undeploySchema(keyspaceId.asInternal(), version2.toString());
 
     // then
     // rows are still here but none is marked as latest
-    ResultSet resultSet =
-        executeCql(
-                "select * from stargate_graphql.schema_source where keyspace_name = '%s'"
-                    .formatted(keyspaceName))
-            .getResultSet();
-    List<Row> rows = resultSet.getRowsList();
+    List<Row> rows =
+        session
+            .execute(
+                "select * from stargate_graphql.schema_source where keyspace_name = ?",
+                keyspaceId.asInternal())
+            .all();
     assertThat(rows).hasSize(2);
-    assertThat(Rows.getValue(rows.get(0), "latest_version", resultSet.getColumnsList()).hasNull())
-        .isTrue();
+    assertThat(rows.get(0).getUuid("latest_version")).isNull();
   }
 
   @Test
@@ -239,24 +243,24 @@ public class SchemaDeploymentIntegrationTest extends GraphqlFirstIntegrationTest
   public void undeployAndRedeploySchema() {
     // given
 
-    UUID version1 = client.deploySchema(keyspaceName, SCHEMA_CONTENTS);
-    UUID version2 = client.deploySchema(keyspaceName, version1.toString(), SCHEMA_CONTENTS);
-    client.undeploySchema(keyspaceName, version2.toString());
+    UUID version1 = client.deploySchema(keyspaceId.asInternal(), SCHEMA_CONTENTS);
+    UUID version2 =
+        client.deploySchema(keyspaceId.asInternal(), version1.toString(), SCHEMA_CONTENTS);
+    client.undeploySchema(keyspaceId.asInternal(), version2.toString());
 
     // when
     // we don't require the previous version here, because it's considered inactive
-    UUID version3 = client.deploySchema(keyspaceName, SCHEMA_CONTENTS);
+    UUID version3 = client.deploySchema(keyspaceId.asInternal(), SCHEMA_CONTENTS);
 
     // then
-    ResultSet resultSet =
-        executeCql(
-                "select * from stargate_graphql.schema_source where keyspace_name = '%s'"
-                    .formatted(keyspaceName))
-            .getResultSet();
-    List<Row> rows = resultSet.getRowsList();
+    List<Row> rows =
+        session
+            .execute(
+                "select * from stargate_graphql.schema_source where keyspace_name = ?",
+                keyspaceId.asInternal())
+            .all();
     assertThat(rows).hasSize(3);
-    assertThat(Rows.getUuid(rows.get(0), "latest_version", resultSet.getColumnsList()))
-        .isEqualTo(version3);
+    assertThat(rows.get(0).getUuid("latest_version")).isEqualTo(version3);
   }
 
   @Test
@@ -264,12 +268,12 @@ public class SchemaDeploymentIntegrationTest extends GraphqlFirstIntegrationTest
   public void undeploySchemaWhenVersionMismatch() {
     // given
 
-    UUID version = client.deploySchema(keyspaceName, SCHEMA_CONTENTS);
+    UUID version = client.deploySchema(keyspaceId.asInternal(), SCHEMA_CONTENTS);
     UUID wrongVersion = Uuids.timeBased();
     assertThat(wrongVersion).isNotEqualTo(version);
 
     // when
-    String error = client.getUndeploySchemaError(keyspaceName, wrongVersion.toString());
+    String error = client.getUndeploySchemaError(keyspaceId.asInternal(), wrongVersion.toString());
 
     // then
     assertThat(error)
@@ -283,14 +287,14 @@ public class SchemaDeploymentIntegrationTest extends GraphqlFirstIntegrationTest
   @DisplayName("Should fail to undeploy schema when current still in progress")
   public void undeploySchemaWhenInProgress() {
     // given
-    UUID version = client.deploySchema(keyspaceName, SCHEMA_CONTENTS);
-    executeCql(
+    UUID version = client.deploySchema(keyspaceId.asInternal(), SCHEMA_CONTENTS);
+    session.execute(
         "UPDATE stargate_graphql.schema_source "
             + "SET deployment_in_progress = true WHERE keyspace_name = '%s'"
-                .formatted(keyspaceName));
+                .formatted(keyspaceId.asInternal()));
 
     // when
-    String error = client.getUndeploySchemaError(keyspaceName, version.toString());
+    String error = client.getUndeploySchemaError(keyspaceId.asInternal(), version.toString());
 
     // then
     assertThat(error).contains("It looks like someone else is deploying a new schema");
@@ -300,42 +304,43 @@ public class SchemaDeploymentIntegrationTest extends GraphqlFirstIntegrationTest
   @DisplayName("Should force undeploy schema when current still in progress")
   public void forceUndeploySchemaWhenInProgress() {
     // given
-    UUID version = client.deploySchema(keyspaceName, SCHEMA_CONTENTS);
-    executeCql(
+    UUID version = client.deploySchema(keyspaceId.asInternal(), SCHEMA_CONTENTS);
+    session.execute(
         "UPDATE stargate_graphql.schema_source "
             + "SET deployment_in_progress = true WHERE keyspace_name = '%s'"
-                .formatted(keyspaceName));
+                .formatted(keyspaceId.asInternal()));
 
     // when
-    client.undeploySchema(keyspaceName, version.toString(), true);
-    ResultSet resultSet =
-        executeCql(
+    client.undeploySchema(keyspaceId.asInternal(), version.toString(), true);
+    Row row =
+        session
+            .execute(
                 "SELECT latest_version, deployment_in_progress "
                     + "FROM stargate_graphql.schema_source "
-                    + "WHERE keyspace_name = '%s'".formatted(keyspaceName))
-            .getResultSet();
-    Row row = resultSet.getRows(0);
+                    + "WHERE keyspace_name = ?",
+                keyspaceId.asInternal())
+            .one();
 
     // then
-    assertThat(Rows.getValue(row, "latest_version", resultSet.getColumnsList()).hasNull()).isTrue();
-    assertThat(Rows.getBoolean(row, "deployment_in_progress", resultSet.getColumnsList()))
-        .isFalse();
+    assertThat(row).isNotNull();
+    assertThat(row.getUuid("latest_version")).isNull();
+    assertThat(row.getBoolean("deployment_in_progress")).isFalse();
   }
 
   @Test
   @DisplayName("Should fail to force undeploy schema when version doesn't match")
   public void forceUndeploySchemaWhenVersionMismatch() {
     // given
-    UUID version = client.deploySchema(keyspaceName, SCHEMA_CONTENTS);
-    executeCql(
+    UUID version = client.deploySchema(keyspaceId.asInternal(), SCHEMA_CONTENTS);
+    session.execute(
         "UPDATE stargate_graphql.schema_source "
             + "SET deployment_in_progress = true WHERE keyspace_name = '%s'"
-                .formatted(keyspaceName));
+                .formatted(keyspaceId.asInternal()));
     UUID wrongVersion = Uuids.timeBased();
     assertThat(wrongVersion).isNotEqualTo(version);
 
     // when
-    String error = client.getUndeploySchemaError(keyspaceName, wrongVersion.toString());
+    String error = client.getUndeploySchemaError(keyspaceId.asInternal(), wrongVersion.toString());
 
     // then
     assertThat(error)
@@ -353,7 +358,7 @@ public class SchemaDeploymentIntegrationTest extends GraphqlFirstIntegrationTest
 
     // when
     List<Map<String, Object>> errors =
-        client.getDeploySchemaErrors(keyspaceName, null, invalidSchema);
+        client.getDeploySchemaErrors(keyspaceId.asInternal(), null, invalidSchema);
 
     // then
     assertThat(errors).hasSize(1);
@@ -375,7 +380,8 @@ public class SchemaDeploymentIntegrationTest extends GraphqlFirstIntegrationTest
     // When
     Object response =
         client.executeAdminQuery(
-            String.format("{ schema(keyspace: \"%s\") { deployDate, contents} }", keyspaceName));
+            String.format(
+                "{ schema(keyspace: \"%s\") { deployDate, contents} }", keyspaceId.asInternal()));
 
     // Then
     assertThat(JsonPath.<Object>read(response, "$.schema")).isNull();

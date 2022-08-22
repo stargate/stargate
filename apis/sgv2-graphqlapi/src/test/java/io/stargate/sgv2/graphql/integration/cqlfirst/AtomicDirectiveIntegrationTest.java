@@ -5,17 +5,15 @@ import static org.assertj.core.api.Assertions.catchThrowableOfType;
 
 import com.apollographql.apollo.ApolloClient;
 import com.apollographql.apollo.api.Error;
+import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.example.graphql.client.betterbotz.atomic.InsertOrdersWithAtomicMutation;
 import com.example.graphql.client.betterbotz.atomic.ProductsAndOrdersMutation;
 import com.example.graphql.client.betterbotz.type.MutationConsistency;
 import com.example.graphql.client.betterbotz.type.MutationOptions;
 import com.example.graphql.client.betterbotz.type.OrdersInput;
 import com.example.graphql.client.betterbotz.type.ProductsInput;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
-import io.stargate.bridge.grpc.Values;
-import io.stargate.bridge.proto.QueryOuterClass;
-import io.stargate.sgv2.api.common.grpc.proto.Rows;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.ApolloIntegrationTestBase;
 import io.stargate.sgv2.graphql.integration.util.CqlFirstClient;
@@ -29,7 +27,7 @@ import org.junit.jupiter.api.TestInstance;
  * TODO refactor this to use {@link CqlFirstClient} instead of extending {@link
  * ApolloIntegrationTestBase}.
  */
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -43,7 +41,7 @@ public class AtomicDirectiveIntegrationTest extends ApolloIntegrationTestBase {
     String description = "desc " + id;
     String customer = "cust 1";
 
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceName);
+    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
     InsertOrdersWithAtomicMutation mutation =
         InsertOrdersWithAtomicMutation.builder()
             .value(
@@ -57,20 +55,22 @@ public class AtomicDirectiveIntegrationTest extends ApolloIntegrationTestBase {
 
     getObservable(client.mutate(mutation));
 
-    QueryOuterClass.ResultSet resultSet =
-        executeCql("SELECT * FROM \"Orders\" WHERE \"prodName\" = ?", Values.of(productName))
-            .getResultSet();
-    QueryOuterClass.Row row = resultSet.getRows(0);
-    assertThat(Rows.getString(row, "customerName", resultSet.getColumnsList())).isEqualTo(customer);
-    assertThat(Rows.getString(row, "description", resultSet.getColumnsList()))
-        .isEqualTo(description);
+    assertThat(
+            session
+                .execute(
+                    SimpleStatement.newInstance(
+                        "SELECT * FROM \"Orders\" WHERE \"prodName\" = ?", productName))
+                .one())
+        .isNotNull()
+        .extracting(r -> r.getString("\"customerName\""), r -> r.getString("description"))
+        .containsExactly(customer, description);
   }
 
   @Test
   @DisplayName(
       "When invalid, multiple mutations with atomic directive should return error response")
   public void multipleMutationsWithAtomicDirectiveShouldReturnErrorResponse() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceName);
+    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
     ProductsAndOrdersMutation mutation =
         ProductsAndOrdersMutation.builder()
             .productValue(
@@ -101,7 +101,7 @@ public class AtomicDirectiveIntegrationTest extends ApolloIntegrationTestBase {
   @Test
   @DisplayName("Multiple options with atomic directive should return error response")
   public void multipleOptionsWithAtomicDirectiveShouldReturnErrorResponse() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceName);
+    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
 
     ProductsAndOrdersMutation mutation =
         ProductsAndOrdersMutation.builder()

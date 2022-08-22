@@ -16,6 +16,7 @@
  */
 package io.stargate.sgv2.graphql.integration.util;
 
+import io.stargate.sgv2.common.IntegrationTestUtils;
 import org.junit.jupiter.api.BeforeAll;
 
 public abstract class CqlFirstIntegrationTest extends GraphqlIntegrationTest {
@@ -24,8 +25,6 @@ public abstract class CqlFirstIntegrationTest extends GraphqlIntegrationTest {
 
   @BeforeAll
   public void createClient() {
-    client =
-        new CqlFirstClient(
-            baseUrl, requestInfo.getCassandraToken().orElseThrow(AssertionError::new));
+    client = new CqlFirstClient(baseUrl, IntegrationTestUtils.getAuthToken());
   }
 }

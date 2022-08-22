@@ -17,23 +17,24 @@ package io.stargate.sgv2.graphql.integration.cqlfirst;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
+import com.datastax.oss.driver.api.core.metadata.schema.ClusteringOrder;
+import com.datastax.oss.driver.api.core.metadata.schema.ColumnMetadata;
+import com.datastax.oss.driver.api.core.metadata.schema.TableMetadata;
+import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
-import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Basic;
-import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.CqlFirstIntegrationTest;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import javax.enterprise.context.control.ActivateRequestContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -81,27 +82,24 @@ public class TableDdlIntegrationTest extends CqlFirstIntegrationTest {
                     + "    ]\n"
                     + "  )\n"
                     + "}",
-                keyspaceName, tableName));
+                keyspaceId.asInternal(), tableName));
 
     assertThat(JsonPath.<Boolean>read(response, "$.createTable")).isTrue();
 
-    Schema.CqlTable table = getTable(tableName).orElseThrow(AssertionError::new);
+    TableMetadata table =
+        session
+            .refreshSchema()
+            .getKeyspace(keyspaceId)
+            .flatMap(ks -> ks.getTable(tableName))
+            .orElseThrow(AssertionError::new);
+    assertThat(table.getPartitionKey())
+        .extracting(ColumnMetadata::getName)
+        .containsExactly(CqlIdentifier.fromInternal("id"));
+    assertThat(table.getColumn("id")).map(ColumnMetadata::getType).contains(DataTypes.UUID);
+    assertThat(table.getColumn("lastname")).map(ColumnMetadata::getType).contains(DataTypes.TEXT);
+    assertThat(table.getColumn("firstname")).map(ColumnMetadata::getType).contains(DataTypes.TEXT);
 
-    assertThat(table.getPartitionKeyColumnsList())
-        .extracting(ColumnSpec::getName)
-        .containsExactly("id");
-    assertThat(table.getPartitionKeyColumnsList())
-        .extracting(c -> c.getType().getBasic())
-        .containsExactly(Basic.UUID);
-
-    assertThat(table.getColumnsList())
-        .extracting(ColumnSpec::getName)
-        .containsExactly("firstname", "lastname");
-    assertThat(table.getColumnsList())
-        .extracting(c -> c.getType().getBasic())
-        .containsExactly(Basic.VARCHAR, Basic.VARCHAR);
-
-    executeCql(String.format("DROP TABLE %s", tableName));
+    session.execute(String.format("DROP TABLE %s", tableName));
   }
 
   @Test
@@ -124,24 +122,26 @@ public class TableDdlIntegrationTest extends CqlFirstIntegrationTest {
                     + "    values: [ {name: \"value1\", type: { basic: TEXT} } ]\n"
                     + "  )\n"
                     + "}",
-                keyspaceName, tableName));
+                keyspaceId.asInternal(), tableName));
 
     assertThat(JsonPath.<Boolean>read(response, "$.createTable")).isTrue();
 
-    Schema.CqlTable table = getTable(tableName).orElseThrow(AssertionError::new);
+    TableMetadata table =
+        session
+            .refreshSchema()
+            .getKeyspace(keyspaceId)
+            .flatMap(ks -> ks.getTable(tableName))
+            .orElseThrow(AssertionError::new);
+    assertThat(table.getPartitionKey())
+        .extracting(ColumnMetadata::getName)
+        .containsExactly(CqlIdentifier.fromInternal("pk1"));
+    assertThat(table.getClusteringColumns().keySet())
+        .extracting(ColumnMetadata::getName)
+        .containsExactly(CqlIdentifier.fromInternal("ck1"), CqlIdentifier.fromInternal("ck2"));
+    assertThat(table.getClusteringColumns().values())
+        .containsExactly(ClusteringOrder.ASC, ClusteringOrder.DESC);
 
-    assertThat(table.getPartitionKeyColumnsList())
-        .extracting(ColumnSpec::getName)
-        .containsExactly("pk1");
-    assertThat(table.getClusteringKeyColumnsList())
-        .extracting(ColumnSpec::getName)
-        .containsExactly("ck1", "ck2");
-    assertThat(table.getClusteringOrdersMap())
-        .hasSize(2)
-        .containsEntry("ck1", Schema.ColumnOrderBy.ASC)
-        .containsEntry("ck2", Schema.ColumnOrderBy.DESC);
-
-    executeCql(String.format("DROP TABLE %s", tableName));
+    session.execute(String.format("DROP TABLE %s", tableName));
   }
 
   @Test
@@ -157,16 +157,18 @@ public class TableDdlIntegrationTest extends CqlFirstIntegrationTest {
                 + "    partitionKeys: [ {name: \"id\", type: { basic: UUID} } ]\n"
                 + "  )\n"
                 + "}",
-            keyspaceName, tableName));
+            keyspaceId.asInternal(), tableName));
 
     Map<String, Object> response =
         client.executeDdlQuery(
             String.format(
                 "mutation { dropTable(keyspaceName: \"%s\", tableName: \"%s\") }",
-                keyspaceName, tableName));
+                keyspaceId.asInternal(), tableName));
 
     assertThat(JsonPath.<Boolean>read(response, "$.dropTable")).isTrue();
-    assertThat(getTable(tableName)).isEmpty();
+    assertThat(
+            session.refreshSchema().getKeyspace(keyspaceId).flatMap(ks -> ks.getTable(tableName)))
+        .isEmpty();
   }
 
   @Test
@@ -182,7 +184,7 @@ public class TableDdlIntegrationTest extends CqlFirstIntegrationTest {
                 + "    partitionKeys: [ {name: \"id\", type: { basic: UUID} } ]\n"
                 + "  )\n"
                 + "}",
-            keyspaceName, tableName));
+            keyspaceId.asInternal(), tableName));
 
     Map<String, Object> response =
         client.executeDdlQuery(
@@ -194,18 +196,19 @@ public class TableDdlIntegrationTest extends CqlFirstIntegrationTest {
                     + "    toAdd: [ {name: \"name\", type: { basic: TEXT} } ]\n"
                     + "  )\n"
                     + "}",
-                keyspaceName, tableName));
+                keyspaceId.asInternal(), tableName));
 
     assertThat(JsonPath.<Boolean>read(response, "$.alterTableAdd")).isTrue();
-    Schema.CqlTable table = getTable(tableName).orElseThrow(AssertionError::new);
-    assertThat(table.getColumnsList())
-        .anySatisfy(
-            c -> {
-              assertThat(c.getName()).isEqualTo("name");
-              assertThat(c.getType().getBasic()).isEqualTo(Basic.VARCHAR);
-            });
+    TableMetadata table =
+        session
+            .refreshSchema()
+            .getKeyspace(keyspaceId)
+            .flatMap(ks -> ks.getTable(tableName))
+            .orElseThrow(AssertionError::new);
+    assertThat(table.getColumn("name"))
+        .hasValueSatisfying(c -> assertThat(c.getType()).isEqualTo(DataTypes.TEXT));
 
-    executeCql(String.format("DROP TABLE %s", tableName));
+    session.execute(String.format("DROP TABLE %s", tableName));
   }
 
   @Test
@@ -222,7 +225,7 @@ public class TableDdlIntegrationTest extends CqlFirstIntegrationTest {
                 + "    values: [ {name: \"name\", type: { basic: TEXT} } ]\n"
                 + "  )\n"
                 + "}",
-            keyspaceName, tableName));
+            keyspaceId.asInternal(), tableName));
 
     Map<String, Object> response =
         client.executeDdlQuery(
@@ -234,22 +237,17 @@ public class TableDdlIntegrationTest extends CqlFirstIntegrationTest {
                     + "    toDrop: [ \"name\" ]\n"
                     + "  )\n"
                     + "}",
-                keyspaceName, tableName));
+                keyspaceId.asInternal(), tableName));
 
     assertThat(JsonPath.<Boolean>read(response, "$.alterTableDrop")).isTrue();
-    Schema.CqlTable table = getTable(tableName).orElseThrow(AssertionError::new);
-    assertThat(table.getColumnsList()).extracting(ColumnSpec::getName).doesNotContain("name");
+    TableMetadata table =
+        session
+            .refreshSchema()
+            .getKeyspace(keyspaceId)
+            .flatMap(ks -> ks.getTable(tableName))
+            .orElseThrow(AssertionError::new);
+    assertThat(table.getColumn("name")).isEmpty();
 
-    executeCql(String.format("DROP TABLE %s", tableName));
-  }
-
-  private Optional<Schema.CqlTable> getTable(String tableName) {
-    Schema.CqlKeyspaceDescribe keyspace =
-        bridge
-            .describeKeyspace(
-                Schema.DescribeKeyspaceQuery.newBuilder().setKeyspaceName(keyspaceName).build())
-            .await()
-            .indefinitely();
-    return keyspace.getTablesList().stream().filter(t -> tableName.equals(t.getName())).findFirst();
+    session.execute(String.format("DROP TABLE %s", tableName));
   }
 }

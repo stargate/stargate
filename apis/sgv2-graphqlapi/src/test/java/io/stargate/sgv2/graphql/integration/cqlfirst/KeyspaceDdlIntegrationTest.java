@@ -17,10 +17,10 @@ package io.stargate.sgv2.graphql.integration.cqlfirst;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.datastax.oss.driver.api.core.metadata.schema.KeyspaceMetadata;
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
-import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.CqlFirstIntegrationTest;
 import java.util.List;
@@ -29,7 +29,7 @@ import javax.enterprise.context.control.ActivateRequestContext;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -70,7 +70,7 @@ public class KeyspaceDdlIntegrationTest extends CqlFirstIntegrationTest {
   public void shouldCreateKeyspace() {
     String name = "graphql_create_test";
 
-    executeCql(String.format("DROP KEYSPACE IF EXISTS %s", name));
+    session.execute(String.format("DROP KEYSPACE IF EXISTS %s", name));
 
     Map<String, Object> response =
         client.executeDdlQuery(
@@ -79,13 +79,11 @@ public class KeyspaceDdlIntegrationTest extends CqlFirstIntegrationTest {
 
     assertThat(JsonPath.<Boolean>read(response, "$.createKeyspace")).isTrue();
 
-    Schema.CqlKeyspaceDescribe keyspace =
-        bridge
-            .describeKeyspace(
-                Schema.DescribeKeyspaceQuery.newBuilder().setKeyspaceName(name).build())
-            .await()
-            .indefinitely();
-    assertThat(keyspace.getCqlKeyspace().getOptionsMap())
-        .containsEntry("replication", "{ 'class': 'SimpleStrategy', 'replication_factor': 1 }");
+    KeyspaceMetadata keyspace =
+        session.refreshSchema().getKeyspace(name).orElseThrow(AssertionError::new);
+    assertThat(keyspace.getReplication())
+        .hasSize(2)
+        .containsEntry("class", "org.apache.cassandra.locator.SimpleStrategy")
+        .containsEntry("replication_factor", "1");
   }
 }

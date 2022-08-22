@@ -18,7 +18,7 @@ package io.stargate.sgv2.graphql.integration.cqlfirst;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
-import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.BetterBotzIntegrationTestBase;
@@ -29,7 +29,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
+@QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
 @ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -37,7 +37,7 @@ public class AggregationFunctionsIntegrationTest extends BetterBotzIntegrationTe
 
   @AfterEach
   public void cleanup() {
-    executeCql("TRUNCATE TABLE \"Orders\"");
+    session.execute("TRUNCATE TABLE \"Orders\"");
   }
 
   @Test
@@ -153,7 +153,7 @@ public class AggregationFunctionsIntegrationTest extends BetterBotzIntegrationTe
       String prodName, String customerName, String description, Number value) {
     Map<String, Object> response =
         client.executeDmlQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             String.format(
                 "mutation {\n"
                     + "  insertOrders(\n"
@@ -195,7 +195,7 @@ public class AggregationFunctionsIntegrationTest extends BetterBotzIntegrationTe
       String prodName, String customerName, String price, String description) {
     Map<String, Object> response =
         client.executeDmlQuery(
-            keyspaceName,
+            keyspaceId.asInternal(),
             String.format(
                 "mutation {\n"
                     + "  insertOrders(\n"
@@ -272,11 +272,13 @@ public class AggregationFunctionsIntegrationTest extends BetterBotzIntegrationTe
   }
 
   private Map<String, Object> getOrderWithFunction(String prodName, String function) {
-    return client.executeDmlQuery(keyspaceName, createQueryWithFunction(prodName, function));
+    return client.executeDmlQuery(
+        keyspaceId.asInternal(), createQueryWithFunction(prodName, function));
   }
 
   private String getOrderWithFunctionError(String prodName, String function) {
-    return client.getDmlQueryError(keyspaceName, createQueryWithFunction(prodName, function));
+    return client.getDmlQueryError(
+        keyspaceId.asInternal(), createQueryWithFunction(prodName, function));
   }
 
   private String createQueryWithFunction(String prodName, String function) {

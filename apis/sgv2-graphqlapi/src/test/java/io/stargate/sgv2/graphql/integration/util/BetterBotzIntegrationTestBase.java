@@ -31,7 +31,7 @@ public abstract class BetterBotzIntegrationTestBase extends CqlFirstIntegrationT
 
   @BeforeAll
   public final void createSchema() {
-    executeCql(
+    session.execute(
         "CREATE TABLE IF NOT EXISTS \"Products\" (\n"
             + "    id uuid,\n"
             + "    name text,\n"
@@ -42,7 +42,7 @@ public abstract class BetterBotzIntegrationTestBase extends CqlFirstIntegrationT
             + "    description text,\n"
             + "    PRIMARY KEY ((id), name, price, created)\n"
             + ")");
-    executeCql(
+    session.execute(
         "CREATE TABLE IF NOT EXISTS \"Orders\" (\n"
             + "    \"prodName\" text,\n"
             + "    \"customerName\" text,\n"
@@ -61,7 +61,7 @@ public abstract class BetterBotzIntegrationTestBase extends CqlFirstIntegrationT
             + "    \"value_tinyint\" tinyint,"
             + "    PRIMARY KEY ((\"prodName\"), \"customerName\")\n"
             + ")");
-    executeCql(
+    session.execute(
         "INSERT INTO \"Orders\" "
             + "(id, \"prodId\", \"prodName\", description, price, "
             + "\"sellPrice\", \"customerName\", address) VALUES ("
@@ -73,7 +73,7 @@ public abstract class BetterBotzIntegrationTestBase extends CqlFirstIntegrationT
             + "3119.99,"
             + "'Janice Evernathy',"
             + "'2101 Everplace Ave 3116')");
-    executeCql(
+    session.execute(
         "INSERT INTO \"Orders\" "
             + "(id, \"prodId\", \"prodName\", description, price, "
             + "\"sellPrice\", \"customerName\", address) VALUES ("
