@@ -1,5 +1,5 @@
 
-# CQL transport config YAML
+# Example: CQL transport config YAML
 
 # The address or interface to bind the native transport server to.
 #
