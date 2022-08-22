@@ -622,18 +622,94 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void getRowsWithQuery2Filters() {
     final String tableName = testTableName();
+    createTestTable(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList("id text", "age int", "firstName text"),
+        Arrays.asList("id"),
+        Arrays.asList("age", "firstName"));
+    insertTypedRows(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList(
+            map("id", "1", "firstName", "Bob", "age", 25),
+            map("id", "1", "firstName", "Dave", "age", 40),
+            map("id", "1", "firstName", "Fred", "age", 63)));
+    // Test the case where we have 2 filters ($gt and $lt) for one field
+    String whereClause = "{\"id\":{\"$eq\":\"1\"},\"age\":{\"$gt\":30,\"$lt\":50}}";
+    ArrayNode rows = findRowsWithWhereAsJsonNode(testKeyspaceName(), tableName, whereClause);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.at("/0/id").asText()).isEqualTo("1");
+    assertThat(rows.at("/0/firstName").asText()).isEqualTo("Dave");
   }
 
   @Test
   public void getRowsWithQueryAndInvalidSort() {
     final String tableName = testTableName();
     final Object rowIdentifier = setupClusteringTestCase(testKeyspaceName(), tableName);
+    String whereClause = String.format("{\"id\":{\"$eq\":\"%s\"}}", rowIdentifier);
+    // Problem here: invalid JSON, 2 x double-quotes
+    String sortClause = "{\"expense_id\"\":\"desc\"}";
+    String response =
+        given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .queryParam("sort", sortClause)
+            .queryParam("where", whereClause)
+            .when()
+            .get(endpointPathForRowGetWith(testKeyspaceName(), tableName))
+            .then()
+            .statusCode(HttpStatus.SC_BAD_REQUEST)
+            .extract()
+            .asString();
+    ApiError error = readJsonAs(response, ApiError.class);
+    assertThat(error.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(error.description())
+        .contains("Invalid 'sort' parameter, problem: ")
+        .contains("not valid JSON");
+
+    // Let's also check out handling with non-existing sort field
+    sortClause = "{\"bogus_field\":123}";
+    response =
+        given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .queryParam("sort", sortClause)
+            .queryParam("where", whereClause)
+            .when()
+            .get(endpointPathForRowGetWith(testKeyspaceName(), tableName))
+            .then()
+            .statusCode(HttpStatus.SC_BAD_REQUEST)
+            .extract()
+            .asString();
+    error = readJsonAs(response, ApiError.class);
+    assertThat(error.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(error.description())
+        // Not sure what exactly we should see; looks like we get gRPC error from Bridge
+        // for now. Probably room for improvement but for now verify column/field name is included:
+        .contains("bogus_field");
   }
 
   @Test
   public void getRowsWithQueryAndPaging() {
     final String tableName = testTableName();
     final Object rowIdentifier = setupClusteringTestCase(testKeyspaceName(), tableName);
+
+    String whereClause = String.format("{\"id\":{\"$eq\":\"%s\"}}", rowIdentifier);
+    String response =
+        given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .queryParam("raw", true)
+            .queryParam("page-size", 1)
+            .queryParam("where", whereClause)
+            .when()
+            .get(endpointPathForRowGetWith(testKeyspaceName(), tableName))
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    JsonNode rows = readJsonAsTree(response);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.at("/0/firstName").textValue()).isEqualTo("John");
+    assertThat(rows.at("/0/expense_id").intValue()).isEqualTo(1);
   }
 
   @Test
