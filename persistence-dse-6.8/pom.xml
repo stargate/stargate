@@ -5,12 +5,12 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.62-SNAPSHOT</version>
+    <version>1.0.64-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db.dse</groupId>
   <artifactId>persistence-dse-6.8</artifactId>
   <properties>
-    <dse.version>6.8.24</dse.version>
+    <dse.version>6.8.25</dse.version>
   </properties>
   <repositories>
     <repository>

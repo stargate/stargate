@@ -1705,17 +1705,28 @@ public class RestApiv2RowsTest extends BaseIntegrationTest {
     assertThat(data.get(0).get("v")).isEqualTo(9);
   }
 
-  /*
-  /************************************************************************
-  /* Test methods for Column CRUD operations
-  /************************************************************************
-   */
+  @Test
+  public void deleteRowNoSuchKey() throws IOException {
+    createTestKeyspace(keyspaceName);
+    createTestTable(keyspaceName, tableName);
 
-  /*
-  /************************************************************************
-  /* Test methods for User-Defined Type (UDT) CRUD operations
-  /************************************************************************
-   */
+    // First, try deleting row with valid UUID but one for which there is no row
+    // We should just get usual "NO_CONTENT" as DELETE is idempotent
+
+    final String rowIdentifier = UUID.randomUUID().toString();
+    RestUtils.delete(
+        authToken,
+        String.format(
+            "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+        HttpStatus.SC_NO_CONTENT);
+
+    // But then see what happens with invalid key (String that is not UUID, in this case)
+    RestUtils.delete(
+        authToken,
+        String.format(
+            "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, "not-really-an-uuid"),
+        HttpStatus.SC_BAD_REQUEST);
+  }
 
   /*
   /************************************************************************
