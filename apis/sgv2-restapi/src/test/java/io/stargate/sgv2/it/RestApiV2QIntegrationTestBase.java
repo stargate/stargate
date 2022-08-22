@@ -154,6 +154,10 @@ public class RestApiV2QIntegrationTestBase {
     return String.format("/v2/schemas/keyspaces/%s/tables/%s/indexes", ksName, tableName);
   }
 
+  protected String endpointPathForUDTAdd(String ksName) {
+    return String.format("/v2/schemas/keyspaces/%s/types", ksName);
+  }
+
   protected String endpointPathForAllRows(String ksName, String tableName) {
     return String.format("/v2/keyspaces/%s/%s/rows", ksName, tableName);
   }

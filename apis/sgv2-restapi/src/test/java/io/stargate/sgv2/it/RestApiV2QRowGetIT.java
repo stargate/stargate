@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.restassured.http.ContentType;
 import io.stargate.bridge.grpc.CqlDuration;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
@@ -930,5 +931,40 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void getRowsWithUDT() {
     final String tableName = testTableName();
+    String udtCreate =
+        "{\"name\": \"testUDT\", \"fields\":"
+            + "[{\"name\":\"name\",\"typeDefinition\":\"text\"},"
+            + "{\"name\":\"age\",\"typeDefinition\":\"int\"}]}";
+
+    // First create UDT itself:
+    given()
+        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        .contentType(ContentType.JSON)
+        .body(udtCreate)
+        .when()
+        .post(endpointPathForUDTAdd(testKeyspaceName()))
+        .then()
+        .statusCode(HttpStatus.SC_CREATED);
+    // Then Table that uses it
+    createTestTable(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList("id text", "details testUDT"),
+        Arrays.asList("id"),
+        Arrays.asList());
+
+    // NOTE: uses "stringified" notation (CQL literals)
+    insertRows(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList(
+            Arrays.asList("id 1", "details {name:'Bob',age:36}"),
+            Arrays.asList("id 2", "details {name:'Alice',age:29}"),
+            Arrays.asList("id 3", "details {name:'Peter',age:75}")));
+
+    ArrayNode rows = findRowsAsJsonNode(testKeyspaceName(), tableName, "2");
+    assertThat(rows).hasSize(1);
+    assertThat(rows.at("/0/details/name").asText()).isEqualTo("Alice");
+    assertThat(rows.at("/0/details/age").intValue()).isEqualTo(29);
   }
 }
