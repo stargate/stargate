@@ -716,12 +716,58 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
   public void getRowsWithQueryAndRaw() {
     final String tableName = testTableName();
     createSimpleTestTable(testKeyspaceName(), tableName);
+
+    final String rowIdentifier = UUID.randomUUID().toString();
+    insertTypedRows(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList(map("id", rowIdentifier, "firstName", "Gary")));
+
+    String whereClause = String.format("{\"id\":{\"$eq\":\"%s\"}}", rowIdentifier);
+    String response =
+        given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .queryParam("raw", true)
+            .queryParam("where", whereClause)
+            .when()
+            .get(endpointPathForRowGetWith(testKeyspaceName(), tableName))
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    JsonNode rows = readJsonAsTree(response);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.at("/0/id").textValue()).isEqualTo(rowIdentifier);
+    assertThat(rows.at("/0/firstName").textValue()).isEqualTo("Gary");
   }
 
   @Test
   public void getRowsWithQueryAndSort() {
     final String tableName = testTableName();
     final Object rowIdentifier = setupClusteringTestCase(testKeyspaceName(), tableName);
+
+    String sortClause = "{\"expense_id\":\"desc\"}";
+    String whereClause = String.format("{\"id\":{\"$eq\":\"%s\"}}", rowIdentifier);
+    String response =
+        given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .queryParam("sort", sortClause)
+            .queryParam("where", whereClause)
+            .when()
+            .get(endpointPathForRowGetWith(testKeyspaceName(), tableName))
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    ListOfMapsGetResponseWrapper wrapper = readJsonAs(response, ListOfMapsGetResponseWrapper.class);
+    assertThat(wrapper.getCount()).isEqualTo(2);
+    List<Map<String, Object>> rows = wrapper.getData();
+    assertThat(rows.get(0).get("id")).isEqualTo(1);
+    assertThat(rows.get(0).get("firstName")).isEqualTo("John");
+    assertThat(rows.get(0).get("expense_id")).isEqualTo(2);
+    assertThat(rows.get(1).get("id")).isEqualTo(1);
+    assertThat(rows.get(1).get("firstName")).isEqualTo("John");
+    assertThat(rows.get(1).get("expense_id")).isEqualTo(1);
   }
 
   @Test
