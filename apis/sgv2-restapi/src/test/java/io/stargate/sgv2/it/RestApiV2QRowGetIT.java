@@ -546,47 +546,136 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
   }
 
   @Test
-  public void getRowsWithInQuery() {}
+  public void getRowsWithInQuery() {
+    final String tableName = testTableName();
+    createTestTable(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList("id text", "firstName text"),
+        Arrays.asList("id"),
+        Arrays.asList("firstName"));
+    insertTypedRows(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList(
+            map("id", "1", "firstName", "John"),
+            map("id", "1", "firstName", "Sarah"),
+            map("id", "2", "firstName", "Jane")));
+    String whereClause = "{\"id\":{\"$eq\":\"1\"},\"firstName\":{\"$in\":[\"Sarah\"]}}";
+    ArrayNode rows = findRowsWithWhereAsJsonNode(testKeyspaceName(), tableName, whereClause);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.at("/0/id").textValue()).isEqualTo("1");
+    assertThat(rows.at("/0/firstName").textValue()).isEqualTo("Sarah");
+  }
 
   @Test
-  public void getRowsWithMixedClustering() {}
+  public void getRowsWithMixedClustering() {
+    final String tableName = testTableName();
+    setupMixedClusteringTestCase(testKeyspaceName(), tableName);
+
+    ArrayNode rows = findRowsAsJsonNode(testKeyspaceName(), tableName, 1, "one", -1);
+    assertThat(rows).hasSize(2);
+    assertThat(rows.at("/0/pk0").intValue()).isEqualTo(1);
+    assertThat(rows.at("/0/pk1").textValue()).isEqualTo("one");
+    assertThat(rows.at("/0/pk2").intValue()).isEqualTo(-1);
+    assertThat(rows.at("/0/v").intValue()).isEqualTo(9);
+    assertThat(rows.at("/1/v").intValue()).isEqualTo(19);
+
+    rows = findRowsAsJsonNode(testKeyspaceName(), tableName, 1, "one", -1, 20);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.at("/0/v").intValue()).isEqualTo(19);
+  }
 
   @Test
-  public void getRowsWithNotFound() {}
+  public void getRowsWithNotFound() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+
+    final String rowIdentifier = UUID.randomUUID().toString();
+    insertTypedRows(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList(map("id", rowIdentifier, "firstName", "John")));
+    String whereClause = "{\"id\":{\"$eq\":\"f0014be3-b69f-4884-b9a6-49765fb40df3\"}}";
+    ArrayNode rows = findRowsWithWhereAsJsonNode(testKeyspaceName(), tableName, whereClause);
+    assertThat(rows).hasSize(0);
+  }
 
   @Test
-  public void getRowsWithQuery() {}
+  public void getRowsWithQuery() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+
+    final String rowIdentifier = UUID.randomUUID().toString();
+    insertTypedRows(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList(map("id", rowIdentifier, "firstName", "John")));
+
+    String whereClause = String.format("{\"id\":{\"$eq\":\"%s\"}}", rowIdentifier);
+    ArrayNode rows = findRowsWithWhereAsJsonNode(testKeyspaceName(), tableName, whereClause);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.at("/0/id").asText()).isEqualTo(rowIdentifier);
+    assertThat(rows.at("/0/firstName").asText()).isEqualTo("John");
+  }
 
   @Test
-  public void getRowsWithQuery2Filters() {}
+  public void getRowsWithQuery2Filters() {
+    final String tableName = testTableName();
+  }
 
   @Test
-  public void getRowsWithQueryAndInvalidSort() {}
+  public void getRowsWithQueryAndInvalidSort() {
+    final String tableName = testTableName();
+    final Object rowIdentifier = setupClusteringTestCase(testKeyspaceName(), tableName);
+  }
 
   @Test
-  public void getRowsWithQueryAndPaging() {}
+  public void getRowsWithQueryAndPaging() {
+    final String tableName = testTableName();
+    final Object rowIdentifier = setupClusteringTestCase(testKeyspaceName(), tableName);
+  }
 
   @Test
-  public void getRowsWithQueryAndRaw() {}
+  public void getRowsWithQueryAndRaw() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+  }
 
   @Test
-  public void getRowsWithQueryAndSort() {}
+  public void getRowsWithQueryAndSort() {
+    final String tableName = testTableName();
+    final Object rowIdentifier = setupClusteringTestCase(testKeyspaceName(), tableName);
+  }
 
   @Test
-  public void getRowsWithQueryRawAndSort() {}
+  public void getRowsWithQueryRawAndSort() {
+    final String tableName = testTableName();
+    final Object rowIdentifier = setupClusteringTestCase(testKeyspaceName(), tableName);
+  }
 
   @Test
-  public void getRowsWithSetContainsQuery() {}
+  public void getRowsWithSetContainsQuery() {
+    final String tableName = testTableName();
+  }
 
   @Test
-  public void getRowsWithTimestampQuery() {}
+  public void getRowsWithTimestampQuery() {
+    final String tableName = testTableName();
+  }
 
   @Test
-  public void getRowsWithTupleStringified() {}
+  public void getRowsWithTupleStringified() {
+    final String tableName = testTableName();
+  }
 
   @Test
-  public void getRowsWithTupleTyped() {}
+  public void getRowsWithTupleTyped() {
+    final String tableName = testTableName();
+  }
 
   @Test
-  public void getRowsWithUDT() {}
+  public void getRowsWithUDT() {
+    final String tableName = testTableName();
+  }
 }
