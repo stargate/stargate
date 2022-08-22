@@ -38,7 +38,7 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
   V2(2, "v2", false), // no longer supported
   V3(3, "v3", false),
   V4(4, "v4", false),
-  V5(5, "v5-beta", true);
+  V5(5, "v5", true);
 
   /** The version number */
   private final int num;

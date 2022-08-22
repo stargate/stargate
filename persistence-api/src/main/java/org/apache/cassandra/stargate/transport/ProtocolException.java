@@ -36,4 +36,40 @@ public class ProtocolException extends PersistenceException {
   public ProtocolVersion getForcedProtocolVersion() {
     return forcedProtocolVersion;
   }
+
+  public boolean isFatal() {
+    return false;
+  }
+
+  public boolean isSilent() {
+    return false;
+  }
+
+  public static ProtocolException toFatalException(ProtocolException e) {
+    return new ProtocolException.Fatal(e);
+  }
+
+  public static ProtocolException toSilentException(ProtocolException e) {
+    return new ProtocolException.Silent(e);
+  }
+
+  private static class Silent extends ProtocolException {
+    public Silent(ProtocolException cause) {
+      super(cause.getMessage(), cause.forcedProtocolVersion);
+    }
+
+    public boolean isSilent() {
+      return true;
+    }
+  }
+
+  private static class Fatal extends ProtocolException {
+    private Fatal(ProtocolException cause) {
+      super(cause.getMessage(), cause.forcedProtocolVersion);
+    }
+
+    public boolean isFatal() {
+      return true;
+    }
+  }
 }

@@ -18,30 +18,15 @@
 package org.apache.cassandra.stargate.transport.internal;
 
 import io.micrometer.core.instrument.Tags;
-import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.ByteBuf;
-import io.netty.buffer.ByteBufAllocator;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelHandlerContext;
-import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelOutboundInvoker;
-import io.netty.channel.ChannelPipeline;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.WriteBufferWaterMark;
 import io.netty.channel.epoll.EpollEventLoopGroup;
-import io.netty.channel.epoll.EpollServerSocketChannel;
 import io.netty.channel.group.ChannelGroup;
+import io.netty.channel.group.ChannelMatcher;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
-import io.netty.channel.socket.nio.NioServerSocketChannel;
-import io.netty.handler.codec.ByteToMessageDecoder;
-import io.netty.handler.ssl.SslContext;
-import io.netty.handler.ssl.SslHandler;
-import io.netty.handler.timeout.IdleStateEvent;
-import io.netty.handler.timeout.IdleStateHandler;
-import io.netty.util.Version;
 import io.netty.util.concurrent.GlobalEventExecutor;
 import io.netty.util.internal.logging.InternalLoggerFactory;
 import io.netty.util.internal.logging.Slf4JLoggerFactory;
@@ -51,7 +36,6 @@ import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.EventListener;
 import io.stargate.db.EventListenerWithChannelFilter;
 import io.stargate.db.Persistence;
-import java.io.IOException;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -63,13 +47,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import org.apache.cassandra.config.EncryptionOptions;
 import org.apache.cassandra.net.ResourceLimits;
-import org.apache.cassandra.security.SSLFactory;
 import org.apache.cassandra.service.CassandraDaemon;
 import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.stargate.metrics.ConnectionMetrics;
@@ -89,12 +71,27 @@ public class CqlServer implements CassandraDaemon.Server {
 
   private final ConnectionTracker connectionTracker = new ConnectionTracker();
 
+  private final Connection.Factory connectionFactory =
+      new Connection.Factory() {
+        public Connection newConnection(
+            Channel channel, ProxyInfo proxyInfo, ProtocolVersion version) {
+          return new ServerConnection(
+              channel,
+              socket.getPort(),
+              proxyInfo,
+              version,
+              connectionTracker,
+              persistence,
+              authentication);
+        }
+      };
+
   public final InetSocketAddress socket;
   public final Persistence persistence;
   public final AuthenticationService authentication;
   public boolean useSSL = false;
   private final AtomicBoolean isRunning = new AtomicBoolean(false);
-
+  private final PipelineConfigurator pipelineConfigurator;
   private final EventLoopGroup workerGroup;
 
   private CqlServer(Builder builder) {
@@ -108,6 +105,14 @@ public class CqlServer implements CassandraDaemon.Server {
       if (useEpoll) workerGroup = new EpollEventLoopGroup();
       else workerGroup = new NioEventLoopGroup();
     }
+    pipelineConfigurator =
+        builder.pipelineConfigurator != null
+            ? builder.pipelineConfigurator
+            : new PipelineConfigurator(
+                useEpoll,
+                true, // DatabaseDescriptor.getRpcKeepAlive(),
+                false, // DatabaseDescriptor.useNativeTransportLegacyFlusher(),
+                builder.tlsEncryptionPolicy);
     this.persistence.registerEventListener(new EventNotifier(this));
   }
 
@@ -126,40 +131,8 @@ public class CqlServer implements CassandraDaemon.Server {
     if (isRunning()) return;
 
     // Configure the server.
-    ServerBootstrap bootstrap =
-        new ServerBootstrap()
-            .channel(useEpoll ? EpollServerSocketChannel.class : NioServerSocketChannel.class)
-            .childOption(ChannelOption.TCP_NODELAY, true)
-            .childOption(ChannelOption.SO_LINGER, 0)
-            .childOption(ChannelOption.SO_KEEPALIVE, TransportDescriptor.getRpcKeepAlive())
-            .childOption(ChannelOption.ALLOCATOR, CBUtil.allocator)
-            .childOption(
-                ChannelOption.WRITE_BUFFER_WATER_MARK,
-                new WriteBufferWaterMark(8 * 1024, 32 * 1024));
-    if (workerGroup != null) bootstrap = bootstrap.group(workerGroup);
-
-    if (this.useSSL) {
-      final EncryptionOptions clientEnc = TransportDescriptor.getNativeProtocolEncryptionOptions();
-
-      if (clientEnc.isOptional()) {
-        logger.info("Enabling optionally encrypted CQL connections between client and server");
-        bootstrap.childHandler(new OptionalSecureInitializer(this, clientEnc));
-      } else {
-        logger.info("Enabling encrypted CQL connections between client and server");
-        bootstrap.childHandler(new SecureInitializer(this, clientEnc));
-      }
-    } else {
-      bootstrap.childHandler(new Initializer(this));
-    }
-
-    // Bind and start to accept incoming connections.
-    logger.info("Using Netty Version: {}", Version.identify().entrySet());
-    logger.info(
-        "Starting listening for CQL clients on {} ({})...",
-        socket,
-        this.useSSL ? "encrypted" : "unencrypted");
-
-    ChannelFuture bindFuture = bootstrap.bind(socket);
+    ChannelFuture bindFuture =
+        pipelineConfigurator.initializeChannel(workerGroup, socket, connectionFactory);
     if (!bindFuture.awaitUninterruptibly().isSuccess())
       throw new IllegalStateException(
           String.format(
@@ -169,17 +142,6 @@ public class CqlServer implements CassandraDaemon.Server {
 
     connectionTracker.allChannels.add(bindFuture.channel());
     isRunning.set(true);
-  }
-
-  private Connection newConnection(Channel channel, ProxyInfo proxyInfo, ProtocolVersion version) {
-    return new ServerConnection(
-        channel,
-        socket.getPort(),
-        proxyInfo,
-        version,
-        connectionTracker,
-        persistence,
-        authentication);
   }
 
   public int countConnectedClients() {
@@ -224,16 +186,25 @@ public class CqlServer implements CassandraDaemon.Server {
 
     private final Persistence persistence;
     private final AuthenticationService authentication;
+    private EncryptionOptions.TlsEncryptionPolicy tlsEncryptionPolicy =
+        EncryptionOptions.TlsEncryptionPolicy.UNENCRYPTED;
     private EventLoopGroup workerGroup;
     private boolean useSSL = false;
     private InetAddress hostAddr;
     private int port = -1;
     private InetSocketAddress socket;
+    private PipelineConfigurator pipelineConfigurator;
 
     public Builder(Persistence persistence, AuthenticationService authentication) {
       assert persistence != null;
       this.persistence = persistence;
       this.authentication = authentication;
+    }
+
+    public Builder withTlsEncryptionPolicy(
+        EncryptionOptions.TlsEncryptionPolicy tlsEncryptionPolicy) {
+      this.tlsEncryptionPolicy = tlsEncryptionPolicy;
+      return this;
     }
 
     public Builder withSSL(boolean useSSL) {
@@ -258,6 +229,11 @@ public class CqlServer implements CassandraDaemon.Server {
       return this;
     }
 
+    public Builder withPipelineConfigurator(PipelineConfigurator configurator) {
+      this.pipelineConfigurator = configurator;
+      return this;
+    }
+
     public CqlServer build() {
       return new CqlServer(this);
     }
@@ -275,6 +251,13 @@ public class CqlServer implements CassandraDaemon.Server {
 
   public static class ConnectionTracker implements Connection.Tracker {
     // TODO: should we be using the GlobalEventExecutor or defining our own?
+    private static final ChannelMatcher PRE_V5_CHANNEL =
+        channel ->
+            channel
+                .attr(Connection.attributeKey)
+                .get()
+                .getVersion()
+                .isSmallerThan(ProtocolVersion.V5);
     public final ChannelGroup allChannels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
     private final EnumMap<Event.Type, ChannelGroup> groups = new EnumMap<>(Event.Type.class);
     private final ProtocolVersionTracker protocolVersionTracker = new ProtocolVersionTracker();
@@ -298,19 +281,7 @@ public class CqlServer implements CassandraDaemon.Server {
     }
 
     public void send(Event event) {
-      groups
-          .get(event.type)
-          .writeAndFlush(
-              new EventMessage(event),
-              channel -> {
-                if (channel == null || event.headerFilter == null) return true;
-
-                ProxyInfo proxyInfo = channel.attr(ProxyInfo.attributeKey).get();
-                Map<String, String> headers =
-                    proxyInfo != null ? proxyInfo.toHeaders() : Collections.emptyMap();
-
-                return event.headerFilter.test(headers);
-              });
+      groups.get(event.type).writeAndFlush(new EventMessage(event), PRE_V5_CHANNEL);
     }
 
     void closeAll() {
@@ -444,161 +415,6 @@ public class CqlServer implements CassandraDaemon.Server {
     public void release() {
       if (-1 == refCount.updateAndGet(i -> i == 1 ? -1 : i - 1))
         requestPayloadInFlightPerEndpoint.remove(endpoint, this);
-    }
-  }
-
-  private static class Initializer extends ChannelInitializer<Channel> {
-    // Stateless handlers
-    private static final Message.ProtocolDecoder messageDecoder = new Message.ProtocolDecoder();
-    private static final Message.ProtocolEncoder messageEncoder = new Message.ProtocolEncoder();
-    private static final Frame.InboundBodyTransformer inboundFrameTransformer =
-        new Frame.InboundBodyTransformer();
-    private static final Frame.OutboundBodyTransformer outboundFrameTransformer =
-        new Frame.OutboundBodyTransformer();
-    private static final Frame.Encoder frameEncoder = new Frame.Encoder();
-    private static final Message.ExceptionHandler exceptionHandler = new Message.ExceptionHandler();
-    private static final ConnectionLimitHandler connectionLimitHandler =
-        new ConnectionLimitHandler();
-
-    public static final Boolean USE_PROXY_PROTOCOL =
-        Boolean.parseBoolean(System.getProperty("stargate.use_proxy_protocol", "false"));
-
-    private final CqlServer server;
-
-    public Initializer(CqlServer server) {
-      this.server = server;
-    }
-
-    @Override
-    protected void initChannel(Channel channel) throws Exception {
-      ChannelPipeline pipeline = channel.pipeline();
-
-      // Add the ConnectionLimitHandler to the pipeline if configured to do so.
-      if (TransportDescriptor.getNativeTransportMaxConcurrentConnections() > 0
-          || TransportDescriptor.getNativeTransportMaxConcurrentConnectionsPerIp() > 0) {
-        // Add as first to the pipeline so the limit is enforced as first action.
-        pipeline.addFirst("connectionLimitHandler", connectionLimitHandler);
-      }
-
-      long idleTimeout = TransportDescriptor.nativeTransportIdleTimeout();
-      if (idleTimeout > 0) {
-        pipeline.addLast(
-            "idleStateHandler",
-            new IdleStateHandler(false, 0, 0, idleTimeout, TimeUnit.MILLISECONDS) {
-              @Override
-              protected void channelIdle(ChannelHandlerContext ctx, IdleStateEvent evt) {
-                logger.info(
-                    "Closing client connection {} after timeout of {}ms",
-                    channel.remoteAddress(),
-                    idleTimeout);
-                ctx.close();
-              }
-            });
-      }
-
-      if (USE_PROXY_PROTOCOL) {
-        pipeline.addLast("proxyProtocol", new HAProxyProtocolDetectingDecoder());
-      }
-
-      // pipeline.addLast("debug", new LoggingHandler());
-
-      pipeline.addLast("frameDecoder", new Frame.Decoder(server::newConnection));
-      pipeline.addLast("frameEncoder", frameEncoder);
-
-      pipeline.addLast("inboundFrameTransformer", inboundFrameTransformer);
-      pipeline.addLast("outboundFrameTransformer", outboundFrameTransformer);
-
-      pipeline.addLast("messageDecoder", messageDecoder);
-      pipeline.addLast("messageEncoder", messageEncoder);
-
-      pipeline.addLast(
-          "executor",
-          new Message.Dispatcher(
-              TransportDescriptor.useNativeTransportLegacyFlusher(),
-              EndpointPayloadTracker.get(
-                  ((InetSocketAddress) channel.remoteAddress()).getAddress())));
-
-      // The exceptionHandler will take care of handling exceptionCaught(...) events while still
-      // running
-      // on the same EventLoop as all previous added handlers in the pipeline. This is important as
-      // the used
-      // eventExecutorGroup may not enforce strict ordering for channel events.
-      // As the exceptionHandler runs in the EventLoop as the previous handlers we are sure all
-      // exceptions are
-      // correctly handled before the handler itself is removed.
-      // See https://issues.apache.org/jira/browse/CASSANDRA-13649
-      pipeline.addLast("exceptionHandler", exceptionHandler);
-    }
-  }
-
-  protected abstract static class AbstractSecureIntializer extends Initializer {
-    private final EncryptionOptions encryptionOptions;
-
-    protected AbstractSecureIntializer(CqlServer server, EncryptionOptions encryptionOptions) {
-      super(server);
-      this.encryptionOptions = encryptionOptions;
-    }
-
-    protected final SslHandler createSslHandler(ByteBufAllocator allocator) throws IOException {
-      SslContext sslContext =
-          SSLFactory.getOrCreateSslContext(
-              encryptionOptions,
-              encryptionOptions.require_client_auth,
-              SSLFactory.SocketType.SERVER);
-      return sslContext.newHandler(allocator);
-    }
-  }
-
-  private static class OptionalSecureInitializer extends AbstractSecureIntializer {
-    public OptionalSecureInitializer(CqlServer server, EncryptionOptions encryptionOptions) {
-      super(server, encryptionOptions);
-    }
-
-    @Override
-    protected void initChannel(final Channel channel) throws Exception {
-      super.initChannel(channel);
-      channel
-          .pipeline()
-          .addFirst(
-              "sslDetectionHandler",
-              new ByteToMessageDecoder() {
-                @Override
-                protected void decode(
-                    ChannelHandlerContext channelHandlerContext, ByteBuf byteBuf, List<Object> list)
-                    throws Exception {
-                  if (byteBuf.readableBytes() < 5) {
-                    // To detect if SSL must be used we need to have at least 5 bytes, so return
-                    // here and try again
-                    // once more bytes a ready.
-                    return;
-                  }
-                  if (SslHandler.isEncrypted(byteBuf)) {
-                    // Connection uses SSL/TLS, replace the detection handler with a SslHandler and
-                    // so use
-                    // encryption.
-                    SslHandler sslHandler = createSslHandler(channel.alloc());
-                    channelHandlerContext.pipeline().replace(this, "ssl", sslHandler);
-                  } else {
-                    // Connection use no TLS/SSL encryption, just remove the detection handler and
-                    // continue without
-                    // SslHandler in the pipeline.
-                    channelHandlerContext.pipeline().remove(this);
-                  }
-                }
-              });
-    }
-  }
-
-  private static class SecureInitializer extends AbstractSecureIntializer {
-    public SecureInitializer(CqlServer server, EncryptionOptions encryptionOptions) {
-      super(server, encryptionOptions);
-    }
-
-    @Override
-    protected void initChannel(Channel channel) throws Exception {
-      SslHandler sslHandler = createSslHandler(channel.alloc());
-      super.initChannel(channel);
-      channel.pipeline().addFirst("ssl", sslHandler);
     }
   }
 
