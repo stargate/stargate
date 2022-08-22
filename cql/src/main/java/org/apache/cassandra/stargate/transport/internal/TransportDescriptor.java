@@ -82,12 +82,12 @@ public class TransportDescriptor {
         rpcAddress = InetAddress.getLocalHost();
         logger.info(
             "InetAddress.getLocalHost() was used to resolve rpc_address to {}, double check this is "
-                + "correct. Please check your node's config and set the listen_address in cassandra.yaml accordingly if applicable.",
+                + "correct. Please check your node's config and set the rcp_address in cql.yaml accordingly if applicable.",
             rpcAddress);
       } catch (UnknownHostException e) {
         logger.info(
             "InetAddress.getLocalHost() could not resolve the address for the hostname ({}), please "
-                + "check your node's config and set the rcp_address.yaml. Falling back to {}",
+                + "check your node's config and set the rcp_address. Falling back to {}",
             e,
             InetAddress.getLoopbackAddress());
         // CASSANDRA-15901 fallback for misconfigured nodes
