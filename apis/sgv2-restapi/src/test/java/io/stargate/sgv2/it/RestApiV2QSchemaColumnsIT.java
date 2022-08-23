@@ -7,6 +7,7 @@ import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
+import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
 import javax.enterprise.context.control.ActivateRequestContext;
@@ -33,7 +34,19 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
    */
 
   @Test
-  public void columnAddBadType() {}
+  public void columnAddBadType() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+
+    final String columnToAdd = "name";
+    Sgv2ColumnDefinition columnDef = new Sgv2ColumnDefinition(columnToAdd, "badType", false);
+    String response =
+        tryAddColumn(testKeyspaceName(), tableName, columnDef, HttpStatus.SC_BAD_REQUEST);
+    ApiError apiError = readJsonAs(response, ApiError.class);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    // Sub-optimal failure message, should improve:
+    assertThat(apiError.description()).matches("Invalid argument.*Unknown type.*badType.*");
+  }
 
   @Test
   public void columnAddBasic() {
@@ -53,7 +66,21 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
   }
 
   @Test
-  public void columnAddStatic() {}
+  public void columnAddStatic() {
+    final String tableName = testTableName();
+    setupClusteringTestCase(testKeyspaceName(), tableName);
+
+    // Add a static column, verify response
+    final String columnToAdd = "balance";
+    Sgv2ColumnDefinition columnDef = new Sgv2ColumnDefinition(columnToAdd, "float", true);
+    String response = tryAddColumn(testKeyspaceName(), tableName, columnDef, HttpStatus.SC_CREATED);
+    NameResponse nameResp = readJsonAs(response, NameResponse.class);
+    assertThat(nameResp.name).isEqualTo(columnToAdd);
+
+    Sgv2ColumnDefinition columnFound =
+        findOneColumn(testKeyspaceName(), tableName, columnToAdd, true);
+    assertThat(columnFound).isEqualTo(columnDef);
+  }
 
   /*
   /////////////////////////////////////////////////////////////////////////
