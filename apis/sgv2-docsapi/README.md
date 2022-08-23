@@ -121,6 +121,17 @@ Running a test with a different version of the data store or the Stargate coordi
 * `testing.containers.cluster-version` - version of the cluster, for example: `4.0` (should be one of `3.11`, `4.0` or `6.8`)
 * `testing.containers.cluster-dse` - optional and only needed if DSE is used
 
+#### Executing against a running application
+
+The integration tests can also be executed against an already running instance of the application.
+This can be achieved by setting the `quarkus.http.test-host` system property when running the tests.
+You'll most likely need to specify the authentication token to use in the tests, by setting the `stargate.int-test.auth-token` system property. 
+
+```shell
+./mvnw verify -DskipUnitTests -Dquarkus.http.test-host=1.2.3.4 -Dquarkus.http.test-port=4321 -Dstargate.int-test.auth-token=[AUTH_TOKEN]
+
+```
+
 #### Skipping integration tests
 
 You can skip the integration tests during the maven build by disabling the `int-tests` profile using the `-DskipITs` property:
