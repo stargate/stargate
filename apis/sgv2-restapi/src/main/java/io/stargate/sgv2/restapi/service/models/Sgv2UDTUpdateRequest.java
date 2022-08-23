@@ -17,6 +17,13 @@ public class Sgv2UDTUpdateRequest {
   @JsonProperty("renameFields")
   private List<FieldRename> renameFields;
 
+  // For deserializer
+  protected Sgv2UDTUpdateRequest() {}
+
+  public Sgv2UDTUpdateRequest(String name) {
+    this.name = name;
+  }
+
   @Schema(required = true, description = "User Defined Type name")
   public String getName() {
     return name;
@@ -50,6 +57,13 @@ public class Sgv2UDTUpdateRequest {
 
     private String from;
     private String to;
+
+    protected FieldRename() {}
+
+    public FieldRename(String from, String to) {
+      this.from = from;
+      this.to = to;
+    }
 
     @Schema(description = "User Defined Type's old field name")
     public String getFrom() {

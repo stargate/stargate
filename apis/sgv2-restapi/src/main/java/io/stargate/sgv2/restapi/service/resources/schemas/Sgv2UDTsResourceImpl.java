@@ -14,6 +14,7 @@ import io.stargate.sgv2.restapi.service.models.Sgv2UDT;
 import io.stargate.sgv2.restapi.service.models.Sgv2UDTAddRequest;
 import io.stargate.sgv2.restapi.service.models.Sgv2UDTUpdateRequest;
 import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -77,7 +78,10 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
     // Must get one and only one response, verify
     switch (ksRows.size()) {
       case 0:
-        return Response.status(Response.Status.NOT_FOUND).build();
+        return restServiceError(
+            Response.Status.NOT_FOUND,
+            String.format(
+                "No definition found for UDT '%s' (keyspace '%s')", typeName, keyspaceName));
       case 1:
         break; // correct choice :)
       default:
@@ -94,8 +98,16 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
   }
 
   @Override
-  public Response createType(final String keyspaceName, final Sgv2UDTAddRequest udtAdd) {
+  public Response createType(final String keyspaceName, final String udtAddPayload) {
     requireNonEmptyKeyspace(keyspaceName);
+    Sgv2UDTAddRequest udtAdd;
+
+    try {
+      udtAdd = parseJsonAs(udtAddPayload, Sgv2UDTAddRequest.class);
+    } catch (IOException e) {
+      throw new WebApplicationException(
+          "Invalid JSON payload: " + e.getMessage(), Response.Status.BAD_REQUEST);
+    }
     final String typeName = udtAdd.getName();
     requireNonEmptyTypename(typeName);
 
@@ -202,7 +214,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
       String typeDef = colDef.getTypeDefinition();
       if (isStringEmpty(columnName) || isStringEmpty(typeDef)) {
         throw new WebApplicationException(
-            "Field name and type definition must be provided", Response.Status.BAD_REQUEST);
+            "Field 'name' and 'typeDefinition' must be provided", Response.Status.BAD_REQUEST);
       }
       result.add(
           ImmutableColumn.builder()

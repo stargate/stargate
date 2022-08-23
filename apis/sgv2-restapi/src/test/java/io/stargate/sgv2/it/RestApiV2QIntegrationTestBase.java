@@ -262,6 +262,10 @@ public class RestApiV2QIntegrationTestBase {
     }
   }
 
+  protected static class NameResponse {
+    public String name;
+  }
+
   /*
   /////////////////////////////////////////////////////////////////////////
   // Helper methods for Keyspace creation
@@ -285,7 +289,7 @@ public class RestApiV2QIntegrationTestBase {
   /////////////////////////////////////////////////////////////////////////
    */
 
-  protected TableNameResponse createSimpleTestTable(String keyspaceName, String tableName) {
+  protected NameResponse createSimpleTestTable(String keyspaceName, String tableName) {
     final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
     tableAdd.setColumnDefinitions(
         Arrays.asList(
@@ -301,7 +305,7 @@ public class RestApiV2QIntegrationTestBase {
     return createTable(keyspaceName, tableAdd);
   }
 
-  protected TableNameResponse createComplexTestTable(String keyspaceName, String tableName) {
+  protected NameResponse createComplexTestTable(String keyspaceName, String tableName) {
     final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
     tableAdd.setColumnDefinitions(
         Arrays.asList(
@@ -317,7 +321,7 @@ public class RestApiV2QIntegrationTestBase {
     return createTable(keyspaceName, tableAdd);
   }
 
-  protected TableNameResponse createTestTable(
+  protected NameResponse createTestTable(
       String keyspaceName,
       String tableName,
       List<String> columns,
@@ -341,7 +345,7 @@ public class RestApiV2QIntegrationTestBase {
     return createTable(keyspaceName, tableAdd);
   }
 
-  protected TableNameResponse createTable(String keyspaceName, Sgv2TableAddRequest addRequest) {
+  protected NameResponse createTable(String keyspaceName, Sgv2TableAddRequest addRequest) {
     String response =
         given()
             .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
@@ -353,7 +357,7 @@ public class RestApiV2QIntegrationTestBase {
             .statusCode(HttpStatus.SC_CREATED)
             .extract()
             .asString();
-    return readJsonAs(response, TableNameResponse.class);
+    return readJsonAs(response, NameResponse.class);
   }
 
   protected Sgv2Table findTable(String keyspaceName, String tableName) {
@@ -368,10 +372,6 @@ public class RestApiV2QIntegrationTestBase {
             .extract()
             .asString();
     return readJsonAs(response, Sgv2Table.class);
-  }
-
-  protected static class TableNameResponse {
-    public String name;
   }
 
   /*

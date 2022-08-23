@@ -90,6 +90,10 @@ public abstract class RestResourceBase {
     return JSON_MAPPER.readTree(jsonString);
   }
 
+  protected static <T> T parseJsonAs(String jsonString, Class<T> cls) throws IOException {
+    return JSON_MAPPER.readValue(jsonString, cls);
+  }
+
   // // // Helper methods for Bridge/gRPC query construction
 
   private static QueryOuterClass.QueryParameters.Builder parametersBuilderForLocalQuorum() {

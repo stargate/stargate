@@ -118,7 +118,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void tableGetComplex() {
     final String tableName = testTableName();
-    TableNameResponse createResponse = createComplexTestTable(testKeyspaceName(), tableName);
+    NameResponse createResponse = createComplexTestTable(testKeyspaceName(), tableName);
     assertThat(createResponse.name).isEqualTo(tableName);
 
     Sgv2Table table = findTable(testKeyspaceName(), tableName);
@@ -188,7 +188,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
     tableAdd.setTableOptions(null);
 
     // First verify response
-    TableNameResponse response = createTable(testKeyspaceName(), tableAdd);
+    NameResponse response = createTable(testKeyspaceName(), tableAdd);
     assertThat(response.name).isEqualTo(tableName);
 
     // And then find the table itself
@@ -215,7 +215,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
     tableAdd.setTableOptions(new Sgv2Table.TableOptions(0, null));
 
     // First verify response
-    TableNameResponse response = createTable(testKeyspaceName(), tableAdd);
+    NameResponse response = createTable(testKeyspaceName(), tableAdd);
     assertThat(response.name).isEqualTo(tableAdd.getName());
 
     // And then find the table itself
@@ -278,7 +278,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
     primaryKey.setPartitionKey(Arrays.asList("ID"));
     tableAdd.setPrimaryKey(primaryKey);
 
-    TableNameResponse response = createTable(testKeyspaceName(), tableAdd);
+    NameResponse response = createTable(testKeyspaceName(), tableAdd);
     assertThat(response.name).isEqualTo(tableName);
 
     // Then insert row: should use convenience methods in future but for now done inline
@@ -336,7 +336,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
             .statusCode(HttpStatus.SC_OK)
             .extract()
             .asString();
-    TableNameResponse putResponse = readJsonAs(response, TableNameResponse.class);
+    NameResponse putResponse = readJsonAs(response, NameResponse.class);
     assertThat(putResponse.name).isEqualTo(tableName);
 
     final Sgv2Table modifiedTable = findTable(testKeyspaceName(), tableName);

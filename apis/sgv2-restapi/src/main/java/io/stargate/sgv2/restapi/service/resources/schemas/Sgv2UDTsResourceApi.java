@@ -2,7 +2,6 @@ package io.stargate.sgv2.restapi.service.resources.schemas;
 
 import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.service.models.Sgv2UDT;
-import io.stargate.sgv2.restapi.service.models.Sgv2UDTAddRequest;
 import io.stargate.sgv2.restapi.service.models.Sgv2UDTUpdateRequest;
 import javax.enterprise.context.ApplicationScoped;
 import javax.validation.constraints.NotNull;
@@ -110,7 +109,7 @@ public interface Sgv2UDTsResourceApi {
           @PathParam("keyspaceName")
           final String keyspaceName,
       @RequestBody(description = "Type definition as JSON", required = true) @NotNull
-          final Sgv2UDTAddRequest udtAdd);
+          final String udtAddPayload);
 
   @DELETE
   @Operation(
