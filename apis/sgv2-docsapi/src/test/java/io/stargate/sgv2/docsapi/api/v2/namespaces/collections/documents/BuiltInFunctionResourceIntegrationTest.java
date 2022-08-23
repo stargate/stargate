@@ -19,6 +19,7 @@ package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents;
 import static io.restassured.RestAssured.given;
 import static io.stargate.sgv2.common.IntegrationTestUtils.getAuthToken;
 import static net.javacrumbs.jsonunit.JsonMatchers.jsonEquals;
+import static net.javacrumbs.jsonunit.JsonMatchers.jsonNodeAbsent;
 import static net.javacrumbs.jsonunit.JsonMatchers.jsonPartEquals;
 import static org.hamcrest.Matchers.equalTo;
 
@@ -66,12 +67,15 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
 
     public static final String POP_PAYLOAD = "{\"operation\": \"$pop\"}";
 
+    public static final String SET_PAYLOAD = "{\"operation\": \"$set\", \"value\": %s}";
+
     @BeforeEach
     public void setup() {
       given()
           .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
-          .body("{\"array\": [1, 2, 3], \"object\": {}}")
+          .body(
+              "{\"array\": [1, 2, 3], \"object\": {\"a\": 3, \"b\": [{}, {\"nested\": \"value\"}, []]}}")
           .when()
           .put(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -184,7 +188,10 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
           .then()
           .statusCode(400)
           .body("code", equalTo(400))
-          .body("description", equalTo("The path provided to pop from has no array, found {}."));
+          .body(
+              "description",
+              equalTo(
+                  "The path provided to pop from has no array, found {\"a\":3,\"b\":[{},{\"nested\":\"value\"},[]]}."));
     }
 
     @Test
@@ -300,7 +307,139 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
           .then()
           .statusCode(400)
           .body("code", equalTo(400))
-          .body("description", equalTo("The path provided to push to has no array, found {}."));
+          .body(
+              "description",
+              equalTo(
+                  "The path provided to push to has no array, found {\"a\":3,\"b\":[{},{\"nested\":\"value\"},[]]}."));
+    }
+
+    @Test
+    public void setUpdateOneValue() {
+      String setOperation = "{ \"b.[1].nested\": \"newvalue\" }";
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .contentType(ContentType.JSON)
+          .body(String.format(SET_PAYLOAD, setOperation))
+          .when()
+          .post(BASE_PATH + "/object/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .statusCode(200);
+
+      // get whole document and check the value
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .body("data", jsonPartEquals("object.b[1].nested", "newvalue"))
+          .statusCode(200);
+    }
+
+    @Test
+    public void setUpdateOneValueCreate() {
+      String setOperation = "{ \"c.nested\": \"newvalue\" }";
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .contentType(ContentType.JSON)
+          .body(String.format(SET_PAYLOAD, setOperation))
+          .when()
+          .post(BASE_PATH + "/object/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .statusCode(200);
+
+      // get whole document and check the value
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .body("data", jsonPartEquals("object.c.nested", "newvalue"))
+          .statusCode(200);
+    }
+
+    @Test
+    public void setUpdateManyValues() {
+      String setOperation =
+          "{ \"b.[1].different\": \"newvalue\", \"b.[1].other\": \"awesome\", \"b.[0].new\": true, \"a\": 9000 }";
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .contentType(ContentType.JSON)
+          .body(String.format(SET_PAYLOAD, setOperation))
+          .when()
+          .post(BASE_PATH + "/object/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .statusCode(200);
+
+      // get whole document and check the value
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .body("data", jsonPartEquals("object.b[1].nested", "value"))
+          .body("data", jsonPartEquals("object.b[1].different", "newvalue"))
+          .body("data", jsonPartEquals("object.b[1].other", "awesome"))
+          .body("data", jsonPartEquals("object.b[0].new", true))
+          .body("data", jsonPartEquals("object.a", 9000))
+          .statusCode(200);
+    }
+
+    @Test
+    public void setWithObject() {
+      // This should blow away the `nested` field
+      String setOperation = "{ \"b.[1]\": { \"newdata\": true } }";
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .contentType(ContentType.JSON)
+          .body(String.format(SET_PAYLOAD, setOperation))
+          .when()
+          .post(BASE_PATH + "/object/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .statusCode(200);
+
+      // get whole document and check the value
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .body("data", jsonPartEquals("object.b[1].newdata", true))
+          .body("data", jsonNodeAbsent("object.b[1].nested"))
+          .statusCode(200);
+    }
+
+    @Test
+    public void setWithNestedArray() {
+      String setOperation = "{ \"b.[1].nested.[2].d\": \"hello\" }";
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .contentType(ContentType.JSON)
+          .body(String.format(SET_PAYLOAD, setOperation))
+          .when()
+          .post(BASE_PATH + "/object/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .statusCode(200);
+
+      // get whole document and check the value
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .body("data", jsonPartEquals("object.b[1].nested[2].d", "hello"))
+          .body("data", jsonPartEquals("object.b[1].nested[0]", null))
+          .body("data", jsonPartEquals("object.b[1].nested[1]", null))
+          .statusCode(200);
     }
 
     @Test
@@ -316,7 +455,7 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
           .body("code", equalTo(400))
           .body(
               "description",
-              equalTo("Request invalid: available built-in functions are $pop and $push."));
+              equalTo("Request invalid: available built-in functions are [$pop, $push, $set]."));
     }
 
     @Test

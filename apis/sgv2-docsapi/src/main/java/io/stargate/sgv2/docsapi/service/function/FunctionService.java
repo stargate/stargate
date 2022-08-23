@@ -39,6 +39,8 @@ import javax.inject.Inject;
  *       io.stargate.sgv2.docsapi.service.function.impl.PopFunction}
  *   <li><code>$push</code>, implemented in {@link
  *       io.stargate.sgv2.docsapi.service.function.impl.PushFunction}
+ *   <li><code>$set</code>, implemented in {@link
+ *       io.stargate.sgv2.docsapi.service.function.impl.SetFunction}
  * </ol>
  *
  * @see BuiltInFunction

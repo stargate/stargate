@@ -79,6 +79,7 @@ public interface OpenApiConstants {
     // function
     String FUNCTION_POP_BODY = "Function `$pop`";
     String FUNCTION_PUSH_BODY = "Function `$push`";
+    String FUNCTION_SET_BODY = "Function `$set`";
     String FUNCTION_RESPONSE = "Function execution result";
   }
 

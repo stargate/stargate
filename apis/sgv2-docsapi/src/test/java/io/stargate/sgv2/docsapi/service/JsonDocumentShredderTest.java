@@ -413,4 +413,77 @@ class JsonDocumentShredderTest {
           .hasFieldOrPropertyWithValue("errorCode", ErrorCode.DOCS_API_GENERAL_DEPTH_EXCEEDED);
     }
   }
+
+  @Nested
+  class ShredFromPaths {
+    @Test
+    public void simpleObjectNumericValue() {
+      ObjectNode payload = objectMapper.createObjectNode().put("field.a.b", 22);
+
+      List<JsonShreddedRow> result =
+          shredder.shredFromDottedPaths(payload, Collections.emptyList());
+
+      assertThat(result)
+          .singleElement()
+          .satisfies(
+              row -> {
+                assertThat(row.getPath()).containsExactly("field", "a", "b");
+                assertThat(row.getLeaf()).isEqualTo("b");
+                assertThat(row.getStringValue()).isNull();
+                assertThat(row.getDoubleValue()).isEqualTo(22d);
+                assertThat(row.getBooleanValue()).isNull();
+              });
+    }
+
+    @Test
+    public void dottedPathWithArrayNumericValue() {
+      ObjectNode payload = objectMapper.createObjectNode().put("field.[0].b", 22);
+
+      List<JsonShreddedRow> result =
+          shredder.shredFromDottedPaths(payload, Collections.emptyList());
+
+      assertThat(result)
+          .singleElement()
+          .satisfies(
+              row -> {
+                assertThat(row.getPath()).containsExactly("field", "[000000]", "b");
+                assertThat(row.getLeaf()).isEqualTo("b");
+                assertThat(row.getStringValue()).isNull();
+                assertThat(row.getDoubleValue()).isEqualTo(22d);
+                assertThat(row.getBooleanValue()).isNull();
+              });
+    }
+
+    @Test
+    public void multipleDottedPathValues() {
+      ObjectNode payload = objectMapper.createObjectNode().put("field.[0].b", 22);
+      payload.put("field.[1]", true);
+      payload.put("field2", "hello");
+
+      List<JsonShreddedRow> result =
+          shredder.shredFromDottedPaths(payload, Collections.emptyList());
+
+      assertThat(result)
+          .satisfies(
+              rows -> {
+                assertThat(rows.get(0).getPath()).containsExactly("field", "[000000]", "b");
+                assertThat(rows.get(0).getLeaf()).isEqualTo("b");
+                assertThat(rows.get(0).getStringValue()).isNull();
+                assertThat(rows.get(0).getDoubleValue()).isEqualTo(22d);
+                assertThat(rows.get(0).getBooleanValue()).isNull();
+
+                assertThat(rows.get(1).getPath()).containsExactly("field", "[000001]");
+                assertThat(rows.get(1).getLeaf()).isEqualTo("[000001]");
+                assertThat(rows.get(1).getStringValue()).isNull();
+                assertThat(rows.get(1).getDoubleValue()).isNull();
+                assertThat(rows.get(1).getBooleanValue()).isEqualTo(true);
+
+                assertThat(rows.get(2).getPath()).containsExactly("field2");
+                assertThat(rows.get(2).getLeaf()).isEqualTo("field2");
+                assertThat(rows.get(2).getStringValue()).isEqualTo("hello");
+                assertThat(rows.get(2).getDoubleValue()).isNull();
+                assertThat(rows.get(2).getBooleanValue()).isNull();
+              });
+    }
+  }
 }

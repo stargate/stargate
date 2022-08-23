@@ -764,6 +764,239 @@ public class WriteDocumentsServiceTest {
   }
 
   @Nested
+  class SetPathsOnDocument implements OpenMocksTest {
+
+    @Mock RowWrapper row;
+    @Mock RawDocument rawDocument;
+    @Mock List<JsonShreddedRow> rows;
+
+    @BeforeEach
+    public void setup() {
+      when(rawDocument.rows()).thenReturn(List.of(row));
+    }
+
+    @Test
+    public void happyPath() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+      JsonNode obj = objectMapper.readTree(payload);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
+
+      when(jsonDocumentShredder.shredFromDottedPaths(obj, Collections.emptyList()))
+          .thenReturn(rows);
+      when(writeBridgeService.setPathsOnDocument(
+              namespace, collection, documentId, Collections.emptySet(), rows, null, context))
+          .thenReturn(Uni.createFrom().item(ResultSet.getDefaultInstance()));
+
+      DocumentResponseWrapper<Void> result =
+          documentWriteService
+              .setPathsOnDocument(
+                  Uni.createFrom().item(table),
+                  namespace,
+                  collection,
+                  documentId,
+                  Collections.emptyList(),
+                  obj,
+                  false,
+                  context)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create())
+              .awaitItem()
+              .assertCompleted()
+              .getItem();
+
+      assertThat(result.documentId()).isEqualTo(documentId);
+      assertThat(result.data()).isNull();
+      assertThat(result.pageState()).isNull();
+      assertThat(result.profile()).isEqualTo(context.toProfile());
+
+      verify(writeBridgeService)
+          .setPathsOnDocument(
+              namespace, collection, documentId, Collections.emptySet(), rows, 0, context);
+      verify(jsonSchemaManager).validateJsonDocument(any(), any(), anyBoolean());
+      verifyNoMoreInteractions(writeBridgeService, jsonSchemaManager);
+    }
+
+    @Test
+    public void happyPathWithTtlAuto() throws Exception {
+      int ttl = RandomUtils.nextInt(1, 100);
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+      JsonNode obj = objectMapper.readTree(payload);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
+
+      when(row.getLong("ttl(leaf)")).thenReturn((long) ttl);
+      when(jsonDocumentShredder.shredFromDottedPaths(obj, Collections.emptyList()))
+          .thenReturn(rows);
+      when(writeBridgeService.setPathsOnDocument(
+              namespace, collection, documentId, Collections.emptySet(), rows, 100, context))
+          .thenReturn(Uni.createFrom().item(ResultSet.getDefaultInstance()));
+      when(readBridgeService.getDocumentTtlInfo(any(), any(), any(), any()))
+          .thenReturn(Uni.createFrom().item(rawDocument));
+
+      DocumentResponseWrapper<Void> result =
+          documentWriteService
+              .setPathsOnDocument(
+                  Uni.createFrom().item(table),
+                  namespace,
+                  collection,
+                  documentId,
+                  Collections.emptyList(),
+                  obj,
+                  true,
+                  context)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create())
+              .awaitItem()
+              .assertCompleted()
+              .getItem();
+
+      assertThat(result.documentId()).isEqualTo(documentId);
+      assertThat(result.data()).isNull();
+      assertThat(result.pageState()).isNull();
+      assertThat(result.profile()).isEqualTo(context.toProfile());
+
+      verify(writeBridgeService)
+          .setPathsOnDocument(
+              namespace, collection, documentId, Collections.emptySet(), rows, ttl, context);
+      verify(jsonSchemaManager).validateJsonDocument(any(), any(), anyBoolean());
+      verifyNoMoreInteractions(writeBridgeService, jsonSchemaManager);
+    }
+
+    @Test
+    public void happyPathWithSubPath() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      String path = RandomStringUtils.randomAlphanumeric(16);
+      List<String> subPath = Collections.singletonList(path);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+      JsonNode obj = objectMapper.readTree(payload);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
+
+      when(jsonDocumentShredder.shredFromDottedPaths(obj, subPath)).thenReturn(rows);
+      when(writeBridgeService.setPathsOnDocument(
+              namespace, collection, documentId, Collections.emptySet(), rows, 0, context))
+          .thenReturn(Uni.createFrom().item(ResultSet.getDefaultInstance()));
+
+      DocumentResponseWrapper<Void> result =
+          documentWriteService
+              .setPathsOnDocument(
+                  Uni.createFrom().item(table),
+                  namespace,
+                  collection,
+                  documentId,
+                  subPath,
+                  obj,
+                  false,
+                  context)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create())
+              .awaitItem()
+              .assertCompleted()
+              .getItem();
+
+      assertThat(result.documentId()).isEqualTo(documentId);
+      assertThat(result.data()).isNull();
+      assertThat(result.pageState()).isNull();
+      assertThat(result.profile()).isEqualTo(context.toProfile());
+
+      verify(writeBridgeService)
+          .setPathsOnDocument(
+              namespace, collection, documentId, Collections.emptySet(), rows, 0, context);
+      verify(jsonSchemaManager).validateJsonDocument(any(), any(), anyBoolean());
+      verifyNoMoreInteractions(writeBridgeService, jsonSchemaManager);
+    }
+
+    @Test
+    public void happyPathWithSubPathTtlAuto() throws Exception {
+      int ttl = RandomUtils.nextInt(1, 100);
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      String path = RandomStringUtils.randomAlphanumeric(16);
+      List<String> subPath = Collections.singletonList(path);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+      JsonNode obj = objectMapper.readTree(payload);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
+
+      when(row.getLong("ttl(leaf)")).thenReturn((long) ttl);
+      when(jsonDocumentShredder.shredFromDottedPaths(obj, subPath)).thenReturn(rows);
+      when(writeBridgeService.setPathsOnDocument(
+              namespace, collection, documentId, Collections.emptySet(), rows, ttl, context))
+          .thenReturn(Uni.createFrom().item(ResultSet.getDefaultInstance()));
+      when(readBridgeService.getDocumentTtlInfo(any(), any(), any(), any()))
+          .thenReturn(Uni.createFrom().item(rawDocument));
+
+      DocumentResponseWrapper<Void> result =
+          documentWriteService
+              .setPathsOnDocument(
+                  Uni.createFrom().item(table),
+                  namespace,
+                  collection,
+                  documentId,
+                  subPath,
+                  obj,
+                  true,
+                  context)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create())
+              .awaitItem()
+              .assertCompleted()
+              .getItem();
+
+      assertThat(result.documentId()).isEqualTo(documentId);
+      assertThat(result.data()).isNull();
+      assertThat(result.pageState()).isNull();
+      assertThat(result.profile()).isEqualTo(context.toProfile());
+
+      verify(writeBridgeService)
+          .setPathsOnDocument(
+              namespace, collection, documentId, Collections.emptySet(), rows, ttl, context);
+      verify(jsonSchemaManager).validateJsonDocument(any(), any(), anyBoolean());
+      verifyNoMoreInteractions(writeBridgeService, jsonSchemaManager);
+    }
+
+    @Test
+    public void withSchemaCheck() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      Schema.CqlTable table = Schema.CqlTable.newBuilder().build();
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+      JsonNode schema = objectMapper.createObjectNode();
+      JsonNode obj = objectMapper.readTree(payload);
+
+      when(jsonSchemaManager.getJsonSchema(any())).thenReturn(Uni.createFrom().item(schema));
+      when(jsonSchemaManager.validateJsonDocument(any(), any(), anyBoolean())).thenCallRealMethod();
+
+      documentWriteService
+          .setPathsOnDocument(
+              Uni.createFrom().item(table),
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              obj,
+              false,
+              context)
+          .subscribe()
+          .withSubscriber(UniAssertSubscriber.create())
+          .awaitFailure()
+          .assertFailedWith(ErrorCodeRuntimeException.class);
+    }
+  }
+
+  @Nested
   class PatchDocument implements OpenMocksTest {
     @Mock RowWrapper row;
     @Mock RawDocument rawDocument;
