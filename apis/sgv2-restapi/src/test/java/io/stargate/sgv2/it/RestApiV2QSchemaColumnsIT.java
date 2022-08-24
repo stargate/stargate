@@ -89,10 +89,27 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
    */
 
   @Test
-  public void columnGetBadKeyspace() {}
+  public void columnGetBadKeyspace() {
+    // 24-Aug-2022, tatu: !!! TODO !!! Should give SC_BAD_REQUEST but for some reason gives
+    //    SC_UNAUTHORIZED instead
+    String response = tryFindOneColumn("foo", "table1", "column1",
+            HttpStatus.SC_UNAUTHORIZED);
+    ApiError apiError = readJsonAs(response, ApiError.class);
+
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_UNAUTHORIZED);
+    // Sub-optimal failure message, should improve:
+    assertThat(apiError.description()).matches("Unauthorized keyspace:.*foo.*");
+  }
 
   @Test
-  public void columnGetBadTable() {}
+  public void columnGetBadTable() {
+    String tableName = "column-bad-bogus-table";
+    String response = tryFindOneColumn(testKeyspaceName(), tableName, "column1",
+            HttpStatus.SC_BAD_REQUEST);
+    ApiError apiError = readJsonAs(response, ApiError.class);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(apiError.description()).matches("Table.*"+tableName+".* not found.*");
+  }
 
   @Test
   public void columnGetComplex() {}
@@ -101,10 +118,26 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
   public void columnGetNotFound() {}
 
   @Test
-  public void columnGetRaw() {}
+  public void columnGetRaw() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+
+    Sgv2ColumnDefinition columnFound =
+            findOneColumn(testKeyspaceName(), tableName, "age", true);
+    assertThat(columnFound)
+            .isEqualTo(new Sgv2ColumnDefinition("age", "int", false));
+  }
 
   @Test
-  public void columnGetWrapped() {}
+  public void columnGetWrapped() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+
+    Sgv2ColumnDefinition columnFound =
+            findOneColumn(testKeyspaceName(), tableName, "age", false);
+    assertThat(columnFound)
+            .isEqualTo(new Sgv2ColumnDefinition("age", "int", false));
+  }
 
   /*
   /////////////////////////////////////////////////////////////////////////
@@ -122,10 +155,14 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
   public void columnsGetComplex() {}
 
   @Test
-  public void columnsGetRaw() {}
+  public void columnsGetRaw() {
+
+  }
 
   @Test
-  public void columnsGetWrapped() {}
+  public void columnsGetWrapped() {
+
+  }
 
   /*
   /////////////////////////////////////////////////////////////////////////
@@ -193,6 +230,19 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
         .statusCode(expectedResult)
         .extract()
         .asString();
+  }
+
+  protected String tryFindOneColumn(
+          String keyspaceName, String tableName, String columnName, int expectedStatus) {
+    return given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .queryParam("raw", true)
+            .when()
+            .get(endpointPathForColumn(keyspaceName, tableName, columnName))
+            .then()
+            .statusCode(expectedStatus)
+            .extract()
+            .asString();
   }
 
   protected Sgv2ColumnDefinition findOneColumn(
