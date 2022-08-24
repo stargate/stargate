@@ -10,6 +10,8 @@ import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
+import java.util.Arrays;
+import java.util.List;
 import javax.enterprise.context.control.ActivateRequestContext;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.ClassOrderer;
@@ -111,10 +113,26 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
   }
 
   @Test
-  public void columnGetComplex() {}
+  public void columnGetComplex() {
+    final String tableName = testTableName();
+    createComplexTestTable(testKeyspaceName(), tableName);
+
+    Sgv2ColumnDefinition columnFound = findOneColumn(testKeyspaceName(), tableName, "col1", true);
+    assertThat(columnFound)
+        .isEqualTo(new Sgv2ColumnDefinition("col1", "frozen<map<date, text>>", false));
+  }
 
   @Test
-  public void columnGetNotFound() {}
+  public void columnGetNotFound() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+    final String columnName = "column-get-not-found";
+    String response =
+        tryFindOneColumn(testKeyspaceName(), tableName, columnName, HttpStatus.SC_NOT_FOUND);
+    ApiError apiError = readJsonAs(response, ApiError.class);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_NOT_FOUND);
+    assertThat(apiError.description()).matches("column.*" + columnName + ".* not found.*");
+  }
 
   @Test
   public void columnGetRaw() {
@@ -141,19 +159,59 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
    */
 
   @Test
-  public void columnsGetBadKeyspace() {}
+  public void columnsGetBadKeyspace() {
+    // 24-Aug-2022, tatu: !!! TODO !!! Should give SC_BAD_REQUEST but for some reason gives
+    //    SC_UNAUTHORIZED instead
+    String response = tryFindAllColumns("foo", "table1", HttpStatus.SC_UNAUTHORIZED);
+    ApiError apiError = readJsonAs(response, ApiError.class);
+
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_UNAUTHORIZED);
+    // Sub-optimal failure message, should improve:
+    assertThat(apiError.description()).matches("Unauthorized keyspace:.*foo.*");
+  }
 
   @Test
-  public void columnsGetBadTable() {}
+  public void columnsGetBadTable() {
+    String tableName = "column-bad-bogus-table";
+    String response = tryFindAllColumns(testKeyspaceName(), tableName, HttpStatus.SC_BAD_REQUEST);
+    ApiError apiError = readJsonAs(response, ApiError.class);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(apiError.description()).matches("Table.*" + tableName + ".* not found.*");
+  }
 
   @Test
-  public void columnsGetComplex() {}
+  public void columnsGetComplex() {
+    final String tableName = testTableName();
+    createComplexTestTable(testKeyspaceName(), tableName);
+
+    Sgv2ColumnDefinition[] columnsFound = findAllColumns(testKeyspaceName(), tableName, true);
+    List<Sgv2ColumnDefinition> columnsExcepted =
+        Arrays.asList(
+            new Sgv2ColumnDefinition("pk0", "uuid", false),
+            new Sgv2ColumnDefinition("col1", "frozen<map<date, text>>", false),
+            new Sgv2ColumnDefinition("col2", "frozen<set<boolean>>", false),
+            new Sgv2ColumnDefinition("col3", "tuple<duration, inet>", false));
+
+    assertThat(columnsFound).hasSize(columnsExcepted.size()).containsAll(columnsExcepted);
+  }
 
   @Test
-  public void columnsGetRaw() {}
+  public void columnsGetRaw() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+
+    Sgv2ColumnDefinition[] columnsFound = findAllColumns(testKeyspaceName(), tableName, true);
+    verifySimpleColumns(columnsFound);
+  }
 
   @Test
-  public void columnsGetWrapped() {}
+  public void columnsGetWrapped() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+
+    Sgv2ColumnDefinition[] columnsFound = findAllColumns(testKeyspaceName(), tableName, false);
+    verifySimpleColumns(columnsFound);
+  }
 
   /*
   /////////////////////////////////////////////////////////////////////////
@@ -252,5 +310,46 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
       return readJsonAs(response, Sgv2ColumnDefinition.class);
     }
     return readWrappedRESTResponse(response, Sgv2ColumnDefinition.class);
+  }
+
+  protected String tryFindAllColumns(String keyspaceName, String tableName, int expectedStatus) {
+    return given()
+        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        .queryParam("raw", true)
+        .when()
+        .get(endpointPathForAllColumns(keyspaceName, tableName))
+        .then()
+        .statusCode(expectedStatus)
+        .extract()
+        .asString();
+  }
+
+  protected Sgv2ColumnDefinition[] findAllColumns(
+      String keyspaceName, String tableName, boolean raw) {
+    String response =
+        given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+            .queryParam("raw", raw)
+            .when()
+            .get(endpointPathForAllColumns(keyspaceName, tableName))
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    if (raw) {
+      return readJsonAs(response, Sgv2ColumnDefinition[].class);
+    }
+    return readWrappedRESTResponse(response, Sgv2ColumnDefinition[].class);
+  }
+
+  protected void verifySimpleColumns(Sgv2ColumnDefinition[] foundColumns) {
+    assertThat(foundColumns)
+        .hasSize(4)
+        .containsAll(
+            Arrays.asList(
+                new Sgv2ColumnDefinition("id", "uuid", false),
+                new Sgv2ColumnDefinition("lastName", "text", false),
+                new Sgv2ColumnDefinition("firstName", "text", false),
+                new Sgv2ColumnDefinition("age", "int", false)));
   }
 }
