@@ -25,7 +25,6 @@ import java.net.InetAddress;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.metrics.DecayingEstimatedHistogramReservoir;
 import org.apache.cassandra.net.AbstractMessageHandler;
 import org.apache.cassandra.net.ResourceLimits;
@@ -52,11 +51,11 @@ public class ClientResourceLimits {
   }
 
   public static long getGlobalLimit() {
-    return DatabaseDescriptor.getNativeTransportMaxConcurrentRequestsInBytes();
+    return TransportDescriptor.getNativeTransportMaxConcurrentRequestsInBytes();
   }
 
   public static void setGlobalLimit(long newLimit) {
-    DatabaseDescriptor.setNativeTransportMaxConcurrentRequestsInBytes(newLimit);
+    TransportDescriptor.setNativeTransportMaxConcurrentRequestsInBytes(newLimit);
     long existingLimit = GLOBAL_LIMIT.setLimit(getGlobalLimit());
     logger.info(
         "Changed native_max_transport_requests_in_bytes from {} to {}", existingLimit, newLimit);
@@ -67,12 +66,12 @@ public class ClientResourceLimits {
   }
 
   public static long getEndpointLimit() {
-    return DatabaseDescriptor.getNativeTransportMaxConcurrentRequestsInBytesPerIp();
+    return TransportDescriptor.getNativeTransportMaxConcurrentRequestsInBytesPerIp();
   }
 
   public static void setEndpointLimit(long newLimit) {
-    long existingLimit = DatabaseDescriptor.getNativeTransportMaxConcurrentRequestsInBytesPerIp();
-    DatabaseDescriptor.setNativeTransportMaxConcurrentRequestsInBytesPerIp(
+    long existingLimit = TransportDescriptor.getNativeTransportMaxConcurrentRequestsInBytesPerIp();
+    TransportDescriptor.setNativeTransportMaxConcurrentRequestsInBytesPerIp(
         newLimit); // ensure new instances get the new limit
     for (Allocator allocator : PER_ENDPOINT_ALLOCATORS.values())
       existingLimit = allocator.endpointAndGlobal.endpoint().setLimit(newLimit);

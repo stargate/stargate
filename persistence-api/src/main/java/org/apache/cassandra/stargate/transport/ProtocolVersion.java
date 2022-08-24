@@ -18,11 +18,7 @@
 
 package org.apache.cassandra.stargate.transport;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.EnumSet;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 /**
  * The native (CQL binary) protocol version.
@@ -38,7 +34,7 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
   V2(2, "v2", false), // no longer supported
   V3(3, "v3", false),
   V4(4, "v4", false),
-  V5(5, "v5", true);
+  V5(5, "v5-beta", true);
 
   /** The version number */
   private final int num;
@@ -64,7 +60,6 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
   static final ProtocolVersion MIN_SUPPORTED_VERSION = SUPPORTED_VERSIONS[0];
   static final ProtocolVersion MAX_SUPPORTED_VERSION =
       SUPPORTED_VERSIONS[SUPPORTED_VERSIONS.length - 1];
-
   /** All supported versions, published as an enumset */
   public static final EnumSet<ProtocolVersion> SUPPORTED =
       EnumSet.copyOf(Arrays.asList(SUPPORTED_VERSIONS));
@@ -75,7 +70,7 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
   /** The preferred versions */
   public static final ProtocolVersion CURRENT = V4;
 
-  public static final Optional<ProtocolVersion> BETA = Optional.of(V5);
+  public static final Optional<ProtocolVersion> BETA = Optional.empty();
 
   public static List<String> supportedVersions() {
     List<String> ret = new ArrayList<>(SUPPORTED.size());

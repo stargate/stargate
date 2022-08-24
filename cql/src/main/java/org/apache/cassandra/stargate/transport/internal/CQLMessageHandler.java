@@ -27,7 +27,6 @@ import io.netty.channel.Channel;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
-import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.exceptions.OverloadedException;
 import org.apache.cassandra.metrics.ClientMessageSizeMetrics;
 import org.apache.cassandra.metrics.ClientMetrics;
@@ -208,8 +207,8 @@ public class CQLMessageHandler<M extends Message> extends AbstractMessageHandler
     //    (e.g. every Envelope has an invalid opcode, but is otherwise semantically
     //    intact), but this is a trade off.
     if (expectedMessageLength < 0
-        // || ++consecutiveMessageErrors > DatabaseDescriptor.getConsecutiveMessageErrorsThreshold()) {
-            || ++consecutiveMessageErrors > 0) {
+        || ++consecutiveMessageErrors
+            > TransportDescriptor.getConsecutiveMessageErrorsThreshold()) {
       // transform the exception to a fatal one so the exception handler closes the channel
       if (!exception.isFatal()) exception = ProtocolException.toFatalException(exception);
       handleError(exception, streamId);
@@ -263,7 +262,7 @@ public class CQLMessageHandler<M extends Message> extends AbstractMessageHandler
       // Indicate that an error was encountered. Initially, we can continue to
       // process the current frame, but if we keep catching errors, we assume that
       // the whole frame payload is no good, stop processing and close the connection.
-      if (++consecutiveMessageErrors > DatabaseDescriptor.getConsecutiveMessageErrorsThreshold()) {
+      if (++consecutiveMessageErrors > TransportDescriptor.getConsecutiveMessageErrorsThreshold()) {
         if (!(e instanceof ProtocolException)) {
           logger.debug("Error decoding CQL message", e);
           e = new ProtocolException("Error encountered decoding CQL message: " + e.getMessage());

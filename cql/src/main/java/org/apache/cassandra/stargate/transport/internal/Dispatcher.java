@@ -18,8 +18,6 @@
 
 package org.apache.cassandra.stargate.transport.internal;
 
-import static org.apache.cassandra.concurrent.SharedExecutorPool.SHARED;
-
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoop;
 import io.netty.util.AttributeKey;
@@ -27,8 +25,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Consumer;
-import org.apache.cassandra.concurrent.LocalAwareExecutorService;
-import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.net.FrameEncoder;
 import org.apache.cassandra.service.ClientWarn;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
@@ -38,12 +34,12 @@ import org.apache.cassandra.stargate.transport.internal.messages.EventMessage;
 import org.apache.cassandra.utils.JVMStabilityInspector;
 
 public class Dispatcher {
-  private static final LocalAwareExecutorService requestExecutor =
-      SHARED.newExecutor(
-          DatabaseDescriptor.getNativeTransportMaxThreads(),
-          DatabaseDescriptor::setNativeTransportMaxThreads,
-          "transport",
-          "Native-Transport-Requests");
+  /*private static final LocalAwareExecutorService requestExecutor =
+  SHARED.newExecutor(
+      TransportDescriptor.getNativeTransportMaxThreads(),
+      TransportDescriptor::setNativeTransportMaxThreads,
+      "transport",
+      "Native-Transport-Requests");*/
 
   private static final ConcurrentMap<EventLoop, Flusher> flusherLookup = new ConcurrentHashMap<>();
   private final boolean useLegacyFlusher;
@@ -65,7 +61,8 @@ public class Dispatcher {
   }
 
   public void dispatch(Channel channel, Message.Request request, FlushItemConverter forFlusher) {
-    requestExecutor.submit(() -> processRequest(channel, request, forFlusher));
+    // requestExecutor.submit(() -> );
+    processRequest(channel, request, forFlusher);
   }
 
   /**
@@ -138,9 +135,9 @@ public class Dispatcher {
   }
 
   public static void shutdown() {
-    if (requestExecutor != null) {
+    /*if (requestExecutor != null) {
       requestExecutor.shutdown();
-    }
+    }*/
   }
 
   /**

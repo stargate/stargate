@@ -36,10 +36,9 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.config.EncryptionOptions;
 import org.apache.cassandra.net.*;
-import org.apache.cassandra.security.SSLFactory;
+import org.apache.cassandra.stargate.config.EncryptionOptions;
+import org.apache.cassandra.stargate.security.SSLFactory;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.transport.messages.StartupMessage;
@@ -90,9 +89,6 @@ public class PipelineConfigurator {
   private final boolean keepAlive;
   private final EncryptionOptions.TlsEncryptionPolicy tlsEncryptionPolicy;
   private final Dispatcher dispatcher;
-
-  public static final Boolean USE_PROXY_PROTOCOL =
-      Boolean.parseBoolean(System.getProperty("stargate.use_proxy_protocol", "false"));
 
   public PipelineConfigurator(
       boolean epoll,
@@ -152,7 +148,7 @@ public class PipelineConfigurator {
 
   protected EncryptionConfig encryptionConfig() {
     final EncryptionOptions encryptionOptions =
-        DatabaseDescriptor.getNativeProtocolEncryptionOptions();
+        TransportDescriptor.getNativeProtocolEncryptionOptions();
     switch (tlsEncryptionPolicy) {
       case UNENCRYPTED:
         // if encryption is not enabled, no further steps are required after the initial setup
@@ -223,13 +219,13 @@ public class PipelineConfigurator {
     ChannelPipeline pipeline = channel.pipeline();
 
     // Add the ConnectionLimitHandler to the pipeline if configured to do so.
-    if (DatabaseDescriptor.getNativeTransportMaxConcurrentConnections() > 0
-        || DatabaseDescriptor.getNativeTransportMaxConcurrentConnectionsPerIp() > 0) {
+    if (TransportDescriptor.getNativeTransportMaxConcurrentConnections() > 0
+        || TransportDescriptor.getNativeTransportMaxConcurrentConnectionsPerIp() > 0) {
       // Add as first to the pipeline so the limit is enforced as first action.
       pipeline.addFirst(CONNECTION_LIMIT_HANDLER, connectionLimitHandler);
     }
 
-    long idleTimeout = DatabaseDescriptor.nativeTransportIdleTimeout();
+    long idleTimeout = TransportDescriptor.nativeTransportIdleTimeout();
     if (idleTimeout > 0) {
       pipeline.addLast(
           IDLE_STATE_HANDLER,
@@ -247,12 +243,7 @@ public class PipelineConfigurator {
 
     if (DEBUG) pipeline.addLast(DEBUG_HANDLER, new LoggingHandler(LogLevel.INFO));
 
-    if (USE_PROXY_PROTOCOL) {
-      pipeline.addLast("proxyProtocol", new HAProxyProtocolDetectingDecoder());
-    }
-
     pipeline.addLast(ENVELOPE_ENCODER, Envelope.Encoder.instance);
-
     pipeline.addLast(
         INITIAL_HANDLER,
         new InitialConnectionHandler(new Envelope.Decoder(), connectionFactory, this));
@@ -299,7 +290,7 @@ public class PipelineConfigurator {
     CQLMessageHandler.ErrorHandler errorHandler = firstContext::fireExceptionCaught;
 
     // Capacity tracking and resource management
-    int queueCapacity = DatabaseDescriptor.getNativeTransportReceiveQueueCapacityInBytes();
+    int queueCapacity = TransportDescriptor.getNativeTransportReceiveQueueCapacityInBytes();
     ClientResourceLimits.ResourceProvider resourceProvider = resourceProvider(resourceAllocator);
     AbstractMessageHandler.OnHandlerClosed onClosed = handler -> resourceProvider.release();
     boolean throwOnOverload = "1".equals(options.get(StartupMessage.THROW_ON_OVERLOAD));

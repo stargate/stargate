@@ -50,18 +50,16 @@ import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
-import org.apache.cassandra.config.EncryptionOptions;
 import org.apache.cassandra.net.ResourceLimits;
-import org.apache.cassandra.service.CassandraDaemon;
+import org.apache.cassandra.stargate.config.EncryptionOptions;
 import org.apache.cassandra.stargate.locator.InetAddressAndPort;
 import org.apache.cassandra.stargate.metrics.ConnectionMetrics;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.messages.EventMessage;
-import org.apache.cassandra.utils.FBUtilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class CqlServer implements CassandraDaemon.Server {
+public class CqlServer {
   static {
     InternalLoggerFactory.setDefaultFactory(new Slf4JLoggerFactory());
   }
@@ -110,23 +108,20 @@ public class CqlServer implements CassandraDaemon.Server {
             ? builder.pipelineConfigurator
             : new PipelineConfigurator(
                 useEpoll,
-                true, // DatabaseDescriptor.getRpcKeepAlive(),
-                false, // DatabaseDescriptor.useNativeTransportLegacyFlusher(),
+                TransportDescriptor.getRpcKeepAlive(),
+                TransportDescriptor.useNativeTransportLegacyFlusher(),
                 builder.tlsEncryptionPolicy);
     this.persistence.registerEventListener(new EventNotifier(this));
   }
 
-  @Override
   public void stop() {
     if (isRunning.compareAndSet(true, false)) close();
   }
 
-  @Override
   public boolean isRunning() {
     return isRunning.get();
   }
 
-  @Override
   public synchronized void start() {
     if (isRunning()) return;
 
@@ -170,7 +165,6 @@ public class CqlServer implements CassandraDaemon.Server {
     return connectionTracker.protocolVersionTracker.getAll();
   }
 
-  @Override
   public void clearConnectionHistory() {
     connectionTracker.protocolVersionTracker.clear();
   }
@@ -464,18 +458,9 @@ public class CqlServer implements CassandraDaemon.Server {
       // then don't send the notification. This covers the case of rpc_address set to "localhost",
       // which is not useful to any driver and in fact may cauase serious problems to some drivers,
       // see CASSANDRA-10052
-      if (!areEqual(endpoint, FBUtilities.getBroadcastAddressAndPort())
-          && event.nodeAddress().equals(FBUtilities.getJustBroadcastNativeAddress())) return;
+      if (event.nodeAddress().equals(TransportDescriptor.getRpcAddress())) return;
 
       send(event);
-    }
-
-    private boolean areEqual(
-        InetAddressAndPort endpoint1, org.apache.cassandra.locator.InetAddressAndPort endpoint2) {
-      return endpoint1 != null
-          && endpoint2 != null
-          && endpoint1.port == endpoint2.port
-          && endpoint1.address.equals(endpoint2.address);
     }
 
     private void send(Event event) {

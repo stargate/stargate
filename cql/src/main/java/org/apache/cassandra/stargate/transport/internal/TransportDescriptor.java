@@ -1,5 +1,6 @@
 package org.apache.cassandra.stargate.transport.internal;
 
+import java.io.IOException;
 import java.net.Inet4Address;
 import java.net.Inet6Address;
 import java.net.InetAddress;
@@ -7,12 +8,17 @@ import java.net.NetworkInterface;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.Enumeration;
-import org.apache.cassandra.config.Config;
-import org.apache.cassandra.config.EncryptionOptions;
-import org.apache.cassandra.exceptions.ConfigurationException;
-import org.apache.cassandra.utils.FBUtilities;
+import org.apache.cassandra.stargate.config.Config;
+import org.apache.cassandra.stargate.config.EncryptionOptions;
+import org.apache.cassandra.stargate.exceptions.ConfigurationException;
+import org.apache.cassandra.stargate.security.SSLFactory;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class TransportDescriptor {
+
+  private static final Logger logger = LoggerFactory.getLogger(TransportDescriptor.class);
+
   private static Config conf = new Config();
 
   private static InetAddress rpcAddress;
@@ -44,7 +50,12 @@ public class TransportDescriptor {
 
   public static void daemonInitialization(Config config) {
     conf = config;
+
+    applySimpleConfig();
+
     applyAddressConfig();
+
+    applySslContext();
   }
 
   public static void applyAddressConfig() {
@@ -67,7 +78,61 @@ public class TransportDescriptor {
           getNetworkInterfaceAddress(
               config.rpc_interface, "rpc_interface", config.rpc_interface_prefer_ipv6);
     } else {
-      rpcAddress = FBUtilities.getJustLocalAddress();
+      try {
+        rpcAddress = InetAddress.getLocalHost();
+        logger.info(
+            "InetAddress.getLocalHost() was used to resolve rpc_address to {}, double check this is "
+                + "correct. Please check your node's config and set the rcp_address in cql.yaml accordingly if applicable.",
+            rpcAddress);
+      } catch (UnknownHostException e) {
+        logger.info(
+            "InetAddress.getLocalHost() could not resolve the address for the hostname ({}), please "
+                + "check your node's config and set the rcp_address. Falling back to {}",
+            e,
+            InetAddress.getLoopbackAddress());
+        // CASSANDRA-15901 fallback for misconfigured nodes
+        rpcAddress = InetAddress.getLoopbackAddress();
+      }
+    }
+  }
+
+  public static void applySimpleConfig() {
+    if (conf.native_transport_max_concurrent_requests_in_bytes <= 0) {
+      conf.native_transport_max_concurrent_requests_in_bytes =
+          Runtime.getRuntime().maxMemory() / 10;
+    }
+
+    if (conf.native_transport_max_concurrent_requests_in_bytes_per_ip <= 0) {
+      conf.native_transport_max_concurrent_requests_in_bytes_per_ip =
+          Runtime.getRuntime().maxMemory() / 40;
+    }
+
+    // native transport encryption options
+    if (conf.client_encryption_options != null) {
+      conf.client_encryption_options.applyConfig();
+
+      if (conf.native_transport_port_ssl != null
+          && conf.native_transport_port_ssl != conf.native_transport_port
+          && conf.client_encryption_options.tlsEncryptionPolicy()
+              == EncryptionOptions.TlsEncryptionPolicy.UNENCRYPTED) {
+        throw new org.apache.cassandra.exceptions.ConfigurationException(
+            "Encryption must be enabled in client_encryption_options for native_transport_port_ssl",
+            false);
+      }
+    }
+  }
+
+  public static void applySslContext() {
+    try {
+      SSLFactory.validateSslContext(
+          "Native transport",
+          conf.client_encryption_options,
+          conf.client_encryption_options.require_client_auth,
+          true);
+      SSLFactory.initHotReloading(conf.client_encryption_options, false);
+    } catch (IOException e) {
+      throw new org.apache.cassandra.exceptions.ConfigurationException(
+          "Failed to initialize SSL", e);
     }
   }
 
@@ -140,8 +205,32 @@ public class TransportDescriptor {
     return (int) ByteUnit.MEBI_BYTES.toBytes(conf.native_transport_max_frame_size_in_mb);
   }
 
+  public static int getNativeTransportReceiveQueueCapacityInBytes() {
+    return conf.native_transport_receive_queue_capacity_in_bytes;
+  }
+
+  public static void setNativeTransportReceiveQueueCapacityInBytes(int queueSize) {
+    conf.native_transport_receive_queue_capacity_in_bytes = queueSize;
+  }
+
   public static boolean getNativeTransportAllowOlderProtocols() {
     return conf.native_transport_allow_older_protocols;
+  }
+
+  public static int getNativeTransportMaxThreads() {
+    return conf.native_transport_max_threads;
+  }
+
+  public static int getConsecutiveMessageErrorsThreshold() {
+    return conf.consecutive_message_errors_threshold;
+  }
+
+  public static void setConsecutiveMessageErrorsThreshold(int value) {
+    conf.consecutive_message_errors_threshold = value;
+  }
+
+  public static void setNativeTransportMaxThreads(int max_threads) {
+    conf.native_transport_max_threads = max_threads;
   }
 
   private static InetAddress getNetworkInterfaceAddress(
