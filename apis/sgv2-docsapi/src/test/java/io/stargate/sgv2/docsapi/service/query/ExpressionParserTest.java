@@ -27,9 +27,11 @@ import com.bpodgursky.jbool_expressions.Or;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.api.common.cql.builder.Predicate;
+import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
@@ -56,6 +58,7 @@ import org.junit.jupiter.params.provider.CsvSource;
 import org.mockito.Mockito;
 
 @QuarkusTest
+@TestProfile(NoGlobalResourcesTestProfile.Impl.class)
 class ExpressionParserTest {
 
   @Inject ExpressionParser service;

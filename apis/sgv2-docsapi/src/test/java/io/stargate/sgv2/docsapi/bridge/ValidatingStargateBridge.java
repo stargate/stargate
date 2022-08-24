@@ -91,7 +91,8 @@ public class ValidatingStargateBridge implements StargateBridge {
             () ->
                 new AssertionError(
                     String.format(
-                        "Unexpected query, should have been mocked with withQuery(): %s", cql)));
+                        "Unexpected query, should have been mocked with withQuery(): %s, Values: %s",
+                        cql, values)));
   }
 
   @Override

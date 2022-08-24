@@ -24,11 +24,13 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.test.AssertSubscriber;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
+import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
 import io.stargate.sgv2.docsapi.OpenMocksTest;
 import io.stargate.sgv2.docsapi.bridge.AbstractValidatingStargateBridgeTest;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
@@ -46,6 +48,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
 
 @QuarkusTest
+@TestProfile(NoGlobalResourcesTestProfile.Impl.class)
 class AnyFiltersResolverTest extends AbstractValidatingStargateBridgeTest {
 
   private static final String KEYSPACE_NAME = RandomStringUtils.randomAlphanumeric(16);

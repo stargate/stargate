@@ -17,35 +17,32 @@
 package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents;
 
 import static io.restassured.RestAssured.given;
+import static io.stargate.sgv2.common.IntegrationTestUtils.getAuthToken;
 import static net.javacrumbs.jsonunit.JsonMatchers.jsonEquals;
+import static net.javacrumbs.jsonunit.JsonMatchers.jsonNodeAbsent;
 import static net.javacrumbs.jsonunit.JsonMatchers.jsonPartEquals;
 import static org.hamcrest.Matchers.equalTo;
 
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
-import io.restassured.RestAssured;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.ResourceArg;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
-import io.stargate.sgv2.api.common.cql.builder.Replication;
-import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
-import io.stargate.sgv2.docsapi.service.schema.CollectionManager;
-import io.stargate.sgv2.docsapi.service.schema.NamespaceManager;
-import java.time.Duration;
-import javax.enterprise.context.control.ActivateRequestContext;
-import javax.inject.Inject;
+import io.stargate.sgv2.common.testresource.StargateTestResource;
+import io.stargate.sgv2.docsapi.api.v2.DocsApiIntegrationTest;
+import java.util.Optional;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
-@TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class BuiltInFunctionResourceIntegrationTest {
+@QuarkusIntegrationTest
+@QuarkusTestResource(
+    value = StargateTestResource.class,
+    initArgs =
+        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
+class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
 
   public static final String BASE_PATH =
       "/v2/namespaces/{namespace}/collections/{collection}/{document-id}";
@@ -53,45 +50,14 @@ class BuiltInFunctionResourceIntegrationTest {
   public static final String DEFAULT_COLLECTION = RandomStringUtils.randomAlphanumeric(16);
   public static final String DOCUMENT_ID = RandomStringUtils.randomAlphanumeric(16);
 
-  @Inject NamespaceManager namespaceManager;
-
-  @Inject CollectionManager collectionManager;
-
-  @BeforeAll
-  public void init() {
-    RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
-
-    namespaceManager
-        .createNamespace(DEFAULT_NAMESPACE, Replication.simpleStrategy(1))
-        .await()
-        .atMost(Duration.ofSeconds(10));
-
-    collectionManager
-        .createCollectionTable(DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
-        .await()
-        .atMost(Duration.ofSeconds(10));
+  @Override
+  public Optional<String> createNamespace() {
+    return Optional.of(DEFAULT_NAMESPACE);
   }
 
-  @BeforeEach
-  public void setup() {
-    given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-        .contentType(ContentType.JSON)
-        .body("{\"array\": [1, 2, 3], \"object\": {}}")
-        .when()
-        .put(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-        .then()
-        .statusCode(200);
-  }
-
-  @AfterEach
-  public void cleanUp() {
-    given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-        .when()
-        .delete(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
-        .then()
-        .statusCode(204);
+  @Override
+  public Optional<String> createCollection() {
+    return Optional.of(DEFAULT_COLLECTION);
   }
 
   @Nested
@@ -101,10 +67,35 @@ class BuiltInFunctionResourceIntegrationTest {
 
     public static final String POP_PAYLOAD = "{\"operation\": \"$pop\"}";
 
+    public static final String SET_PAYLOAD = "{\"operation\": \"$set\", \"value\": %s}";
+
+    @BeforeEach
+    public void setup() {
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .contentType(ContentType.JSON)
+          .body(
+              "{\"array\": [1, 2, 3], \"object\": {\"a\": 3, \"b\": [{}, {\"nested\": \"value\"}, []]}}")
+          .when()
+          .put(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(200);
+    }
+
+    @AfterEach
+    public void cleanUp() {
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .when()
+          .delete(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .statusCode(204);
+    }
+
     @Test
     public void pop() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(POP_PAYLOAD)
           .when()
@@ -116,7 +107,7 @@ class BuiltInFunctionResourceIntegrationTest {
 
       // assert whole document
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -128,7 +119,7 @@ class BuiltInFunctionResourceIntegrationTest {
     @Test
     public void popRaw() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .contentType(ContentType.JSON)
           .body(POP_PAYLOAD)
@@ -142,7 +133,7 @@ class BuiltInFunctionResourceIntegrationTest {
     @Test
     public void popEmpty() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(POP_PAYLOAD)
           .when()
@@ -153,7 +144,7 @@ class BuiltInFunctionResourceIntegrationTest {
           .body("data", jsonEquals(3));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(POP_PAYLOAD)
           .when()
@@ -164,7 +155,7 @@ class BuiltInFunctionResourceIntegrationTest {
           .body("data", jsonEquals(2));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(POP_PAYLOAD)
           .when()
@@ -175,7 +166,7 @@ class BuiltInFunctionResourceIntegrationTest {
           .body("data", jsonEquals(1));
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(POP_PAYLOAD)
           .when()
@@ -189,7 +180,7 @@ class BuiltInFunctionResourceIntegrationTest {
     @Test
     public void popNoArray() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(POP_PAYLOAD)
           .when()
@@ -197,13 +188,16 @@ class BuiltInFunctionResourceIntegrationTest {
           .then()
           .statusCode(400)
           .body("code", equalTo(400))
-          .body("description", equalTo("The path provided to pop from has no array, found {}."));
+          .body(
+              "description",
+              equalTo(
+                  "The path provided to pop from has no array, found {\"a\":3,\"b\":[{},{\"nested\":\"value\"},[]]}."));
     }
 
     @Test
     public void push() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(PUSH_PAYLOAD)
           .when()
@@ -215,7 +209,7 @@ class BuiltInFunctionResourceIntegrationTest {
 
       // assert whole document
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -227,7 +221,7 @@ class BuiltInFunctionResourceIntegrationTest {
     @Test
     public void pushObject() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"operation\": \"$push\", \"value\": { \"p\": true}}")
           .when()
@@ -239,7 +233,7 @@ class BuiltInFunctionResourceIntegrationTest {
 
       // assert whole document
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -251,7 +245,7 @@ class BuiltInFunctionResourceIntegrationTest {
     @Test
     public void pushArray() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"operation\": \"$push\", \"value\": [4, 5, 6]}")
           .when()
@@ -263,7 +257,7 @@ class BuiltInFunctionResourceIntegrationTest {
 
       // assert whole document
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
@@ -275,7 +269,7 @@ class BuiltInFunctionResourceIntegrationTest {
     @Test
     public void pushRaw() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .contentType(ContentType.JSON)
           .body(PUSH_PAYLOAD)
@@ -291,7 +285,7 @@ class BuiltInFunctionResourceIntegrationTest {
       String payload = "{\"operation\": \"$push\", \"value\": null}";
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(payload)
           .when()
@@ -305,7 +299,7 @@ class BuiltInFunctionResourceIntegrationTest {
     @Test
     public void pushNoArray() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(PUSH_PAYLOAD)
           .when()
@@ -313,13 +307,145 @@ class BuiltInFunctionResourceIntegrationTest {
           .then()
           .statusCode(400)
           .body("code", equalTo(400))
-          .body("description", equalTo("The path provided to push to has no array, found {}."));
+          .body(
+              "description",
+              equalTo(
+                  "The path provided to push to has no array, found {\"a\":3,\"b\":[{},{\"nested\":\"value\"},[]]}."));
+    }
+
+    @Test
+    public void setUpdateOneValue() {
+      String setOperation = "{ \"b.[1].nested\": \"newvalue\" }";
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .contentType(ContentType.JSON)
+          .body(String.format(SET_PAYLOAD, setOperation))
+          .when()
+          .post(BASE_PATH + "/object/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .statusCode(200);
+
+      // get whole document and check the value
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .body("data", jsonPartEquals("object.b[1].nested", "newvalue"))
+          .statusCode(200);
+    }
+
+    @Test
+    public void setUpdateOneValueCreate() {
+      String setOperation = "{ \"c.nested\": \"newvalue\" }";
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .contentType(ContentType.JSON)
+          .body(String.format(SET_PAYLOAD, setOperation))
+          .when()
+          .post(BASE_PATH + "/object/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .statusCode(200);
+
+      // get whole document and check the value
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .body("data", jsonPartEquals("object.c.nested", "newvalue"))
+          .statusCode(200);
+    }
+
+    @Test
+    public void setUpdateManyValues() {
+      String setOperation =
+          "{ \"b.[1].different\": \"newvalue\", \"b.[1].other\": \"awesome\", \"b.[0].new\": true, \"a\": 9000 }";
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .contentType(ContentType.JSON)
+          .body(String.format(SET_PAYLOAD, setOperation))
+          .when()
+          .post(BASE_PATH + "/object/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .statusCode(200);
+
+      // get whole document and check the value
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .body("data", jsonPartEquals("object.b[1].nested", "value"))
+          .body("data", jsonPartEquals("object.b[1].different", "newvalue"))
+          .body("data", jsonPartEquals("object.b[1].other", "awesome"))
+          .body("data", jsonPartEquals("object.b[0].new", true))
+          .body("data", jsonPartEquals("object.a", 9000))
+          .statusCode(200);
+    }
+
+    @Test
+    public void setWithObject() {
+      // This should blow away the `nested` field
+      String setOperation = "{ \"b.[1]\": { \"newdata\": true } }";
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .contentType(ContentType.JSON)
+          .body(String.format(SET_PAYLOAD, setOperation))
+          .when()
+          .post(BASE_PATH + "/object/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .statusCode(200);
+
+      // get whole document and check the value
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .body("data", jsonPartEquals("object.b[1].newdata", true))
+          .body("data", jsonNodeAbsent("object.b[1].nested"))
+          .statusCode(200);
+    }
+
+    @Test
+    public void setWithNestedArray() {
+      String setOperation = "{ \"b.[1].nested.[2].d\": \"hello\" }";
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .contentType(ContentType.JSON)
+          .body(String.format(SET_PAYLOAD, setOperation))
+          .when()
+          .post(BASE_PATH + "/object/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .statusCode(200);
+
+      // get whole document and check the value
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .body("data", jsonPartEquals("object.b[1].nested[2].d", "hello"))
+          .body("data", jsonPartEquals("object.b[1].nested[0]", null))
+          .body("data", jsonPartEquals("object.b[1].nested[1]", null))
+          .statusCode(200);
     }
 
     @Test
     public void invalidOperation() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{\"operation\": \"$dollar\"}")
           .when()
@@ -329,7 +455,7 @@ class BuiltInFunctionResourceIntegrationTest {
           .body("code", equalTo(400))
           .body(
               "description",
-              equalTo("Request invalid: available built-in functions are $pop and $push."));
+              equalTo("Request invalid: available built-in functions are [$pop, $push, $set]."));
     }
 
     @Test
@@ -337,7 +463,7 @@ class BuiltInFunctionResourceIntegrationTest {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(PUSH_PAYLOAD)
           .when()
@@ -355,7 +481,7 @@ class BuiltInFunctionResourceIntegrationTest {
     @Test
     public void invalidCollection() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(PUSH_PAYLOAD)
           .when()
@@ -369,7 +495,7 @@ class BuiltInFunctionResourceIntegrationTest {
     @Test
     public void invalidNamespace() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(PUSH_PAYLOAD)
           .when()
@@ -388,7 +514,7 @@ class BuiltInFunctionResourceIntegrationTest {
       String collection = "local";
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(PUSH_PAYLOAD)
           .when()

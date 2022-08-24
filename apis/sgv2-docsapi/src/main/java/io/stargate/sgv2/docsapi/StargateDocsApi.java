@@ -485,6 +485,18 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                       }
                       """),
               @ExampleObject(
+                  name = OpenApiConstants.Examples.FUNCTION_SET_BODY,
+                  value =
+                      """
+                    {
+                        "operation": "$set",
+                        "value": {
+                          "a.b.c": "d",
+                          "d.e.[2].f": { "g": true }
+                        }
+                    }
+                    """),
+              @ExampleObject(
                   name = OpenApiConstants.Examples.FUNCTION_RESPONSE,
                   description =
                       """

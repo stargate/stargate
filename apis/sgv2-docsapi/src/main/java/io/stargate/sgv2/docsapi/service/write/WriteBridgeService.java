@@ -356,6 +356,61 @@ public class WriteBridgeService {
   }
 
   /**
+   * Sets data at various paths on a single document, relative to its root. This allows partial
+   * updates of any data in a document, without touching unrelated data.
+   *
+   * @param keyspace Keyspace to store document in.
+   * @param collection Collection the document belongs to.
+   * @param documentId Document ID.
+   * @param setPaths the paths that are being set by the JSON fields.
+   * @param rows Rows of the patch.
+   * @param ttl the time-to-live of the rows (seconds)
+   * @param context Execution content for profiling.
+   * @return Uni containing the {@link ResultSet} of the batch execution.
+   */
+  @WithSpan
+  public Uni<ResultSet> setPathsOnDocument(
+      String keyspace,
+      String collection,
+      String documentId,
+      Set<List<String>> setPaths,
+      List<JsonShreddedRow> rows,
+      Integer ttl,
+      ExecutionContext context) {
+    return Uni.createFrom()
+        .item(
+            () -> {
+              long timestamp = timeSource.currentTimeMicros();
+              List<QueryOuterClass.BatchQuery> queries = new ArrayList<>(rows.size() + 3);
+
+              // For each distinct path that is going to be set, delete the exact path first.
+              setPaths.forEach(
+                  path ->
+                      queries.add(
+                          new DeleteSubDocumentPathQueryBuilder(path, false, documentProperties)
+                              .buildAndBind(keyspace, collection, documentId, timestamp - 1)));
+
+              // Finally, insert the new data.
+              rows.forEach(
+                  row ->
+                      queries.add(
+                          insertQueryBuilder.buildAndBind(
+                              keyspace,
+                              collection,
+                              ttl,
+                              documentId,
+                              row,
+                              timestamp,
+                              treatBooleansAsNumeric)));
+              return queries;
+            })
+        .flatMap(
+            boundQueries ->
+                executeBatch(
+                    requestInfo.getStargateBridge(), boundQueries, context.nested("ASYNC SET")));
+  }
+
+  /**
    * Deletes a single whole document.
    *
    * @param keyspace Keyspace to delete a document from.
