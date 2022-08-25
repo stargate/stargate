@@ -194,9 +194,7 @@ jobs:
           ./mvnw -B test
 
   # runs int tests for the sgv2-docsapi
-  # supports two modes:
-  # 1. by downloading and importing the built docker image
-  # 2. by logging into ECR and fetching images directly
+  # supports downloading and importing the built docker image
   int-tests:
     name: Integration tests
     needs: [ build-coordinator-docker, build ]
@@ -207,13 +205,12 @@ jobs:
       # props:
       # name - human-readable name
       # profile - what profile should be activated when running int tests
-      # repository-login (optional) - if login to the ECR docker repo is needed
       # image-artifact (optional) - name of the artifact containing the image file
       # image-file - file name of the image to import (must be in the artifact)
       # image - final image name to use when running int tests (-Dtesting.containers.stargate-image)
       matrix:
         project: [ sgv2-docsapi ]
-        name: [ cassandra-40, cassandra-311, dse-68, c2-dse-68 ]
+        name: [ cassandra-40, cassandra-311, dse-68]
         include:
           - name: cassandra-40
             profile: cassandra-40
@@ -235,11 +232,6 @@ jobs:
             image-artifact: img-coordinator-dse-68-${{ github.sha }}
             image-file: coordinator-dse-68-${{ github.sha }}.tar
             image: stargateio/coordinator-dse-68:${{ github.sha }}
-
-          - name: c2-dse-68
-            profile: dse-68
-            repository-login: true
-            image: '237073351946.dkr.ecr.us-east-1.amazonaws.com/c2/c2-6_8:v2.0.0-ALPHA-16'
 
     steps:
       - uses: actions/checkout@v3
@@ -299,21 +291,6 @@ jobs:
         with:
           path: ~/.m2/repository/io/stargate
           key: snapshots-${{ github.sha }}
-
-      # configure AWS credentials if repo login is needed
-      - name: Configure AWS credentials
-        if: ${{ matrix.repository-login }} == true
-        uses: aws-actions/configure-aws-credentials@v1
-        with:
-          aws-access-key-id: ${{ secrets.ECR_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.ECR_SECRET_KEY }}
-          aws-region: us-east-1
-
-      # login to the ECR if needed
-      - name: Login to Amazon ECR
-        if: ${{ matrix.repository-login }}
-        id: login-ecr
-        uses: aws-actions/amazon-ecr-login@v1
 
       # run finally the int tests
       # runs dedicated project with -pl, but also picks depending projects with -am
