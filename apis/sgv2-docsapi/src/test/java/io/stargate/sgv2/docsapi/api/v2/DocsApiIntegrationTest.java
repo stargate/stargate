@@ -78,7 +78,9 @@ public abstract class DocsApiIntegrationTest {
                     .contentType(ContentType.JSON)
                     .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
                     .body(json)
-                    .post(NamespacesResource.BASE_PATH);
+                    .post(NamespacesResource.BASE_PATH)
+                    .then()
+                    .statusCode(201);
               });
     }
 
@@ -109,7 +111,9 @@ public abstract class DocsApiIntegrationTest {
                     .contentType(ContentType.JSON)
                     .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
                     .body(json)
-                    .post(CollectionsResource.BASE_PATH, namespace);
+                    .post(CollectionsResource.BASE_PATH, namespace)
+                    .then()
+                    .statusCode(201);
               });
     }
   }
