@@ -48,6 +48,8 @@ public class Config {
   public int native_transport_receive_queue_capacity_in_bytes = 1048576;
   public int native_transport_max_threads = 128;
   public volatile int consecutive_message_errors_threshold = 10;
+  public Integer file_cache_size_in_mb;
+  public Integer networking_cache_size_in_mb;
 
   @JsonSetter(nulls = Nulls.FAIL)
   public EncryptionOptions client_encryption_options = new EncryptionOptions();

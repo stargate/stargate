@@ -58,7 +58,10 @@ public class PipelineConfigurator {
   // Not to be used in production, this causes a Netty logging handler to be added to the pipeline,
   // which will throttle a system under any normal load.
   private static final boolean DEBUG =
-      Boolean.getBoolean("cassandra.unsafe_verbose_debug_client_protocol");
+      Boolean.getBoolean("stargate.unsafe_verbose_debug_client_protocol");
+
+  public static final Boolean USE_PROXY_PROTOCOL =
+      Boolean.parseBoolean(System.getProperty("stargate.use_proxy_protocol", "false"));
 
   // Stateless handlers
   private static final ConnectionLimitHandler connectionLimitHandler = new ConnectionLimitHandler();
@@ -242,6 +245,10 @@ public class PipelineConfigurator {
     }
 
     if (DEBUG) pipeline.addLast(DEBUG_HANDLER, new LoggingHandler(LogLevel.INFO));
+
+    if (USE_PROXY_PROTOCOL) {
+      pipeline.addLast("proxyProtocol", new HAProxyProtocolDetectingDecoder());
+    }
 
     pipeline.addLast(ENVELOPE_ENCODER, Envelope.Encoder.instance);
     pipeline.addLast(

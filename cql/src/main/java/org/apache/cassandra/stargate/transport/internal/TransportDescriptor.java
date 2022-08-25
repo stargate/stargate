@@ -233,6 +233,22 @@ public class TransportDescriptor {
     conf.native_transport_max_threads = max_threads;
   }
 
+  public static int getFileCacheSizeInMB() {
+    if (conf.file_cache_size_in_mb == null) {
+      return 0;
+    } else {
+      return conf.file_cache_size_in_mb;
+    }
+  }
+
+  public static int getNetworkingCacheSizeInMB() {
+    if (conf.networking_cache_size_in_mb == null) {
+      return 0;
+    } else {
+      return conf.networking_cache_size_in_mb;
+    }
+  }
+
   private static InetAddress getNetworkInterfaceAddress(
       String intf, String configName, boolean preferIPv6) throws ConfigurationException {
     try {
