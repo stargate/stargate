@@ -164,7 +164,6 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
     //    SC_UNAUTHORIZED instead
     String response = tryFindAllColumns("foo", "table1", HttpStatus.SC_UNAUTHORIZED);
     ApiError apiError = readJsonAs(response, ApiError.class);
-
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_UNAUTHORIZED);
     // Sub-optimal failure message, should improve:
     assertThat(apiError.description()).matches("Unauthorized keyspace:.*foo.*");
@@ -237,15 +236,53 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
   }
 
   @Test
-  public void columnUpdateBadKeyspace() {}
+  public void columnUpdateBadKeyspace() {
+    final String keyspaceName = "column-unknown-keyspace";
+    // Important! Old name and new name MUST be different, otherwise it's a no-op
+    // 24-Aug-2022, tatu: !!! TODO !!! Should give SC_BAD_REQUEST but for some reason gives
+    //    SC_UNAUTHORIZED instead
+    String response =
+        tryUpdateColumn(
+            keyspaceName,
+            "table",
+            "id",
+            new Sgv2ColumnDefinition("id-renamed", "text", false),
+            HttpStatus.SC_UNAUTHORIZED);
+    ApiError apiError = readJsonAs(response, ApiError.class);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_UNAUTHORIZED);
+    assertThat(apiError.description()).matches("Unauthorized keyspace:.*");
+  }
 
   @Test
-  public void columnUpdateBadTable() {}
+  public void columnUpdateBadTable() {
+    final String tableName = "column-unknown-table";
+    // Important! Old name and new name MUST be different, otherwise it's a no-op
+    String response =
+        tryUpdateColumn(
+            testKeyspaceName(),
+            tableName,
+            "id",
+            new Sgv2ColumnDefinition("id-renamed", "text", false),
+            HttpStatus.SC_BAD_REQUEST);
+    ApiError apiError = readJsonAs(response, ApiError.class);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(apiError.description()).matches("Table .*" + tableName + ".* not found.*");
+  }
 
   @Test
   public void columnUpdateNotFound() {
     final String tableName = testTableName();
     createSimpleTestTable(testKeyspaceName(), tableName);
+    String response =
+        tryUpdateColumn(
+            testKeyspaceName(),
+            tableName,
+            "id0",
+            new Sgv2ColumnDefinition("id-renamed", "text", false),
+            HttpStatus.SC_BAD_REQUEST);
+    ApiError apiError = readJsonAs(response, ApiError.class);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(apiError.description()).matches("column.*id0.* not found in table.*");
   }
 
   /*
@@ -255,19 +292,70 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
    */
 
   @Test
-  public void columnDelete() {}
+  public void columnDelete() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+    final String columnName = "age";
+
+    // First, verify we have all columns
+    Sgv2ColumnDefinition[] columnsFound = findAllColumns(testKeyspaceName(), tableName, true);
+    verifySimpleColumns(columnsFound);
+
+    tryDeleteColumn(testKeyspaceName(), tableName, columnName, HttpStatus.SC_NO_CONTENT);
+
+    columnsFound = findAllColumns(testKeyspaceName(), tableName, true);
+    List<Sgv2ColumnDefinition> columnsExpected =
+        Arrays.asList(
+            new Sgv2ColumnDefinition("id", "uuid", false),
+            new Sgv2ColumnDefinition("lastName", "text", false),
+            new Sgv2ColumnDefinition("firstName", "text", false));
+    assertThat(columnsFound).hasSize(3).containsAll(columnsExpected);
+  }
 
   @Test
-  public void columnDeleteBadKeyspace() {}
+  public void columnDeleteBadKeyspace() {
+    final String keyspaceName = "column-unknown-keyspace";
+    // 24-Aug-2022, tatu: !!! TODO !!! Should give SC_BAD_REQUEST but for some reason gives
+    //    SC_UNAUTHORIZED instead
+    String response = tryDeleteColumn(keyspaceName, "table", "id", HttpStatus.SC_UNAUTHORIZED);
+    ApiError apiError = readJsonAs(response, ApiError.class);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_UNAUTHORIZED);
+    assertThat(apiError.description()).matches("Unauthorized keyspace:.*");
+  }
 
   @Test
-  public void columnDeleteBadTable() {}
+  public void columnDeleteBadTable() {
+    final String tableName = "column-unknown-table";
+    String response =
+        tryDeleteColumn(testKeyspaceName(), tableName, "id", HttpStatus.SC_BAD_REQUEST);
+    ApiError apiError = readJsonAs(response, ApiError.class);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(apiError.description()).matches("Table .*" + tableName + ".* not found.*");
+  }
 
   @Test
-  public void columnDeleteNotFound() {}
+  public void columnDeleteNotFound() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+    String response =
+        tryDeleteColumn(testKeyspaceName(), tableName, "id0", HttpStatus.SC_BAD_REQUEST);
+    ApiError apiError = readJsonAs(response, ApiError.class);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(apiError.description()).matches("column.*id0.* not found in table.*");
+  }
 
   @Test
-  public void columnDeletePartitionKey() {}
+  public void columnDeletePartitionKey() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+    String response =
+        tryDeleteColumn(testKeyspaceName(), tableName, "id", HttpStatus.SC_BAD_REQUEST);
+    ApiError apiError = readJsonAs(response, ApiError.class);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    // Sub-optimal error message from gRPC/Bridge:
+    assertThat(apiError.description())
+        .matches("Invalid argument.*Cannot drop PRIMARY KEY column id.*");
+  }
 
   /*
   /////////////////////////////////////////////////////////////////////////
@@ -310,6 +398,18 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
         .body(asJsonString(columnDef))
         .when()
         .put(endpointPathForColumn(keyspaceName, tableName, columnName))
+        .then()
+        .statusCode(expectedResult)
+        .extract()
+        .asString();
+  }
+
+  protected String tryDeleteColumn(
+      String keyspaceName, String tableName, String columnName, int expectedResult) {
+    return given()
+        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        .when()
+        .delete(endpointPathForColumn(keyspaceName, tableName, columnName))
         .then()
         .statusCode(expectedResult)
         .extract()
