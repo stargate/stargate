@@ -220,7 +220,21 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
    */
 
   @Test
-  public void columnUpdate() {}
+  public void columnUpdate() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+    final String oldColumnName = "id";
+    final String newColumnName = "identifier";
+
+    final Sgv2ColumnDefinition columnDef = new Sgv2ColumnDefinition(newColumnName, "uuid", false);
+    String response =
+        tryUpdateColumn(testKeyspaceName(), tableName, oldColumnName, columnDef, HttpStatus.SC_OK);
+    assertThat(readJsonAs(response, NameResponse.class).name).isEqualTo(newColumnName);
+
+    Sgv2ColumnDefinition columnFound =
+        findOneColumn(testKeyspaceName(), tableName, newColumnName, true);
+    assertThat(columnFound).isEqualTo(columnDef);
+  }
 
   @Test
   public void columnUpdateBadKeyspace() {}
@@ -229,7 +243,10 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
   public void columnUpdateBadTable() {}
 
   @Test
-  public void columnUpdateNotFound() {}
+  public void columnUpdateNotFound() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+  }
 
   /*
   /////////////////////////////////////////////////////////////////////////
@@ -275,6 +292,24 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
         .body(asJsonString(columnDef))
         .when()
         .post(endpointPathForAllColumns(keyspaceName, tableName))
+        .then()
+        .statusCode(expectedResult)
+        .extract()
+        .asString();
+  }
+
+  protected String tryUpdateColumn(
+      String keyspaceName,
+      String tableName,
+      String columnName,
+      Sgv2ColumnDefinition columnDef,
+      int expectedResult) {
+    return given()
+        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        .contentType(ContentType.JSON)
+        .body(asJsonString(columnDef))
+        .when()
+        .put(endpointPathForColumn(keyspaceName, tableName, columnName))
         .then()
         .statusCode(expectedResult)
         .extract()
