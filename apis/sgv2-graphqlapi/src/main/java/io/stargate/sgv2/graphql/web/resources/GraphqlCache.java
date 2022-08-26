@@ -150,7 +150,7 @@ public class GraphqlCache {
           maybeKeyspace ->
               maybeKeyspace
                   .map(keyspace -> handleExisting(keyspace, bridge))
-                  .orElse(handleMissing()),
+                  .orElseGet(this::handleMissing),
           Infrastructure.getDefaultWorkerPool());
     }
 
