@@ -27,6 +27,7 @@ import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.grpc.Metadata;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.junit.mockito.InjectMock;
@@ -35,6 +36,8 @@ import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.sgv2.api.common.StargateRequestInfo;
+import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.util.ByteBufferUtils;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
 import io.stargate.sgv2.docsapi.OpenMocksTest;
@@ -55,6 +58,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import javax.inject.Inject;
@@ -80,6 +84,8 @@ class ReadDocumentsServiceTest {
   @InjectMock ReadBridgeService readBridgeService;
 
   @InjectMock WriteBridgeService writeBridgeService;
+
+  @InjectMock StargateRequestInfo requestInfo;
 
   Function<QueryOuterClass.Row, RowWrapper> wrapperFunction;
 
@@ -402,6 +408,8 @@ class ReadDocumentsServiceTest {
 
     @Captor ArgumentCaptor<Map<String, Set<DeadLeaf>>> deadLeavesCaptor;
 
+    @Captor ArgumentCaptor<Metadata> metadataCaptor;
+
     @Test
     public void happyPath() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
@@ -502,8 +510,11 @@ class ReadDocumentsServiceTest {
           .thenReturn(docs);
 
       when(writeBridgeService.deleteDeadLeaves(
-              eq(namespace), eq(collection), eq(documentId), anyLong(), any(), eq(context)))
+              eq(namespace), eq(collection), eq(documentId), anyLong(), any(), eq(context), any()))
           .thenReturn(Uni.createFrom().nothing());
+
+      when(requestInfo.getTenantId()).thenReturn(Optional.of("my-tenant"));
+      when(requestInfo.getCassandraToken()).thenReturn(Optional.of("my-token"));
 
       QueryOuterClass.Row oldRow = rowFor(documentId, "oldValue", 1L, "prePath");
       RowWrapper oldRowWrapper = wrapperFunction.apply(oldRow);
@@ -537,7 +548,8 @@ class ReadDocumentsServiceTest {
               eq(documentId),
               anyLong(),
               deadLeavesCaptor.capture(),
-              eq(context));
+              eq(context),
+              metadataCaptor.capture());
       assertThat(deadLeavesCaptor.getAllValues())
           .singleElement()
           .satisfies(
@@ -548,6 +560,23 @@ class ReadDocumentsServiceTest {
                           leafs ->
                               assertThat(leafs)
                                   .containsExactly(ImmutableDeadLeaf.builder().name("").build())));
+      assertThat(metadataCaptor.getAllValues())
+          .singleElement()
+          .satisfies(
+              metadata -> {
+                assertThat(
+                        metadata.get(
+                            Metadata.Key.of(
+                                HttpConstants.TENANT_ID_HEADER_NAME,
+                                Metadata.ASCII_STRING_MARSHALLER)))
+                    .isEqualTo("my-tenant");
+                assertThat(
+                        metadata.get(
+                            Metadata.Key.of(
+                                HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME,
+                                Metadata.ASCII_STRING_MARSHALLER)))
+                    .isEqualTo("my-token");
+              });
 
       verify(readBridgeService)
           .getDocument(
@@ -577,7 +606,7 @@ class ReadDocumentsServiceTest {
           .thenReturn(docs);
 
       when(writeBridgeService.deleteDeadLeaves(
-              eq(namespace), eq(collection), eq(documentId), anyLong(), any(), eq(context)))
+              eq(namespace), eq(collection), eq(documentId), anyLong(), any(), eq(context), any()))
           .thenReturn(Uni.createFrom().failure(new RuntimeException("This must be ignored!")));
 
       QueryOuterClass.Row oldRow = rowFor(documentId, "oldValue", 1L, "prePath");
@@ -619,7 +648,8 @@ class ReadDocumentsServiceTest {
               eq(documentId),
               anyLong(),
               deadLeavesCaptor.capture(),
-              eq(context));
+              eq(context),
+              metadataCaptor.capture());
       verifyNoMoreInteractions(readBridgeService, writeBridgeService);
     }
 
