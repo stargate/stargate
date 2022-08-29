@@ -399,10 +399,7 @@ public class WriteBridgeService {
                               treatBooleansAsNumeric)));
               return queries;
             })
-        .flatMap(
-            boundQueries ->
-                executeBatch(
-                    requestInfo.getStargateBridge(), boundQueries, context.nested("ASYNC SET")));
+        .flatMap(boundQueries -> executeBatch(bridge, boundQueries, context.nested("ASYNC SET")));
   }
 
   /**
@@ -475,7 +472,7 @@ public class WriteBridgeService {
    * @param microsTimestamp Micros timestamp to use in delete queries.
    * @param deadLeaves A map of JSON paths (f.e. $.some.path) to dead leaves to delete.
    * @param context Execution content for profiling.
-   * @param metadata
+   * @param metadata Metadata to pass to the bridge
    * @return Single containing the {@link ResultSet} of the batch execution.
    */
   public Uni<ResultSet> deleteDeadLeaves(
@@ -506,14 +503,13 @@ public class WriteBridgeService {
             })
         .flatMap(
             boundQueries -> {
-              try {
+              if (metadata.keys().isEmpty()) {
+                return executeBatch(
+                    bridge, boundQueries, context.nested("ASYNC DOCUMENT CORRECTION"));
+              } else {
                 StargateBridge bridgeWithMetadata = GrpcClientUtils.attachHeaders(bridge, metadata);
                 return executeBatch(
                     bridgeWithMetadata, boundQueries, context.nested("ASYNC DOCUMENT CORRECTION"));
-              } catch (IllegalArgumentException e) {
-                // in case we can not attach metadata, use original client
-                return executeBatch(
-                    bridge, boundQueries, context.nested("ASYNC DOCUMENT CORRECTION"));
               }
             });
   }
