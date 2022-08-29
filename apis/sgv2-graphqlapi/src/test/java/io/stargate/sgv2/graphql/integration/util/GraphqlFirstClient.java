@@ -17,8 +17,6 @@ package io.stargate.sgv2.graphql.integration.util;
 
 import com.jayway.jsonpath.JsonPath;
 import graphql.com.google.common.collect.ImmutableMap;
-import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -29,9 +27,9 @@ public class GraphqlFirstClient extends GraphqlClient {
 
   // Note: these constants duplicate the ones from the production code's `ResourcePaths` (which is
   // not accessible from here).
-  private static final String ADMIN = "/graphql-admin";
-  private static final String KEYSPACES = "/graphql";
-  private static final String FILES = "/graphql-files";
+  private static final String ADMIN = "graphql-admin";
+  private static final String KEYSPACES = "graphql";
+  private static final String FILES = "graphql-files";
 
   private final String baseUrl;
   private final String authToken;
@@ -140,11 +138,7 @@ public class GraphqlFirstClient extends GraphqlClient {
 
   /** Returns the contents of the static cql_directives.graphql file. */
   public String getCqlDirectivesFile() {
-    try {
-      return get(authToken, cqlDirectivesUri, Response.Status.OK.getStatusCode());
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
+    return doGet(authToken, cqlDirectivesUri, Response.Status.OK.getStatusCode());
   }
 
   public String getSchemaFile(String keyspace) {
@@ -152,11 +146,7 @@ public class GraphqlFirstClient extends GraphqlClient {
   }
 
   public String getSchemaFile(String keyspace, String version, int expectedStatusCode) {
-    try {
-      return get(authToken, buildSchemaFileUri(keyspace, version), expectedStatusCode);
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
+    return doGet(authToken, buildSchemaFileUri(keyspace, version), expectedStatusCode);
   }
 
   public String getSchemaFile(String keyspace, String version) {
@@ -169,11 +159,7 @@ public class GraphqlFirstClient extends GraphqlClient {
 
   public void expectSchemaFileStatus(
       String keyspace, String version, Response.Status expectedStatus) {
-    try {
-      get(authToken, buildSchemaFileUri(keyspace, version), expectedStatus.getStatusCode());
-    } catch (IOException e) {
-      throw new UncheckedIOException(e);
-    }
+    doGet(authToken, buildSchemaFileUri(keyspace, version), expectedStatus.getStatusCode());
   }
 
   public Object executeAdminQuery(String adminQuery) {

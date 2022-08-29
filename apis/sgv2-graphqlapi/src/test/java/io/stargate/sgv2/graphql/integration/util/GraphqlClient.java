@@ -15,27 +15,21 @@
  */
 package io.stargate.sgv2.graphql.integration.util;
 
+import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.collect.ImmutableMap;
+import io.restassured.http.ContentType;
+import io.restassured.response.Response;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.SocketTimeoutException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import okhttp3.Headers;
-import okhttp3.MediaType;
-import okhttp3.OkHttpClient;
-import okhttp3.Request;
-import okhttp3.RequestBody;
-import okhttp3.Response;
-import okhttp3.ResponseBody;
 import org.apache.http.HttpStatus;
 
 /**
@@ -46,17 +40,6 @@ import org.apache.http.HttpStatus;
 public abstract class GraphqlClient {
 
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
-
-  protected final OkHttpClient okHttpClient;
-
-  protected GraphqlClient() {
-    okHttpClient =
-        new OkHttpClient()
-            .newBuilder()
-            .readTimeout(Duration.ofSeconds(30))
-            .writeTimeout(Duration.ofSeconds(30))
-            .build();
-  }
 
   protected Map<String, Object> getGraphqlData(String authToken, String url, String graphqlQuery) {
     Map<String, Object> response =
@@ -98,23 +81,18 @@ public abstract class GraphqlClient {
   protected Map<String, Object> getGraphqlResponse(
       Map<String, String> headers, String url, String graphqlQuery, int expectedStatus) {
     try {
-      Map<String, Object> formData = new HashMap<>();
-      formData.put("query", graphqlQuery);
-
-      MediaType JSON = MediaType.parse("application/json; charset=utf-8");
-      Request.Builder requestBuilder =
-          new Request.Builder()
-              .post(RequestBody.create(JSON, OBJECT_MAPPER.writeValueAsBytes(formData)))
-              .url(url);
-      requestBuilder.headers(Headers.of(headers));
-      okhttp3.Response response = okHttpClient.newCall(requestBuilder.build()).execute();
-      assertThat(response.body()).isNotNull();
-      String bodyString = response.body().string();
-      assertThat(response.code())
-          .as("Unexpected error %d: %s", response.code(), bodyString)
+      Response response =
+          given()
+              .headers(headers)
+              .contentType(ContentType.JSON)
+              .body(OBJECT_MAPPER.writeValueAsString(ImmutableMap.of("query", graphqlQuery)))
+              .post(url);
+      String responseString = response.asString();
+      assertThat(response.statusCode())
+          .as("Unexpected error %d: %s", response.statusCode(), responseString)
           .isEqualTo(expectedStatus);
       @SuppressWarnings("unchecked")
-      Map<String, Object> graphqlResponse = OBJECT_MAPPER.readValue(bodyString, Map.class);
+      Map<String, Object> graphqlResponse = OBJECT_MAPPER.readValue(responseString, Map.class);
       return graphqlResponse;
     } catch (IOException e) {
       return fail("Unexpected error while sending POST request", e);
@@ -129,28 +107,9 @@ public abstract class GraphqlClient {
     }
   }
 
-  protected String get(String authToken, String path, int expectedStatusCode) throws IOException {
-    Request request;
-    if (authToken != null) {
-      request =
-          new Request.Builder().url(path).get().addHeader("X-Cassandra-Token", authToken).build();
-    } else {
-      request = new Request.Builder().url(path).get().build();
-    }
-    final Response response;
-    try {
-      response = okHttpClient.newCall(request).execute();
-    } catch (SocketTimeoutException e) {
-      throw new IOException(
-          String.format(
-              "Timeout (%s) for GET request from URL '%s': service not running?",
-              request.url(), e.getClass().getName()));
-    }
-    assertThat(response.code()).isEqualTo(expectedStatusCode);
-
-    ResponseBody body = response.body();
-    assertThat(body).isNotNull();
-
-    return body.string();
+  protected String doGet(String authToken, String path, int expectedStatusCode) {
+    Response response = given().header("X-Cassandra-Token", authToken).get(path);
+    assertThat(response.getStatusCode()).isEqualTo(expectedStatusCode);
+    return response.asString();
   }
 }
