@@ -16,11 +16,12 @@
 package io.stargate.sgv2.graphql.web.resources;
 
 import com.google.common.io.Resources;
+import io.stargate.sgv2.api.common.StargateRequestInfo;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.Optional;
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -35,6 +36,8 @@ import org.eclipse.microprofile.config.inject.ConfigProperty;
 @Path("/playground")
 @Singleton
 public class PlaygroundResource {
+
+  @Inject StargateRequestInfo requestInfo;
 
   private final Optional<String> playgroundFile;
 
@@ -53,7 +56,7 @@ public class PlaygroundResource {
   @GET
   public Response get(@Context HttpHeaders headers) {
     return playgroundFile
-        .map(html -> serve(html, getToken(headers)))
+        .map(html -> serve(html, requestInfo.getCassandraToken().orElse("")))
         .orElse(Response.status(Response.Status.NOT_FOUND).build());
   }
 
@@ -61,23 +64,8 @@ public class PlaygroundResource {
     // Replace the templated text with the token if it exist. Using java.lang.String.replaceFirst
     // since it's safer than java.lang.String.format(java.lang.String, java.lang.Object...) due to
     // the percent signs that exist in the string.
-    String formattedPlaygroundFile =
-        html.replaceFirst("AUTHENTICATION_TOKEN", token == null ? "" : token);
+    String formattedPlaygroundFile = html.replaceFirst("AUTHENTICATION_TOKEN", token);
 
     return Response.ok(formattedPlaygroundFile).build();
-  }
-
-  private String getToken(HttpHeaders headers) {
-    List<String> tokenHeaders = headers.getRequestHeader("x-cassandra-token");
-    if (!tokenHeaders.isEmpty()) {
-      return tokenHeaders.get(0);
-    }
-
-    List<String> authorizationHeaders = headers.getRequestHeader("Authorization");
-    if (!authorizationHeaders.isEmpty()) {
-      return authorizationHeaders.get(0).replaceFirst("^Bearer\\s", "");
-    }
-
-    return null;
   }
 }
