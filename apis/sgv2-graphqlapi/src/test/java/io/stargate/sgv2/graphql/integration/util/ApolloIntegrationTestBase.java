@@ -196,7 +196,7 @@ public abstract class ApolloIntegrationTestBase extends BetterBotzIntegrationTes
               }
 
               @Override
-              public Instant decode(@NotNull CustomTypeValue<?> customTypeValue) {
+              public Instant decode(CustomTypeValue<?> customTypeValue) {
                 return parseInstant(customTypeValue.value.toString());
               }
             })
@@ -204,9 +204,9 @@ public abstract class ApolloIntegrationTestBase extends BetterBotzIntegrationTes
   }
 
   protected static <U> ApolloCall.Callback<Optional<U>> queryCallback(CompletableFuture<U> future) {
-    return new ApolloCall.Callback<Optional<U>>() {
+    return new ApolloCall.Callback<>() {
       @Override
-      public void onResponse(@NotNull Response<Optional<U>> response) {
+      public void onResponse(Response<Optional<U>> response) {
         if (response.getErrors() != null && response.getErrors().size() > 0) {
           future.completeExceptionally(new GraphQLTestException(response.getErrors()));
           return;
@@ -222,7 +222,7 @@ public abstract class ApolloIntegrationTestBase extends BetterBotzIntegrationTes
       }
 
       @Override
-      public void onFailure(@NotNull ApolloException e) {
+      public void onFailure(ApolloException e) {
         future.completeExceptionally(e);
       }
     };

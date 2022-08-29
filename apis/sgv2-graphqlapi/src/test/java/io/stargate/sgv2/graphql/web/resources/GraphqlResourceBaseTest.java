@@ -19,12 +19,15 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.CoreMatchers.is;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
+import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import javax.ws.rs.core.MediaType;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
+@TestProfile(NoGlobalResourcesTestProfile.Impl.class)
 public class GraphqlResourceBaseTest {
 
   @Test
