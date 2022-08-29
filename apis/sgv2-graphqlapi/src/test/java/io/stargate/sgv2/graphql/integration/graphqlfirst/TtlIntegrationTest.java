@@ -27,7 +27,6 @@ import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import javax.enterprise.context.control.ActivateRequestContext;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
@@ -39,7 +38,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 @QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TtlIntegrationTest extends GraphqlFirstIntegrationTest {
 

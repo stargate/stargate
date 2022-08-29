@@ -29,14 +29,12 @@ import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.CqlFirstIntegrationTest;
 import java.util.List;
 import java.util.Map;
-import javax.enterprise.context.control.ActivateRequestContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
 @QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class TableDdlIntegrationTest extends CqlFirstIntegrationTest {
 

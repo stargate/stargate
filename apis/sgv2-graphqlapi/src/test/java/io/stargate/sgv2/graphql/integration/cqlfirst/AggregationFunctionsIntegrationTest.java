@@ -18,20 +18,22 @@ package io.stargate.sgv2.graphql.integration.cqlfirst;
 import static org.assertj.core.api.AssertionsForInterfaceTypes.assertThat;
 
 import com.jayway.jsonpath.JsonPath;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.ResourceArg;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
-import io.quarkus.test.junit.TestProfile;
-import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
+import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.graphql.integration.util.BetterBotzIntegrationTestBase;
 import java.util.Map;
-import javax.enterprise.context.control.ActivateRequestContext;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
 @QuarkusIntegrationTest
-@TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
+@QuarkusTestResource(
+    value = StargateTestResource.class,
+    initArgs =
+        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class AggregationFunctionsIntegrationTest extends BetterBotzIntegrationTestBase {
 

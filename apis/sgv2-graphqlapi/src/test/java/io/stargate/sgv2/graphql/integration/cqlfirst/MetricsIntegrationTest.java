@@ -23,14 +23,12 @@ import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.CqlFirstIntegrationTest;
 import io.stargate.sgv2.graphql.integration.util.MetricsTestsHelper;
 import java.util.regex.Pattern;
-import javax.enterprise.context.control.ActivateRequestContext;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
 @QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class MetricsIntegrationTest extends CqlFirstIntegrationTest {
 

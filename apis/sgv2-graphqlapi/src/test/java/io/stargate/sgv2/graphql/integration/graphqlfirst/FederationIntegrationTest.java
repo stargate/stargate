@@ -24,7 +24,6 @@ import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import io.stargate.sgv2.graphql.integration.util.GraphqlFirstIntegrationTest;
 import java.util.Collections;
 import java.util.UUID;
-import javax.enterprise.context.control.ActivateRequestContext;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -32,7 +31,6 @@ import org.junit.jupiter.api.TestInstance;
 
 @QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class FederationIntegrationTest extends GraphqlFirstIntegrationTest {
 

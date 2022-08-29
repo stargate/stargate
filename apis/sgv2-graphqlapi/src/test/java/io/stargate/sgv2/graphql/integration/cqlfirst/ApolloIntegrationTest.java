@@ -42,7 +42,6 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
-import javax.enterprise.context.control.ActivateRequestContext;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -70,7 +69,6 @@ import org.junit.jupiter.api.TestInstance;
  */
 @QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class ApolloIntegrationTest extends ApolloIntegrationTestBase {
 

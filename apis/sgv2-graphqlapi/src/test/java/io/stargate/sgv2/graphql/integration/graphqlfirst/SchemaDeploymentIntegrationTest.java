@@ -28,7 +28,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import javax.enterprise.context.control.ActivateRequestContext;
 import javax.ws.rs.core.Response;
 import org.assertj.core.api.InstanceOfAssertFactories;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,7 +37,6 @@ import org.junit.jupiter.api.TestInstance;
 
 @QuarkusIntegrationTest
 @TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class SchemaDeploymentIntegrationTest extends GraphqlFirstIntegrationTest {
 
