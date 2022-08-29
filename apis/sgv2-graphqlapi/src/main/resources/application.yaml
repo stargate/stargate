@@ -36,6 +36,10 @@ quarkus:
         host: ${STARGATE_BRIDGE_HOST:localhost}
         port: ${STARGATE_BRIDGE_PORT:8091}
 
+    # force no grpc server start in dev as we have no grpc service
+    dev-mode:
+      force-server-start: false
+
   micrometer:
     binder:
       http-server:
