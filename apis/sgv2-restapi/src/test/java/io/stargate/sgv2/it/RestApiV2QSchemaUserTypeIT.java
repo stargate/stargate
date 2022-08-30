@@ -13,18 +13,13 @@ import io.stargate.sgv2.restapi.service.models.Sgv2UDTUpdateRequest;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestClassOrder;
-import org.junit.jupiter.api.TestInstance;
 
 @QuarkusIntegrationTest
 @QuarkusTestResource(
     value = StargateTestResource.class,
     initArgs =
         @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
-@TestClassOrder(ClassOrderer.DisplayName.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
   public RestApiV2QSchemaUserTypeIT() {
     super("udt_ks_", "udt_t_");

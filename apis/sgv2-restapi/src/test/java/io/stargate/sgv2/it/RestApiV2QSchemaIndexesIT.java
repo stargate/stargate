@@ -14,18 +14,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestClassOrder;
-import org.junit.jupiter.api.TestInstance;
 
 @QuarkusIntegrationTest
 @QuarkusTestResource(
     value = StargateTestResource.class,
     initArgs =
         @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
-@TestClassOrder(ClassOrderer.DisplayName.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
   public RestApiV2QSchemaIndexesIT() {
     super("idx_ks_", "idx_t_");

@@ -18,10 +18,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.http.HttpStatus;
 import org.junit.Ignore;
-import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestClassOrder;
-import org.junit.jupiter.api.TestInstance;
 
 /** Integration tests for checking CRUD schema operations for Keyspaces. */
 @QuarkusIntegrationTest
@@ -29,8 +26,6 @@ import org.junit.jupiter.api.TestInstance;
     value = StargateTestResource.class,
     initArgs =
         @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
-@TestClassOrder(ClassOrderer.DisplayName.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   private static final String BASE_PATH = "/v2/schemas/keyspaces";
 

@@ -33,9 +33,14 @@ import java.util.stream.Collectors;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.ClassOrderer;
+import org.junit.jupiter.api.TestClassOrder;
 import org.junit.jupiter.api.TestInfo;
+import org.junit.jupiter.api.TestInstance;
 
-public class RestApiV2QIntegrationTestBase {
+@TestClassOrder(ClassOrderer.DisplayName.class)
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
+public abstract class RestApiV2QIntegrationTestBase {
   protected static final ObjectMapper objectMapper = JsonMapper.builder().build();
 
   protected static final TypeReference LIST_OF_MAPS_TYPE =

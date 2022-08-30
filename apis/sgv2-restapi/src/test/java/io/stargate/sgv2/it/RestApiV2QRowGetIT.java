@@ -20,18 +20,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestClassOrder;
-import org.junit.jupiter.api.TestInstance;
 
 @QuarkusIntegrationTest
 @QuarkusTestResource(
     value = StargateTestResource.class,
     initArgs =
         @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
-@TestClassOrder(ClassOrderer.DisplayName.class)
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
   public RestApiV2QRowGetIT() {
     super("rowget_ks_", "rowget_t_");
