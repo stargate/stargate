@@ -21,6 +21,7 @@ import static org.mockito.Mockito.when;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
+import io.grpc.Metadata;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.junit.mockito.InjectMock;
@@ -28,6 +29,7 @@ import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.Batch;
+import io.stargate.sgv2.api.common.config.QueriesConfig;
 import io.stargate.sgv2.api.common.properties.datastore.DataStoreProperties;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
@@ -61,10 +63,11 @@ import org.junit.jupiter.api.Test;
 @TestProfile(MaxDepth4TestProfile.class)
 class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
 
-  @Inject WriteBridgeService service;
+  WriteBridgeService service;
   @Inject DocsApiTestSchemaProvider schemaProvider;
   @Inject DataStoreProperties dataStoreProperties;
   @Inject DocumentProperties documentProperties;
+  @Inject QueriesConfig queriesConfig;
   @InjectMock TimeSource timeSource;
 
   String keyspaceName;
@@ -76,6 +79,9 @@ class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
 
   @BeforeEach
   public void init() {
+    service =
+        new WriteBridgeService(
+            bridge, timeSource, dataStoreProperties, documentProperties, queriesConfig);
     keyspaceName = schemaProvider.getKeyspace().getName();
     tableName = schemaProvider.getTable().getName();
     expectedBatchType =
@@ -1471,7 +1477,13 @@ class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
 
       service
           .deleteDeadLeaves(
-              keyspaceName, tableName, documentId, microsTimestamp, deadLeaves, context)
+              keyspaceName,
+              tableName,
+              documentId,
+              microsTimestamp,
+              deadLeaves,
+              context,
+              new Metadata())
           .subscribe()
           .withSubscriber(UniAssertSubscriber.create())
           .awaitItem()

@@ -32,7 +32,7 @@ import org.junit.jupiter.api.BeforeEach;
  */
 public abstract class AbstractValidatingStargateBridgeTest {
 
-  private ValidatingStargateBridge bridge;
+  protected ValidatingStargateBridge bridge;
   @InjectMock protected StargateRequestInfo requestInfo;
 
   @BeforeEach
