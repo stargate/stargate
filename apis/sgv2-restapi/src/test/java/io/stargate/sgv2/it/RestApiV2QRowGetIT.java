@@ -1,35 +1,35 @@
 package io.stargate.sgv2.it;
 
-import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.ResourceArg;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.bridge.grpc.CqlDuration;
-import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
-import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
+import io.stargate.sgv2.common.testresource.StargateTestResource;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import javax.enterprise.context.control.ActivateRequestContext;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestClassOrder;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
-@TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
+@QuarkusIntegrationTest
+@QuarkusTestResource(
+    value = StargateTestResource.class,
+    initArgs =
+        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
 @TestClassOrder(ClassOrderer.DisplayName.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
@@ -59,8 +59,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     // Do not use helper methods here but direct call
     final String path = endpointPathForAllRows(testKeyspaceName(), tableName);
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("fields", "id, firstName")
             .when()
             .get(path)
@@ -102,8 +101,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     // Get first page
     final String path = endpointPathForAllRows(testKeyspaceName(), tableName);
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("page-size", 2)
             .when()
             .get(path)
@@ -120,8 +118,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
 
     // Then second
     response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("page-size", 2)
             .queryParam("page-state", pageState)
             .when()
@@ -139,8 +136,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
 
     // Now no more pages, shouldn't get PagingState either
     response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("page-size", 2)
             .queryParam("page-state", pageState)
             .when()
@@ -168,8 +164,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     String whereClause = "{\"invalid_field\":{\"$eq\":\"test\"}}";
     final String path = endpointPathForRowGetWith(testKeyspaceName(), tableName);
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("where", whereClause)
             .when()
             .get(path)
@@ -232,8 +227,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
 
     final String path = endpointPathForRowByPK(testKeyspaceName(), tableName, primaryKey);
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("page-size", 1)
             .when()
             .get(path)
@@ -274,8 +268,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     String whereClause = String.format("{\"id\":{\"$eq\":\"%s\"}}", mainKey);
     final String path = endpointPathForRowGetWith(testKeyspaceName(), tableName);
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("page-size", 2)
             .queryParam("where", whereClause)
             .when()
@@ -300,8 +293,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     assertThat(pagingState).isNotEmpty();
 
     response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("page-size", 99)
             .queryParam("where", whereClause)
             .queryParam("page-state", pagingState)
@@ -377,8 +369,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
 
     final String path = endpointPathForRowByPK(testKeyspaceName(), tableName, rowIdentifier);
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("raw", "true")
             .queryParam("sort", "{\"expense_id\": \"desc\"}")
             .when()
@@ -401,8 +392,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
 
     final String path = endpointPathForRowByPK(testKeyspaceName(), tableName, rowIdentifier);
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("sort", "{\"expense_id\": \"desc\"}")
             .when()
             .get(path)
@@ -653,8 +643,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     // Problem here: invalid JSON, 2 x double-quotes
     String sortClause = "{\"expense_id\"\":\"desc\"}";
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("sort", sortClause)
             .queryParam("where", whereClause)
             .when()
@@ -672,8 +661,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     // Let's also check out handling with non-existing sort field
     sortClause = "{\"bogus_field\":123}";
     response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("sort", sortClause)
             .queryParam("where", whereClause)
             .when()
@@ -697,8 +685,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
 
     String whereClause = String.format("{\"id\":{\"$eq\":\"%s\"}}", rowIdentifier);
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("raw", true)
             .queryParam("page-size", 1)
             .queryParam("where", whereClause)
@@ -727,8 +714,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
 
     String whereClause = String.format("{\"id\":{\"$eq\":\"%s\"}}", rowIdentifier);
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("raw", true)
             .queryParam("where", whereClause)
             .when()
@@ -751,8 +737,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     String sortClause = "{\"expense_id\":\"desc\"}";
     String whereClause = String.format("{\"id\":{\"$eq\":\"%s\"}}", rowIdentifier);
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("sort", sortClause)
             .queryParam("where", whereClause)
             .when()
@@ -780,8 +765,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     String sortClause = "{\"expense_id\":\"desc\"}";
     String whereClause = String.format("{\"id\":{\"$eq\":\"%s\"}}", rowIdentifier);
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("sort", sortClause)
             .queryParam("where", whereClause)
             .queryParam("raw", "true")
@@ -937,8 +921,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
             + "{\"name\":\"age\",\"typeDefinition\":\"int\"}]}";
 
     // First create UDT itself:
-    given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+    givenWithAuth()
         .contentType(ContentType.JSON)
         .body(udtCreate)
         .when()

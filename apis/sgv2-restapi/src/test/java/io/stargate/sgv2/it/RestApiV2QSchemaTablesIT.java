@@ -1,14 +1,13 @@
 package io.stargate.sgv2.it;
 
-import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.ResourceArg;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
-import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
-import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
+import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
 import io.stargate.sgv2.restapi.service.models.Sgv2Table;
 import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
@@ -17,16 +16,17 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import javax.enterprise.context.control.ActivateRequestContext;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestClassOrder;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
-@TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
+@QuarkusIntegrationTest
+@QuarkusTestResource(
+    value = StargateTestResource.class,
+    initArgs =
+        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
 @TestClassOrder(ClassOrderer.DisplayName.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
@@ -43,8 +43,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void tablesGetWrapped() {
     String body =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .when()
             .get(endpointPathForTables("system"))
             .then()
@@ -57,8 +56,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void tablesGetRaw() {
     String body =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("raw", "true")
             .when()
             .get(endpointPathForTables("system"))
@@ -83,8 +81,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void tableGetWrapped() {
     String body =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .when()
             .get(endpointPathForTable("system", "local"))
             .then()
@@ -97,8 +94,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void tableGetRaw() {
     String body =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("raw", "true")
             .when()
             .get(endpointPathForTable("system", "local"))
@@ -141,8 +137,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
 
   private void assertTableNotFound(String keyspaceName, String tableName) {
     String body =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .when()
             .get(endpointPathForTable(keyspaceName, tableName))
             .then()
@@ -291,8 +286,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
 
     String whereClause = String.format("{\"ID\":{\"$eq\":\"%s\"}}", rowIdentifier);
     String body =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("where", whereClause)
             .contentType(ContentType.JSON)
             .when()
@@ -326,8 +320,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
     tableUpdate.setTableOptions(tableOptions);
 
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .contentType(ContentType.JSON)
             .body(asJsonString(tableUpdate))
             .when()
@@ -362,8 +355,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
     final Sgv2Table table = findTable(testKeyspaceName(), tableName);
     assertThat(table.getName()).isEqualTo(tableName);
 
-    given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+    givenWithAuth()
         .when()
         .delete(endpointPathForTable(testKeyspaceName(), tableName))
         .then()

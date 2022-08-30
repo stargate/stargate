@@ -1,27 +1,27 @@
 package io.stargate.sgv2.it;
 
-import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.ResourceArg;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
-import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
-import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
+import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
 import java.util.Arrays;
 import java.util.List;
-import javax.enterprise.context.control.ActivateRequestContext;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestClassOrder;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
-@TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
+@QuarkusIntegrationTest
+@QuarkusTestResource(
+    value = StargateTestResource.class,
+    initArgs =
+        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
 @TestClassOrder(ClassOrderer.DisplayName.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
@@ -374,8 +374,7 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
 
   protected String tryAddColumn(
       String keyspaceName, String tableName, Sgv2ColumnDefinition columnDef, int expectedResult) {
-    return given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+    return givenWithAuth()
         .contentType(ContentType.JSON)
         .body(asJsonString(columnDef))
         .when()
@@ -392,8 +391,7 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
       String columnName,
       Sgv2ColumnDefinition columnDef,
       int expectedResult) {
-    return given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+    return givenWithAuth()
         .contentType(ContentType.JSON)
         .body(asJsonString(columnDef))
         .when()
@@ -406,8 +404,7 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
 
   protected String tryDeleteColumn(
       String keyspaceName, String tableName, String columnName, int expectedResult) {
-    return given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+    return givenWithAuth()
         .when()
         .delete(endpointPathForColumn(keyspaceName, tableName, columnName))
         .then()
@@ -418,8 +415,7 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
 
   protected String tryFindOneColumn(
       String keyspaceName, String tableName, String columnName, int expectedStatus) {
-    return given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+    return givenWithAuth()
         .queryParam("raw", true)
         .when()
         .get(endpointPathForColumn(keyspaceName, tableName, columnName))
@@ -432,8 +428,7 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
   protected Sgv2ColumnDefinition findOneColumn(
       String keyspaceName, String tableName, String columnName, boolean raw) {
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("raw", raw)
             .when()
             .get(endpointPathForColumn(keyspaceName, tableName, columnName))
@@ -448,8 +443,7 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
   }
 
   protected String tryFindAllColumns(String keyspaceName, String tableName, int expectedStatus) {
-    return given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+    return givenWithAuth()
         .queryParam("raw", true)
         .when()
         .get(endpointPathForAllColumns(keyspaceName, tableName))
@@ -462,8 +456,7 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
   protected Sgv2ColumnDefinition[] findAllColumns(
       String keyspaceName, String tableName, boolean raw) {
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("raw", raw)
             .when()
             .get(endpointPathForAllColumns(keyspaceName, tableName))

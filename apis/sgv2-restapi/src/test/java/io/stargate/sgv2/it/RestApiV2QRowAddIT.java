@@ -1,30 +1,30 @@
 package io.stargate.sgv2.it;
 
-import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.ResourceArg;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
-import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
-import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
+import io.stargate.sgv2.common.testresource.StargateTestResource;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import javax.enterprise.context.control.ActivateRequestContext;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestClassOrder;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
-@TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
+@QuarkusIntegrationTest
+@QuarkusTestResource(
+    value = StargateTestResource.class,
+    initArgs =
+        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
 @TestClassOrder(ClassOrderer.DisplayName.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class RestApiV2QRowAddIT extends RestApiV2QIntegrationTestBase {
@@ -43,8 +43,7 @@ public class RestApiV2QRowAddIT extends RestApiV2QIntegrationTestBase {
     row.put("firstName", "John");
 
     String body =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .contentType(ContentType.JSON)
             .body(asJsonString(row))
             .when()
@@ -148,8 +147,7 @@ public class RestApiV2QRowAddIT extends RestApiV2QIntegrationTestBase {
     // Note: missing double-quote after "firstName"
     String rowJSON = "{\"id\": \"af2603d2-8c03-11eb-a03f-0ada685e0000\",\"firstName: \"john\"}";
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .contentType(ContentType.JSON)
             .body(rowJSON)
             .when()

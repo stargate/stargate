@@ -1,28 +1,28 @@
 package io.stargate.sgv2.it;
 
-import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.ResourceArg;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
-import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
-import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
+import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.restapi.service.models.Sgv2UDT;
 import io.stargate.sgv2.restapi.service.models.Sgv2UDTUpdateRequest;
 import java.util.Arrays;
 import java.util.List;
-import javax.enterprise.context.control.ActivateRequestContext;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestClassOrder;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
-@TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
+@QuarkusIntegrationTest
+@QuarkusTestResource(
+    value = StargateTestResource.class,
+    initArgs =
+        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
 @TestClassOrder(ClassOrderer.DisplayName.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
@@ -292,20 +292,14 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
 
     // before deleting:
     String deletePath = endpointPathForUDT(testKeyspaceName(), typeName);
-    given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-        .when()
-        .delete(deletePath)
-        .then()
-        .statusCode(HttpStatus.SC_NO_CONTENT);
+    givenWithAuth().when().delete(deletePath).then().statusCode(HttpStatus.SC_NO_CONTENT);
 
     // and then verify it doesn't exist any more
     verifyTypeNotFound(testKeyspaceName(), typeName);
 
     // Then try 2 invalid cases; first, trying to delete again
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .when()
             .delete(deletePath)
             .then()
@@ -335,8 +329,7 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
         Arrays.asList("id"),
         Arrays.asList());
     response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .when()
             .delete(endpointPathForUDT(testKeyspaceName(), typeInUse))
             .then()
@@ -368,8 +361,7 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
   }
 
   protected String tryCreateUDT(String keyspaceName, String udtCreate, int expectedResult) {
-    return given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+    return givenWithAuth()
         .contentType(ContentType.JSON)
         .body(udtCreate)
         .when()
@@ -381,8 +373,7 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
   }
 
   protected String tryUpdateUDT(String keyspaceName, String udtUpdate, int expectedResult) {
-    return given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+    return givenWithAuth()
         .contentType(ContentType.JSON)
         .body(udtUpdate)
         .when()
@@ -395,8 +386,7 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
 
   protected Sgv2UDT findOneUDT(String keyspaceName, String typeName, boolean raw) {
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("raw", raw)
             .when()
             .get(endpointPathForUDT(keyspaceName, typeName))
@@ -412,8 +402,7 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
 
   protected Sgv2UDT[] findAllUDTs(String keyspaceName, boolean raw) {
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("raw", raw)
             .when()
             .get(endpointPathForAllUDTs(keyspaceName))
@@ -429,8 +418,7 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
 
   private void verifyTypeNotFound(String keyspaceName, String typeName) {
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("raw", true)
             .when()
             .get(endpointPathForUDT(testKeyspaceName(), typeName))

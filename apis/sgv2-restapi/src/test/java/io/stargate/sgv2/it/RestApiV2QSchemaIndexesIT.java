@@ -1,29 +1,29 @@
 package io.stargate.sgv2.it;
 
-import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.ResourceArg;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
-import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
-import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
+import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.restapi.service.models.Sgv2IndexAddRequest;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
-import javax.enterprise.context.control.ActivateRequestContext;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.ClassOrderer;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestClassOrder;
 import org.junit.jupiter.api.TestInstance;
 
-@QuarkusTest
-@TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
+@QuarkusIntegrationTest
+@QuarkusTestResource(
+    value = StargateTestResource.class,
+    initArgs =
+        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
 @TestClassOrder(ClassOrderer.DisplayName.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
@@ -148,12 +148,7 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
     // But then let's try DELETEing it
     String deletePath = endpointPathForIndexDelete(testKeyspaceName(), tableName, indexName);
     // Usually "no content" (returns empty String), but for fails gives ApiError
-    given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
-        .when()
-        .delete(deletePath)
-        .then()
-        .statusCode(HttpStatus.SC_NO_CONTENT);
+    givenWithAuth().when().delete(deletePath).then().statusCode(HttpStatus.SC_NO_CONTENT);
 
     // And back to "no indexes"
     indexes = findAllIndexes(testKeyspaceName(), tableName);
@@ -163,8 +158,7 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
     indexName = "no_such_index";
     deletePath = endpointPathForIndexDelete(testKeyspaceName(), tableName, indexName);
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .when()
             .delete(deletePath)
             .then()
@@ -176,8 +170,7 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
     assertThat(apiError.description()).isEqualTo("Index '" + indexName + "' not found.");
 
     // But ok if defining idempotent method
-    given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+    givenWithAuth()
         .queryParam("ifExists", true)
         .when()
         .delete(deletePath)
@@ -235,8 +228,7 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
   protected List<IndexDesc> findAllIndexes() {
     final String path = endpointPathForAllRows("system_schema", "indexes");
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("raw", true)
             .queryParam("fields", "keyspace_name,index_name,table_name,kind")
             .when()
@@ -257,8 +249,7 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
 
   protected String tryCreateIndex(
       String keyspaceName, String tableName, Sgv2IndexAddRequest indexAdd, int expectedResult) {
-    return given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+    return givenWithAuth()
         .contentType(ContentType.JSON)
         .body(asJsonString(indexAdd))
         .when()

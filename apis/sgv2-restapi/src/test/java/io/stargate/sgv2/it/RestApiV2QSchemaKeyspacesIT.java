@@ -1,14 +1,13 @@
 package io.stargate.sgv2.it;
 
-import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.ResourceArg;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
-import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
-import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
+import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.restapi.service.models.Sgv2Keyspace;
 import java.util.Collections;
 import java.util.HashMap;
@@ -17,7 +16,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.enterprise.context.control.ActivateRequestContext;
 import org.apache.http.HttpStatus;
 import org.junit.Ignore;
 import org.junit.jupiter.api.ClassOrderer;
@@ -26,10 +24,12 @@ import org.junit.jupiter.api.TestClassOrder;
 import org.junit.jupiter.api.TestInstance;
 
 /** Integration tests for checking CRUD schema operations for Keyspaces. */
-@QuarkusTest
-@TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
-@TestClassOrder(ClassOrderer.DisplayName.class) // prefer stable even if arbitrary ordering
+@QuarkusIntegrationTest
+@QuarkusTestResource(
+    value = StargateTestResource.class,
+    initArgs =
+        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
+@TestClassOrder(ClassOrderer.DisplayName.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   private static final String BASE_PATH = "/v2/schemas/keyspaces";
@@ -51,8 +51,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void keyspacesGetAll() {
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .when()
             .get(BASE_PATH)
             .then()
@@ -65,8 +64,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void keyspacesGetAllRaw() {
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("raw", "true")
             .when()
             .get(BASE_PATH)
@@ -78,10 +76,10 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   }
 
   // 09-Aug-2022, tatu: Alas, Auth token seems not to be checked
-  @Ignore("Auth token handling hard-coded, won't fail as expected")
+  // @Ignore("Auth token handling hard-coded, won't fail as expected")
   public void keyspacesGetAllMissingToken() {
     String response =
-        given()
+        givenWithoutAuth()
             .when()
             .get(BASE_PATH)
             .then()
@@ -94,8 +92,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   @Ignore("Auth token handling hard-coded, won't fail as expected")
   public void keyspacesGetAllBadToken() {
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "NotAPassword")
+        givenWithAuthToken("NotAPassword")
             .when()
             .get(BASE_PATH)
             .then()
@@ -107,8 +104,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void keyspaceGetWrapped() {
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .when()
             .get(BASE_PATH + "/system")
             .then()
@@ -122,8 +118,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void keyspaceGetRaw() {
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("raw", "true")
             .when()
             .get(BASE_PATH + "/system")
@@ -138,8 +133,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void keyspaceGetNotFound() {
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .when()
             .get(BASE_PATH + "/ks_not_found")
             .then()
@@ -164,8 +158,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
     createKeyspace(keyspaceName);
 
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("raw", "true")
             .when()
             .get(BASE_PATH + "/{keyspace-id}", keyspaceName)
@@ -191,8 +184,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
                 + "       { \"name\":\"%s\", \"replicas\":1}\n"
                 + "]}",
             keyspaceName, TEST_DC);
-    given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+    givenWithAuth()
         .contentType(ContentType.JSON)
         .body(requestJSON)
         .when()
@@ -202,8 +194,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
 
     // Then validate it was created as expected
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("raw", "true")
             .when()
             .get(BASE_PATH + "/{keyspace-id}", keyspaceName)
@@ -227,8 +218,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void keyspaceCreateWithInvalidJson() {
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .contentType(ContentType.JSON)
             // non-JSON, missing colon after "name":
             .body("{\"name\" \"badjsonkeyspace\", \"replicas\": 1}")
@@ -257,8 +247,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
     createKeyspace(keyspaceName);
 
     // Verify it was created:
-    given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+    givenWithAuth()
         .when()
         .get(BASE_PATH + "/{keyspace-id}", keyspaceName)
         .then()
@@ -266,16 +255,14 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
 
     // Then delete
 
-    given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+    givenWithAuth()
         .when()
         .delete(BASE_PATH + "/{keyspace-id}", keyspaceName)
         .then()
         .statusCode(HttpStatus.SC_NO_CONTENT);
 
     // And finally verify it's gone
-    given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+    givenWithAuth()
         .when()
         .get(BASE_PATH + "/{keyspace-id}", keyspaceName)
         .then()

@@ -11,8 +11,10 @@ import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
+import io.restassured.specification.RequestSpecification;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
+import io.stargate.sgv2.common.IntegrationTestUtils;
 import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
 import io.stargate.sgv2.restapi.service.models.Sgv2GetResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2IndexAddRequest;
@@ -97,6 +99,18 @@ public class RestApiV2QIntegrationTestBase {
 
   public String testTableName() {
     return testTableName;
+  }
+
+  protected RequestSpecification givenWithAuth() {
+    return givenWithAuthToken(IntegrationTestUtils.getAuthToken());
+  }
+
+  protected RequestSpecification givenWithoutAuth() {
+    return given();
+  }
+
+  protected RequestSpecification givenWithAuthToken(String authTokenValue) {
+    return given().header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, authTokenValue);
   }
 
   /*
@@ -253,8 +267,7 @@ public class RestApiV2QIntegrationTestBase {
     // but use REST API itself to avoid having bootstrap CQL or Bridge client
 
     String createKeyspace = String.format("{\"name\": \"%s\", \"replicas\": 1}", keyspaceName);
-    given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+    givenWithAuth()
         .contentType(ContentType.JSON)
         .body(createKeyspace)
         .when()
@@ -327,8 +340,7 @@ public class RestApiV2QIntegrationTestBase {
 
   protected NameResponse createTable(String keyspaceName, Sgv2TableAddRequest addRequest) {
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .contentType(ContentType.JSON)
             .body(asJsonString(addRequest))
             .when()
@@ -342,8 +354,7 @@ public class RestApiV2QIntegrationTestBase {
 
   protected Sgv2Table findTable(String keyspaceName, String tableName) {
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("raw", "true")
             .when()
             .get(endpointPathForTable(keyspaceName, tableName))
@@ -372,8 +383,7 @@ public class RestApiV2QIntegrationTestBase {
     indexAdd.setKind(kind);
 
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .contentType(ContentType.JSON)
             .body(asJsonString(indexAdd))
             .when()
@@ -430,8 +440,7 @@ public class RestApiV2QIntegrationTestBase {
 
   protected String insertRowExpectStatus(
       String keyspaceName, String tableName, Map<?, ?> row, int expectedStatus) {
-    return given()
-        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+    return givenWithAuth()
         .contentType(ContentType.JSON)
         .body(asJsonString(row))
         .when()
@@ -446,8 +455,7 @@ public class RestApiV2QIntegrationTestBase {
       String keyspaceName, String tableName, Object... primaryKeys) {
     final String path = endpointPathForRowByPK(keyspaceName, tableName, primaryKeys);
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("raw", "true")
             .when()
             .get(path)
@@ -462,8 +470,7 @@ public class RestApiV2QIntegrationTestBase {
       String keyspaceName, String tableName, Object... primaryKeys) {
     final String path = endpointPathForRowByPK(keyspaceName, tableName, primaryKeys);
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("raw", "false")
             .when()
             .get(path)
@@ -478,8 +485,7 @@ public class RestApiV2QIntegrationTestBase {
       String keyspaceName, String tableName, Object... primaryKeys) {
     final String path = endpointPathForRowByPK(keyspaceName, tableName, primaryKeys);
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("raw", "true")
             .when()
             .get(path)
@@ -493,8 +499,7 @@ public class RestApiV2QIntegrationTestBase {
   protected ArrayNode findRowsWithWhereAsJsonNode(
       String keyspaceName, String tableName, String whereClause) {
     String response =
-        given()
-            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        givenWithAuth()
             .queryParam("raw", true)
             .queryParam("where", whereClause)
             .when()
