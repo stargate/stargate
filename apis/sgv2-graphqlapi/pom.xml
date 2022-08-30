@@ -96,6 +96,22 @@
       <artifactId>apollo-runtime</artifactId>
       <version>2.2.3</version>
       <scope>test</scope>
+      <!--
+        For some reason the version of OkHttp bundled with apollo-runtime doesn't work.
+        We override it below, but we also need to exclude this transitive dependency:
+      -->
+      <exclusions>
+        <exclusion>
+          <groupId>com.squareup.okio</groupId>
+          <artifactId>okio</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp</artifactId>
+      <version>4.10.0</version>
+      <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.datastax.oss</groupId>
@@ -161,6 +177,32 @@
               <sources>
                 <source>${project.build.directory}/generated-test-sources/graphql-client/</source>
               </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <artifactId>maven-failsafe-plugin</artifactId>
+        <version>${surefire-plugin.version}</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>integration-test</goal>
+              <goal>verify</goal>
+            </goals>
+            <configuration>
+              <systemPropertyVariables>
+                <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                <maven.home>${maven.home}</maven.home>
+                <testing.containers.cassandra-image>${stargate.int-test.cassandra.image}:${stargate.int-test.cassandra.image-tag}</testing.containers.cassandra-image>
+                <testing.containers.stargate-image>${stargate.int-test.coordinator.image}:${stargate.int-test.coordinator.image-tag}</testing.containers.stargate-image>
+                <testing.containers.cluster-name>${stargate.int-test.cluster.name}</testing.containers.cluster-name>
+                <testing.containers.cluster-version>${stargate.int-test.cluster.version}</testing.containers.cluster-version>
+                <testing.containers.cluster-dse>${stargate.int-test.cluster.dse}</testing.containers.cluster-dse>
+              </systemPropertyVariables>
+              <includes>
+                <include>**/*IntegrationTest.*</include>
+              </includes>
             </configuration>
           </execution>
         </executions>
