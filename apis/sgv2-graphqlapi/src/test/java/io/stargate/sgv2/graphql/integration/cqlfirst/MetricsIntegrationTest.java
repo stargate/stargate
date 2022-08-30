@@ -16,6 +16,7 @@
 package io.stargate.sgv2.graphql.integration.cqlfirst;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.common.ResourceArg;
@@ -54,10 +55,14 @@ public class MetricsIntegrationTest extends CqlFirstIntegrationTest {
     int countBefore = getQueryCount();
     client.executeDmlQuery(keyspaceId.asInternal(), "{ Foo(value: { k: 1 }) { values { v } } }");
     client.executeDmlQuery(keyspaceId.asInternal(), "{ Foo(value: { k: 1 }) { values { v } } }");
-    int countAfter = getQueryCount();
 
-    // Don't require an exact match in case other tests are running concurrently
-    assertThat(countAfter - countBefore).isGreaterThanOrEqualTo(2);
+    await()
+        .untilAsserted(
+            () -> {
+              int countAfter = getQueryCount();
+              // Don't require an exact match in case other tests are running concurrently
+              assertThat(countAfter - countBefore).isGreaterThanOrEqualTo(2);
+            });
   }
 
   private int getQueryCount() {
