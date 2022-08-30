@@ -9,12 +9,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.json.JsonMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.google.protobuf.StringValue;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
-import io.stargate.bridge.proto.QueryOuterClass;
-import io.stargate.bridge.proto.StargateBridge;
-import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
 import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
@@ -24,7 +20,6 @@ import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2Table;
 import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
 import java.io.IOException;
-import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -33,7 +28,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,10 +38,6 @@ public class RestApiV2QIntegrationTestBase {
 
   protected static final TypeReference LIST_OF_MAPS_TYPE =
       new TypeReference<List<Map<String, Object>>>() {};
-
-  @Inject protected StargateRequestInfo stargateRequestInfo;
-
-  protected StargateBridge bridge;
 
   private final String testKeyspacePrefix;
 
@@ -75,7 +65,6 @@ public class RestApiV2QIntegrationTestBase {
 
   @BeforeEach
   public void initPerTest(TestInfo testInfo) {
-    bridge = stargateRequestInfo.getStargateBridge();
     // Let's force lower-case keyspace and table names for defaults; case-sensitive testing
     // needs to use explicitly different values
     String testName = testInfo.getTestMethod().map(ti -> ti.getName()).get(); // .toLowerCase();
@@ -112,31 +101,13 @@ public class RestApiV2QIntegrationTestBase {
 
   /*
   /////////////////////////////////////////////////////////////////////////
-  // Schema initialization, CQL Access
-  /////////////////////////////////////////////////////////////////////////
-   */
-
-  protected QueryOuterClass.Response executeCql(String cql, QueryOuterClass.Value... values) {
-    return executeCql(cql, testKeyspaceName, values);
-  }
-
-  protected QueryOuterClass.Response executeCql(
-      String cql, String ks, QueryOuterClass.Value... values) {
-    QueryOuterClass.QueryParameters parameters =
-        QueryOuterClass.QueryParameters.newBuilder().setKeyspace(StringValue.of(ks)).build();
-    QueryOuterClass.Query.Builder query =
-        QueryOuterClass.Query.newBuilder().setCql(cql).setParameters(parameters);
-    if (values.length > 0) {
-      query.setValues(QueryOuterClass.Values.newBuilder().addAllValues(Arrays.asList(values)));
-    }
-    return bridge.executeQuery(query.build()).await().atMost(Duration.ofSeconds(10));
-  }
-
-  /*
-  /////////////////////////////////////////////////////////////////////////
   // Endpoint construction
   /////////////////////////////////////////////////////////////////////////
    */
+
+  protected String endpointPathForAllKeyspaces() {
+    return "/v2/schemas/keyspaces";
+  }
 
   protected String endpointPathForTables(String ksName) {
     return String.format("/v2/schemas/keyspaces/%s/tables", ksName);
@@ -273,14 +244,23 @@ public class RestApiV2QIntegrationTestBase {
    */
 
   protected void createKeyspace(String keyspaceName) {
-    String cql =
-        "CREATE KEYSPACE IF NOT EXISTS \"%s\" WITH replication = {'class': 'SimpleStrategy', 'replication_factor': 1}"
-            .formatted(keyspaceName);
-    QueryOuterClass.Query.Builder query =
-        QueryOuterClass.Query.newBuilder()
-            .setCql(cql)
-            .setParameters(QueryOuterClass.QueryParameters.getDefaultInstance());
-    bridge.executeQuery(query.build()).await().atMost(Duration.ofSeconds(10));
+    // We are essentially doing this:
+    // String cql =
+    //    "CREATE KEYSPACE IF NOT EXISTS \"%s\" WITH replication = {'class': 'SimpleStrategy',
+    // 'replication_factor': 1}"
+    //        .formatted(keyspaceName);
+    //
+    // but use REST API itself to avoid having bootstrap CQL or Bridge client
+
+    String createKeyspace = String.format("{\"name\": \"%s\", \"replicas\": 1}", keyspaceName);
+    given()
+        .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+        .contentType(ContentType.JSON)
+        .body(createKeyspace)
+        .when()
+        .post(endpointPathForAllKeyspaces())
+        .then()
+        .statusCode(HttpStatus.SC_CREATED);
   }
 
   /*
