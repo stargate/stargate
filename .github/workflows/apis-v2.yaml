@@ -320,7 +320,7 @@ jobs:
       # container test for docsapi only for now, enable for other when ready
       - name: Integration Test
         env:
-          CONTAINER_TEST: ${{ (matrix.project == 'sgv2-docsapi' || matrix.project == 'sgv2-restapi`) && 'true' || 'false' }}
+          CONTAINER_TEST: ${{ ( matrix.project == 'sgv2-docsapi' || matrix.project == 'sgv2-restapi' ) && 'true' || 'false' }}
         run: |
           cd apis/
           ./mvnw -B verify -DskipUnitTests -pl ${{ matrix.project }} -am -P ${{ matrix.profile }} -Dquarkus.container-image.build=$CONTAINER_TEST -Dtesting.containers.stargate-image=${{ matrix.image }}
