@@ -40,4 +40,4 @@ docker-compose up -d cassandra-3
 
 # Bring up the stargate
 
-docker-compose up -d coordinator restapi
+docker-compose up -d coordinator restapi graphqlapi

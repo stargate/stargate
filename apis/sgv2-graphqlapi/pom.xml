@@ -10,6 +10,7 @@
   <properties>
     <quarkus.container-image.group>stargateio</quarkus.container-image.group>
     <quarkus.container-image.name>graphqlapi</quarkus.container-image.name>
+    <quarkus.container-image.tag>v${project.version}</quarkus.container-image.tag>
   </properties>
   <dependencies>
     <dependency>
