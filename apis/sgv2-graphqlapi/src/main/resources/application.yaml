@@ -53,7 +53,7 @@ quarkus:
       http-server:
         # ignore all non-application uris, as well as the custom set
         suppress-non-application-uris: true
-        ignore-patterns: /,/metrics,/playground,/swagger-ui.*,.*\.html
+        ignore-patterns: /,/metrics,/playground,.*\.html
 
         # due to https://github.com/quarkusio/quarkus/issues/24938
         # we need to define uri templating on our own for now
@@ -66,3 +66,8 @@ quarkus:
     export:
       prometheus:
         path: /metrics
+
+  # Don't enable Swagger: our REST resources are generic GraphQL endpoints, clients will typically
+  # introspect the GraphQL schema instead.
+  swagger-ui:
+    enable: false
