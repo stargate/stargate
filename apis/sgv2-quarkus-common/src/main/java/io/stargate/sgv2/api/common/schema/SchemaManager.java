@@ -454,9 +454,10 @@ public class SchemaManager {
         .onItem()
         .ifNull()
         .switchTo(missingKeyspace.apply(keyspaceName))
-
         // otherwise try to find the wanted table
-        .flatMap(
+        .onItem()
+        .ifNotNull()
+        .transformToUni(
             keyspace -> {
               List<Schema.CqlTable> tables = keyspace.getTablesList();
               Optional<Schema.CqlTable> table =

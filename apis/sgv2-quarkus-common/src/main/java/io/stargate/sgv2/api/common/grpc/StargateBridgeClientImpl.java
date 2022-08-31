@@ -22,7 +22,6 @@ import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.schema.SchemaManager;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
@@ -35,7 +34,7 @@ import org.apache.commons.codec.binary.Hex;
 public class StargateBridgeClientImpl implements StargateBridgeClient {
 
   private static final Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>>
-      MISSING_KEYSPACE = ks -> Uni.createFrom().failure(MissingKeyspaceException.INSTANCE);
+      MISSING_KEYSPACE = ks -> Uni.createFrom().nullItem();
 
   @Inject SchemaManager schemaManager;
 
@@ -94,11 +93,7 @@ public class StargateBridgeClientImpl implements StargateBridgeClient {
         checkIfAuthorized
             ? schemaManager.getTableAuthorized(keyspaceName, tableName, MISSING_KEYSPACE)
             : schemaManager.getTable(keyspaceName, tableName, MISSING_KEYSPACE);
-    return table
-        .onFailure(MissingKeyspaceException.class)
-        .recoverWithNull()
-        .map(Optional::ofNullable)
-        .subscribeAsCompletionStage();
+    return table.map(Optional::ofNullable).subscribeAsCompletionStage();
   }
 
   @Override
@@ -107,8 +102,6 @@ public class StargateBridgeClientImpl implements StargateBridgeClient {
         .getTables(keyspaceName, MISSING_KEYSPACE)
         .collect()
         .asList()
-        .onFailure(MissingKeyspaceException.class)
-        .recoverWithItem(Collections.emptyList())
         .subscribeAsCompletionStage();
   }
 
@@ -129,11 +122,5 @@ public class StargateBridgeClientImpl implements StargateBridgeClient {
         .getStargateBridge()
         .getSupportedFeatures(Schema.SupportedFeaturesRequest.getDefaultInstance())
         .subscribeAsCompletionStage();
-  }
-
-  // Hack: we need to recover from a missing keyspace as empty optional/list, but SchemaManager only
-  // handles exceptions properly.
-  private static class MissingKeyspaceException extends RuntimeException {
-    private static final MissingKeyspaceException INSTANCE = new MissingKeyspaceException();
   }
 }
