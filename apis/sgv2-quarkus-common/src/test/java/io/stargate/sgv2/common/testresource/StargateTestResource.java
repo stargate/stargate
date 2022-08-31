@@ -129,8 +129,11 @@ public class StargateTestResource
     ImmutableMap.Builder<String, String> propsBuilder;
     if (containerNetworkId.isPresent()) {
       String networkId = containerNetworkId.get();
+      LOG.info("Container network id present, call startWithContainerNetwork('{}',{})",
+              networkId, reuse);
       propsBuilder = startWithContainerNetwork(networkId, reuse);
     } else {
+      LOG.info("Container network id NOT present, call startWithoutContainerNetwork({})", reuse);
       propsBuilder = startWithoutContainerNetwork(reuse);
     }
 
