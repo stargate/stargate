@@ -253,8 +253,12 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
     ApiError apiError = readJsonAs(response, ApiError.class);
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(apiError.description())
-        .matches(
-            "Invalid argument.* field .*" + typeName + ".*a field with name.*already exists.*");
+        // Further: C*3/C*4 have different failure messages
+        // C*3: "Invalid argument for gRPC operation (INVALID_ARGUMENT->Bad Request):
+        //   INVALID_ARGUMENT: Cannot add new field firstname to type
+        //   udt_ks_udtUpdateInvalid_1662051051470.udt_update_invalid:
+        //   a field of the same name already exists"
+        .matches("Invalid argument.* field .*" + typeName + ".*a field.*already exists.*");
 
     // missing add-type and rename-type
     updateUDT =
@@ -305,7 +309,14 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
     ApiError apiError = readJsonAs(response, ApiError.class);
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(apiError.description())
-        .matches(String.format("Invalid argument.*%s.* doesn't exist.*", typeName));
+        // Further: C*3/C*4 have different failure messages
+        // C*3: "Invalid argument for gRPC operation (INVALID_ARGUMENT->Bad Request):
+        //   INVALID_ARGUMENT:
+        //   No user type named udt_ks_udtDelete_1662051039657.test_udt_delete exists."
+        // C*4: "Invalid argument for gRPC operation (INVALID_ARGUMENT->Bad Request):
+        //   INVALID_ARGUMENT:
+        //   Type 'udt_ks_udtDelete_1662052163437.test_udt_delete' doesn't exist"
+        .matches(String.format("Invalid argument.*%s.*exist.*", typeName));
 
     // And then failure due to attempt at deleting Type that is in use:
     final String tableName = testTableName();
