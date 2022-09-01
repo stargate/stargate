@@ -53,8 +53,6 @@ import java.util.concurrent.ExecutionException;
 import javax.validation.constraints.NotNull;
 import okhttp3.OkHttpClient;
 import org.junit.jupiter.api.AfterEach;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Base class for GraphQL tests that use the apollo-runtime client library.
@@ -67,8 +65,6 @@ import org.slf4j.LoggerFactory;
  * into it.
  */
 public abstract class ApolloIntegrationTestBase extends BetterBotzIntegrationTestBase {
-
-  protected static final Logger logger = LoggerFactory.getLogger(ApolloIntegrationTestBase.class);
 
   @AfterEach
   public void cleanUpProducts() {
