@@ -49,9 +49,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @ApiServiceSpec(parametersCustomizer = "buildApiServiceParameters")
 @Testcontainers(disabledWithoutDocker = true)
 public class RestApiJWTAuthTest extends BaseRestApiTest {
-
-  private static final Logger logger = LoggerFactory.getLogger(RestApiJWTAuthTest.class);
-
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private final String keyspaceName = "store1";
   private final String tableName = "shopping_cart";
