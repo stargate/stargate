@@ -87,14 +87,14 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
 
   @Test
   public void columnGetBadKeyspace() {
-    // 24-Aug-2022, tatu: !!! TODO !!! Should give SC_BAD_REQUEST but for some reason gives
-    //    SC_UNAUTHORIZED instead
-    String response = tryFindOneColumn("foo", "table1", "column1", HttpStatus.SC_UNAUTHORIZED);
+    final String badKeyspace = "column-get-bad-keyspace-" + System.currentTimeMillis();
+    String response = tryFindOneColumn(badKeyspace, "table", "column1", HttpStatus.SC_BAD_REQUEST);
     ApiError apiError = readJsonAs(response, ApiError.class);
 
-    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_UNAUTHORIZED);
-    // Sub-optimal failure message, should improve:
-    assertThat(apiError.description()).matches("Unauthorized keyspace:.*foo.*");
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    // 02-Sep-2022, tatu: Error message is bit misleading but it is what it is; verify:
+    assertThat(apiError.description())
+        .matches("Table 'table' not found.*keyspace.*" + badKeyspace + ".*");
   }
 
   @Test
@@ -155,13 +155,13 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
 
   @Test
   public void columnsGetBadKeyspace() {
-    // 24-Aug-2022, tatu: !!! TODO !!! Should give SC_BAD_REQUEST but for some reason gives
-    //    SC_UNAUTHORIZED instead
-    String response = tryFindAllColumns("foo", "table1", HttpStatus.SC_UNAUTHORIZED);
+    final String badKeyspace = "columns-get-bad-keyspace-" + System.currentTimeMillis();
+    String response = tryFindAllColumns(badKeyspace, "table", HttpStatus.SC_BAD_REQUEST);
     ApiError apiError = readJsonAs(response, ApiError.class);
-    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_UNAUTHORIZED);
-    // Sub-optimal failure message, should improve:
-    assertThat(apiError.description()).matches("Unauthorized keyspace:.*foo.*");
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    // 02-Sep-2022, tatu: Error message is bit misleading but it is what it is; verify:
+    assertThat(apiError.description())
+        .matches("Table 'table' not found.*keyspace.*" + badKeyspace + ".*");
   }
 
   @Test
@@ -232,20 +232,20 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
 
   @Test
   public void columnUpdateBadKeyspace() {
-    final String keyspaceName = "column-unknown-keyspace";
+    final String badKeyspace = "columns-update-bad-keyspace-" + System.currentTimeMillis();
     // Important! Old name and new name MUST be different, otherwise it's a no-op
-    // 24-Aug-2022, tatu: !!! TODO !!! Should give SC_BAD_REQUEST but for some reason gives
-    //    SC_UNAUTHORIZED instead
     String response =
         tryUpdateColumn(
-            keyspaceName,
+            badKeyspace,
             "table",
             "id",
             new Sgv2ColumnDefinition("id-renamed", "text", false),
-            HttpStatus.SC_UNAUTHORIZED);
+            HttpStatus.SC_BAD_REQUEST);
     ApiError apiError = readJsonAs(response, ApiError.class);
-    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_UNAUTHORIZED);
-    assertThat(apiError.description()).matches("Unauthorized keyspace:.*");
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    // 02-Sep-2022, tatu: Error message is bit misleading but it is what it is; verify:
+    assertThat(apiError.description())
+        .matches("Table 'table' not found.*keyspace.*" + badKeyspace + ".*");
   }
 
   @Test
@@ -309,13 +309,13 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
 
   @Test
   public void columnDeleteBadKeyspace() {
-    final String keyspaceName = "column-unknown-keyspace";
-    // 24-Aug-2022, tatu: !!! TODO !!! Should give SC_BAD_REQUEST but for some reason gives
-    //    SC_UNAUTHORIZED instead
-    String response = tryDeleteColumn(keyspaceName, "table", "id", HttpStatus.SC_UNAUTHORIZED);
+    final String badKeyspace = "column-delete-bad-keyspace-" + System.currentTimeMillis();
+    String response = tryDeleteColumn(badKeyspace, "table", "id", HttpStatus.SC_BAD_REQUEST);
     ApiError apiError = readJsonAs(response, ApiError.class);
-    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_UNAUTHORIZED);
-    assertThat(apiError.description()).matches("Unauthorized keyspace:.*");
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    // 02-Sep-2022, tatu: Error message is bit misleading but it is what it is; verify:
+    assertThat(apiError.description())
+        .matches("Table 'table' not found.*keyspace.*" + badKeyspace + ".*");
   }
 
   @Test
