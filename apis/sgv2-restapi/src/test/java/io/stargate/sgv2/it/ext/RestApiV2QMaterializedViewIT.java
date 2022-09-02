@@ -41,7 +41,7 @@ public class RestApiV2QMaterializedViewIT extends RestApiV2QCqlEnabledTestBase {
    */
 
   @Test
-  public void getAllRowsFromMaterializedView() {
+  public void getRowsFromMV() {
     boolean isC4 = IntegrationTestUtils.isCassandra40();
     LOG.info("getAllRowsFromMaterializedView(): is backend Cassandra 4.0? {}", isC4);
     assumeThat(isC4)
