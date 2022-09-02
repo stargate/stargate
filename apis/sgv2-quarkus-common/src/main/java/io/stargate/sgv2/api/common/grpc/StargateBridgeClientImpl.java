@@ -34,7 +34,7 @@ import org.apache.commons.codec.binary.Hex;
 public class StargateBridgeClientImpl implements StargateBridgeClient {
 
   private static final Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>>
-      MISSING_KEYSPACE = ks -> Uni.createFrom().failure(new UnauthorizedKeyspaceException(ks));
+      MISSING_KEYSPACE = ks -> Uni.createFrom().nullItem();
 
   @Inject SchemaManager schemaManager;
 

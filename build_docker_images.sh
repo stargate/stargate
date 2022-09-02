@@ -84,4 +84,3 @@ rm -rf ${LIBDIR}
 #
 
 docker buildx build --target restapi -t $REPO/restapi:$SGTAG $DOCKER_FLAGS .
-docker buildx build --target graphqlapi -t $REPO/graphqlapi:$SGTAG $DOCKER_FLAGS .
