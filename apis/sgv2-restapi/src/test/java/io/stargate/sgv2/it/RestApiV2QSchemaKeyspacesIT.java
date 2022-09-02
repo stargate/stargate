@@ -2,6 +2,7 @@ package io.stargate.sgv2.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.common.ResourceArg;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
@@ -19,6 +20,8 @@ import java.util.stream.Collectors;
 import org.apache.http.HttpStatus;
 import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Integration tests for checking CRUD schema operations for Keyspaces. */
 @QuarkusIntegrationTest
@@ -29,9 +32,7 @@ import org.junit.jupiter.api.Test;
 public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   private static final String BASE_PATH = "/v2/schemas/keyspaces";
 
-  // 10-Aug-2022, tatu: For our current C*/DSE Docker image, this is the one DC
-  //    that is defined and can be referenced
-  private static final String TEST_DC = "datacenter1";
+  private static final Logger LOG = LoggerFactory.getLogger(StargateTestResource.class);
 
   public RestApiV2QSchemaKeyspacesIT() {
     super("ks_ks_", "ks_t_");
@@ -169,16 +170,21 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   // configured, with a single node. But this is only about constructing keyspace anyway,
   // including handling of variant request structure; as long as that maps to query builder
   // we should be good.
-  // 09-Aug-2022, tatu: Datacenter in image is actually "datacenter1"
+  // 01-Sep-2022, tatu: Datacenter apparently varies between C*3/4 and DSE; either "dc1"
+  //    or "datacenter1". So need to detect dynamically for more robust testing.
   @Test
   public void keyspaceCreateWithExplicitDC() {
+    final String testDC = findPrimaryDC();
+
+    LOG.info("Detected '{}' as the primary DC: will use for keyspaceCreateWithExplicitDC()", testDC);
+
     String keyspaceName = "ks_createwithdcs_" + System.currentTimeMillis();
     String requestJSON =
         String.format(
             "{\"name\": \"%s\", \"datacenters\" : [\n"
                 + "       { \"name\":\"%s\", \"replicas\":1}\n"
                 + "]}",
-            keyspaceName, TEST_DC);
+            keyspaceName, testDC);
     givenWithAuth()
         .contentType(ContentType.JSON)
         .body(requestJSON)
@@ -202,7 +208,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
     assertThat(keyspace.getName()).isEqualTo(keyspaceName);
 
     Map<String, Sgv2Keyspace.Datacenter> expectedDCs = new HashMap<>();
-    expectedDCs.put(TEST_DC, new Sgv2Keyspace.Datacenter(TEST_DC, 1));
+    expectedDCs.put(testDC, new Sgv2Keyspace.Datacenter(testDC, 1));
     Optional<List<Sgv2Keyspace.Datacenter>> dcs = Optional.ofNullable(keyspace.getDatacenters());
     Map<String, Sgv2Keyspace.Datacenter> actualDCs =
         dcs.orElse(Collections.emptyList()).stream()
@@ -266,7 +272,32 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
 
   /*
   /////////////////////////////////////////////////////////////////////////
-  // Content/response assertions
+  // Helper methods, metadata access
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  private String findPrimaryDC() {
+    final String path = endpointPathForAllRows("system", "local");
+    String response =
+        givenWithAuth()
+            .queryParam("raw", "true")
+            .when()
+            .get(path)
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    JsonNode entries = readJsonAsTree(response);
+    assertThat(entries).hasSizeGreaterThan(0);
+
+    String dc = entries.at("/0/data_center").asText();
+    assertThat(dc).isNotEmpty();
+    return dc;
+  }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Helper methods, assertions
   /////////////////////////////////////////////////////////////////////////
    */
 
