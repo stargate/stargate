@@ -195,6 +195,7 @@
             <configuration>
               <systemPropertyVariables>
                 <java.util.logging.manager>org.jboss.logmanager.LogManager</java.util.logging.manager>
+                <quarkus.log.level>INFO</quarkus.log.level>
                 <maven.home>${maven.home}</maven.home>
                 <testing.containers.cassandra-image>${stargate.int-test.cassandra.image}:${stargate.int-test.cassandra.image-tag}</testing.containers.cassandra-image>
                 <testing.containers.stargate-image>${stargate.int-test.coordinator.image}:${stargate.int-test.coordinator.image-tag}</testing.containers.stargate-image>
