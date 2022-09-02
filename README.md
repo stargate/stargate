@@ -8,7 +8,7 @@ Stargate is a data gateway deployed between client applications and a database.
 It's built with extensibility as a first-class citizen and makes it easy to use a database for any application workload
 by adding plugin support for new APIs, data types, and access methods.
 
-- For quick instructions on how to bring up Stargate on your desktop using Docker, check out the [Docker compose](docker-compose) instructions.
+- For quick instructions on how to bring up Stargate on your desktop using Docker, check out the [Docker compose](docker-compose/README.md) instructions.
 - For more information about how to deploy use Stargate, visit [stargate.io](https://stargate.io/)
 - To learn how to participate in our community, visit our [community page](https://stargate.io/community)
 - To set up and use a Stargate development environment, visit the [dev guide](DEV_GUIDE.md)
