@@ -25,9 +25,7 @@ public final class IntegrationTestUtils {
     return System.getProperty(AUTH_TOKEN_PROP, defaultIfMissing);
   }
 
-  /**
-   * @return Returns the cluster version (3.11, 4.0, 6.8 (== DSE)) specified for the coordinator
-   */
+  /** @return Returns the cluster version (3.11, 4.0, 6.8 (== DSE)) specified for the coordinator */
   public static String getClusterVersion() {
     return System.getProperty(CLUSTER_VERSION_PROP, "");
   }
@@ -35,7 +33,8 @@ public final class IntegrationTestUtils {
   /**
    * Convenience method for detecting cases where backend storage cluster is DSE (or DSE-based).
    *
-   * @return True if the backend cluster is DSE-based (including C2 and CNDB), false if OSS Cassandra (3.11, 4.0)
+   * @return True if the backend cluster is DSE-based (including C2 and CNDB), false if OSS
+   *     Cassandra (3.11, 4.0)
    */
   public static boolean isDSE() {
     return "6.8".equals(getClusterVersion());
