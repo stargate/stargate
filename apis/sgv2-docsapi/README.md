@@ -1,7 +1,7 @@
-# Stargate Docs API V2
+# Stargate Docs API 
 
 This project represents the stand-alone Docs API microservice for Stargate V2, extracted from monolithic Stargate V1 Coordinator.
-The project depends on [sgv2-quarkus-common](../sgv2-quarkus-common) module, which defines general common project for all Stargate V2 APIs.
+The project depends on the [sgv2-quarkus-common](../sgv2-quarkus-common) module, which provides common functionality used by all Stargate V2 APIs.
 
 The high-level design of the application is described in the [Document API in Stargate V2 discussion](https://github.com/stargate/stargate/discussions/1742).
 All issues related to the Docs API V2 are marked with the `stargate-v2` and `documents API` [labels](https://github.com/stargate/stargate/issues?q=is%3Aopen+is%3Aissue+label%3Astargate-v2+label%3A%22documents+API%22).
@@ -36,8 +36,8 @@ This limitation will be removed with the release of Cassandra `4.2.0`.
 
 There are two main configuration property prefixes used, `stargate.` and `quarkus.`.
 
-The `quarkus.` properties are defined by the Quarkus framework, and the complete list of available properties can be found on [All configuration options](https://quarkus.io/guides/all-config) page.
-In addition, the related guide of each [Quarkus extension](#quarkus-extensions) used in the project, gives overview on the available config options as well.
+The `quarkus.` properties are defined by the Quarkus framework, and the complete list of available properties can be found on the [All configuration options](https://quarkus.io/guides/all-config) page.
+In addition, the related guide of each [Quarkus extension](#quarkus-extensions) used in the project provides an overview of the available config options.
 
 The `stargate.` properties are defined by this project itself and by the [sgv2-quarkus-common configuration](../sgv2-quarkus-common/CONFIGURATION.md).
 The properties are defined by dedicated config classes annotated with the `@ConfigMapping`.
@@ -61,7 +61,7 @@ cd ../
 ./mvnw install -DskipTests
 ```
 
-You can run your application in dev mode that enables live coding using:
+You can run your application in dev mode with live coding enabled using:
 ```shell script
 ../mvnw quarkus:dev
 ```
@@ -112,9 +112,9 @@ The required profile can be activated using the `-P` option:
 > ../mvnw clean install -P dse -DskipTests && ./build_docker_images.sh
 > ```
 
-Running integration tests from IDE is supported out of the box.
+Running integration tests from an IDE is supported out of the box.
 The tests will use the Cassandra 4.0 as the data store by default.
-Running a test with a different version of the data store or the Stargate coordinator, requires changing the run configuration and specifying the following system properties:
+Running a test with a different version of the data store or the Stargate coordinator requires changing the run configuration and specifying the following system properties:
 
 * `testing.containers.cassandra-image` - version of the Cassandra docker image to use, for example: `cassandra:4.0.4`
 * `testing.containers.stargate-image` - version of the Stargate coordinator docker image to use, for example: `stargateio/coordinator-4_0:v2.0.0-ALPHA-10-SNAPSHOT` (must be V2 coordinator for the target data store)
@@ -143,7 +143,7 @@ You can skip the integration tests during the maven build by disabling the `int-
 #### Skipping unit tests
 
 Alternatively you may want to run only integration tests but not unit tests (especially when changing integration tests).
-This can be achieved with
+This can be achieved with the command:
 
 ```
 ../mvnw verify -DskipUnitTests
@@ -157,7 +157,7 @@ If your Integration Test run fails with some generic, non-descriptive error like
 [ERROR]   CollectionsResourceIntegrationTest » Runtime java.lang.reflect.InvocationTargetException
 ```
 
-there are some things you may try:
+here are some things you should try:
 
 * Make sure your Docker Engine has enough resources. For example following have been observed:
     * Docker Desktop defaults of 2 gigabytes of memory on Mac are not enough: try at least 4
@@ -168,7 +168,7 @@ The application can be packaged using:
 ```shell script
 ../mvnw package
 ```
-It produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
+This produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
 Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
 
 The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
@@ -182,28 +182,32 @@ The application, packaged as an _über-jar_, is now runnable using `java -jar ta
 
 ### Creating a native executable
 
-You can create a native executable using: 
+You can create a native executable using the command: 
 ```shell script
 ../mvnw package -Pnative
 ```
 
-Or, if you don't have GraalVM installed, you can run the native executable build in a container using: 
+Or, if you don't have GraalVM installed, you can run the native executable build in a container using the command: 
 ```shell script
 ../mvnw package -Pnative -Dquarkus.native.container-build=true
 ```
 
-You can then execute your native executable with: `./target/sgv2-docsapi-${project.version}-runner`
+You can then execute your native executable with the command: 
 
-If you want to learn more about building native executables, please consult [Maven tooling](https://quarkus.io/guides/maven-tooling).
+```
+./target/sgv2-docsapi-${project.version}-runner`
+```
 
-### Creating a docker image
+To learn more about building native executables, please consult the [Maven tooling guide](https://quarkus.io/guides/maven-tooling).
 
-You can create a docker image named `io.stargate/docsapi` using:
+### Creating a Docker image
+
+You can create a Docker image named `io.stargate/docsapi` using:
 ```shell script
 ../mvnw clean package -Dquarkus.container-image.build=true
 ```
 
-Or, if you want to create a native-runnable docker image named `io.stargate/docsapi-native` using:
+Or, if you want to create a native-runnable Docker image named `io.stargate/docsapi-native` using:
 ```shell script
 ../mvnw clean package -Pnative -Dquarkus.native.container-build=true -Dquarkus.container-image.build=true
 ```
@@ -227,7 +231,7 @@ In this case, properties for a specific profile may reside in an `application-{p
 [Related guide](https://quarkus.io/guides/container-image)
 
 The project uses Docker for building the Container images.
-Properties for the docker image building are defined in the [pom.xml](pom.xml).
+Properties for Docker image building are defined in the [pom.xml](pom.xml) file.
 Note that under the hood, the generated Dockerfiles under [src/main/docker](src/main/docker) are used when building the images.
 When updating the Quarkus version, the Dockerfiles must be re-generated.
 
@@ -261,7 +265,7 @@ All non-application endpoints are ignored from the collection.
 
 Enables the [OpenTelemetry](https://opentelemetry.io/) tracing support.
 In order to activate the tracing, you need to supply the OTLP gRPC endpoint using the JVM parameters `-Dquarkus.opentelemetry.tracer.exporter.otlp.enabled=true -Dquarkus.opentelemetry.tracer.exporter.otlp.endpoint=http://localhost:55680`.
-The easiest way to locally collect and visualize traces is to use the [jaegertracing/opentelemetry-all-in-one](https://www.jaegertracing.io/docs/1.21/opentelemetry/) docker image with [in-memory](https://www.jaegertracing.io/docs/1.21/deployment/#badger---local-storage) storage:
+The easiest way to locally collect and visualize traces is to use the [jaegertracing/opentelemetry-all-in-one](https://www.jaegertracing.io/docs/1.21/opentelemetry/) Docker image with [in-memory](https://www.jaegertracing.io/docs/1.21/deployment/#badger---local-storage) storage:
 
 ```shell
 docker run \
@@ -297,7 +301,7 @@ The exception handling is done using the dedicated handlers annotated with `org.
 
 By default, the application is served on port `8180`.
 The root path for the non-application endpoints (health, Open API, etc.) is `/stargate`.
-All configuration options for the HTTP server can be found in https://quarkus.io/guides/all-config#quarkus-vertx-http_quarkus-vertx-http-eclipse-vert.x-http.
+All configuration options for the HTTP server can be found in the [Quarkus Configuration Options](https://quarkus.io/guides/all-config#quarkus-vertx-http_quarkus-vertx-http-eclipse-vert.x-http).
 
 ### `quarkus-smallrye-health`
 [Related guide](https://quarkus.io/guides/smallrye-health)
@@ -310,7 +314,7 @@ The extension setups the health endpoints under `/stargate/health`.
 The OpenAPI definitions are generated and available under `/stargate/openapi` endpoint.
 The [StargateDocsApi](src/main/java/io/stargate/sgv2/docsapi/StargateDocsApi.java) class defines the `@OpenAPIDefinition` annotation.
 This definition defines the default *SecurityScheme* named `Token`, which expects the header based authentication with the HTTP Header `X-Cassandra-Token`.
-The `info` part of the Open API definitions are set using the `quarkus.smallrye-openapi.info-` configuration properties.
+The `info` portions of the Open API definitions are set using the `quarkus.smallrye-openapi.info-` configuration properties.
 
-The Swagger UI is available under `/swagger-ui` endpoint.
-Note that Swagger UI is by default enabled in production profile and can be disabled by setting the `quarkus.swagger-ui.always-include` property to `false`.
+The Swagger UI is available under the `/swagger-ui` endpoint.
+Note that Swagger UI is enabled by default in the production profile and can be disabled by setting the `quarkus.swagger-ui.always-include` property to `false`.

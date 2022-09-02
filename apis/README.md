@@ -1,7 +1,9 @@
 # Stargate APIs
 
-This is a root project for all Stargate V2 APIs.
-The project (including its submodules) is currently an independent project in this monorepo, and it's not connected to the root `io.stargate:stargate` project.
+This is the root project for Stargate APIs that run externally to the coordinator node.  
+This project (including its submodules) is an independent project in this monorepo, not connected to the root `io.stargate:stargate` project.
+
+The REST, GraphQL, and Docs API services were factored into independent services as part of the Stargate v2 effort.
 
 ## Development guide
 
@@ -17,5 +19,5 @@ Note that this project uses Java 17, please ensure that you have the target JDK 
 
 | Project                                    | Description                                                                        |
 |--------------------------------------------|------------------------------------------------------------------------------------|
-| [sgv2-docsapi](sgv2-docsapi)               | The Stargate Docs API V2, enables document store in Cassandra.                     |
 | [sgv2-quarkus-common](sgv2-quarkus-common) | The common project for all APIs, holding shared functionality, configuration, etc. |
+| [sgv2-docsapi](sgv2-docsapi)               | The Stargate Docs API provides a document store on top of Cassandra.                     |
