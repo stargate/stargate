@@ -176,7 +176,8 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   public void keyspaceCreateWithExplicitDC() {
     final String testDC = findPrimaryDC();
 
-    LOG.info("Detected '{}' as the primary DC: will use for keyspaceCreateWithExplicitDC()", testDC);
+    LOG.info(
+        "Detected '{}' as the primary DC: will use for keyspaceCreateWithExplicitDC()", testDC);
 
     String keyspaceName = "ks_createwithdcs_" + System.currentTimeMillis();
     String requestJSON =
