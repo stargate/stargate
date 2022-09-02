@@ -68,7 +68,7 @@ public abstract class ApolloIntegrationTestBase extends BetterBotzIntegrationTes
 
   @AfterEach
   public void cleanUpProducts() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
+    ApolloClient client = getApolloClient("graphql/" + keyspaceId.asInternal());
 
     getProducts(client, 100, Optional.empty())
         .flatMap(GetProductsWithFilterQuery.Products::getValues)

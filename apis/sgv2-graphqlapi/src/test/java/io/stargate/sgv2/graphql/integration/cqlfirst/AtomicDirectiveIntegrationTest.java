@@ -43,7 +43,7 @@ public class AtomicDirectiveIntegrationTest extends ApolloIntegrationTestBase {
     String description = "desc " + id;
     String customer = "cust 1";
 
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
+    ApolloClient client = getApolloClient("graphql/" + keyspaceId.asInternal());
     InsertOrdersWithAtomicMutation mutation =
         InsertOrdersWithAtomicMutation.builder()
             .value(
@@ -72,7 +72,7 @@ public class AtomicDirectiveIntegrationTest extends ApolloIntegrationTestBase {
   @DisplayName(
       "When invalid, multiple mutations with atomic directive should return error response")
   public void multipleMutationsWithAtomicDirectiveShouldReturnErrorResponse() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
+    ApolloClient client = getApolloClient("graphql/" + keyspaceId.asInternal());
     ProductsAndOrdersMutation mutation =
         ProductsAndOrdersMutation.builder()
             .productValue(
@@ -103,7 +103,7 @@ public class AtomicDirectiveIntegrationTest extends ApolloIntegrationTestBase {
   @Test
   @DisplayName("Multiple options with atomic directive should return error response")
   public void multipleOptionsWithAtomicDirectiveShouldReturnErrorResponse() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
+    ApolloClient client = getApolloClient("graphql/" + keyspaceId.asInternal());
 
     ProductsAndOrdersMutation mutation =
         ProductsAndOrdersMutation.builder()

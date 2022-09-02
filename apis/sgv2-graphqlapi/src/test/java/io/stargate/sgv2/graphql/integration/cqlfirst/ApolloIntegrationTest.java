@@ -78,7 +78,7 @@ public class ApolloIntegrationTest extends ApolloIntegrationTestBase {
 
   @Test
   public void getOrdersByValue() throws ExecutionException, InterruptedException {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
+    ApolloClient client = getApolloClient("graphql/" + keyspaceId.asInternal());
 
     OrdersInput ordersInput = OrdersInput.builder().prodName("Medium Lift Arms").build();
 
@@ -111,7 +111,7 @@ public class ApolloIntegrationTest extends ApolloIntegrationTestBase {
 
   @Test
   public void insertProducts() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
+    ApolloClient client = getApolloClient("graphql/" + keyspaceId.asInternal());
 
     String productId = UUID.randomUUID().toString();
     ProductsInput input =
@@ -154,7 +154,7 @@ public class ApolloIntegrationTest extends ApolloIntegrationTestBase {
 
   @Test
   public void updateProducts() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
+    ApolloClient client = getApolloClient("graphql/" + keyspaceId.asInternal());
 
     String productId = UUID.randomUUID().toString();
     ProductsInput insertInput =
@@ -205,7 +205,7 @@ public class ApolloIntegrationTest extends ApolloIntegrationTestBase {
 
   @Test
   public void updateProductsMissingIfExistsTrue() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
+    ApolloClient client = getApolloClient("graphql/" + keyspaceId.asInternal());
 
     String productId = UUID.randomUUID().toString();
     ProductsInput input =
@@ -239,7 +239,7 @@ public class ApolloIntegrationTest extends ApolloIntegrationTestBase {
 
   @Test
   public void deleteProducts() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
+    ApolloClient client = getApolloClient("graphql/" + keyspaceId.asInternal());
 
     String productId = UUID.randomUUID().toString();
     ProductsInput insertInput =
@@ -281,7 +281,7 @@ public class ApolloIntegrationTest extends ApolloIntegrationTestBase {
 
   @Test
   public void deleteProductsIfExistsTrue() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
+    ApolloClient client = getApolloClient("graphql/" + keyspaceId.asInternal());
 
     String productId = UUID.randomUUID().toString();
     ProductsInput insertInput =
@@ -322,7 +322,7 @@ public class ApolloIntegrationTest extends ApolloIntegrationTestBase {
     String price = "123";
     String description = "desc " + id;
 
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
+    ApolloClient client = getApolloClient("graphql/" + keyspaceId.asInternal());
     ProductsAndOrdersMutation mutation =
         ProductsAndOrdersMutation.builder()
             .productValue(
@@ -367,7 +367,7 @@ public class ApolloIntegrationTest extends ApolloIntegrationTestBase {
 
   @Test
   public void invalidTypeMappingReturnsErrorResponse() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
+    ApolloClient client = getApolloClient("graphql/" + keyspaceId.asInternal());
     // Expected UUID format
     GraphQLTestException ex =
         catchThrowableOfType(() -> getProduct(client, "zzz"), GraphQLTestException.class);
@@ -377,7 +377,7 @@ public class ApolloIntegrationTest extends ApolloIntegrationTestBase {
 
   @Test
   public void queryWithPaging() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
+    ApolloClient client = getApolloClient("graphql/" + keyspaceId.asInternal());
 
     for (String name : Arrays.asList("a", "b", "c")) {
       insertProduct(

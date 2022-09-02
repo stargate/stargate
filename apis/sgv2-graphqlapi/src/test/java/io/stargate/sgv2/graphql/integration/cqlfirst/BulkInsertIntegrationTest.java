@@ -39,7 +39,7 @@ public class BulkInsertIntegrationTest extends ApolloIntegrationTestBase {
 
   @Test
   public void bulkInsertProducts() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
+    ApolloClient client = getApolloClient("graphql/" + keyspaceId.asInternal());
 
     String productId1 = UUID.randomUUID().toString();
     String productId2 = UUID.randomUUID().toString();
@@ -101,7 +101,7 @@ public class BulkInsertIntegrationTest extends ApolloIntegrationTestBase {
 
   @Test
   public void bulkInsertProductsWithAtomic() {
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
+    ApolloClient client = getApolloClient("graphql/" + keyspaceId.asInternal());
 
     String productId1 = UUID.randomUUID().toString();
     String productId2 = UUID.randomUUID().toString();
@@ -174,7 +174,7 @@ public class BulkInsertIntegrationTest extends ApolloIntegrationTestBase {
             .description(description)
             .build();
 
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
+    ApolloClient client = getApolloClient("graphql/" + keyspaceId.asInternal());
     BulkInsertProductsAndOrdersWithAtomicMutation mutation =
         BulkInsertProductsAndOrdersWithAtomicMutation.builder()
             .values(Arrays.asList(product1, product2))
@@ -255,7 +255,7 @@ public class BulkInsertIntegrationTest extends ApolloIntegrationTestBase {
             .description(description)
             .build();
 
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
+    ApolloClient client = getApolloClient("graphql/" + keyspaceId.asInternal());
     BulkInsertProductsAndOrdersWithAtomicMutation mutation =
         BulkInsertProductsAndOrdersWithAtomicMutation.builder()
             .values(productsInputs)
@@ -318,7 +318,7 @@ public class BulkInsertIntegrationTest extends ApolloIntegrationTestBase {
             .description(description)
             .build();
 
-    ApolloClient client = getApolloClient("/graphql/" + keyspaceId.asInternal());
+    ApolloClient client = getApolloClient("graphql/" + keyspaceId.asInternal());
     InsertOrdersAndBulkInsertProductsWithAtomicMutation mutation =
         InsertOrdersAndBulkInsertProductsWithAtomicMutation.builder()
             .values(Arrays.asList(product1, product2))
