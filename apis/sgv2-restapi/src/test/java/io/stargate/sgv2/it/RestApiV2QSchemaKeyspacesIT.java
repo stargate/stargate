@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   private static final String BASE_PATH = "/v2/schemas/keyspaces";
 
-  private static final Logger LOG = LoggerFactory.getLogger(StargateTestResource.class);
+  private static final Logger LOG = LoggerFactory.getLogger(RestApiV2QSchemaKeyspacesIT.class);
 
   public RestApiV2QSchemaKeyspacesIT() {
     super("ks_ks_", "ks_t_");

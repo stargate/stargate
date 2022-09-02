@@ -387,22 +387,26 @@ public abstract class RestApiV2QIntegrationTestBase {
     indexAdd.setIfNotExists(ifNotExists);
     indexAdd.setKind(kind);
 
-    String response =
-        givenWithAuth()
-            .contentType(ContentType.JSON)
-            .body(asJsonString(indexAdd))
-            .when()
-            .post(endpointPathForIndexAdd(keyspaceName, tableName))
-            .then()
-            .statusCode(HttpStatus.SC_CREATED)
-            .extract()
-            .asString();
+    String response = tryCreateIndex(keyspaceName, tableName, indexAdd, HttpStatus.SC_CREATED);
     IndexResponse successResponse = readJsonAs(response, IndexResponse.class);
     assertThat(successResponse.success).isTrue();
   }
 
   protected static class IndexResponse {
     public Boolean success;
+  }
+
+  protected String tryCreateIndex(
+      String keyspaceName, String tableName, Sgv2IndexAddRequest indexAdd, int expectedResult) {
+    return givenWithAuth()
+        .contentType(ContentType.JSON)
+        .body(asJsonString(indexAdd))
+        .when()
+        .post(endpointPathForIndexAdd(keyspaceName, tableName))
+        .then()
+        .statusCode(expectedResult)
+        .extract()
+        .asString();
   }
 
   /*
