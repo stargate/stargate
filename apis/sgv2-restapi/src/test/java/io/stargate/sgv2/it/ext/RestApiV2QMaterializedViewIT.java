@@ -48,8 +48,9 @@ public class RestApiV2QMaterializedViewIT extends RestApiV2QCqlEnabledTestBase {
         .as("Disabled because MVs are not enabled by default on a Cassandra 4 backend")
         .isFalse();
 
-    final String tableName = testTableName();
     final String keyspaceName = testKeyspaceName();
+    // Let's not use super long default name but instead:
+    final String tableName = "tbl_mvread_" + System.currentTimeMillis();
     createTestTable(
         keyspaceName,
         tableName,
@@ -80,7 +81,7 @@ public class RestApiV2QMaterializedViewIT extends RestApiV2QCqlEnabledTestBase {
     assertThat(resultSet.wasApplied()).isTrue();
 
     // And then read entries using MV:
-    List<Map<String, Object>> rows = findAllRowsAsList(keyspaceName, tableName);
+    List<Map<String, Object>> rows = findAllRowsAsList(keyspaceName, materializedViewName);
 
     // Alas, due to "id" as partition key, ordering is arbitrary; so need to
     // convert from List to something like Set
