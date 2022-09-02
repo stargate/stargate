@@ -8,6 +8,7 @@
   <modules>
     <module>sgv2-quarkus-common</module>
     <module>sgv2-docsapi</module>
+    <module>sgv2-graphqlapi</module>
   </modules>
   <properties>
     <compiler-plugin.version>3.8.1</compiler-plugin.version>
@@ -51,6 +52,11 @@
         <groupId>org.assertj</groupId>
         <artifactId>assertj-core</artifactId>
         <version>3.22.0</version>
+      </dependency>
+      <dependency>
+        <groupId>com.datastax.oss</groupId>
+        <artifactId>java-driver-core</artifactId>
+        <version>4.14.1</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

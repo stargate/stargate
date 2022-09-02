@@ -84,11 +84,10 @@ services:
     networks:
       - stargate
     ports:
-      - 9080:9080
+      - 8085:8080
     mem_limit: 2G
     environment:
       - STARGATE_BRIDGE_HOST=coordinator
       - STARGATE_BRIDGE_PORT=8091
-      - STARGATE_GRAPHQL_PORT=9080
 networks:
   stargate:
