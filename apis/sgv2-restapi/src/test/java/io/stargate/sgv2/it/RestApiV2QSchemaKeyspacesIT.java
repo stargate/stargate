@@ -8,6 +8,7 @@ import io.quarkus.test.common.ResourceArg;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
+import io.stargate.sgv2.common.IntegrationTestUtils;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.restapi.service.models.Sgv2Keyspace;
 import java.util.Collections;
@@ -174,8 +175,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   //    or "datacenter1". So need to detect dynamically for more robust testing.
   @Test
   public void keyspaceCreateWithExplicitDC() {
-    final String testDC = findPrimaryDC();
-
+    final String testDC = selectPrimaryDC();
     String keyspaceName = "ks_createwithdcs_" + System.currentTimeMillis();
     String requestJSON =
         String.format(
@@ -274,7 +274,25 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   /////////////////////////////////////////////////////////////////////////
    */
 
-  private String findPrimaryDC() {
+  protected String selectPrimaryDC() {
+    String clusterVersion = IntegrationTestUtils.getClusterVersion();
+    final String dc;
+
+    switch (clusterVersion) {
+      case "6.8": // DSE has different one
+        dc = "dc1";
+        break;
+      default:
+        dc = "datacenter1";
+    }
+    LOG.info(
+        "selectPrimaryDC() selects '{}' as the default DC given cluster version of '{}'",
+        dc,
+        clusterVersion);
+    return dc;
+  }
+
+  protected String findPrimaryDC() {
     final String path = endpointPathForAllRows("system", "local");
     String response =
         givenWithAuth()
