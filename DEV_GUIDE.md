@@ -19,7 +19,10 @@ mvn xml-format:xml-format fmt:format
 
 ## Java Version 
 
-Stargate currently runs on Java 8 due to its backend dependencies. It's important to ensure that you have the correct JDK 8 installed before you can successfully compile the Stargate project. There are a number of versions of JDK 8 and a number of different ways to install them, but not all of them will work successfully with Stargate.
+Stargate uses multiple JDKs for its various components, as described in the sections below. 
+
+### Coordinator node
+The coordinator currently runs on Java 8 due to its backend dependencies. It's important to ensure that you have the correct JDK 8 installed before you can successfully compile the Stargate project. There are a number of versions of JDK 8 and a number of different ways to install them, but not all of them will work successfully with Stargate.
 
 Download JDK 8 from this link: https://adoptopenjdk.net/?variant=openjdk8&jvmVariant=hotspot
 
@@ -31,6 +34,11 @@ For example: if you are using a newer version of MacOS, then you are likely usin
 export JAVA_HOME="/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
 export PATH="$JAVA_HOME/bin:$PATH"
 ```
+
+### API Services
+The Stargate API services that run externally to the coordinator node are located under the `apis` directory. These services require a more modern JDK in order to take advantage of the latest tools and frameworks. See the [APIs README](apis/README.md) for information on compiling and running the API services including the required JDK. 
+
+(The remainder of these instructions focus on working with the Stargate coordinator node.)
 
 ## Building with Maven
 
@@ -51,9 +59,17 @@ You can also build a single module like this:
 > * **_NOTE:_** If you get a `Could not find or load main class org.apache.maven.wrapper.MavenWrapperMain` 
 > exception on Linux, upgrade your local `wget`.
 
-## Running Locally
 
-### Prerequisite
+## Running Locally 
+Recognizing that users will have different preferences on how to run Stargate, multiple options are supported.
+
+### Running with Docker Compose
+
+We've provided [Docker Compose scripts](docker-compose/README.md) that can be used to run Stargate locally. These scripts can use Stargate Docker images created from a local build. Alternatively you can reference a released Stargate version to use containers from Docker Hub, without requiring a local build.
+
+### Running a local build with scripts
+
+#### Starting Cassandra 
 
 Before starting Stargate locally, you will need an instance of Apache Cassandra&reg;.
 The easiest way to do this is with a Docker image (see [Cassandra docker images](https://hub.docker.com/_/cassandra)).
@@ -76,7 +92,7 @@ Cassandra Cluster Manager: Start a Cassandra 3.11 instance ([link to ccm](https:
 ccm create stargate -v 3.11.13 -n 1 -s -b
 ```
 
-### Start commands
+#### Starting the Stargate Coordinator
 
 > **_NOTE:_**  Before starting Stargate on MacOS you'll need to add an additional loopback:
 
@@ -110,8 +126,11 @@ therefore they do not need any extra quoting.
 ```sh script
 env JAVA_OPTS='-Dmy_property="some value"' ./starctl --cluster-name 'Some Cluster' ...
 ```
+#### Starting Stargate API Services (Optional)
 
-### Debugging
+The instructions above describe how to start up a Stargate coordinator node and backing Cassandra cluster. If you are only using the CQL or gRPC interfaces to Stargate, these are the only components you need to start. Additional APIs including REST, GraphQL and Docs API are implemented as separate microservices which can be started independently using instructions found under the [apis](apis) directory.
+
+#### Debugging the Stargate Coordinator
 
 If you're an IntelliJ user you can create the *JAR Application* run configuration, pointing to the `stargate-lib/stargate-starter-[VERSION].jar` and specifying `stargate-lib/` as the working directory.
 
@@ -119,7 +138,7 @@ Then disable **Instrumenting agent** in `Settings | Build, Execution, Deployment
 This will allow you to debug directly using the IntelliJ debug run option.
 You can debug any run configuration and tests as well.
 
-#### Remote debugging
+##### Remote debugging
 
 ```sh
 java -jar -Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5005 -Dstargate.libdir=./stargate-lib stargate-lib/stargate-starter-1.0-SNAPSHOT.jar
@@ -133,7 +152,7 @@ env JAVA_OPTS='-Xdebug -Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=
 
 Then follow the steps found [here](https://www.baeldung.com/intellij-remote-debugging).
 
-## Connecting
+## Connecting to Stargate
 
 ### CQL
 
