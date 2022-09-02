@@ -1,4 +1,4 @@
-package io.stargate.sgv2.it;
+package io.stargate.sgv2.it.ext;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
@@ -9,8 +9,8 @@ import io.quarkus.test.common.ResourceArg;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.stargate.sgv2.common.IntegrationTestUtils;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
+import io.stargate.sgv2.it.RestApiV2QIntegrationTestBase;
 import io.stargate.sgv2.restapi.service.models.Sgv2IndexAddRequest;
-import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collections;
 import org.apache.http.HttpStatus;
@@ -18,15 +18,19 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+/**
+ * Test(s) to verify Storage-Attached Index (SAI) creation. Separate from other Index tests since
+ * SAI not available on all backends.
+ */
 @QuarkusIntegrationTest
 @QuarkusTestResource(
     value = StargateTestResource.class,
     initArgs =
         @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
-public class RestApiV2QSchemaSAI_IT extends RestApiV2QIntegrationTestBase {
-  private static final Logger LOG = LoggerFactory.getLogger(RestApiV2QSchemaSAI_IT.class);
+public class RestApiV2QIndexSAI_IT extends RestApiV2QIntegrationTestBase {
+  private static final Logger LOG = LoggerFactory.getLogger(RestApiV2QIndexSAI_IT.class);
 
-  public RestApiV2QSchemaSAI_IT() {
+  public RestApiV2QIndexSAI_IT() {
     super("sai_ks_", "sai_t_");
   }
 
@@ -37,7 +41,7 @@ public class RestApiV2QSchemaSAI_IT extends RestApiV2QIntegrationTestBase {
    */
 
   @Test
-  public void indexCreateCustomSAI() throws IOException {
+  public void indexCreateCustomSAI() {
     boolean isC4 = IntegrationTestUtils.isCassandra40();
     LOG.info("indexCreateCustomSAI(): is backend Cassandra 4.0? {}", isC4);
     assumeThat(!isC4)

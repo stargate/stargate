@@ -460,6 +460,20 @@ public abstract class RestApiV2QIntegrationTestBase {
         .asString();
   }
 
+  protected List<Map<String, Object>> findAllRowsAsList(String keyspaceName, String tableName) {
+    final String path = endpointPathForAllRows(keyspaceName, tableName);
+    String response =
+        givenWithAuth()
+            .queryParam("raw", "true")
+            .when()
+            .get(path)
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    return readJsonAs(response, LIST_OF_MAPS_TYPE);
+  }
+
   protected List<Map<String, Object>> findRowsAsList(
       String keyspaceName, String tableName, Object... primaryKeys) {
     final String path = endpointPathForRowByPK(keyspaceName, tableName, primaryKeys);
