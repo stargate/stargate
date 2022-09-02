@@ -176,9 +176,6 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   public void keyspaceCreateWithExplicitDC() {
     final String testDC = findPrimaryDC();
 
-    LOG.info(
-        "Detected '{}' as the primary DC: will use for keyspaceCreateWithExplicitDC()", testDC);
-
     String keyspaceName = "ks_createwithdcs_" + System.currentTimeMillis();
     String requestJSON =
         String.format(
@@ -289,9 +286,10 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
             .extract()
             .asString();
     JsonNode entries = readJsonAsTree(response);
-    assertThat(entries).hasSizeGreaterThan(0);
-
     String dc = entries.at("/0/data_center").asText();
+    LOG.info(
+        "findPrimaryDC() found {} entries: detected '{}' as the primary DC", entries.size(), dc);
+    assertThat(entries).hasSizeGreaterThan(0);
     assertThat(dc).isNotEmpty();
     return dc;
   }
