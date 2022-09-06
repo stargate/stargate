@@ -62,7 +62,7 @@ The list of currently available properties is documented in the [Configuration G
 This project uses Quarkus, the Supersonic Subatomic Java Framework.
 If you want to learn more about Quarkus, please visit its [website](https://quarkus.io/).
 
-We recommended that you install Quarkus CLI for the best development experience.
+We recommended that you install the Quarkus CLI for the best development experience.
 See [CLI Tooling](https://quarkus.io/guides/cli-tooling) for more information.
 
 Note that this project uses Java 17, please ensure that you have the target JDK installed on your system.
