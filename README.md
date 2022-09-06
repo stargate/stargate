@@ -5,7 +5,7 @@
 An open source data gateway.
 
 Stargate is a data gateway deployed between client applications and a database.
-It's built with extensibility as a first-class citizen and makes it easy to use a database for any application workload
+CQL is built with extensibility as a first-class citizen, which makes it easy to use a database for any application workload
 by adding plugin support for new APIs, data types, and access methods.
 
 - For quick instructions on how to bring up Stargate on your desktop using Docker, check out the [Docker compose](docker-compose/README.md) instructions.
