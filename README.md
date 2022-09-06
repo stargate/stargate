@@ -53,7 +53,7 @@ Coordinator nodes participate as non-data storing nodes in the backing Cassandra
 - [stargate-starter](stargate-starter): the main Java application used to start the coordinator via the `starctl` script
 
 #### Persistence Services
-Stargate coordinator nodes support a pluggable approach for implementing the coordination layer to execute requests passed by API services and other interfaces to underlying data storage instances. Persistence service implementations are responsible handling and converting requests to db queries, dispatching to persistence, returning and serving response
+Stargate coordinator nodes support a pluggable approach for implementing the coordination layer to execute requests passed by API services and other interfaces to underlying data storage instances. Persistence service implementations are responsible handling and converting requests to database queries, dispatching to persistence, and returning and serving responses.
 
 - [persistence-api](persistence-api): Interface for working with persistence services.  as   
 - [persistence-common](persistence-common): Utilities shared by the persistence services
