@@ -3,7 +3,7 @@
 ## Stargate Common Configuration
 
 ### Authentication & security configuration
-*Configuration for header based authentication, defined by [AuthConfig.java](src/main/java/io/stargate/sgv2/api/common/config/AuthConfig.java).*
+*Configuration for header-based authentication, defined by [AuthConfig.java](src/main/java/io/stargate/sgv2/api/common/config/AuthConfig.java).*
 
 | Property                                          | Type      | Default             | Description                                                                                                                |
 |---------------------------------------------------|-----------|---------------------|----------------------------------------------------------------------------------------------------------------------------|
