@@ -55,7 +55,7 @@ Coordinator nodes participate as non-data storing nodes in the backing Cassandra
 #### Persistence Services
 Stargate coordinator nodes support a pluggable approach for implementing the coordination layer to execute requests passed by API services and other interfaces to underlying data storage instances. Persistence service implementations are responsible handling and converting requests to database queries, dispatching to persistence, and returning and serving responses.
 
-- [persistence-api](persistence-api): Interface for working with persistence services.  as   
+- [persistence-api](persistence-api): Interface for working with persistence services. 
 - [persistence-common](persistence-common): Utilities shared by the persistence services
 - [persistence-cassandra-3.11](persistence-cassandra-3.11): Joins C* 3.11 cluster as coordinator-only node (does not store data),
 mocks C* system tables for native driver integration,
