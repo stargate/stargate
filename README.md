@@ -37,7 +37,7 @@ These are independently scalable microservices which various APIs, typically HTT
 
 - [sgv2-restapi](apis/sgv2-restapi): API implementation for exposing Cassandra data over REST
 - [sgv2-graphqlapi](apis/sgv2-graphqlapi): API implementation for exposing Cassandra data over GraphQL
-- [sgv2-docsapi](apis/sgv2-graphqlapi): API implementation for exposing Cassandra data over GraphQL
+- [sgv2-docsapi](apis/sgv2-docsapi): API implementation for exposing Cassandra data over a Document API
 
 Each API Service contains its own integration test suite that tests it against the coordinator node and supported Cassandra backends. There is also a [sgv2-quarkus-common](apis/sgv2-quarkus-common) module containing utilities that may be used by all Java/Quarkus based API services.
 
