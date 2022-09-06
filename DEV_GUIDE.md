@@ -77,19 +77,19 @@ The easiest way to do this is with a Docker image (see [Cassandra docker images]
 > **_NOTE:_** due to the way networking works with Docker for Mac, the Docker method only works on Linux. 
 > We recommend CCM (see below) for use with MacOS.
 
-Docker: Start a Cassandra 3.11 instance:
+Docker: Start a Cassandra 4.0 instance:
 
 ```sh
 docker run --name local-cassandra \
 --net=host \
 -e CASSANDRA_CLUSTER_NAME=stargate \
--d cassandra:3.11.13
+-d cassandra:4.0
 ```
 
-Cassandra Cluster Manager: Start a Cassandra 3.11 instance ([link to ccm](https://github.com/riptano/ccm))
+Cassandra Cluster Manager: Start a Cassandra 4.0 instance ([link to ccm](https://github.com/riptano/ccm). Note its typically preferable to specify a patch version number such as `4.0.6`)
 
 ```sh
-ccm create stargate -v 3.11.13 -n 1 -s -b
+ccm create stargate -v 4.0.6 -n 1 -s -b
 ```
 
 #### Starting the Stargate Coordinator
@@ -103,17 +103,17 @@ sudo ifconfig lo0 alias 127.0.0.2
 Start Stargate from the command line as follows:
 
 ```sh
-./starctl --cluster-name stargate --cluster-seed 127.0.0.1 --cluster-version 3.11 --listen 127.0.0.2 --bind-to-listen-address --simple-snitch
+./starctl --cluster-name stargate --cluster-seed 127.0.0.1 --cluster-version 4.0 --listen 127.0.0.2 --bind-to-listen-address --simple-snitch
 
 # See all cli options with -h
 ```
 
-Or use a pre-built image from [Docker Hub](https://hub.docker.com/r/stargateio/):
+Or use a pre-built image from [Docker Hub](https://hub.docker.com/r/stargateio/) (see the [image page](https://hub.docker.com/r/stargateio/coordinator-4_0/tags) to list the available versions):
 
 ```sh
-docker pull stargateio/stargate-3_11:v0.0.2
+docker pull stargateio/coordinator-4_0:v2.0.0-ALPHA-17
 
-docker run --name stargate -d stargateio/stargate-3_11:v0.0.2 --cluster-name stargate --cluster-seed 127.0.0.1 --cluster-version 3.11 --listen 127.0.0.2 --simple-snitch
+docker run --name stargate -d stargateio/coordinator-4_0:v2.0.0-ALPHA-17 --cluster-name stargate --cluster-seed 127.0.0.1 --cluster-version 4.0 --listen 127.0.0.2 --simple-snitch
 ```
 
 The `starctl` script respects the `JAVA_OPTS` environment variable.
@@ -161,7 +161,7 @@ Connect to CQL as normal on port 9042:
 ```sh
 $ cqlsh 127.0.0.2 9042
 Connected to stargate at 127.0.0.2:9042.
-[cqlsh 5.0.1 | Cassandra 3.11.13 | CQL spec 3.4.4 | Native protocol v4]
+[cqlsh 6.0.0 | Cassandra 4.0.3 | CQL spec 3.4.5 | Native protocol v4]
 Use HELP for help.
 ```
 
@@ -240,13 +240,13 @@ have done a recent build, for example:
 Then you can run the individual test using the `-Dit.test` option, for example:
 
 ```sh
-mvn -pl testing -Pit-cassandra-3.11 verify -Dit.test=RestApiv2SchemaTest
+mvn -pl testing -Pit-cassandra-4.0 verify -Dit.test=RestApiv2SchemaTest
 ```
 
 You can even run a single case (method):
 
 ```sh
-mvn -pl testing -Pit-cassandra-3.11 verify -Dit.test="RestApiv2SchemaTest#tableWithMixedCaseNames"
+mvn -pl testing -Pit-cassandra-4.0 verify -Dit.test="RestApiv2SchemaTest#tableWithMixedCaseNames"
 ```
 
 ### Debugging Integration Tests
@@ -288,7 +288,7 @@ execution environment (`PATH`).
 When tests are started manually via an IDE or JUnit Console Launcher, you can specify the type and version
 of the storage backend using the following Java system properties:
 
-* `-Dccm.version=<version>` - the version of the storage cluster (e.g. `3.11.13`)
+* `-Dccm.version=<version>` - the version of the storage cluster (e.g. `4.0.6`)
 * `-Dccm.dse=<true|false>` - specifies whether the storage cluster is DSE or OSS Cassandra.
   If `false` this option can be omitted.
 
