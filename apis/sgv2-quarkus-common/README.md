@@ -77,7 +77,7 @@ The tests in this project can be run using the command:
 ../mvnw test
 ```
 
-To build without executing the tests you can use this command:
+To build without executing the tests, run:
 
 ```shell script
 ../mvnw install -DskipUnitTests
