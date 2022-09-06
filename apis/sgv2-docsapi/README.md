@@ -316,5 +316,5 @@ The [StargateDocsApi](src/main/java/io/stargate/sgv2/docsapi/StargateDocsApi.jav
 This definition defines the default *SecurityScheme* named `Token`, which expects the header based authentication with the HTTP Header `X-Cassandra-Token`.
 The `info` portions of the Open API definitions are set using the `quarkus.smallrye-openapi.info-` configuration properties.
 
-The Swagger UI is available under the `/swagger-ui` endpoint.
+The Swagger UI is available at the `/swagger-ui` endpoint.
 Note that Swagger UI is enabled by default in the production profile and can be disabled by setting the `quarkus.swagger-ui.always-include` property to `false`.
