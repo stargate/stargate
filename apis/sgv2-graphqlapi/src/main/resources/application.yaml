@@ -71,3 +71,13 @@ quarkus:
   # introspect the GraphQL schema instead.
   swagger-ui:
     enable: false
+
+  opentelemetry:
+    tracer:
+      sampler:
+        ~: ratio
+        ratio: 0.01
+      exporter:
+        otlp:
+          enabled: true
+          endpoint: http://localhost:4317
