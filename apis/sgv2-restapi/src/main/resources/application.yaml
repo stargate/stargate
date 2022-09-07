@@ -80,3 +80,13 @@ quarkus:
           ui.preauthorizeApiKey('Token', token);
         }
       }
+
+
+# In Dev mode, gRPC server usually running on different virtual IP
+"%dev":
+  quarkus:
+    grpc:
+      clients:
+        bridge:
+          host: 127.0.0.2
+          port: 8091
