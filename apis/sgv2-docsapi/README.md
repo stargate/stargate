@@ -61,7 +61,7 @@ cd ../
 ./mvnw install -DskipTests
 ```
 
-You can run your application in dev mode with live coding enabled using:
+To run your application in dev mode with live coding enabled, use the command:
 ```shell script
 ../mvnw quarkus:dev
 ```
@@ -143,7 +143,7 @@ You can skip the integration tests during the maven build by disabling the `int-
 #### Skipping unit tests
 
 Alternatively you may want to run only integration tests but not unit tests (especially when changing integration tests).
-This can be achieved with the command:
+This can be achieved using the command:
 
 ```
 ../mvnw verify -DskipUnitTests

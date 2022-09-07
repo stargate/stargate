@@ -53,19 +53,19 @@ Coordinator nodes participate as non-data storing nodes in the backing Cassandra
 - [stargate-starter](stargate-starter): the main Java application used to start the coordinator via the `starctl` script
 
 #### Persistence Services
-Stargate coordinator nodes support a pluggable approach for implementing the coordination layer to execute requests passed by API services and other interfaces to underlying data storage instances. Persistence service implementations are responsible handling and converting requests to database queries, dispatching to persistence, and returning and serving responses.
+Stargate coordinator nodes support a pluggable approach for implementing the coordination layer to execute requests passed by API services and other interfaces to underlying data storage instances. Persistence service implementations are responsible handling and converting requests to database queries, dispatching to a specific version of Cassandra, and returning and serving responses.
 
-- [persistence-api](persistence-api): Interface for working with persistence services. 
+- [persistence-api](persistence-api): Interface for working with persistence services 
 - [persistence-common](persistence-common): Utilities shared by the persistence services
-- [persistence-cassandra-3.11](persistence-cassandra-3.11): Joins C* 3.11 cluster as coordinator-only node (does not store data),
+- [persistence-cassandra-3.11](persistence-cassandra-3.11): Joins C* 3.11 cluster as coordinator-only node (does not store data)
 mocks C* system tables for native driver integration,
 executes requests with C* storage nodes using C* QueryHandler/QueryProcessor,
 converts internal C* objects and ResultSets to Stargate Datastore objects.
 - [persistence-cassandra-4.0](persistence-cassandra-4.0): (same as above but for Cassandra 4.0)
 - [persistence-dse-6.8](persistence-dse-6.8): (same as above but for DataStax Enterprise 6.8)
 
-#### Authentication Services
-Stargate coordinator nodes also support a pluggable authentication approach.
+#### Authentication and Authorization Services
+Stargate coordinator nodes also support a pluggable authentication and authorization approach.
 
 - [authnz](authnz): Interface for working with auth providers
 - [auth-api](auth-api): REST service for generating auth tokens
@@ -84,9 +84,11 @@ Instructions for running and extending the test suite can be found in the [devel
 
 Here is an overview of the key repositories in the Stargate GitHub organization:
 
-- [stargate/stargate](https://github.com/stargate/stargate): This repository is the primary entry point to the project. It is a monorepo containing all of the Stargate modules.
+- [stargate/stargate](https://github.com/stargate/stargate): This repository is the primary entry point to the project. It is a monorepo containing all of the Stargate modules
 - [stargate/docs](https://github.com/stargate/docs): This repository contains the user docs hosted on [stargate.io](https://stargate.io)
 - [stargate/website](https://github.com/stargate/website): This repository contains the code for the website hosted on [stargate.io](https://stargate.io)
+
+The organization also contains several gRPC client libraries for various languages.
 
 ## Issue Management
 

@@ -1,7 +1,7 @@
 # Stargate APIs
 
-This is the root project for Stargate APIs that run externally to the coordinator node.  
-This project (including its submodules) is an independent project in this monorepo, not connected to the root `io.stargate:stargate` project.
+The Maven project in this directory is the root project for Stargate APIs that run externally to the coordinator node.  
+The project (including its submodules) is an independent project in this monorepo, not connected to the root `io.stargate:stargate` project.
 
 The REST, GraphQL, and Docs API services were factored into independent services as part of the Stargate v2 effort.
 

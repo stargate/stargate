@@ -22,7 +22,7 @@ mvn xml-format:xml-format fmt:format
 Stargate uses multiple JDKs for its various components, as described in the sections below. 
 
 ### Coordinator node
-The coordinator currently runs on Java 8 due to its backend dependencies. It's important to ensure that you have the correct JDK 8 installed before you can successfully compile the Stargate project. There are a number of versions of JDK 8 and a number of different ways to install them, but not all of them will work successfully with Stargate.
+The coordinator currently runs on Java 8 due to its backend dependencies. It's important to ensure that you have the correct JDK 8 installed before you can successfully compile the Stargate project. There are a number of versions of JDK 8 and a number of different ways to install them, but not all of them will work successfully with Stargate. For comparison, you can reference the JDK version used in our [CI workflow](.github/workflows/ci-test.yml).
 
 Download JDK 8 from this link: https://adoptopenjdk.net/?variant=openjdk8&jvmVariant=hotspot
 
@@ -53,7 +53,7 @@ To build locally run the following:
 You can also build a single module like this:
 
 ```sh
-./mvnw package -pl restapi -am
+./mvnw package -pl cql -am
 ```
 
 > * **_NOTE:_** If you get a `Could not find or load main class org.apache.maven.wrapper.MavenWrapperMain` 
@@ -237,16 +237,16 @@ have done a recent build, for example:
 ./mvnw clean install -DskipTests
 ```
 
-Then you can run the individual test using the `-Dit.test` option, for example:
+Then you can run the individual test using the `-Dit.test` option. For example, this runs one of the CQL integration tests:
 
 ```sh
-mvn -pl testing -Pit-cassandra-4.0 verify -Dit.test=RestApiv2SchemaTest
+mvn -pl testing -Pit-cassandra-4.0 verify -Dit.test=SimpleStatementTest
 ```
 
-You can even run a single case (method):
+You can even run a single test case (method):
 
 ```sh
-mvn -pl testing -Pit-cassandra-4.0 verify -Dit.test="RestApiv2SchemaTest#tableWithMixedCaseNames"
+mvn -pl testing -Pit-cassandra-4.0 verify -Dit.test="SimpleStatementTest#namedValuesTest"
 ```
 
 ### Debugging Integration Tests
