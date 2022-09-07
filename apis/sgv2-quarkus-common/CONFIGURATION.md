@@ -3,7 +3,7 @@
 ## Stargate Common Configuration
 
 ### Authentication & security configuration
-*Configuration for the header based authentication, defined by [AuthConfig.java](src/main/java/io/stargate/sgv2/api/common/config/AuthConfig.java).*
+*Configuration for header-based authentication, defined by [AuthConfig.java](src/main/java/io/stargate/sgv2/api/common/config/AuthConfig.java).*
 
 | Property                                          | Type      | Default             | Description                                                                                                                |
 |---------------------------------------------------|-----------|---------------------|----------------------------------------------------------------------------------------------------------------------------|
@@ -18,7 +18,7 @@
 
 | Property                                        | Type      | Default                             | Description                                                                                                                                        |
 |-------------------------------------------------|-----------|-------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| `stargate.data-store.ignore-bridge`             | `boolean` | `${stargate.multi-tenancy.enabled}` | If the data store supported features should not be read from the Bridge. I case of a failure to read, the below properties are taken as fall back. |
+| `stargate.data-store.ignore-bridge`             | `boolean` | `${stargate.multi-tenancy.enabled}` | If the data store supported features cannot be read from the Bridge. In case of a failure to read, the properties listed below are taken as fall back. |
 | `stargate.data-store.secondary-indexes-enabled` | `boolean` | `true`                              | If the data store supports secondary indexes.                                                                                                      |
 | `stargate.data-store.sai-enabled`               | `boolean` | `false`                             | If the data store supports SAI (storage-attached indexes).                                                                                         |
 | `stargate.data-store.logged-batches-enabled`    | `boolean` | `true`                              | If the data store supports logged batches.                                                                                                         |

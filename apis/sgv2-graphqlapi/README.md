@@ -83,7 +83,7 @@ They are implemented as REST resources. They all extend [GraphqlResourceBase], w
 various ways to query GraphQL over HTTP: POST vs GET, arguments in the query string vs the body,
 multipart, etc.
 
-The only thing that changes across subclasses is how we get hold of the `GraphQL` object to query
+The only thing that changes across subclasses is how we obtain the `GraphQL` object to query
 (see [GraphQL layer](#graphql-layer) below), and whether multipart is supported.
 
 [StargateGraphqlContext] allows us to inject state that will be available later in the data fetchers
