@@ -18,4 +18,5 @@ Note that this project uses Java 17, please ensure that you have the target JDK 
 | Project                                    | Description                                                                        |
 |--------------------------------------------|------------------------------------------------------------------------------------|
 | [sgv2-docsapi](sgv2-docsapi)               | The Stargate Docs API V2, enables document store in Cassandra.                     |
+| [sgv2-restapi](sgv2-restapi)               | The Stargate REST API V2, enables RESTful access to Cassandra.                     |
 | [sgv2-quarkus-common](sgv2-quarkus-common) | The common project for all APIs, holding shared functionality, configuration, etc. |

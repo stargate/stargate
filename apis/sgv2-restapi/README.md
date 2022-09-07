@@ -30,18 +30,14 @@ You can run your application in dev mode that enables live coding using:
 ../mvnw quarkus:dev
 ```
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at http://localhost:8180/stargate/dev/.
+> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at http://localhost:9092/stargate/dev/.
+
 ## Configuration properties
 
 There are two main configuration property prefixes used, `stargate.` and `quarkus.`.
 Latter covers configuration of Quarkus-provided standard features, former Stargate-specific features.
 
-(TO BE COMPLETED)
+Configuration settings can be found from `application.yaml` files located in:
 
-### Configuration: General Quarkus properties
-
-(TO BE WRITTEN)
-
-### Configuration: Stargate-specific properties
-
-(TO BE WRITTEN)
+* `src/main/resources/application.yaml`: Production settings, used as the baseline for other modes
+* `src/test/resources/application.yaml`: Overrides for "test" phase
