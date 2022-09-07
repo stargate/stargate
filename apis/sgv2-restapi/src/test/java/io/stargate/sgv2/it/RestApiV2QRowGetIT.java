@@ -169,7 +169,9 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
             .asString();
     ApiError error = readJsonAs(response, ApiError.class);
     assertThat(error.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(error.description()).contains("Invalid 'where' parameter, problem: ");
+    assertThat(error.description())
+        .contains("Invalid 'where' parameter, problem:")
+        .contains("unknown field name 'invalid_field'");
   }
 
   @Test

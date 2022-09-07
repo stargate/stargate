@@ -181,7 +181,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     try {
       payloadMap = parseJsonAsMap(payloadAsString);
     } catch (Exception e) {
-      throw invalidPaylodException(e);
+      throw invalidPayloadException(e);
     }
 
     queryWithTable(
@@ -254,7 +254,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     try {
       payloadMap = parseJsonAsMap(payloadAsString);
     } catch (Exception e) {
-      throw invalidPaylodException(e);
+      throw invalidPayloadException(e);
     }
     queryWithTable(
         keyspaceName,
@@ -526,7 +526,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
   /////////////////////////////////////////////////////////////////////////
    */
 
-  private WebApplicationException invalidPaylodException(Exception e) {
+  private WebApplicationException invalidPayloadException(Exception e) {
     throw new WebApplicationException(
         "Invalid JSON payload: " + e.getMessage(), Status.BAD_REQUEST);
   }

@@ -542,7 +542,6 @@ public abstract class RestApiV2QIntegrationTestBase {
 
   /** @return Partition key of the first row */
   protected Integer setupClusteringTestCase(String keyspaceName, String tableName) {
-    // createTestTableWithClustering
     final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
     tableAdd.setColumnDefinitions(
         Arrays.asList(
@@ -587,7 +586,6 @@ public abstract class RestApiV2QIntegrationTestBase {
   }
 
   protected void setupMixedClusteringTestCase(String keyspaceName, String tableName) {
-    // createTestTableWithMixedClustering(keyspaceName, tableName)
     final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
     tableAdd.setColumnDefinitions(
         Arrays.asList(

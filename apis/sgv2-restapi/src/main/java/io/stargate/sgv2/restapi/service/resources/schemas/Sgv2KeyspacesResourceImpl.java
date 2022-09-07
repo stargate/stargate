@@ -123,7 +123,7 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
   @Override
   public Response deleteKeyspace(final String keyspaceName) {
     Query query = new QueryBuilder().drop().keyspace(keyspaceName).ifExists().build();
-    /*QueryOuterClass.Response grpcResponse =*/ bridge.executeQuery(query);
+    bridge.executeQuery(query);
     return Response.status(Status.NO_CONTENT).build();
   }
 

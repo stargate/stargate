@@ -178,7 +178,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
       List<Column> columns = columns2columns(addFields);
       QueryOuterClass.Query query =
           new QueryBuilder().alter().type(keyspaceName, typeName).addColumn(columns).build();
-      /*QueryOuterClass.Response grpcResponse =*/ bridge.executeQuery(query);
+      bridge.executeQuery(query);
     }
 
     if (renameFields != null && !renameFields.isEmpty()) {
@@ -195,7 +195,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
               .type(keyspaceName, typeName)
               .renameColumn(columnRenames)
               .build();
-      /*QueryOuterClass.Response grpcResponse =*/ bridge.executeQuery(query);
+      bridge.executeQuery(query);
     }
 
     return Response.status(Response.Status.OK).build();
