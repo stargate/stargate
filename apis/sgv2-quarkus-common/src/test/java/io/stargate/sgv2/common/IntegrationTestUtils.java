@@ -10,6 +10,8 @@ public final class IntegrationTestUtils {
   public static final String CASSANDRA_HOST_PROP = "stargate.int-test.cassandra.host";
   public static final String CASSANDRA_CQL_PORT_PROP = "stargate.int-test.cassandra.cql-port";
 
+  public static final String CLUSTER_VERSION_PROP = "stargate.int-test.cluster-version";
+
   private IntegrationTestUtils() {}
 
   /**
@@ -40,5 +42,23 @@ public final class IntegrationTestUtils {
         "Expected system property %s to be set to an integer (got %s)"
             .formatted(CASSANDRA_CQL_PORT_PROP, System.getProperty(CASSANDRA_CQL_PORT_PROP)));
     return new InetSocketAddress(host, port);
+  }
+
+  /** @return Returns the cluster version (3.11, 4.0, 6.8 (== DSE)) specified for the coordinator */
+  public static String getClusterVersion() {
+    return System.getProperty(CLUSTER_VERSION_PROP, "");
+  }
+
+  /**
+   * @return True if the backend cluster is DSE-based (including C2 and CNDB), false if OSS
+   *     Cassandra (3.11, 4.0)
+   */
+  public static boolean isDSE() {
+    return "6.8".equals(getClusterVersion());
+  }
+
+  /** @return True if the backend cluster is Cassandra 4.0; false otherwise (DSE, C-3.11) */
+  public static boolean isCassandra40() {
+    return "4.0".equals(getClusterVersion());
   }
 }

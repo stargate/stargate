@@ -155,6 +155,10 @@ public class StargateTestResource
       propsBuilder.put("stargate.auth.token-resolver.fixed.token", token);
     }
 
+    // Some Integration tests need to know backend storage version, to work around
+    // discrepancies between Cassandra/DSE versions
+    propsBuilder.put(IntegrationTestUtils.CLUSTER_VERSION_PROP, getClusterVersion());
+
     // log props and return them
     ImmutableMap<String, String> props = propsBuilder.build();
     LOG.info("Using props map for the integration tests: %s".formatted(props));

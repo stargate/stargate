@@ -212,7 +212,7 @@ jobs:
       # image-file - file name of the image to import (must be in the artifact)
       # image - final image name to use when running int tests (-Dtesting.containers.stargate-image)
       matrix:
-        project: [ sgv2-docsapi, sgv2-graphqlapi ]
+        project: [ sgv2-docsapi, sgv2-graphqlapi, sgv2-restapi ]
         name: [ cassandra-40, cassandra-311, dse-68, c2-dse-68 ]
         include:
           - name: cassandra-40
@@ -317,10 +317,10 @@ jobs:
 
       # run finally the int tests
       # runs dedicated project with -pl, but also picks depending projects with -am
-      # container test for docsapi only for now, enable for other when ready
+      # container test for all apis
       - name: Integration Test
         env:
-          CONTAINER_TEST: ${{ ( matrix.project == 'sgv2-docsapi' || matrix.project == 'sgv2-graphqlapi' ) && 'true' || 'false' }}
+          CONTAINER_TEST: true
         run: |
           cd apis/
           ./mvnw -B verify -DskipUnitTests -pl ${{ matrix.project }} -am -P ${{ matrix.profile }} -Dquarkus.container-image.build=$CONTAINER_TEST -Dtesting.containers.stargate-image=${{ matrix.image }}

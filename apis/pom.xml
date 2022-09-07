@@ -9,6 +9,7 @@
     <module>sgv2-quarkus-common</module>
     <module>sgv2-docsapi</module>
     <module>sgv2-graphqlapi</module>
+    <module>sgv2-restapi</module>
   </modules>
   <properties>
     <compiler-plugin.version>3.8.1</compiler-plugin.version>
