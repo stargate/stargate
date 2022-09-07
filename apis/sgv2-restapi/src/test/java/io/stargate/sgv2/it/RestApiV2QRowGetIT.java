@@ -154,9 +154,10 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     createSimpleTestTable(testKeyspaceName(), tableName);
 
     final String rowIdentifier = UUID.randomUUID().toString();
+    final String invalidColumn = "invalid_field";
     insertRow(testKeyspaceName(), tableName, map("id", rowIdentifier));
 
-    String whereClause = "{\"invalid_field\":{\"$eq\":\"test\"}}";
+    String whereClause = "{\"" + invalidColumn + "\":{\"$eq\":\"test\"}}";
     final String path = endpointPathForRowGetWith(testKeyspaceName(), tableName);
     String response =
         givenWithAuth()
@@ -170,8 +171,9 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     ApiError error = readJsonAs(response, ApiError.class);
     assertThat(error.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(error.description())
-        .contains("Invalid 'where' parameter, problem:")
-        .contains("unknown field name 'invalid_field'");
+        .containsIgnoringCase("Invalid 'where' parameter, problem:")
+        .containsIgnoringCase("unknown field name")
+        .contains(invalidColumn);
   }
 
   @Test
