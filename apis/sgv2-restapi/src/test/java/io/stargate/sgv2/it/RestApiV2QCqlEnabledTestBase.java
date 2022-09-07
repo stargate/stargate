@@ -7,8 +7,8 @@ import com.datastax.oss.driver.api.core.config.TypedDriverOption;
 import com.datastax.oss.driver.internal.core.loadbalancing.DcInferringLoadBalancingPolicy;
 import io.stargate.sgv2.common.IntegrationTestUtils;
 import java.time.Duration;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 
 public class RestApiV2QCqlEnabledTestBase extends RestApiV2QIntegrationTestBase {
   protected RestApiV2QCqlEnabledTestBase(String keyspacePrefix, String tablePrefix) {
@@ -17,7 +17,7 @@ public class RestApiV2QCqlEnabledTestBase extends RestApiV2QIntegrationTestBase 
 
   protected CqlSession session;
 
-  @BeforeAll
+  @BeforeEach
   public final void buildSession() {
     OptionsMap config = OptionsMap.driverDefaults();
     config.put(TypedDriverOption.REQUEST_TIMEOUT, Duration.ofSeconds(10));
@@ -32,7 +32,7 @@ public class RestApiV2QCqlEnabledTestBase extends RestApiV2QIntegrationTestBase 
             .build();
   }
 
-  @AfterAll
+  @AfterEach
   public final void closeSession() {
     if (session != null) {
       session.close();
