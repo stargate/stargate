@@ -1,4 +1,4 @@
-package io.stargate.sgv2.it;
+package io.stargate.sgv2.it.aux;
 
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;

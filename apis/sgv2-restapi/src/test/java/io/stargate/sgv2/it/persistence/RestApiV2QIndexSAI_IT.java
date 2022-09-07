@@ -1,4 +1,4 @@
-package io.stargate.sgv2.it.ext;
+package io.stargate.sgv2.it.persistence;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
