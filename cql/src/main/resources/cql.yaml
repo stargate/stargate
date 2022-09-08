@@ -1,0 +1,126 @@
+
+# Example: CQL transport config YAML
+
+# The address or interface to bind the native transport server to.
+#
+# Set rpc_address OR rpc_interface, not both.
+#
+# Leaving rpc_address blank has the same effect as on listen_address
+# (i.e. it will be based on the configured hostname of the node).
+#
+# Note that unlike listen_address, you can specify 0.0.0.0, but you must also
+# set broadcast_rpc_address to a value other than 0.0.0.0.
+#
+# For security reasons, you should not expose this port to the internet.  Firewall it if needed.
+rpc_address: localhost
+
+# Set rpc_address OR rpc_interface, not both. Interfaces must correspond
+# to a single address, IP aliasing is not supported.
+# rpc_interface: eth1
+
+# If you choose to specify the interface by name and the interface has an ipv4 and an ipv6 address
+# you can specify which should be chosen using rpc_interface_prefer_ipv6. If false the first ipv4
+# address will be used. If true the first ipv6 address will be used. Defaults to false preferring
+# ipv4. If there is only one address it will be selected regardless of ipv4/ipv6.
+# rpc_interface_prefer_ipv6: false
+
+# RPC address to broadcast to drivers and other Cassandra nodes. This cannot
+# be set to 0.0.0.0. If left blank, this will be set to the value of
+# rpc_address. If rpc_address is set to 0.0.0.0, broadcast_rpc_address must
+# be set.
+# broadcast_rpc_address: 1.2.3.4
+
+# enable or disable keepalive on rpc/native connections
+rpc_keepalive: true
+
+# For security reasons, you should not expose this port to the internet.  Firewall it if needed.
+native_transport_port: 9042
+
+# Enabling native transport encryption in client_encryption_options allows you to either use
+# encryption for the standard port or to use a dedicated, additional port along with the unencrypted
+# standard native_transport_port.
+# Enabling client encryption and keeping native_transport_port_ssl disabled will use encryption
+# for native_transport_port. Setting native_transport_port_ssl to a different value
+# from native_transport_port will use encryption for native_transport_port_ssl while
+# keeping native_transport_port unencrypted.
+# native_transport_port_ssl: 9142
+#
+# The maximum size of allowed frame. Frame (requests) larger than this will
+# be rejected as invalid. The default is 16MiB. If you're changing this parameter,
+# you may want to adjust max_value_size accordingly. This should be positive and less than 2048.
+# Min unit: MiB
+# native_transport_max_frame_size_in_mb: 16MiB
+
+# The maximum number of concurrent client connections.
+# The default is -1, which means unlimited.
+# native_transport_max_concurrent_connections: -1
+
+# The maximum number of concurrent client connections per source ip.
+# The default is -1, which means unlimited.
+# native_transport_max_concurrent_connections_per_ip: -1
+
+# Use native transport TCP message coalescing. If on upgrade to 4.0 you found your throughput decreasing, and in
+# particular you run an old kernel or have very fewer client connections, this option might be worth evaluating.
+#native_transport_flush_in_batches_legacy: false
+
+# Controls whether Cassandra honors older, yet currently supported, protocol versions.
+# The default is true, which means all supported protocols will be honored.
+native_transport_allow_older_protocols: true
+
+# Controls when idle client connections are closed. Idle connections are ones that had neither reads
+# nor writes for a time period.
+#
+# Clients may implement heartbeats by sending OPTIONS native protocol message after a timeout, which
+# will reset idle timeout timer on the server side. To close idle client connections, corresponding
+# values for heartbeat intervals have to be set on the client side.
+#
+# Idle connection timeouts are disabled by default.
+# Min unit: ms
+# native_transport_idle_timeout: 60000ms
+
+# Controls when idle client connections are closed. Idle connections are ones that had neither reads
+# nor writes for a time period.
+#
+# Clients may implement heartbeats by sending OPTIONS native protocol message after a timeout, which
+# will reset idle timeout timer on the server side. To close idle client connections, corresponding
+# values for heartbeat intervals have to be set on the client side.
+#
+# Idle connection timeouts are disabled by default.
+# native_transport_idle_timeout_in_ms: 60000
+
+# Configure client-to-server encryption.
+#
+# **NOTE** this default configuration is an insecure configuration. If you need to
+# enable client-to-server encryption generate server keystores (and truststores for mutual
+# authentication) per:
+# http://download.oracle.com/javase/8/docs/technotes/guides/security/jsse/JSSERefGuide.html#CreateKeystore
+# Then perform the following configuration changes:
+#
+# Step 1: Set enabled=true and explicitly set optional=true. Restart all nodes
+#
+# Step 2: Set optional=false (or remove it) and if you generated truststores and want to use mutual
+# auth set require_client_auth=true. Restart all nodes
+client_encryption_options:
+  # Enable client-to-server encryption
+  enabled: false
+  # When set to true, encrypted and unencrypted connections are allowed on the native_transport_port
+  # This should _only be true_ while in unencrypted or transitional operation
+  # optional defaults to true when enabled is false, and false when enabled is true.
+  # optional: true
+  # Set keystore and keystore_password to valid keystores if enabled is true
+  keystore: conf/.keystore
+  keystore_password: cassandra
+  # Verify client certificates
+  require_client_auth: false
+  # Set trustore and truststore_password if require_client_auth is true
+  # truststore: conf/.truststore
+  # truststore_password: cassandra
+  # More advanced defaults:
+  # protocol: TLS
+  # store_type: JKS
+  # cipher_suites: [
+  #   TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+  #   TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA,
+  #   TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA, TLS_RSA_WITH_AES_128_GCM_SHA256, TLS_RSA_WITH_AES_128_CBC_SHA,
+  #   TLS_RSA_WITH_AES_256_CBC_SHA
+  # ]

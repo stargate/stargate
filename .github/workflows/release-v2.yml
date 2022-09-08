@@ -33,10 +33,16 @@ jobs:
     outputs:
       release-tag: ${{ steps.resolve_tag.outputs.tag }}
     steps:
+      - uses: actions/checkout@v3
+
+      - name: Set reference
+        id: vars
+        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+
       - name: Resolve tag
         id: resolve_tag
         run: |
-          TAG=${{ inputs.tag != null && inputs.tag || github.ref }}
+          TAG=${{ inputs.tag != null && inputs.tag || steps.vars.outputs.tag }}
           echo "Resolved tag for the release $TAG"
           echo "::set-output name=tag::${TAG}"
 
@@ -287,6 +293,53 @@ jobs:
           cd apis/
           JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
           cd ../
+
+  # signs all docker images with cosign
+  # skip whole job if we did not push images
+  sign-images:
+    name: Sign container images
+    needs: [resolve-tag, publish-docker]
+    if: ${{ !inputs.skipPublish }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        image: [restapi, graphqlapi, docsapi]
+
+    env:
+      # not a newest version, this reflects riptano action target version
+      COSIGN_VERSION: v1.9.0
+
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@main
+        with:
+          cosign-release: ${COSIGN_VERSION}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.ECR_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.ECR_SECRET_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Sign a docker image
+        shell: bash
+        env:
+          COSIGN_IMAGE: ${{ secrets.ECR_REPOSITORY }}/stargateio/${{ matrix.image }}:${{ needs.resolve-tag.outputs.release-tag }}
+          COSIGN_PRIVATE_BASE64: ${{ secrets.COSIGN_PRIVATE_BASE64}}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD}}
+          COSIGN_KEY_FILE: _cosign_key_
+          AUX_KEY: signedby
+          AUX_VALUE: stargate
+        run: |
+          echo $COSIGN_PRIVATE_BASE64 | base64 --decode > $COSIGN_KEY_FILE
+          echo "=== signing image [$COSIGN_IMAGE] ..."
+          cosign sign --key $COSIGN_KEY_FILE -a $AUX_KEY=$AUX_VALUE $COSIGN_IMAGE
 
   # creates a PR for bumping the versions to the next snapshot
   create-pr:

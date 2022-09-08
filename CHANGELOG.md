@@ -362,6 +362,21 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
 
+## [v1.0.64](https://github.com/stargate/stargate/tree/v1.0.64) (2022-08-30)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.63...v1.0.64)
+
+**Closed issues:**
+
+- Allow `dse.yaml` to be passed to DSE persistence backend [\#2011](https://github.com/stargate/stargate/issues/2011)
+- Cql client encryption is not working [\#1001](https://github.com/stargate/stargate/issues/1001)
+
+**Merged pull requests:**
+
+- include auth excepion message in the thrown exception [\#2046](https://github.com/stargate/stargate/pull/2046) ([ivansenic](https://github.com/ivansenic))
+- Add ability to load `dse.yaml` when using DSE persistence [\#2013](https://github.com/stargate/stargate/pull/2013) ([mpenick](https://github.com/mpenick))
+- Fix TLS \(`client\_encryption\_options`\) configuration for CQL [\#1992](https://github.com/stargate/stargate/pull/1992) ([mpenick](https://github.com/mpenick))
+
 ## [v1.0.63](https://github.com/stargate/stargate/tree/v1.0.63) (2022-08-15)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.61...v1.0.63)
