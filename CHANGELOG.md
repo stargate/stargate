@@ -1,5 +1,23 @@
 # Changelog
 
+## [v2.0.0-BETA-1](https://github.com/stargate/stargate/tree/v2.0.0-BETA-1) (2022-09-08)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-17...v2.0.0-BETA-1)
+
+**Merged pull requests:**
+
+- Stargate v2 readme updates [\#2055](https://github.com/stargate/stargate/pull/2055) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Remove unneeded tests from SGv2 \(RESTv1 not supported by the new backend\) [\#2051](https://github.com/stargate/stargate/pull/2051) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- enable population of the token in the swagger-ui [\#2050](https://github.com/stargate/stargate/pull/2050) ([ivansenic](https://github.com/ivansenic))
+- closes \#2031: dead leaves to accept custom metadata [\#2048](https://github.com/stargate/stargate/pull/2048) ([ivansenic](https://github.com/ivansenic))
+- update int tests readme [\#2043](https://github.com/stargate/stargate/pull/2043) ([ivansenic](https://github.com/ivansenic))
+- $set support [\#2040](https://github.com/stargate/stargate/pull/2040) ([EricBorczuk](https://github.com/EricBorczuk))
+- repository should not include stargateio [\#2039](https://github.com/stargate/stargate/pull/2039) ([ivansenic](https://github.com/ivansenic))
+- making all int test in Docs V2 to use @QuarkusIntegrationTest [\#2029](https://github.com/stargate/stargate/pull/2029) ([ivansenic](https://github.com/ivansenic))
+- Separate executor in BridgeImpl [\#2019](https://github.com/stargate/stargate/pull/2019) ([EricBorczuk](https://github.com/EricBorczuk))
+- Convert SGv2 REST API from DropWizard to Quarkus [\#1982](https://github.com/stargate/stargate/pull/1982) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Convert GraphQL v2 to Quarkus [\#1980](https://github.com/stargate/stargate/pull/1980) ([olim7t](https://github.com/olim7t))
+
 ## [v2.0.0-ALPHA-17](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-17) (2022-08-16)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-16...v2.0.0-ALPHA-17)
