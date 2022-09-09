@@ -24,6 +24,7 @@ import io.netty.channel.ChannelPromise;
 import io.netty.channel.VoidChannelPromise;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.util.Attribute;
+import io.stargate.db.Persistence;
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -31,7 +32,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import org.apache.cassandra.cql3.QueryProcessor;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.ExecutionException;
 import org.apache.cassandra.net.AsyncChannelPromise;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
@@ -56,11 +58,17 @@ public class InitialConnectionHandler extends ByteToMessageDecoder {
   final Connection.Factory factory;
   final PipelineConfigurator configurator;
 
+  private static Persistence persistence;
+
   InitialConnectionHandler(
       Envelope.Decoder decoder, Connection.Factory factory, PipelineConfigurator configurator) {
     this.decoder = decoder;
     this.factory = factory;
     this.configurator = configurator;
+  }
+
+  public static void setPersistence(Persistence inPersistence) {
+    persistence = inPersistence;
   }
 
   protected void decode(ChannelHandlerContext ctx, ByteBuf buffer, List<Object> list)
@@ -72,17 +80,15 @@ public class InitialConnectionHandler extends ByteToMessageDecoder {
       Envelope outbound;
       switch (inbound.header.type) {
         case OPTIONS:
+          Map<String, List<String>> supportedOptions =
+              new HashMap<String, List<String>>(persistence.cqlSupportedOptions());
           logger.trace("OPTIONS received {}", inbound.header.version);
-          List<String> cqlVersions = new ArrayList<>();
-          cqlVersions.add(QueryProcessor.CQL_VERSION.toString());
 
           List<String> compressions = new ArrayList<>();
           if (Compressor.SnappyCompressor.instance != null) compressions.add("snappy");
           // LZ4 is always available since worst case scenario it default to a pure JAVA implem.
           compressions.add("lz4");
 
-          Map<String, List<String>> supportedOptions = new HashMap<>();
-          supportedOptions.put(StartupMessage.CQL_VERSION, cqlVersions);
           supportedOptions.put(StartupMessage.COMPRESSION, compressions);
           supportedOptions.put(
               StartupMessage.PROTOCOL_VERSIONS, ProtocolVersion.supportedVersions());
@@ -156,6 +162,8 @@ public class InitialConnectionHandler extends ByteToMessageDecoder {
               (res, error) -> {
                 Envelope outboundInternal;
                 if (error != null) {
+                  if (error instanceof ExecutionException) error = error.getCause();
+                  if (error instanceof CompletionException) error = error.getCause();
                   ErrorMessage errorMessage =
                       ErrorMessage.fromException(
                           new ProtocolException(

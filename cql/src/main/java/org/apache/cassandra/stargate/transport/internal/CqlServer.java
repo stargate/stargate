@@ -103,6 +103,7 @@ public class CqlServer {
       if (useEpoll) workerGroup = new EpollEventLoopGroup();
       else workerGroup = new NioEventLoopGroup();
     }
+    InitialConnectionHandler.setPersistence(persistence);
     pipelineConfigurator =
         builder.pipelineConfigurator != null
             ? builder.pipelineConfigurator

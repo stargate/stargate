@@ -21,9 +21,7 @@ package org.apache.cassandra.stargate.transport.internal;
 import io.netty.channel.Channel;
 import io.netty.channel.EventLoop;
 import io.netty.util.AttributeKey;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.*;
 import java.util.function.Consumer;
 import org.apache.cassandra.net.FrameEncoder;
 import org.apache.cassandra.service.ClientWarn;
@@ -103,6 +101,8 @@ public class Dispatcher {
           (res, error) -> {
             FlushItem<?> toFlush;
             if (error != null) {
+              if (error instanceof ExecutionException) error = error.getCause();
+              if (error instanceof CompletionException) error = error.getCause();
               ExceptionHandlers.UnexpectedChannelExceptionHandler handler =
                   new ExceptionHandlers.UnexpectedChannelExceptionHandler(channel, true);
               ErrorMessage errorMessage = ErrorMessage.fromException(error, handler);
