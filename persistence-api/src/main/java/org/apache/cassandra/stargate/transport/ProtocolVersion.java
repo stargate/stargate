@@ -35,9 +35,7 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
   V2(2, "v2", false), // no longer supported
   V3(3, "v3", false),
   V4(4, "v4", false),
-  V5(5, ProtocolVersionConstants.V5_STR, ProtocolVersionConstants.V5_BETA);
-
-  private static String clusterVersion = System.getProperty("stargate.cluster_version", "3.11");
+  V5(5, "v5", false);
 
   /** The version number */
   private final int num;
@@ -71,10 +69,9 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
   public static final EnumSet<ProtocolVersion> UNSUPPORTED = EnumSet.complementOf(SUPPORTED);
 
   /** The preferred versions */
-  public static final ProtocolVersion CURRENT = ProtocolVersionConstants.V5_BETA ? V4 : V5;
+  public static final ProtocolVersion CURRENT = V5;
 
-  public static final Optional<ProtocolVersion> BETA =
-      ProtocolVersionConstants.V5_BETA ? Optional.of(V5) : Optional.empty();
+  public static final Optional<ProtocolVersion> BETA = Optional.empty();
 
   public static List<String> supportedVersions() {
     List<String> ret = new ArrayList<>(SUPPORTED.size());
