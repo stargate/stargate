@@ -16,13 +16,19 @@
 package io.stargate.sgv2.common.grpc;
 
 import io.grpc.Channel;
-import io.stargate.proto.Schema.SchemaRead;
+import io.stargate.bridge.proto.Schema.SchemaRead;
 import java.util.Optional;
 
 public interface StargateBridgeClientFactory {
 
-  static StargateBridgeClientFactory newInstance(Channel channel, SchemaRead.SourceApi sourceApi) {
-    return new DefaultStargateBridgeClientFactory(channel, sourceApi);
+  /**
+   * @param timeoutSeconds the timeout for the gRPC queries issued through clients created with this
+   *     factory. Note that it is measured from the moment {@link #newClient} was invoked (if the
+   *     same client is used for multiple queries, the timeout does not reset between each query).
+   */
+  static StargateBridgeClientFactory newInstance(
+      Channel channel, int timeoutSeconds, SchemaRead.SourceApi sourceApi) {
+    return new DefaultStargateBridgeClientFactory(channel, timeoutSeconds, sourceApi);
   }
 
   StargateBridgeClient newClient(String authToken, Optional<String> tenantId);

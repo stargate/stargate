@@ -15,6 +15,7 @@
  */
 package io.stargate.sgv2.common.cql.builder;
 
+import io.stargate.bridge.proto.QueryOuterClass;
 import javax.annotation.Nullable;
 import org.immutables.value.Value.Immutable;
 import org.immutables.value.Value.Style;
@@ -28,12 +29,20 @@ public interface ValueModifier {
 
   Term value();
 
-  static ValueModifier set(String columnName, Object value) {
+  static ValueModifier set(String columnName, QueryOuterClass.Value value) {
     return set(columnName, Term.of(value));
   }
 
   static ValueModifier set(String columnName, Term value) {
     return of(Target.column(columnName), Operation.SET, value);
+  }
+
+  static ValueModifier marker(String columnName) {
+    return of(Target.column(columnName), Operation.SET, Term.marker());
+  }
+
+  static ValueModifier of(Target target, Operation operation, QueryOuterClass.Value value) {
+    return of(target, operation, Term.of(value));
   }
 
   static ValueModifier of(Target target, Operation operation, Term value) {

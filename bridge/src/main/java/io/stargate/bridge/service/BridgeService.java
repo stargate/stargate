@@ -15,22 +15,32 @@
  */
 package io.stargate.bridge.service;
 
+import io.grpc.Context;
+import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.bridge.proto.QueryOuterClass.Batch;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.QueryOuterClass.Response;
+import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.StargateBridgeGrpc;
 import io.stargate.db.Persistence;
-import io.stargate.grpc.service.GrpcService;
-import io.stargate.grpc.service.SingleBatchHandler;
-import io.stargate.grpc.service.SingleExceptionHandler;
-import io.stargate.grpc.service.SingleQueryHandler;
-import io.stargate.grpc.service.SynchronizedStreamObserver;
-import io.stargate.proto.QueryOuterClass.Batch;
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.QueryOuterClass.Response;
-import io.stargate.proto.Schema;
-import io.stargate.proto.StargateBridgeGrpc;
+import io.stargate.db.Result;
+import io.stargate.db.schema.Keyspace;
+import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ScheduledExecutorService;
+import javax.annotation.Nullable;
+import org.apache.cassandra.stargate.db.ConsistencyLevel;
 
 public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
+
+  public static final Context.Key<Persistence.Connection> CONNECTION_KEY =
+      Context.key("connection");
+  public static final Context.Key<Map<String, String>> HEADERS_KEY = Context.key("headers");
+  public static final int DEFAULT_PAGE_SIZE = 100;
+  public static final ConsistencyLevel DEFAULT_CONSISTENCY = ConsistencyLevel.LOCAL_QUORUM;
+  public static final ConsistencyLevel DEFAULT_SERIAL_CONSISTENCY = ConsistencyLevel.SERIAL;
 
   private final Persistence persistence;
   private final AuthorizationService authorizationService;
@@ -67,43 +77,92 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
   public void executeQuery(Query query, StreamObserver<Response> responseObserver) {
     SynchronizedStreamObserver<Response> synchronizedStreamObserver =
         new SynchronizedStreamObserver<>(responseObserver);
-    new SingleQueryHandler(
+    new QueryHandler(
             query,
-            GrpcService.CONNECTION_KEY.get(),
+            CONNECTION_KEY.get(),
             persistence,
             executor,
             schemaAgreementRetries,
-            synchronizedStreamObserver,
-            new SingleExceptionHandler(synchronizedStreamObserver))
+            synchronizedStreamObserver)
         .handle();
+  }
+
+  @Override
+  public void executeQueryWithSchema(
+      Schema.QueryWithSchema request,
+      StreamObserver<Schema.QueryWithSchemaResponse> responseObserver) {
+    String keyspaceName = request.getKeyspaceName();
+    int keyspaceHash = request.getKeyspaceHash();
+    String decoratedName =
+        persistence.decorateKeyspaceName(keyspaceName, BridgeService.HEADERS_KEY.get());
+    Keyspace keyspace = persistence.schema().keyspace(decoratedName);
+
+    if (keyspace == null) {
+      executor.execute(
+          () -> {
+            responseObserver.onNext(
+                Schema.QueryWithSchemaResponse.newBuilder()
+                    .setNoKeyspace(Schema.QueryWithSchemaResponse.NoKeyspace.getDefaultInstance())
+                    .build());
+            responseObserver.onCompleted();
+          });
+    } else if (keyspace.schemaHashCode() != keyspaceHash) {
+      executor.execute(
+          () -> {
+            try {
+              responseObserver.onNext(
+                  Schema.QueryWithSchemaResponse.newBuilder()
+                      .setNewKeyspace(
+                          SchemaHandler.buildKeyspaceDescription(
+                              keyspace, keyspaceName, decoratedName))
+                      .build());
+              responseObserver.onCompleted();
+            } catch (StatusException e) {
+              responseObserver.onError(e);
+            }
+          });
+    } else {
+      executeQuery(
+          request.getQuery(),
+          new StreamObserver<Response>() {
+            @Override
+            public void onNext(Response response) {
+              responseObserver.onNext(
+                  Schema.QueryWithSchemaResponse.newBuilder().setResponse(response).build());
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+              responseObserver.onError(throwable);
+            }
+
+            @Override
+            public void onCompleted() {
+              responseObserver.onCompleted();
+            }
+          });
+    }
   }
 
   @Override
   public void executeBatch(Batch batch, StreamObserver<Response> responseObserver) {
     SynchronizedStreamObserver<Response> synchronizedStreamObserver =
         new SynchronizedStreamObserver<>(responseObserver);
-    new SingleBatchHandler(
-            batch,
-            GrpcService.CONNECTION_KEY.get(),
-            persistence,
-            synchronizedStreamObserver,
-            new SingleExceptionHandler(synchronizedStreamObserver))
-        .handle();
+    new BatchHandler(batch, CONNECTION_KEY.get(), persistence, synchronizedStreamObserver).handle();
   }
 
   @Override
   public void describeKeyspace(
       Schema.DescribeKeyspaceQuery request,
       StreamObserver<Schema.CqlKeyspaceDescribe> responseObserver) {
-    SchemaHandler.describeKeyspace(request, persistence, responseObserver);
+    executor.execute(() -> SchemaHandler.describeKeyspace(request, persistence, responseObserver));
   }
 
   @Override
   public void authorizeSchemaReads(
       Schema.AuthorizeSchemaReadsRequest request,
       StreamObserver<Schema.AuthorizeSchemaReadsResponse> responseObserver) {
-    new AuthorizationHandler(
-            request, GrpcService.CONNECTION_KEY.get(), authorizationService, responseObserver)
+    new AuthorizationHandler(request, CONNECTION_KEY.get(), authorizationService, responseObserver)
         .handle();
   }
 
@@ -113,5 +172,24 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
       StreamObserver<Schema.SupportedFeaturesResponse> responseObserver) {
     responseObserver.onNext(supportedFeaturesResponse);
     responseObserver.onCompleted();
+  }
+
+  static class ResponseAndTraceId {
+
+    final @Nullable UUID tracingId;
+    final Response.Builder responseBuilder;
+
+    static ResponseAndTraceId from(Result result, Response.Builder responseBuilder) {
+      return new ResponseAndTraceId(result.getTracingId(), responseBuilder);
+    }
+
+    private ResponseAndTraceId(@Nullable UUID tracingId, Response.Builder responseBuilder) {
+      this.tracingId = tracingId;
+      this.responseBuilder = responseBuilder;
+    }
+
+    public boolean tracingIdIsEmpty() {
+      return tracingId == null || tracingId.toString().isEmpty();
+    }
   }
 }

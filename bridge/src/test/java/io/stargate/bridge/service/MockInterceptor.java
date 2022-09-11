@@ -23,7 +23,6 @@ import io.grpc.ServerCall.Listener;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.stargate.db.Persistence;
-import io.stargate.grpc.service.GrpcService;
 
 public class MockInterceptor implements ServerInterceptor {
   private final Persistence persistence;
@@ -36,7 +35,7 @@ public class MockInterceptor implements ServerInterceptor {
   public <ReqT, RespT> Listener<ReqT> interceptCall(
       ServerCall<ReqT, RespT> call, Metadata headers, ServerCallHandler<ReqT, RespT> next) {
     Context context = Context.current();
-    context = context.withValue(GrpcService.CONNECTION_KEY, persistence.newConnection());
+    context = context.withValue(BridgeService.CONNECTION_KEY, persistence.newConnection());
     return Contexts.interceptCall(context, call, headers, next);
   }
 }

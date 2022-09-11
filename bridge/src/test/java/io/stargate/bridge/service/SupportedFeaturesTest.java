@@ -19,9 +19,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.Mockito.when;
 
-import io.stargate.proto.Schema.SupportedFeaturesRequest;
-import io.stargate.proto.Schema.SupportedFeaturesResponse;
-import io.stargate.proto.StargateBridgeGrpc;
+import io.stargate.bridge.proto.Schema.SupportedFeaturesRequest;
+import io.stargate.bridge.proto.Schema.SupportedFeaturesResponse;
+import io.stargate.bridge.proto.StargateBridgeGrpc;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;

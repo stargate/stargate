@@ -125,6 +125,7 @@ public class IndexesResource {
                     .column(columns)
                     .from(SYSTEM_SCHEMA, INDEXES_TABLE)
                     .where("table_name", Predicate.EQ, tableName)
+                    .where("keyspace_name", Predicate.EQ, keyspaceName)
                     .allowFiltering(true)
                     .build()
                     .bind();

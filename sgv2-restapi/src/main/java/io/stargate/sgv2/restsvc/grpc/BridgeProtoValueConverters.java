@@ -1,7 +1,7 @@
 package io.stargate.sgv2.restsvc.grpc;
 
-import io.stargate.proto.QueryOuterClass;
-import io.stargate.proto.Schema;
+import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.bridge.proto.Schema;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;

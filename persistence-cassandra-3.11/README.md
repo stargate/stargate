@@ -4,7 +4,7 @@ This module represents the implementation of the [persistence-api](../persistenc
 
 ## Cassandra version update
 
-The current Cassandra version this module depends on is `3.11.12`.
+The current Cassandra version this module depends on is `3.11.13`.
 In order to update to a newer patch version, please follow the guidelines below:
 
 * Update the `cassandra.version` property in the [pom.xml](pom.xml).
@@ -20,6 +20,7 @@ The `cassandra-thrift` was explicitly added when updating to `3.11.12` as it was
 Note that this will have no effect until the docker image is rebuilt and pushed to the remote repository, thus creating an issue for that would be a good idea.
 * Make sure everything compiles and CI tests are green.
 * Update the [DEVGUIDE.md](../DEV_GUIDE.md) and replace the old version in the examples.
+* Update the [default docker-compose env variables](../docker-compose/cassandra-3.11/.env) to reference the new version.
 * Update this `README.md` file with the new or updated instructions.
 
 It's always good to validate your work against the pull requests that bumped the version in the past:

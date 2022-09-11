@@ -43,39 +43,14 @@ esac
 echoinfo "Using backend $PERSISTENCE_BACKEND"
 
 export CCM_CLUSTER_START_TIMEOUT_OVERRIDE=600
-mvn -B install verify --file pom.xml \
+./mvnw -B install verify --file pom.xml \
 -P \${C3}it-cassandra-3.11 \
 -P \${C4}it-cassandra-4.0 \
 -P \${DSE}dse -P \${DSE}it-dse-6.8 \
 -P default \
 -Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
 
-echoinfo "Testing Java 17 projects"
-
-cd sgv2-docsapi/
-JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./mvnw -B verify --file ./pom.xml \
--Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn
-cd ../
-
 echoinfo "Test complete"
-
-echoinfo "Uploading test results"
-
-# Determine CODACY_REPORTER_VERSION once to avoid hitting the "get latest" API too frequently
-# in the get.sh commands below. Note: the sed command was copied from get.sh
-export CODACY_REPORTER_VERSION="$(curl https://artifacts.codacy.com/bin/codacy-coverage-reporter/latest)"
-echoinfo "Using Codacy Reporter version \$CODACY_REPORTER_VERSION"
-export CODACY_PROJECT_TOKEN="$(cat /workspace/ci/codacy-project-token | sed -e 's/\n//g')"
-curl -Ls https://coverage.codacy.com/get.sh > get.sh
-chmod +x get.sh
-for f in \$(find . -type f -name 'jacoco.xml'); do
-    ./get.sh report -l Java -r \$f --commit-uuid $COMMIT_ID --partial
-done
-
-if [[ -n \$(find . -type f -name 'jacoco.xml') ]]
-then
-    ./get.sh final --commit-uuid $COMMIT_ID
-fi
 
 EOF
 

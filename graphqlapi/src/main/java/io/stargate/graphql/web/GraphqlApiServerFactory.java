@@ -28,7 +28,7 @@ import org.eclipse.jetty.util.thread.ThreadPool;
 
 /**
  * @see "META-INF/services/io.dropwizard.server.ServerFactory"
- * @see "config.yaml"
+ * @see "graphqlapi-config.yaml"
  */
 @JsonTypeName("graphql-api")
 public class GraphqlApiServerFactory extends SimpleServerFactory {

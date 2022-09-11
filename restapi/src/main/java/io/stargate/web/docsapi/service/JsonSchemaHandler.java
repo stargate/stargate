@@ -116,12 +116,14 @@ public class JsonSchemaHandler {
   }
 
   public void validate(JsonNode schema, String value) throws ProcessingException {
+    final JsonNode tree;
     try {
-      validate(schema, mapper.readTree(value));
+      tree = mapper.readTree(value);
     } catch (JsonProcessingException e) {
       throw new ErrorCodeRuntimeException(
-          ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Malformed JSON object found during read.");
+          ErrorCode.DOCS_API_INVALID_JSON_VALUE, "Malformed JSON object found during read: " + e);
     }
+    validate(schema, tree);
   }
 
   public void validate(JsonNode schema, JsonNode jsonValue) throws ProcessingException {

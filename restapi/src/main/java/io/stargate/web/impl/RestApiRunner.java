@@ -57,6 +57,6 @@ public class RestApiRunner {
             this.metrics,
             this.httpMetricsTagProvider,
             dataStoreFactory);
-    server.run("server", "config.yaml");
+    server.run("server", "restapi-config.yaml");
   }
 }

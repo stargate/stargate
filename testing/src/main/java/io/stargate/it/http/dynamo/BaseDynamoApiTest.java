@@ -34,7 +34,7 @@ public class BaseDynamoApiTest extends BaseIntegrationTest {
     builder.metricsPort(8082);
     builder.serviceStartedMessage("Started DynamoServiceServer");
     builder.serviceLibDirProperty("stargate.dynamo.libdir");
-    builder.serviceJarBase("sgv2-dynamo-service");
+    builder.serviceJarBase("sgv2-dynamoapi");
     builder.bridgeHostPropertyName("dw.stargate.bridge.host");
     builder.bridgePortPropertyName("dw.stargate.bridge.port");
   }

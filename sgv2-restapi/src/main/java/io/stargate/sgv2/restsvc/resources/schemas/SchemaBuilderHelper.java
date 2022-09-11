@@ -4,7 +4,9 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class SchemaBuilderHelper {
   private static final int DEFAULT_REPLICAS_FOR_SIMPLE = 1;
@@ -50,16 +52,13 @@ public class SchemaBuilderHelper {
                 payload));
       }
       // must have "name"s; will default replica counts as well
-      for (Map.Entry<String, Integer> entry : kdef.datacenters.entrySet()) {
-        String name = entry.getKey();
+      for (DatacenterDefinition dc : kdef.datacenters) {
+        String name = dc.getName();
         if (name == null || name.isEmpty()) {
           throw new IllegalArgumentException(
               String.format(
                   "malformatted JSON payload (%s) for Keyspace creation: one of 'datacenters' entries missing 'name'",
                   payload));
-        }
-        if (entry.getValue() == null) {
-          entry.setValue(DEFAULT_REPLICAS_FOR_NETWORKED);
         }
       }
     }
@@ -74,6 +73,26 @@ public class SchemaBuilderHelper {
   static class KeyspaceCreateDefinition {
     public String name;
     public int replicas = DEFAULT_REPLICAS_FOR_SIMPLE;
-    public Map<String, Integer> datacenters;
+    public List<DatacenterDefinition> datacenters;
+
+    public Map<String, Integer> datacentersAsMap() {
+      return datacenters.stream()
+          .collect(
+              Collectors.toMap(DatacenterDefinition::getName, DatacenterDefinition::getReplicas));
+    }
+  }
+
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  static class DatacenterDefinition {
+    protected String name;
+    protected int replicas = DEFAULT_REPLICAS_FOR_NETWORKED;
+
+    public String getName() {
+      return name;
+    }
+
+    public int getReplicas() {
+      return replicas;
+    }
   }
 }

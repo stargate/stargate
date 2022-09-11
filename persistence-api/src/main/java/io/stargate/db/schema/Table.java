@@ -41,13 +41,15 @@ public abstract class Table extends AbstractTable {
       String name,
       Iterable<Column> columns,
       Iterable<Index> indexes,
-      String comment) {
+      String comment,
+      int ttl) {
     return ImmutableTable.builder()
         .keyspace(keyspace)
         .name(name)
         .columns(columns)
         .indexes(indexes)
         .comment(comment)
+        .ttl(ttl)
         .build();
   }
 
@@ -65,6 +67,12 @@ public abstract class Table extends AbstractTable {
   @Override
   public String comment() {
     return "";
+  }
+
+  @Value.Default
+  @Override
+  public int ttl() {
+    return 0;
   }
 
   @Override
@@ -98,6 +106,7 @@ public abstract class Table extends AbstractTable {
     if (!comment().isEmpty()) {
       tableBuilder.append("\n  Table '").append(name).append("' comment: " + comment());
     }
+    tableBuilder.append("\n  Table '").append(name).append("' ttl: " + ttl());
     tableBuilder.append("\n");
     return tableBuilder.toString();
   }
@@ -105,5 +114,18 @@ public abstract class Table extends AbstractTable {
   @Override
   public String indexTypeName() {
     return "Table: " + name();
+  }
+
+  @Override
+  @Value.Derived
+  @Value.Auxiliary
+  public int schemaHashCode() {
+    return SchemaHashable.combine(
+        SchemaHashable.hashCode(name()),
+        SchemaHashable.hashCode(keyspace()),
+        SchemaHashable.hash(columns()),
+        SchemaHashable.hash(indexes()),
+        SchemaHashable.hashCode(comment()),
+        SchemaHashable.hashCode(ttl()));
   }
 }

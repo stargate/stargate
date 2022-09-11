@@ -5,14 +5,13 @@
 An open source data gateway.
 
 Stargate is a data gateway deployed between client applications and a database.
-It's built with extensibility as a first-class citizen and makes it easy to use a database for any application workload
+CQL is built with extensibility as a first-class citizen, which makes it easy to use a database for any application workload
 by adding plugin support for new APIs, data types, and access methods.
 
-- For information about how to use Stargate, visit [stargate.io](https://stargate.io/)
+- For quick instructions on how to bring up Stargate on your desktop using Docker, check out the [Docker compose](docker-compose/README.md) instructions.
+- For more information about how to deploy use Stargate, visit [stargate.io](https://stargate.io/)
 - To learn how to participate in our community, visit our [community page](https://stargate.io/community)
 - To set up and use a Stargate development environment, visit the [dev guide](DEV_GUIDE.md)
-
-![image](assets/stargate-arch-high-level.png#center)
 
 ## Contents
 - [Introduction](#introduction)
@@ -27,38 +26,69 @@ With "read the manual" fatigue and lengthy selection processes wearing on us eve
 This project enables customization of all aspects of data access and has modules for authentication, APIs, request handling / routing, and persistence backends.
 The current form is specific to the Apache Cassandra (C*) backend but there's no bounds to the databases or APIs that this framework can support.
 
-Stargate contains the following components:
+As shown in the figure below, Stargate is often deployed behind a load balancer or proxy and exposes multiple endpoints to client applications, including HTTP APIs, gRPC, and the Cassandra Query Language (CQL). Stargate sits in front of a Cassandra cluster which is used as the storage backend. 
 
-- **API Services**: Responsible for defining the API, handling and converting requests to db queries, dispatching to persistence, returning and serving response
+![image](assets/stargate-arch-high-level.png#center)
 
-    - cql: API implementation for the Cassandra Query Language
-    - restapi: API implementation for exposing Cassandra data over REST
-    - graphqlapi: API implementation for exposing Cassandra data over GraphQL
+Stargate consists of the following components, which we introduce briefly here with links to the corresponding modules in this monorepo.
 
-- **Persistence Services**: Responsible for implementing the coordination layer to execute requests passed by API services to underlying data storage instances.
+### API Services
+These are independently scalable microservices which various APIs, typically HTTP based. These modules can be found under the [apis](apis) directory: 
 
-    - persistence-api: Interface for working with persistence services
-    - persistence-common: Utilities shared by the persistence services
-    - persistence-cassandra-3.11: Joins C* 3.11 cluster as coordinator-only node (does not store data),
-    mocks C* system tables for native driver integration,
-    executes requests with C* storage nodes using C* QueryHandler/QueryProcessor,
-    converts internal C* objects and ResultSets to Stargate Datastore objects.
-    - persistence-cassandra-4.0: (same as above but for Cassandra 4.0)
+- [sgv2-restapi](apis/sgv2-restapi): API implementation for exposing Cassandra data over REST
+- [sgv2-graphqlapi](apis/sgv2-graphqlapi): API implementation for exposing Cassandra data over GraphQL
+- [sgv2-docsapi](apis/sgv2-docsapi): API implementation for exposing Cassandra data over a Document API
 
-- **Authentication Services**: Responsible for authentication to Stargate
+Each API Service contains its own integration test suite that tests it against the coordinator node and supported Cassandra backends. There is also a [sgv2-quarkus-common](apis/sgv2-quarkus-common) module containing utilities that may be used by all Java/Quarkus based API services.
 
-    - auth-api: REST service for generating auth tokens
-    - auth-table-based-service: Service to store tokens in the database
-    - authentication: Interface for working with auth providers
+### Coordinator Node
+Coordinator nodes participate as non-data storing nodes in the backing Cassandra cluster, which enables them to read and write data more efficiently. Stargate Coordinator nodes can also be scaled independently. Coordinator nodes expose gRPC and CQL interfaces for fast access by client applications. The following are the key modules comprising the coordinator and its exposed interfaces:
 
-![image](assets/stargate-modules-preview-version.png#center)
+- [core](core): Common classes used throughout the other coordinator modules
+- [cql](cql): API implementation for the Cassandra Query Language
+- [grpc](grpc): fast CQL over gRPC implementation (HTTP-based interface equivalent to CQL performance)
+- [bridge](bridge): gRPC-based interface used by API services
+- [health-checker](core): HTTP endpoints useful for health checking coordinator nodes
+- [metrics-jersey](core): metrics collection for the coordinator node and its exposed interfaces
+- [stargate-starter](stargate-starter): the main Java application used to start the coordinator via the `starctl` script
+
+#### Persistence Services
+Stargate coordinator nodes support a pluggable approach for implementing the coordination layer to execute requests passed by API services and other interfaces to underlying data storage instances. Persistence service implementations are responsible handling and converting requests to database queries, dispatching to a specific version of Cassandra, and returning and serving responses.
+
+- [persistence-api](persistence-api): Interface for working with persistence services 
+- [persistence-common](persistence-common): Utilities shared by the persistence services
+- [persistence-cassandra-3.11](persistence-cassandra-3.11): Joins C* 3.11 cluster as coordinator-only node (does not store data)
+mocks C* system tables for native driver integration,
+executes requests with C* storage nodes using C* QueryHandler/QueryProcessor,
+converts internal C* objects and ResultSets to Stargate Datastore objects.
+- [persistence-cassandra-4.0](persistence-cassandra-4.0): (same as above but for Cassandra 4.0)
+- [persistence-dse-6.8](persistence-dse-6.8): (same as above but for DataStax Enterprise 6.8)
+
+#### Authentication and Authorization Services
+Stargate coordinator nodes also support a pluggable authentication and authorization approach.
+
+- [authnz](authnz): Interface for working with auth providers
+- [auth-api](auth-api): REST service for generating auth tokens
+- [auth-table-based-service](auth-table-based-service): Service to store tokens in the database
+- [auth-jtw-based-service](auth-jwt-based-service): Service to authenticate using externally generated JSON Web Tokens (JWTs)
+
+#### Coordinator Node Testing
+The following modules provide support for testing:
+
+- [testing](testing): Integration test suite for the coordinator node modules
+- [persistence-test](persistence-test): Common utilities for testing persistence services
+
+Instructions for running and extending the test suite can be found in the [developer guide](DEV_GUIDE.md).
 
 ## Repositories
 
-- [stargate/stargate](https://github.com/stargate/stargate): This repository is the primary entry point to the project. It contains all of the modules.
-- [stargate/docker-images](https://github.com/stargate/docker-images): This repository contains the Dockerfiles used to create and publish images to https://hub.docker.com/orgs/stargateio
+Here is an overview of the key repositories in the Stargate GitHub organization:
+
+- [stargate/stargate](https://github.com/stargate/stargate): This repository is the primary entry point to the project. It is a monorepo containing all of the Stargate modules
 - [stargate/docs](https://github.com/stargate/docs): This repository contains the user docs hosted on [stargate.io](https://stargate.io)
 - [stargate/website](https://github.com/stargate/website): This repository contains the code for the website hosted on [stargate.io](https://stargate.io)
+
+The organization also contains several gRPC client libraries for various languages.
 
 ## Issue Management
 

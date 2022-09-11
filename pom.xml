@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.stargate</groupId>
   <artifactId>stargate</artifactId>
-  <version>2.0.0-ALPHA-9-SNAPSHOT</version>
+  <version>2.0.0-BETA-2-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>${project.groupId}:${project.artifactId}</name>
   <description>Core modules for Stargate</description>
@@ -16,24 +16,24 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.scm.id>github</project.scm.id>
     <doclint>none</doclint>
-    <driver.version>4.13.0</driver.version>
+    <driver.version>4.14.1</driver.version>
     <xml-format.skip>true</xml-format.skip>
 
     <!-- First DropWizard version and things it directly depends on that make sense to sync -->
-    <dropwizard.version>2.0.28</dropwizard.version>
+    <dropwizard.version>2.0.32</dropwizard.version>
     <!--
       Note that this is currently aligned with the metrics version that DropWizard transitively depends on.
       It's probably a good idea to keep the two versions in sync.
     -->
-    <dropwizard.metrics.version>4.1.29</dropwizard.metrics.version>
+    <dropwizard.metrics.version>4.1.32</dropwizard.metrics.version>
     <!--
       Note that this is currently aligned with the Jetty version that DropWizard transitively depends on.
       It's probably a good idea to keep the two versions in sync.
     -->
-    <jetty.version>9.4.44.v20210927</jetty.version>
+    <jetty.version>9.4.48.v20220622</jetty.version>
     <!-- Logging framework likewise in sync -->
     <slf4j.version>1.7.36</slf4j.version>
-    <logback.version>1.2.9</logback.version>
+    <logback.version>1.2.11</logback.version>
 
     <!-- And then other 3rd party version dependencies, compile/runtime -->
 
@@ -41,12 +41,7 @@
     <commons-io.version>2.7</commons-io.version>
     <grpc.version>1.45.1</grpc.version>
     <immutables.version>2.8.8</immutables.version>
-    <!-- 28-Mar-2022, tatu: BOM for "micro-patch" 2.12.6.1 of jackson-databind
-        is bit unusual wrt version; normally would be "x.y.z": when updating see:
-          https://mvnrepository.com/artifact/com.fasterxml.jackson/jackson-bom
-        for available versions
-      -->
-    <jackson.version>2.12.6.20220326</jackson.version>
+    <jackson.version>2.12.7</jackson.version>
     <javatuples.version>1.2</javatuples.version>
     <!-- Make sure micrometer and prometheus versions are in sync  -->
     <micrometer.version>1.8.2</micrometer.version>
@@ -171,8 +166,7 @@
         <module>graphqlapi</module>
         <module>restapi</module>
         <module>sgv2-restapi</module>
-        <module>sgv2-graphqlapi</module>
-        <module>sgv2-dynamo-api</module>
+        <module>sgv2-dynamoapi</module>
         <module>sgv2-service-common</module>
         <module>auth-api</module>
         <module>authnz</module>
@@ -183,6 +177,7 @@
         <module>config-store-yaml</module>
         <module>rate-limiting-global</module>
         <module>grpc-proto</module>
+        <module>bridge-proto</module>
         <module>grpc</module>
         <module>metrics-jersey</module>
         <module>grpc-examples</module>
@@ -209,8 +204,7 @@
         <module>graphqlapi</module>
         <module>restapi</module>
         <module>sgv2-restapi</module>
-        <module>sgv2-dynamo-api</module>
-        <module>sgv2-graphqlapi</module>
+        <module>sgv2-dynamoapi</module>
         <module>sgv2-service-common</module>
         <module>auth-api</module>
         <module>authnz</module>
@@ -221,6 +215,7 @@
         <module>config-store-yaml</module>
         <module>rate-limiting-global</module>
         <module>grpc-proto</module>
+        <module>bridge-proto</module>
         <module>grpc</module>
         <module>metrics-jersey</module>
         <module>grpc-examples</module>
@@ -720,6 +715,25 @@
         <groupId>com.datastax.oss</groupId>
         <artifactId>java-driver-shaded-guava</artifactId>
         <version>25.1-jre</version>
+      </dependency>
+      <dependency>
+        <groupId>com.datastax.oss</groupId>
+        <artifactId>java-driver-core</artifactId>
+        <version>${driver.version}</version>
+      </dependency>
+      <!-- 14-Jun-2022, tatu: with java-driver-core 4.14.1 this dependency is optional
+            and not brought as compile-time dependency, so needs to be explicitly added
+           (see [stargate#1889] for details). But we better use consistent version
+        -->
+      <dependency>
+        <groupId>com.esri.geometry</groupId>
+        <artifactId>esri-geometry-api</artifactId>
+        <version>1.2.1</version>
+      </dependency>
+      <dependency>
+        <groupId>com.datastax.oss</groupId>
+        <artifactId>java-driver-query-builder</artifactId>
+        <version>${driver.version}</version>
       </dependency>
       <dependency>
         <groupId>com.google.errorprone</groupId>

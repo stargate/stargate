@@ -2,7 +2,7 @@ package io.stargate.sgv2.restsvc.grpc;
 
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.stargate.proto.QueryOuterClass;
+import io.stargate.bridge.proto.QueryOuterClass;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;

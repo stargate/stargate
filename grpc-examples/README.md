@@ -58,7 +58,7 @@ Next, we can generate the `StargateGrpc` stub. There are two ways of interacting
 
 The first one is synchronous (blocking):
 ```java
-import io.stargate.grpc.StargateBearerToken;
+import io.stargate.bridge.grpc.StargateBearerToken;
 
 StargateGrpc.StargateBlockingStub blockingStub = StargateGrpc.newBlockingStub(channel)
                                                     .withCallCredentials(new StargateBearerToken("token-value"))

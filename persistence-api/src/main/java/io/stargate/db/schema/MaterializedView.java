@@ -23,11 +23,11 @@ public abstract class MaterializedView extends AbstractTable implements Index {
   private static final long serialVersionUID = -2999120284516448661L;
 
   public static MaterializedView create(String keyspace, String name, Iterable<Column> columns) {
-    return create(keyspace, name, columns, "");
+    return create(keyspace, name, columns, "", 0);
   }
 
   public static MaterializedView create(
-      String keyspace, String name, Iterable<Column> columns, String comment) {
+      String keyspace, String name, Iterable<Column> columns, String comment, int ttl) {
     columns.forEach(
         c -> {
           Preconditions.checkState(
@@ -38,11 +38,24 @@ public abstract class MaterializedView extends AbstractTable implements Index {
         .name(name)
         .addAllColumns(columns)
         .comment(comment)
+        .ttl(ttl)
         .build();
   }
 
   public static MaterializedView reference(String keyspace, String name) {
     return ImmutableMaterializedView.builder().keyspace(keyspace).name(name).addColumns().build();
+  }
+
+  @Value.Default
+  @Override
+  public String comment() {
+    return "";
+  }
+
+  @Value.Default
+  @Override
+  public int ttl() {
+    return 0;
   }
 
   @Override
@@ -53,5 +66,17 @@ public abstract class MaterializedView extends AbstractTable implements Index {
   @Override
   public String indexTypeName() {
     return "Materialized view";
+  }
+
+  @Override
+  @Value.Derived
+  @Value.Auxiliary
+  public int schemaHashCode() {
+    return SchemaHashable.combine(
+        SchemaHashable.hashCode(name()),
+        SchemaHashable.hashCode(keyspace()),
+        SchemaHashable.hash(columns()),
+        SchemaHashable.hashCode(comment()),
+        SchemaHashable.hashCode(ttl()));
   }
 }

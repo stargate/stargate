@@ -1,5 +1,224 @@
 # Changelog
 
+## [v2.0.0-BETA-1](https://github.com/stargate/stargate/tree/v2.0.0-BETA-1) (2022-09-08)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-17...v2.0.0-BETA-1)
+
+**Merged pull requests:**
+
+- Stargate v2 readme updates [\#2055](https://github.com/stargate/stargate/pull/2055) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Remove unneeded tests from SGv2 \(RESTv1 not supported by the new backend\) [\#2051](https://github.com/stargate/stargate/pull/2051) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- enable population of the token in the swagger-ui [\#2050](https://github.com/stargate/stargate/pull/2050) ([ivansenic](https://github.com/ivansenic))
+- closes \#2031: dead leaves to accept custom metadata [\#2048](https://github.com/stargate/stargate/pull/2048) ([ivansenic](https://github.com/ivansenic))
+- update int tests readme [\#2043](https://github.com/stargate/stargate/pull/2043) ([ivansenic](https://github.com/ivansenic))
+- $set support [\#2040](https://github.com/stargate/stargate/pull/2040) ([EricBorczuk](https://github.com/EricBorczuk))
+- repository should not include stargateio [\#2039](https://github.com/stargate/stargate/pull/2039) ([ivansenic](https://github.com/ivansenic))
+- making all int test in Docs V2 to use @QuarkusIntegrationTest [\#2029](https://github.com/stargate/stargate/pull/2029) ([ivansenic](https://github.com/ivansenic))
+- Separate executor in BridgeImpl [\#2019](https://github.com/stargate/stargate/pull/2019) ([EricBorczuk](https://github.com/EricBorczuk))
+- Convert SGv2 REST API from DropWizard to Quarkus [\#1982](https://github.com/stargate/stargate/pull/1982) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Convert GraphQL v2 to Quarkus [\#1980](https://github.com/stargate/stargate/pull/1980) ([olim7t](https://github.com/olim7t))
+
+## [v2.0.0-ALPHA-17](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-17) (2022-08-16)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-16...v2.0.0-ALPHA-17)
+
+**Fixed bugs:**
+
+- Document API V2 converts infrastructure exceptions to `5xx` [\#1928](https://github.com/stargate/stargate/issues/1928)
+
+**Closed issues:**
+
+- Avoid creating a new grpc stub for each request in the `StargateRequestInfo` [\#2004](https://github.com/stargate/stargate/issues/2004)
+- `StargateV1ConfigurationSourceProviderTest` failing on v2 branch [\#2001](https://github.com/stargate/stargate/issues/2001)
+- Move all generic and shared components to the `svg2-quarkus-common` [\#1983](https://github.com/stargate/stargate/issues/1983)
+- Consider alternative setup for sgv2-quarkus-common test JAR [\#1976](https://github.com/stargate/stargate/issues/1976)
+- Enhanced querying is not needed always in the `QueryExecutor` [\#1960](https://github.com/stargate/stargate/issues/1960)
+- Final setup for the Docs API V2 [\#1823](https://github.com/stargate/stargate/issues/1823)
+- Use comparable bytes API in persistence-cassandra-3.11 and persistence-cassandra-4.0 [\#1761](https://github.com/stargate/stargate/issues/1761)
+- Independent end-to-end tests in Document API V2 [\#1737](https://github.com/stargate/stargate/issues/1737)
+- Support document table upgrade functions in Document API V2 [\#1736](https://github.com/stargate/stargate/issues/1736)
+- Support document built-in functions in the Document API V2 [\#1735](https://github.com/stargate/stargate/issues/1735)
+- REST Controllers for the read and search paths in the Document API V2 [\#1734](https://github.com/stargate/stargate/issues/1734)
+- REST Controllers for the write paths in the Document API V2 [\#1730](https://github.com/stargate/stargate/issues/1730)
+
+**Merged pull requests:**
+
+- Add one more IT for RESTv2/DELETE to cover missing/invalid item refs [\#2036](https://github.com/stargate/stargate/pull/2036) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#2034: update okhttp test dependency [\#2035](https://github.com/stargate/stargate/pull/2035) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release [\#2033](https://github.com/stargate/stargate/pull/2033) ([github-actions[bot]](https://github.com/apps/github-actions))
+- using skipPublish for the build without publish as well [\#2032](https://github.com/stargate/stargate/pull/2032) ([ivansenic](https://github.com/ivansenic))
+- upgrade Quarkus to 2.11.2, DSE to 6.8.25 [\#2030](https://github.com/stargate/stargate/pull/2030) ([ivansenic](https://github.com/ivansenic))
+- Fix merge issue [\#2027](https://github.com/stargate/stargate/pull/2027) ([olim7t](https://github.com/olim7t))
+- V2 fix: id-path now accepts a path to a non-string value [\#2021](https://github.com/stargate/stargate/pull/2021) ([EricBorczuk](https://github.com/EricBorczuk))
+- Update README with notes on troubelshooting IT run failure [\#2017](https://github.com/stargate/stargate/pull/2017) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- SGv2: Deterministic hash codes for schema objects [\#2010](https://github.com/stargate/stargate/pull/2010) ([mpenick](https://github.com/mpenick))
+- Avoid creating a new grpc stub for each request in the StargateRequestInfo [\#2008](https://github.com/stargate/stargate/pull/2008) ([EricBorczuk](https://github.com/EricBorczuk))
+- fix bugs in application props and configuration readme [\#1998](https://github.com/stargate/stargate/pull/1998) ([ivansenic](https://github.com/ivansenic))
+- Move integration test utilities to sgv2-quarkus-common [\#1995](https://github.com/stargate/stargate/pull/1995) ([olim7t](https://github.com/olim7t))
+- V1/V2 Docs API compat test [\#1990](https://github.com/stargate/stargate/pull/1990) ([EricBorczuk](https://github.com/EricBorczuk))
+- Upgrade Quarkus 2.10.1-final -\> 2.10.3-final [\#1989](https://github.com/stargate/stargate/pull/1989) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- updated release workflow for V2 [\#1987](https://github.com/stargate/stargate/pull/1987) ([ivansenic](https://github.com/ivansenic))
+- closes \#1823: fixes all warnings in docs api V2 [\#1986](https://github.com/stargate/stargate/pull/1986) ([ivansenic](https://github.com/ivansenic))
+- closes \#1983: moving other common components to common project [\#1984](https://github.com/stargate/stargate/pull/1984) ([ivansenic](https://github.com/ivansenic))
+- relates to \#1823: final setup for the docs api v2 [\#1970](https://github.com/stargate/stargate/pull/1970) ([ivansenic](https://github.com/ivansenic))
+- closes \#1903: decrease fetch of the comparable bytes [\#1966](https://github.com/stargate/stargate/pull/1966) ([ivansenic](https://github.com/ivansenic))
+- Extract common module for Quarkus-based services [\#1965](https://github.com/stargate/stargate/pull/1965) ([olim7t](https://github.com/olim7t))
+- closes \#1735: execute builtin functions functionality [\#1964](https://github.com/stargate/stargate/pull/1964) ([EricBorczuk](https://github.com/EricBorczuk))
+- closes \#1761: copy and implement needed comprable bytes API for D… [\#1959](https://github.com/stargate/stargate/pull/1959) ([ivansenic](https://github.com/ivansenic))
+- closes \#1736: upgrade actions for collections [\#1958](https://github.com/stargate/stargate/pull/1958) ([ivansenic](https://github.com/ivansenic))
+- closes \#1737: update Quarkus to 2.10.1.Final, finalize int tests [\#1957](https://github.com/stargate/stargate/pull/1957) ([ivansenic](https://github.com/ivansenic))
+- closes \#1928: web app exceptions to be intercepted [\#1952](https://github.com/stargate/stargate/pull/1952) ([ivansenic](https://github.com/ivansenic))
+- relates to \#1730: document update resource tests [\#1951](https://github.com/stargate/stargate/pull/1951) ([ivansenic](https://github.com/ivansenic))
+- relates to \#1730: document patch resource tests [\#1950](https://github.com/stargate/stargate/pull/1950) ([EricBorczuk](https://github.com/EricBorczuk))
+- Bumping version to 2.0.0-ALPHA-17-SNAPSHOT [\#1949](https://github.com/stargate/stargate/pull/1949) ([github-actions[bot]](https://github.com/apps/github-actions))
+- relates to \#1730: document write resource tests [\#1942](https://github.com/stargate/stargate/pull/1942) ([EricBorczuk](https://github.com/EricBorczuk))
+- closes \#1734: int tests for search, get document and sub-document [\#1930](https://github.com/stargate/stargate/pull/1930) ([ivansenic](https://github.com/ivansenic))
+
+## [v2.0.0-ALPHA-16](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-16) (2022-07-05)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-15...v2.0.0-ALPHA-16)
+
+**Merged pull requests:**
+
+- update docs api V2 target C\* and DSE versions [\#1945](https://github.com/stargate/stargate/pull/1945)
+- relates to \#1920: update C\* and DSE versions in the docker compose [\#1944](https://github.com/stargate/stargate/pull/1944)
+- relates to \#1730: added document delete resource test [\#1933](https://github.com/stargate/stargate/pull/1933)
+- relates to \#1737: docs api V2 action workflow updates [\#1931](https://github.com/stargate/stargate/pull/1931)
+
+## [v2.0.0-ALPHA-15](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-15) (2022-07-01)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-14...v2.0.0-ALPHA-15)
+
+**Merged pull requests:**
+
+- Add JVM metrics to SGv2 REST API [\#1929](https://github.com/stargate/stargate/pull/1929)
+- relates to \#1730, \#1734: api documents for write paths updated [\#1927](https://github.com/stargate/stargate/pull/1927)
+- Fix \#1923: expose Table "default TTL" for SGv2/REST API too [\#1924](https://github.com/stargate/stargate/pull/1924)
+- relates to \#1734: read resource [\#1921](https://github.com/stargate/stargate/pull/1921)
+- Port write endpoints to v2 [\#1916](https://github.com/stargate/stargate/pull/1916)
+- Push images to ECR [\#1911](https://github.com/stargate/stargate/pull/1911)
+- updated Quarkus to v2.10.0.Final [\#1909](https://github.com/stargate/stargate/pull/1909)
+- closes \#1887: fixed consistency for reads, added consistency checks in tests [\#1908](https://github.com/stargate/stargate/pull/1908)
+- closes \#1732: read documents service for V2 [\#1907](https://github.com/stargate/stargate/pull/1907)
+- closes \#1733: added dead leaves deletion to the write bridge service [\#1905](https://github.com/stargate/stargate/pull/1905)
+- closes \#1729: port write paths of ReactiveDocumentService v1 to v2 [\#1899](https://github.com/stargate/stargate/pull/1899)
+- DEV\_GUIDE: Add MacOS loopback address [\#1812](https://github.com/stargate/stargate/pull/1812)
+
+## [v2.0.0-ALPHA-14](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-14) (2022-06-21)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-13...v2.0.0-ALPHA-14)
+
+**Closed issues:**
+
+- Implement `ReadBridgeService` in the Document API V2 [\#1738](https://github.com/stargate/stargate/issues/1738)
+- Consider optimistic handling of schema metadata [\#1873](https://github.com/stargate/stargate/issues/1873)
+
+**Merged pull requests:**
+
+- closes \#1738: read bridge service for docs V2 [\#1888](https://github.com/stargate/stargate/pull/1888) ([ivansenic](https://github.com/ivansenic))
+- Add optimistic handling of schema metadata \(fixes \#1873\) [\#1876](https://github.com/stargate/stargate/pull/1876) ([olim7t](https://github.com/olim7t))
+
+## [v2.0.0-ALPHA-13](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-13) (2022-06-15)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-12...v2.0.0-ALPHA-13)
+
+**Merged pull requests:**
+
+- Revert the nesting of JSON schema in table comment [\#1885](https://github.com/stargate/stargate/pull/1885) ([EricBorczuk](https://github.com/EricBorczuk))
+- Adds JsonSchemaResource, with tests [\#1867](https://github.com/stargate/stargate/pull/1867) ([EricBorczuk](https://github.com/EricBorczuk))
+
+## [v2.0.0-ALPHA-12](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-12) (2022-06-10)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-11...v2.0.0-ALPHA-12)
+
+**Fixed bugs:**
+
+**Closed issues:**
+
+- Support different resume modes for the paging state for enriched queries [\#1862](https://github.com/stargate/stargate/issues/1862)
+- Stargate V2 keyspace creation via REST API does not work with `datacenters` argument [\#1817](https://github.com/stargate/stargate/issues/1817)
+- Decouple Bridge from gRPC service [\#1770](https://github.com/stargate/stargate/issues/1770)
+- Namespace REST Controller for Document API V2 [\#1724](https://github.com/stargate/stargate/issues/1724)
+
+**Merged pull requests:**
+
+- Fix \#1817 for SGv2/REST by supporting multi-dc setting for createKeyspace [\#1880](https://github.com/stargate/stargate/pull/1880) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- relates to \#1738: ported search weight and expression rules [\#1875](https://github.com/stargate/stargate/pull/1875) ([ivansenic](https://github.com/ivansenic))
+- Initial implementation of Host-to-tenant metrics tagger [\#1872](https://github.com/stargate/stargate/pull/1872) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- closes \#1862: making resume mode on the bridge optional [\#1870](https://github.com/stargate/stargate/pull/1870) ([ivansenic](https://github.com/ivansenic))
+- relates to \#1737: final maven setup for the int test in Docs API v2 [\#1869](https://github.com/stargate/stargate/pull/1869) ([ivansenic](https://github.com/ivansenic))
+- Allow resume mode to be settable on QueryParameters [\#1863](https://github.com/stargate/stargate/pull/1863) ([EricBorczuk](https://github.com/EricBorczuk))
+- closes \#1724: namespace resource [\#1859](https://github.com/stargate/stargate/pull/1859) ([ivansenic](https://github.com/ivansenic))
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-10...v2.0.0-ALPHA-11)
+
+**Closed issues:**
+
+- Use BatchQuery in document v2 write service [\#1846](https://github.com/stargate/stargate/issues/1846)
+- Missing token should provide a response with body [\#1839](https://github.com/stargate/stargate/issues/1839)
+- Collection REST Controller for the Document API V2 [\#1722](https://github.com/stargate/stargate/issues/1722)
+- Implement `KeyspaceManager` based on the Stargate V2 common schema handling [\#1721](https://github.com/stargate/stargate/issues/1721)
+
+**Merged pull requests:**
+
+- relates to \#1737: proper way to skip integration tests [\#1861](https://github.com/stargate/stargate/pull/1861) ([ivansenic](https://github.com/ivansenic))
+- removed example endpoint from the Docs V2 [\#1860](https://github.com/stargate/stargate/pull/1860) ([ivansenic](https://github.com/ivansenic))
+- fixing dependency index for the guava usage [\#1857](https://github.com/stargate/stargate/pull/1857) ([ivansenic](https://github.com/ivansenic))
+- Fix for \#1841 \(separate from SGv1\) [\#1856](https://github.com/stargate/stargate/pull/1856) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Allow overriding SGv1 REST and docsapi port via system property [\#1855](https://github.com/stargate/stargate/pull/1855) ([mpenick](https://github.com/mpenick))
+- Change REST API module and artifact names to "sgv2-restapi" for Stargate V2 [\#1854](https://github.com/stargate/stargate/pull/1854) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- closes \#1839: api error response in case of a missing token [\#1852](https://github.com/stargate/stargate/pull/1852) ([ivansenic](https://github.com/ivansenic))
+- Use BatchQuery in document v2 write service \(fixes \#1846\) [\#1851](https://github.com/stargate/stargate/pull/1851) ([olim7t](https://github.com/olim7t))
+- Add JsonSchemaManager [\#1847](https://github.com/stargate/stargate/pull/1847) ([EricBorczuk](https://github.com/EricBorczuk))
+- closes \#1721: keyspace manager for Docs API v2 [\#1844](https://github.com/stargate/stargate/pull/1844) ([ivansenic](https://github.com/ivansenic))
+- update quarkus to 2.9.1.Final [\#1843](https://github.com/stargate/stargate/pull/1843) ([ivansenic](https://github.com/ivansenic))
+- closes \#1722: collection resource impl [\#1840](https://github.com/stargate/stargate/pull/1840) ([ivansenic](https://github.com/ivansenic))
+- Implement WriteDocumentService in Document API v2 \(fixes \#1728\) [\#1833](https://github.com/stargate/stargate/pull/1833) ([olim7t](https://github.com/olim7t))
+- Add JsonDocShredder, with tests [\#1831](https://github.com/stargate/stargate/pull/1831) ([EricBorczuk](https://github.com/EricBorczuk))
+- relates to \#1737: setup for the integration tests in docs api v2  [\#1825](https://github.com/stargate/stargate/pull/1825) ([ivansenic](https://github.com/ivansenic))
+
+## [v2.0.0-ALPHA-10](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-10) (2022-05-19)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-9...v2.0.0-ALPHA-10)
+
+**Closed issues:**
+
+- REST API should log ERROR for failure to contact Bridge gRPC service [\#1818](https://github.com/stargate/stargate/issues/1818)
+- Re-enable old Stargate V1 REST API in v2.0.0 branch [\#1813](https://github.com/stargate/stargate/issues/1813)
+- Adapt Document API JSON converter to gRPC based types [\#1727](https://github.com/stargate/stargate/issues/1727)
+- Adapt Document API condition model to gRPC based types  [\#1726](https://github.com/stargate/stargate/issues/1726)
+- Implement `TableManager` based on Stargate V2 common schema handling [\#1720](https://github.com/stargate/stargate/issues/1720)
+
+**Merged pull requests:**
+
+- Skip bridge authentication for GetSupportedFeatures \(fixes \#1821\) [\#1822](https://github.com/stargate/stargate/pull/1822) ([olim7t](https://github.com/olim7t))
+- Change grpc bridge tenant header [\#1820](https://github.com/stargate/stargate/pull/1820) ([mpenick](https://github.com/mpenick))
+- Log server-side Bridge/gRPC exceptions that are not client-induced [\#1819](https://github.com/stargate/stargate/pull/1819) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Port DocsApiUtils and tests [\#1816](https://github.com/stargate/stargate/pull/1816) ([EricBorczuk](https://github.com/EricBorczuk))
+- Allow re-enabling of SGv1 REST API for SGv2 via system property [\#1814](https://github.com/stargate/stargate/pull/1814) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Migrate write query builders to Document API v2 [\#1810](https://github.com/stargate/stargate/pull/1810) ([olim7t](https://github.com/olim7t))
+- eager creation of the stargate bridge for the request [\#1809](https://github.com/stargate/stargate/pull/1809) ([ivansenic](https://github.com/ivansenic))
+- closes \#1720: table manager for creating, validating and deleting collections [\#1808](https://github.com/stargate/stargate/pull/1808) ([ivansenic](https://github.com/ivansenic))
+- Use decorated name to cache keyspaces in bridge client [\#1807](https://github.com/stargate/stargate/pull/1807) ([olim7t](https://github.com/olim7t))
+- relates to \#1720: simple cached schema management  [\#1806](https://github.com/stargate/stargate/pull/1806) ([ivansenic](https://github.com/ivansenic))
+- Revisit value handling in the query builder [\#1805](https://github.com/stargate/stargate/pull/1805) ([olim7t](https://github.com/olim7t))
+- Bumping version for next v2 release [\#1803](https://github.com/stargate/stargate/pull/1803) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Migrate JsonConverter to V2 [\#1797](https://github.com/stargate/stargate/pull/1797) ([EricBorczuk](https://github.com/EricBorczuk))
+- Adapt Document API condition model to gRPC based types \(fixes \#1726\) [\#1796](https://github.com/stargate/stargate/pull/1796) ([olim7t](https://github.com/olim7t))
+- Update startup and Docker scripts for GraphQL [\#1793](https://github.com/stargate/stargate/pull/1793) ([olim7t](https://github.com/olim7t))
+- Port GraphQL schema-first to v2 architecture [\#1771](https://github.com/stargate/stargate/pull/1771) ([olim7t](https://github.com/olim7t))
+
+## [v2.0.0-ALPHA-9](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-9) (2022-04-27)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.55...v2.0.0-ALPHA-9)
+
+**Merged pull requests:**
+
+- Add utility to deal with TypeSpec instances [\#1794](https://github.com/stargate/stargate/pull/1794) ([olim7t](https://github.com/olim7t))
+- closes \#1718: final configuration changes and fixes for Docs API V2 [\#1792](https://github.com/stargate/stargate/pull/1792) ([ivansenic](https://github.com/ivansenic))
+- relates to \#1718: docs api configuration for the V2 [\#1783](https://github.com/stargate/stargate/pull/1783) ([ivansenic](https://github.com/ivansenic))
+- Decouple bridge from public gRPC service \(fixes \#1770\) [\#1778](https://github.com/stargate/stargate/pull/1778) ([olim7t](https://github.com/olim7t))
+
 ## [v2.0.0-ALPHA-8](https://github.com/stargate/stargate/tree/v2.0.0-ALPHA-8) (2022-04-19)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-7...v2.0.0-ALPHA-8)
@@ -160,6 +379,134 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Rest integration test - initial work (#1359)
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
+
+## [v1.0.64](https://github.com/stargate/stargate/tree/v1.0.64) (2022-08-30)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.63...v1.0.64)
+
+**Closed issues:**
+
+- Allow `dse.yaml` to be passed to DSE persistence backend [\#2011](https://github.com/stargate/stargate/issues/2011)
+- Cql client encryption is not working [\#1001](https://github.com/stargate/stargate/issues/1001)
+
+**Merged pull requests:**
+
+- include auth excepion message in the thrown exception [\#2046](https://github.com/stargate/stargate/pull/2046) ([ivansenic](https://github.com/ivansenic))
+- Add ability to load `dse.yaml` when using DSE persistence [\#2013](https://github.com/stargate/stargate/pull/2013) ([mpenick](https://github.com/mpenick))
+- Fix TLS \(`client\_encryption\_options`\) configuration for CQL [\#1992](https://github.com/stargate/stargate/pull/1992) ([mpenick](https://github.com/mpenick))
+
+## [v1.0.63](https://github.com/stargate/stargate/tree/v1.0.63) (2022-08-15)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.61...v1.0.63)
+
+**Fixed bugs:**
+
+- `NullPointerException` on the `RowResource` [\#1994](https://github.com/stargate/stargate/issues/1994)
+- Documents API should handle `OverloadedException` gracefully [\#1972](https://github.com/stargate/stargate/issues/1972)
+- GET by primary key with frozen\<udt\> using REST V1 is returning 500 error [\#205](https://github.com/stargate/stargate/issues/205)
+
+**Closed issues:**
+
+- Update DSE to 6.8.25 [\#2022](https://github.com/stargate/stargate/issues/2022)
+- CQL module needs to be upgraded [\#2015](https://github.com/stargate/stargate/issues/2015)
+- Upgrade DropWizard to latest \(2.0.32\), dependencies [\#1968](https://github.com/stargate/stargate/issues/1968)
+- Result structure for REST GET `/v2/schemas/keyspaces` \(and `/v2/schemas/keyspaces/{keyspaceName}`\) different from Swagger model in "simple" topology case [\#1396](https://github.com/stargate/stargate/issues/1396)
+
+**Merged pull requests:**
+
+- fix release workflows input defaults [\#2026](https://github.com/stargate/stargate/pull/2026) ([ivansenic](https://github.com/ivansenic))
+- Bumping version to 1.0.63-SNAPSHOT [\#2025](https://github.com/stargate/stargate/pull/2025) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Update Stargate-builder image to use DSE 6.8.25 [\#2024](https://github.com/stargate/stargate/pull/2024) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update DSE dependency to 6.8.25 [\#2023](https://github.com/stargate/stargate/pull/2023) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- id-path now accepts a path to a non-string value [\#2020](https://github.com/stargate/stargate/pull/2020) ([EricBorczuk](https://github.com/EricBorczuk))
+- Fix for Issue \# 205: Fix for Rest V1 API GET by primary key with frozen udt. [\#2018](https://github.com/stargate/stargate/pull/2018) ([maheshrajamani](https://github.com/maheshrajamani))
+- closes \#1994: Validation for Rest v1 row update API [\#2009](https://github.com/stargate/stargate/pull/2009) ([maheshrajamani](https://github.com/maheshrajamani))
+- release workflows port-back [\#2003](https://github.com/stargate/stargate/pull/2003) ([ivansenic](https://github.com/ivansenic))
+- closes \#2001: fixing `StargateV1ConfigurationSourceProviderTest` on the CI [\#2002](https://github.com/stargate/stargate/pull/2002) ([ivansenic](https://github.com/ivansenic))
+- improving release v1 github workflow [\#1993](https://github.com/stargate/stargate/pull/1993) ([ivansenic](https://github.com/ivansenic))
+- remove codacy result upload in CI [\#1985](https://github.com/stargate/stargate/pull/1985) ([ivansenic](https://github.com/ivansenic))
+- closes \#1972: correctly unwrap data store exceptions in the QueryExec… [\#1975](https://github.com/stargate/stargate/pull/1975) ([ivansenic](https://github.com/ivansenic))
+- Bumping version to "1.0.62-SNAPSHOT" [\#1973](https://github.com/stargate/stargate/pull/1973) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v1.0.61](https://github.com/stargate/stargate/tree/v1.0.61) (2022-07-12)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.60...v1.0.61)
+
+**Closed issues:**
+
+- Upgrade DropWizard to latest \(2.0.32\), dependencies [\#1968](https://github.com/stargate/stargate/issues/1968)
+- Allow yaml configuration file overrides per-service [\#1953](https://github.com/stargate/stargate/issues/1953)
+- Test out running full IT suite for one backend \(C\*4.0\) using Github Actions [\#1913](https://github.com/stargate/stargate/issues/1913)
+
+**Merged pull requests:**
+
+- Fix for \#1953: add ability to override DropWizard app config file [\#1954](https://github.com/stargate/stargate/pull/1954) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Continuation of CI/IT experiment -- build all 3 backends in parallel [\#1914](https://github.com/stargate/stargate/pull/1914) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#1968: update DropWizard dep 2.0.28-\>2.0.32, its dependencies [\#1969](https://github.com/stargate/stargate/pull/1969) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v1.0.60](https://github.com/stargate/stargate/tree/v1.0.60) (2022-07-05)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.59...v1.0.60)
+
+**Fixed bugs:**
+
+- NPE thrown when the system property `stargate.proxy\_protocol.dns\_name` is not provided [\#1934](https://github.com/stargate/stargate/issues/1934)
+
+**Closed issues:**
+
+**Merged pull requests:**
+
+- Revert "Fix `ByteBuf` leak caused by not releasing `HAProxyMessage` \(… [\#1943](https://github.com/stargate/stargate/pull/1943) ([mpenick](https://github.com/mpenick))
+- Change generic NPE to IllegalArgumentException with descriptive message [\#1939](https://github.com/stargate/stargate/pull/1939) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v1.0.58](https://github.com/stargate/stargate/tree/v1.0.58) (2022-06-15)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.57...v1.0.58)
+
+**Closed issues:**
+
+- Update java-driver-code dependency from 4.13.0 to 4.14.1 [\#1890](https://github.com/stargate/stargate/pull/1890) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v1.0.57](https://github.com/stargate/stargate/tree/v1.0.57) (2022-05-26)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.56...v1.0.57)
+
+**Closed issues:**
+
+- Update Stargate "org.json" dependency version [\#1848](https://github.com/stargate/stargate/issues/1848)
+- Table creation via REST API does not enforce requested order of clustering columns [\#1841](https://github.com/stargate/stargate/issues/1841)
+
+**Merged pull requests:**
+
+- Upgrade org.json version to latest (to avoid CVE in deps) [\#1849](https://github.com/stargate/stargate/pull/1849) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Enforce requested clustering column order on REST API [\#1842](https://github.com/stargate/stargate/pull/1842) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+
+## [v1.0.56](https://github.com/stargate/stargate/tree/v1.0.56) (2022-05-20)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.55...v1.0.56)
+
+**Merged pull requests:**
+
+- Make test result uploads not break CI when fail [\#1832](https://github.com/stargate/stargate/pull/1832) ([EricBorczuk](https://github.com/EricBorczuk))
+- Remove invalid comma for HOST\_ID in `starctl` [\#1826](https://github.com/stargate/stargate/pull/1826) ([mpenick](https://github.com/mpenick))
+- Update `.github/CODEOWNERS` [\#1815](https://github.com/stargate/stargate/pull/1815) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v1.0.55](https://github.com/stargate/stargate/tree/v1.0.55) (2022-04-27)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.54...v1.0.55)
+
+**Closed issues:**
+
+- Revert Persistence.unregisterEventListener [\#1777](https://github.com/stargate/stargate/issues/1777)
+- Values.byteBuffer returns an empty buffer [\#1676](https://github.com/stargate/stargate/issues/1676)
+
+**Merged pull requests:**
+
+- Add exception message in ErrorCodeRuntimeException for inclusion in Response [\#1800](https://github.com/stargate/stargate/pull/1800) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Improve Stargate V1 logging by adding more info to help Splunk indexing [\#1798](https://github.com/stargate/stargate/pull/1798) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update maven-compiler-plugin 3.8.1-\>3.10.1 \(for post-Java-8 builds\) [\#1791](https://github.com/stargate/stargate/pull/1791) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update Duzzt dependency, indirect StringTemplate, jacoco \(for Java 9+ support\) [\#1788](https://github.com/stargate/stargate/pull/1788) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix Values.byteBuffer to return non-empty buffer \(fixes \#1676\) [\#1781](https://github.com/stargate/stargate/pull/1781) ([olim7t](https://github.com/olim7t))
 
 ## [v1.0.54](https://github.com/stargate/stargate/tree/v1.0.54) (2022-04-18)
 

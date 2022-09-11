@@ -23,11 +23,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.StargateBridgeGrpc;
 import io.stargate.db.schema.Column;
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
-import io.stargate.proto.Schema;
-import io.stargate.proto.StargateBridgeGrpc;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
