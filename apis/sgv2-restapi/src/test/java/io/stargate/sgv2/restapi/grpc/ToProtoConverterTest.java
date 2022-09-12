@@ -128,9 +128,9 @@ public class ToProtoConverterTest {
     TypeSpec doubleType = basicType(TypeSpec.Basic.DOUBLE);
     TypeSpec tupleType = tupleType(doubleType, doubleType);
     // Let's assert types from innermost to outermost; failure is via exception
-    // assertThat(createConverter(tupleType)).isNotNull();
+    assertThat(createConverter(tupleType)).isNotNull();
     TypeSpec listType = listType(tupleType);
-    // assertThat(createConverter(listType)).isNotNull();
+    assertThat(createConverter(listType)).isNotNull();
     TypeSpec mapType = mapType(basicType(TypeSpec.Basic.VARCHAR), listType);
     assertThat(createConverter(mapType)).isNotNull();
   }
@@ -142,7 +142,7 @@ public class ToProtoConverterTest {
    */
 
   private static ToProtoConverter createConverter(TypeSpec typeSpec) {
-    ColumnSpec column = ColumnSpec.newBuilder().setName("testColumn").setType(typeSpec).build();
+    ColumnSpec column = ColumnSpec.newBuilder().setName(TEST_COLUMN).setType(typeSpec).build();
     ToProtoValueCodec codec = TO_PROTO_VALUE_CODECS.codecFor(column);
     return new ToProtoConverter(TEST_TABLE, Collections.singletonMap(TEST_COLUMN, codec));
   }
