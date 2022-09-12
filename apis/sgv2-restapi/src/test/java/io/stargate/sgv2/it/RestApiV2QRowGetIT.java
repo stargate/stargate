@@ -917,7 +917,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     createTestTable(
         testKeyspaceName(),
         tableName,
-        Arrays.asList("id bigint", "datamap<text,frozen<list<frozen<tuple<double,double>>>>>"),
+        Arrays.asList("id bigint", "data map<text,frozen<list<frozen<tuple<double,double>>>>>"),
         Arrays.asList("id"),
         Arrays.asList());
 
