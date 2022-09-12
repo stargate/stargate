@@ -924,9 +924,9 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     // First insert no entry in nested "data" column, see decoder gets built ok.
     insertTypedRows(testKeyspaceName(), tableName, Arrays.asList(map("id", 1)));
 
-    ArrayNode rows = findRowsAsJsonNode(testKeyspaceName(), tableName, "2");
+    ArrayNode rows = findRowsAsJsonNode(testKeyspaceName(), tableName, 1);
     assertThat(rows).hasSize(1);
-    assertThat(rows.at("/0/id").asLong()).isEqualTo(Long.valueOf(2L));
+    assertThat(rows.at("/0/id").asLong()).isEqualTo(Long.valueOf(1L));
   }
 
   @Test
