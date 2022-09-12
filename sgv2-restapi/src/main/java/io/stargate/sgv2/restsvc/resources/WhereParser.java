@@ -5,9 +5,9 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.StreamReadFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import io.stargate.grpc.Values;
-import io.stargate.proto.QueryOuterClass;
-import io.stargate.proto.Schema;
+import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.common.cql.builder.BuiltCondition;
 import io.stargate.sgv2.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.cql.builder.Term;
@@ -180,22 +180,15 @@ public class WhereParser {
     final Object rawKey = nodeToRawObject(keyNode);
     final Object rawValue = nodeToRawObject(valueNode);
 
-    // Looks like we cannot pass Key as bound parameter, so no need to convert.
-    // But we do want to check field is of Map type anyway so
-    // And then try to decode Key and Value to match
-    if (converter.getCodec(fieldName).getKeyCodec() == null) {
-      throw new IllegalArgumentException(
-          String.format(
-              "Field '%s' not of map type; has to be for operation %s",
-              fieldName, FilterOp.$CONTAINSENTRY.rawValue));
-    }
-    // But we can pass value via placeholder
+    // Convert into gRPC values
+    final QueryOuterClass.Value opKeyValue =
+        converter.keyProtoValueFromLooselyTyped(fieldName, rawKey);
     final QueryOuterClass.Value opContentValue =
         converter.contentProtoValueFromLooselyTyped(fieldName, rawValue);
 
     conditions.add(
         BuiltCondition.of(
-            BuiltCondition.LHS.mapAccess(fieldName, rawKey),
+            BuiltCondition.LHS.mapAccess(fieldName, opKeyValue),
             FilterOp.$CONTAINSENTRY.predicate,
             Term.of(opContentValue)));
   }

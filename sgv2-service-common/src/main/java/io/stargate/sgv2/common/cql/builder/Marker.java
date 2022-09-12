@@ -15,7 +15,7 @@
  */
 package io.stargate.sgv2.common.cql.builder;
 
-class Marker implements Term {
+public class Marker implements Term {
 
   String asCql() {
     return "?";

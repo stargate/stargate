@@ -5,7 +5,8 @@ import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.grpc.StatusRuntimeException;
-import io.stargate.proto.QueryOuterClass;
+import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.common.cql.builder.Predicate;
@@ -51,7 +52,7 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
             .column("field_names")
             .column("field_types")
             .from("system_schema", "types")
-            .where("keyspace_name", Predicate.EQ, keyspaceName)
+            .where("keyspace_name", Predicate.EQ, Values.of(keyspaceName))
             .build();
 
     QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
@@ -83,8 +84,8 @@ public class Sgv2UDTsResourceImpl extends ResourceBase implements Sgv2UDTsResour
             .column("field_names")
             .column("field_types")
             .from("system_schema", "types")
-            .where("keyspace_name", Predicate.EQ, keyspaceName)
-            .where("type_name", Predicate.EQ, typeName)
+            .where("keyspace_name", Predicate.EQ, Values.of(keyspaceName))
+            .where("type_name", Predicate.EQ, Values.of(typeName))
             .build();
 
     QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);

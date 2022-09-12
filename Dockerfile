@@ -42,21 +42,3 @@ COPY stargate-lib/persistence-api*.jar stargate-lib/persistence-cassandra-3.11*.
 
 FROM base as coordinator-dse-68
 COPY stargate-lib/persistence-api*.jar stargate-lib/persistence-dse*.jar /stargate-lib/
-
-#
-# Dockerfile for building REST API image
-#
-
-# Using Java 11
-FROM openjdk:11-jre-slim as restapi
-
-# REST
-EXPOSE 8082
-
-ENV STARGATE_BRIDGE_HOST=localhost
-ENV STARGATE_BRIDGE_PORT=8091
-ENV STARGATE_REST_PORT=8082
-
-COPY stargate-lib/rest/sgv2*.jar stargate-lib/rest/
-COPY ./starctl-service-rest /starctl-service-rest
-ENTRYPOINT ["./starctl-service-rest"]

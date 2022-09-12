@@ -20,6 +20,16 @@ import com.google.protobuf.StringValue;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Udt;
+import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.Schema.ColumnOrderBy;
+import io.stargate.bridge.proto.Schema.CqlIndex;
+import io.stargate.bridge.proto.Schema.CqlKeyspace;
+import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.bridge.proto.Schema.CqlMaterializedView;
+import io.stargate.bridge.proto.Schema.CqlTable;
+import io.stargate.bridge.proto.Schema.DescribeKeyspaceQuery;
 import io.stargate.db.Persistence;
 import io.stargate.db.query.builder.Replication;
 import io.stargate.db.schema.CollectionIndexingType;
@@ -30,18 +40,6 @@ import io.stargate.db.schema.MaterializedView;
 import io.stargate.db.schema.SecondaryIndex;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
-import io.stargate.grpc.service.GrpcService;
-import io.stargate.grpc.service.ValuesHelper;
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec.Udt;
-import io.stargate.proto.Schema;
-import io.stargate.proto.Schema.ColumnOrderBy;
-import io.stargate.proto.Schema.CqlIndex;
-import io.stargate.proto.Schema.CqlKeyspace;
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
-import io.stargate.proto.Schema.CqlMaterializedView;
-import io.stargate.proto.Schema.CqlTable;
-import io.stargate.proto.Schema.DescribeKeyspaceQuery;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -62,13 +60,13 @@ class SchemaHandler {
     // If the persistence supports multi-tenancy, the actual name contains tenant information, e.g.
     // "tenant1_ks".
     String decoratedName =
-        persistence.decorateKeyspaceName(simpleName, GrpcService.HEADERS_KEY.get());
+        persistence.decorateKeyspaceName(simpleName, BridgeService.HEADERS_KEY.get());
 
     Keyspace keyspace = persistence.schema().keyspace(decoratedName);
     if (keyspace == null) {
       responseObserver.onError(
           Status.NOT_FOUND.withDescription("Keyspace not found").asException());
-    } else if (query.hasHash() && query.getHash().getValue() == keyspace.hashCode()) {
+    } else if (query.hasHash() && query.getHash().getValue() == keyspace.schemaHashCode()) {
       // Client already has the latest version, don't resend
       responseObserver.onNext(EMPTY_KEYSPACE_DESCRIPTION);
       responseObserver.onCompleted();
@@ -88,7 +86,7 @@ class SchemaHandler {
       Keyspace keyspace, String simpleName, String decoratedName) throws StatusException {
 
     CqlKeyspaceDescribe.Builder describeResultBuilder =
-        CqlKeyspaceDescribe.newBuilder().setHash(Int32Value.of(keyspace.hashCode()));
+        CqlKeyspaceDescribe.newBuilder().setHash(Int32Value.of(keyspace.schemaHashCode()));
     CqlKeyspace.Builder cqlKeyspaceBuilder =
         CqlKeyspace.newBuilder().setName(simpleName).setGlobalName(decoratedName);
 
@@ -156,8 +154,11 @@ class SchemaHandler {
       }
     }
 
-    // TODO: no table options in Table?
-    // cqlTableBuilder.putOptions(...);
+    // TODO Add any other table options here
+    if (table.comment() != null) {
+      cqlTableBuilder.putOptions("comment", table.comment());
+    }
+    cqlTableBuilder.putOptions("ttl", String.valueOf(table.ttl()));
 
     for (Index index : table.indexes()) {
       if (index instanceof SecondaryIndex) {

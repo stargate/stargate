@@ -96,7 +96,7 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
     }
   }
 
-  public interface ColumnType extends java.io.Serializable {
+  public interface ColumnType extends java.io.Serializable, SchemaHashable {
     AttachmentPoint CUSTOM_ATTACHMENT_POINT =
         new AttachmentPoint() {
 
@@ -506,6 +506,11 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
     @Override
     public Class<?> javaType() {
       return javaType;
+    }
+
+    @Override
+    public int schemaHashCode() {
+      return SchemaHashable.enumHashCode(this);
     }
 
     @Override
@@ -953,6 +958,19 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
       return Order.ASC;
     }
     return null;
+  }
+
+  @Override
+  @Value.Derived
+  @Value.Auxiliary
+  public int schemaHashCode() {
+    return SchemaHashable.combine(
+        SchemaHashable.hashCode(name()),
+        SchemaHashable.hashCode(type()),
+        SchemaHashable.enumHashCode(kind()),
+        SchemaHashable.hashCode(keyspace()),
+        SchemaHashable.hashCode(table()),
+        SchemaHashable.enumHashCode(order()));
   }
 
   public interface Builder {

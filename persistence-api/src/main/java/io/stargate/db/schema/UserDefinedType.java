@@ -175,4 +175,15 @@ public abstract class UserDefinedType implements Column.ColumnType, SchemaEntity
         null != column, "User defined type '%s' does not have field '%s'", cqlName(), name);
     return column.type();
   }
+
+  @Override
+  @Value.Derived
+  @Value.Auxiliary
+  public int schemaHashCode() {
+    return SchemaHashable.combine(
+        SchemaHashable.hashCode(isFrozen()),
+        SchemaHashable.hashCode(name()),
+        SchemaHashable.hashCode(keyspace()),
+        SchemaHashable.hash(columns()));
+  }
 }

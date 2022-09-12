@@ -21,10 +21,10 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.auth.entity.ResourceKind;
+import io.stargate.bridge.proto.Schema.AuthorizeSchemaReadsRequest;
+import io.stargate.bridge.proto.Schema.AuthorizeSchemaReadsResponse;
+import io.stargate.bridge.proto.Schema.SchemaRead;
 import io.stargate.db.Persistence.Connection;
-import io.stargate.proto.Schema.AuthorizeSchemaReadsRequest;
-import io.stargate.proto.Schema.AuthorizeSchemaReadsResponse;
-import io.stargate.proto.Schema.SchemaRead;
 import java.util.Collections;
 
 class AuthorizationHandler {

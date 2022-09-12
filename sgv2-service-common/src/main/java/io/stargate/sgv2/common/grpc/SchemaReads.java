@@ -16,9 +16,9 @@
 package io.stargate.sgv2.common.grpc;
 
 import com.google.protobuf.StringValue;
-import io.stargate.proto.Schema.SchemaRead;
-import io.stargate.proto.Schema.SchemaRead.ElementType;
-import io.stargate.proto.Schema.SchemaRead.SourceApi;
+import io.stargate.bridge.proto.Schema.SchemaRead;
+import io.stargate.bridge.proto.Schema.SchemaRead.ElementType;
+import io.stargate.bridge.proto.Schema.SchemaRead.SourceApi;
 
 /** Helper methods to construct {@link SchemaRead} instances. */
 public class SchemaReads {

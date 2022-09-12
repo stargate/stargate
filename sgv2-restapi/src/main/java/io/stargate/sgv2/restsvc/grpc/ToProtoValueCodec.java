@@ -1,6 +1,6 @@
 package io.stargate.sgv2.restsvc.grpc;
 
-import io.stargate.proto.QueryOuterClass;
+import io.stargate.bridge.proto.QueryOuterClass;
 
 /**
  * Abstraction for codecs that read incoming "REST" values (either structured JSON or, for path

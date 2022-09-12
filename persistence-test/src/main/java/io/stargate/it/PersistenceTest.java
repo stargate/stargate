@@ -1365,6 +1365,37 @@ public abstract class PersistenceTest {
   }
 
   @Test
+  public void testTableDefaultTTL() {
+    createKeyspace();
+    dataStore
+        .queryBuilder()
+        .create()
+        .table(keyspace, table)
+        .column("id", Column.Type.Int, PartitionKey)
+        .column("name", Column.Type.Text)
+        .withDefaultTTL(1234)
+        .build()
+        .execute()
+        .join();
+    dataStore.waitForSchemaAgreement();
+    Table theTable = dataStore.schema().keyspace(keyspace).table(table);
+    assertThat(theTable.ttl()).isEqualTo(1234);
+
+    dataStore
+        .queryBuilder()
+        .alter()
+        .table(keyspace, table)
+        .withDefaultTTL(5000)
+        .build()
+        .execute()
+        .join();
+    dataStore.waitForSchemaAgreement();
+
+    theTable = dataStore.schema().keyspace(keyspace).table(table);
+    assertThat(theTable.ttl()).isEqualTo(5000);
+  }
+
+  @Test
   public void testInsertWithTTL() throws ExecutionException, InterruptedException {
     createKeyspace();
     dataStore
@@ -1988,29 +2019,36 @@ public abstract class PersistenceTest {
     RowDecorator dec2 = rs2.makeRowDecorator();
     Iterator<Row> it2 = rs2.iterator();
 
-    if (backend.isDse()) {
-      Row first = null;
-      Row last = null;
-      Row p1 = null;
-      PureJavaOperations ops = new PureJavaOperations();
-      while (it1.hasNext()) {
-        assertThat(it2.hasNext()).isTrue();
-        Row r1 = it1.next();
-        Row r2 = it2.next();
-        first = first == null ? r1 : first;
-        last = r1;
-        assertThat(ops.compare(dec1.getComparableBytes(r1), dec2.getComparableBytes(r2)))
-            .isEqualTo(0);
-        if (p1 == null) {
-          p1 = r1;
-        }
-        assertThat(ops.compare(dec1.getComparableBytes(r1), dec2.getComparableBytes(p1)))
-            .isGreaterThanOrEqualTo(0);
+    Row first = null;
+    Row last = null;
+    Row p1 = null;
+    PureJavaOperations ops = new PureJavaOperations();
+    while (it1.hasNext()) {
+      assertThat(it2.hasNext()).isTrue();
+      Row rowIterator1 = it1.next();
+      Row rowIterator2 = it2.next();
+
+      // resolve first/ & last
+      first = first == null ? rowIterator1 : first;
+      last = rowIterator1;
+
+      // these two rows should be equal
+      ByteBuffer bytesRow1 = dec1.getComparableBytes(rowIterator1);
+      ByteBuffer bytesRow2 = dec2.getComparableBytes(rowIterator2);
+      assertThat(ops.compare(bytesRow1, bytesRow2)).isEqualTo(0);
+
+      // if P1 is null, then assign
+      if (p1 == null) {
+        p1 = rowIterator1;
       }
-      assertThat(it2.hasNext()).isFalse();
-      assertThat(ops.compare(dec1.getComparableBytes(last), dec2.getComparableBytes(first)))
-          .isGreaterThan(0);
+      assertThat(ops.compare(bytesRow1, dec2.getComparableBytes(p1))).isGreaterThanOrEqualTo(0);
     }
+
+    // final assertion
+    assertThat(it2.hasNext()).isFalse();
+    ByteBuffer lastBytes = dec1.getComparableBytes(last);
+    ByteBuffer firstBytes = dec2.getComparableBytes(first);
+    assertThat(ops.compare(lastBytes, firstBytes)).isGreaterThan(0);
   }
 
   private boolean isCassandra4() {

@@ -22,6 +22,19 @@ gcloud auth configure-docker
 
 That said, it's assumed that `gcloud` is available on the system, as it's going to be used for getting the existing image tags in the [Makefile](./Makefile).
 
+NOTE: if you see warning like this for "gcloud auth configure-docker":
+
+```
+WARNING: `docker-credential-gcloud` not in system PATH.
+gcloud's Docker credential helper can be configured but it will not work until this is corrected.
+```
+
+you will need to resolve this by making sure said command from `gcloud` package:
+
+    ./google-cloud-sdk/bin/docker-credential-gcloud
+
+is in the $PATH.
+
 ### Process
 
 * Perform wanted updates related to the image.

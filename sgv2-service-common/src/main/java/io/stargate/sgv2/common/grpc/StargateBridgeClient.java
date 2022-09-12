@@ -15,19 +15,20 @@
  */
 package io.stargate.sgv2.common.grpc;
 
-import io.stargate.proto.QueryOuterClass.Batch;
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.QueryOuterClass.Response;
-import io.stargate.proto.Schema;
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
-import io.stargate.proto.Schema.CqlTable;
-import io.stargate.proto.Schema.SchemaRead;
-import io.stargate.proto.Schema.SupportedFeaturesResponse;
+import io.stargate.bridge.proto.QueryOuterClass.Batch;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.QueryOuterClass.Response;
+import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.bridge.proto.Schema.CqlTable;
+import io.stargate.bridge.proto.Schema.SchemaRead;
+import io.stargate.bridge.proto.Schema.SupportedFeaturesResponse;
 import io.stargate.sgv2.common.futures.Futures;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
+import java.util.function.Function;
 
 /**
  * The client that allows Stargate services to communicate with the "bridge" to the persistence
@@ -42,9 +43,26 @@ public interface StargateBridgeClient {
    */
   CompletionStage<Response> executeQueryAsync(Query query);
 
+  /**
+   * Builds a CQL query based on the definition of a table, and executes it.
+   *
+   * @param queryProducer the function that builds the query. It will receive <code>Optional.empty()
+   *     </code> if the table does not exist. Note that it may be invoked more than once (the
+   *     implementation uses an optimistic approach to avoid systematically pre-fetching the table
+   *     definition, so it may have to retry).
+   */
+  CompletionStage<Response> executeQueryAsync(
+      String keyspaceName, String tableName, Function<Optional<CqlTable>, Query> queryProducer);
+
   /** @see #executeQueryAsync(Query) */
   default Response executeQuery(Query query) {
     return Futures.getUninterruptibly(executeQueryAsync(query));
+  }
+
+  /** @see #executeQueryAsync(String, String, Function) */
+  default Response executeQuery(
+      String keyspaceName, String tableName, Function<Optional<CqlTable>, Query> queryProducer) {
+    return Futures.getUninterruptibly(executeQueryAsync(keyspaceName, tableName, queryProducer));
   }
 
   /**

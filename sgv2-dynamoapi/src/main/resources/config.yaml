@@ -1,0 +1,16 @@
+server:
+  type: sgv2-dynamoapi
+  applicationContextPath: /
+  connector:
+    type: http
+    port: 8085
+  requestLog:
+    type: external
+stargate:
+  bridge:
+    host: localhost
+    port: 8091
+    useTls: false
+logging:
+    type: external
+

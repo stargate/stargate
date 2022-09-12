@@ -1,0 +1,12 @@
+# by default ignore bridge for data store props in tests
+stargate:
+  data-store:
+    ignore-bridge: true
+
+quarkus:
+  grpc:
+    clients:
+      # Used to setup a mock bridge in tests:
+      bridge:
+        host: localhost
+        port: 8091

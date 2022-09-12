@@ -18,15 +18,15 @@ package io.stargate.it.bridge;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.Schema.CqlIndex;
+import io.stargate.bridge.proto.Schema.CqlTable;
+import io.stargate.bridge.proto.StargateBridgeGrpc.StargateBridgeBlockingStub;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
-import io.stargate.proto.Schema;
-import io.stargate.proto.Schema.CqlIndex;
-import io.stargate.proto.Schema.CqlTable;
-import io.stargate.proto.StargateBridgeGrpc.StargateBridgeBlockingStub;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 

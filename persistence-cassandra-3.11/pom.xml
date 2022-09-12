@@ -4,14 +4,14 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>2.0.0-ALPHA-9-SNAPSHOT</version>
+    <version>2.0.0-BETA-2-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db.cassandra</groupId>
   <artifactId>persistence-cassandra-3.11</artifactId>
   <properties>
     <!-- If you update this, make sure to keep `cassandra.bundled-driver.version` in sync -->
-    <!-- 3.11.12 depends on 3.0.1: https://mvnrepository.com/artifact/org.apache.cassandra/cassandra-all/3.11.12 -->
-    <cassandra.version>3.11.12</cassandra.version>
+    <!-- 3.11.13 depends on 3.0.1: https://mvnrepository.com/artifact/org.apache.cassandra/cassandra-all/3.11.13 -->
+    <cassandra.version>3.11.13</cassandra.version>
     <!--
       The driver used internally by cassandra-all for UDFs (must match the version declared in
       cassandra-all's POM).
@@ -71,7 +71,7 @@
       </exclusions>
     </dependency>
     <!-- This dependency used to be included up to version 3.11.10 but is no
-         longer included by "cassandra-all" versions 3.11.11 or late: needs
+         longer included by "cassandra-all" versions 3.11.11 or later: needs
          explicit inclusion
       -->
     <dependency>
@@ -91,7 +91,6 @@
     <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-core</artifactId>
-      <version>${driver.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>

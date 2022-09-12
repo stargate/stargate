@@ -1,0 +1,70 @@
+name: CI IT Experiment
+
+on:
+  workflow_dispatch:
+
+jobs:
+  integration-test:
+    name: Integration Test
+    # CCM installation trickier on 20.04, alas; Python 2.x dep etc problematic
+    runs-on: ubuntu-18.04
+    strategy:
+      # Defaults to "true" but let's let all runs finish
+      # (see https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs)
+      fail-fast: false
+      matrix:
+        backend: [ cassandra-40, cassandra-311, dse-68 ]
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: "master"
+      - uses: actions/setup-java@v3
+        name: Setup Java JDK
+        with:
+          distribution: 'temurin'
+          java-version: 8.0.332
+          cache: 'maven'
+      - name: Setup Maven
+        env:
+          ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+          ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+        run: |
+          mkdir -p ~/.m2
+          cat <<EOF > ~/.m2/settings.xml
+          <settings>
+            <servers>
+              <server>
+                <id>artifactory-snapshots</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+              <server>
+                <id>artifactory-releases</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+             </server>
+           </servers>
+          </settings>
+          EOF
+      - name: Clone CCM
+        # 24-Jun-2022, tatu: CCM install copied from C2 repo's ".github/workflows/ci.yml":
+        uses: actions/checkout@v3
+        with:
+          repository: riptano/ccm
+          ref: master
+          fetch-depth: 1
+          path: ccm
+      - name: Install CCM
+        run: |
+          sudo apt-get install python2.7
+          sudo apt-get install python-dev
+          sudo apt-get install python-setuptools
+          sudo apt-get install python-yaml
+          python -m pip install --upgrade pip
+          python -m pip install psutil
+          cd ccm
+          sudo ./setup.py install
+          ccm list
+      - name: Run Unit and Integration Tests
+        run: |
+          ./mvnw clean verify -B -ntp -P it-${{ matrix.backend }}

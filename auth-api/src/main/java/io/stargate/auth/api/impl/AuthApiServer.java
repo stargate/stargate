@@ -17,7 +17,6 @@ package io.stargate.auth.api.impl;
 
 import io.dropwizard.Application;
 import io.dropwizard.cli.Cli;
-import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
@@ -28,6 +27,7 @@ import io.stargate.auth.api.swagger.SwaggerUIResource;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.metrics.jersey.MetricsBinder;
+import io.stargate.metrics.jersey.dwconfig.StargateV1ConfigurationSourceProvider;
 import io.swagger.config.ScannerFactory;
 import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.config.DefaultJaxrsScanner;
@@ -120,7 +120,8 @@ public class AuthApiServer extends Application<AuthApiServerConfiguration> {
   @Override
   public void initialize(final Bootstrap<AuthApiServerConfiguration> bootstrap) {
     super.initialize(bootstrap);
-    bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
+    bootstrap.setConfigurationSourceProvider(
+        new StargateV1ConfigurationSourceProvider(AuthApiActivator.MODULE_NAME));
     bootstrap.setMetricRegistry(metrics.getRegistry(AuthApiActivator.MODULE_NAME));
   }
 

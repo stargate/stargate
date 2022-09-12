@@ -49,7 +49,7 @@ public class JsonSchemaResource {
   @ManagedAsync
   @ApiOperation(
       value =
-          "Assign a JSON schema to a collection. This will erase any schema that already exists.",
+          "Assign a JSON schema to a collection. This will overwrite any schema that already exists.",
       response = JsonSchemaResponse.class)
   @ApiResponses(
       value = {

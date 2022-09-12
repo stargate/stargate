@@ -28,7 +28,7 @@ jobs:
           - module: core
             args: ""
             name: core
-          - module: sgv2-dynamo-api
+          - module: sgv2-dynamoapi
             args: ""
             name: dynamo
 #          - module: testing

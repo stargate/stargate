@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>2.0.0-ALPHA-9-SNAPSHOT</version>
+    <version>2.0.0-BETA-2-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.db</groupId>
   <artifactId>persistence-api</artifactId>
@@ -50,7 +50,14 @@
     <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-core</artifactId>
-      <version>${driver.version}</version>
+    </dependency>
+    <!-- 14-Jun-2022, tatu: with java-driver-core 4.14.1 this dependency is optional
+              and not brought as compile-time dependency, so needs to be explicitly added
+             (see [stargate#1889] for details)
+        -->
+    <dependency>
+      <groupId>com.esri.geometry</groupId>
+      <artifactId>esri-geometry-api</artifactId>
     </dependency>
     <dependency>
       <groupId>com.datastax.oss</groupId>
