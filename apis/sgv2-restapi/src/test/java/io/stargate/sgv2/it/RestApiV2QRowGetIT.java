@@ -912,6 +912,24 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
   }
 
   @Test
+  public void getRowsWithTupleNested() {
+    final String tableName = testTableName();
+    createTestTable(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList("id bigint", "datamap<text,frozen<list<frozen<tuple<double,double>>>>>"),
+        Arrays.asList("id"),
+        Arrays.asList());
+
+    // First insert no entry in nested "data" column, see decoder gets built ok.
+    insertTypedRows(testKeyspaceName(), tableName, Arrays.asList(map("id", 1)));
+
+    ArrayNode rows = findRowsAsJsonNode(testKeyspaceName(), tableName, "2");
+    assertThat(rows).hasSize(1);
+    assertThat(rows.at("/0/id").asLong()).isEqualTo(Long.valueOf(2L));
+  }
+
+  @Test
   public void getRowsWithUDT() {
     final String tableName = testTableName();
     String udtCreate =

@@ -50,28 +50,28 @@ public class FromProtoValueCodecs {
     return codecFor(columnSpec, columnSpec.getType());
   }
 
-  public FromProtoValueCodec codecFor(
+  protected FromProtoValueCodec codecFor(
       QueryOuterClass.ColumnSpec columnSpec, QueryOuterClass.TypeSpec type) {
     switch (type.getSpecCase()) {
       case BASIC:
         return basicCodecFor(columnSpec, type.getBasic());
 
       case LIST:
-        return listCodecFor(columnSpec);
+        return listCodecFor(columnSpec, type.getList());
       case MAP:
-        return mapCodecFor(columnSpec);
+        return mapCodecFor(columnSpec, type.getMap());
       case SET:
-        return setCodecFor(columnSpec);
+        return setCodecFor(columnSpec, type.getSet());
       case TUPLE:
-        return tupleCodecFor(columnSpec);
+        return tupleCodecFor(columnSpec, type.getTuple());
       case UDT:
-        return udtCodecFor(columnSpec);
+        return udtCodecFor(columnSpec, type.getUdt());
 
         // Invalid cases:
       case SPEC_NOT_SET:
       default:
         throw new IllegalArgumentException(
-            "Invalid/unsupported ColumnSpec TypeSpec "
+            "Invalid/unsupported TypeSpec "
                 + type.getSpecCase()
                 + " for column '"
                 + columnSpec.getName()
@@ -141,24 +141,24 @@ public class FromProtoValueCodecs {
     throw new IllegalArgumentException("Invalid Basic ColumnSpec value for column: " + columnSpec);
   }
 
-  protected FromProtoValueCodec listCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
-    QueryOuterClass.TypeSpec.List listSpec = columnSpec.getType().getList();
+  protected FromProtoValueCodec listCodecFor(
+      QueryOuterClass.ColumnSpec columnSpec, QueryOuterClass.TypeSpec.List listSpec) {
     return new ListCodec(codecFor(columnSpec, listSpec.getElement()));
   }
 
-  protected FromProtoValueCodec mapCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
-    QueryOuterClass.TypeSpec.Map mapSpec = columnSpec.getType().getMap();
+  protected FromProtoValueCodec mapCodecFor(
+      QueryOuterClass.ColumnSpec columnSpec, QueryOuterClass.TypeSpec.Map mapSpec) {
     return new MapCodec(
         codecFor(columnSpec, mapSpec.getKey()), codecFor(columnSpec, mapSpec.getValue()));
   }
 
-  protected FromProtoValueCodec setCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
-    QueryOuterClass.TypeSpec.Set setSpec = columnSpec.getType().getSet();
+  protected FromProtoValueCodec setCodecFor(
+      QueryOuterClass.ColumnSpec columnSpec, QueryOuterClass.TypeSpec.Set setSpec) {
     return new SetCodec(codecFor(columnSpec, setSpec.getElement()));
   }
 
-  protected FromProtoValueCodec tupleCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
-    QueryOuterClass.TypeSpec.Tuple tupleSpec = columnSpec.getType().getTuple();
+  protected FromProtoValueCodec tupleCodecFor(
+      QueryOuterClass.ColumnSpec columnSpec, QueryOuterClass.TypeSpec.Tuple tupleSpec) {
     List<FromProtoValueCodec> codecs = new ArrayList<>();
     for (QueryOuterClass.TypeSpec elementSpec : tupleSpec.getElementsList()) {
       codecs.add(codecFor(columnSpec, elementSpec));
@@ -166,8 +166,8 @@ public class FromProtoValueCodecs {
     return new TupleCodec(codecs);
   }
 
-  protected FromProtoValueCodec udtCodecFor(QueryOuterClass.ColumnSpec columnSpec) {
-    QueryOuterClass.TypeSpec.Udt udtSpec = columnSpec.getType().getUdt();
+  protected FromProtoValueCodec udtCodecFor(
+      QueryOuterClass.ColumnSpec columnSpec, QueryOuterClass.TypeSpec.Udt udtSpec) {
     Map<String, QueryOuterClass.TypeSpec> fieldSpecs = udtSpec.getFieldsMap();
     Map<String, FromProtoValueCodec> fieldCodecs = new HashMap<>();
     for (Map.Entry<String, QueryOuterClass.TypeSpec> entry : fieldSpecs.entrySet()) {

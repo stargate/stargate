@@ -11,6 +11,7 @@ import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
 import java.util.Arrays;
 import java.util.Collections;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -120,6 +121,20 @@ public class ToProtoConverterTest {
     assertThat(conv.protoValueFromLooselyTyped(TEST_COLUMN, externalValue)).isEqualTo(bridgeValue);
   }
 
+  // Test for [stargate#2061]
+  @DisplayName("Should be able to create converter for deeply nested type")
+  @Test
+  public void deeplyNestMapOfListOfTuples() {
+    TypeSpec doubleType = basicType(TypeSpec.Basic.DOUBLE);
+    TypeSpec tupleType = tupleType(doubleType, doubleType);
+    // Let's assert types from innermost to outermost; failure is via exception
+    // assertThat(createConverter(tupleType)).isNotNull();
+    TypeSpec listType = listType(tupleType);
+    // assertThat(createConverter(listType)).isNotNull();
+    TypeSpec mapType = mapType(basicType(TypeSpec.Basic.VARCHAR), listType);
+    assertThat(createConverter(mapType)).isNotNull();
+  }
+
   /*
   ///////////////////////////////////////////////////////////////////////
   // Helper methods for constructing scaffolding for Bridge/gRPC
@@ -164,5 +179,13 @@ public class ToProtoConverterTest {
     return TypeSpec.newBuilder()
         .setMap(TypeSpec.Map.newBuilder().setKey(keyType).setValue(valueType).build())
         .build();
+  }
+
+  private static TypeSpec tupleType(TypeSpec... types) {
+    TypeSpec.Tuple.Builder tupleBuilder = TypeSpec.Tuple.newBuilder();
+    for (TypeSpec elemType : types) {
+      tupleBuilder = tupleBuilder.addElements(elemType);
+    }
+    return TypeSpec.newBuilder().setTuple(tupleBuilder.build()).build();
   }
 }
