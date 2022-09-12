@@ -162,6 +162,7 @@ public class CQLMessageHandler<M extends Message> extends AbstractMessageHandler
       if (!acquireCapacity(header, endpointReserve, globalReserve)) {
         // discard the request and throw an exception
         ClientMetrics.instance.markRequestDiscarded();
+        // connection.getConnectionMetrics().markRequestDiscarded();
         logger.trace(
             "Discarded request of size: {}. InflightChannelRequestPayload: {}, "
                 + "InflightEndpointRequestPayload: {}, InflightOverallRequestPayload: {}, Header: {}",

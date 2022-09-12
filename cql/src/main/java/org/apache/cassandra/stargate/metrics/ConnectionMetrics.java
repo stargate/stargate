@@ -39,4 +39,8 @@ public interface ConnectionMetrics {
 
   /** Marks auth error (increases the count). */
   void markAuthError();
+
+  void markProtocolException();
+
+  public void markUnknownException();
 }

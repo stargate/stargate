@@ -76,12 +76,12 @@ public class Dispatcher {
 
     Message.logger.trace("Received: {}, v={}", request, connection.getVersion());
     connection.requests.inc();
+    connection.getConnectionMetrics().markRequestProcessed();
     CompletableFuture<? extends Message.Response> res = request.execute(queryStartNanoTime);
 
     return res.thenApply(
         response -> {
           response.setStreamId(request.getStreamId());
-          response.setWarnings(ClientWarn.instance.getWarnings());
           response.attach(connection);
           connection.applyStateTransition(request.type, response.type);
           return response;

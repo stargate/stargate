@@ -33,8 +33,8 @@ import io.netty.handler.codec.MessageToMessageEncoder;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.exceptions.OverloadedException;
-import org.apache.cassandra.metrics.ClientMetrics;
 import org.apache.cassandra.net.ResourceLimits;
+import org.apache.cassandra.stargate.metrics.ClientMetrics;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.messages.ErrorMessage;
@@ -135,10 +135,12 @@ public class PreV5Handlers {
 
       // check for overloaded state by trying to allocate the message size from inflight payload
       // trackers
+      ServerConnection connection =
+          (ServerConnection) ctx.channel().attr(Connection.attributeKey).get();
       if (endpointPayloadTracker.tryAllocate(requestSize) != ResourceLimits.Outcome.SUCCESS) {
         if (request.connection.isThrowOnOverload()) {
           // discard the request and throw an exception
-          ClientMetrics.instance.markRequestDiscarded();
+          connection.getConnectionMetrics().markRequestDiscarded();
           logger.trace(
               "Discarded request of size: {}. InflightChannelRequestPayload: {}, {}, Request: {}",
               requestSize,
@@ -241,11 +243,13 @@ public class PreV5Handlers {
         // for them here
         if (isFatal(cause)) future.addListener((ChannelFutureListener) f -> ctx.close());
       }
+      ServerConnection connection =
+          (ServerConnection) ctx.channel().attr(Connection.attributeKey).get();
       if (Throwables.anyCauseMatches(cause, t -> t instanceof ProtocolException)) {
         // if any ProtocolExceptions is not silent, then handle
         if (Throwables.anyCauseMatches(
             cause, t -> t instanceof ProtocolException && !((ProtocolException) t).isSilent())) {
-          ClientMetrics.instance.markProtocolException();
+          connection.getConnectionMetrics().markProtocolException();
           // since protocol exceptions are expected to be client issues, not logging stack trace
           // to avoid spamming the logs once a bad client shows up
           NoSpamLogger.log(
@@ -256,7 +260,7 @@ public class PreV5Handlers {
               "Protocol exception with client networking: " + cause.getMessage());
         }
       } else {
-        ClientMetrics.instance.markUnknownException();
+        connection.getConnectionMetrics().markUnknownException();
         logger.warn("Unknown exception in client networking", cause);
       }
       JVMStabilityInspector.inspectThrowable(cause);
