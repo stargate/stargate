@@ -237,7 +237,7 @@ public class StargateTestResource
             .withExposedPorts(7000, 9042)
             .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("cassandra-docker")))
             .waitingFor(Wait.forLogMessage(".*Created default superuser role.*\\n", 1))
-            .withStartupTimeout(Duration.ofMinutes(2))
+            .withStartupTimeout(getCassandraStartupTimeout())
             .withReuse(reuse);
     // note that cluster name props differ in case of DSE
     if (isDse()) {
@@ -261,7 +261,7 @@ public class StargateTestResource
             .withExposedPorts(8091, 8081, 8084)
             .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("coordinator-docker")))
             .waitingFor(Wait.forHttp("/checker/readiness").forPort(8084).forStatusCode(200))
-            .withStartupTimeout(Duration.ofMinutes(2))
+            .withStartupTimeout(getCoordinatorStartupTimeout())
             .withReuse(reuse);
 
     // enable DSE if needed
@@ -307,6 +307,18 @@ public class StargateTestResource
   private boolean isDse() {
     String dse = System.getProperty("testing.containers.cluster-dse", Defaults.CLUSTER_DSE);
     return "true".equals(dse);
+  }
+
+  /** @return Time to wait for the Cassandra container to start up before failing */
+  private Duration getCassandraStartupTimeout() {
+    return Duration.ofMinutes(2);
+  }
+
+  /** @return Time to wait for the Coordinator container to start up before failing */
+  private Duration getCoordinatorStartupTimeout() {
+    // 13-Sep-2022, tatu: Earlier baseline of 2 minutes was somehow slightly too low for
+    //    REST API on local system (Macbook): 3 minutes appears to work much more reliably
+    return Duration.ofMinutes(3);
   }
 
   private String getAuthToken(String host, int authPort) {
