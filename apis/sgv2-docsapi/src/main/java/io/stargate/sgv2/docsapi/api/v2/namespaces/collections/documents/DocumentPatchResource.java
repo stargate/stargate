@@ -221,7 +221,10 @@ public class DocumentPatchResource {
       @NotNull(message = "payload must not be empty") JsonNode body) {
     ExecutionContext context = ExecutionContext.create(profile);
     List<String> subPath =
-        documentPath.stream().map(PathSegment::getPath).collect(Collectors.toList());
+        documentPath.stream()
+            .map(PathSegment::getPath)
+            .filter(p -> !p.isEmpty())
+            .collect(Collectors.toList());
     Uni<Schema.CqlTable> table = collectionManager.ensureValidDocumentTable(namespace, collection);
     return documentWriteService
         .patchSubDocument(table, namespace, collection, documentId, subPath, body, ttlAuto, context)

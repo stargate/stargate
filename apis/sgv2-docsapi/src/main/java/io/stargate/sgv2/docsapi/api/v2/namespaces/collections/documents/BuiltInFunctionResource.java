@@ -113,7 +113,7 @@ public class BuiltInFunctionResource {
       })
   @POST
   @Path(
-      "{collection:\\w+}/{document-id}{slash: /?}{document-path: (.*)?}/function{trailingSlash: /?}")
+      "{collection:\\w+}/{document-id: [^/]+}{slash: /?}{document-path: (.+)?}/function{trailingSlash: /?}")
   public Uni<RestResponse<Object>> executeBuiltInFunction(
       @Context UriInfo uriInfo,
       @PathParam("namespace") String namespace,
@@ -124,8 +124,12 @@ public class BuiltInFunctionResource {
       @QueryParam("raw") boolean raw,
       @NotNull(message = "payload not provided") @Valid BuiltInFunctionDto body) {
     ExecutionContext context = ExecutionContext.create(profile);
+
     List<String> subPath =
-        documentPath.stream().map(PathSegment::getPath).collect(Collectors.toList());
+        documentPath.stream()
+            .map(PathSegment::getPath)
+            .filter(p -> !p.isEmpty())
+            .collect(Collectors.toList());
 
     // call table manager for valid table
     return collectionManager

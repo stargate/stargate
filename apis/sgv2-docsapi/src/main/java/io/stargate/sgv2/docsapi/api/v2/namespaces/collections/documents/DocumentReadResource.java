@@ -346,7 +346,8 @@ public class DocumentReadResource {
               boolean isSearch = where != null || pageSize != null;
               ExecutionContext context = ExecutionContext.create(profile);
 
-              List<String> pathStrings = path.stream().map(PathSegment::getPath).toList();
+              List<String> pathStrings =
+                  path.stream().map(PathSegment::getPath).filter(p -> !p.isEmpty()).toList();
 
               if (isSearch) {
                 int pageSizeFinal = Optional.ofNullable(pageSize).orElse(100);

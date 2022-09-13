@@ -411,11 +411,9 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
           .then()
           .body("documentId", equalTo(DOCUMENT_ID))
-          .body("data", jsonPartEquals("b[1].nested", "value"))
           .body("data", jsonPartEquals("b[1].different", "newvalue"))
           .body("data", jsonPartEquals("b[1].other", "awesome"))
           .body("data", jsonPartEquals("b[0].new", true))
-          .body("data", jsonPartEquals("a", 9000))
           .statusCode(200);
     }
 

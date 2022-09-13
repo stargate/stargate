@@ -158,7 +158,10 @@ public class DocumentDeleteResource {
       @QueryParam("profile") boolean profile) {
     ExecutionContext context = ExecutionContext.create(profile);
     List<String> subPath =
-        documentPath.stream().map(PathSegment::getPath).collect(Collectors.toList());
+        documentPath.stream()
+            .map(PathSegment::getPath)
+            .filter(p -> !p.isEmpty())
+            .collect(Collectors.toList());
     return collectionManager
         .getValidCollectionTable(namespace, collection)
         .onItem()
