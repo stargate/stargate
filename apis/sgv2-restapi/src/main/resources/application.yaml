@@ -7,13 +7,17 @@ stargate:
     header-based:
       enabled: true
 
+    # Cassandra token resolver from principal
+    token-resolver:
+      type: principal
+
   metrics:
     global-tags:
       module: sgv2-restapi
     tenant-request-counter:
       enabled: ${stargate.multi-tenancy.enabled}
 
-# multi tenancy settings
+  # multi tenancy settings
   # see io.stargate.sgv2.api.common.config.MultiTenancyConfig for all config properties and options
   multi-tenancy:
     enabled: false
@@ -26,6 +30,14 @@ quarkus:
   # banner for the startup
   banner:
     path: banner/banner.txt
+  cache:
+    caffeine:
+      # keyspace cache for the schema management
+      keyspace-cache:
+        maximum-size: 1000
+        expire-after-access: PT5M
+        metrics-enabled: true
+
   # properties for the gRPC clients
   grpc:
     clients:
@@ -39,6 +51,15 @@ quarkus:
     # 21-Jul-2022, tatu: Until we disable/remove main level SGv2/REST (which runs on 8082)
     #    need to use different port
     port: 9092
+
+    # every /v2 path is authenticated by default
+    # adapt if changing the authentication mechanism
+    auth:
+      proactive: false
+      permission:
+        default:
+          paths: /v2/*
+          policy: authenticated
 
   # built-in micrometer properties
   micrometer:
