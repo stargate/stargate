@@ -93,7 +93,7 @@ public class DocumentDeleteResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @DELETE
-  @Path("{collection:\\w+}/{document-id}")
+  @Path("{collection:\\w+}/{document-id}{slash: /?}")
   public Uni<RestResponse<Object>> deleteDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
@@ -149,7 +149,7 @@ public class DocumentDeleteResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @DELETE
-  @Path("{collection:\\w+}/{document-id}/{document-path:.*}")
+  @Path("{collection:\\w+}/{document-id}/{document-path:.*}{slash: /?}")
   public Uni<RestResponse<Object>> deleteSubDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,

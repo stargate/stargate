@@ -146,6 +146,30 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
     }
 
     @Test
+    public void singlePersistenceFilterTrailingSlash() {
+      String[] ids =
+          writeDocuments(
+              "{\"value\": \"a\"}", "{\"value\": \"b\"}", "{\"someStuff\": {\"value\": \"a\"}}");
+
+      try {
+        // assert
+        String expected = "{\"%s\":{\"value\":\"a\"}}".formatted(ids[0]);
+        given()
+            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+            .queryParam("where", "{\"value\": {\"$eq\": \"a\"}}")
+            .when()
+            .get(BASE_PATH + "/", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
+            .then()
+            .statusCode(200)
+            .body("documentId", is(nullValue()))
+            .body("pageState", is(nullValue()))
+            .body("data", jsonEquals(expected));
+      } finally {
+        deleteDocuments(ids);
+      }
+    }
+
+    @Test
     public void singlePersistenceFilterWithBoolean() {
       String[] ids =
           writeDocuments(

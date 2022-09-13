@@ -391,6 +391,35 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
     }
 
     @Test
+    public void setUpdateManyValuesBaseDoc() {
+      String setOperation =
+          "{ \"b.[1].different\": \"newvalue\", \"b.[1].other\": \"awesome\", \"b.[0].new\": true, \"a\": 9000 }";
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .contentType(ContentType.JSON)
+          .body(String.format(SET_PAYLOAD, setOperation))
+          .when()
+          .post(BASE_PATH + "/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .statusCode(200);
+
+      // get whole document and check the value
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .body("data", jsonPartEquals("b[1].nested", "value"))
+          .body("data", jsonPartEquals("b[1].different", "newvalue"))
+          .body("data", jsonPartEquals("b[1].other", "awesome"))
+          .body("data", jsonPartEquals("b[0].new", true))
+          .body("data", jsonPartEquals("a", 9000))
+          .statusCode(200);
+    }
+
+    @Test
     public void setWithObject() {
       // This should blow away the `nested` field
       String setOperation = "{ \"b.[1]\": { \"newdata\": true } }";

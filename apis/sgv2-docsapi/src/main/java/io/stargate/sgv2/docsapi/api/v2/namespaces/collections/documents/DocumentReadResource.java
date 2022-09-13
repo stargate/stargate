@@ -139,7 +139,7 @@ public class DocumentReadResource {
     @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
   })
   @GET
-  @Path("{collection:\\w+}")
+  @Path("{collection:\\w+}{slash: /?}")
   public Uni<RestResponse<Object>> searchDocuments(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
@@ -237,7 +237,7 @@ public class DocumentReadResource {
     @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
   })
   @GET
-  @Path("{collection:\\w+}/{document-id}")
+  @Path("{collection:\\w+}/{document-id}{slash: /?}")
   public Uni<RestResponse<Object>> getDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
@@ -321,7 +321,7 @@ public class DocumentReadResource {
     @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
   })
   @GET
-  @Path("{collection:\\w+}/{document-id}/{document-path:.*}")
+  @Path("{collection:\\w+}/{document-id}/{document-path:.*}{slash: /?}")
   public Uni<RestResponse<Object>> getDocumentPath(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,

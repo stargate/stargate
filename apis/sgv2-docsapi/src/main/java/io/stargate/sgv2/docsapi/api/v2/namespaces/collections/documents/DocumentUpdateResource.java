@@ -125,7 +125,7 @@ public class DocumentUpdateResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @PUT
-  @Path("{collection:\\w+}/{document-id}")
+  @Path("{collection:\\w+}/{document-id}{slash: /?}")
   public Uni<RestResponse<Object>> updateDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
@@ -201,7 +201,7 @@ public class DocumentUpdateResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @PUT
-  @Path("{collection:\\w+}/{document-id}/{document-path:.*}")
+  @Path("{collection:\\w+}/{document-id}/{document-path:.*}{slash: /?}")
   public Uni<RestResponse<Object>> updateSubDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,

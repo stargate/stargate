@@ -123,7 +123,7 @@ public class DocumentPatchResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @PATCH
-  @Path("{collection:\\w+}/{document-id}")
+  @Path("{collection:\\w+}/{document-id}{slash: /?}")
   public Uni<RestResponse<Object>> patchDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
@@ -210,7 +210,7 @@ public class DocumentPatchResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @PATCH
-  @Path("{collection:\\w+}/{document-id}/{document-path:.*}")
+  @Path("{collection:\\w+}/{document-id}/{document-path:.*}{slash: /?}")
   public Uni<RestResponse<Object>> patchSubDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,

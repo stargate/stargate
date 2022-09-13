@@ -112,7 +112,8 @@ public class BuiltInFunctionResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @POST
-  @Path("{collection:\\w+}/{document-id}/{document-path:.*}/function")
+  @Path(
+      "{collection:\\w+}/{document-id}{slash: /?}{document-path: (.*)?}/function{trailingSlash: /?}")
   public Uni<RestResponse<Object>> executeBuiltInFunction(
       @Context UriInfo uriInfo,
       @PathParam("namespace") String namespace,
