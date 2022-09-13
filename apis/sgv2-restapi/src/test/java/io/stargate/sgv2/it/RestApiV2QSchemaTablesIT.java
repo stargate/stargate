@@ -163,6 +163,22 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
   }
 
   @Test
+  public void tableCreateWithNestedMap() {
+    final String tableName = testTableName();
+    createTestTable(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList("id bigint", "data map<text,frozen<list<frozen<tuple<double,double>>>>>"),
+        Arrays.asList("id"),
+        Arrays.asList());
+
+    final Sgv2Table table = findTable(testKeyspaceName(), tableName);
+
+    assertThat(table.getKeyspace()).isEqualTo(testKeyspaceName());
+    assertThat(table.getName()).isEqualTo(tableName);
+  }
+
+  @Test
   public void tableCreateWithNullOptions() {
     final String tableName = "t1"; // not sure why but was that way in original test
     final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
