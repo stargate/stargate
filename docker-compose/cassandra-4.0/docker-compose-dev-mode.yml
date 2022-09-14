@@ -27,12 +27,11 @@ services:
     networks:
       - stargate
     ports:
-      - 8082:8082
+      - 8082:8080
     mem_limit: 2G
     environment:
       - STARGATE_BRIDGE_HOST=coordinator
       - STARGATE_BRIDGE_PORT=8091
-      - STARGATE_REST_PORT=8082
   graphqlapi:
     image: stargateio/graphqlapi:${SGTAG}
     depends_on:
