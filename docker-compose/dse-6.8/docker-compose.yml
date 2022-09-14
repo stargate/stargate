@@ -89,5 +89,17 @@ services:
     environment:
       - STARGATE_BRIDGE_HOST=coordinator
       - STARGATE_BRIDGE_PORT=8091
+  docsapi:
+    image: stargateio/docsapi:${SGTAG}
+    depends_on:
+      - coordinator
+    networks:
+      - stargate
+    ports:
+      - 8180:8180
+    mem_limit: 2G
+    environment:
+      - STARGATE_BRIDGE_HOST=coordinator
+      - STARGATE_BRIDGE_PORT=8091
 networks:
   stargate:
