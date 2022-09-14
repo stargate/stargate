@@ -14,7 +14,7 @@ import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.Test;
+import org.junitpioneer.jupiter.RetryingTest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +40,9 @@ public class RestApiV2QMaterializedViewIT extends RestApiV2QCqlEnabledTestBase {
   /////////////////////////////////////////////////////////////////////////
    */
 
-  @Test
+  // Unfortunately this test sporadically fails with claim that Materialized View
+  // does not exist; let's hope a couple of retries sorts it out
+  @RetryingTest(maxAttempts = 3)
   public void getRowsFromMV() {
     boolean isC4 = IntegrationTestUtils.isCassandra40();
     LOG.info("getAllRowsFromMaterializedView(): is backend Cassandra 4.0? {}", isC4);

@@ -82,6 +82,15 @@
       <artifactId>junit-jupiter</artifactId>
       <scope>test</scope>
     </dependency>
+    <!-- https://mvnrepository.com/artifact/org.junit-pioneer/junit-pioneer
+        for "@RetryingTest"
+      -->
+    <dependency>
+      <groupId>org.junit-pioneer</groupId>
+      <artifactId>junit-pioneer</artifactId>
+      <version>1.7.1</version>
+      <scope>test</scope>
+    </dependency>
     <!-- Couple of ITs require CQL initialization: -->
     <dependency>
       <groupId>com.datastax.oss</groupId>
