@@ -78,8 +78,8 @@ quarkus:
 
   # HTTP settings
   http:
-    # TODO update both port and non-app paths after discussions
-    port: 8180
+    # TODO update non-app path after discussions
+    port: 8080
     non-application-root-path: stargate
 
     # every /v2 path is authenticated by default

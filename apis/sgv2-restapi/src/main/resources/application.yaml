@@ -50,7 +50,7 @@ quarkus:
   http:
     # 21-Jul-2022, tatu: Until we disable/remove main level SGv2/REST (which runs on 8082)
     #    need to use different port
-    port: 9092
+    port: 8080
 
     # every /v2 path is authenticated by default
     # adapt if changing the authentication mechanism
