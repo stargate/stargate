@@ -276,7 +276,10 @@ public class CqlServer {
     }
 
     public void send(Event event) {
-      groups.get(event.type).writeAndFlush(new EventMessage(event), PRE_V5_CHANNEL);
+      EventMessage message = new EventMessage(event);
+      groups.get(event.type).writeAndFlush(message, PRE_V5_CHANNEL);
+      for (Channel c : groups.get(event.type))
+        if (!PRE_V5_CHANNEL.matches(c)) c.attr(Dispatcher.EVENT_DISPATCHER).get().accept(message);
     }
 
     void closeAll() {
