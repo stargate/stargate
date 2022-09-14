@@ -489,13 +489,13 @@ public class Conversion {
     EnumSet<Result.Flag> flags = EnumSet.noneOf(Result.Flag.class);
 
     if (Flags.contains(metadata.getFlags(), ResultSet.ResultSetFlag.GLOBAL_TABLES_SPEC))
-      flags.add(Result.Flag.fromId(ResultSet.ResultSetFlag.GLOBAL_TABLES_SPEC));
+      flags.add(Result.Flag.GLOBAL_TABLES_SPEC);
 
     if (Flags.contains(metadata.getFlags(), ResultSet.ResultSetFlag.HAS_MORE_PAGES))
-      flags.add(Result.Flag.fromId(ResultSet.ResultSetFlag.HAS_MORE_PAGES));
+      flags.add(Result.Flag.HAS_MORE_PAGES);
 
     if (Flags.contains(metadata.getFlags(), ResultSet.ResultSetFlag.METADATA_CHANGED))
-      flags.add(Result.Flag.fromId(ResultSet.ResultSetFlag.METADATA_CHANGED));
+      flags.add(Result.Flag.METADATA_CHANGED);
 
     ByteBuffer pagingState = null;
     if (version != null) {
