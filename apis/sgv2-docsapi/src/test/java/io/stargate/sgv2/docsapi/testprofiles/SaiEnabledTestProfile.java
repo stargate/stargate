@@ -17,7 +17,7 @@
 package io.stargate.sgv2.docsapi.testprofiles;
 
 import com.google.common.collect.ImmutableMap;
-import io.quarkus.test.junit.QuarkusTestProfile;
+import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
 import java.util.Map;
 
 /**
@@ -25,7 +25,7 @@ import java.util.Map;
  *
  * <p>Annotate test class with @TestProfile(SaiEnabledTestProfile.class) to use.
  */
-public class SaiEnabledTestProfile implements QuarkusTestProfile {
+public class SaiEnabledTestProfile implements NoGlobalResourcesTestProfile {
 
   @Override
   public Map<String, String> getConfigOverrides() {

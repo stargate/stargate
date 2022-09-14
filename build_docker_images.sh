@@ -43,7 +43,7 @@ while getopts ":t:r:pa" opt; do
       SGTAG=$OPTARG
       ;;
     r)
-      REPO=$OPTARG
+      REPO="$OPTARG/stargateio"
       ;;
     a)
       API_ONLY=true
@@ -78,10 +78,3 @@ if [ -z $API_ONLY ]; then
 fi
 
 rm -rf ${LIBDIR}
-
-#
-# API Service images
-#
-
-docker buildx build --target restapi -t $REPO/restapi:$SGTAG $DOCKER_FLAGS .
-docker buildx build --target graphqlapi -t $REPO/graphqlapi:$SGTAG $DOCKER_FLAGS .

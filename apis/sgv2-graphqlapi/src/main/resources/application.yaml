@@ -1,0 +1,73 @@
+stargate:
+  graphql:
+    # Whether to default to the oldest keyspace when the user accesses /graphql.
+    # If this is disabled, /graphql throws an error, and the keyspace must be provided explicitly in
+    # the path, as in /graphql/ksName.
+    enable-default-keyspace: true
+
+    # Whether to expose the GraphQL Playground in-browser IDE at /playground.
+    enable-playground: true
+
+  metrics:
+    global-tags:
+      module: sgv2-graphqlapi
+    tenant-request-counter:
+      enabled: ${stargate.multi-tenancy.enabled}
+
+  multi-tenancy:
+    enabled: false
+
+quarkus:
+
+  http:
+    port: ${STARGATE_GRAPHQL_PORT:8080}
+
+    # Require authentication where relevant:
+    auth:
+      proactive: false
+      permission:
+        default:
+          paths: /graphql-schema, /graphql/*, /graphql-admin, /graphql-files/keyspace/*
+          policy: authenticated
+
+  cache:
+    caffeine:
+      # keyspace cache for the schema management
+      keyspace-cache:
+        maximum-size: 1000
+        expire-after-access: PT5M
+        metrics-enabled: true
+
+  grpc:
+    clients:
+      bridge:
+        host: ${STARGATE_BRIDGE_HOST:localhost}
+        port: ${STARGATE_BRIDGE_PORT:8091}
+
+    # force no grpc server start in dev as we have no grpc service
+    dev-mode:
+      force-server-start: false
+
+  micrometer:
+    binder:
+      http-server:
+        # ignore all non-application uris, as well as the custom set
+        suppress-non-application-uris: true
+        ignore-patterns: /,/metrics,/playground,.*\.html
+
+        # due to https://github.com/quarkusio/quarkus/issues/24938
+        # we need to define uri templating on our own for now
+        # note that order is important
+        match-patterns: |
+          /graphql/[\\w]+=/graphql/{keyspaceName}
+          /graphql-files/keyspace/[\\w]+.graphql=/graphql-files/keyspace/{keyspaceName}.graphql
+
+    # exports at prometheus default path
+    export:
+      prometheus:
+        path: /metrics
+
+  # Don't enable Swagger: our REST resources are generic GraphQL endpoints, clients will typically
+  # introspect the GraphQL schema instead.
+  swagger-ui:
+    enable: false

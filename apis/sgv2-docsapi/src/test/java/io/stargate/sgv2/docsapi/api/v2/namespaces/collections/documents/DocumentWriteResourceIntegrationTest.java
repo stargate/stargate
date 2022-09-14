@@ -17,6 +17,7 @@
 package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents;
 
 import static io.restassured.RestAssured.given;
+import static io.stargate.sgv2.common.IntegrationTestUtils.getAuthToken;
 import static net.javacrumbs.jsonunit.JsonMatchers.jsonEquals;
 import static net.javacrumbs.jsonunit.JsonMatchers.jsonPartMatches;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,32 +31,27 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.TestProfile;
-import io.restassured.RestAssured;
+import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.ResourceArg;
+import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.restassured.response.Response;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
-import io.stargate.sgv2.api.common.cql.builder.Replication;
-import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
-import io.stargate.sgv2.docsapi.service.schema.CollectionManager;
-import io.stargate.sgv2.docsapi.service.schema.NamespaceManager;
-import java.time.Duration;
+import io.stargate.sgv2.common.testresource.StargateTestResource;
+import io.stargate.sgv2.docsapi.api.v2.DocsApiIntegrationTest;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
-import javax.enterprise.context.control.ActivateRequestContext;
-import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 
-@QuarkusTest
-@TestProfile(IntegrationTestProfile.class)
-@ActivateRequestContext
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class DocumentWriteResourceIntegrationTest {
+@QuarkusIntegrationTest
+@QuarkusTestResource(
+    value = StargateTestResource.class,
+    initArgs =
+        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
+class DocumentWriteResourceIntegrationTest extends DocsApiIntegrationTest {
 
   public static final String BASE_PATH = "/v2/namespaces/{namespace}/collections/{collection}";
   public static final String DEFAULT_NAMESPACE = RandomStringUtils.randomAlphanumeric(16);
@@ -64,26 +60,16 @@ class DocumentWriteResourceIntegrationTest {
       "{\"test\": \"document\", \"this\": [\"is\", 1, true]}";
   public static final String MALFORMED_PAYLOAD = "{\"malformed\": ";
 
-  @Inject NamespaceManager namespaceManager;
+  final ObjectMapper objectMapper = new ObjectMapper();
 
-  @Inject CollectionManager collectionManager;
+  @Override
+  public Optional<String> createNamespace() {
+    return Optional.of(DEFAULT_NAMESPACE);
+  }
 
-  @Inject ObjectMapper objectMapper;
-
-  @BeforeAll
-  public void init() {
-
-    RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
-
-    namespaceManager
-        .createNamespace(DEFAULT_NAMESPACE, Replication.simpleStrategy(1))
-        .await()
-        .atMost(Duration.ofSeconds(10));
-
-    collectionManager
-        .createCollectionTable(DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
-        .await()
-        .atMost(Duration.ofSeconds(10));
+  @Override
+  public Optional<String> createCollection() {
+    return Optional.of(DEFAULT_COLLECTION);
   }
 
   @Nested
@@ -92,7 +78,7 @@ class DocumentWriteResourceIntegrationTest {
     public void happyPath() {
       Response postResponse =
           given()
-              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
               .contentType(ContentType.JSON)
               .body(DEFAULT_PAYLOAD)
               .when()
@@ -104,7 +90,7 @@ class DocumentWriteResourceIntegrationTest {
       String location = postResponse.header("location");
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(location)
@@ -117,7 +103,7 @@ class DocumentWriteResourceIntegrationTest {
     public void happyPathNoCollection() {
       Response postResponse =
           given()
-              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
               .contentType(ContentType.JSON)
               .body(DEFAULT_PAYLOAD)
               .when()
@@ -129,7 +115,7 @@ class DocumentWriteResourceIntegrationTest {
       String location = postResponse.header("location");
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(location)
@@ -142,7 +128,7 @@ class DocumentWriteResourceIntegrationTest {
     public void writeArray() {
       Response postResponse =
           given()
-              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
               .contentType(ContentType.JSON)
               .body("[1, 2, 3]")
               .when()
@@ -154,7 +140,7 @@ class DocumentWriteResourceIntegrationTest {
       String location = postResponse.header("location");
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(location)
@@ -166,7 +152,7 @@ class DocumentWriteResourceIntegrationTest {
     @Test
     public void withProfile() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("profile", "true")
           .body(DEFAULT_PAYLOAD)
@@ -181,7 +167,7 @@ class DocumentWriteResourceIntegrationTest {
     public void withTtl() {
       Response postResponse =
           given()
-              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
               .contentType(ContentType.JSON)
               .queryParam("ttl", "1")
               .body(DEFAULT_PAYLOAD)
@@ -198,7 +184,7 @@ class DocumentWriteResourceIntegrationTest {
           .untilAsserted(
               () ->
                   given()
-                      .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                      .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
                       .when()
                       .get(location)
                       .then()
@@ -209,7 +195,7 @@ class DocumentWriteResourceIntegrationTest {
     public void withLongerTtl() {
       Response postResponse =
           given()
-              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
               .contentType(ContentType.JSON)
               .queryParam("ttl", "10")
               .body(DEFAULT_PAYLOAD)
@@ -222,7 +208,7 @@ class DocumentWriteResourceIntegrationTest {
       String location = postResponse.header("location");
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .when()
           .get(location)
           .then()
@@ -235,7 +221,7 @@ class DocumentWriteResourceIntegrationTest {
     @Test
     public void malformedJson() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(MALFORMED_PAYLOAD)
           .when()
@@ -247,7 +233,7 @@ class DocumentWriteResourceIntegrationTest {
     @Test
     public void invalidTtl() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("ttl", -10)
           .contentType(ContentType.JSON)
           .body(DEFAULT_PAYLOAD)
@@ -262,7 +248,7 @@ class DocumentWriteResourceIntegrationTest {
     @Test
     public void emptyObject() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("{}")
           .when()
@@ -279,7 +265,7 @@ class DocumentWriteResourceIntegrationTest {
     @Test
     public void emptyArray() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("[]")
           .when()
@@ -295,7 +281,7 @@ class DocumentWriteResourceIntegrationTest {
     @Test
     public void singlePrimitive() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("true")
           .when()
@@ -311,7 +297,7 @@ class DocumentWriteResourceIntegrationTest {
     @Test
     public void noBody() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .when()
           .post(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -327,7 +313,7 @@ class DocumentWriteResourceIntegrationTest {
       String collection = "local";
 
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(DEFAULT_PAYLOAD)
           .when()
@@ -355,7 +341,7 @@ class DocumentWriteResourceIntegrationTest {
     @Test
     public void keyspaceNotExists() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(DEFAULT_PAYLOAD)
           .when()
@@ -374,7 +360,7 @@ class DocumentWriteResourceIntegrationTest {
     @Test
     public void happyPath() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("ttl", "1")
           .body(String.format("[%s, %s, %s]", DEFAULT_PAYLOAD, DEFAULT_PAYLOAD, DEFAULT_PAYLOAD))
@@ -394,7 +380,7 @@ class DocumentWriteResourceIntegrationTest {
       String doc2 = "{\"id\": \"2\", \"name\":\"b\"}";
       String doc3 = "{\"id\": \"3\", \"name\":\"c\"}";
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("id-path", "id")
           .body(String.format("[%s, %s, %s]", doc1, doc2, doc3))
@@ -411,7 +397,7 @@ class DocumentWriteResourceIntegrationTest {
       String doc2 = "{\"id\": 2, \"name\":\"b\"}";
       String doc3 = "{\"id\": 3, \"name\":\"c\"}";
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("id-path", "id")
           .body(String.format("[%s, %s, %s]", doc1, doc2, doc3))
@@ -428,7 +414,7 @@ class DocumentWriteResourceIntegrationTest {
       String doc2 = "{\"id\": 2.2, \"name\":\"b\"}";
       String doc3 = "{\"id\": 3.3, \"name\":\"c\"}";
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("id-path", "id")
           .body(String.format("[%s, %s, %s]", doc1, doc2, doc3))
@@ -444,7 +430,7 @@ class DocumentWriteResourceIntegrationTest {
       String doc1 = "{\"id\": true, \"name\":\"a\"}";
       String doc2 = "{\"id\": false, \"name\":\"b\"}";
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("id-path", "id")
           .body(String.format("[%s, %s]", doc1, doc2))
@@ -458,7 +444,7 @@ class DocumentWriteResourceIntegrationTest {
     @Test
     public void idPathOverwrite() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(DEFAULT_PAYLOAD)
           .when()
@@ -470,7 +456,7 @@ class DocumentWriteResourceIntegrationTest {
       String doc2 = "{\"id\": \"2\", \"name\":\"b\"}";
       String doc3 = "{\"id\": \"3\", \"name\":\"c\"}";
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("id-path", "id")
           .body(String.format("[%s, %s, %s]", doc1, doc2, doc3))
@@ -481,7 +467,7 @@ class DocumentWriteResourceIntegrationTest {
 
       // Check that the data for document ID 1 was overwritten properly
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH + "/1", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
@@ -493,7 +479,7 @@ class DocumentWriteResourceIntegrationTest {
     @Test
     public void withProfile() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("profile", "true")
           .body("[" + DEFAULT_PAYLOAD + "]")
@@ -508,7 +494,7 @@ class DocumentWriteResourceIntegrationTest {
     public void withTtl() throws JsonProcessingException {
       Response postResponse =
           given()
-              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
               .contentType(ContentType.JSON)
               .queryParam("ttl", "1")
               .body("[" + DEFAULT_PAYLOAD + "]")
@@ -529,7 +515,7 @@ class DocumentWriteResourceIntegrationTest {
                 for (JsonNode jsonNode : ids) {
                   String id = jsonNode.asText();
                   given()
-                      .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+                      .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
                       .when()
                       .get(BASE_PATH + "/{document-id}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
                       .then()
@@ -543,7 +529,7 @@ class DocumentWriteResourceIntegrationTest {
     @Test
     public void invalidTtl() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("ttl", "-10")
           .body("[" + DEFAULT_PAYLOAD + "]")
@@ -558,7 +544,7 @@ class DocumentWriteResourceIntegrationTest {
     @Test
     public void illegalDuplicatedId() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("id-path", "test")
           .body(String.format("[%s, %s]", DEFAULT_PAYLOAD, DEFAULT_PAYLOAD))
@@ -576,7 +562,7 @@ class DocumentWriteResourceIntegrationTest {
     @Test
     public void invalidIdPath() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .queryParam("id-path", "not.valid.path")
           .body(String.format("[%s]", DEFAULT_PAYLOAD))
@@ -594,7 +580,7 @@ class DocumentWriteResourceIntegrationTest {
     @Test
     public void malformedJson() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body(MALFORMED_PAYLOAD)
           .when()
@@ -615,7 +601,7 @@ class DocumentWriteResourceIntegrationTest {
     @Test
     public void keyspaceNotExists() {
       given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, "")
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .contentType(ContentType.JSON)
           .body("[" + DEFAULT_PAYLOAD + "]")
           .when()

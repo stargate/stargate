@@ -34,6 +34,7 @@ import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.BridgeTest;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.testprofiles.FixedTenantTestProfile;
+import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
 import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents.DocumentReadResource;
 import java.util.Map;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -45,7 +46,8 @@ import org.mockito.ArgumentCaptor;
 @TestProfile(StargateBridgeInterceptorTest.Profile.class)
 class StargateBridgeInterceptorTest extends BridgeTest {
 
-  public static class Profile extends FixedTenantTestProfile {
+  public static class Profile extends FixedTenantTestProfile
+      implements NoGlobalResourcesTestProfile {
 
     @Override
     public Map<String, String> getConfigOverrides() {

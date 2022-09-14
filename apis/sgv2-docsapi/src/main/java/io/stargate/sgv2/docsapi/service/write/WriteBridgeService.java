@@ -18,13 +18,15 @@
 package io.stargate.sgv2.docsapi.service.write;
 
 import com.google.common.base.Splitter;
+import io.grpc.Metadata;
 import io.opentelemetry.extension.annotations.WithSpan;
+import io.quarkus.grpc.GrpcClient;
+import io.quarkus.grpc.GrpcClientUtils;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.Batch;
 import io.stargate.bridge.proto.QueryOuterClass.ResultSet;
 import io.stargate.bridge.proto.StargateBridge;
-import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.config.QueriesConfig;
 import io.stargate.sgv2.api.common.properties.datastore.DataStoreProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
@@ -57,7 +59,7 @@ public class WriteBridgeService {
   // path splitter on dot
   private static final Splitter PATH_SPLITTER = Splitter.on(".");
 
-  private final StargateRequestInfo requestInfo;
+  private final StargateBridge bridge;
   private final TimeSource timeSource;
   private final InsertQueryBuilder insertQueryBuilder;
   private final boolean useLoggedBatches;
@@ -67,12 +69,12 @@ public class WriteBridgeService {
 
   @Inject
   public WriteBridgeService(
-      StargateRequestInfo requestInfo,
+      @GrpcClient("bridge") StargateBridge bridge,
       TimeSource timeSource,
       DataStoreProperties dataStoreProperties,
       DocumentProperties documentProperties,
       QueriesConfig queriesConfig) {
-    this.requestInfo = requestInfo;
+    this.bridge = bridge;
     this.insertQueryBuilder = new InsertQueryBuilder(documentProperties);
     this.timeSource = timeSource;
     this.useLoggedBatches = dataStoreProperties.loggedBatchesEnabled();
@@ -120,9 +122,7 @@ public class WriteBridgeService {
                   .toList();
             })
         .flatMap(
-            boundQueries ->
-                executeBatch(
-                    requestInfo.getStargateBridge(), boundQueries, context.nested("ASYNC INSERT")));
+            boundQueries -> executeBatch(bridge, boundQueries, context.nested("ASYNC INSERT")));
   }
 
   /**
@@ -220,9 +220,7 @@ public class WriteBridgeService {
               return queries;
             })
         .flatMap(
-            boundQueries ->
-                executeBatch(
-                    requestInfo.getStargateBridge(), boundQueries, context.nested("ASYNC UPDATE")));
+            boundQueries -> executeBatch(bridge, boundQueries, context.nested("ASYNC UPDATE")));
   }
 
   /**
@@ -349,10 +347,59 @@ public class WriteBridgeService {
 
               return queries;
             })
-        .flatMap(
-            boundQueries ->
-                executeBatch(
-                    requestInfo.getStargateBridge(), boundQueries, context.nested("ASYNC PATCH")));
+        .flatMap(boundQueries -> executeBatch(bridge, boundQueries, context.nested("ASYNC PATCH")));
+  }
+
+  /**
+   * Sets data at various paths on a single document, relative to its root. This allows partial
+   * updates of any data in a document, without touching unrelated data.
+   *
+   * @param keyspace Keyspace to store document in.
+   * @param collection Collection the document belongs to.
+   * @param documentId Document ID.
+   * @param setPaths the paths that are being set by the JSON fields.
+   * @param rows Rows of the patch.
+   * @param ttl the time-to-live of the rows (seconds)
+   * @param context Execution content for profiling.
+   * @return Uni containing the {@link ResultSet} of the batch execution.
+   */
+  @WithSpan
+  public Uni<ResultSet> setPathsOnDocument(
+      String keyspace,
+      String collection,
+      String documentId,
+      Set<List<String>> setPaths,
+      List<JsonShreddedRow> rows,
+      Integer ttl,
+      ExecutionContext context) {
+    return Uni.createFrom()
+        .item(
+            () -> {
+              long timestamp = timeSource.currentTimeMicros();
+              List<QueryOuterClass.BatchQuery> queries = new ArrayList<>(rows.size() + 3);
+
+              // For each distinct path that is going to be set, delete the exact path first.
+              setPaths.forEach(
+                  path ->
+                      queries.add(
+                          new DeleteSubDocumentPathQueryBuilder(path, false, documentProperties)
+                              .buildAndBind(keyspace, collection, documentId, timestamp - 1)));
+
+              // Finally, insert the new data.
+              rows.forEach(
+                  row ->
+                      queries.add(
+                          insertQueryBuilder.buildAndBind(
+                              keyspace,
+                              collection,
+                              ttl,
+                              documentId,
+                              row,
+                              timestamp,
+                              treatBooleansAsNumeric)));
+              return queries;
+            })
+        .flatMap(boundQueries -> executeBatch(bridge, boundQueries, context.nested("ASYNC SET")));
   }
 
   /**
@@ -410,14 +457,14 @@ public class WriteBridgeService {
                           subDocumentPath, false, documentProperties);
               return deleteQueryBuilder.buildAndBind(keyspace, collection, documentId, timestamp);
             })
-        .flatMap(
-            query ->
-                executeSingle(
-                    requestInfo.getStargateBridge(), query, context.nested("ASYNC DELETE")));
+        .flatMap(query -> executeSingle(bridge, query, context.nested("ASYNC DELETE")));
   }
 
   /**
    * Deletes a given dead leaves for a document.
+   *
+   * <p>Since this should be executed as asynchronous action that is not done during the user
+   * request, gRPC {@link Metadata} that have to passed on the bridge must be supplied.
    *
    * @param keyspace Keyspace to delete a dead leaves from.
    * @param collection Collection the document belongs to.
@@ -425,6 +472,7 @@ public class WriteBridgeService {
    * @param microsTimestamp Micros timestamp to use in delete queries.
    * @param deadLeaves A map of JSON paths (f.e. $.some.path) to dead leaves to delete.
    * @param context Execution content for profiling.
+   * @param metadata Metadata to pass to the bridge
    * @return Single containing the {@link ResultSet} of the batch execution.
    */
   public Uni<ResultSet> deleteDeadLeaves(
@@ -433,7 +481,8 @@ public class WriteBridgeService {
       String documentId,
       long microsTimestamp,
       Map<String, Set<DeadLeaf>> deadLeaves,
-      ExecutionContext context) {
+      ExecutionContext context,
+      Metadata metadata) {
     return Uni.createFrom()
         .item(
             () -> {
@@ -453,11 +502,16 @@ public class WriteBridgeService {
               return queries;
             })
         .flatMap(
-            boundQueries ->
-                executeBatch(
-                    requestInfo.getStargateBridge(),
-                    boundQueries,
-                    context.nested("ASYNC DOCUMENT CORRECTION")));
+            boundQueries -> {
+              if (metadata.keys().isEmpty()) {
+                return executeBatch(
+                    bridge, boundQueries, context.nested("ASYNC DOCUMENT CORRECTION"));
+              } else {
+                StargateBridge bridgeWithMetadata = GrpcClientUtils.attachHeaders(bridge, metadata);
+                return executeBatch(
+                    bridgeWithMetadata, boundQueries, context.nested("ASYNC DOCUMENT CORRECTION"));
+              }
+            });
   }
 
   // creates needed query builders for one path of dead leaves

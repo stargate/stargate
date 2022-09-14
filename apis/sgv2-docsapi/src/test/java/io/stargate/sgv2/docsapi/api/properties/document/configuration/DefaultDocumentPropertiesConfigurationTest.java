@@ -19,7 +19,9 @@ package io.stargate.sgv2.docsapi.api.properties.document.configuration;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.api.common.cql.builder.Column;
+import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
 import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.properties.document.DocumentTableColumns;
 import io.stargate.sgv2.docsapi.api.properties.document.DocumentTableProperties;
@@ -29,6 +31,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
+@TestProfile(NoGlobalResourcesTestProfile.Impl.class)
 class DefaultDocumentPropertiesConfigurationTest {
 
   @Inject DocumentProperties documentProperties;

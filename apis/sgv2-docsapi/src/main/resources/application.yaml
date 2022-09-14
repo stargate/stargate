@@ -147,3 +147,16 @@ quarkus:
     path: /swagger-ui
     always-include: true
     title: ${quarkus.application.name}
+    # function below enables pre-populating the authentication token in the Swagger UI
+    # it's reading the value of the token from the sg-swagger-token cookie, if existing
+    # cookie extraction copied from: https://stackoverflow.com/questions/10730362/get-cookie-by-name
+    # Swagger configuration reference: https://swagger.io/docs/open-source-tools/swagger-ui/usage/configuration/
+    on-complete: |
+      function() {
+        const value = '; ' + document.cookie;
+        const parts = value.split('; sg-swagger-token=');
+        if (parts.length === 2) { 
+          const token = parts.pop().split(';').shift();
+          ui.preauthorizeApiKey('Token', token);
+        }
+      }

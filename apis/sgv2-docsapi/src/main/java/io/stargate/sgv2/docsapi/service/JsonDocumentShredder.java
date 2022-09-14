@@ -27,8 +27,12 @@ import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
@@ -89,6 +93,45 @@ public class JsonDocumentShredder {
 
     List<JsonShreddedRow> result = new ArrayList<>();
     processNode(node, rowBuilder, result);
+    return result;
+  }
+
+  /**
+   * Shreds the {@link JsonNode} and returns the list of {@link JsonShreddedRow} for each value that
+   * should be stored in the data store. This method assumes that each field in the JsonNode has a
+   * dotted-path syntax representing a location in the document, and that the root node is a JSON
+   * Object.
+   *
+   * @param node {@link JsonNode}
+   * @return List of shredded rows
+   */
+  public List<JsonShreddedRow> shredFromDottedPaths(JsonNode node, List<String> subDocumentPath) {
+    if (!node.isObject()) {
+      throw new ErrorCodeRuntimeException(
+          ErrorCode.DOCS_API_PUT_PAYLOAD_INVALID,
+          "Using dotted-path JSON processing requires a JSON object at root");
+    }
+    List<JsonShreddedRow> result = new ArrayList<>();
+
+    for (Iterator<Map.Entry<String, JsonNode>> it = node.fields(); it.hasNext(); ) {
+      Map.Entry<String, JsonNode> entry = it.next();
+      String path = entry.getKey();
+      List<String> separatedPath =
+          Arrays.asList(path.split("\\.")).stream()
+              .map(
+                  pathSeg ->
+                      DocsApiUtils.convertSingleArrayPath(pathSeg, properties.maxArrayLength()))
+              .collect(Collectors.toList());
+      processNode(
+          entry.getValue(),
+          () ->
+              ImmutableJsonShreddedRow.builder()
+                  .maxDepth(properties.maxDepth())
+                  .addAllPath(subDocumentPath)
+                  .addAllPath(separatedPath),
+          result);
+    }
+
     return result;
   }
 

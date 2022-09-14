@@ -96,7 +96,7 @@ public final class DocsApiUtils {
     }
   }
 
-  private static String convertSingleArrayPath(String path, int maxArrayLength) {
+  public static String convertSingleArrayPath(String path, int maxArrayLength) {
     return extractArrayPathIndex(path, maxArrayLength)
         .map(innerPath -> "[" + leftPadTo6(innerPath.toString()) + "]")
         .orElse(path);
@@ -173,16 +173,19 @@ public final class DocsApiUtils {
         throw new ErrorCodeRuntimeException(ErrorCode.DOCS_API_GENERAL_FIELDS_INVALID, msg);
       }
       String fieldValue = value.asText();
-      List<String> fieldPath =
-          Arrays.stream(PERIOD_PATTERN.split(fieldValue))
-              .map(p -> DocsApiUtils.convertArrayPath(p, maxArrayLength))
-              .map(DocsApiUtils::convertEscapedCharacters)
-              .collect(Collectors.toList());
+      List<String> fieldPath = getFieldPath(fieldValue, maxArrayLength);
 
       results.add(fieldPath);
     }
 
     return results;
+  }
+
+  public static List<String> getFieldPath(String fieldValue, int maxArrayLength) {
+    return Arrays.stream(PERIOD_PATTERN.split(fieldValue))
+        .map(p -> DocsApiUtils.convertArrayPath(p, maxArrayLength))
+        .map(DocsApiUtils::convertEscapedCharacters)
+        .collect(Collectors.toList());
   }
 
   /**
@@ -193,11 +196,24 @@ public final class DocsApiUtils {
    * @return true if the String has an illegal character
    */
   public static boolean containsIllegalSequences(String value) {
+    return containsIllegalSequences(value, false);
+  }
+
+  /**
+   * Returns true if the String contains illegal characters. Used during writes to ensure that all
+   * special characters are escaped.
+   *
+   * @param value A String
+   * @param allowDottedPaths whether paths with a `.` (and []) are allowed in this check
+   * @return true if the String has an illegal character
+   */
+  public static boolean containsIllegalSequences(String value, boolean allowDottedPaths) {
     String replaced = ESCAPED_PATTERN.matcher(value).replaceAll("");
-    return replaced.contains("[")
-        || replaced.contains(".")
-        || replaced.contains("'")
-        || replaced.contains("\\");
+    boolean condition = replaced.contains("'") || replaced.contains("\\");
+    if (!allowDottedPaths) {
+      condition = condition || replaced.contains(".") || replaced.contains("[");
+    }
+    return condition;
   }
 
   /**

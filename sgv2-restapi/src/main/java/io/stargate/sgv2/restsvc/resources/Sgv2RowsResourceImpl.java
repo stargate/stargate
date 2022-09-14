@@ -255,8 +255,12 @@ public class Sgv2RowsResourceImpl extends ResourceBase implements Sgv2RowsResour
         tableName,
         (tableDef) -> {
           final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
-          return buildDeleteRowsByPKCQuery(
-              keyspaceName, tableName, path, tableDef, toProtoConverter);
+          try {
+            return buildDeleteRowsByPKCQuery(
+                keyspaceName, tableName, path, tableDef, toProtoConverter);
+          } catch (IllegalArgumentException e) {
+            throw new WebApplicationException(e.getMessage(), Status.BAD_REQUEST);
+          }
         });
     return Response.status(Status.NO_CONTENT).build();
   }

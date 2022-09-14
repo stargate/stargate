@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>2.0.0-ALPHA-17-SNAPSHOT</version>
+    <version>2.0.0-BETA-2-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.it</groupId>
   <artifactId>testing</artifactId>
@@ -51,6 +51,11 @@
     <dependency>
       <groupId>io.stargate.grpc</groupId>
       <artifactId>bridge-proto</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.stargate.cql</groupId>
+      <artifactId>cql</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
@@ -108,16 +113,11 @@
       <artifactId>apollo-runtime</artifactId>
       <version>2.2.3</version>
     </dependency>
-    <dependency>
-      <groupId>com.squareup.okio</groupId>
-      <artifactId>okio</artifactId>
-      <version>2.5.0</version>
-    </dependency>
     <!-- Optional, needed only for ANNOTATED nullable type-->
     <dependency>
-      <groupId>org.jetbrains</groupId>
-      <artifactId>annotations</artifactId>
-      <version>19.0.0</version>
+      <groupId>jakarta.validation</groupId>
+      <artifactId>jakarta.validation-api</artifactId>
+      <version>3.0.2</version>
     </dependency>
     <dependency>
       <groupId>org.jetbrains.kotlin</groupId>
@@ -146,8 +146,14 @@
     <dependency>
       <groupId>com.squareup.okhttp3</groupId>
       <artifactId>okhttp</artifactId>
-      <version>4.9.0</version>
+      <version>4.10.0</version>
     </dependency>
+    <dependency>
+      <groupId>com.squareup.okio</groupId>
+      <artifactId>okio-jvm</artifactId>
+      <version>3.0.0</version>
+    </dependency>
+
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-params</artifactId>
@@ -218,28 +224,6 @@
   <build>
     <plugins>
       <plugin>
-        <groupId>com.github.sparow199</groupId>
-        <artifactId>apollo-client-maven-plugin</artifactId>
-        <version>3.2.2</version>
-        <executions>
-          <execution>
-            <id>betterbotz</id>
-            <goals>
-              <goal>generate</goal>
-            </goals>
-            <configuration>
-              <rootPackageName>com.example.graphql.client.betterbotz</rootPackageName>
-              <introspectionFile>${project.basedir}/src/main/graphql/betterbotz/schema.json</introspectionFile>
-              <sourceDirName>${project.basedir}/src/main/graphql/betterbotz</sourceDirName>
-              <customTypeMap>
-                <Timestamp>java.time.Instant</Timestamp>
-                <Float32>java.lang.Float</Float32>
-              </customTypeMap>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
           <skipTests>true</skipTests>
@@ -264,7 +248,6 @@
           <systemPropertyVariables>
             <stargate.libdir>${basedir}/../stargate-lib</stargate.libdir>
             <stargate.rest.libdir>${basedir}/../stargate-lib/rest</stargate.rest.libdir>
-            <stargate.graphql.libdir>${basedir}/../stargate-lib/graphql</stargate.graphql.libdir>
             <jacoco-agent.destfile>${project.build.directory}/jacoco-it.exec</jacoco-agent.destfile>
             <jacoco-agent.args>${failsafe.jacoco.args}</jacoco-agent.args>
           </systemPropertyVariables>

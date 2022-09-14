@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.stargate</groupId>
   <artifactId>stargate</artifactId>
-  <version>2.0.0-ALPHA-17-SNAPSHOT</version>
+  <version>2.0.0-BETA-2-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>${project.groupId}:${project.artifactId}</name>
   <description>Core modules for Stargate</description>
@@ -42,11 +42,13 @@
     <commons-io.version>2.7</commons-io.version>
     <grpc.version>1.45.1</grpc.version>
     <immutables.version>2.8.8</immutables.version>
-    <jackson.version>2.12.7</jackson.version>
+    <jackson.version>2.13.4</jackson.version>
     <javatuples.version>1.2</javatuples.version>
     <!-- Make sure micrometer and prometheus versions are in sync  -->
     <micrometer.version>1.8.2</micrometer.version>
     <prometheus.version>0.12.0</prometheus.version>
+    <!-- SnakeYAML needs to be synced with jackson-dataformat-yaml -->
+    <snakeyaml.version>1.32</snakeyaml.version>
     <swagger-ui.version>3.52.5</swagger-ui.version>
     <swagger-jersey2-jaxrs.version>1.6.3</swagger-jersey2-jaxrs.version>
     <netty.version>4.1.75.Final</netty.version>
@@ -167,7 +169,6 @@
         <module>graphqlapi</module>
         <module>restapi</module>
         <module>sgv2-restapi</module>
-        <module>sgv2-graphqlapi</module>
         <module>sgv2-service-common</module>
         <module>auth-api</module>
         <module>authnz</module>
@@ -205,7 +206,6 @@
         <module>graphqlapi</module>
         <module>restapi</module>
         <module>sgv2-restapi</module>
-        <module>sgv2-graphqlapi</module>
         <module>sgv2-service-common</module>
         <module>auth-api</module>
         <module>authnz</module>
@@ -560,6 +560,15 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <!-- SnakeYAML dependency from Jackson is 1.31 but Persistence backends
+	   try to bring in older versions, so:
+	-->
+      <dependency>
+        <groupId>org.yaml</groupId>
+        <artifactId>snakeyaml</artifactId>
+        <version>${snakeyaml.version}</version>
+      </dependency>
+
       <!-- BOM/dependencies for dropwizard too: -->
       <dependency>
         <groupId>io.dropwizard</groupId>

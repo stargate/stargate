@@ -1,0 +1,113 @@
+stargate:
+  # security and authentication configuration
+  # see io.stargate.sgv2.api.common.config.AuthConfig for all config properties and options
+  auth:
+    # header-based security by default
+    # if changed, adapt token resolver type
+    header-based:
+      enabled: true
+
+    # Cassandra token resolver from principal
+    token-resolver:
+      type: principal
+
+  metrics:
+    global-tags:
+      module: sgv2-restapi
+    tenant-request-counter:
+      enabled: ${stargate.multi-tenancy.enabled}
+
+  # multi tenancy settings
+  # see io.stargate.sgv2.api.common.config.MultiTenancyConfig for all config properties and options
+  multi-tenancy:
+    enabled: false
+
+quarkus:
+  # general app properties
+  application:
+    name: Stargate REST API
+
+  # banner for the startup
+  banner:
+    path: banner/banner.txt
+  cache:
+    caffeine:
+      # keyspace cache for the schema management
+      keyspace-cache:
+        maximum-size: 1000
+        expire-after-access: PT5M
+        metrics-enabled: true
+
+  # properties for the gRPC clients
+  grpc:
+    clients:
+      bridge:
+        host: localhost
+        port: 8091
+    # force no grpc server start in dev as we have no grpc service
+    dev-mode:
+      force-server-start: false
+  http:
+    # 21-Jul-2022, tatu: Until we disable/remove main level SGv2/REST (which runs on 8082)
+    #    need to use different port
+    port: 9092
+
+    # every /v2 path is authenticated by default
+    # adapt if changing the authentication mechanism
+    auth:
+      proactive: false
+      permission:
+        default:
+          paths: /v2/*
+          policy: authenticated
+
+  # built-in micrometer properties
+  micrometer:
+    binder:
+      http-server:
+        # ignore all non-application uris, as well as the custom set
+        suppress-non-application-uris: true
+        ignore-patterns: /,/metrics,/swagger-ui.*,.*\.html
+    export:
+      prometheus:
+        path: /metrics
+
+  # information for the generated Open API definitions
+  smallrye-openapi:
+    info-title: ${quarkus.application.name}
+    info-version: ${quarkus.application.version:}
+    info-description:
+    info-terms-of-service:
+    info-contact-name: Stargate
+    info-contact-url: https://stargate.io
+    info-license-name: Apache 2.0
+    info-license-url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+  # swagger UI settings
+  swagger-ui:
+    path: /swagger-ui
+    always-include: true
+    title: ${quarkus.application.name}
+    # function below enables pre-populating the authentication token in the Swagger UI
+    # it's reading the value of the token from the sg-swagger-token cookie, if existing
+    # cookie extraction copied from: https://stackoverflow.com/questions/10730362/get-cookie-by-name
+    # Swagger configuration reference: https://swagger.io/docs/open-source-tools/swagger-ui/usage/configuration/
+    on-complete: |
+      function() {
+        const value = '; ' + document.cookie;
+        const parts = value.split('; sg-swagger-token=');
+        if (parts.length === 2) {
+          const token = parts.pop().split(';').shift();
+          ui.preauthorizeApiKey('Token', token);
+        }
+      }
+
+
+# In Dev mode, gRPC server usually running on different virtual IP
+"%dev":
+  quarkus:
+    grpc:
+      clients:
+        bridge:
+          host: 127.0.0.2
+          port: 8091

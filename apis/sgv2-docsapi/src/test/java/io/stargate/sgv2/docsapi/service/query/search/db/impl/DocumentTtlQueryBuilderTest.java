@@ -20,7 +20,9 @@ package io.stargate.sgv2.docsapi.service.query.search.db.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.quarkus.test.junit.QuarkusTest;
+import io.quarkus.test.junit.TestProfile;
 import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
 import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -28,6 +30,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
+@TestProfile(NoGlobalResourcesTestProfile.Impl.class)
 class DocumentTtlQueryBuilderTest {
 
   private static final String KEYSPACE_NAME = RandomStringUtils.randomAlphanumeric(16);

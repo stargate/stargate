@@ -25,10 +25,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.common.annotations.VisibleForTesting;
+import io.grpc.Metadata;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.smallrye.mutiny.subscription.Cancellable;
+import io.stargate.sgv2.api.common.StargateRequestInfo;
+import io.stargate.sgv2.api.common.grpc.GrpcMetadataResolver;
 import io.stargate.sgv2.api.common.properties.datastore.DataStoreProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
@@ -62,6 +65,10 @@ import org.slf4j.LoggerFactory;
 public class ReadDocumentsService {
 
   private static final Logger logger = LoggerFactory.getLogger(ReadDocumentsService.class);
+
+  @Inject StargateRequestInfo requestInfo;
+
+  @Inject GrpcMetadataResolver metadataResolver;
 
   @Inject ReadBridgeService readBridgeService;
 
@@ -189,6 +196,7 @@ public class ReadDocumentsService {
       ExecutionContext context) {
 
     long now = timeSource.currentTimeMicros();
+    Metadata metadata = metadataResolver.getMetadata(requestInfo);
 
     // everything in the reactive sequence
     return Uni.createFrom()
@@ -238,7 +246,8 @@ public class ReadDocumentsService {
                                   documentId,
                                   now,
                                   collector.getLeaves(),
-                                  context)
+                                  context,
+                                  metadata)
 
                               // subscribe on the worker thread and don't block
                               .runSubscriptionOn(Infrastructure.getDefaultWorkerPool())

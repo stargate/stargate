@@ -275,6 +275,25 @@ class DocsApiUtilsTest {
   }
 
   @Nested
+  class GetFieldPath {
+    @Test
+    public void happyPath() {
+      AssertionsForInterfaceTypes.assertThat(DocsApiUtils.getFieldPath("a.b.c", 64))
+          .containsExactly("a", "b", "c");
+      AssertionsForInterfaceTypes.assertThat(DocsApiUtils.getFieldPath("a.[0].c", 64))
+          .containsExactly("a", "[000000]", "c");
+      AssertionsForInterfaceTypes.assertThat(DocsApiUtils.getFieldPath("a", 64))
+          .containsExactly("a");
+    }
+
+    @Test
+    public void tooLong() {
+      AssertionsForClassTypes.assertThatThrownBy(() -> DocsApiUtils.getFieldPath("a.[3].c", 2))
+          .isInstanceOf(ErrorCodeRuntimeException.class);
+    }
+  }
+
+  @Nested
   class ContainsIllegalSequences {
     @Test
     public void happyPath() {
@@ -286,6 +305,27 @@ class DocsApiUtilsTest {
       AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("[aaa")).isTrue();
       AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("aaa]")).isFalse();
       AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("a.2000")).isTrue();
+      AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("a\\.2000"))
+          .isFalse();
+      AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("a'2000")).isTrue();
+    }
+
+    @Test
+    public void happyPathDotsAllowed() {
+      AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("[012]", true))
+          .isFalse();
+      AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("aaa[012]", true))
+          .isFalse();
+      AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("]012[", true))
+          .isFalse();
+      AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("[aaa]", true))
+          .isFalse();
+      AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("[aaa", true))
+          .isFalse();
+      AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("aaa]", true))
+          .isFalse();
+      AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("a.2000", true))
+          .isFalse();
       AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("a\\.2000"))
           .isFalse();
       AssertionsForClassTypes.assertThat(DocsApiUtils.containsIllegalSequences("a'2000")).isTrue();

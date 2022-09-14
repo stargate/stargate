@@ -58,7 +58,6 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.apache.cassandra.net.ResourceLimits;
-import org.apache.cassandra.service.ClientWarn;
 import org.apache.cassandra.stargate.exceptions.OverloadedException;
 import org.apache.cassandra.stargate.exceptions.UnhandledClientException;
 import org.apache.cassandra.stargate.metrics.ClientMetrics;
@@ -758,8 +757,6 @@ public abstract class Message {
             error.getMessage(),
             t.getMessage(),
             t);
-      } finally {
-        ClientWarn.instance.resetWarnings();
       }
     }
 
