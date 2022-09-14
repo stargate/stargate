@@ -48,9 +48,9 @@ quarkus:
     dev-mode:
       force-server-start: false
   http:
-    # 21-Jul-2022, tatu: Until we disable/remove main level SGv2/REST (which runs on 8082)
-    #    need to use different port
-    port: 8080
+    # 14-Sep-2022, tatu: Use the legacy port (same as SGv1) for now,
+    #   change to "standard" 8080 later on (needs other changes)
+    port: 8082
 
     # every /v2 path is authenticated by default
     # adapt if changing the authentication mechanism
