@@ -18,7 +18,11 @@
 
 package org.apache.cassandra.stargate.transport;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Optional;
 
 /**
  * The native (CQL binary) protocol version.

@@ -42,5 +42,5 @@ public interface ConnectionMetrics {
 
   void markProtocolException();
 
-  public void markUnknownException();
+  void markUnknownException();
 }

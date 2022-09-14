@@ -342,7 +342,7 @@ public final class ClientMetrics {
 
     @Override
     public void markUnknownException() {
-      this.unknownException.increment();
+      unknownException.increment();
     }
   }
 }
