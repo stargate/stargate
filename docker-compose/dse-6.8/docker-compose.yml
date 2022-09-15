@@ -54,6 +54,7 @@ services:
       - 8081:8081
       - 8083:8083
       - 8084:8084
+      - 8091:8091
     mem_limit: 2G
     environment:
       - JAVA_OPTS="-Xmx2G"
@@ -99,7 +100,7 @@ services:
       - 8180:8180
     mem_limit: 2G
     environment:
-      - STARGATE_BRIDGE_HOST=coordinator
-      - STARGATE_BRIDGE_PORT=8091
+      - QUARKUS_GRPC_CLIENTS_BRIDGE_HOST=coordinator
+      - QUARKUS_GRPC_CLIENTS_BRIDGE_PORT=8091
 networks:
   stargate:
