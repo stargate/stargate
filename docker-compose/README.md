@@ -32,13 +32,9 @@ The solution is to increase `maxfiles` limit; you can do that by:
 sudo launchctl limit maxfiles 999999 999999
 ```
 
-and optionally adding following entry in `/etc/launchd.conf` file to reset values on restart
-(file might not exist; if so, just create it with this line)
-
-```
-limit maxfiles 999999 999999
-```
+but note that this setting will not persist over restart.
 
 For more information see f.ex:
 
-https://wilsonmar.github.io/maximum-limits/
+* https://wilsonmar.github.io/maximum-limits/
+* https://superuser.com/questions/433746/is-there-a-fix-for-the-too-many-open-files-in-system-error-on-os-x-10-7-1
