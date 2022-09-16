@@ -46,8 +46,10 @@
     <!-- Make sure micrometer and prometheus versions are in sync  -->
     <micrometer.version>1.7.3</micrometer.version>
     <prometheus.version>0.10.0</prometheus.version>
-    <!-- SnakeYAML needs to be synced with jackson-dataformat-yaml -->
-    <snakeyaml.version>1.31</snakeyaml.version>
+    <!-- SnakeYAML needs to be synced with jackson-dataformat-yaml
+       most of the time, but occasionally higher for CVEs
+      -->
+    <snakeyaml.version>1.32</snakeyaml.version>
     <swagger-ui.version>3.52.5</swagger-ui.version>
     <swagger-jersey2-jaxrs.version>1.6.3</swagger-jersey2-jaxrs.version>
     <netty.version>4.1.75.Final</netty.version>
