@@ -42,4 +42,4 @@ docker-compose up -d dse-3
 
 docker-compose up -d coordinator
 (docker-compose logs -f coordinator &) | grep -q "Finished starting bundles"
-docker-compose up -d restapi graphqlapi
+docker-compose up -d restapi graphqlapi docsapi

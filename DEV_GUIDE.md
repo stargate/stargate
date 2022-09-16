@@ -103,7 +103,7 @@ sudo ifconfig lo0 alias 127.0.0.2
 Start Stargate from the command line as follows:
 
 ```sh
-./starctl --cluster-name stargate --cluster-seed 127.0.0.1 --cluster-version 4.0 --listen 127.0.0.2 --bind-to-listen-address --simple-snitch
+./starctl --cluster-name stargate --cluster-seed 127.0.0.1 --cluster-version 4.0 --listen 127.0.0.2 --simple-snitch
 
 # See all cli options with -h
 ```

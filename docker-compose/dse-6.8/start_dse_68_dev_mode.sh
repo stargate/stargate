@@ -25,6 +25,4 @@ echo "Running Stargate version $SGTAG with DSE 6.8 (developer mode)"
 
 docker-compose -f docker-compose-dev-mode.yml up -d coordinator
 (docker-compose logs -f coordinator &) | grep -q "Finished starting bundles"
-docker-compose -f docker-compose-dev-mode.yml up -d restapi graphqlapi
-
-
+docker-compose -f docker-compose-dev-mode.yml up -d restapi graphqlapi docsapi

@@ -89,5 +89,17 @@ services:
     environment:
       - QUARKUS_GRPC_CLIENTS_BRIDGE_HOST=coordinator
       - QUARKUS_GRPC_CLIENTS_BRIDGE_PORT=8091
+  docsapi:
+    image: stargateio/docsapi:${SGTAG}
+    depends_on:
+      - coordinator
+    networks:
+      - stargate
+    ports:
+      - 8180:8180
+    mem_limit: 2G
+    environment:
+      - QUARKUS_GRPC_CLIENTS_BRIDGE_HOST=coordinator
+      - QUARKUS_GRPC_CLIENTS_BRIDGE_PORT=8091
 networks:
   stargate:
