@@ -40,7 +40,6 @@ docker-compose up -d cassandra-3
 
 # Bring up the stargate: Coordinator first, then APIs
 
-<<<<<<< HEAD
 docker-compose up -d coordinator
 (docker-compose logs -f coordinator &) | grep -q "Finished starting bundles"
 docker-compose up -d restapi graphqlapi docsapi
