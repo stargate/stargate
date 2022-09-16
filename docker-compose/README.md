@@ -17,16 +17,21 @@ Many Docker engines have default settings for low memory usage. For example:
 
 * Docker Desktop defaults to 2 GB: depending on your set up, you may need to increase this up to 6 GBs (although some developers report 4 GB being sufficient)
 
-### MacOS has too low limit for File Descriptors
+### OS may too low limit for File Descriptors
 
-MacOS has low `ulimit` for maximum number of files open. If you see a message like this:
+If you see a message like this:
 
 ```
 Jars will not be watched due to unexpected error: User limit of inotify instances reached or too many open files
 ```
 
 on Docker logs for Coordinator, you are probably hitting it.
-The solution is to increase `maxfiles` limit; you can do that by:
+
+Solution depends on OS you are on; here are some suggestions
+
+#### MacOS: too low FD limit
+
+On MacOS a solution is to increase `maxfiles` limit; you can do that by:
 
 ```
 sudo launchctl limit maxfiles 999999 999999
@@ -38,3 +43,5 @@ For more information see f.ex:
 
 * https://wilsonmar.github.io/maximum-limits/
 * https://superuser.com/questions/433746/is-there-a-fix-for-the-too-many-open-files-in-system-error-on-os-x-10-7-1
+
+Unfortunately the "permanent" solution appears to be different across different MacOS versions!
