@@ -21,6 +21,10 @@ export SGTAG
 echo "Running Stargate version $SGTAG with Cassandra 3.11 (developer mode)"
 
 # Can start all containers in parallel since C* is running inside single Stargate coordinator
-docker-compose -f docker-compose-dev-mode.yml up
+# Bring up the stargate: Coordinator first, then APIs
+
+docker-compose -f docker-compose-dev-mode.yml up -d coordinator
+(docker-compose logs -f coordinator &) | grep -q "Finished starting bundles"
+docker-compose -f docker-compose-dev-mode.yml up -d restapi graphqlapi
 
 

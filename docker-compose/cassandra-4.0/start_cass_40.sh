@@ -38,6 +38,8 @@ docker-compose up -d cassandra-2
 docker-compose up -d cassandra-3
 (docker-compose logs -f cassandra-3 &) | grep -q "Startup complete"
 
-# Bring up the stargate
+# Bring up the stargate: Coordinator first, then APIs
 
-docker-compose up -d coordinator restapi graphqlapi
+docker-compose up -d coordinator
+(docker-compose logs -f coordinator &) | grep -q "Finished starting bundles"
+docker-compose up -d restapi graphqlapi
