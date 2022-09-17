@@ -66,8 +66,8 @@ services:
       - 8082:8082
     mem_limit: 2G
     environment:
-      - STARGATE_BRIDGE_HOST=coordinator
-      - STARGATE_BRIDGE_PORT=8091
+      - QUARKUS_GRPC_CLIENTS_BRIDGE_HOST=coordinator
+      - QUARKUS_GRPC_CLIENTS_BRIDGE_PORT=8091
   graphqlapi:
     image: stargateio/graphqlapi:${SGTAG}
     depends_on:
@@ -78,8 +78,8 @@ services:
       - 8085:8080
     mem_limit: 2G
     environment:
-      - STARGATE_BRIDGE_HOST=coordinator
-      - STARGATE_BRIDGE_PORT=8091
+      - QUARKUS_GRPC_CLIENTS_BRIDGE_HOST=coordinator
+      - QUARKUS_GRPC_CLIENTS_BRIDGE_PORT=8091
   docsapi:
     image: stargateio/docsapi:${SGTAG}
     depends_on:
