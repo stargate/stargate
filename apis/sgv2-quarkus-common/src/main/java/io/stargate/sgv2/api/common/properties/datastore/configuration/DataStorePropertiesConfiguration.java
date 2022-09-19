@@ -41,34 +41,86 @@ public class DataStorePropertiesConfiguration {
   DataStoreProperties configuration(
       @GrpcClient("bridge") StargateBridgeGrpc.StargateBridgeBlockingStub bridge,
       DataStoreConfig dataStoreConfig,
-      BridgeBootstrapConfig bridgeBootstrapConfig) {
-    DataStoreProperties fromConfig =
-        new DataStorePropertiesImpl(
-            dataStoreConfig.secondaryIndexesEnabled(),
-            dataStoreConfig.saiEnabled(),
-            dataStoreConfig.loggedBatchesEnabled());
-
+      BridgeBootstrapConfig bridgeBootstrapConfig)
+      throws Exception {
     // if we should not read from the bridge, go for defaults
     if (dataStoreConfig.ignoreBridge()) {
-      return fromConfig;
-    }
-
-    try {
-      // fire request
-      Schema.SupportedFeaturesRequest request =
-          Schema.SupportedFeaturesRequest.newBuilder().build();
-      Schema.SupportedFeaturesResponse supportedFeatures = bridge.getSupportedFeatures(request);
-
-      // construct props from bridge
       return new DataStorePropertiesImpl(
-          supportedFeatures.getSecondaryIndexes(),
-          supportedFeatures.getSai(),
-          supportedFeatures.getLoggedBatches());
-    } catch (Exception e) {
-      LOG.warn(
-          "Error fetching the data store properties from the bridge, fallback to the configuration based properties.",
-          e);
-      return fromConfig;
+          dataStoreConfig.secondaryIndexesEnabled(),
+          dataStoreConfig.saiEnabled(),
+          dataStoreConfig.loggedBatchesEnabled());
     }
+
+    // Make first attempt separately since we want to log first failure bit differently
+    final long startTime = System.currentTimeMillis();
+    Exception lastFail = null;
+
+    LOG.info("Making the first call to fetch the data store properties via Bridge");
+    try {
+      return tryFetchSupportedFeatures(bridge);
+    } catch (Exception e) {
+      lastFail = e;
+      LOG.warn(
+          "Failed the first call to fetch the data store properties via Bridge, problem: {}",
+          lastFail.getMessage());
+    }
+
+    final int maxCalls = bridgeBootstrapConfig.maxCalls();
+    final long lastCallStart = startTime + bridgeBootstrapConfig.maxTime().toMillis();
+    long currDelay = bridgeBootstrapConfig.initialDelay().toMillis();
+
+    for (int calls = 1; ; ++calls) {
+      if (calls >= maxCalls) {
+        LOG.error(
+            String.format(
+                "Maximum number of calls (%d) reached: cannot retry, fail after %d calls. Last failure: %d",
+                maxCalls, calls, lastFail.getMessage()),
+            lastFail);
+        throw lastFail;
+      }
+      final long currTime = System.currentTimeMillis();
+      if (currTime > lastCallStart) {
+        LOG.error(
+            String.format(
+                "Maximum bootstrapping time (%s) reached: cannot retry, fail after %d calls. Last failure: %d",
+                bridgeBootstrapConfig.maxTime(), calls, lastFail.getMessage()),
+            lastFail);
+        throw lastFail;
+      }
+      // We want to wait for a bit: delay is from start-to-start, we deduct call time itself.
+      long waitUntil = Math.min(lastCallStart, currTime + currDelay);
+      // Will always apply at least 10 milliseconds, however
+      final long delayMsecs = Math.max(10L, waitUntil - currTime);
+      if (delayMsecs > 0) {
+        LOG.info("Waiting for {} msecs before bootstrap call retry #{}", delayMsecs, calls);
+        Thread.sleep(delayMsecs);
+      }
+      currDelay =
+          Math.min(
+              bridgeBootstrapConfig.maxDelay().toMillis(),
+              (long) (currDelay * bridgeBootstrapConfig.delayRatio()));
+      try {
+        return tryFetchSupportedFeatures(bridge);
+      } catch (Exception e) {
+        lastFail = e;
+        LOG.warn(
+            "Failed bootstrap call retry #{} to fetch the data store properties via Bridge, problem: {}",
+            calls,
+            lastFail.getMessage());
+      }
+    }
+  }
+
+  private DataStoreProperties tryFetchSupportedFeatures(
+      StargateBridgeGrpc.StargateBridgeBlockingStub bridge) throws Exception {
+    // fire request
+    Schema.SupportedFeaturesRequest request = Schema.SupportedFeaturesRequest.newBuilder().build();
+    Schema.SupportedFeaturesResponse supportedFeatures = bridge.getSupportedFeatures(request);
+
+    // construct props from bridge
+    return new DataStorePropertiesImpl(
+        supportedFeatures.getSecondaryIndexes(),
+        supportedFeatures.getSai(),
+        supportedFeatures.getLoggedBatches());
   }
 }
