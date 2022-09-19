@@ -65,7 +65,7 @@ class BridgeDataStorePropertiesConfigurationTest extends BridgeTest {
   }
 
   @Test
-  public void dataStoreFromBridge() {
+  public void dataStoreFromBridge() throws Exception {
     DataStoreConfig config = mock(DataStoreConfig.class);
     when(config.ignoreBridge()).thenReturn(false);
 
