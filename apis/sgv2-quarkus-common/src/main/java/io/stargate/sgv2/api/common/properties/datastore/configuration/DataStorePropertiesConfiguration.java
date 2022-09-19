@@ -50,14 +50,9 @@ public class DataStorePropertiesConfiguration {
 
     // if we should not read from the bridge, go for defaults
     if (dataStoreConfig.ignoreBridge()) {
-      System.err.println(
-          "DEBUG: Bridge bootstrap/IGNORE! -> MAx calls == " + bridgeBootstrapConfig.maxCalls());
       return fromConfig;
     }
 
-    System.err.println(
-        "DEBUG: Bridge bootstrap/DO-NOT-IGNORE -> Max calls == "
-            + bridgeBootstrapConfig.maxCalls());
     try {
       // fire request
       Schema.SupportedFeaturesRequest request =
