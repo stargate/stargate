@@ -21,6 +21,7 @@ import io.quarkus.grpc.GrpcClient;
 import io.quarkus.runtime.Startup;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridgeGrpc;
+import io.stargate.sgv2.api.common.config.BridgeBootstrapConfig;
 import io.stargate.sgv2.api.common.config.DataStoreConfig;
 import io.stargate.sgv2.api.common.properties.datastore.DataStoreProperties;
 import io.stargate.sgv2.api.common.properties.datastore.impl.DataStorePropertiesImpl;
@@ -39,7 +40,8 @@ public class DataStorePropertiesConfiguration {
   @Startup
   DataStoreProperties configuration(
       @GrpcClient("bridge") StargateBridgeGrpc.StargateBridgeBlockingStub bridge,
-      DataStoreConfig dataStoreConfig) {
+      DataStoreConfig dataStoreConfig,
+      BridgeBootstrapConfig bridgeBootstrapConfig) {
     DataStoreProperties fromConfig =
         new DataStorePropertiesImpl(
             dataStoreConfig.secondaryIndexesEnabled(),
@@ -48,9 +50,14 @@ public class DataStorePropertiesConfiguration {
 
     // if we should not read from the bridge, go for defaults
     if (dataStoreConfig.ignoreBridge()) {
+      System.err.println(
+          "DEBUG: Bridge bootstrap/IGNORE! -> MAx calls == " + bridgeBootstrapConfig.maxCalls());
       return fromConfig;
     }
 
+    System.err.println(
+        "DEBUG: Bridge bootstrap/DO-NOT-IGNORE -> Max calls == "
+            + bridgeBootstrapConfig.maxCalls());
     try {
       // fire request
       Schema.SupportedFeaturesRequest request =

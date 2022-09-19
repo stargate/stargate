@@ -29,6 +29,7 @@ import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.api.common.BridgeTest;
 import io.stargate.sgv2.api.common.config.DataStoreConfig;
+import io.stargate.sgv2.api.common.config.impl.BridgeBootstrapConfigImpl;
 import io.stargate.sgv2.api.common.properties.datastore.DataStoreProperties;
 import javax.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
@@ -69,7 +70,8 @@ class BridgeDataStorePropertiesConfigurationTest extends BridgeTest {
     when(config.ignoreBridge()).thenReturn(false);
 
     DataStoreProperties dataStoreProperties =
-        dataStorePropertiesConfiguration.configuration(bridge, config);
+        dataStorePropertiesConfiguration.configuration(
+            bridge, config, new BridgeBootstrapConfigImpl());
 
     assertThat(dataStoreProperties.secondaryIndexesEnabled()).isFalse();
     assertThat(dataStoreProperties.saiEnabled()).isTrue();
