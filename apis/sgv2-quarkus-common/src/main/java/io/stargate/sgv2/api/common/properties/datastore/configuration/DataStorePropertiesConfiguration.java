@@ -23,6 +23,7 @@ import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.api.common.config.BridgeBootstrapConfig;
 import io.stargate.sgv2.api.common.config.DataStoreConfig;
+import io.stargate.sgv2.api.common.config.RetryableCallsConfig;
 import io.stargate.sgv2.api.common.properties.datastore.DataStoreProperties;
 import io.stargate.sgv2.api.common.properties.datastore.impl.DataStorePropertiesImpl;
 import javax.enterprise.context.ApplicationScoped;
@@ -52,6 +53,7 @@ public class DataStorePropertiesConfiguration {
     }
 
     // Make first attempt separately since we want to log first failure bit differently
+    final RetryableCallsConfig retryConfig = bridgeBootstrapConfig.retry();
     final long startTime = System.currentTimeMillis();
     Exception lastFail = null;
 
@@ -65,9 +67,9 @@ public class DataStorePropertiesConfiguration {
           lastFail.getMessage());
     }
 
-    final int maxCalls = bridgeBootstrapConfig.maxCalls();
-    final long lastCallStart = startTime + bridgeBootstrapConfig.maxTime().toMillis();
-    long currDelay = bridgeBootstrapConfig.initialDelay().toMillis();
+    final int maxCalls = retryConfig.maxCalls();
+    final long lastCallStart = startTime + retryConfig.maxTime().toMillis();
+    long currDelay = retryConfig.initialDelay().toMillis();
 
     for (int calls = 1; ; ++calls) {
       if (calls >= maxCalls) {
@@ -83,7 +85,7 @@ public class DataStorePropertiesConfiguration {
         LOG.error(
             String.format(
                 "Maximum bootstrapping time (%s) reached: cannot retry, fail after %d calls. Last failure: %d",
-                bridgeBootstrapConfig.maxTime(), calls, lastFail.getMessage()),
+                retryConfig.maxTime(), calls, lastFail.getMessage()),
             lastFail);
         throw lastFail;
       }
@@ -97,8 +99,7 @@ public class DataStorePropertiesConfiguration {
       }
       currDelay =
           Math.min(
-              bridgeBootstrapConfig.maxDelay().toMillis(),
-              (long) (currDelay * bridgeBootstrapConfig.delayRatio()));
+              retryConfig.maxDelay().toMillis(), (long) (currDelay * retryConfig.delayRatio()));
       try {
         return tryFetchSupportedFeatures(bridge);
       } catch (Exception e) {
