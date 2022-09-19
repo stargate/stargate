@@ -384,8 +384,6 @@ public class Starter {
       System.setProperty("stargate.host_id", hostId);
     }
 
-    System.setProperty("stargate.cluster_version", String.valueOf(version));
-
     if (bindToListenAddressOnly) {
       // Restrict the listen address for Jersey endpoints
       System.setProperty("dw.server.connector.bindHost", listenHostStr);
