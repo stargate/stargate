@@ -24,8 +24,10 @@ import io.stargate.bridge.proto.StargateBridgeGrpc;
 import io.stargate.sgv2.api.common.config.DataStoreConfig;
 import io.stargate.sgv2.api.common.properties.datastore.DataStoreProperties;
 import io.stargate.sgv2.api.common.properties.datastore.impl.DataStorePropertiesImpl;
+import java.time.temporal.ChronoUnit;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
+import org.eclipse.microprofile.faulttolerance.Retry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,14 +50,15 @@ public class DataStorePropertiesConfiguration {
 
     // if we should not read from the bridge, go for defaults
     if (dataStoreConfig.ignoreBridge()) {
+      LOG.info("DataStoreConfig.ignoreBridge() == true, will use pre-configured defaults");
       return fromConfig;
     }
 
+    LOG.info(
+        "DataStoreConfig.ignoreBridge() == false, will try to fetch data store metadata using the Bridge");
     try {
       // fire request
-      Schema.SupportedFeaturesRequest request =
-          Schema.SupportedFeaturesRequest.newBuilder().build();
-      Schema.SupportedFeaturesResponse supportedFeatures = bridge.getSupportedFeatures(request);
+      Schema.SupportedFeaturesResponse supportedFeatures = fetchSupportedFeatures(bridge);
 
       // construct props from bridge
       return new DataStorePropertiesImpl(
@@ -63,10 +66,35 @@ public class DataStorePropertiesConfiguration {
           supportedFeatures.getSai(),
           supportedFeatures.getLoggedBatches());
     } catch (Exception e) {
+      if (dataStoreConfig.useFallbacksIfCallFails()) {
+        LOG.warn(
+            "Failed to fetch the data store metadata, 'useFallbacksIfCallFails' == true, will return fallback data store metadata",
+            e);
+        return fromConfig;
+      }
       LOG.warn(
-          "Error fetching the data store properties from the bridge, fallback to the configuration based properties.",
-          e);
-      return fromConfig;
+          "Failed to fetch the data store metadata, 'useFallbacksIfCallFails' == false, will fail");
+      throw e;
+    }
+  }
+
+  /**
+   * Method for fetching data store metadata: will attempt up to 5 retries, for up to 1 minute
+   * before failing.
+   */
+  @Retry(
+      maxRetries = 5,
+      delay = 5,
+      delayUnit = ChronoUnit.SECONDS,
+      maxDuration = 60,
+      durationUnit = ChronoUnit.SECONDS)
+  private Schema.SupportedFeaturesResponse fetchSupportedFeatures(
+      StargateBridgeGrpc.StargateBridgeBlockingStub bridge) {
+    try {
+      return bridge.getSupportedFeatures(Schema.SupportedFeaturesRequest.newBuilder().build());
+    } catch (Exception e) {
+      LOG.warn("Data store metadata fetch using Bridge failed, problem: {}", e.getMessage());
+      throw e;
     }
   }
 }

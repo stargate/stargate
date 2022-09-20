@@ -33,6 +33,13 @@ public interface DataStoreConfig {
   @WithDefault("${stargate.multi-tenancy.enabled}")
   boolean ignoreBridge();
 
+  /**
+   * @return If call(s) to fetch metadata fail, should we just return default settings ({@code
+   *     true}) or throw an exception ({@code false}). Defaults to {@code false}.
+   */
+  @WithDefault("false")
+  boolean useFallbacksIfCallFails();
+
   /** @return If the secondary indexes are enabled, defaults to <code>true</code>. */
   @WithDefault("true")
   boolean secondaryIndexesEnabled();
