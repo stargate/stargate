@@ -11,11 +11,14 @@ import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.common.IntegrationTestUtils;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.restapi.service.models.Sgv2Keyspace;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.http.HttpStatus;
@@ -74,6 +77,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
 
   // 09-Aug-2022, tatu: Alas, Auth token seems not to be checked
   // @Ignore("Auth token handling hard-coded, won't fail as expected")
+  @Test
   public void keyspacesGetAllMissingToken() {
     String response =
         givenWithoutAuth()
@@ -86,7 +90,8 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   }
 
   // 09-Aug-2022, tatu: Alas, Auth token seems not to be checked
-  @Ignore("Auth token handling hard-coded, won't fail as expected")
+  // @Ignore("Auth token handling hard-coded, won't fail as expected")
+  @Test
   public void keyspacesGetAllBadToken() {
     String response =
         givenWithAuthToken("NotAPassword")
@@ -319,14 +324,18 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
    */
 
   private void assertSystemKeyspaces(Sgv2Keyspace[] keyspaces) {
-    assertSimpleKeyspaces(keyspaces, "system", "system_auth", "system_schema");
+    // While C*3, C*4, DSE have "system", "system_auth", "system_schema", CNDB
+    // does not have "system_auth"
+    assertSimpleKeyspaces(keyspaces, "system", "system_schema");
   }
 
   private void assertSimpleKeyspaces(Sgv2Keyspace[] keyspaces, String... expectedKsNames) {
-    for (String ksName : expectedKsNames) {
-      assertThat(keyspaces)
-          .anySatisfy(
-              v -> assertThat(v).usingRecursiveComparison().isEqualTo(new Sgv2Keyspace(ksName)));
+    Set<String> existingNames =
+        Arrays.stream(keyspaces)
+            .map(k -> k.getName())
+            .collect(Collectors.toCollection(TreeSet::new));
+    for (String expectedName : expectedKsNames) {
+      assertThat(existingNames).contains(expectedName);
     }
   }
 }
