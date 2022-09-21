@@ -66,7 +66,7 @@ public class DataStorePropertiesConfiguration {
           supportedFeatures.getSai(),
           supportedFeatures.getLoggedBatches());
     } catch (Exception e) {
-      if (dataStoreConfig.useFallbacksIfCallFails()) {
+      if (dataStoreConfig.bridgeFallbackEnabled()) {
         LOG.warn(
             "Failed to fetch the data store metadata, 'useFallbacksIfCallFails' == true, will return fallback data store metadata",
             e);
@@ -93,7 +93,8 @@ public class DataStorePropertiesConfiguration {
     try {
       return bridge.getSupportedFeatures(Schema.SupportedFeaturesRequest.newBuilder().build());
     } catch (Exception e) {
-      LOG.warn("Data store metadata fetch using Bridge failed, problem: {}", e.getMessage());
+      // only log at info() level here; warn()/error() if all retries exhausted
+      LOG.info("Data store metadata fetch using Bridge failed, problem: {}", e.getMessage());
       throw e;
     }
   }

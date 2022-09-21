@@ -38,7 +38,7 @@ public interface DataStoreConfig {
    *     true}) or throw an exception ({@code false}). Defaults to {@code false}.
    */
   @WithDefault("false")
-  boolean useFallbacksIfCallFails();
+  boolean bridgeFallbackEnabled();
 
   /** @return If the secondary indexes are enabled, defaults to <code>true</code>. */
   @WithDefault("true")
