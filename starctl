@@ -1,25 +1,174 @@
 #!/bin/bash
 set -e
 
-cleanup() {
-    # kill all processes whose parent is this process
-    pkill -9 -P $$
+if type -p java >/dev/null; then
+    _java=java
+elif [[ -n "$JAVA_HOME" ]] && [[ -x "$JAVA_HOME/bin/java" ]];  then
+    _java="$JAVA_HOME/bin/java"
+else
+    echo "\$JAVA_HOME not found"
+    exit 1
+fi
+
+if [[ "$_java" ]]; then
+    jvmver=$("$_java" -version 2>&1 | awk -F '"' '/version/ {print $2}')
+    JVM_VERSION=${jvmver%_*}
+    JVM_PATCH_VERSION=${jvmver#*_}
+
+    if [ "$JVM_VERSION" \< "1.8" ] ; then
+        echo "Stargate requires Java 8u40 or later."
+        exit 1
+    fi
+
+    if [ "$JVM_VERSION" \< "1.8" ] && [ "$JVM_PATCH_VERSION" -lt 40 ] ; then
+        echo "Stargate requires Java 8u40 or later."
+        exit 1
+    fi
+fi
+
+# If STARGATE_HOME wasn't specified in the environment, then search for one...
+if [ "x$STARGATE_HOME" == "x" ]; then
+    STARGATE_HOME="`dirname "$0"`/stargate-lib"
+    if [[ ! -d $STARGATE_HOME ]]; then
+      echo "STARGATE_HOME not found"
+      exit 2
+    fi
+else
+    if [[ ! -d $STARGATE_HOME ]]; then
+      echo "STARGATE_HOME: '$STARGATE_HOME' is not a directory"
+      exit 2
+    fi
+fi
+
+# Look for stargate-starter
+STARGATE_STARTER=$(find "$STARGATE_HOME" -type f -iname "stargate-starter*.jar")
+if [ ! -e $STARGATE_STARTER ]; then
+  echo "stargate-starter.jar missing in $STARGATE_HOME"
+  exit 3
+fi
+
+
+_ip_address() {
+    # scrape the first non-localhost IP address of the container
+    # in Swarm Mode, we often get two IPs -- the container IP, and the (shared) VIP, and the container IP should always be first
+    ip address | awk '
+        $1 == "inet" && $NF != "lo" {
+            gsub(/\/.+$/, "", $2)
+            print $2
+            exit
+        }
+    '
 }
 
-for sig in INT QUIT HUP TERM EXIT; do
-  trap cleanup "$sig"
-done
+# Keep options in arrays for ease of quoting / cmd. line construction.
+# Default to the env. variable. Use `eval` to reinterpret quotes embedded in the env. var. value.
+eval declare -a JAVA_OPTS=("$JAVA_OPTS")
 
-cd -P -- "$(dirname -- "$0")" # switch to this dir
-echo $PWD
+JAVA_OPTS+=(-Dstargate.libdir="$STARGATE_HOME")
+JAVA_OPTS+=(-Djava.awt.headless=true)
 
-# start REST API service
-./starctl-service-rest &
+declare -a STARGATE_ARGS=("$@")
 
-./starctl-service-graphql &
+# Use either command line args or environment variables, don't mix and match or
+# else we could end up with unexpected config
+if [[ ${#STARGATE_ARGS[@]} -eq 0 ]]; then
+    echo "Using environment for config"
+    if [[ ! -z "$CLUSTER_NAME" ]]; then
+        STARGATE_ARGS+=("--cluster-name" "$CLUSTER_NAME")
+    fi
 
-# pass along same arguments to script to start coordinator
-./starctl-coordinator "$@" &
+    if [[ ! -z "$CLUSTER_VERSION" ]]; then
+        STARGATE_ARGS+=("--cluster-version" "$CLUSTER_VERSION")
+    fi
 
-wait
+    if [[ ! -z "$SEED" ]]; then
+        STARGATE_ARGS+=("--cluster-seed" "$SEED")
+    fi
 
+    if [[ ! -z "$LISTEN" ]]; then
+        STARGATE_ARGS+=("--listen" "$LISTEN")
+    else
+        LISTEN="$(_ip_address)"
+        STARGATE_ARGS+=("--listen" "$LISTEN")
+    fi
+
+    if [[ ! -z "$SEED_PORT" ]]; then
+        STARGATE_ARGS+=("--seed-port" "$SEED_PORT")
+    fi
+
+    if [[ ! -z "$DATACENTER_NAME" ]]; then
+        STARGATE_ARGS+=("--dc" "$DATACENTER_NAME")
+    fi
+
+    if [[ ! -z "$RACK_NAME" ]]; then
+        STARGATE_ARGS+=("--rack" "$RACK_NAME")
+    fi
+
+    if [[ ! -z "$SIMPLE_SNITCH" ]]; then
+        STARGATE_ARGS+=("--simple-snitch")
+    fi
+
+    if [[ ! -z "$DSE" ]]; then
+        STARGATE_ARGS+=("--dse")
+    fi
+
+    if [[ ! -z "$CQL_PORT" ]]; then
+        STARGATE_ARGS+=("--cql-port" "$CQL_PORT")
+    fi
+
+    if [[ ! -z "$ENABLE_AUTH" ]]; then
+        STARGATE_ARGS+=("--enable-auth")
+    fi
+
+    if [[ ! -z "$USE_PROXY_PROTOCOL" ]]; then
+        STARGATE_ARGS+=("--use-proxy-protocol")
+    fi
+
+    if [[ ! -z "$PROXY_DNS_NAME" ]]; then
+        STARGATE_ARGS+=("--proxy-dns-name" "$PROXY_DNS_NAME")
+    fi
+
+    if [[ ! -z "$PROXY_PORT" ]]; then
+        STARGATE_ARGS+=("--proxy-port" "$PROXY_PORT")
+    fi
+
+    if [[ "$DEVELOPER_MODE" = true ]] || [[ "$DEVELOPER_MODE" = 1 ]]; then
+        STARGATE_ARGS+=("--developer-mode")
+    fi
+
+    if [[ ! -z "$EMULATE_DBAAS_DEFAULTS" ]]; then
+        STARGATE_ARGS+=("--emulate-dbaas-defaults")
+    fi
+
+    if [[ ! -z "$BIND_TO_LISTEN_ADDRESS" ]]; then
+        STARGATE_ARGS+=("--bind-to-listen-address")
+    fi
+
+    if [[ ! -z "$JMX_PORT" ]]; then
+        STARGATE_ARGS+=("--jmx-port" "$JMX_PORT")
+    fi
+
+    if [[ ! -z "$DISABLE_DYNAMIC_SNITCH" ]]; then
+        STARGATE_ARGS+=("--disable-dynamic-snitch")
+    fi
+
+    if [[ ! -z "$DISABLE_MBEAN_REGISTRATION" ]]; then
+        STARGATE_ARGS+=("--disable-mbean-registration")
+    fi
+
+    if [[ ! -z "$DISABLE_BUNDLES_WATCH" ]]; then
+        STARGATE_ARGS+=("--disable-bundles-watch")
+    fi
+
+    if [[ ! -z "$HOST_ID" ]]; then
+        STARGATE_ARGS+=("--host-id" "$HOST_ID")
+    fi
+
+fi
+
+declare -a CMD=(java -server)
+CMD+=("${JAVA_OPTS[@]}")
+CMD+=(-jar "$STARGATE_STARTER")
+CMD+=("${STARGATE_ARGS[@]}")
+echo "Running" "${CMD[@]}"
+exec "${CMD[@]}"
