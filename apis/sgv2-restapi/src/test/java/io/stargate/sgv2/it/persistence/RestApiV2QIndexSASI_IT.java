@@ -19,19 +19,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * Test(s) to verify Storage-Attached Index (SAI) creation. Separate from other Index tests since
- * SAI not available on all backends.
+ * Test(s) to verify SSTable-Attached Secondary Index (SASI) creation. Separate from other Index
+ * tests since SASI not available on all backends.
  */
 @QuarkusIntegrationTest
 @QuarkusTestResource(
     value = StargateTestResource.class,
     initArgs =
         @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
-public class RestApiV2QIndexSAI_IT extends RestApiV2QIntegrationTestBase {
-  private static final Logger LOG = LoggerFactory.getLogger(RestApiV2QIndexSAI_IT.class);
+public class RestApiV2QIndexSASI_IT extends RestApiV2QIntegrationTestBase {
+  private static final Logger LOG = LoggerFactory.getLogger(RestApiV2QIndexSASI_IT.class);
 
-  public RestApiV2QIndexSAI_IT() {
-    super("sai_ks_", "sai_t_");
+  public RestApiV2QIndexSASI_IT() {
+    super("sasi_ks_", "sasi_t_");
   }
 
   /*
@@ -41,11 +41,11 @@ public class RestApiV2QIndexSAI_IT extends RestApiV2QIntegrationTestBase {
    */
 
   @Test
-  public void indexCreateCustomSAI() {
+  public void indexCreateCustomSASI() {
     boolean isC4 = IntegrationTestUtils.isCassandra40();
-    LOG.info("indexCreateCustomSAI(): is backend Cassandra 4.0? {}", isC4);
+    LOG.info("indexCreateCustomSASI(): is backend Cassandra 4.0? {}", isC4);
     assumeThat(!isC4)
-        .as("Disabled because it is currently not possible to enable SAI indexes on C*4.0 backend")
+        .as("Disabled because it is currently not possible to enable SASI indexes on C*4.0 backend")
         .isTrue();
 
     final String tableName = testTableName();

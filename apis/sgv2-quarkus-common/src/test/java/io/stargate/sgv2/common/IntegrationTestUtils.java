@@ -9,7 +9,10 @@ public final class IntegrationTestUtils {
   public static final String AUTH_TOKEN_PROP = "stargate.int-test.auth-token";
   public static final String CASSANDRA_HOST_PROP = "stargate.int-test.cassandra.host";
   public static final String CASSANDRA_CQL_PORT_PROP = "stargate.int-test.cassandra.cql-port";
-
+  public static final String CASSANDRA_AUTH_ENABLED_PROP =
+      "stargate.int-test.cassandra.auth-enabled";
+  public static final String CASSANDRA_USERNAME_PROP = "stargate.int-test.cassandra.username";
+  public static final String CASSANDRA_PASSWORD_PROP = "stargate.int-test.cassandra.password";
   public static final String CLUSTER_VERSION_PROP = "stargate.int-test.cluster-version";
 
   private IntegrationTestUtils() {}
@@ -42,6 +45,21 @@ public final class IntegrationTestUtils {
         "Expected system property %s to be set to an integer (got %s)"
             .formatted(CASSANDRA_CQL_PORT_PROP, System.getProperty(CASSANDRA_CQL_PORT_PROP)));
     return new InetSocketAddress(host, port);
+  }
+
+  /** @return If Cassandra auth is enabled */
+  public static boolean isCassandraAuthEnabled() {
+    return Boolean.parseBoolean(System.getProperty(CASSANDRA_AUTH_ENABLED_PROP, "false"));
+  }
+
+  /** @return Cassandra username, only meaningful if Cassandra auth is enabled */
+  public static String getCassandraUsername() {
+    return System.getProperty(CASSANDRA_USERNAME_PROP, "cassandra");
+  }
+
+  /** @return Cassandra password, only meaningful if Cassandra auth is enabled */
+  public static String getCassandraPassword() {
+    return System.getProperty(CASSANDRA_PASSWORD_PROP, "cassandra");
   }
 
   /** @return Returns the cluster version (3.11, 4.0, 6.8 (== DSE)) specified for the coordinator */
