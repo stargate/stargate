@@ -53,6 +53,12 @@ public class Sgv2Keyspace {
     datacenters.add(new Datacenter(name, replicas));
   }
 
+  // Define to give more meaningful failure messages from ITs:
+  @Override
+  public String toString() {
+    return "[Keyspace '" + name + "']";
+  }
+
   @JsonInclude(JsonInclude.Include.NON_NULL)
   public static class Datacenter {
     private String name;
