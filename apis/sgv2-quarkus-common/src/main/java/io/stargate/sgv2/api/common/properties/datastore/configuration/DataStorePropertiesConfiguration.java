@@ -88,7 +88,8 @@ public class DataStorePropertiesConfiguration {
       delayUnit = ChronoUnit.SECONDS,
       maxDuration = 60,
       durationUnit = ChronoUnit.SECONDS)
-  private Schema.SupportedFeaturesResponse fetchSupportedFeatures(
+  // NOTE: Must NOT be 'private' for annotation to take effect!
+  protected Schema.SupportedFeaturesResponse fetchSupportedFeatures(
       StargateBridgeGrpc.StargateBridgeBlockingStub bridge) {
     try {
       return bridge.getSupportedFeatures(Schema.SupportedFeaturesRequest.newBuilder().build());
