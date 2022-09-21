@@ -18,7 +18,6 @@
 - Unify REST sgv2 \(Q\) configuration to be more similar to Docs API; increase Coordinator container startup timeout [\#2069](https://github.com/stargate/stargate/pull/2069) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Update DEV\_GUIDE.md [\#2064](https://github.com/stargate/stargate/pull/2064) ([EricBorczuk](https://github.com/EricBorczuk))
 - Fix \#2061, problem constructing converter for deeply nested structured type [\#2063](https://github.com/stargate/stargate/pull/2063) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Update version to 2.0.0-BETA-2-SNAPSHOT [\#2060](https://github.com/stargate/stargate/pull/2060) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v2.0.0-BETA-1](https://github.com/stargate/stargate/tree/v2.0.0-BETA-1) (2022-09-08)
 
