@@ -25,6 +25,7 @@ import io.stargate.sgv2.api.common.config.DataStoreConfig;
 import io.stargate.sgv2.api.common.properties.datastore.DataStoreProperties;
 import io.stargate.sgv2.api.common.properties.datastore.impl.DataStorePropertiesImpl;
 import java.time.temporal.ChronoUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Produces;
 import org.eclipse.microprofile.faulttolerance.Retry;
@@ -56,46 +57,58 @@ public class DataStorePropertiesConfiguration {
 
     LOG.info(
         "DataStoreConfig.ignoreBridge() == false, will try to fetch data store metadata using the Bridge");
+    final AtomicInteger callCount = new AtomicInteger(0);
     try {
       // fire request
-      Schema.SupportedFeaturesResponse supportedFeatures = fetchSupportedFeatures(bridge);
+      Schema.SupportedFeaturesResponse supportedFeatures =
+          fetchSupportedFeatures(bridge, callCount);
 
       // construct props from bridge
-      return new DataStorePropertiesImpl(
-          supportedFeatures.getSecondaryIndexes(),
-          supportedFeatures.getSai(),
-          supportedFeatures.getLoggedBatches());
+      DataStorePropertiesImpl props =
+          new DataStorePropertiesImpl(
+              supportedFeatures.getSecondaryIndexes(),
+              supportedFeatures.getSai(),
+              supportedFeatures.getLoggedBatches());
+      LOG.info("Successfully fetched data store metadata ({} retries)", callCount.get() - 1);
+      return props;
     } catch (Exception e) {
+      final String msgBase =
+          "Failed to fetch data store metadata ({} retries)".formatted(callCount.get() - 1);
       if (dataStoreConfig.bridgeFallbackEnabled()) {
         LOG.warn(
-            "Failed to fetch the data store metadata, 'useFallbacksIfCallFails' == true, will return fallback data store metadata",
+            msgBase + ", 'bridgeFallbackEnabled' == true, will return fallback data store metadata",
             e);
         return fromConfig;
       }
-      LOG.warn(
-          "Failed to fetch the data store metadata, 'useFallbacksIfCallFails' == false, will fail");
+      LOG.warn(msgBase + ", 'bridgeFallbackEnabled' == false, will fail");
       throw e;
     }
   }
 
   /**
-   * Method for fetching data store metadata: will attempt up to 5 retries, for up to 1 minute
+   * Method for fetching data store metadata: will attempt up to 9 retries, for up to 1 minute
    * before failing.
    */
   @Retry(
-      maxRetries = 5,
-      delay = 5,
+      maxRetries = 9,
+      delay = 3,
       delayUnit = ChronoUnit.SECONDS,
       maxDuration = 60,
       durationUnit = ChronoUnit.SECONDS)
   // NOTE: Must NOT be 'private' for annotation to take effect!
   protected Schema.SupportedFeaturesResponse fetchSupportedFeatures(
-      StargateBridgeGrpc.StargateBridgeBlockingStub bridge) {
+      StargateBridgeGrpc.StargateBridgeBlockingStub bridge, AtomicInteger callCount) {
+    callCount.incrementAndGet();
     try {
       return bridge.getSupportedFeatures(Schema.SupportedFeaturesRequest.newBuilder().build());
     } catch (Exception e) {
-      // only log at info() level here; warn()/error() if all retries exhausted
-      LOG.info("Data store metadata fetch using Bridge failed, problem: {}", e.getMessage());
+      // only log at info() level here; warn()/error() if all retries exhausted. Avoid printing
+      // stack trace here
+      LOG.info(
+          "Data store metadata fetch using Bridge failed (call #{}/10), problem: ({}) {}",
+          callCount.get(),
+          e.getClass().getName(),
+          e.getMessage());
       throw e;
     }
   }
