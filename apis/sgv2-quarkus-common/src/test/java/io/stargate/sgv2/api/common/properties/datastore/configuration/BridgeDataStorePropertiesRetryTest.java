@@ -36,60 +36,70 @@ public class BridgeDataStorePropertiesRetryTest extends BridgeTest {
 
   @Inject DataStorePropertiesConfiguration dataStorePropertiesConfiguration;
 
-  // // // Test methods
+  private final Schema.SupportedFeaturesResponse SUCCESS_RESPONSE =
+      Schema.SupportedFeaturesResponse.newBuilder()
+          .setSecondaryIndexes(false)
+          .setSai(false)
+          .setLoggedBatches(true)
+          .build();
 
   @Test
   public void dataStoreWithNoRetriesOk() {
-    dataStoreWithNCalls(1);
+    final AtomicInteger callCounter = new AtomicInteger(0);
+    DataStoreProperties props = fetchDataStoreProperties(1, callCounter, SUCCESS_RESPONSE);
+    verifyProperties(props, SUCCESS_RESPONSE);
+    assertThat(callCounter).hasValue(1);
   }
 
   @Test
   public void dataStoreWithOneRetryOk() {
-    dataStoreWithNCalls(2);
+    final AtomicInteger callCounter = new AtomicInteger(0);
+    DataStoreProperties props = fetchDataStoreProperties(2, callCounter, SUCCESS_RESPONSE);
+    verifyProperties(props, SUCCESS_RESPONSE);
+    assertThat(callCounter).hasValue(2);
   }
 
   @Test
   public void dataStoreWithTwoRetriesOk() {
     // Succeeds still with 2 retries (max for tests)
-    dataStoreWithNCalls(3);
+    final AtomicInteger callCounter = new AtomicInteger(0);
+    DataStoreProperties props = fetchDataStoreProperties(3, callCounter, SUCCESS_RESPONSE);
+    verifyProperties(props, SUCCESS_RESPONSE);
+    assertThat(callCounter).hasValue(3);
   }
 
   @Test
   public void dataStoreWithTwoRetriesFail() {
     // Fails after 5 calls
-    Throwable e = catchThrowable(() -> dataStoreWithNCalls(6));
-    assertThat(e).isInstanceOf(StatusRuntimeException.class);
+    final AtomicInteger callCounter = new AtomicInteger(0);
+    Throwable e = catchThrowable(() -> fetchDataStoreProperties(6, callCounter, SUCCESS_RESPONSE));
+    assertThat(e).isNotNull().isInstanceOf(StatusRuntimeException.class);
     assertThat(e.getMessage()).contains("UNAVAILABLE");
+    // and should have called 5 times before failing
+    assertThat(callCounter).hasValue(5);
   }
 
-  // // // Helper methods for tests
-
-  private void dataStoreWithNCalls(int callsToSucceed) {
-    DataStoreConfig config = mock(DataStoreConfig.class);
-    when(config.ignoreBridge()).thenReturn(false);
-    final AtomicInteger callCounter = new AtomicInteger(0);
-    mockGetSupportedFeaturesCall(callsToSucceed, callCounter);
-
-    DataStoreProperties props = dataStorePropertiesConfiguration.configuration(bridge, config);
-    assertThat(props.secondaryIndexesEnabled()).isFalse();
-    assertThat(props.saiEnabled()).isFalse();
-    assertThat(props.loggedBatchesEnabled()).isTrue();
-
-    assertThat(callCounter.get()).isEqualTo(callsToSucceed);
+  private void verifyProperties(
+      DataStoreProperties props, Schema.SupportedFeaturesResponse expected) {
+    assertThat(props.secondaryIndexesEnabled()).isEqualTo(expected.getSecondaryIndexes());
+    assertThat(props.saiEnabled()).isEqualTo(expected.getSai());
+    assertThat(props.loggedBatchesEnabled()).isEqualTo(expected.getLoggedBatches());
   }
 
   /**
-   * Helper method for mocking "getSupportedFeatures" bridge operation to fail first N-1 calls, then
-   * succeed and return expected response afterwards.
+   * Helper method for doing a Mocked call to fetch DataStoreProperties (including possible retries)
+   * and returning the response (if one of calls succeeds), or throwing an exception if all calls
+   * fail.
+   *
+   * @param callsToSucceed Number of the one (1-based) that should succeed; other calls will fail
+   * @param callCounter Counter in which number of calls made (succeed and fail) is returned
+   * @param response Response to return in case of successful call
+   * @return Actual {@code DataStoreProperties} Object call returns
    */
-  protected void mockGetSupportedFeaturesCall(
-      final int succeedOn, final AtomicInteger callCounter) {
-    Schema.SupportedFeaturesResponse response =
-        Schema.SupportedFeaturesResponse.newBuilder()
-            .setSecondaryIndexes(false)
-            .setSai(false)
-            .setLoggedBatches(true)
-            .build();
+  private DataStoreProperties fetchDataStoreProperties(
+      int callsToSucceed, AtomicInteger callCounter, Schema.SupportedFeaturesResponse response) {
+    DataStoreConfig config = mock(DataStoreConfig.class);
+    when(config.ignoreBridge()).thenReturn(false);
 
     // Fail first N-1 calls, succeed Nth call (and fail afterwards)
     doAnswer(
@@ -97,7 +107,7 @@ public class BridgeDataStorePropertiesRetryTest extends BridgeTest {
               int callNr = callCounter.incrementAndGet();
               final StreamObserver<Schema.SupportedFeaturesResponse> observer =
                   invocation.getArgument(1);
-              if (callNr == succeedOn) {
+              if (callNr == callsToSucceed) {
                 observer.onNext(response);
                 observer.onCompleted();
               } else {
@@ -107,5 +117,7 @@ public class BridgeDataStorePropertiesRetryTest extends BridgeTest {
             })
         .when(bridgeService)
         .getSupportedFeatures(any(), any());
+
+    return dataStorePropertiesConfiguration.configuration(bridge, config);
   }
 }
