@@ -1,6 +1,7 @@
 package io.stargate.sgv2.api.common.properties.datastore.configuration;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -18,7 +19,6 @@ import io.stargate.sgv2.api.common.config.DataStoreConfig;
 import io.stargate.sgv2.api.common.properties.datastore.DataStoreProperties;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.inject.Inject;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -57,13 +57,9 @@ public class BridgeDataStorePropertiesRetryTest extends BridgeTest {
   @Test
   public void dataStoreWithTwoRetriesFail() {
     // Fails after 5 calls
-    try {
-      dataStoreWithNCalls(6);
-      Assertions.fail("Should not have succeeded (max 4 retries)");
-    } catch (Exception e) {
-      assertThat(e).isInstanceOf(StatusRuntimeException.class);
-      assertThat(e.getMessage()).contains("UNAVAILABLE");
-    }
+    Throwable e = catchThrowable(() -> dataStoreWithNCalls(6));
+    assertThat(e).isInstanceOf(StatusRuntimeException.class);
+    assertThat(e.getMessage()).contains("UNAVAILABLE");
   }
 
   // // // Helper methods for tests
