@@ -49,21 +49,17 @@ public class BridgeDataStorePropertiesRetryTest extends BridgeTest {
     final AtomicInteger callCounter = new AtomicInteger(0);
     // Fail first call, succeed Nth call (and fail afterwards)
     doAnswer(
-            new Answer() {
-              private int count = 0;
-
-              public Object answer(InvocationOnMock invocation) {
-                int callNr = callCounter.incrementAndGet();
-                final StreamObserver<Schema.SupportedFeaturesResponse> observer =
-                    invocation.getArgument(1);
-                if (callNr == succeedOn) {
-                  observer.onNext(response);
-                  observer.onCompleted();
-                } else {
-                  observer.onError(new StatusRuntimeException(Status.UNAVAILABLE));
-                }
-                return null;
+            invocation -> {
+              int callNr = callCounter.incrementAndGet();
+              final StreamObserver<Schema.SupportedFeaturesResponse> observer =
+                  invocation.getArgument(1);
+              if (callNr == succeedOn) {
+                observer.onNext(response);
+                observer.onCompleted();
+              } else {
+                observer.onError(new StatusRuntimeException(Status.UNAVAILABLE));
               }
+              return null;
             })
         .when(bridgeService)
         .getSupportedFeatures(any(), any());
