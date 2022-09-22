@@ -16,14 +16,17 @@
 package io.stargate.sgv2.graphql.integration.util;
 
 import java.util.Arrays;
-import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Collector;
 
 public class MetricsTestsHelper {
 
-  public static Optional<Double> getMetricValueOptional(
-      String body, String metricName, Pattern regexpPattern) {
+  public static Double getMetricValue(
+      String body,
+      String metricName,
+      Pattern regexpPattern,
+      Collector<Double, ?, Double> aggregator) {
     return Arrays.stream(body.split("\n"))
         .filter(v -> v.contains(metricName))
         .filter(v -> regexpPattern.matcher(v).find())
@@ -37,10 +40,6 @@ public class MetricsTestsHelper {
                   String.format("Value: %s does not contain the numeric value for metric", v));
             })
         .map(Double::parseDouble)
-        .findAny();
-  }
-
-  public static double getMetricValue(String body, String metricName, Pattern regexpPattern) {
-    return getMetricValueOptional(body, metricName, regexpPattern).get();
+        .collect(aggregator);
   }
 }

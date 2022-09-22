@@ -167,7 +167,7 @@ public class DataTypesIntegrationTest extends GraphqlFirstIntegrationTest {
 
   private static String formatToSystemTimeZone(long epochMillis) {
     SimpleDateFormat parser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSXXX");
-    parser.setTimeZone(TimeZone.getTimeZone(ZoneId.systemDefault()));
+    parser.setTimeZone(TimeZone.getTimeZone(ZoneId.of("UTC")));
     return parser.format(new Date(epochMillis));
   }
 }

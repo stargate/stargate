@@ -25,6 +25,8 @@ import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.graphql.integration.util.CqlFirstIntegrationTest;
 import io.stargate.sgv2.graphql.integration.util.MetricsTestsHelper;
 import java.util.regex.Pattern;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
@@ -67,7 +69,10 @@ public class MetricsIntegrationTest extends CqlFirstIntegrationTest {
 
   private int getQueryCount() {
     String body = client.getMetrics();
-    return (int)
-        MetricsTestsHelper.getMetricValue(body, "graphqlapi", GRAPHQL_OPERATIONS_METRIC_REGEXP);
+    Collector<Double, ?, Double> aggregator = Collectors.summingDouble(Double::doubleValue);
+    Double value =
+        MetricsTestsHelper.getMetricValue(
+            body, "graphqlapi", GRAPHQL_OPERATIONS_METRIC_REGEXP, aggregator);
+    return value.intValue();
   }
 }
