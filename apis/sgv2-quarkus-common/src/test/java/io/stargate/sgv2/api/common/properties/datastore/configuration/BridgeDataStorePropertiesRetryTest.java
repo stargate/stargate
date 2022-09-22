@@ -18,10 +18,19 @@ import io.stargate.sgv2.api.common.config.DataStoreConfig;
 import io.stargate.sgv2.api.common.properties.datastore.DataStoreProperties;
 import java.util.concurrent.atomic.AtomicInteger;
 import javax.inject.Inject;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+/**
+ * Tests for verifying retry logic of {@link DataStorePropertiesConfiguration#configuration} call.
+ *
+ * <p>NOTE: properties of {@code @Retry} annotation are overridden to both reduce delay between
+ * calls AND to lower max-retry to 2 calls. See "./src/test/resources/application.yaml" for details.
+ * Override logic by Quarkus/SmallRye is explained <a
+ * href="https://quarkus.io/guides/smallrye-fault-tolerance">here</a>.
+ */
 @QuarkusTest
 public class BridgeDataStorePropertiesRetryTest extends BridgeTest {
   @GrpcClient("bridge")
@@ -73,7 +82,20 @@ public class BridgeDataStorePropertiesRetryTest extends BridgeTest {
 
   @Test
   public void dataStoreWithTwoRetriesOk() {
+    // Succeeds still with 2 retries (max for tests)
     dataStoreWithNCalls(3);
+  }
+
+  @Test
+  public void dataStoreWithTwoRetriesFail() {
+    // Fails if 3 retries needed (test setup only allows 2)
+    try {
+      dataStoreWithNCalls(4);
+      Assertions.fail("Should not have succeeded (max 2 retries)");
+    } catch (Exception e) {
+      assertThat(e).isInstanceOf(StatusRuntimeException.class);
+      assertThat(e.getMessage()).contains("UNAVAILABLE");
+    }
   }
 
   private void dataStoreWithNCalls(int callsToSucceed) {

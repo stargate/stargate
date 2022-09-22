@@ -10,3 +10,15 @@ quarkus:
       bridge:
         host: localhost
         port: 8091
+
+io:
+  stargate:
+    sgv2:
+      api:
+        common:
+          properties:
+            datastore:
+              configuration:
+                # Test overrides for "BridgeDataStorePropertiesRetryTest"
+                DataStorePropertiesConfiguration/fetchSupportedFeatures/Retry/maxRetries: 2
+                DataStorePropertiesConfiguration/fetchSupportedFeatures/Retry/delay: 0
