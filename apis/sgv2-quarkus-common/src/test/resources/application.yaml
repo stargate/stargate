@@ -19,6 +19,5 @@ io:
           properties:
             datastore:
               configuration:
-                # Test overrides for "BridgeDataStorePropertiesRetryTest"
-                DataStorePropertiesConfiguration/fetchSupportedFeatures/Retry/maxRetries: 2
+                # Test override(s) for "BridgeDataStorePropertiesRetryTest" to speed up test
                 DataStorePropertiesConfiguration/fetchSupportedFeatures/Retry/delay: 0

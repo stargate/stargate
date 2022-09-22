@@ -20,8 +20,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import javax.inject.Inject;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.mockito.invocation.InvocationOnMock;
-import org.mockito.stubbing.Answer;
 
 /**
  * Tests for verifying retry logic of {@link DataStorePropertiesConfiguration#configuration} call.
@@ -38,33 +36,7 @@ public class BridgeDataStorePropertiesRetryTest extends BridgeTest {
 
   @Inject DataStorePropertiesConfiguration dataStorePropertiesConfiguration;
 
-  protected AtomicInteger mockGetSupportedFeaturesCall(final int succeedOn) {
-    Schema.SupportedFeaturesResponse response =
-        Schema.SupportedFeaturesResponse.newBuilder()
-            .setSecondaryIndexes(false)
-            .setSai(false)
-            .setLoggedBatches(true)
-            .build();
-
-    final AtomicInteger callCounter = new AtomicInteger(0);
-    // Fail first call, succeed Nth call (and fail afterwards)
-    doAnswer(
-            invocation -> {
-              int callNr = callCounter.incrementAndGet();
-              final StreamObserver<Schema.SupportedFeaturesResponse> observer =
-                  invocation.getArgument(1);
-              if (callNr == succeedOn) {
-                observer.onNext(response);
-                observer.onCompleted();
-              } else {
-                observer.onError(new StatusRuntimeException(Status.UNAVAILABLE));
-              }
-              return null;
-            })
-        .when(bridgeService)
-        .getSupportedFeatures(any(), any());
-    return callCounter;
-  }
+  // // // Test methods
 
   @Test
   public void dataStoreWithNoRetriesOk() {
@@ -84,20 +56,23 @@ public class BridgeDataStorePropertiesRetryTest extends BridgeTest {
 
   @Test
   public void dataStoreWithTwoRetriesFail() {
-    // Fails if 3 retries needed (test setup only allows 2)
+    // Fails after 5 calls
     try {
-      dataStoreWithNCalls(4);
-      Assertions.fail("Should not have succeeded (max 2 retries)");
+      dataStoreWithNCalls(6);
+      Assertions.fail("Should not have succeeded (max 4 retries)");
     } catch (Exception e) {
       assertThat(e).isInstanceOf(StatusRuntimeException.class);
       assertThat(e.getMessage()).contains("UNAVAILABLE");
     }
   }
 
+  // // // Helper methods for tests
+
   private void dataStoreWithNCalls(int callsToSucceed) {
     DataStoreConfig config = mock(DataStoreConfig.class);
     when(config.ignoreBridge()).thenReturn(false);
-    final AtomicInteger callCounter = mockGetSupportedFeaturesCall(callsToSucceed);
+    final AtomicInteger callCounter = new AtomicInteger(0);
+    mockGetSupportedFeaturesCall(callsToSucceed, callCounter);
 
     DataStoreProperties props = dataStorePropertiesConfiguration.configuration(bridge, config);
     assertThat(props.secondaryIndexesEnabled()).isFalse();
@@ -105,5 +80,36 @@ public class BridgeDataStorePropertiesRetryTest extends BridgeTest {
     assertThat(props.loggedBatchesEnabled()).isTrue();
 
     assertThat(callCounter.get()).isEqualTo(callsToSucceed);
+  }
+
+  /**
+   * Helper method for mocking "getSupportedFeatures" bridge operation to fail first N-1 calls, then
+   * succeed and return expected response afterwards.
+   */
+  protected void mockGetSupportedFeaturesCall(
+      final int succeedOn, final AtomicInteger callCounter) {
+    Schema.SupportedFeaturesResponse response =
+        Schema.SupportedFeaturesResponse.newBuilder()
+            .setSecondaryIndexes(false)
+            .setSai(false)
+            .setLoggedBatches(true)
+            .build();
+
+    // Fail first N-1 calls, succeed Nth call (and fail afterwards)
+    doAnswer(
+            invocation -> {
+              int callNr = callCounter.incrementAndGet();
+              final StreamObserver<Schema.SupportedFeaturesResponse> observer =
+                  invocation.getArgument(1);
+              if (callNr == succeedOn) {
+                observer.onNext(response);
+                observer.onCompleted();
+              } else {
+                observer.onError(new StatusRuntimeException(Status.UNAVAILABLE));
+              }
+              return null;
+            })
+        .when(bridgeService)
+        .getSupportedFeatures(any(), any());
   }
 }

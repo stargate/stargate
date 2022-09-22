@@ -86,11 +86,11 @@ public class DataStorePropertiesConfiguration {
   }
 
   /**
-   * Method for fetching data store metadata: will attempt up to 9 retries, for up to 1 minute
+   * Method for fetching data store metadata: will attempt up to 5 total calls, for up to 1 minute
    * before failing.
    */
   @Retry(
-      maxRetries = 9,
+      maxRetries = 4,
       delay = 3,
       delayUnit = ChronoUnit.SECONDS,
       maxDuration = 60,
@@ -105,7 +105,7 @@ public class DataStorePropertiesConfiguration {
       // only log at info() level here; warn()/error() if all retries exhausted. Avoid printing
       // stack trace here
       LOG.info(
-          "Data store metadata fetch using Bridge failed (call #{}/10), problem: ({}) {}",
+          "Data store metadata fetch using Bridge failed (call #{}/5), problem: ({}) {}",
           callCount.get(),
           e.getClass().getName(),
           e.getMessage());
