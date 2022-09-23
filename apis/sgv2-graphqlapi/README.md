@@ -1,6 +1,9 @@
-# Stargate GraphQL
+# Stargate GraphQL API
 
-This module builds an HTTP service that exposes Stargate's GraphQL services over HTTP.
+This project represents the stand-alone GraphQL API microservice for Stargate V2, extracted from monolithic Stargate V1 Coordinator.
+GraphQL API is an HTTP service that gives access to data stored in a Cassandra cluster using auto-generated GraphQL interface.
+
+The project depends on the [sgv2-quarkus-common](../sgv2-quarkus-common) module, which provides common functionality used by all Stargate V2 APIs.
 
 Here is a brief functional overview of those services (for more details, refer to the [Stargate
 online docs]).

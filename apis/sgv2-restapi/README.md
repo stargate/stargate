@@ -1,6 +1,8 @@
 # Stargate REST API (Stargate V2)
 
 This project represents the stand-alone REST API microservice for Stargate V2, extracted from monolithic Stargate V1 Coordinator.
+REST API is an HTTP service that allows access to data stored in a Cassandra cluster using RESTful interface.
+
 The project depends on [sgv2-quarkus-common](../sgv2-quarkus-common) module, which defines general common project for all Stargate
 V2 APIs.
 
