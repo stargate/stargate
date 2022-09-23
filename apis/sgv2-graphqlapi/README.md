@@ -1,12 +1,13 @@
 # Stargate GraphQL API
 
-This project represents the stand-alone GraphQL API microservice for Stargate V2, extracted from monolithic Stargate V1 Coordinator.
+This project implements the stand-alone GraphQL API microservice for Stargate V2, extracted from monolithic Stargate V1 Coordinator.
 GraphQL API is an HTTP service that gives access to data stored in a Cassandra cluster using auto-generated GraphQL interface.
 
 The project depends on the [sgv2-quarkus-common](../sgv2-quarkus-common) module, which provides common functionality used by all Stargate V2 APIs.
 
-Here is a brief functional overview of those services (for more details, refer to the [Stargate
-online docs]).
+All issues related to this project are marked with the `stargate-v2` and either `GraphQL CQL-first` or `GraphQL schema-first`.
+
+Here is a brief functional overview of those services:
 
 * `/graphql-schema` exposes DDL operations (describe, create table, etc). It can be used for any
   keyspace (most operations take a `keyspace` argument).
@@ -18,6 +19,71 @@ online docs]).
   model. Once a  GraphQL-first schema has been deployed in this manner, it replaces the CQL-first
   one: `/graphql/<keyspace>` now uses the custom schema, and the generated schema is not available
   anymore.
+
+## Development guide
+
+This project uses Quarkus, the Supersonic Subatomic Java Framework.
+If you want to learn more about Quarkus, please visit its [website](https://quarkus.io/).
+
+It's recommended that you install Quarkus CLI in order to have a better development experience.
+See [CLI Tooling](https://quarkus.io/guides/cli-tooling) for more information.
+
+Note that this project uses Java 17, please ensure that you have the target JDK installed on your system.
+
+### Running the application in dev mode
+
+Before being able to run the application, make sure you install the root [../apis/pom.xml](../pom.xml):
+```shell script
+cd ../
+./mvnw install -DskipTests
+```
+
+To run your application in dev mode with live coding enabled, use the command:
+```shell script
+../mvnw quarkus:dev
+```
+
+> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at http://localhost:8080/star\
+gate/dev/.
+
+## Testing
+
+### Manually
+
+The easiest way is to use the built-in GraphQL playground at http://localhost:8080/playground.
+
+You can then interact with the various GraphQL schemas by entering their URL in the playground's
+address bar, for example http://localhost:8080/graphql/{keyspace}.
+
+<!-- TODO integration tests -->
+
+[StargateRequestInfo]: ../sgv2-quarkus-common/src/main/java/io/stargate/sgv2/api/common/StargateRequestInfo.java
+[StargateBridgeClient]: ../sgv2-quarkus-common/src/main/java/io/stargate/sgv2/api/common/grpc/StargateBridgeClient.java
+[GraphqlResourceBase]: src/main/java/io/stargate/sgv2/graphql/web/resources/GraphqlResourceBase.java
+[StargateGraphqlContext]: src/main/java/io/stargate/sgv2/graphql/web/resources/StargateGraphqlContext.java
+[CassandraFetcher]: src/main/java/io/stargate/sgv2/graphql/schema/CassandraFetcher.java
+[PlaygroundResource]: src/main/java/io/stargate/sgv2/graphql/web/resources/PlaygroundResource.java
+[FilesResource]: src/main/java/io/stargate/sgv2/graphql/web/resources/FilesResource.java
+[GraphqlCache]: src/main/java/io/stargate/sgv2/graphql/web/resources/GraphqlCache.java
+[DdlSchemaBuilder]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/ddl/DdlSchemaBuilder.java
+[cqlfirst.ddl.fetchers]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/ddl/fetchers
+[KeyspaceDto]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/ddl/fetchers/KeyspaceDto.java
+[DmlSchemaBuilder]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/dml/DmlSchemaBuilder.java
+[FieldTypeCache]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/dml/FieldTypeCache.java
+[NameMapping]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/dml/NameMapping.java
+[CqlScalar]: src/main/java/io/stargate/sgv2/graphql/schema/scalars/CqlScalar.java
+[cqlfirst.dml.fetchers]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/dml/fetchers
+[AdminSchemaBuilder]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/AdminSchemaBuilder.java
+[graphqlfirst.fetchers.admin]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/fetchers/admin
+[DeploySchemaFetcherBase]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/fetchers/admin/DeploySchemaFetcherBase.java
+[SchemaSourceDao]: src/main/java/io/stargate/sgv2/graphql/persistence/graphqlfirst/SchemaSourceDao.java
+[SchemaProcessor]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/processor/SchemaProcessor.java
+[MappingModel]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/processor/MappingModel.java
+[CassandraMigrator]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/migration/CassandraMigrator.java
+[CqlDirectives]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/processor/CqlDirectives.java
+[graphqlfirst.fetchers.deployed]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/fetchers/deployed
+
+[Stargate online docs]: https://stargate.io/docs/stargate/1.0/quickstart/quick_start-graphql.html
 
 ## GraphQL Java primer
 
@@ -98,7 +164,6 @@ context also handles [batching](#batching), which will be described below.
 [PlaygroundResource] exposes the GraphQL playground (an in-browser client, served from a static HTML
 file). [FilesResource] provides downloadable versions of users' custom schemas, and CQL directive
 definitions.
-
 
 ## GraphQL layer
 
@@ -243,42 +308,3 @@ mutation @atomic {
 allows independent fetchers to accumulate queries, and track which is the last one that must execute
 the batch.
 
-
-## Testing
-
-### Manually
-
-The easiest way is to use the built-in GraphQL playground at http://localhost:8080/playground.
-
-You can then interact with the various GraphQL schemas by entering their URL in the playground's
-address bar, for example http://localhost:8080/graphql/{keyspace}.
-
-<!-- TODO integration tests -->
-
-[StargateRequestInfo]: ../sgv2-quarkus-common/src/main/java/io/stargate/sgv2/api/common/StargateRequestInfo.java
-[StargateBridgeClient]: ../sgv2-quarkus-common/src/main/java/io/stargate/sgv2/api/common/grpc/StargateBridgeClient.java
-[GraphqlResourceBase]: src/main/java/io/stargate/sgv2/graphql/web/resources/GraphqlResourceBase.java
-[StargateGraphqlContext]: src/main/java/io/stargate/sgv2/graphql/web/resources/StargateGraphqlContext.java
-[CassandraFetcher]: src/main/java/io/stargate/sgv2/graphql/schema/CassandraFetcher.java
-[PlaygroundResource]: src/main/java/io/stargate/sgv2/graphql/web/resources/PlaygroundResource.java
-[FilesResource]: src/main/java/io/stargate/sgv2/graphql/web/resources/FilesResource.java
-[GraphqlCache]: src/main/java/io/stargate/sgv2/graphql/web/resources/GraphqlCache.java
-[DdlSchemaBuilder]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/ddl/DdlSchemaBuilder.java
-[cqlfirst.ddl.fetchers]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/ddl/fetchers
-[KeyspaceDto]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/ddl/fetchers/KeyspaceDto.java
-[DmlSchemaBuilder]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/dml/DmlSchemaBuilder.java
-[FieldTypeCache]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/dml/FieldTypeCache.java
-[NameMapping]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/dml/NameMapping.java
-[CqlScalar]: src/main/java/io/stargate/sgv2/graphql/schema/scalars/CqlScalar.java
-[cqlfirst.dml.fetchers]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/dml/fetchers
-[AdminSchemaBuilder]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/AdminSchemaBuilder.java
-[graphqlfirst.fetchers.admin]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/fetchers/admin
-[DeploySchemaFetcherBase]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/fetchers/admin/DeploySchemaFetcherBase.java
-[SchemaSourceDao]: src/main/java/io/stargate/sgv2/graphql/persistence/graphqlfirst/SchemaSourceDao.java
-[SchemaProcessor]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/processor/SchemaProcessor.java
-[MappingModel]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/processor/MappingModel.java
-[CassandraMigrator]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/migration/CassandraMigrator.java
-[CqlDirectives]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/processor/CqlDirectives.java
-[graphqlfirst.fetchers.deployed]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/fetchers/deployed
-
-[Stargate online docs]: https://stargate.io/docs/stargate/1.0/quickstart/quick_start-graphql.html

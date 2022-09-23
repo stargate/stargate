@@ -1,10 +1,12 @@
 # Stargate Docs API 
 
-This project represents the stand-alone Docs API microservice for Stargate V2, extracted from monolithic Stargate V1 Coordinator.
+This project implements the stand-alone Docs API microservice for Stargate V2, extracted from monolithic Stargate V1 Coordinator.
+Docs API is an HTTP service that gives access to data stored in a Cassandra cluster using JSON Document based interface.
+
 The project depends on the [sgv2-quarkus-common](../sgv2-quarkus-common) module, which provides common functionality used by all Stargate V2 APIs.
 
 The high-level design of the application is described in the [Document API in Stargate V2 discussion](https://github.com/stargate/stargate/discussions/1742).
-All issues related to the Docs API V2 are marked with the `stargate-v2` and `documents API` [labels](https://github.com/stargate/stargate/issues?q=is%3Aopen+is%3Aissue+label%3Astargate-v2+label%3A%22documents+API%22).
+All issues related to this project are marked with the `stargate-v2` and `documents API` [labels](https://github.com/stargate/stargate/issues?q=is%3Aopen+is%3Aissue+label%3Astargate-v2+label%3A%22documents+API%22).
 
 ##### Table of Contents
 * [Concepts](#concepts)
