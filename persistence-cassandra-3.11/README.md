@@ -17,6 +17,7 @@ Note that transitive dependencies can be seen on [mvnrepository.com](https://mvn
 The `cassandra-thrift` was explicitly added when updating to `3.11.12` as it was not anymore in the `cassandra-all`.
 * Update the [CI Dockerfile](../ci/Dockerfile) and set the new version in the `ccm create` command related to 3.11.
 Note that this will have no effect until the docker image is rebuilt and pushed to the remote repository, thus creating an issue for that would be a good idea.
+* Create a separate PR for bumping the Cassandra 3 version in the Quarkus-based API integration tests on the `v2.0.0` branch. Test profiles are defined in the `apis/pom.xml`.
 * Make sure everything compiles and CI tests are green.
 * Update the [DEVGUIDE.md](../DEV_GUIDE.md) and replace the old version in the examples.
 * Update this `README.md` file with the new or updated instructions.
