@@ -342,8 +342,10 @@ jobs:
           cosign sign --key $COSIGN_KEY_FILE -a $AUX_KEY=$AUX_VALUE $COSIGN_IMAGE
 
   # creates a PR for bumping the versions to the next snapshot
+  # only executed if we have created the new release
   create-pr:
     name: Version upgrade PR
+    needs: [create-release]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
