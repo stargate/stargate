@@ -71,7 +71,7 @@ public class Rows {
     return getBasic(row, name, columns, Values::bool);
   }
 
-  /** @return the index, or <0 if the column does not exist. */
+  /** @return the index, or a negative value if the column does not exist. */
   public static int firstIndexOf(String name, List<ColumnSpec> columns) {
     for (int i = 0; i < columns.size(); i++) {
       ColumnSpec column = columns.get(i);

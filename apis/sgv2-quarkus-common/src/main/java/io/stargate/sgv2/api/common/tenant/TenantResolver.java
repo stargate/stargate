@@ -26,7 +26,7 @@ import javax.ws.rs.core.SecurityContext;
 public interface TenantResolver {
 
   /**
-   * Returns a tenant identifier given a RoutingContext & SecurityContext.
+   * Returns a tenant identifier given a {@link RoutingContext} and a {@link SecurityContext}.
    *
    * @param context the routing context
    * @param securityContext the security context
