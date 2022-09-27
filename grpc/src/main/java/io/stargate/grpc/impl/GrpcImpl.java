@@ -40,6 +40,8 @@ import org.slf4j.LoggerFactory;
 public class GrpcImpl {
   private static final Logger logger = LoggerFactory.getLogger(GrpcImpl.class);
   private static final Integer EXECUTOR_SIZE = Integer.getInteger("stargate.grpc.executor_size", 8);
+  private static final Boolean REFLECTION_ENABLED =
+      "true".equalsIgnoreCase(System.getProperty("stargate.grpc.reflection_enabled", "true"));
   private static final Integer SHUTDOWN_TIMEOUT_SECONDS =
       Integer.getInteger("stargate.grpc.shutdown_timeout_seconds", 60);
 
@@ -69,7 +71,8 @@ public class GrpcImpl {
     executor =
         Executors.newScheduledThreadPool(
             EXECUTOR_SIZE, GrpcUtil.getThreadFactory("grpc-stargate-executor", true));
-    server =
+
+    NettyServerBuilder builder =
         NettyServerBuilder.forAddress(new InetSocketAddress(listenAddress, port))
             // `Persistence` operations are done asynchronously so there isn't a need for a separate
             // thread pool for handling gRPC callbacks in `GrpcService`.
@@ -77,10 +80,14 @@ public class GrpcImpl {
             .intercept(new NewConnectionInterceptor(persistence, authenticationService))
             .intercept(
                 new TaggingMetricCollectingServerInterceptor(
-                    metrics.getMeterRegistry(), grpcMetricsTagProvider))
-            .addService(ProtoReflectionService.newInstance())
-            .addService(new GrpcService(persistence, executor))
-            .build();
+                    metrics.getMeterRegistry(), grpcMetricsTagProvider));
+
+    // optional reflection
+    if (REFLECTION_ENABLED) {
+      builder.addService(ProtoReflectionService.newInstance());
+    }
+
+    server = builder.addService(new GrpcService(persistence, executor)).build();
   }
 
   public void start() {
