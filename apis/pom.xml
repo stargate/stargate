@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.stargate</groupId>
   <artifactId>sgv2-api-parent</artifactId>
@@ -133,7 +134,8 @@
         <stargate.int-test.cassandra.image-tag>4.0.4</stargate.int-test.cassandra.image-tag>
         <stargate.int-test.coordinator.image>stargateio/coordinator-4_0</stargate.int-test.coordinator.image>
         <stargate.int-test.coordinator.image-tag>v${project.version}</stargate.int-test.coordinator.image-tag>
-        <stargate.int-test.cluster.name>cass-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>
+        <stargate.int-test.cluster.name>cass-${stargate.int-test.cassandra.image-tag}-cluster
+        </stargate.int-test.cluster.name>
         <stargate.int-test.cluster.version>4.0</stargate.int-test.cluster.version>
         <stargate.int-test.cluster.dse>false</stargate.int-test.cluster.dse>
       </properties>
@@ -151,7 +153,8 @@
         <stargate.int-test.cassandra.image-tag>3.11.13</stargate.int-test.cassandra.image-tag>
         <stargate.int-test.coordinator.image>stargateio/coordinator-3_11</stargate.int-test.coordinator.image>
         <stargate.int-test.coordinator.image-tag>v${project.version}</stargate.int-test.coordinator.image-tag>
-        <stargate.int-test.cluster.name>cass-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>
+        <stargate.int-test.cluster.name>cass-${stargate.int-test.cassandra.image-tag}-cluster
+        </stargate.int-test.cluster.name>
         <stargate.int-test.cluster.version>3.11</stargate.int-test.cluster.version>
         <stargate.int-test.cluster.dse>false</stargate.int-test.cluster.dse>
       </properties>
@@ -169,7 +172,8 @@
         <stargate.int-test.cassandra.image-tag>6.8.26</stargate.int-test.cassandra.image-tag>
         <stargate.int-test.coordinator.image>stargateio/coordinator-dse-68</stargate.int-test.coordinator.image>
         <stargate.int-test.coordinator.image-tag>v${project.version}</stargate.int-test.coordinator.image-tag>
-        <stargate.int-test.cluster.name>dse-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>
+        <stargate.int-test.cluster.name>dse-${stargate.int-test.cassandra.image-tag}-cluster
+        </stargate.int-test.cluster.name>
         <stargate.int-test.cluster.version>6.8</stargate.int-test.cluster.version>
         <stargate.int-test.cluster.dse>true</stargate.int-test.cluster.dse>
       </properties>
@@ -263,4 +267,22 @@
       </build>
     </profile>
   </profiles>
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
+  <scm>
+    <connection>scm:git:git://github.com/stargate/stargate.git</connection>
+    <developerConnection>scm:git:git@github.com:stargate/stargate.git</developerConnection>
+    <url>http://github.com/stargate/stargate/tree/v2.0.0</url>
+  </scm>
+  <developers>
+    <developer>
+      <name>The Stargate Authors</name>
+      <email>maintainers@stargate.io</email>
+      <organization>Stargate</organization>
+    </developer>
+  </developers>
 </project>
