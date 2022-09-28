@@ -97,24 +97,6 @@ class DocumentDeleteResourceIntegrationTest extends DocsApiIntegrationTest {
     }
 
     @Test
-    public void happyPathTrailingSlash() {
-      given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
-          .when()
-          .delete(BASE_PATH + "/", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
-          .then()
-          .statusCode(204);
-
-      given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
-          .queryParam("raw", true)
-          .when()
-          .get(BASE_PATH + "/", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
-          .then()
-          .statusCode(404);
-    }
-
-    @Test
     public void unauthorized() {
       given()
           .when()
@@ -198,33 +180,6 @@ class DocumentDeleteResourceIntegrationTest extends DocsApiIntegrationTest {
           .queryParam("raw", true)
           .when()
           .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
-          .then()
-          .statusCode(200)
-          .body("test", nullValue());
-    }
-
-    @Test
-    public void deletePathTrailingSlash() {
-      given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
-          .when()
-          .delete(BASE_PATH + "/test/", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
-          .then()
-          .statusCode(204);
-
-      given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
-          .queryParam("raw", true)
-          .when()
-          .get(BASE_PATH + "/test/", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
-          .then()
-          .statusCode(404);
-
-      given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
-          .queryParam("raw", true)
-          .when()
-          .get(BASE_PATH + "/", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DEFAULT_DOCUMENT_ID)
           .then()
           .statusCode(200)
           .body("test", nullValue());

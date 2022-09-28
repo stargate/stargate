@@ -123,7 +123,7 @@ public class DocumentPatchResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @PATCH
-  @Path("{collection:\\w+}/{document-id}{slash: /?}")
+  @Path("{collection:\\w+}/{document-id}")
   public Uni<RestResponse<Object>> patchDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
@@ -210,7 +210,7 @@ public class DocumentPatchResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @PATCH
-  @Path("{collection:\\w+}/{document-id}/{document-path:.*}{slash: /?}")
+  @Path("{collection:\\w+}/{document-id}/{document-path:.*}")
   public Uni<RestResponse<Object>> patchSubDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
@@ -221,10 +221,7 @@ public class DocumentPatchResource {
       @NotNull(message = "payload must not be empty") JsonNode body) {
     ExecutionContext context = ExecutionContext.create(profile);
     List<String> subPath =
-        documentPath.stream()
-            .map(PathSegment::getPath)
-            .filter(p -> !p.isEmpty())
-            .collect(Collectors.toList());
+        documentPath.stream().map(PathSegment::getPath).collect(Collectors.toList());
     Uni<Schema.CqlTable> table = collectionManager.ensureValidDocumentTable(namespace, collection);
     return documentWriteService
         .patchSubDocument(table, namespace, collection, documentId, subPath, body, ttlAuto, context)

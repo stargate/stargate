@@ -97,27 +97,6 @@ class DocumentUpdateResourceIntegrationTest extends DocsApiIntegrationTest {
     }
 
     @Test
-    public void happyPathTrailingSlash() {
-      String id = RandomStringUtils.randomAlphanumeric(16);
-
-      given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
-          .contentType(ContentType.JSON)
-          .body(exampleResource)
-          .when()
-          .put(BASE_PATH + "/", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
-          .then()
-          .statusCode(200);
-
-      given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
-          .get(BASE_PATH + "/", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
-          .then()
-          .body(jsonPartEquals("documentId", id))
-          .body(jsonPartEquals("data", exampleResource));
-    }
-
-    @Test
     public void withProfile() {
       String id = RandomStringUtils.randomAlphanumeric(16);
 
@@ -510,23 +489,6 @@ class DocumentUpdateResourceIntegrationTest extends DocsApiIntegrationTest {
           .body(updateJson)
           .when()
           .put(BASE_PATH + "/quiz/sport", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
-          .then()
-          .statusCode(200)
-          .body("profile", is(notNullValue()));
-    }
-
-    @Test
-    public void withProfileTrailingSlash() {
-      String id = RandomStringUtils.randomAlphanumeric(16);
-
-      String updateJson = "{\"q5000\": \"hello?\"}";
-      given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
-          .queryParam("profile", true)
-          .contentType(ContentType.JSON)
-          .body(updateJson)
-          .when()
-          .put(BASE_PATH + "/quiz/sport/", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
           .then()
           .statusCode(200)
           .body("profile", is(notNullValue()));

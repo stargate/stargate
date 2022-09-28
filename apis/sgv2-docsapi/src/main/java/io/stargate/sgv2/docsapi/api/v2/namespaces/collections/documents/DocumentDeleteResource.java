@@ -93,7 +93,7 @@ public class DocumentDeleteResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @DELETE
-  @Path("{collection:\\w+}/{document-id}{slash: /?}")
+  @Path("{collection:\\w+}/{document-id}")
   public Uni<RestResponse<Object>> deleteDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
@@ -149,7 +149,7 @@ public class DocumentDeleteResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @DELETE
-  @Path("{collection:\\w+}/{document-id}/{document-path:.*}{slash: /?}")
+  @Path("{collection:\\w+}/{document-id}/{document-path:.*}")
   public Uni<RestResponse<Object>> deleteSubDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
@@ -158,10 +158,7 @@ public class DocumentDeleteResource {
       @QueryParam("profile") boolean profile) {
     ExecutionContext context = ExecutionContext.create(profile);
     List<String> subPath =
-        documentPath.stream()
-            .map(PathSegment::getPath)
-            .filter(p -> !p.isEmpty())
-            .collect(Collectors.toList());
+        documentPath.stream().map(PathSegment::getPath).collect(Collectors.toList());
     return collectionManager
         .getValidCollectionTable(namespace, collection)
         .onItem()

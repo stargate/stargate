@@ -98,28 +98,6 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
     }
 
     @Test
-    public void happyPathTrailingSlash() {
-      given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
-          .contentType(ContentType.JSON)
-          .body(DEFAULT_PAYLOAD)
-          .when()
-          .patch(BASE_PATH + "/", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
-          .then()
-          .statusCode(200)
-          .body("documentId", equalTo(documentId));
-
-      given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
-          .queryParam("raw", "true")
-          .when()
-          .get(BASE_PATH + "/", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
-          .then()
-          .statusCode(200)
-          .body(jsonEquals(DEFAULT_PAYLOAD));
-    }
-
-    @Test
     public void happyPathMergeExisting() {
       given()
           .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
@@ -694,28 +672,6 @@ class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
           .queryParam("raw", "true")
           .when()
           .get(BASE_PATH + "/path", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
-          .then()
-          .statusCode(200)
-          .body(jsonEquals(DEFAULT_PAYLOAD));
-    }
-
-    @Test
-    public void happyPathTrailingSlash() {
-      given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
-          .contentType(ContentType.JSON)
-          .body(DEFAULT_PAYLOAD)
-          .when()
-          .patch(BASE_PATH + "/path/", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
-          .then()
-          .statusCode(200)
-          .body("documentId", equalTo(documentId));
-
-      given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
-          .queryParam("raw", "true")
-          .when()
-          .get(BASE_PATH + "/path/", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, documentId)
           .then()
           .statusCode(200)
           .body(jsonEquals(DEFAULT_PAYLOAD));

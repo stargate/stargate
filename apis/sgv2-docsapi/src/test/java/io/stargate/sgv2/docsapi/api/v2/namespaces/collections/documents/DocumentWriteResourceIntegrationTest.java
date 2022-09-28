@@ -100,31 +100,6 @@ class DocumentWriteResourceIntegrationTest extends DocsApiIntegrationTest {
     }
 
     @Test
-    public void happyPathTrailingSlash() {
-      Response postResponse =
-          given()
-              .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
-              .contentType(ContentType.JSON)
-              .body(DEFAULT_PAYLOAD)
-              .when()
-              .post(BASE_PATH + "/", DEFAULT_NAMESPACE, DEFAULT_COLLECTION)
-              .peek();
-
-      assertThat(postResponse.statusCode()).isEqualTo(201);
-      assertThat(postResponse.header("location")).isNotNull();
-      String location = postResponse.header("location");
-
-      given()
-          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
-          .queryParam("raw", "true")
-          .when()
-          .get(location)
-          .then()
-          .statusCode(200)
-          .body(jsonEquals(DEFAULT_PAYLOAD));
-    }
-
-    @Test
     public void happyPathNoCollection() {
       Response postResponse =
           given()

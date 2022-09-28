@@ -139,7 +139,7 @@ public class DocumentReadResource {
     @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
   })
   @GET
-  @Path("{collection:\\w+}{slash: /?}")
+  @Path("{collection:\\w+}")
   public Uni<RestResponse<Object>> searchDocuments(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
@@ -237,7 +237,7 @@ public class DocumentReadResource {
     @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
   })
   @GET
-  @Path("{collection:\\w+}/{document-id}{slash: /?}")
+  @Path("{collection:\\w+}/{document-id}")
   public Uni<RestResponse<Object>> getDocument(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
@@ -321,7 +321,7 @@ public class DocumentReadResource {
     @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
   })
   @GET
-  @Path("{collection:\\w+}/{document-id}/{document-path:.*}{slash: /?}")
+  @Path("{collection:\\w+}/{document-id}/{document-path:.*}")
   public Uni<RestResponse<Object>> getDocumentPath(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
@@ -346,8 +346,7 @@ public class DocumentReadResource {
               boolean isSearch = where != null || pageSize != null;
               ExecutionContext context = ExecutionContext.create(profile);
 
-              List<String> pathStrings =
-                  path.stream().map(PathSegment::getPath).filter(p -> !p.isEmpty()).toList();
+              List<String> pathStrings = path.stream().map(PathSegment::getPath).toList();
 
               if (isSearch) {
                 int pageSizeFinal = Optional.ofNullable(pageSize).orElse(100);

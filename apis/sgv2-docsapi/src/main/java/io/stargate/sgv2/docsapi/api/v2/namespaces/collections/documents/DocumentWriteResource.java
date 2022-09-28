@@ -128,7 +128,7 @@ public class DocumentWriteResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @POST
-  @Path("{collection:\\w+}{slash: /?}")
+  @Path("{collection:\\w+}")
   public Uni<RestResponse<Object>> createDocument(
       @Context UriInfo uriInfo,
       @PathParam("namespace") String namespace,
@@ -211,7 +211,7 @@ public class DocumentWriteResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @POST
-  @Path("{collection:\\w+}/batch{slash: /?}")
+  @Path("{collection:\\w+}/batch")
   public Uni<RestResponse<Object>> createDocuments(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
