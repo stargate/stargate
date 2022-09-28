@@ -41,12 +41,11 @@ services:
     networks:
       - stargate
     ports:
-      - 9042:9042
-      - 8080:8080
-      - 8081:8081
-      - 8083:8083
-      - 8084:8084
-      - 8091:8091
+      - "9042:9042"
+      - "8080:8080"
+      - "8081:8081"
+      - "8084:8084"
+      - "8090:8090"
     mem_limit: 2G
     environment:
       - JAVA_OPTS="-Xmx2G"
@@ -63,7 +62,7 @@ services:
     networks:
       - stargate
     ports:
-      - 8082:8082
+      - "8082:8082"
     mem_limit: 2G
     environment:
       - QUARKUS_GRPC_CLIENTS_BRIDGE_HOST=coordinator
@@ -75,7 +74,7 @@ services:
     networks:
       - stargate
     ports:
-      - 8085:8080
+      - "8080:8080"
     mem_limit: 2G
     environment:
       - QUARKUS_GRPC_CLIENTS_BRIDGE_HOST=coordinator
@@ -87,7 +86,7 @@ services:
     networks:
       - stargate
     ports:
-      - 8180:8180
+      - "8180:8180"
     mem_limit: 2G
     environment:
       - QUARKUS_GRPC_CLIENTS_BRIDGE_HOST=coordinator

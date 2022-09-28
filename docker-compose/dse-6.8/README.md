@@ -42,3 +42,4 @@ ERROR: manifest for stargateio/coordinator-dse-68:2.0.0-BETA-4-SNAPSHOT not foun
 
 you are trying to deploy a version that is neither publicly available (official release) nor built locally.
 You will either want to specify a non-snapshot image tag (version) using `-t [VERSION]`, or build the snapshot version locally.
+Consult [Docker Hub](https://hub.docker.com/r/stargateio/coordinator-dse-68/tags) for a list of available tags.
