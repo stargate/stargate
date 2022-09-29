@@ -144,7 +144,7 @@ public class MetricsTest extends BaseIntegrationTest {
   }
 
   @ParameterizedTest
-  @ValueSource(strings = {"authapi", "graphqlapi", "health_checker"})
+  @ValueSource(strings = {"authapi", "health_checker"})
   public void dropwizardMetricsModule(String module) throws IOException {
     String[] expectedMetricGroups =
         new String[] {"TimeBoundHealthCheck", "io_dropwizard_jersey", "org_eclipse_jetty"};

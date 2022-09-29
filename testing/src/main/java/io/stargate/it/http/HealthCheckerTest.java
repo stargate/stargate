@@ -49,9 +49,7 @@ public class HealthCheckerTest extends BaseIntegrationTest {
   @CsvSource({
     ",",
     "?check=deadlocks",
-    "?check=graphql",
     "?check=grpc",
-    "?check=deadlocks&check=graphql",
     "?check=datastore",
     "?check=storage"
   })
@@ -84,9 +82,5 @@ public class HealthCheckerTest extends BaseIntegrationTest {
     assertThat(json)
         .extracting("deadlocks", InstanceOfAssertFactories.MAP)
         .containsEntry("healthy", true);
-    assertThat(json)
-        .extracting("graphql", InstanceOfAssertFactories.MAP)
-        .containsEntry("healthy", true)
-        .containsEntry("message", "Available");
   }
 }
