@@ -30,9 +30,6 @@ import org.junit.jupiter.api.BeforeEach;
 @ClusterSpec(shared = true)
 @StargateSpec(shared = true)
 public class BaseIntegrationTest {
-  /** StargateV2 uses 8083 as the default port for Documents API */
-  protected static final int DEFAULT_DOCS_API_PORT = 8083;
-
   protected ClusterConnectionInfo backend;
 
   static {

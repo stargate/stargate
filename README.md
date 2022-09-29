@@ -2,11 +2,12 @@
 
 # Stargate
 
-An open source data gateway.
+An open source data API gateway.
 
-Stargate is a data gateway deployed between client applications and a database.
-CQL is built with extensibility as a first-class citizen, which makes it easy to use a database for any application workload
-by adding plugin support for new APIs, data types, and access methods.
+Stargate is a data gateway deployed between client applications and a Cassandra database.
+For developers, it makes it easy to use Cassandra for any application workload by adding plugin support for new APIs, data types, and access methods - even secondary database models. 
+It's built with extensibility as a first-class citizen to enable rapid innovation. 
+For operators, Stargate introduces microservice architecture, allowing independent deployment and scale of storage nodes, API Service nodes, and coordinator nodes in Cassandra clusters.
 
 - For quick instructions on how to bring up Stargate on your desktop using Docker, check out the [Docker compose](docker-compose/README.md) instructions.
 - For more information about how to deploy use Stargate, visit [stargate.io](https://stargate.io/)
@@ -23,8 +24,8 @@ by adding plugin support for new APIs, data types, and access methods.
 We created Stargate because we got tired of using different databases and different APIs depending on the work that we were trying to get done.
 With "read the manual" fatigue and lengthy selection processes wearing on us every time we started a new project, we thought - *why not create a framework that can serve many APIs for a range of workloads?*
 
-This project enables customization of all aspects of data access and has modules for authentication, APIs, request handling / routing, and persistence backends.
-The current form is specific to the Apache Cassandra (C*) backend but there's no bounds to the databases or APIs that this framework can support.
+This project enables customization of all aspects of data access and has modules for authentication, APIs, request handling / routing, and persistence backends.  
+The current form is specific to Apache Cassandra (C*) compatible backends.
 
 As shown in the figure below, Stargate is often deployed behind a load balancer or proxy and exposes multiple endpoints to client applications, including HTTP APIs, gRPC, and the Cassandra Query Language (CQL). Stargate sits in front of a Cassandra cluster which is used as the storage backend. 
 

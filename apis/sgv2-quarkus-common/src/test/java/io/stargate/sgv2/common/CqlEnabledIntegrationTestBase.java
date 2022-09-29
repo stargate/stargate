@@ -21,6 +21,7 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.DriverConfigLoader;
 import com.datastax.oss.driver.api.core.config.OptionsMap;
 import com.datastax.oss.driver.api.core.config.TypedDriverOption;
+import com.datastax.oss.driver.internal.core.auth.PlainTextAuthProvider;
 import com.datastax.oss.driver.internal.core.loadbalancing.DcInferringLoadBalancingPolicy;
 import java.time.Duration;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -50,6 +51,16 @@ public abstract class CqlEnabledIntegrationTestBase {
     config.put(
         TypedDriverOption.LOAD_BALANCING_POLICY_CLASS,
         DcInferringLoadBalancingPolicy.class.getName());
+
+    // resolve auth if enabled
+    if (IntegrationTestUtils.isCassandraAuthEnabled()) {
+      config.put(TypedDriverOption.AUTH_PROVIDER_CLASS, PlainTextAuthProvider.class.getName());
+      config.put(
+          TypedDriverOption.AUTH_PROVIDER_USER_NAME, IntegrationTestUtils.getCassandraUsername());
+      config.put(
+          TypedDriverOption.AUTH_PROVIDER_PASSWORD, IntegrationTestUtils.getCassandraPassword());
+    }
+
     session =
         CqlSession.builder()
             .addContactPoint(IntegrationTestUtils.getCassandraCqlAddress())

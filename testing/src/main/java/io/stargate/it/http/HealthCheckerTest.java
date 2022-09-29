@@ -46,15 +46,7 @@ public class HealthCheckerTest extends BaseIntegrationTest {
 
   // TODO: are any of these related to REST?
   @ParameterizedTest
-  @CsvSource({
-    ",",
-    "?check=deadlocks",
-    "?check=graphql",
-    "?check=grpc",
-    "?check=deadlocks&check=graphql",
-    "?check=datastore",
-    "?check=storage"
-  })
+  @CsvSource({",", "?check=deadlocks", "?check=grpc", "?check=datastore", "?check=storage"})
   public void readiness(String query) throws IOException {
     query = query == null ? "" : query;
     String body =
@@ -84,9 +76,5 @@ public class HealthCheckerTest extends BaseIntegrationTest {
     assertThat(json)
         .extracting("deadlocks", InstanceOfAssertFactories.MAP)
         .containsEntry("healthy", true);
-    assertThat(json)
-        .extracting("graphql", InstanceOfAssertFactories.MAP)
-        .containsEntry("healthy", true)
-        .containsEntry("message", "Available");
   }
 }

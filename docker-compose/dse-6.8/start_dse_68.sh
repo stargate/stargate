@@ -38,6 +38,8 @@ docker-compose up -d dse-2
 docker-compose up -d dse-3
 (docker-compose logs -f dse-3 &) | grep -q "is now part of the cluster"
 
-# Bring up the stargate
+# Bring up the stargate: Coordinator first, then APIs
 
-docker-compose up -d coordinator restapi graphqlapi
+docker-compose up -d coordinator
+(docker-compose logs -f coordinator &) | grep -q "Finished starting bundles"
+docker-compose up -d restapi graphqlapi docsapi

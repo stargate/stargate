@@ -41,7 +41,7 @@ public class RestApiV2QMaterializedViewIT extends RestApiV2QCqlEnabledTestBase {
    */
 
   @Test
-  public void getRowsFromMV() {
+  public void getRowsFromMV() throws Exception {
     boolean isC4 = IntegrationTestUtils.isCassandra40();
     LOG.info("getAllRowsFromMaterializedView(): is backend Cassandra 4.0? {}", isC4);
     assumeThat(isC4)
@@ -81,6 +81,14 @@ public class RestApiV2QMaterializedViewIT extends RestApiV2QCqlEnabledTestBase {
     assertThat(resultSet.wasApplied()).isTrue();
 
     // And then read entries using MV:
+
+    // 14-Sep-2022, tatu: Not sure why but there is a transient issue here wrt timing.
+    //   Locally test does not appear to ever fail, but in CI it does, with error suggesting
+    //   MV has not been created or Schema metadata not (yet) updated. In absence of
+    //   better solution, let's try simple wait to give it time; 5 seconds should do it.
+
+    Thread.sleep(5000L);
+
     List<Map<String, Object>> rows = findAllRowsAsList(keyspaceName, materializedViewName);
 
     // Alas, due to "id" as partition key, ordering is arbitrary; so need to

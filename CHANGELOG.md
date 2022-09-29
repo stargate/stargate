@@ -1,5 +1,24 @@
 # Changelog
 
+## [v2.0.0-BETA-2](https://github.com/stargate/stargate/tree/v2.0.0-BETA-2) (2022-09-17)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-BETA-1...v2.0.0-BETA-2)
+
+**Closed issues:**
+
+- Improve `docker-compose` scripts to wait for Coordinator to start up before APIs [\#2076](https://github.com/stargate/stargate/issues/2076)
+- Update SnakeYAML dependency to 1.32 to resolve CVE-2022-38725 [\#2078](https://github.com/stargate/stargate/issues/2078)
+- Fix \#2061, problem constructing converter for deeply nested structured type
+
+**Merged pull requests:**
+
+- Fix docker-compose startup sequence \(\#2076\)  [\#2077](https://github.com/stargate/stargate/pull/2077) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Change sgv2 REST API default port back to 8082 [\#2072](https://github.com/stargate/stargate/pull/2072) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add Docs API to compose scripts [\#2071](https://github.com/stargate/stargate/pull/2071) ([EricBorczuk](https://github.com/EricBorczuk))
+- Unify REST sgv2 \(Q\) configuration to be more similar to Docs API; increase Coordinator container startup timeout [\#2069](https://github.com/stargate/stargate/pull/2069) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update DEV\_GUIDE.md [\#2064](https://github.com/stargate/stargate/pull/2064) ([EricBorczuk](https://github.com/EricBorczuk))
+- Fix \#2061, problem constructing converter for deeply nested structured type [\#2063](https://github.com/stargate/stargate/pull/2063) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v2.0.0-BETA-1](https://github.com/stargate/stargate/tree/v2.0.0-BETA-1) (2022-09-08)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-ALPHA-17...v2.0.0-BETA-1)
@@ -379,6 +398,22 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Rest integration test - initial work (#1359)
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
+
+## [v1.0.65](https://github.com/stargate/stargate/tree/v1.0.65) (2022-09-16)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.64...v1.0.65)
+
+**Closed issues:**
+
+- Update SnakeYAML dependency to 1.32 to resolve CVE-2022-38725 [\#2078](https://github.com/stargate/stargate/issues/2078)
+- Improve `docker-compose` scripts to wait for Coordinator to start up before APIs [\#2076](https://github.com/stargate/stargate/issues/2076)
+- Failure to create table with nested `Map` type [\#2062](https://github.com/stargate/stargate/issues/2062)
+- Failure to support deeply nested structured datatypes by REST API \(in SGv2\) [\#2061](https://github.com/stargate/stargate/issues/2061)
+
+**Merged pull requests:**
+
+- Upgrade SnakeYAML dependency to 1.32 for CVE-2022-38725 [\#2079](https://github.com/stargate/stargate/pull/2079) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Upgrade Jackson from 2.12.7 to 2.13.4; snakeyaml to 1.0.31 [\#2066](https://github.com/stargate/stargate/pull/2066) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 
 ## [v1.0.64](https://github.com/stargate/stargate/tree/v1.0.64) (2022-08-30)
 

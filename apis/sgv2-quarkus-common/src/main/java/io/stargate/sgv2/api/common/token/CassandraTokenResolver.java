@@ -31,7 +31,7 @@ import javax.ws.rs.core.SecurityContext;
 public interface CassandraTokenResolver {
 
   /**
-   * Returns a Cassandra token given a RoutingContext & SecurityContext.
+   * Returns a Cassandra token given a {@link RoutingContext} and a {@link SecurityContext}.
    *
    * @param context the routing context
    * @param securityContext the security context

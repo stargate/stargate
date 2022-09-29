@@ -8,9 +8,12 @@ import io.grpc.ForwardingClientCall;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
 import io.quarkus.arc.Arc;
+import io.quarkus.arc.InjectableBean;
 import io.quarkus.arc.InjectableContext;
 import io.quarkus.grpc.GlobalInterceptor;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
+import java.util.Map;
+import java.util.Objects;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
@@ -38,7 +41,7 @@ public class StargateBridgeInterceptor implements ClientInterceptor {
     // thus ensure context is active and has instances
     InjectableContext.ContextState contextState =
         Arc.container().requestContext().getStateIfActive();
-    if (null == contextState || contextState.getContextualInstances().isEmpty()) {
+    if (null == contextState || !hasStargateRequestBean(contextState.getContextualInstances())) {
       return next.newCall(method, callOptions);
     }
 
@@ -47,6 +50,16 @@ public class StargateBridgeInterceptor implements ClientInterceptor {
 
     // call with extra metadata
     return new HeaderAttachingClientCall<>(next.newCall(method, callOptions), metadata);
+  }
+
+  // ensures contextual instance list contains StargateRequestInfo
+  private boolean hasStargateRequestBean(Map<InjectableBean<?>, Object> contextualInstances) {
+    for (InjectableBean<?> bean : contextualInstances.keySet()) {
+      if (Objects.equals(bean.getBeanClass(), StargateRequestInfo.class)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static final class HeaderAttachingClientCall<ReqT, RespT>
