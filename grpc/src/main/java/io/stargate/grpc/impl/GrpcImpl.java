@@ -40,8 +40,7 @@ import org.slf4j.LoggerFactory;
 public class GrpcImpl {
   private static final Logger logger = LoggerFactory.getLogger(GrpcImpl.class);
   private static final Integer EXECUTOR_SIZE = Integer.getInteger("stargate.grpc.executor_size", 8);
-  private static final Boolean REFLECTION_ENABLED =
-      "true".equalsIgnoreCase(System.getProperty("stargate.grpc.reflection_enabled", "true"));
+  private static final Boolean REFLECTION_ENABLED = Boolean.parseBoolean(System.getProperty("stargate.grpc.reflection_enabled", "true"));
   private static final Integer SHUTDOWN_TIMEOUT_SECONDS =
       Integer.getInteger("stargate.grpc.shutdown_timeout_seconds", 60);
 
