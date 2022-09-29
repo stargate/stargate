@@ -11,6 +11,13 @@ stargate:
     token-resolver:
       type: principal
 
+  # configures data store
+  # see io.stargate.sgv2.api.common.config.DataStoreConfig for all config properties and options
+  data-store:
+    ignore-bridge: ${stargate.multi-tenancy.enabled}
+
+  # metrics properties
+  # see io.stargate.sgv2.api.common.config.MetricsConfig for all config properties and options
   metrics:
     global-tags:
       module: sgv2-restapi
@@ -30,6 +37,8 @@ quarkus:
   # banner for the startup
   banner:
     path: banner/banner.txt
+
+  # cache properties
   cache:
     caffeine:
       # keyspace cache for the schema management
@@ -47,10 +56,11 @@ quarkus:
     # force no grpc server start in dev as we have no grpc service
     dev-mode:
       force-server-start: false
+
+  # HTTP settings
   http:
-    # 14-Sep-2022, tatu: Use the legacy port (same as SGv1) for now,
-    #   change to "standard" 8080 later on (needs other changes)
     port: 8082
+    non-application-root-path: stargate
 
     # every /v2 path is authenticated by default
     # adapt if changing the authentication mechanism
@@ -68,9 +78,28 @@ quarkus:
         # ignore all non-application uris, as well as the custom set
         suppress-non-application-uris: true
         ignore-patterns: /,/metrics,/swagger-ui.*,.*\.html
+
+        # due to the https://github.com/quarkusio/quarkus/issues/24938
+        # we need to define uri templating on our own for now
+        # note that order is important
+        # TODO Tatu match-patterns:
+
     export:
       prometheus:
         path: /metrics
+
+  # OpenTelemetry configuration
+  opentelemetry:
+    tracer:
+      # in the dev env use the sampler that samples all requests
+      sampler:
+        ~: ratio
+        ratio: 1.0
+      # the OTPL should be enabled and endpoint should be specified in order to report traces
+      exporter:
+        otlp:
+          enabled: false
+          endpoint:
 
   # information for the generated Open API definitions
   smallrye-openapi:
@@ -102,12 +131,20 @@ quarkus:
         }
       }
 
-
-# In Dev mode, gRPC server usually running on different virtual IP
+# shared development properties
 "%dev":
-  quarkus:
-    grpc:
-      clients:
-        bridge:
-          host: 127.0.0.2
-          port: 8091
+
+  # disable retries in the data store config and enable fall back
+  stargate:
+    data-store:
+      bridge-fallback-enabled: true
+
+  io:
+    stargate:
+      sgv2:
+        api:
+          common:
+            properties:
+              datastore:
+                configuration:
+                  DataStorePropertiesConfiguration/fetchSupportedFeatures/Retry/maxRetries: 0

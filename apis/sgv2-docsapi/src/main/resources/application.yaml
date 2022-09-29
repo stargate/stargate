@@ -4,7 +4,7 @@
 stargate:
 
   # security and authentication configuration
-  # see io.stargate.sgv2.docsapi.config.AuthConfig for all config properties and options
+  # see io.stargate.sgv2.api.common.config.AuthConfig for all config properties and options
   auth:
     # header-based security by default
     # if changed, adapt token resolver type
@@ -16,7 +16,7 @@ stargate:
       type: principal
 
   # configures data store
-  # see io.stargate.sgv2.docsapi.config.DataStoreConfig for all config properties and options
+  # see io.stargate.sgv2.api.common.config.DataStoreConfig for all config properties and options
   data-store:
     ignore-bridge: ${stargate.multi-tenancy.enabled}
 
@@ -25,11 +25,11 @@ stargate:
   documents:
 
   # configures metadata keys to include when calling the Bridge
-  # see io.stargate.sgv2.docsapi.config.GrpcMetadataConfig for all config properties and options
+  # see io.stargate.sgv2.api.common.config.GrpcMetadataConfig for all config properties and options
   grpc-metadata:
 
   # metrics properties
-  # see io.stargate.sgv2.docsapi.config.MetricsConfig for all config properties and options
+  # see io.stargate.sgv2.api.common.config.MetricsConfig for all config properties and options
   metrics:
     global-tags:
       module: sgv2-docsapi
@@ -37,7 +37,7 @@ stargate:
       enabled: ${stargate.multi-tenancy.enabled}
 
   # multi tenancy settings
-  # see io.stargate.sgv2.docsapi.config.MultiTenancyConfig for all config properties and options
+  # see io.stargate.sgv2.api.common.config.MultiTenancyConfig for all config properties and options
   multi-tenancy:
     enabled: false
 
@@ -160,3 +160,21 @@ quarkus:
           ui.preauthorizeApiKey('Token', token);
         }
       }
+
+# shared development properties
+"%dev":
+
+  # disable retries in the data store config and enable fall back
+  stargate:
+    data-store:
+      bridge-fallback-enabled: true
+
+  io:
+    stargate:
+      sgv2:
+        api:
+          common:
+            properties:
+              datastore:
+                configuration:
+                  DataStorePropertiesConfiguration/fetchSupportedFeatures/Retry/maxRetries: 0
