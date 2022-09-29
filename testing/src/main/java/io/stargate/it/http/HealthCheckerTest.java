@@ -46,13 +46,7 @@ public class HealthCheckerTest extends BaseIntegrationTest {
 
   // TODO: are any of these related to REST?
   @ParameterizedTest
-  @CsvSource({
-    ",",
-    "?check=deadlocks",
-    "?check=grpc",
-    "?check=datastore",
-    "?check=storage"
-  })
+  @CsvSource({",", "?check=deadlocks", "?check=grpc", "?check=datastore", "?check=storage"})
   public void readiness(String query) throws IOException {
     query = query == null ? "" : query;
     String body =
