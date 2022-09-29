@@ -191,7 +191,7 @@ jobs:
       - name: Build & Test Stargate v2 Quarkus-based APIs
         run: |
           cd apis/
-          ./mvnw -B test
+          ./mvnw -B clean test
 
   # runs int tests for the sgv2-docsapi
   # supports downloading and importing the built docker image
