@@ -184,12 +184,13 @@ jobs:
           JAVA_HOME=$JAVA_8 ./mvnw versions:set -DremoveSnapshot versions:commit
           JAVA_HOME=$JAVA_8 ./mvnw -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse
 
+      # explicitly only -pl sgv2-quarkus-common
       - name: Publish Quarkus Common JAR
         if: ${{ !inputs.skipPublish }}
         run: |
           cd apis/
           JAVA_HOME=$JAVA_17 ./mvnw versions:set -DremoveSnapshot versions:commit
-          JAVA_HOME=$JAVA_17 ./mvnw -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy
+          JAVA_HOME=$JAVA_17 ./mvnw -B -pl sgv2-quarkus-common -am -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy
 
   # publishes the docker images for the coordinator and the APIs
   publish-docker:
