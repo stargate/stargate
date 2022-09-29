@@ -1,4 +1,11 @@
 stargate:
+
+  # configures data store
+  # see io.stargate.sgv2.api.common.config.DataStoreConfig for all config properties and options
+  data-store:
+    ignore-bridge: ${stargate.multi-tenancy.enabled}
+
+  # graphql config
   graphql:
     # Whether to default to the oldest keyspace when the user accesses /graphql.
     # If this is disabled, /graphql throws an error, and the keyspace must be provided explicitly in
@@ -8,28 +15,30 @@ stargate:
     # Whether to expose the GraphQL Playground in-browser IDE at /playground.
     enable-playground: true
 
+  # metrics properties
+  # see io.stargate.sgv2.api.common.config.MetricsConfig for all config properties and options
   metrics:
     global-tags:
       module: sgv2-graphqlapi
     tenant-request-counter:
       enabled: ${stargate.multi-tenancy.enabled}
 
+  # multi tenancy settings
+  # see io.stargate.sgv2.api.common.config.MultiTenancyConfig for all config properties and options
   multi-tenancy:
     enabled: false
 
 quarkus:
 
-  http:
-    port: ${STARGATE_GRAPHQL_PORT:8080}
+  # general app properties
+  application:
+    name: Stargate GraphQL API
 
-    # Require authentication where relevant:
-    auth:
-      proactive: false
-      permission:
-        default:
-          paths: /graphql-schema, /graphql/*, /graphql-admin, /graphql-files/keyspace/*
-          policy: authenticated
+  # banner for the startup
+  banner:
+    path: banner/banner.txt
 
+  # cache properties
   cache:
     caffeine:
       # keyspace cache for the schema management
@@ -38,7 +47,9 @@ quarkus:
         expire-after-access: PT5M
         metrics-enabled: true
 
+  # properties for the gRPC clients
   grpc:
+    # all the clients' setup, only bridge
     clients:
       bridge:
         host: ${STARGATE_BRIDGE_HOST:localhost}
@@ -47,6 +58,19 @@ quarkus:
     # force no grpc server start in dev as we have no grpc service
     dev-mode:
       force-server-start: false
+
+  # HTTP settings
+  http:
+    port: ${STARGATE_GRAPHQL_PORT:8080}
+    non-application-root-path: stargate
+
+    # Require authentication where relevant:
+    auth:
+      proactive: false
+      permission:
+        default:
+          paths: /graphql-schema, /graphql/*, /graphql-admin, /graphql-files/keyspace/*
+          policy: authenticated
 
   micrometer:
     binder:
@@ -66,6 +90,19 @@ quarkus:
     export:
       prometheus:
         path: /metrics
+
+  # OpenTelemetry configuration
+  opentelemetry:
+    tracer:
+      # in the dev env use the sampler that samples all requests
+      sampler:
+        ~: ratio
+        ratio: 1.0
+      # the OTPL should be enabled and endpoint should be specified in order to report traces
+      exporter:
+        otlp:
+          enabled: false
+          endpoint:
 
   # Don't enable Swagger: our REST resources are generic GraphQL endpoints, clients will typically
   # introspect the GraphQL schema instead.
