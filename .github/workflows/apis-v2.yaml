@@ -202,6 +202,9 @@ jobs:
 
     strategy:
 
+      # let all tests run, can find multiple failures in different apis
+      fail-fast: false
+
       # props:
       # name - human-readable name
       # profile - what profile should be activated when running int tests
