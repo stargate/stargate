@@ -162,5 +162,108 @@
         <stargate.int-test.cluster.dse>true</stargate.int-test.cluster.dse>
       </properties>
     </profile>
+    <!-- The deployment profile must be used only with the sgv2-quarkus-common   -->
+    <profile>
+      <id>deploy</id>
+      <distributionManagement>
+        <repository>
+          <id>ossrh</id>
+          <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+        </repository>
+      </distributionManagement>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-source-plugin</artifactId>
+            <version>3.2.1</version>
+            <executions>
+              <execution>
+                <id>attach-sources</id>
+                <goals>
+                  <goal>jar-no-fork</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-javadoc-plugin</artifactId>
+            <version>3.4.1</version>
+            <executions>
+              <execution>
+                <id>attach-javadocs</id>
+                <goals>
+                  <goal>jar</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <additionalOptions>-Xdoclint:none</additionalOptions>
+              <verbose>false</verbose>
+              <quiet>true</quiet>
+              <tags>
+                <tag>
+                  <name>apiNote</name>
+                  <placement>a</placement>
+                  <head>API note:</head>
+                </tag>
+              </tags>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-gpg-plugin</artifactId>
+            <version>3.0.1</version>
+            <executions>
+              <execution>
+                <id>sign-artifacts</id>
+                <phase>verify</phase>
+                <goals>
+                  <goal>sign</goal>
+                </goals>
+              </execution>
+            </executions>
+            <!-- Copied the config from the base Stargate pom -->
+            <configuration>
+              <gpgArguments>
+                <arg>--pinentry-mode</arg>
+                <arg>loopback</arg>
+              </gpgArguments>
+              <outputDirectory>${project.basedir}/target</outputDirectory>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.sonatype.plugins</groupId>
+            <artifactId>nexus-staging-maven-plugin</artifactId>
+            <version>1.6.13</version>
+            <extensions>true</extensions>
+            <configuration>
+              <serverId>ossrh</serverId>
+              <nexusUrl>https://oss.sonatype.org/</nexusUrl>
+              <autoReleaseAfterClose>true</autoReleaseAfterClose>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
   </profiles>
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+    </license>
+  </licenses>
+  <scm>
+    <connection>scm:git:git://github.com/stargate/stargate.git</connection>
+    <developerConnection>scm:git:git@github.com:stargate/stargate.git</developerConnection>
+    <url>http://github.com/stargate/stargate/tree/v2.0.0</url>
+  </scm>
+  <developers>
+    <developer>
+      <name>The Stargate Authors</name>
+      <email>maintainers@stargate.io</email>
+      <organization>Stargate</organization>
+    </developer>
+  </developers>
 </project>
