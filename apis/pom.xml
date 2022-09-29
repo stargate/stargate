@@ -5,6 +5,12 @@
   <artifactId>sgv2-api-parent</artifactId>
   <version>2.0.0-BETA-3-SNAPSHOT</version>
   <packaging>pom</packaging>
+  <modules>
+    <module>sgv2-quarkus-common</module>
+    <module>sgv2-docsapi</module>
+    <module>sgv2-graphqlapi</module>
+    <module>sgv2-restapi</module>
+  </modules>
   <properties>
     <compiler-plugin.version>3.8.1</compiler-plugin.version>
     <maven.compiler.source>17</maven.compiler.source>
@@ -118,12 +124,6 @@
   <profiles>
     <profile>
       <id>cassandra-40</id>
-      <modules>
-        <module>sgv2-quarkus-common</module>
-        <module>sgv2-docsapi</module>
-        <module>sgv2-graphqlapi</module>
-        <module>sgv2-restapi</module>
-      </modules>
       <activation>
         <activeByDefault>true</activeByDefault>
       </activation>
@@ -140,12 +140,6 @@
     </profile>
     <profile>
       <id>cassandra-311</id>
-      <modules>
-        <module>sgv2-quarkus-common</module>
-        <module>sgv2-docsapi</module>
-        <module>sgv2-graphqlapi</module>
-        <module>sgv2-restapi</module>
-      </modules>
       <properties>
         <stargate.int-test.cassandra.image>cassandra</stargate.int-test.cassandra.image>
         <stargate.int-test.cassandra.image-tag>3.11.13</stargate.int-test.cassandra.image-tag>
@@ -158,12 +152,6 @@
     </profile>
     <profile>
       <id>dse-68</id>
-      <modules>
-        <module>sgv2-quarkus-common</module>
-        <module>sgv2-docsapi</module>
-        <module>sgv2-graphqlapi</module>
-        <module>sgv2-restapi</module>
-      </modules>
       <properties>
         <stargate.int-test.cassandra.image>datastax/dse-server</stargate.int-test.cassandra.image>
         <stargate.int-test.cassandra.image-tag>6.8.26</stargate.int-test.cassandra.image-tag>
@@ -177,9 +165,6 @@
     <!-- The deployment profile must be used only with the sgv2-quarkus-common   -->
     <profile>
       <id>deploy</id>
-      <modules>
-        <module>sgv2-quarkus-common</module>
-      </modules>
       <distributionManagement>
         <repository>
           <id>ossrh</id>
