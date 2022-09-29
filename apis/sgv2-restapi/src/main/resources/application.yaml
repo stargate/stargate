@@ -59,8 +59,6 @@ quarkus:
 
   # HTTP settings
   http:
-    # 14-Sep-2022, tatu: Use the legacy port (same as SGv1) for now,
-    #   change to "standard" 8080 later on (needs other changes)
     port: 8082
     non-application-root-path: stargate
 

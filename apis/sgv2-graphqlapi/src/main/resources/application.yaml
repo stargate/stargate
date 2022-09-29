@@ -52,8 +52,8 @@ quarkus:
     # all the clients' setup, only bridge
     clients:
       bridge:
-        host: ${STARGATE_BRIDGE_HOST:localhost}
-        port: ${STARGATE_BRIDGE_PORT:8091}
+        host: localhost
+        port: 8091
 
     # force no grpc server start in dev as we have no grpc service
     dev-mode:
@@ -61,7 +61,7 @@ quarkus:
 
   # HTTP settings
   http:
-    port: ${STARGATE_GRAPHQL_PORT:8080}
+    port: 8080
     non-application-root-path: stargate
 
     # Require authentication where relevant:
