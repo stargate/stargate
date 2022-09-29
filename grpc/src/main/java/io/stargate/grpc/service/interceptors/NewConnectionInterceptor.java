@@ -12,6 +12,7 @@ import io.grpc.ServerCall.Listener;
 import io.grpc.ServerCallHandler;
 import io.grpc.ServerInterceptor;
 import io.grpc.Status;
+import io.grpc.reflection.v1alpha.ServerReflectionGrpc;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.UnauthorizedException;
@@ -73,6 +74,11 @@ public class NewConnectionInterceptor implements ServerInterceptor {
   @Override
   public <ReqT, RespT> Listener<ReqT> interceptCall(
       ServerCall<ReqT, RespT> call, Metadata headers, ServerCallHandler<ReqT, RespT> next) {
+    // Allow reflection calls through without authentication
+    if (call.getMethodDescriptor().getServiceName() != null
+        && call.getMethodDescriptor().getServiceName().equals(ServerReflectionGrpc.SERVICE_NAME)) {
+      return next.startCall(call, headers);
+    }
     try {
       String token = headers.get(TOKEN_KEY);
       if (token == null) {
