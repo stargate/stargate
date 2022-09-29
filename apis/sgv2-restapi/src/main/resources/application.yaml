@@ -132,3 +132,21 @@ quarkus:
           ui.preauthorizeApiKey('Token', token);
         }
       }
+
+# shared development properties
+"%dev":
+
+  # disable retries in the data store config and enable fall back
+  stargate:
+    data-store:
+      bridge-fallback-enabled: true
+
+  io:
+    stargate:
+      sgv2:
+        api:
+          common:
+            properties:
+              datastore:
+                configuration:
+                  DataStorePropertiesConfiguration/fetchSupportedFeatures/Retry/maxRetries: 0
