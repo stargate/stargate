@@ -1,0 +1,12 @@
+# GraphQL federation directives.
+#
+# They will be added automatically to any schema uploaded to Stargate (you don't need to copy
+# them).
+
+scalar _FieldSet
+
+directive @external on FIELD_DEFINITION
+directive @requires(fields: _FieldSet!) on FIELD_DEFINITION
+directive @provides(fields: _FieldSet!) on FIELD_DEFINITION
+directive @key(fields: _FieldSet!) on OBJECT | INTERFACE
+directive @extends on OBJECT | INTERFACE

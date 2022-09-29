@@ -167,6 +167,7 @@
         <module>persistence-dse-6.8</module>
         <module>bridge</module>
         <module>cql</module>
+        <module>graphqlapi</module>
         <module>restapi</module>
         <module>sgv2-restapi</module>
         <module>sgv2-service-common</module>
@@ -203,6 +204,7 @@
         <module>persistence-cassandra-4.0</module>
         <module>bridge</module>
         <module>cql</module>
+        <module>graphqlapi</module>
         <module>restapi</module>
         <module>sgv2-restapi</module>
         <module>sgv2-service-common</module>
