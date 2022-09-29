@@ -37,12 +37,6 @@ import io.stargate.web.restapi.resources.v1.ColumnResource;
 import io.stargate.web.restapi.resources.v1.KeyspaceResource;
 import io.stargate.web.restapi.resources.v1.RowResource;
 import io.stargate.web.restapi.resources.v1.TableResource;
-import io.stargate.web.restapi.resources.v2.RowsResource;
-import io.stargate.web.restapi.resources.v2.schemas.ColumnsResource;
-import io.stargate.web.restapi.resources.v2.schemas.IndexesResource;
-import io.stargate.web.restapi.resources.v2.schemas.KeyspacesResource;
-import io.stargate.web.restapi.resources.v2.schemas.TablesResource;
-import io.stargate.web.restapi.resources.v2.schemas.UserDefinedTypesResource;
 import io.swagger.config.ScannerFactory;
 import io.swagger.jaxrs.config.BeanConfig;
 import io.swagger.jaxrs.config.DefaultJaxrsScanner;
@@ -62,24 +56,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * DropWizard {@code Application} that will serve Stargate V1 REST (REST v1, v2) and Document API
- * endpoints.
+ * DropWizard {@code Application} that will serve Stargate V1 REST, RESTv1 API endpoints.
  *
- * <p>NOTE: System property {@link #SYSPROP_ENABLE_SGV1_REST} is used to control which of the
- * endpoints are enabled, as follows:
- *
- * <ul>
- *   <li>If set to {@code "true"}, Both REST API v1 and v2 endpoints are enabled
- *   <li>If set to {@code "false"} (or any value other than {@code "true"}), only REST v1 endpoint
- *       is enabled; RESTv2 is disabled.
- * </ul>
+ * <p>NOTE: used to serve Documents API as well as RESTv2 API endpoints in Stargate v1.
  */
 public class RestApiServer extends Application<RestApiServerConfiguration> {
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
   public static final String[] NON_API_URI_REGEX = new String[] {"^/$", "^/health$", "^/swagger.*"};
-
-  public static final String SYSPROP_ENABLE_SGV1_REST = "stargate.rest.enableV1";
 
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
@@ -145,15 +129,6 @@ public class RestApiServer extends Application<RestApiServerConfiguration> {
     // General healthcheck endpoint
     environment.jersey().register(HealthResource.class);
 
-    // 09-Feb-2022, tatu: as per [SG#1625] the old SGv1 REST API is to be disabled
-    //     when we have SGv2 -- leaving just the Documents API until it too gets extracted.
-    // 13-May-2022, tatu: Make inclusion of SGv1 REST endpoints configurable by system property.
-    //     Checked lazily to support setting value via tests.
-    // 28-Sep-22, tatu: as per [SG#2106] meaning changed: enabled still means "enable all 3"
-    //     but disabled means that ONLY RestV1 is enabled (Documents API and RESTv2 disabled)
-    final String enableSgv1RestStr = System.getProperty(SYSPROP_ENABLE_SGV1_REST);
-    final boolean enableRestV1 = Boolean.parseBoolean(enableSgv1RestStr);
-
     // Always enable RESTv1 endpoints
 
     logger.info("Registering StargateV1 RESTv1 endpoint for StargateV2");
@@ -161,28 +136,6 @@ public class RestApiServer extends Application<RestApiServerConfiguration> {
     environment.jersey().register(KeyspaceResource.class);
     environment.jersey().register(RowResource.class);
     environment.jersey().register(TableResource.class);
-
-    if (!enableRestV1) {
-      logger.info(
-          "Will not register StargateV1 RESTv2 endpoints for StargateV2 (System property '{}' {}, enable with 'true')",
-          SYSPROP_ENABLE_SGV1_REST,
-          (enableSgv1RestStr == null)
-              ? "UNDEFINED"
-              : String.format("set to '%s'", enableSgv1RestStr));
-    } else {
-      logger.info(
-          "Registering StargateV1 RESTv2 endpoint for StargateV2 (System property '{}' set to '{}')",
-          SYSPROP_ENABLE_SGV1_REST,
-          enableSgv1RestStr);
-
-      // Rest API V2 endpoints
-      environment.jersey().register(ColumnsResource.class);
-      environment.jersey().register(IndexesResource.class);
-      environment.jersey().register(KeyspacesResource.class);
-      environment.jersey().register(RowsResource.class);
-      environment.jersey().register(TablesResource.class);
-      environment.jersey().register(UserDefinedTypesResource.class);
-    }
 
     // Swagger endpoints
     environment
