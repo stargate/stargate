@@ -626,6 +626,13 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <!-- 30-Sep-2022, tatu: added by [stargate#2074] needed to fix Mac M1 builds
+        -->
+      <dependency>
+        <groupId>net.java.dev.jna</groupId>
+        <artifactId>jna</artifactId>
+        <version>5.12.1</version>
+      </dependency>
 
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
