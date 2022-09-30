@@ -29,7 +29,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.apache.cassandra.config.Config;
+import org.apache.cassandra.stargate.config.Config;
 import org.apache.cassandra.stargate.metrics.ClientMetrics;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
 import org.apache.cassandra.stargate.transport.internal.CqlServer;
@@ -85,7 +85,6 @@ public class CqlImpl {
             .withEventLoopGroup(workerGroup)
             .withHost(nativeAddr);
 
-    TransportDescriptor.getNativeProtocolEncryptionOptions().applyConfig();
     if (!TransportDescriptor.getNativeProtocolEncryptionOptions().isEnabled()) {
       servers = Collections.singleton(builder.withSSL(false).withPort(nativePort).build());
     } else {
@@ -122,7 +121,13 @@ public class CqlImpl {
                     return port;
                   })
               .filter(p -> p > 0)
-              .map(p -> builder.withSSL(false).withPort(p).build())
+              .map(
+                  p ->
+                      builder
+                          .withSSL(
+                              TransportDescriptor.getNativeProtocolEncryptionOptions().isEnabled())
+                          .withPort(p)
+                          .build())
               .collect(Collectors.toList());
 
       if (!additionalServers.isEmpty()) {

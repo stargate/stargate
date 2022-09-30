@@ -1,6 +1,6 @@
 steps:
   - id: 'pull image'
-    name: 'gcr.io/stargateio/stargate-builder:v1.0.6'
+    name: 'gcr.io/stargateio/stargate-builder:v1.0.10'
     entrypoint: 'bash'
     args: [ '-c', 'echo pulled builder' ]
   - id: 'fetch_secret'
@@ -39,8 +39,20 @@ steps:
         name: 'm2_cache'
     env:
       - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
+  - id: 'build-java17'
+    name: 'maven:3-openjdk-17'
+    waitFor: [ 'fetch_secret', 'init_cache', 'build' ]
+    entrypoint: mvn
+    args: [ '-B','install', '--settings', 'ci/custom-settings.xml', '--file', 'apis/pom.xml', '-DskipTests',
+            '-Dorg.slf4j.simpleLogger.log.org.apache.maven.cli.transfer.Slf4jMavenTransferListener=warn'
+    ]
+    volumes:
+      - path: '/cache/.m2'
+        name: 'm2_cache'
+    env:
+      - 'MAVEN_OPTS=-Dmaven.repo.local=/cache/.m2'
   - name: 'gcr.io/cloud-builders/gsutil'
-    waitFor: [ 'build' ]
+    waitFor: [ 'build', 'build-java17' ]
     args:
       - '-m'
       - 'rsync'

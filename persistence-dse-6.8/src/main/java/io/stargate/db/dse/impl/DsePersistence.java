@@ -3,6 +3,7 @@ package io.stargate.db.dse.impl;
 import static io.stargate.db.dse.impl.Conversion.toPreparedMetadata;
 import static io.stargate.db.dse.impl.Conversion.toResultMetadata;
 
+import com.datastax.bdp.config.DseConfig;
 import com.datastax.bdp.db.nodes.Nodes;
 import com.datastax.bdp.db.util.ProductType;
 import com.datastax.bdp.db.util.ProductVersion;
@@ -33,6 +34,7 @@ import io.stargate.db.dse.impl.interceptors.DefaultQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.ProxyProtocolQueryInterceptor;
 import io.stargate.db.dse.impl.interceptors.QueryInterceptor;
 import io.stargate.db.schema.TableName;
+import java.io.File;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.net.InetAddress;
@@ -115,6 +117,9 @@ public class DsePersistence
         UserType,
         IndexMetadata,
         ViewTableMetadata> {
+
+  // Visible for testing
+  static final String SYSPROP_UNSAFE_DSE_CONFIG_PATH = "stargate.unsafe.dse_config_path";
   private static final Logger logger = LoggerFactory.getLogger(DsePersistence.class);
 
   public static final Boolean USE_PROXY_PROTOCOL =
@@ -198,6 +203,14 @@ public class DsePersistence
           "com.sun.management.jmxremote.host", System.getProperty("stargate.listen_address"));
     }
 
+    String dseConfigPath = System.getProperty(SYSPROP_UNSAFE_DSE_CONFIG_PATH, "");
+    if (!dseConfigPath.isEmpty()) {
+      // {@link com.datastax.bdp.config.DseConfigYamlLoader} uses a {@link URL} so it expects
+      // a `file:` prefix for the "dse.config" system property.
+      System.setProperty("dse.config", new File(dseConfigPath).toURI().toString());
+      DseConfig.init();
+    }
+
     DatabaseDescriptor.daemonInitialization(true, config);
 
     String hostId = System.getProperty("stargate.host_id");
@@ -258,12 +271,6 @@ public class DsePersistence
   public void registerEventListener(EventListener listener) {
     SchemaManager.instance.registerListener(new EventListenerWrapper(listener));
     interceptor.register(listener);
-  }
-
-  @Override
-  public void unregisterEventListener(EventListener listener) {
-    SchemaManager.instance.unregisterListener(new EventListenerWrapper(listener));
-    interceptor.unregister(listener);
   }
 
   @Override

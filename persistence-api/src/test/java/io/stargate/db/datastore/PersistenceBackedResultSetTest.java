@@ -38,17 +38,10 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Predicate;
-import org.json.JSONException;
-import org.json.JSONObject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 class PersistenceBackedResultSetTest {
-
-  private static final Logger log = LoggerFactory.getLogger(PersistenceBackedResultSetTest.class);
-
   private Connection connection;
   private Rows rowsSameUser;
   private Rows rowsDifferentUser;
@@ -770,7 +763,6 @@ class PersistenceBackedResultSetTest {
 
   private Predicate<Row> createAuthFilter(Map<String, String> claims) {
     String STARGATE_PREFIX = "x-stargate-";
-    JSONObject stargateClaims = new JSONObject(claims);
 
     return row -> {
       if (row == null) {
@@ -778,15 +770,8 @@ class PersistenceBackedResultSetTest {
       }
 
       for (Column col : row.columns()) {
-        if (stargateClaims.has(STARGATE_PREFIX + col.name())) {
-
-          String stargateClaimValue;
-          try {
-            stargateClaimValue = stargateClaims.getString(STARGATE_PREFIX + col.name());
-          } catch (JSONException e) {
-            log.warn("Unable to get stargate claim for " + STARGATE_PREFIX + col.name());
-            return false;
-          }
+        if (claims.containsKey(STARGATE_PREFIX + col.name())) {
+          String stargateClaimValue = claims.get(STARGATE_PREFIX + col.name());
           String columnValue = row.getString(col.name());
           if (!stargateClaimValue.equals(columnValue)) {
             return false;

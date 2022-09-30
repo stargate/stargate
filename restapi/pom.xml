@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>2.0.0-ALPHA-5-SNAPSHOT</version>
+    <version>2.0.0-BETA-3-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.web</groupId>
   <artifactId>restapi</artifactId>
@@ -52,6 +52,21 @@
       <groupId>io.dropwizard</groupId>
       <artifactId>dropwizard-core</artifactId>
     </dependency>
+    <!-- Since restapi serializes Java 8 date/time values, we must use
+         JSR-310 module. Version provided by parent.
+      -->
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.datatype</groupId>
+      <artifactId>jackson-datatype-jsr310</artifactId>
+    </dependency>
     <dependency>
       <groupId>com.github.java-json-tools</groupId>
       <artifactId>json-schema-validator</artifactId>
@@ -84,7 +99,6 @@
     <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-core</artifactId>
-      <version>${driver.version}</version>
       <scope>provided</scope>
     </dependency>
     <dependency>
@@ -150,11 +164,6 @@
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-        <groupId>org.mockito</groupId>
-        <artifactId>mockito-junit-jupiter</artifactId>
-        <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>org.awaitility</groupId>

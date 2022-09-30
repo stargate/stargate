@@ -552,10 +552,14 @@ public class StargateQueryHandler implements QueryHandler {
       authorization.authorizeSchemaWrite(
           authenticationSubject, keyspaceName, tableName, scope, SourceAPI.CQL, resource);
     } catch (io.stargate.auth.UnauthorizedException e) {
-      throw new UnauthorizedException(
+      String msg =
           String.format(
               "Missing correct permission on %s.%s",
-              keyspaceName, (tableName == null ? "" : tableName)));
+              keyspaceName, (tableName == null ? "" : tableName));
+      if (e.getMessage() != null) {
+        msg += ": " + e.getMessage();
+      }
+      throw new UnauthorizedException(msg);
     }
 
     logger.debug(

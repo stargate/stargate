@@ -210,7 +210,6 @@ public class ApiServiceExtension
       cmd.addArgument("-D" + params.servicePortPropertyName() + "=" + params.servicePort());
       cmd.addArgument("-D" + params.bridgeHostPropertyName() + "=" + connectionInfo.seedAddress());
       cmd.addArgument("-D" + params.bridgePortPropertyName() + "=" + connectionInfo.bridgePort());
-      cmd.addArgument("-D" + params.bridgeTokenPropertyName() + "=" + connectionInfo.bridgeToken());
 
       for (Entry<String, String> e : params.systemProperties().entrySet()) {
         cmd.addArgument("-D" + e.getKey() + "=" + e.getValue());
@@ -226,6 +225,8 @@ public class ApiServiceExtension
 
       cmd.addArgument("-jar");
       cmd.addArgument(getStarterJar(params).getAbsolutePath());
+
+      params.serviceArguments().forEach(cmd::addArgument);
 
       addStdOutListener(
           (node, line) -> {

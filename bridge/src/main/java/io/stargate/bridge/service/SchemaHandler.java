@@ -15,12 +15,24 @@
  */
 package io.stargate.bridge.service;
 
+import com.google.protobuf.Int32Value;
 import com.google.protobuf.StringValue;
 import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Udt;
+import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.Schema.ColumnOrderBy;
+import io.stargate.bridge.proto.Schema.CqlIndex;
+import io.stargate.bridge.proto.Schema.CqlKeyspace;
+import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.bridge.proto.Schema.CqlMaterializedView;
+import io.stargate.bridge.proto.Schema.CqlTable;
+import io.stargate.bridge.proto.Schema.DescribeKeyspaceQuery;
 import io.stargate.db.Persistence;
 import io.stargate.db.query.builder.Replication;
+import io.stargate.db.schema.CollectionIndexingType;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Index;
 import io.stargate.db.schema.Keyspace;
@@ -28,18 +40,6 @@ import io.stargate.db.schema.MaterializedView;
 import io.stargate.db.schema.SecondaryIndex;
 import io.stargate.db.schema.Table;
 import io.stargate.db.schema.UserDefinedType;
-import io.stargate.grpc.service.GrpcService;
-import io.stargate.grpc.service.ValuesHelper;
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec.Udt;
-import io.stargate.proto.Schema.ColumnOrderBy;
-import io.stargate.proto.Schema.CqlIndex;
-import io.stargate.proto.Schema.CqlKeyspace;
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
-import io.stargate.proto.Schema.CqlMaterializedView;
-import io.stargate.proto.Schema.CqlTable;
-import io.stargate.proto.Schema.DescribeKeyspaceQuery;
-import io.stargate.proto.Schema.DescribeTableQuery;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -47,39 +47,58 @@ import org.jetbrains.annotations.NotNull;
 
 class SchemaHandler {
 
+  private static final Schema.CqlKeyspaceDescribe EMPTY_KEYSPACE_DESCRIPTION =
+      Schema.CqlKeyspaceDescribe.newBuilder().build();
+
   public static void describeKeyspace(
       DescribeKeyspaceQuery query,
       Persistence persistence,
       StreamObserver<CqlKeyspaceDescribe> responseObserver) {
-    try {
-      String decoratedKeyspace =
-          persistence.decorateKeyspaceName(query.getKeyspaceName(), GrpcService.HEADERS_KEY.get());
-      Keyspace keyspace = persistence.schema().keyspace(decoratedKeyspace);
-      if (keyspace == null) {
-        throw Status.NOT_FOUND.withDescription("Keyspace not found").asException();
-      }
-      responseObserver.onNext(buildKeyspaceDescription(keyspace));
+
+    // The name that the client asked for, e.g. "ks".
+    String simpleName = query.getKeyspaceName();
+    // If the persistence supports multi-tenancy, the actual name contains tenant information, e.g.
+    // "tenant1_ks".
+    String decoratedName =
+        persistence.decorateKeyspaceName(simpleName, BridgeService.HEADERS_KEY.get());
+
+    Keyspace keyspace = persistence.schema().keyspace(decoratedName);
+    if (keyspace == null) {
+      responseObserver.onError(
+          Status.NOT_FOUND.withDescription("Keyspace not found").asException());
+    } else if (query.hasHash() && query.getHash().getValue() == keyspace.schemaHashCode()) {
+      // Client already has the latest version, don't resend
+      responseObserver.onNext(EMPTY_KEYSPACE_DESCRIPTION);
       responseObserver.onCompleted();
-    } catch (StatusException e) {
-      responseObserver.onError(e);
+    } else {
+      try {
+        CqlKeyspaceDescribe description =
+            SchemaHandler.buildKeyspaceDescription(keyspace, simpleName, decoratedName);
+        responseObserver.onNext(description);
+        responseObserver.onCompleted();
+      } catch (StatusException e) {
+        responseObserver.onError(e);
+      }
     }
   }
 
-  static CqlKeyspaceDescribe buildKeyspaceDescription(Keyspace keyspace) throws StatusException {
+  static CqlKeyspaceDescribe buildKeyspaceDescription(
+      Keyspace keyspace, String simpleName, String decoratedName) throws StatusException {
 
-    CqlKeyspaceDescribe.Builder describeResultBuilder = CqlKeyspaceDescribe.newBuilder();
-    CqlKeyspace.Builder cqlKeyspaceBuilder = CqlKeyspace.newBuilder();
-    cqlKeyspaceBuilder.setName(keyspace.name());
+    CqlKeyspaceDescribe.Builder describeResultBuilder =
+        CqlKeyspaceDescribe.newBuilder().setHash(Int32Value.of(keyspace.schemaHashCode()));
+    CqlKeyspace.Builder cqlKeyspaceBuilder =
+        CqlKeyspace.newBuilder().setName(simpleName).setGlobalName(decoratedName);
 
     Map<String, String> replication = new LinkedHashMap<>(keyspace.replication());
     if (replication.containsKey("class")) {
       String strategyName = replication.remove("class");
-      if (strategyName.equals("SimpleStrategy")) {
+      if (strategyName.endsWith("SimpleStrategy")) {
         cqlKeyspaceBuilder.putOptions("replication", Replication.simpleStrategy(1).toString());
-      } else if (strategyName.equals("NetworkTopologyStrategy")) {
+      } else if (strategyName.endsWith("NetworkTopologyStrategy")) {
         Map<String, Integer> replicationMap = new HashMap<String, Integer>();
         for (Map.Entry<String, String> entry : replication.entrySet()) {
-          replicationMap.put(entry.getKey(), Integer.getInteger(entry.getValue()));
+          replicationMap.put(entry.getKey(), Integer.parseInt(entry.getValue()));
         }
 
         cqlKeyspaceBuilder.putOptions(
@@ -112,30 +131,6 @@ class SchemaHandler {
     return describeResultBuilder.build();
   }
 
-  public static void describeTable(
-      DescribeTableQuery query,
-      Persistence persistence,
-      StreamObserver<CqlTable> responseObserver) {
-    String decoratedKeyspace =
-        persistence.decorateKeyspaceName(query.getKeyspaceName(), GrpcService.HEADERS_KEY.get());
-
-    try {
-      Keyspace keyspace = persistence.schema().keyspace(decoratedKeyspace);
-      if (keyspace == null) {
-        throw Status.NOT_FOUND.withDescription("Keyspace not found").asException();
-      }
-      Table table = keyspace.table(query.getTableName());
-      if (table == null) {
-        throw Status.NOT_FOUND.withDescription("Table not found").asException();
-      }
-
-      responseObserver.onNext(buildCqlTable(table));
-      responseObserver.onCompleted();
-    } catch (StatusException e) {
-      responseObserver.onError(e);
-    }
-  }
-
   @NotNull
   private static CqlTable buildCqlTable(Table table) throws StatusException {
     CqlTable.Builder cqlTableBuilder = CqlTable.newBuilder().setName(table.name());
@@ -159,8 +154,11 @@ class SchemaHandler {
       }
     }
 
-    // TODO: no table options in Table?
-    // cqlTableBuilder.putOptions(...);
+    // TODO Add any other table options here
+    if (table.comment() != null) {
+      cqlTableBuilder.putOptions("comment", table.comment());
+    }
+    cqlTableBuilder.putOptions("ttl", String.valueOf(table.ttl()));
 
     for (Index index : table.indexes()) {
       if (index instanceof SecondaryIndex) {
@@ -174,11 +172,25 @@ class SchemaHandler {
   }
 
   private static CqlIndex buildSecondaryIndex(SecondaryIndex index) {
-    return CqlIndex.newBuilder()
-        .setName(index.name())
-        .setColumnName(index.column().name())
-        .setCustomType(StringValue.newBuilder().setValue(index.indexTypeName()).build())
-        .build();
+    CqlIndex.Builder builder =
+        CqlIndex.newBuilder().setName(index.name()).setColumnName(index.column().name());
+    CollectionIndexingType indexingType = index.indexingType();
+    if (indexingType.indexKeys()) {
+      builder.setIndexingType(Schema.IndexingType.KEYS);
+    } else if (indexingType.indexValues()) {
+      builder.setIndexingType(Schema.IndexingType.VALUES_);
+    } else if (indexingType.indexEntries()) {
+      builder.setIndexingType(Schema.IndexingType.ENTRIES);
+    } else if (indexingType.indexFull()) {
+      builder.setIndexingType(Schema.IndexingType.FULL);
+    }
+    builder.setCustom(index.isCustom());
+    String indexingClass = index.indexingClass();
+    if (indexingClass != null) {
+      builder.setIndexingClass(StringValue.of(indexingClass));
+    }
+    builder.putAllOptions(index.indexingOptions());
+    return builder.build();
   }
 
   private static CqlMaterializedView buildMaterializedView(MaterializedView materializedView)

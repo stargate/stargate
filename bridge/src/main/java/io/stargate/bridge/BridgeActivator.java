@@ -19,7 +19,6 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.bridge.impl.BridgeImpl;
 import io.stargate.core.activator.BaseActivator;
-import io.stargate.core.grpc.BridgeConfig;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.DbActivator;
 import io.stargate.db.Persistence;
@@ -51,12 +50,7 @@ public class BridgeActivator extends BaseActivator {
       return null;
     }
     bridge =
-        new BridgeImpl(
-            persistence.get(),
-            metrics.get(),
-            authentication.get(),
-            authorization.get(),
-            BridgeConfig.ADMIN_TOKEN);
+        new BridgeImpl(persistence.get(), metrics.get(), authentication.get(), authorization.get());
     bridge.start();
 
     return null;

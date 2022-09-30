@@ -49,6 +49,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -714,6 +715,66 @@ public class RestApiv1Test extends BaseRestApiTest {
   }
 
   @Test
+  public void addRowValidation() throws IOException {
+    String tableName = "tbl_addrow_" + System.currentTimeMillis();
+    createTable(tableName);
+
+    okhttp3.Response response =
+        RestUtils.postRaw(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
+            "",
+            422);
+    Map<String, String> map = objectMapper.readValue(response.body().string(), Map.class);
+    assertThat(map.get("description")).isEqualTo("Request invalid: Row data cannot be null.");
+
+    response =
+        RestUtils.postRaw(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
+            "{}",
+            422);
+    map = objectMapper.readValue(response.body().string(), Map.class);
+    assertThat(map.get("description"))
+        .isEqualTo("Request invalid: Columns cannot be null or empty.");
+
+    response =
+        RestUtils.postRaw(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
+            "{\"columns\":[]}",
+            422);
+    map = objectMapper.readValue(response.body().string(), Map.class);
+    assertThat(map.get("description"))
+        .isEqualTo("Request invalid: Columns cannot be null or empty.");
+
+    response =
+        RestUtils.postRaw(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
+            "{\"columns\":[{\"value\":\"firstname\"}]}",
+            422);
+    map = objectMapper.readValue(response.body().string(), Map.class);
+    assertThat(map.get("description"))
+        .isEqualTo("Request invalid: Name of the column cannot be null or blank.");
+
+    response =
+        RestUtils.postRaw(
+            authToken,
+            String.format(
+                "%s:8082/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
+            "{\"columns\":[{\"name\":\"\"}]}",
+            422);
+    map = objectMapper.readValue(response.body().string(), Map.class);
+    assertThat(map.get("description"))
+        .isEqualTo("Request invalid: Name of the column cannot be null or blank.");
+  }
+
+  @Test
   public void addRowWithList() throws IOException {
     String tableName = "tbl_addrowlist_" + System.currentTimeMillis();
     createTestTable(
@@ -1021,6 +1082,37 @@ public class RestApiv1Test extends BaseRestApiTest {
         String.format("%s/v1/keyspaces/%s/tables/%s/rows/query", restUrlBase, keyspace, tableName),
         objectMapper.writeValueAsString(query),
         HttpStatus.SC_BAD_REQUEST);
+  }
+
+  @Test
+  public void queryWithUdtCol() throws IOException {
+    String tableName = "tbl_query_" + System.currentTimeMillis();
+    // createTable(tableName);
+    session.execute("create type " + keyspace + ".udt_167785279 (a int, b int)");
+    session.execute(
+        "create table "
+            + keyspace
+            + "."
+            + tableName
+            + " (   pk0 varint,     pk1 varint,     pk2 smallint,     pk3 int,     pk4 int,     ck0 smallint,     ck1 text,     col0 frozen<udt_167785279>,     col1 date,     col10 map<tinyint, double>,     col11 float,     col2 timestamp,     col3 timeuuid,     col4 bigint,     col5 ascii,     col6 map<tinyint, varint>,     col7 float,     col8 duration,     col9 map<ascii, decimal>,     PRIMARY KEY ((pk0, pk1, pk2, pk3, pk4), ck0, ck1))");
+    session.execute(
+        "insert into "
+            + keyspace
+            + "."
+            + tableName
+            + " (pk0,pk1,pk2,pk3,pk4,ck0,ck1,col0) values(8275984804989873180, 5276317386634354038, 28639,1005107841,1544552257, 10,'a',{a:1, b:2})");
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v1/keyspaces/%s/tables/%s/rows/8275984804989873180;5276317386634354038;28639;1005107841;1544552257",
+                restUrlBase, keyspace, tableName),
+            HttpStatus.SC_OK);
+
+    RowResponse rowResponse = objectMapper.readValue(body, RowResponse.class);
+    assertThat(rowResponse.getCount()).isEqualTo(1);
+    assertThat(rowResponse.getRows().get(0).get("col0")).isNotNull();
   }
 
   @Test

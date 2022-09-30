@@ -78,6 +78,12 @@ message Decimal {
   bytes value = 3;
 }
 
+message Duration {
+  sint32 months = 1;
+  sint32 days = 2;
+  sint64 nanos = 3;
+}
+
 // A CQL value. This is used both in requests to bind parameterized query strings, and in responses
 // to represent the result data.
 message Value {
@@ -127,6 +133,9 @@ message Value {
     // An unsigned integer representing the number of nanoseconds since midnight. Valid values are
     // in the range 0 to 86399999999999 (inclusive).
     uint64 time = 12;
+
+    // CQL types: duration
+    Duration duration = 17;
 
     // CQL types: list, set, map, tuple
     Collection collection = 13;

@@ -15,6 +15,7 @@
  */
 package io.stargate.sgv2.common.cql.builder;
 
+import io.stargate.bridge.proto.QueryOuterClass;
 import javax.annotation.Nullable;
 import org.immutables.value.Value.Immutable;
 import org.immutables.value.Value.Style;
@@ -26,13 +27,13 @@ public interface ValueModifier {
 
   Operation operation();
 
-  Term<?> value();
+  Term value();
 
-  static ValueModifier set(String columnName, Object value) {
+  static ValueModifier set(String columnName, QueryOuterClass.Value value) {
     return set(columnName, Term.of(value));
   }
 
-  static ValueModifier set(String columnName, Term<?> value) {
+  static ValueModifier set(String columnName, Term value) {
     return of(Target.column(columnName), Operation.SET, value);
   }
 
@@ -40,7 +41,11 @@ public interface ValueModifier {
     return of(Target.column(columnName), Operation.SET, Term.marker());
   }
 
-  static ValueModifier of(Target target, Operation operation, Term<?> value) {
+  static ValueModifier of(Target target, Operation operation, QueryOuterClass.Value value) {
+    return of(target, operation, Term.of(value));
+  }
+
+  static ValueModifier of(Target target, Operation operation, Term value) {
     return ImmutableValueModifier.builder()
         .target(target)
         .operation(operation)
@@ -67,7 +72,7 @@ public interface ValueModifier {
 
     /** only set for map value access */
     @Nullable
-    Term<?> mapKey();
+    Term mapKey();
 
     static Target column(String columnName) {
       return ImmutableTarget.builder().columnName(columnName).build();
@@ -77,7 +82,7 @@ public interface ValueModifier {
       return ImmutableTarget.builder().columnName(columnName).fieldName(fieldName).build();
     }
 
-    static Target mapValue(String columnName, Term<?> mapKey) {
+    static Target mapValue(String columnName, Term mapKey) {
       return ImmutableTarget.builder().columnName(columnName).mapKey(mapKey).build();
     }
   }

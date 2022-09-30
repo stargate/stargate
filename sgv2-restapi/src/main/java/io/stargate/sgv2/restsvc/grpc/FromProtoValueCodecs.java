@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.stargate.grpc.Values;
-import io.stargate.proto.QueryOuterClass;
+import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -42,6 +42,7 @@ public class FromProtoValueCodecs {
   private static final TimestampCodec CODEC_TIMESTAMP = new TimestampCodec();
   private static final DateCodec CODEC_DATE = new DateCodec();
   private static final TimeCodec CODEC_TIME = new TimeCodec();
+  private static final DurationCodec CODEC_DURATION = new DurationCodec();
   private static final InetCodec CODEC_INET = new InetCodec();
   private static final BlobCodec CODEC_BLOB = new BlobCodec();
 
@@ -127,6 +128,8 @@ public class FromProtoValueCodecs {
         return CODEC_DATE;
       case TIME:
         return CODEC_TIME;
+      case DURATION:
+        return CODEC_DURATION;
       case INET:
         return CODEC_INET;
       case BLOB:
@@ -421,6 +424,27 @@ public class FromProtoValueCodecs {
       return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
           ? jsonNodeFactory.nullNode()
           : jsonNodeFactory.textNode(Values.time(value).toString());
+    }
+  }
+
+  protected static final class DurationCodec extends FromProtoValueCodec {
+    @Override
+    public Object fromProtoValue(QueryOuterClass.Value value) {
+      if (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL) {
+        return null;
+      }
+      // 16-Mar-2022, tatu: Two ways to go; either return CqlDuration and expect
+      //    caller to deal with it (requires custom Json serializer), or convert
+      //    here. Latter seems easier and safer for now since caller has no need
+      //    for actual full type. May be changed later if there is need to retain type.
+      return Values.duration(value).toString();
+    }
+
+    @Override
+    public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
+      return (value.getInnerCase() == QueryOuterClass.Value.InnerCase.NULL)
+          ? jsonNodeFactory.nullNode()
+          : jsonNodeFactory.textNode(Values.duration(value).toString());
     }
   }
 

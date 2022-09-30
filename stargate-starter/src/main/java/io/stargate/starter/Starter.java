@@ -248,12 +248,6 @@ public class Starter {
       description = "The host ID to use for this node. Must be a valid UUID.")
   protected String hostId;
 
-  @Order(value = 24)
-  @Option(
-      name = "--bridge-token",
-      description = "Token that API services will use to authenticate to the bridge (required) ")
-  protected String bridgeToken;
-
   @Order(value = 1000)
   @Option(
       name = "--nodetool",
@@ -294,8 +288,7 @@ public class Starter {
       boolean dse,
       boolean isSimpleSnitch,
       int cqlPort,
-      int jmxPort,
-      String bridgeToken) {
+      int jmxPort) {
     this.clusterName = clusterName;
     this.version = version;
     this.listenHostStr = listenHostStr;
@@ -310,7 +303,6 @@ public class Starter {
     // bind to listen address only to allow multiple starters to start on the same host
     this.bindToListenAddressOnly = true;
     this.jmxPort = jmxPort;
-    this.bridgeToken = bridgeToken;
     this.disableDynamicSnitch = true;
     this.disableMBeanRegistration = true;
   }
@@ -322,10 +314,6 @@ public class Starter {
 
     if (clusterName == null || clusterName.trim().isEmpty()) {
       throw new IllegalArgumentException("--cluster-name must be specified");
-    }
-
-    if (bridgeToken == null || bridgeToken.trim().isEmpty()) {
-      throw new IllegalArgumentException("--bridge-token must be specified");
     }
 
     if (!InetAddressValidator.getInstance().isValid(listenHostStr)) {
@@ -395,7 +383,6 @@ public class Starter {
     if (hostId != null && !hostId.isEmpty()) {
       System.setProperty("stargate.host_id", hostId);
     }
-    System.setProperty("stargate.bridge.admin_token", bridgeToken);
 
     if (bindToListenAddressOnly) {
       // Restrict the listen address for Jersey endpoints

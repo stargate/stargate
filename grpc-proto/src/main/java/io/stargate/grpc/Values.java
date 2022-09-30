@@ -78,6 +78,10 @@ public class Values {
     return Value.newBuilder().setBytes(ByteString.copyFrom(value)).build();
   }
 
+  /**
+   * Note that this method "consumes" its argument: after the call, {@code value} will have its
+   * position set to its limit, and thus appear empty.
+   */
   public static Value of(ByteBuffer value) {
     return Value.newBuilder().setBytes(ByteString.copyFrom(value)).build();
   }
@@ -98,6 +102,16 @@ public class Values {
 
   public static Value of(LocalTime value) {
     return Value.newBuilder().setTime(value.toNanoOfDay()).build();
+  }
+
+  public static Value of(CqlDuration duration) {
+    return Value.newBuilder()
+        .setDuration(
+            QueryOuterClass.Duration.newBuilder()
+                .setMonths(duration.getMonths())
+                .setDays(duration.getDays())
+                .setNanos(duration.getNanoseconds()))
+        .build();
   }
 
   public static Value of(BigInteger value) {
@@ -232,9 +246,7 @@ public class Values {
   public static ByteBuffer byteBuffer(Value value) {
     checkInnerCase(value, InnerCase.BYTES);
 
-    ByteBuffer bytes = ByteBuffer.allocate(value.getBytes().size());
-    value.getBytes().copyTo(bytes);
-    return bytes;
+    return value.getBytes().asReadOnlyByteBuffer();
   }
 
   public static byte[] bytes(Value value) {
@@ -302,6 +314,13 @@ public class Values {
     checkInnerCase(value, InnerCase.TIME);
 
     return LocalTime.ofNanoOfDay(value.getTime());
+  }
+
+  public static CqlDuration duration(Value value) {
+    checkInnerCase(value, InnerCase.DURATION);
+
+    QueryOuterClass.Duration duration = value.getDuration();
+    return CqlDuration.newInstance(duration.getMonths(), duration.getDays(), duration.getNanos());
   }
 
   private static void checkInnerCase(Value value, InnerCase expected) {

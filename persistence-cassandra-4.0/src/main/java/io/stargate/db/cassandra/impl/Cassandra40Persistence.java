@@ -234,12 +234,6 @@ public class Cassandra40Persistence
   }
 
   @Override
-  public void unregisterEventListener(EventListener listener) {
-    Schema.instance.unregisterListener(new EventListenerWrapper(listener));
-    interceptor.unregister(listener);
-  }
-
-  @Override
   public ByteBuffer unsetValue() {
     return ByteBufferUtil.UNSET_BYTE_BUFFER;
   }
@@ -508,7 +502,8 @@ public class Cassandra40Persistence
     public CompletableFuture<Result.Prepared> prepare(String query, Parameters parameters) {
       return executeRequestOnExecutor(
           parameters,
-          // The queryStartNanoTime is not used by prepared message, so it doesn't really matter
+          // The queryStartNanoTime is not used by prepared message, so it doesn't really
+          // matter
           // that it's only computed now.
           System.nanoTime(),
           () -> new PrepareMessage(query, parameters.defaultKeyspace().orElse(null)));

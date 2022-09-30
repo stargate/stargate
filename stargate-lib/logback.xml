@@ -58,7 +58,7 @@
 
   <logger name="org.apache.cassandra" level="${stargate.logging.level.cassandra:-INFO}"/>
   <logger name="com.datastax.bdp.db" level="${stargate.logging.level.dse:-INFO}"/>
-  <logger name="io.stargate.web" level="${stargate.logging.level.web:-INFO}"/>
-  <logger name="io.stargate.db" level="${stargate.logging.level.persistence:-INFO}"/>
   <logger name="io.stargate.auth" level="${stargate.logging.level.auth:-INFO}"/>
+  <logger name="io.stargate.db" level="${stargate.logging.level.persistence:-INFO}"/>
+  <logger name="io.stargate.web" level="${stargate.logging.level.web:-INFO}"/>
 </configuration>

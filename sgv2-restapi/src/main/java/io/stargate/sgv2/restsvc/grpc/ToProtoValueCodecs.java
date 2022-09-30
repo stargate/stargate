@@ -1,8 +1,9 @@
 package io.stargate.sgv2.restsvc.grpc;
 
+import io.stargate.bridge.grpc.CqlDuration;
+import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.core.util.ByteBufferUtils;
-import io.stargate.grpc.Values;
-import io.stargate.proto.QueryOuterClass;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -42,6 +43,7 @@ public class ToProtoValueCodecs {
   protected static final TimestampCodec CODEC_TIMESTAMP = new TimestampCodec();
   protected static final DateCodec CODEC_DATE = new DateCodec();
   protected static final TimeCodec CODEC_TIME = new TimeCodec();
+  protected static final DurationCodec CODEC_DURATION = new DurationCodec();
   protected static final InetCodec CODEC_INET = new InetCodec();
   protected static final BlobCodec CODEC_BLOB = new BlobCodec();
 
@@ -120,6 +122,8 @@ public class ToProtoValueCodecs {
         return CODEC_DATE;
       case TIME:
         return CODEC_TIME;
+      case DURATION:
+        return CODEC_DURATION;
       case INET:
         return CODEC_INET;
       case BLOB:
@@ -641,6 +645,29 @@ public class ToProtoValueCodecs {
     public QueryOuterClass.Value protoValueFromStringified(String value) {
       try {
         return Values.of(LocalTime.parse(value));
+      } catch (IllegalArgumentException e) {
+        return invalidStringValue(value);
+      }
+    }
+  }
+
+  protected static final class DurationCodec extends ToProtoScalarCodecBase {
+    public DurationCodec() {
+      super("TypeSpec.Basic.DURATION");
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object value) {
+      if (value instanceof String) {
+        return protoValueFromStringified((String) value);
+      }
+      return cannotCoerce(value);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      try {
+        return Values.of(CqlDuration.from(value));
       } catch (IllegalArgumentException e) {
         return invalidStringValue(value);
       }

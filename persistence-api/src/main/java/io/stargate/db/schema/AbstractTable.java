@@ -41,6 +41,8 @@ public abstract class AbstractTable implements Index, QualifiedSchemaEntity {
 
   public abstract String comment();
 
+  public abstract int ttl();
+
   @Value.Lazy
   Map<String, Column> columnMap() {
     return columns().stream().collect(Collectors.toMap(Column::name, Function.identity()));

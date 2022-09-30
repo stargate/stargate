@@ -4,17 +4,12 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>2.0.0-ALPHA-5-SNAPSHOT</version>
+    <version>2.0.0-BETA-3-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.bridge</groupId>
   <artifactId>bridge</artifactId>
   <dependencies>
     <!-- Stargate component dependencies -->
-    <dependency>
-      <groupId>io.stargate.grpc</groupId>
-      <artifactId>grpc</artifactId>
-      <version>${project.version}</version>
-    </dependency>
     <dependency>
       <groupId>io.stargate.core</groupId>
       <artifactId>core</artifactId>
@@ -33,6 +28,59 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
+
+    <!-- gRPC -->
+    <dependency>
+      <groupId>io.stargate.grpc</groupId>
+      <artifactId>bridge-proto</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-netty-shaded</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-protobuf</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-stub</artifactId>
+    </dependency>
+    <!-- 3rd party dependencies -->
+    <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-shaded-guava</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.jetbrains</groupId>
+      <artifactId>annotations</artifactId>
+      <version>19.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.code.findbugs</groupId>
+      <artifactId>annotations</artifactId>
+      <version>2.0.1</version>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+    </dependency>
+
+    <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>

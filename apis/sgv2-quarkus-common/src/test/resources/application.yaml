@@ -1,0 +1,23 @@
+# by default ignore bridge for data store props in tests
+stargate:
+  data-store:
+    ignore-bridge: true
+
+quarkus:
+  grpc:
+    clients:
+      # Used to setup a mock bridge in tests:
+      bridge:
+        host: localhost
+        port: 8091
+
+io:
+  stargate:
+    sgv2:
+      api:
+        common:
+          properties:
+            datastore:
+              configuration:
+                # Test override(s) for "BridgeDataStorePropertiesRetryTest" to speed up test
+                DataStorePropertiesConfiguration/fetchSupportedFeatures/Retry/delay: 0

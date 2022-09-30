@@ -1,0 +1,104 @@
+{
+  "quiz": {
+    "sport": {
+      "q1": {
+        "question": "Which one is correct team name in NBA?",
+        "options": [
+          "New York Bulls",
+          "Los Angeles Kings",
+          "Golden State Warriros",
+          "Huston Rocket"
+        ],
+        "answer": "Huston Rocket"
+      }
+    },
+    "nests": {
+      "q1": {
+        "question": "Which one is nested?",
+        "options": [
+          "nest",
+          "not a nest",
+          "definitely not a nest",
+          { "this":  true }
+        ],
+        "answer": { "this":  true }
+      },
+      "q2": {
+        "question": "Which one is SUPER nested?",
+        "options": [
+          "nest",
+          "not a nest",
+          "definitely not a nest",
+          { "this":  {"that":  {"them":  false}}}
+        ],
+        "answer": { "this":  {"that":  {"them":  false}}}
+      },
+      "q3": {
+        "question": "Which one is SUPER DUPER nested?",
+        "options": [
+          "nest",
+          "not a nest",
+          { "this":  { "them": false }},
+          { "this":  {"that":  {"them":  false}}}
+        ],
+        "answer": { "this":  {"that":  {"them":  false}}}
+      }
+    },
+    "maths": {
+      "q1": {
+        "question": "5.1 + 7.1 = ?",
+        "options": [
+          10.2,
+          11.2,
+          12.2,
+          13.2
+        ],
+        "answer": 12.2
+      },
+      "q2": {
+        "question": "12 - 8 = ?",
+        "options": [
+          1,
+          2,
+          3,
+          4
+        ],
+        "answer": 4
+      }
+    }
+  },
+  "products": {
+    "electronics": {
+      "iPhone_11": {
+        "name": "iPhone",
+        "manufacturer": "Apple",
+        "model": "11",
+        "price": 900
+      },
+      "Pixel_3a": {
+        "name": "Pixel",
+        "manufacturer": "Google",
+        "model": "3a",
+        "price": 600
+      }
+    },
+    "food": {
+      "Apple" : {
+        "name": "apple",
+        "price": 0.99,
+        "sku": "100100010101001"
+      },
+      "Pear" : {
+        "name": "pear",
+        "price": 0.89,
+        "sku": null
+      },
+      "Orange" : {
+        "name": "orange",
+        "info": {
+          "price": 600.01
+        }
+      }
+    }
+  }
+}

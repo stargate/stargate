@@ -25,6 +25,8 @@ import com.datastax.oss.driver.shaded.guava.common.collect.Lists;
 import com.datastax.oss.driver.shaded.guava.common.collect.Maps;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.stargate.db.datastore.Row;
 import io.stargate.db.query.Modification.Operation;
 import io.stargate.db.query.Predicate;
@@ -70,8 +72,15 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public class Converters {
-
   private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
+
+  static {
+    // For Java 8 date/time types we need:
+    OBJECT_MAPPER.registerModule(new JavaTimeModule());
+    // and by default date/time values written as numbers but we prefer ISO-8601:
+    OBJECT_MAPPER.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+  }
+
   private static final Pattern UNQUOTED_IDENTIFIER = Pattern.compile("[a-z][a-z0-9_]*");
   private static final Pattern PATTERN_DOUBLE_QUOTE = Pattern.compile("\"", Pattern.LITERAL);
   private static final String ESCAPED_DOUBLE_QUOTE = Matcher.quoteReplacement("\"\"");
@@ -105,6 +114,20 @@ public class Converters {
       Object value = row.getObject(column.name());
       if (value instanceof Object[]) {
         value = Arrays.asList((Object[]) value);
+      }
+      if (value instanceof UdtValue) {
+        UdtValue udtValue = (UdtValue) value;
+        com.datastax.oss.driver.api.core.type.UserDefinedType udtType = udtValue.getType();
+        Map<String, Object> jsonObject = Maps.newLinkedHashMapWithExpectedSize(udtValue.size());
+        for (int i = 0; i < udtValue.size(); i++) {
+          CqlIdentifier fieldName = udtType.getFieldNames().get(i);
+          Object internalValue = udtValue.getObject(fieldName);
+          if (internalValue instanceof Object[]) {
+            internalValue = Arrays.asList((Object[]) internalValue);
+          }
+          jsonObject.put(fieldName.asInternal(), internalValue);
+        }
+        value = jsonObject;
       }
       map.put(column.name(), value);
     }

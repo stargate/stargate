@@ -15,11 +15,13 @@
  */
 package io.stargate.sgv2.restsvc.resources.schemas;
 
+import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.json.JsonMapper;
-import io.stargate.proto.QueryOuterClass.Query;
-import io.stargate.proto.Schema;
-import io.stargate.proto.Schema.CqlKeyspaceDescribe;
+import io.stargate.bridge.proto.QueryOuterClass.Query;
+import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.common.cql.builder.Replication;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
@@ -27,7 +29,9 @@ import io.stargate.sgv2.common.http.CreateStargateBridgeClient;
 import io.stargate.sgv2.restsvc.models.Sgv2Keyspace;
 import io.stargate.sgv2.restsvc.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restsvc.resources.ResourceBase;
+import java.io.IOException;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -39,13 +43,19 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Path("/v2/schemas/keyspaces")
 @Produces(MediaType.APPLICATION_JSON)
 @Singleton
 @CreateStargateBridgeClient
 public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2KeyspacesResourceApi {
+  private static final Logger LOGGER = LoggerFactory.getLogger(Sgv2KeyspacesResourceImpl.class);
+
   private static final JsonMapper JSON_MAPPER = new JsonMapper();
+  private static final ObjectReader REPLICA_SETTINGS_READER =
+      JSON_MAPPER.readerFor(JsonNode.class).with(JsonReadFeature.ALLOW_SINGLE_QUOTES);
 
   private static final SchemaBuilderHelper schemaBuilder = new SchemaBuilderHelper(JSON_MAPPER);
 
@@ -66,7 +76,7 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
   public Response getOneKeyspace(
       final StargateBridgeClient bridge, final String keyspaceName, final boolean raw) {
     return bridge
-        .getKeyspace(keyspaceName)
+        .getKeyspace(keyspaceName, true)
         .map(
             describe -> {
               Sgv2Keyspace keyspace = keyspaceFrom(describe);
@@ -98,12 +108,13 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
               .withReplication(Replication.simpleStrategy(ksCreateDef.replicas))
               .build();
     } else {
+      Map<String, Integer> dcMap = ksCreateDef.datacentersAsMap();
       query =
           new QueryBuilder()
               .create()
               .keyspace(keyspaceName)
               .ifNotExists()
-              .withReplication(Replication.networkTopologyStrategy(ksCreateDef.datacenters))
+              .withReplication(Replication.networkTopologyStrategy(dcMap))
               .build();
     }
 
@@ -134,7 +145,34 @@ public class Sgv2KeyspacesResourceImpl extends ResourceBase implements Sgv2Keysp
   private static Sgv2Keyspace keyspaceFrom(CqlKeyspaceDescribe describe) {
     Schema.CqlKeyspace keyspace = describe.getCqlKeyspace();
     Sgv2Keyspace ks = new Sgv2Keyspace(keyspace.getName());
-    // TODO parse and convert "replication" option
+
+    Map<String, String> options = keyspace.getOptionsMap();
+    String replication = options.get("replication");
+    if (replication != null && !replication.isEmpty()) {
+      try {
+        JsonNode replicaSettings = REPLICA_SETTINGS_READER.readValue(replication);
+        // Ugh, this gets ugly; "options" has "class" for strategy, then DC:replica-count
+        // as entries. Also, cannot remove from Map.
+        JsonNode strategyNode = replicaSettings.path("class");
+        if ("NetworkTopologyStrategy".equals(strategyNode.asText())) {
+          Iterator<Map.Entry<String, JsonNode>> it = replicaSettings.fields();
+          while (it.hasNext()) {
+            Map.Entry<String, JsonNode> entry = it.next();
+            JsonNode value = entry.getValue();
+            if (value.isIntegralNumber()) {
+              ks.addDatacenter(entry.getKey(), value.asInt());
+            }
+          }
+        }
+      } catch (IOException e) {
+        LOGGER.warn(
+            "Malformed 'replication' settings for keyspace {} (problem: {}), input: {}",
+            keyspace.getName(),
+            e.getMessage(),
+            replication);
+      }
+    }
+
     return ks;
   }
 }

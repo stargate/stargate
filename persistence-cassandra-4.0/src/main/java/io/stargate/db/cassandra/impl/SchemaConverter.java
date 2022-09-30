@@ -125,6 +125,11 @@ public class SchemaConverter
   }
 
   @Override
+  protected int ttl(TableMetadata table) {
+    return table.params.defaultTimeToLive;
+  }
+
+  @Override
   protected String indexName(IndexMetadata index) {
     return index.name;
   }

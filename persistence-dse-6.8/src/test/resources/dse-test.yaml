@@ -1,0 +1,4 @@
+audit_logging_options:
+  retention_time: 12345 # Test value
+internode_messaging_options:
+  port: 54321 # Another test value

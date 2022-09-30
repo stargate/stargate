@@ -15,17 +15,19 @@
  */
 package io.stargate.bridge.service;
 
-import static io.stargate.db.schema.Column.Kind.*;
-import static io.stargate.db.schema.Column.Order.*;
+import static io.stargate.db.schema.Column.Kind.Clustering;
+import static io.stargate.db.schema.Column.Kind.PartitionKey;
+import static io.stargate.db.schema.Column.Kind.Static;
+import static io.stargate.db.schema.Column.Order.DESC;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.StargateBridgeGrpc;
 import io.stargate.db.schema.Column;
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
-import io.stargate.proto.Schema;
-import io.stargate.proto.StargateBridgeGrpc;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -138,11 +140,9 @@ public class SchemaOperationsTest extends BaseBridgeTest {
 
     // When
     Schema.CqlTable response =
-        stub.describeTable(
-            Schema.DescribeTableQuery.newBuilder()
-                .setKeyspaceName("ks")
-                .setTableName("tbl")
-                .build());
+        stub.describeKeyspace(
+                Schema.DescribeKeyspaceQuery.newBuilder().setKeyspaceName("ks").build())
+            .getTables(0);
 
     // Then
     assertThat(response.getName().equals("tbl")).isTrue();
@@ -186,11 +186,9 @@ public class SchemaOperationsTest extends BaseBridgeTest {
 
     // When
     Schema.CqlTable response =
-        stub.describeTable(
-            Schema.DescribeTableQuery.newBuilder()
-                .setKeyspaceName("my_stuff")
-                .setTableName("base_table")
-                .build());
+        stub.describeKeyspace(
+                Schema.DescribeKeyspaceQuery.newBuilder().setKeyspaceName("ks").build())
+            .getTables(0);
 
     // Then
     assertThat(response.getName().equals("base_table")).isTrue();

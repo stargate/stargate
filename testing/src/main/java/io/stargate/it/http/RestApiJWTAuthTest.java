@@ -11,25 +11,14 @@ import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.storage.StargateParameters;
 import io.stargate.it.storage.StargateSpec;
 import io.stargate.web.models.Keyspace;
-import io.stargate.web.restapi.models.Changeset;
 import io.stargate.web.restapi.models.ColumnDefinition;
-import io.stargate.web.restapi.models.ColumnModel;
-import io.stargate.web.restapi.models.Filter;
 import io.stargate.web.restapi.models.GetResponseWrapper;
 import io.stargate.web.restapi.models.PrimaryKey;
-import io.stargate.web.restapi.models.Query;
 import io.stargate.web.restapi.models.RESTResponseWrapper;
-import io.stargate.web.restapi.models.RowAdd;
-import io.stargate.web.restapi.models.RowResponse;
-import io.stargate.web.restapi.models.RowUpdate;
-import io.stargate.web.restapi.models.Rows;
-import io.stargate.web.restapi.models.RowsResponse;
-import io.stargate.web.restapi.models.SuccessResponse;
 import io.stargate.web.restapi.models.TableAdd;
 import java.io.IOException;
 import java.net.URLEncoder;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -40,8 +29,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 @StargateSpec(parametersCustomizer = "buildParameters")
@@ -60,9 +47,6 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 @ApiServiceSpec(parametersCustomizer = "buildApiServiceParameters")
 @Testcontainers(disabledWithoutDocker = true)
 public class RestApiJWTAuthTest extends BaseRestApiTest {
-
-  private static final Logger logger = LoggerFactory.getLogger(RestApiJWTAuthTest.class);
-
   private static final ObjectMapper objectMapper = new ObjectMapper();
   private final String keyspaceName = "store1";
   private final String tableName = "shopping_cart";
@@ -114,65 +98,6 @@ public class RestApiJWTAuthTest extends BaseRestApiTest {
                 assertThat(value).isEqualToComparingFieldByField(new Keyspace("system", null)));
   }
 
-  @Disabled("SGv2 does not currently support REST v1 API")
-  @Test
-  public void getKeyspacesV1() throws IOException {
-    String body =
-        RestUtils.get(authToken, String.format("%s/v1/keyspaces", restUrlBase), HttpStatus.SC_OK);
-
-    List<String> keyspaces = objectMapper.readValue(body, new TypeReference<List<String>>() {});
-    assertThat(keyspaces)
-        .containsAnyOf(
-            "system", "system_auth", "system_distributed", "system_schema", "system_traces");
-  }
-
-  @Disabled("SGv2 does not currently support REST v1 API")
-  @Test
-  public void getAllRowsV1() throws IOException {
-    String body =
-        RestUtils.get(
-            authToken,
-            String.format(
-                "%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspaceName, tableName),
-            HttpStatus.SC_OK);
-
-    Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
-    assertThat(rows.getCount()).isGreaterThan(0);
-
-    for (Map<String, Object> row : rows.getRows()) {
-      logger.info("row: {}", row);
-      assertThat(row.get("userid")).isEqualTo("9876");
-      assertThat((int) row.get("item_count")).isGreaterThan(0);
-      assertThat(row.get("last_update_timestamp")).isNotNull();
-    }
-  }
-
-  @Disabled("SGv2 does not currently support REST v1 API")
-  @Test
-  public void getRowV1() throws IOException {
-    String body = getRowV1(tableName, "9876");
-
-    Rows rows = objectMapper.readValue(body, new TypeReference<Rows>() {});
-    assertThat(rows.getCount()).isGreaterThan(0);
-
-    for (Map<String, Object> row : rows.getRows()) {
-      logger.info("row: {}", row);
-      assertThat(row.get("userid")).isEqualTo("9876");
-      assertThat((int) row.get("item_count")).isGreaterThan(0);
-      assertThat(row.get("last_update_timestamp")).isNotNull();
-    }
-  }
-
-  @Disabled("SGv2 does not currently support REST v1 API")
-  @Test
-  public void getRowV1NotAuthorized() throws IOException {
-    RestUtils.get(
-        authToken,
-        String.format(
-            "%s/v1/keyspaces/%s/tables/%s/rows/1234", restUrlBase, keyspaceName, tableName),
-        HttpStatus.SC_UNAUTHORIZED);
-  }
-
   @Test
   public void getRowsV2() throws IOException {
     String body =
@@ -199,222 +124,6 @@ public class RestApiJWTAuthTest extends BaseRestApiTest {
     RestUtils.get(
         authToken,
         String.format("%s/v2/keyspaces/%s/%s/%s", restUrlBase, keyspaceName, tableName, "1234"),
-        HttpStatus.SC_UNAUTHORIZED);
-  }
-
-  @Disabled("SGv2 does not currently support REST v1 API")
-  @Test
-  public void updateRowV1() throws IOException {
-    String rowIdentifier = "9876";
-    String updateTimestamp = now().toString();
-
-    addRowV1(rowIdentifier, updateTimestamp, "10");
-
-    RowResponse rowResponse =
-        objectMapper.readValue(
-            getRowV1(tableName, rowIdentifier + ";" + URLEncoder.encode(updateTimestamp, "UTF-8")),
-            new TypeReference<RowResponse>() {});
-    assertThat(rowResponse.getCount()).isEqualTo(1);
-    assertThat(rowResponse.getRows().get(0).get("userid")).isEqualTo(rowIdentifier);
-    assertThat(rowResponse.getRows().get(0).get("item_count")).isEqualTo(10);
-    assertThat(rowResponse.getRows().get(0).get("last_update_timestamp")).isNotNull();
-
-    RowUpdate rowUpdate = new RowUpdate();
-    Changeset itemCountChange = new Changeset();
-    itemCountChange.setColumn("item_count");
-    itemCountChange.setValue("8");
-    rowUpdate.setChangeset(Collections.singletonList(itemCountChange));
-
-    String body =
-        RestUtils.put(
-            authToken,
-            String.format(
-                "%s/v1/keyspaces/%s/tables/%s/rows/%s",
-                restUrlBase,
-                keyspaceName,
-                tableName,
-                rowIdentifier + ";" + URLEncoder.encode(updateTimestamp, "UTF-8")),
-            objectMapper.writeValueAsString(rowUpdate),
-            HttpStatus.SC_OK);
-
-    SuccessResponse successResponse = objectMapper.readValue(body, SuccessResponse.class);
-    assertThat(successResponse.getSuccess()).isTrue();
-
-    rowResponse =
-        objectMapper.readValue(
-            getRowV1(tableName, rowIdentifier + ";" + URLEncoder.encode(updateTimestamp, "UTF-8")),
-            new TypeReference<RowResponse>() {});
-    assertThat(rowResponse.getCount()).isEqualTo(1);
-    assertThat(rowResponse.getRows().get(0).get("userid")).isEqualTo(rowIdentifier);
-    assertThat(rowResponse.getRows().get(0).get("item_count")).isEqualTo(8);
-  }
-
-  @Disabled("SGv2 does not currently support REST v1 API")
-  @Test
-  public void updateRowV1NotAuthorized() throws IOException {
-    String rowIdentifier = "1234";
-    String updateTimestamp = now().toString();
-
-    RowUpdate rowUpdate = new RowUpdate();
-    Changeset itemCountChange = new Changeset();
-    itemCountChange.setColumn("item_count");
-    itemCountChange.setValue("8");
-    rowUpdate.setChangeset(Collections.singletonList(itemCountChange));
-
-    RestUtils.put(
-        authToken,
-        String.format(
-            "%s/v1/keyspaces/%s/tables/%s/rows/%s",
-            restUrlBase,
-            keyspaceName,
-            tableName,
-            rowIdentifier + ";" + URLEncoder.encode(updateTimestamp, "UTF-8")),
-        objectMapper.writeValueAsString(rowUpdate),
-        HttpStatus.SC_UNAUTHORIZED);
-  }
-
-  @Disabled("SGv2 does not currently support REST v1 API")
-  @Test
-  public void addRowV1NotAuthorized() throws IOException {
-    String rowIdentifier = "1234";
-    String updateTimestamp = now().toString();
-
-    List<ColumnModel> columns = new ArrayList<>();
-
-    ColumnModel idColumn = new ColumnModel();
-    idColumn.setName("userid");
-    idColumn.setValue(rowIdentifier);
-    columns.add(idColumn);
-
-    ColumnModel itemCountColumn = new ColumnModel();
-    itemCountColumn.setName("item_count");
-    itemCountColumn.setValue("0");
-    columns.add(itemCountColumn);
-
-    ColumnModel updateTimestampColumn = new ColumnModel();
-    updateTimestampColumn.setName("last_update_timestamp");
-    updateTimestampColumn.setValue(updateTimestamp);
-    columns.add(updateTimestampColumn);
-
-    RowAdd rowAdd = new RowAdd();
-    rowAdd.setColumns(columns);
-
-    RestUtils.post(
-        authToken,
-        String.format("%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspaceName, tableName),
-        objectMapper.writeValueAsString(rowAdd),
-        HttpStatus.SC_UNAUTHORIZED);
-  }
-
-  @Disabled("SGv2 does not currently support REST v1 API")
-  @Test
-  public void queryRowV1() throws IOException {
-    String rowIdentifier = "9876";
-    String updateTimestamp = now().toString();
-
-    addRowV1(rowIdentifier, updateTimestamp, "20");
-
-    Query query = new Query();
-    query.setColumnNames(Arrays.asList("userid", "item_count", "last_update_timestamp"));
-
-    List<Filter> filters = new ArrayList<>();
-
-    Filter filter = new Filter();
-    filter.setColumnName("userid");
-    filter.setOperator(Filter.Operator.eq);
-    filter.setValue(Collections.singletonList(rowIdentifier));
-    filters.add(filter);
-
-    filter = new Filter();
-    filter.setColumnName("last_update_timestamp");
-    filter.setOperator(Filter.Operator.eq);
-    filter.setValue(Collections.singletonList(updateTimestamp));
-    filters.add(filter);
-
-    query.setFilters(filters);
-
-    String body =
-        RestUtils.post(
-            authToken,
-            String.format(
-                "%s/v1/keyspaces/%s/tables/%s/rows/query", restUrlBase, keyspaceName, tableName),
-            objectMapper.writeValueAsString(query),
-            HttpStatus.SC_OK);
-
-    RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
-    assertThat(rowResponse.getCount()).isEqualTo(1);
-    assertThat(rowResponse.getRows().get(0).get("userid")).isEqualTo(rowIdentifier);
-    assertThat(rowResponse.getRows().get(0).get("item_count")).isEqualTo(20);
-    assertThat(rowResponse.getRows().get(0).get("last_update_timestamp"))
-        .isEqualTo(updateTimestamp);
-  }
-
-  @Disabled("SGv2 does not currently support REST v1 API")
-  @Test
-  public void queryRowV1NotAuthorized() throws IOException {
-    String rowIdentifier = "1234";
-    String updateTimestamp = now().toString();
-
-    Query query = new Query();
-    query.setColumnNames(Arrays.asList("userid", "item_count", "last_update_timestamp"));
-
-    List<Filter> filters = new ArrayList<>();
-
-    Filter filter = new Filter();
-    filter.setColumnName("userid");
-    filter.setOperator(Filter.Operator.eq);
-    filter.setValue(Collections.singletonList(rowIdentifier));
-    filters.add(filter);
-
-    filter = new Filter();
-    filter.setColumnName("last_update_timestamp");
-    filter.setOperator(Filter.Operator.eq);
-    filter.setValue(Collections.singletonList(updateTimestamp));
-    filters.add(filter);
-
-    query.setFilters(filters);
-
-    RestUtils.post(
-        authToken,
-        String.format(
-            "%s/v1/keyspaces/%s/tables/%s/rows/query", restUrlBase, keyspaceName, tableName),
-        objectMapper.writeValueAsString(query),
-        HttpStatus.SC_UNAUTHORIZED);
-  }
-
-  @Disabled("SGv2 does not currently support REST v1 API")
-  @Test
-  public void deleteRowV1() throws IOException {
-    String rowIdentifier = "9876";
-    String updateTimestamp = now().toString();
-
-    addRowV1(rowIdentifier, updateTimestamp, "30");
-
-    RestUtils.delete(
-        authToken,
-        String.format(
-            "%s/v1/keyspaces/%s/tables/%s/rows/%s",
-            restUrlBase,
-            keyspaceName,
-            tableName,
-            (rowIdentifier + ";" + URLEncoder.encode(updateTimestamp, "UTF-8"))),
-        HttpStatus.SC_NO_CONTENT);
-  }
-
-  @Disabled("SGv2 does not currently support REST v1 API")
-  @Test
-  public void deleteRowV1NotAuthorized() throws IOException {
-    String rowIdentifier = "1234";
-    String updateTimestamp = now().toString();
-
-    RestUtils.delete(
-        authToken,
-        String.format(
-            "%s/v1/keyspaces/%s/tables/%s/rows/%s",
-            restUrlBase,
-            keyspaceName,
-            tableName,
-            (rowIdentifier + ";" + URLEncoder.encode(updateTimestamp, "UTF-8"))),
         HttpStatus.SC_UNAUTHORIZED);
   }
 
@@ -599,49 +308,5 @@ public class RestApiJWTAuthTest extends BaseRestApiTest {
         String.format("%s/v2/keyspaces/%s/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(row),
         HttpStatus.SC_CREATED);
-  }
-
-  private String getRowV1(String tableName, String rowIdentifier) throws IOException {
-    return RestUtils.get(
-        authToken,
-        String.format(
-            "%s/v1/keyspaces/%s/tables/%s/rows/%s",
-            restUrlBase, keyspaceName, tableName, rowIdentifier),
-        HttpStatus.SC_OK);
-  }
-
-  private void addRowV1(String rowIdentifier, String updateTimestamp, String itemCount)
-      throws IOException {
-    List<ColumnModel> columns = new ArrayList<>();
-
-    ColumnModel idColumn = new ColumnModel();
-    idColumn.setName("userid");
-    idColumn.setValue(rowIdentifier);
-    columns.add(idColumn);
-
-    ColumnModel itemCountColumn = new ColumnModel();
-    itemCountColumn.setName("item_count");
-    itemCountColumn.setValue(itemCount);
-    columns.add(itemCountColumn);
-
-    ColumnModel updateTimestampColumn = new ColumnModel();
-    updateTimestampColumn.setName("last_update_timestamp");
-    updateTimestampColumn.setValue(updateTimestamp);
-    columns.add(updateTimestampColumn);
-
-    RowAdd rowAdd = new RowAdd();
-    rowAdd.setColumns(columns);
-
-    String body =
-        RestUtils.post(
-            authToken,
-            String.format(
-                "%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspaceName, tableName),
-            objectMapper.writeValueAsString(rowAdd),
-            HttpStatus.SC_CREATED);
-
-    RowsResponse rowsResponse = objectMapper.readValue(body, new TypeReference<RowsResponse>() {});
-    assertThat(rowsResponse.getRowsModified()).isEqualTo(1);
-    assertThat(rowsResponse.getSuccess()).isTrue();
   }
 }

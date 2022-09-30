@@ -66,7 +66,6 @@ import java.util.List;
  * stargate.metrics.http_counter_listener.ignore_http_tags_provider</code> to true.
  */
 public class MetricsBinder {
-
   private final Metrics metrics;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
   private final String module;
@@ -168,12 +167,26 @@ public class MetricsBinder {
     }
   }
 
-  private static JerseyTagsProvider getMeterTagsProvider(
+  private JerseyTagsProvider getMeterTagsProvider(
       MetricsListenerConfig config,
       Metrics metrics,
       HttpMetricsTagProvider httpMetricsTagProvider,
       String module,
       Collection<String> nonApiUriRegexes) {
+    List<JerseyTagsProvider> allProviders =
+        getMeterTagsProviders(config, metrics, httpMetricsTagProvider, module, nonApiUriRegexes);
+
+    // return composite containing all the providers
+    return new CompositeJerseyTagsProvider(allProviders);
+  }
+
+  protected List<JerseyTagsProvider> getMeterTagsProviders(
+      MetricsListenerConfig config,
+      Metrics metrics,
+      HttpMetricsTagProvider httpMetricsTagProvider,
+      String module,
+      Collection<String> nonApiUriRegexes) {
+
     // resolve if http tag provider should be ignored or not
     HttpMeterTagsProvider resourceProvider =
         config.isIgnoreHttpMetricProvider()
@@ -184,12 +197,23 @@ public class MetricsBinder {
     List<JerseyTagsProvider> allProviders =
         new ArrayList<>(getDefaultTagsProvider(metrics, module, nonApiUriRegexes));
     allProviders.add(resourceProvider);
+    return allProviders;
+  }
+
+  private JerseyTagsProvider getCounterTagsProvider(
+      MetricsListenerConfig config,
+      Metrics metrics,
+      HttpMetricsTagProvider httpMetricsTagProvider,
+      String module,
+      Collection<String> nonApiUriRegexes) {
+    List<JerseyTagsProvider> allProviders =
+        getCounterTagsProviders(config, metrics, httpMetricsTagProvider, module, nonApiUriRegexes);
 
     // return composite containing all the providers
     return new CompositeJerseyTagsProvider(allProviders);
   }
 
-  private static JerseyTagsProvider getCounterTagsProvider(
+  protected List<JerseyTagsProvider> getCounterTagsProviders(
       MetricsListenerConfig config,
       Metrics metrics,
       HttpMetricsTagProvider httpMetricsTagProvider,
@@ -205,12 +229,10 @@ public class MetricsBinder {
     List<JerseyTagsProvider> allProviders =
         new ArrayList<>(getDefaultTagsProvider(metrics, module, nonApiUriRegexes));
     allProviders.add(resourceProvider);
-
-    // return composite containing all the providers
-    return new CompositeJerseyTagsProvider(allProviders);
+    return allProviders;
   }
 
-  private static List<JerseyTagsProvider> getDefaultTagsProvider(
+  protected List<JerseyTagsProvider> getDefaultTagsProvider(
       Metrics metrics, String module, Collection<String> nonApiUriRegexes) {
     ConstantTagsProvider defaultProvider = new ConstantTagsProvider(metrics.tagsForModule(module));
     PathParametersTagsProvider pathParametersProvider = new PathParametersTagsProvider();

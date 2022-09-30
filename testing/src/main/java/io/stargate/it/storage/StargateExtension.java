@@ -19,11 +19,14 @@ import static io.stargate.starter.Starter.STARTED_MESSAGE;
 import static java.lang.management.ManagementFactory.getRuntimeMXBean;
 
 import com.datastax.oss.driver.api.core.Version;
+import com.datastax.oss.driver.shaded.guava.common.io.Resources;
 import io.stargate.it.exec.OutputListener;
 import io.stargate.it.exec.ProcessRunner;
 import java.io.Closeable;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.io.UncheckedIOException;
 import java.lang.reflect.Method;
 import java.net.ServerSocket;
@@ -36,11 +39,13 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.apache.cassandra.stargate.config.Config;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.io.FileUtils;
 import org.assertj.core.util.Strings;
@@ -52,6 +57,7 @@ import org.junit.jupiter.api.extension.ParameterResolutionException;
 import org.junit.jupiter.api.extension.ParameterResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.yaml.snakeyaml.Yaml;
 
 /**
  * JUnit 5 extension for tests that need a Stargate coordinator node running in a separate JVM.
@@ -341,6 +347,13 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
 
   private static class Node extends ProcessRunner implements StargateConnectionInfo {
 
+    private static final String SERVER_KEYSTORE_PATH = "/server.keystore";
+    private static final String SERVER_KEYSTORE_PASSWORD = "fakePasswordForTests";
+
+    private static final String SERVER_TRUSTSTORE_PATH = "/server.truststore";
+
+    private static final String SERVER_TRUSTSTORE_PASSWORD = "fakePasswordForTests";
+
     private final UUID id = UUID.randomUUID();
     private final int nodeIndex;
     private final String listenAddress;
@@ -348,11 +361,12 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
     private final CommandLine cmd;
     private final int cqlPort;
     private final int bridgePort;
-    private final String bridgeToken;
     private final int jmxPort;
     private final String datacenter;
     private final String rack;
     private final File cacheDir;
+
+    private final File cqlConfigFile;
 
     private Node(
         int nodeIndex,
@@ -366,12 +380,12 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
       this.listenAddress = env.listenAddress(nodeIndex);
       this.cqlPort = env.cqlPort();
       this.bridgePort = env.bridgePort();
-      this.bridgeToken = env.bridgeToken();
       this.jmxPort = env.jmxPort(nodeIndex);
       this.clusterName = backend.clusterName();
       this.datacenter = backend.datacenter();
       this.rack = backend.rack();
       this.cacheDir = env.cacheDir(nodeIndex);
+      this.cqlConfigFile = env.cqlConfigFile(nodeIndex);
 
       cmd = new CommandLine("java");
       cmd.addArgument("-Dstargate.auth_api_enable_username_token=true");
@@ -388,6 +402,30 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
 
       for (Entry<String, String> e : params.systemProperties().entrySet()) {
         cmd.addArgument("-D" + e.getKey() + "=" + e.getValue());
+      }
+
+      if (params.sslForCqlParameters().enabled()) {
+        Yaml yaml = new Yaml();
+        Config config = new Config();
+        config.client_encryption_options =
+            config
+                .client_encryption_options
+                .withEnabled(true)
+                .withOptional(params.sslForCqlParameters().optional())
+                .withKeyStore(createTempStore(SERVER_KEYSTORE_PATH).getAbsolutePath())
+                .withKeyStorePassword(SERVER_KEYSTORE_PASSWORD);
+
+        if (params.sslForCqlParameters().requireClientCertificates()) {
+          config.client_encryption_options =
+              config
+                  .client_encryption_options
+                  .withRequireClientAuth(true)
+                  .withTrustStore(createTempStore(SERVER_TRUSTSTORE_PATH).getAbsolutePath())
+                  .withTrustStorePassword(SERVER_TRUSTSTORE_PASSWORD);
+        }
+
+        yaml.dump(config, new PrintWriter(cqlConfigFile));
+        cmd.addArgument("-Dstargate.cql.config_path=" + cqlConfigFile.getAbsolutePath());
       }
 
       if (isDebug()) {
@@ -423,8 +461,6 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
       cmd.addArgument(String.valueOf(cqlPort));
       cmd.addArgument("--jmx-port");
       cmd.addArgument(String.valueOf(jmxPort));
-      cmd.addArgument("--bridge-token");
-      cmd.addArgument(bridgeToken);
 
       addStdOutListener(
           (node, line) -> {
@@ -453,6 +489,7 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
     protected void cleanup() {
       try {
         FileUtils.deleteDirectory(cacheDir);
+        FileUtils.deleteDirectory(cqlConfigFile.getParentFile());
       } catch (IOException e) {
         LOG.info("Unable to delete cache dir for Stargate node {}", nodeIndex, e);
       }
@@ -479,11 +516,6 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
     }
 
     @Override
-    public String bridgeToken() {
-      return bridgeToken;
-    }
-
-    @Override
     public int jmxPort() {
       return jmxPort;
     }
@@ -501,6 +533,19 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
     @Override
     public String rack() {
       return rack;
+    }
+
+    private File createTempStore(String path) {
+      File f = null;
+      try (OutputStream os =
+          Files.newOutputStream(
+              (f = File.createTempFile("cql", ".store", this.cqlConfigFile.getParentFile()))
+                  .toPath())) {
+        Resources.copy(Objects.requireNonNull(StargateExtension.class.getResource(path)), os);
+      } catch (IOException e) {
+        LOG.warn("Failure to write keystore, SSL-enabled servers may fail to start.", e);
+      }
+      return f;
     }
   }
 
@@ -537,12 +582,13 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
       return 8091;
     }
 
-    private String bridgeToken() {
-      return "mockAdminToken";
-    }
-
     public File cacheDir(int nodeIndex) throws IOException {
       return Files.createTempDirectory("stargate-node-" + nodeIndex + "-felix-cache").toFile();
+    }
+
+    public File cqlConfigFile(int nodeIndex) throws IOException {
+      File dir = Files.createTempDirectory("stargate-node-" + nodeIndex + "-cql-config").toFile();
+      return new File(dir, "cql.yaml");
     }
 
     @Override

@@ -25,13 +25,14 @@ public class CqlStringsTest {
     assertThat(CqlStrings.doubleQuoteUdts("int")).isEqualTo("int");
     assertThat(CqlStrings.doubleQuoteUdts("text")).isEqualTo("text");
     assertThat(CqlStrings.doubleQuoteUdts("'CustomType'")).isEqualTo("'CustomType'");
-    assertThat(CqlStrings.doubleQuoteUdts("list<map<int, text>>")).isEqualTo("list<map<int,text>>");
+    assertThat(CqlStrings.doubleQuoteUdts("list<map<int, text>>"))
+        .isEqualTo("list<map<int, text>>");
     assertThat(CqlStrings.doubleQuoteUdts("frozen<set<bigint>>")).isEqualTo("frozen<set<bigint>>");
 
     assertThat(CqlStrings.doubleQuoteUdts("address")).isEqualTo("\"address\"");
     assertThat(CqlStrings.doubleQuoteUdts("Address")).isEqualTo("\"Address\"");
     assertThat(CqlStrings.doubleQuoteUdts("frozen<list<map<text,address>>>"))
-        .isEqualTo("frozen<list<map<text,\"address\">>>");
+        .isEqualTo("frozen<list<map<text, \"address\">>>");
 
     // Corner-case: these should always be parameterized in regular CQL, so if they occur on their
     // own we'd have to assume it's a custom UDT.

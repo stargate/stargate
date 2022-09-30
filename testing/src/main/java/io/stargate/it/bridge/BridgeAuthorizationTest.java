@@ -5,12 +5,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.grpc.StatusRuntimeException;
+import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.bridge.proto.Schema;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateParameters;
 import io.stargate.it.storage.StargateSpec;
-import io.stargate.proto.QueryOuterClass;
 import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -153,6 +154,16 @@ public class BridgeAuthorizationTest extends BridgeIntegrationTest {
         .isInstanceOf(StatusRuntimeException.class)
         .hasMessageContaining("PERMISSION_DENIED")
         .hasMessageContaining("has no SELECT permission");
+  }
+
+  @Test
+  public void getSupportedFeaturesWithoutAuthentication() {
+    Schema.SupportedFeaturesResponse supportedFeatures =
+        stub.getSupportedFeatures(Schema.SupportedFeaturesRequest.newBuilder().build());
+
+    // No need to check every field (the values vary across persistence backends). The main object
+    // of the test is that the call doesn't throw an authentication exception.
+    assertThat(supportedFeatures.getLoggedBatches()).isTrue();
   }
 
   private String generateNoAccessToken() throws IOException {

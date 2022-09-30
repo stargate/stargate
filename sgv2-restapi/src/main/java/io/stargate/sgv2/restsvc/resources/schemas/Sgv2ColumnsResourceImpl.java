@@ -1,7 +1,7 @@
 package io.stargate.sgv2.restsvc.resources.schemas;
 
-import io.stargate.proto.QueryOuterClass;
-import io.stargate.proto.Schema;
+import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.common.cql.builder.Column;
 import io.stargate.sgv2.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.common.cql.builder.QueryBuilder;
@@ -35,15 +35,10 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
       boolean raw,
       HttpServletRequest request) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    return callWithTable(
-        bridge,
-        keyspaceName,
-        tableName,
-        (tableDef) -> {
-          List<Sgv2ColumnDefinition> columns = table2columns(tableDef);
-          final Object payload = raw ? columns : new Sgv2RESTResponse(columns);
-          return Response.status(Response.Status.OK).entity(payload).build();
-        });
+    Schema.CqlTable tableDef = getTable(bridge, keyspaceName, tableName);
+    List<Sgv2ColumnDefinition> columns = table2columns(tableDef);
+    final Object payload = raw ? columns : new Sgv2RESTResponse<>(columns);
+    return Response.status(Response.Status.OK).entity(payload).build();
   }
 
   @Override
@@ -58,7 +53,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
     if (isStringEmpty(tableName)) {
       throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
     }
-    return callWithTable(
+    queryWithTable(
         bridge,
         keyspaceName,
         tableName,
@@ -71,19 +66,16 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
                   .kind(kind)
                   .type(columnDefinition.getTypeDefinition())
                   .build();
-          QueryOuterClass.Query query =
-              new QueryBuilder()
-                  .alter()
-                  .table(keyspaceName, tableName)
-                  .addColumn(columnDef)
-                  .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
-                  .build();
-          bridge.executeQuery(query);
-
-          return Response.status(Response.Status.CREATED)
-              .entity(Collections.singletonMap("name", columnName))
+          return new QueryBuilder()
+              .alter()
+              .table(keyspaceName, tableName)
+              .addColumn(columnDef)
+              .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
               .build();
         });
+    return Response.status(Response.Status.CREATED)
+        .entity(Collections.singletonMap("name", columnName))
+        .build();
   }
 
   @Override
@@ -98,20 +90,15 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
     if (isStringEmpty(columnName)) {
       throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
     }
-    return callWithTable(
-        bridge,
-        keyspaceName,
-        tableName,
-        (tableDef) -> {
-          Sgv2ColumnDefinition column = findColumn(tableDef, columnName);
-          if (column == null) {
-            throw new WebApplicationException(
-                String.format("column '%s' not found in table '%s'", columnName, tableName),
-                Response.Status.NOT_FOUND);
-          }
-          final Object payload = raw ? column : new Sgv2RESTResponse(column);
-          return Response.status(Response.Status.OK).entity(payload).build();
-        });
+    Schema.CqlTable tableDef = getTable(bridge, keyspaceName, tableName);
+    Sgv2ColumnDefinition column = findColumn(tableDef, columnName);
+    if (column == null) {
+      throw new WebApplicationException(
+          String.format("column '%s' not found in table '%s'", columnName, tableName),
+          Response.Status.NOT_FOUND);
+    }
+    final Object payload = raw ? column : new Sgv2RESTResponse<>(column);
+    return Response.status(Response.Status.OK).entity(payload).build();
   }
 
   @Override
@@ -126,35 +113,33 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
     if (isStringEmpty(columnName)) {
       throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
     }
-    return callWithTable(
-        bridge,
-        keyspaceName,
-        tableName,
-        (tableDef) -> {
-          final String newName = columnUpdate.getName();
-          // Optional, could let backend verify but this gives us better error reporting
-          if (findColumn(tableDef, columnName) == null) {
-            // 13-Dec-2021, tatu: Seems like maybe it should be NOT_FOUND but SGv1 returns
-            // BAD_REQUEST
-            throw new WebApplicationException(
-                String.format("column '%s' not found in table '%s'", columnName, tableName),
-                Response.Status.BAD_REQUEST);
-          }
-          // Avoid call if there is no need to rename
-          if (!columnName.equals(newName)) {
-            QueryOuterClass.Query query =
-                new QueryBuilder()
-                    .alter()
-                    .table(keyspaceName, tableName)
-                    .renameColumn(columnName, newName)
-                    .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
-                    .build();
-            bridge.executeQuery(query);
-          }
-          return Response.status(Response.Status.OK)
-              .entity(Collections.singletonMap("name", newName))
-              .build();
-        });
+    final String newName = columnUpdate.getName();
+    // Avoid call if there is no need to rename
+    if (!columnName.equals(newName)) {
+      queryWithTable(
+          bridge,
+          keyspaceName,
+          tableName,
+          (tableDef) -> {
+            // Optional, could let backend verify but this gives us better error reporting
+            if (findColumn(tableDef, columnName) == null) {
+              // 13-Dec-2021, tatu: Seems like maybe it should be NOT_FOUND but SGv1 returns
+              // BAD_REQUEST
+              throw new WebApplicationException(
+                  String.format("column '%s' not found in table '%s'", columnName, tableName),
+                  Response.Status.BAD_REQUEST);
+            }
+            return new QueryBuilder()
+                .alter()
+                .table(keyspaceName, tableName)
+                .renameColumn(columnName, newName)
+                .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
+                .build();
+          });
+    }
+    return Response.status(Response.Status.OK)
+        .entity(Collections.singletonMap("name", newName))
+        .build();
   }
 
   @Override
@@ -168,7 +153,7 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
     if (isStringEmpty(columnName)) {
       throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
     }
-    return callWithTable(
+    queryWithTable(
         bridge,
         keyspaceName,
         tableName,
@@ -179,16 +164,14 @@ public class Sgv2ColumnsResourceImpl extends ResourceBase implements Sgv2Columns
                 String.format("column '%s' not found in table '%s'", columnName, tableName),
                 Response.Status.BAD_REQUEST);
           }
-          QueryOuterClass.Query query =
-              new QueryBuilder()
-                  .alter()
-                  .table(keyspaceName, tableName)
-                  .dropColumn(columnName)
-                  .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
-                  .build();
-          bridge.executeQuery(query);
-          return Response.status(Response.Status.NO_CONTENT).build();
+          return new QueryBuilder()
+              .alter()
+              .table(keyspaceName, tableName)
+              .dropColumn(columnName)
+              .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
+              .build();
         });
+    return Response.status(Response.Status.NO_CONTENT).build();
   }
 
   /*

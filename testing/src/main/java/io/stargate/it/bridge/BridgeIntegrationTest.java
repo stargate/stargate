@@ -17,21 +17,25 @@ package io.stargate.it.bridge;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.StringValue;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.stargate.auth.model.AuthTokenResponse;
-import io.stargate.grpc.StargateBearerToken;
+import io.stargate.bridge.grpc.StargateBearerToken;
+import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.bridge.proto.StargateBridgeGrpc;
+import io.stargate.bridge.proto.StargateBridgeGrpc.StargateBridgeBlockingStub;
+import io.stargate.bridge.proto.StargateBridgeGrpc.StargateBridgeStub;
 import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.IfBundleAvailable;
 import io.stargate.it.storage.StargateConnectionInfo;
-import io.stargate.proto.StargateBridgeGrpc;
-import io.stargate.proto.StargateBridgeGrpc.StargateBridgeBlockingStub;
-import io.stargate.proto.StargateBridgeGrpc.StargateBridgeStub;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterAll;
@@ -106,5 +110,31 @@ public class BridgeIntegrationTest extends BaseIntegrationTest {
     assertThat(authToken).isNotNull();
 
     return authToken;
+  }
+
+  protected static QueryOuterClass.Query cqlQuery(
+      String cql,
+      QueryOuterClass.QueryParameters.Builder parameters,
+      QueryOuterClass.Value... values) {
+    return QueryOuterClass.Query.newBuilder()
+        .setCql(cql)
+        .setParameters(parameters)
+        .setValues(valuesOf(values))
+        .build();
+  }
+
+  protected static QueryOuterClass.Values valuesOf(QueryOuterClass.Value... values) {
+    return QueryOuterClass.Values.newBuilder().addAllValues(Arrays.asList(values)).build();
+  }
+
+  protected QueryOuterClass.QueryParameters.Builder queryParameters(
+      CqlIdentifier keyspace, boolean tracingEnabled) {
+    return QueryOuterClass.QueryParameters.newBuilder()
+        .setKeyspace(StringValue.of(keyspace.toString()))
+        .setTracing(tracingEnabled);
+  }
+
+  protected QueryOuterClass.QueryParameters.Builder queryParameters(CqlIdentifier keyspace) {
+    return queryParameters(keyspace, false);
   }
 }

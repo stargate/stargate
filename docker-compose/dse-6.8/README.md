@@ -27,7 +27,19 @@ You can stop execution of this script with `Ctrl-C` and the stack will be torn d
 * The Stargate Docker image tag to use (`SGTAG`) defaults to the current version as defined in the 
   top level project `pom.xml` file. It can be overridden with the `-t` option on either script:
 
-  `./start_dse_68.sh -t v2.0.0-ALPHA-2`
+  `./start_dse_68.sh -t v2.0.0-BETA-2`
 
 * Running more than one of these multi-container environments on one host may require
   changing the port mapping to be changed to avoid conflicts on the host machine.
+
+# Troubleshooting
+
+If you see an error like:
+```
+Pulling coordinator (stargateio/coordinator-dse-68:2.0.0-BETA-4-SNAPSHOT)...
+ERROR: manifest for stargateio/coordinator-dse-68:2.0.0-BETA-4-SNAPSHOT not found: manifest unknown: manifest unknown
+```
+
+you are trying to deploy a version that is neither publicly available (official release) nor built locally.
+You will either want to specify a non-snapshot image tag (version) using `-t [VERSION]`, or build the snapshot version locally.
+Consult [Docker Hub](https://hub.docker.com/r/stargateio/coordinator-dse-68/tags) for a list of available tags.

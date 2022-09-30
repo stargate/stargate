@@ -15,7 +15,12 @@
  */
 package io.stargate.sgv2.common.cql.builder;
 
+import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.sgv2.common.cql.ColumnUtils;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import org.immutables.value.Value.Immutable;
 import org.immutables.value.Value.Style;
@@ -24,25 +29,26 @@ import org.immutables.value.Value.Style.ImplementationVisibility;
 @Immutable
 @Style(visibility = ImplementationVisibility.PACKAGE)
 public interface BuiltCondition {
+
   LHS lhs();
 
   Predicate predicate();
 
-  Term<?> value();
+  Term value();
 
-  static BuiltCondition of(String columnName, Predicate predicate, Object value) {
+  static BuiltCondition of(String columnName, Predicate predicate, QueryOuterClass.Value value) {
     return of(columnName, predicate, Term.of(value));
   }
 
-  static BuiltCondition of(String columnName, Predicate predicate, Term<?> value) {
+  static BuiltCondition of(String columnName, Predicate predicate, Term value) {
     return of(LHS.column(columnName), predicate, value);
   }
 
-  static BuiltCondition ofMarker(String columnName, Predicate predicate) {
-    return of(LHS.column(columnName), predicate, Term.marker());
+  static BuiltCondition of(LHS lhs, Predicate predicate, QueryOuterClass.Value value) {
+    return of(lhs, predicate, Term.of(value));
   }
 
-  static BuiltCondition of(LHS lhs, Predicate predicate, Term<?> value) {
+  static BuiltCondition of(LHS lhs, Predicate predicate, Term value) {
     return ImmutableBuiltCondition.builder().lhs(lhs).predicate(predicate).value(value).build();
   }
 
@@ -63,12 +69,8 @@ public interface BuiltCondition {
       return new ColumnName(columnName);
     }
 
-    public static LHS mapAccess(String columnName, Object key) {
+    public static LHS mapAccess(String columnName, QueryOuterClass.Value key) {
       return new MapElement(columnName, Term.of(key));
-    }
-
-    public static LHS mapAccess(String columnName) {
-      return new MapElement(columnName, Term.marker());
     }
 
     public static LHS columnTuple(String... columnNames) {
@@ -81,20 +83,13 @@ public interface BuiltCondition {
       throw new UnsupportedOperationException();
     }
 
-    abstract void appendToBuilder(StringBuilder builder);
+    abstract void appendToBuilder(
+        StringBuilder builder, Map<Marker, Value> markers, List<Value> boundValues);
 
-    abstract String columnName();
+    public abstract String columnName();
 
-    Optional<Term<?>> value() {
+    public Optional<Term> value() {
       return Optional.empty();
-    }
-
-    boolean isColumnName() {
-      return false;
-    }
-
-    boolean isMapAccess() {
-      return false;
     }
 
     static final class ColumnName extends LHS {
@@ -105,56 +100,83 @@ public interface BuiltCondition {
       }
 
       @Override
-      String columnName() {
+      public String columnName() {
         return columnName;
       }
 
       @Override
-      boolean isColumnName() {
-        return true;
+      void appendToBuilder(
+          StringBuilder builder, Map<Marker, Value> markers, List<Value> boundValues) {
+        builder.append(ColumnUtils.maybeQuote(columnName));
       }
 
       @Override
-      void appendToBuilder(StringBuilder builder) {
-        builder.append(ColumnUtils.maybeQuote(columnName));
+      public boolean equals(Object other) {
+        if (other == this) {
+          return true;
+        } else if (other instanceof ColumnName) {
+          ColumnName that = (ColumnName) other;
+          return Objects.equals(this.columnName, that.columnName);
+        } else {
+          return false;
+        }
+      }
+
+      @Override
+      public int hashCode() {
+        return Objects.hash(columnName);
       }
     }
 
     static final class MapElement extends LHS {
       private final String columnName;
-      private final Term<?> keyValue;
+      private final Term keyValue;
 
-      MapElement(String columnName, Term<?> keyValue) {
+      MapElement(String columnName, Term keyValue) {
         this.columnName = columnName;
         this.keyValue = keyValue;
       }
 
       @Override
-      String columnName() {
+      public String columnName() {
         return columnName;
       }
 
-      Term<?> keyValue() {
+      Term keyValue() {
         return keyValue;
       }
 
       @Override
-      Optional<Term<?>> value() {
+      public Optional<Term> value() {
         return Optional.of(keyValue);
       }
 
       @Override
-      void appendToBuilder(StringBuilder builder) {
+      void appendToBuilder(
+          StringBuilder builder, Map<Marker, Value> markers, List<Value> boundValues) {
         builder
             .append(ColumnUtils.maybeQuote(columnName))
             .append('[')
-            .append(QueryBuilderImpl.formatValue(keyValue))
+            .append(QueryBuilderImpl.formatValue(keyValue, markers, boundValues))
             .append(']');
       }
 
       @Override
-      boolean isMapAccess() {
-        return true;
+      public boolean equals(Object other) {
+        if (other == this) {
+          return true;
+        } else if (other instanceof MapElement) {
+          MapElement that = (MapElement) other;
+          return Objects.equals(this.columnName, that.columnName)
+              && Objects.equals(this.keyValue, that.keyValue);
+        } else {
+          return false;
+        }
+      }
+
+      @Override
+      public int hashCode() {
+        return Objects.hash(columnName, keyValue);
       }
     }
   }

@@ -1,0 +1,13 @@
+server:
+  type: rest-api
+  applicationContextPath: /
+  connector:
+    type: http
+    # 28-Sep-2022, tatu: Need to retain same port number for SGv2 as SGv1
+    #    for in-coordinator REST API (only for RESTv1)
+    port: 8082
+  requestLog:
+    type: external
+logging:
+    type: external
+

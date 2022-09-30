@@ -128,7 +128,7 @@ public class ValuesHelper {
     return processResult(rows, parameters.getSkipMetadata());
   }
 
-  private static ResultSet processResult(Rows rows, boolean skipMetadata) throws StatusException {
+  public static ResultSet processResult(Rows rows, boolean skipMetadata) throws StatusException {
     final List<Column> columns = rows.resultMetadata.columns;
     final int columnCount = columns.size();
 

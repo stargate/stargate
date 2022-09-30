@@ -28,7 +28,7 @@ import org.eclipse.jetty.util.thread.ThreadPool;
 
 /**
  * @see "META-INF/services/io.dropwizard.server.ServerFactory"
- * @see "config.yaml"
+ * @see "authapi-config.yaml"
  */
 @JsonTypeName("auth-api")
 public class AuthApiServerFactory extends SimpleServerFactory {

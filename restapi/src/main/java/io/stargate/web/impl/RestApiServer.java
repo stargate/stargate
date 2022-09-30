@@ -20,7 +20,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import io.dropwizard.Application;
 import io.dropwizard.cli.Cli;
-import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
@@ -30,6 +29,7 @@ import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.metrics.jersey.MetricsBinder;
+import io.stargate.metrics.jersey.dwconfig.StargateV1ConfigurationSourceProvider;
 import io.stargate.web.docsapi.dao.DocumentDBFactory;
 import io.stargate.web.docsapi.resources.CollectionsResource;
 import io.stargate.web.docsapi.resources.JsonSchemaResource;
@@ -68,11 +68,25 @@ import org.osgi.framework.FrameworkUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** DropWizard {@code Application} that will serve both REST (v1, v2) and Document API endpoints. */
+/**
+ * DropWizard {@code Application} that will serve Stargate V1 REST (REST v1, v2) and Document API
+ * endpoints.
+ *
+ * <p>NOTE: System property {@link #SYSPROP_ENABLE_SGV1_REST} is used to control which of the
+ * endpoints are enabled, as follows:
+ *
+ * <ul>
+ *   <li>If set to {@code "true"}, All 3 endpoints (Documents API, REST API v1 and v2) are enabled
+ *   <li>If set to {@code "false"} (or any value other than {@code "true"}), only REST v1 endpoint
+ *       is enabled; Documents API and RESTv2 are disabled.
+ * </ul>
+ */
 public class RestApiServer extends Application<RestApiServerConfiguration> {
   private final Logger logger = LoggerFactory.getLogger(getClass());
 
   public static final String[] NON_API_URI_REGEX = new String[] {"^/$", "^/health$", "^/swagger.*"};
+
+  public static final String SYSPROP_ENABLE_SGV1_REST = "stargate.rest.enableV1";
 
   private final AuthenticationService authenticationService;
   private final AuthorizationService authorizationService;
@@ -143,17 +157,29 @@ public class RestApiServer extends Application<RestApiServerConfiguration> {
     // General healthcheck endpoint
     environment.jersey().register(HealthResource.class);
 
-    // 09-Feb-2021, tatu: as per [#1625] the old SGv1 REST API is to be disabled
-    //     when we have SGv2 -- leaving just the Documents API until it too gets extracted.
-    if (true) {
+    final String enableSgv1RestStr = System.getProperty(SYSPROP_ENABLE_SGV1_REST);
+    final boolean enableSgv1 = Boolean.parseBoolean(enableSgv1RestStr);
+
+    // Always enable RESTv1 endpoints
+    logger.info("Registering StargateV1 RESTv1 endpoint for StargateV2");
+
+    environment.jersey().register(ColumnResource.class);
+    environment.jersey().register(KeyspaceResource.class);
+    environment.jersey().register(RowResource.class);
+    environment.jersey().register(TableResource.class);
+
+    if (!enableSgv1) {
       logger.info(
-          "Will not register StargateV1 REST API endpoints for StargateV2: should have new endpoints from 'svg2-restapi'");
+          "Will not register StargateV1 Documents API or RESTv2 endpoints for StargateV2 (System property '{}' {}, enable with 'true')",
+          SYSPROP_ENABLE_SGV1_REST,
+          (enableSgv1RestStr == null)
+              ? "UNDEFINED"
+              : String.format("set to '%s'", enableSgv1RestStr));
     } else {
-      // Rest API V1 endpoints (legacy):
-      environment.jersey().register(ColumnResource.class);
-      environment.jersey().register(KeyspaceResource.class);
-      environment.jersey().register(RowResource.class);
-      environment.jersey().register(TableResource.class);
+      logger.info(
+          "Registering StargateV1 Documents API and RESTv2 endpoints for StargateV2 (System property '{}' set to '{}')",
+          SYSPROP_ENABLE_SGV1_REST,
+          enableSgv1RestStr);
 
       // Rest API V2 endpoints
       environment.jersey().register(ColumnsResource.class);
@@ -162,23 +188,23 @@ public class RestApiServer extends Application<RestApiServerConfiguration> {
       environment.jersey().register(RowsResource.class);
       environment.jersey().register(TablesResource.class);
       environment.jersey().register(UserDefinedTypesResource.class);
-    }
 
-    // Documents API
-    environment
-        .jersey()
-        .register(
-            new AbstractBinder() {
-              @Override
-              protected void configure() {
-                bind(docsApiConf).to(DocsApiConfiguration.class);
-              }
-            });
-    environment.jersey().register(new DocsApiComponentsBinder());
-    environment.jersey().register(ReactiveDocumentResourceV2.class);
-    environment.jersey().register(JsonSchemaResource.class);
-    environment.jersey().register(CollectionsResource.class);
-    environment.jersey().register(NamespacesResource.class);
+      // Documents API
+      environment
+          .jersey()
+          .register(
+              new AbstractBinder() {
+                @Override
+                protected void configure() {
+                  bind(docsApiConf).to(DocsApiConfiguration.class);
+                }
+              });
+      environment.jersey().register(new DocsApiComponentsBinder());
+      environment.jersey().register(ReactiveDocumentResourceV2.class);
+      environment.jersey().register(JsonSchemaResource.class);
+      environment.jersey().register(CollectionsResource.class);
+      environment.jersey().register(NamespacesResource.class);
+    }
 
     // Swagger endpoints
     environment
@@ -217,7 +243,8 @@ public class RestApiServer extends Application<RestApiServerConfiguration> {
   @Override
   public void initialize(final Bootstrap<RestApiServerConfiguration> bootstrap) {
     super.initialize(bootstrap);
-    bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
+    bootstrap.setConfigurationSourceProvider(
+        new StargateV1ConfigurationSourceProvider(RestApiActivator.MODULE_NAME));
     bootstrap.setMetricRegistry(metrics.getRegistry(RestApiActivator.MODULE_NAME));
   }
 

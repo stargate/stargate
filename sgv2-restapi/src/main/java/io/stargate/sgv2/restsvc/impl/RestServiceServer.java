@@ -15,6 +15,14 @@
  */
 package io.stargate.sgv2.restsvc.impl;
 
+import com.codahale.metrics.MetricRegistry;
+import com.codahale.metrics.jvm.BufferPoolMetricSet;
+import com.codahale.metrics.jvm.ClassLoadingGaugeSet;
+import com.codahale.metrics.jvm.FileDescriptorRatioGauge;
+import com.codahale.metrics.jvm.GarbageCollectorMetricSet;
+import com.codahale.metrics.jvm.JvmAttributeGaugeSet;
+import com.codahale.metrics.jvm.MemoryUsageGaugeSet;
+import com.codahale.metrics.jvm.ThreadStatesGaugeSet;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
@@ -24,13 +32,12 @@ import io.dropwizard.configuration.ResourceConfigurationSourceProvider;
 import io.dropwizard.setup.Bootstrap;
 import io.dropwizard.setup.Environment;
 import io.dropwizard.util.JarLocation;
-import io.grpc.ManagedChannel;
-import io.stargate.core.grpc.BridgeConfig;
+import io.stargate.bridge.proto.Schema.SchemaRead;
 import io.stargate.core.metrics.api.HttpMetricsTagProvider;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.core.metrics.api.MetricsScraper;
 import io.stargate.metrics.jersey.MetricsBinder;
-import io.stargate.proto.Schema.SchemaRead;
+import io.stargate.metrics.jersey.sgv2.MetricsBinderWithTenantId;
 import io.stargate.sgv2.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.common.grpc.StargateBridgeClientFactory;
 import io.stargate.sgv2.common.http.CreateStargateBridgeClientFilter;
@@ -51,6 +58,7 @@ import io.swagger.jaxrs.config.DefaultJaxrsScanner;
 import io.swagger.jaxrs.listing.ApiListingResource;
 import io.swagger.jaxrs.listing.SwaggerSerializers;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.util.Arrays;
 import java.util.EnumSet;
 import javax.servlet.DispatcherType;
@@ -64,21 +72,30 @@ import org.glassfish.jersey.server.ServerProperties;
 
 /** DropWizard {@code Application} that will serve Stargate v2 REST service endpoints. */
 public class RestServiceServer extends Application<RestServiceServerConfiguration> {
-  public static final String REST_SVC_MODULE_NAME = "sgv2-rest-service";
+  /**
+   * Module name is used for example as the prefix for metrics export.
+   *
+   * <p>Note that Stargate V1 had module name of {@code "restapi"}: for V2 we use different name to
+   * allow separating metrics during upgrade process.
+   */
+  public static final String REST_SVC_MODULE_NAME = "sgv2-restapi";
 
   public static final String[] NON_API_URI_REGEX = new String[] {"^/$", "^/health$", "^/swagger.*"};
 
   private final Metrics metrics;
   private final MetricsScraper metricsScraper;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
+  private final int timeoutSeconds;
 
   public RestServiceServer(
       Metrics metrics,
       MetricsScraper metricsScraper,
-      HttpMetricsTagProvider httpMetricsTagProvider) {
+      HttpMetricsTagProvider httpMetricsTagProvider,
+      int timeoutSeconds) {
     this.metrics = metrics;
     this.metricsScraper = metricsScraper;
     this.httpMetricsTagProvider = httpMetricsTagProvider;
+    this.timeoutSeconds = timeoutSeconds;
 
     BeanConfig beanConfig = new BeanConfig();
     beanConfig.setSchemes(new String[] {"http"});
@@ -108,7 +125,8 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
       throws IOException {
 
     StargateBridgeClientFactory clientFactory =
-        buildClientFactory(appConfig.stargate.bridge.buildChannel(), environment);
+        StargateBridgeClientFactory.newInstance(
+            appConfig.stargate.bridge.buildChannel(), timeoutSeconds, SchemaRead.SourceApi.REST);
     environment.jersey().register(buildClientFilter(clientFactory));
 
     environment
@@ -154,7 +172,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
     enableCors(environment);
 
     final MetricsBinder metricsBinder =
-        new MetricsBinder(
+        new MetricsBinderWithTenantId(
             metrics,
             httpMetricsTagProvider,
             REST_SVC_MODULE_NAME,
@@ -163,15 +181,6 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
 
     // no html content
     environment.jersey().property(ServerProperties.RESPONSE_SET_STATUS_OVER_SEND_ERROR, true);
-  }
-
-  private StargateBridgeClientFactory buildClientFactory(
-      ManagedChannel channel, Environment environment) {
-    return StargateBridgeClientFactory.newInstance(
-        channel,
-        BridgeConfig.ADMIN_TOKEN,
-        SchemaRead.SourceApi.REST,
-        environment.lifecycle().scheduledExecutorService("bridge-factory").threads(1).build());
   }
 
   private CreateStargateBridgeClientFilter buildClientFilter(
@@ -195,6 +204,7 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   @Override
   public void initialize(final Bootstrap<RestServiceServerConfiguration> bootstrap) {
     super.initialize(bootstrap);
+    registerJvmMetrics();
     bootstrap.setConfigurationSourceProvider(new ResourceConfigurationSourceProvider());
     bootstrap.setMetricRegistry(metrics.getRegistry(REST_SVC_MODULE_NAME));
   }
@@ -217,5 +227,17 @@ public class RestServiceServer extends Application<RestServiceServerConfiguratio
   @Override
   protected void bootstrapLogging() {
     // disable dropwizard logging, it will use external logback
+  }
+
+  private void registerJvmMetrics() {
+    MetricRegistry topLevelRegistry = metrics.getRegistry();
+    topLevelRegistry.register("jvm.attribute", new JvmAttributeGaugeSet());
+    topLevelRegistry.register(
+        "jvm.buffers", new BufferPoolMetricSet(ManagementFactory.getPlatformMBeanServer()));
+    topLevelRegistry.register("jvm.classloader", new ClassLoadingGaugeSet());
+    topLevelRegistry.register("jvm.filedescriptor", new FileDescriptorRatioGauge());
+    topLevelRegistry.register("jvm.gc", new GarbageCollectorMetricSet());
+    topLevelRegistry.register("jvm.memory", new MemoryUsageGaugeSet());
+    topLevelRegistry.register("jvm.threads", new ThreadStatesGaugeSet());
   }
 }

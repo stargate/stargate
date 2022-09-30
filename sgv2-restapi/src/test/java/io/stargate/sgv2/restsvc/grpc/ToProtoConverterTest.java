@@ -3,10 +3,11 @@ package io.stargate.sgv2.restsvc.grpc;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import io.stargate.grpc.Values;
-import io.stargate.proto.QueryOuterClass;
-import io.stargate.proto.QueryOuterClass.ColumnSpec;
-import io.stargate.proto.QueryOuterClass.TypeSpec;
+import io.stargate.bridge.grpc.CqlDuration;
+import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
+import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
 import java.util.Arrays;
 import java.util.Collections;
 import org.junit.jupiter.api.DisplayName;
@@ -24,13 +25,14 @@ public class ToProtoConverterTest {
     return new Arguments[] {
       arguments(123, basicType(TypeSpec.Basic.INT), Values.of(123)),
       arguments(-4567L, basicType(TypeSpec.Basic.BIGINT), Values.of(-4567L)),
-      arguments("abc", basicType(TypeSpec.Basic.TEXT), Values.of("abc")),
+      arguments("abc", basicType(TypeSpec.Basic.VARCHAR), Values.of("abc")),
       arguments("/w==", basicType(TypeSpec.Basic.BLOB), Values.of(new byte[] {(byte) 0xFF})),
+      arguments("3d", basicType(TypeSpec.Basic.DURATION), Values.of(CqlDuration.from("3d"))),
 
       // Lists, Sets
       arguments(
           Arrays.asList("foo", "bar"),
-          listType(TypeSpec.Basic.TEXT),
+          listType(TypeSpec.Basic.VARCHAR),
           Values.of(Arrays.asList(Values.of("foo"), Values.of("bar")))),
       arguments(
           Arrays.asList(123, 456),
@@ -38,7 +40,7 @@ public class ToProtoConverterTest {
           Values.of(Arrays.asList(Values.of(123), Values.of(456)))),
       arguments(
           Arrays.asList("foo", "bar"),
-          setType(TypeSpec.Basic.TEXT),
+          setType(TypeSpec.Basic.VARCHAR),
           Values.of(Arrays.asList(Values.of("foo"), Values.of("bar")))),
       arguments(
           Arrays.asList(123, 456),
@@ -48,7 +50,7 @@ public class ToProtoConverterTest {
       // Maps
       arguments(
           Collections.singletonMap("foo", "bar"),
-          mapType(TypeSpec.Basic.TEXT, TypeSpec.Basic.TEXT),
+          mapType(TypeSpec.Basic.VARCHAR, TypeSpec.Basic.VARCHAR),
           // since internal representation is just as Collection...
           Values.of(Arrays.asList(Values.of("foo"), Values.of("bar")))),
       arguments(
@@ -74,14 +76,17 @@ public class ToProtoConverterTest {
     return new Arguments[] {
       arguments("123", basicType(TypeSpec.Basic.INT), Values.of(123)),
       arguments("-4567", basicType(TypeSpec.Basic.BIGINT), Values.of(-4567L)),
-      arguments("abc", basicType(TypeSpec.Basic.TEXT), Values.of("abc")),
-      arguments("'abc'", basicType(TypeSpec.Basic.TEXT), Values.of("abc")),
-      arguments("'quoted=''value'''", basicType(TypeSpec.Basic.TEXT), Values.of("quoted='value'")),
+      arguments("abc", basicType(TypeSpec.Basic.VARCHAR), Values.of("abc")),
+      arguments("'abc'", basicType(TypeSpec.Basic.VARCHAR), Values.of("abc")),
+      arguments(
+          "'quoted=''value'''", basicType(TypeSpec.Basic.VARCHAR), Values.of("quoted='value'")),
+      arguments("2d", basicType(TypeSpec.Basic.DURATION), Values.of(CqlDuration.from("2d"))),
+      arguments("'2d'", basicType(TypeSpec.Basic.DURATION), Values.of(CqlDuration.from("2d"))),
 
       // Lists, Sets
       arguments(
           "['foo','bar']",
-          listType(TypeSpec.Basic.TEXT),
+          listType(TypeSpec.Basic.VARCHAR),
           Values.of(Arrays.asList(Values.of("foo"), Values.of("bar")))),
       arguments(
           "[123, 456]",
@@ -90,7 +95,7 @@ public class ToProtoConverterTest {
       // Maps
       arguments(
           "{'foo': 'bar'}",
-          mapType(TypeSpec.Basic.TEXT, TypeSpec.Basic.TEXT),
+          mapType(TypeSpec.Basic.VARCHAR, TypeSpec.Basic.VARCHAR),
           // since internal representation is just as Collection...
           Values.of(Arrays.asList(Values.of("foo"), Values.of("bar")))),
       arguments(
