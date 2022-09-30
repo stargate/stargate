@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>sgv2-api-parent</artifactId>
-    <version>2.0.0-BETA-3-SNAPSHOT</version>
+    <version>2.0.0-BETA-4-SNAPSHOT</version>
   </parent>
   <artifactId>sgv2-quarkus-common</artifactId>
   <properties>
