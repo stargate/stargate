@@ -30,6 +30,13 @@ import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.datastore.DataStoreFactory;
 import io.stargate.metrics.jersey.MetricsBinder;
 import io.stargate.metrics.jersey.dwconfig.StargateV1ConfigurationSourceProvider;
+import io.stargate.web.docsapi.dao.DocumentDBFactory;
+import io.stargate.web.docsapi.resources.CollectionsResource;
+import io.stargate.web.docsapi.resources.JsonSchemaResource;
+import io.stargate.web.docsapi.resources.NamespacesResource;
+import io.stargate.web.docsapi.resources.ReactiveDocumentResourceV2;
+import io.stargate.web.docsapi.service.DocsApiComponentsBinder;
+import io.stargate.web.docsapi.service.DocsApiConfiguration;
 import io.stargate.web.resources.HealthResource;
 import io.stargate.web.resources.SwaggerUIResource;
 import io.stargate.web.restapi.dao.RestDBFactory;
@@ -69,9 +76,9 @@ import org.slf4j.LoggerFactory;
  * endpoints are enabled, as follows:
  *
  * <ul>
- *   <li>If set to {@code "true"}, Both REST API v1 and v2 endpoints are enabled
+ *   <li>If set to {@code "true"}, All 3 endpoints (Documents API, REST API v1 and v2) are enabled
  *   <li>If set to {@code "false"} (or any value other than {@code "true"}), only REST v1 endpoint
- *       is enabled; RESTv2 is disabled.
+ *       is enabled; Documents API and RESTv2 are disabled.
  * </ul>
  */
 public class RestApiServer extends Application<RestApiServerConfiguration> {
@@ -86,6 +93,7 @@ public class RestApiServer extends Application<RestApiServerConfiguration> {
   private final Metrics metrics;
   private final HttpMetricsTagProvider httpMetricsTagProvider;
   private final DataStoreFactory dataStoreFactory;
+  private final DocsApiConfiguration docsApiConf = DocsApiConfiguration.DEFAULT;
 
   public RestApiServer(
       AuthenticationService authenticationService,
@@ -128,6 +136,9 @@ public class RestApiServer extends Application<RestApiServerConfiguration> {
 
     // General providers
     environment.jersey().register(new JerseyViolationExceptionMapper());
+    final DocumentDBFactory documentDBFactory =
+        new DocumentDBFactory(
+            authenticationService, authorizationService, dataStoreFactory, docsApiConf);
     final RestDBFactory restDBFactory =
         new RestDBFactory(authenticationService, authorizationService, dataStoreFactory);
     final ObjectMapper objectMapper = configureObjectMapper(environment.getObjectMapper());
@@ -138,6 +149,7 @@ public class RestApiServer extends Application<RestApiServerConfiguration> {
               @Override
               protected void configure() {
                 bind(objectMapper).to(ObjectMapper.class);
+                bind(documentDBFactory).to(DocumentDBFactory.class);
                 bind(restDBFactory).to(RestDBFactory.class);
               }
             });
@@ -145,33 +157,27 @@ public class RestApiServer extends Application<RestApiServerConfiguration> {
     // General healthcheck endpoint
     environment.jersey().register(HealthResource.class);
 
-    // 09-Feb-2022, tatu: as per [SG#1625] the old SGv1 REST API is to be disabled
-    //     when we have SGv2 -- leaving just the Documents API until it too gets extracted.
-    // 13-May-2022, tatu: Make inclusion of SGv1 REST endpoints configurable by system property.
-    //     Checked lazily to support setting value via tests.
-    // 28-Sep-22, tatu: as per [SG#2106] meaning changed: enabled still means "enable all 3"
-    //     but disabled means that ONLY RestV1 is enabled (Documents API and RESTv2 disabled)
     final String enableSgv1RestStr = System.getProperty(SYSPROP_ENABLE_SGV1_REST);
-    final boolean enableRestV1 = Boolean.parseBoolean(enableSgv1RestStr);
+    final boolean enableSgv1 = Boolean.parseBoolean(enableSgv1RestStr);
 
     // Always enable RESTv1 endpoints
-
     logger.info("Registering StargateV1 RESTv1 endpoint for StargateV2");
+
     environment.jersey().register(ColumnResource.class);
     environment.jersey().register(KeyspaceResource.class);
     environment.jersey().register(RowResource.class);
     environment.jersey().register(TableResource.class);
 
-    if (!enableRestV1) {
+    if (!enableSgv1) {
       logger.info(
-          "Will not register StargateV1 RESTv2 endpoints for StargateV2 (System property '{}' {}, enable with 'true')",
+          "Will not register StargateV1 Documents API or RESTv2 endpoints for StargateV2 (System property '{}' {}, enable with 'true')",
           SYSPROP_ENABLE_SGV1_REST,
           (enableSgv1RestStr == null)
               ? "UNDEFINED"
               : String.format("set to '%s'", enableSgv1RestStr));
     } else {
       logger.info(
-          "Registering StargateV1 RESTv2 endpoint for StargateV2 (System property '{}' set to '{}')",
+          "Registering StargateV1 Documents API and RESTv2 endpoints for StargateV2 (System property '{}' set to '{}')",
           SYSPROP_ENABLE_SGV1_REST,
           enableSgv1RestStr);
 
@@ -182,6 +188,22 @@ public class RestApiServer extends Application<RestApiServerConfiguration> {
       environment.jersey().register(RowsResource.class);
       environment.jersey().register(TablesResource.class);
       environment.jersey().register(UserDefinedTypesResource.class);
+
+      // Documents API
+      environment
+          .jersey()
+          .register(
+              new AbstractBinder() {
+                @Override
+                protected void configure() {
+                  bind(docsApiConf).to(DocsApiConfiguration.class);
+                }
+              });
+      environment.jersey().register(new DocsApiComponentsBinder());
+      environment.jersey().register(ReactiveDocumentResourceV2.class);
+      environment.jersey().register(JsonSchemaResource.class);
+      environment.jersey().register(CollectionsResource.class);
+      environment.jersey().register(NamespacesResource.class);
     }
 
     // Swagger endpoints

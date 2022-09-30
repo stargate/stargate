@@ -1,0 +1,11 @@
+server:
+  type: graphql-api
+  applicationContextPath: /
+  connector:
+    type: http
+    port: 8080
+  requestLog:
+    type: external
+logging:
+  type: external
+
