@@ -1,5 +1,26 @@
 # Changelog
 
+## [v2.0.0-BETA-3](https://github.com/stargate/stargate/tree/v2.0.0-BETA-3) (2022-09-30)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-BETA-2...v2.0.0-BETA-3)
+
+**Merged pull requests:**
+
+- relates to \#2108: fix bridge interceptor context check [\#2115](https://github.com/stargate/stargate/pull/2115) ([ivansenic](https://github.com/ivansenic))
+- align base configuration for the quarkus based apis [\#2114](https://github.com/stargate/stargate/pull/2114) ([ivansenic](https://github.com/ivansenic))
+- Switch port numbers for in-coordinator/extracted-drop-wizard cases [\#2113](https://github.com/stargate/stargate/pull/2113) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- remove duplicate port usage from docker compose files [\#2112](https://github.com/stargate/stargate/pull/2112) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Remove old Documents API integration tests; replaced by ones in `apis/sgv2-docsapi` [\#2109](https://github.com/stargate/stargate/pull/2109) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix docker compose ports [\#2105](https://github.com/stargate/stargate/pull/2105) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- update quarkus version to 2.12.3 [\#2102](https://github.com/stargate/stargate/pull/2102) ([ivansenic](https://github.com/ivansenic))
+- eliminating obsolete extra starctl scripts [\#2093](https://github.com/stargate/stargate/pull/2093) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- fix flaky graphql v2 int tests [\#2092](https://github.com/stargate/stargate/pull/2092) ([ivansenic](https://github.com/ivansenic))
+- Fix "all keyspaces" test to work with CNDB backend [\#2088](https://github.com/stargate/stargate/pull/2088) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add retry for data store properties access; new property to enable use of fallbacks [\#2087](https://github.com/stargate/stargate/pull/2087) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- option to enable auth in the int tests [\#2086](https://github.com/stargate/stargate/pull/2086) ([ivansenic](https://github.com/ivansenic))
+- updating project description [\#2097](https://github.com/stargate/stargate/pull/2097) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- relates to \#2065: bump DSE version to 6.8.26  [\#2094](https://github.com/stargate/stargate/pull/2094) ([ivansenic](https://github.com/ivansenic))
+
 ## [v2.0.0-BETA-2](https://github.com/stargate/stargate/tree/v2.0.0-BETA-2) (2022-09-17)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-BETA-1...v2.0.0-BETA-2)
