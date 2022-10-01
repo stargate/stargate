@@ -82,7 +82,20 @@ quarkus:
         # due to the https://github.com/quarkusio/quarkus/issues/24938
         # we need to define uri templating on our own for now
         # note that order is important
-        # TODO Tatu match-patterns:
+        match-patterns: |
+          /v2/keyspaces/[\\w]+/[\\w]+=/v2/keyspaces/{keyspaceName}/{tableName}
+          /v2/keyspaces/[\\w]+/[\\w]+/rows=/v2/keyspaces/{keyspaceName}/{tableName}/rows
+          /v2/keyspaces/[\\w]+/[\\w]+/[\\w]+=/v2/keyspaces/{keyspaceName}/{tableName}/{primaryKey}
+          /v2/schemas/keyspaces=/v2/schemas/keyspaces
+          /v2/schemas/keyspaces/[\\w]+=/v2/schemas/keyspaces/{keyspaceName}
+          /v2/schemas/keyspaces/[\\w]+/tables=/v2/schemas/keyspaces/{keyspaceName}/tables
+          /v2/schemas/keyspaces/[\\w]+/tables/[\\w]+=/v2/schemas/keyspaces/{keyspaceName}/tables/{tableName}
+          /v2/schemas/keyspaces/[\\w]+/tables/[\\w]+/columns=/v2/schemas/keyspaces/{keyspaceName}/tables/{tableName}/columns
+          /v2/schemas/keyspaces/[\\w]+/tables/[\\w]+/columns/[\\w]+=/v2/schemas/keyspaces/{keyspaceName}/tables/{tableName}/columns/{columnName}
+          /v2/schemas/keyspaces/[\\w]+/tables/[\\w]+/indexes=/v2/schemas/keyspaces/{keyspaceName}/tables/{tableName}/indexes
+          /v2/schemas/keyspaces/[\\w]+/tables/[\\w]+/indexes/[\\w]+=/v2/schemas/keyspaces/{keyspaceName}/tables/{tableName}/indexes/{indexName}
+          /v2/schemas/keyspaces/[\\w]+/types=/v2/schemas/keyspaces/{keyspaceName}/types
+          /v2/schemas/keyspaces/[\\w]+/types/[\\w]+=/v2/schemas/keyspaces/{keyspaceName}/types/{typeName}
 
     export:
       prometheus:
