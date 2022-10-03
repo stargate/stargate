@@ -15,11 +15,11 @@ SuccessExitStatus=143 #Java status code for success when receiving signal 'kill 
 #ExecStart=/path/to/wrapper
 EnvironmentFile=/etc/systemd/system/stargate.env
 ExecStart=${STARGATE_HOME}/starctl --cluster-name ${CLUSTER_NAME} \  
---cluster-seed ${SEED_NODE} \  
+--cluster-seed ${SEED} \  
 --cluster-version ${CLUSTER_VERSION} \  
---listen ${LISTEN_ADDR} \  
---dc ${DATACENTER} \  
---rack ${RACK} \  
+--listen ${LISTEN} \  
+--dc ${DATACENTER_NAME} \  
+--rack ${RACK_NAME} \  
 --dse #for DSE only, delete for Cassandra \  
 --enable-auth
 
