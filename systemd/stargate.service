@@ -1,0 +1,30 @@
+#Systemd service file for Stargate
+#This file should usually be installed at /etc/systemd/system/stargate.service
+
+[Unit]
+Description=Stargate API Gateway
+After=syslog.target network.target
+
+[Service]
+User=cassandra
+Group=cassandra
+
+Type=forking
+SuccessExitStatus=143 #Java status code for success when receiving signal 'kill -15'
+
+#ExecStart=/path/to/wrapper
+EnvironmentFile=/etc/systemd/system/stargate.env
+ExecStart=${STARGATE_HOME}/starctl --cluster-name ${CLUSTER_NAME} \  
+--cluster-seed ${SEED_NODE} \  
+--cluster-version ${CLUSTER_VERSION} \  
+--listen ${LISTEN_ADDR} \  
+--dc ${DATACENTER} \  
+--rack ${RACK} \  
+--dse #for DSE only, delete for Cassandra \  
+--enable-auth
+
+Restart=on-failure #can be changed to 'always'
+ExecStop=/bin/kill -15 $MAINPID
+
+[Install]
+WantedBy=multi-user.target
