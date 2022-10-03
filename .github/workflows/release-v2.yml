@@ -103,8 +103,8 @@ jobs:
 
       - name: Build with Maven
         run: |
-          ./mvnw versions:set -DremoveSnapshot versions:commit
-          ./mvnw -P dse -q -ff clean package -DskipTests
+          ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          ./mvnw -B -ntp -q -ff -P dse clean package -DskipTests
 
       - name: Zip-up `stargate-lib`
         run: |
@@ -181,16 +181,16 @@ jobs:
       - name: Publish coordinator JARs
         if: ${{ !inputs.skipPublish }}
         run: |
-          JAVA_HOME=$JAVA_8 ./mvnw versions:set -DremoveSnapshot versions:commit
-          JAVA_HOME=$JAVA_8 ./mvnw -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse
+          JAVA_HOME=$JAVA_8 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          JAVA_HOME=$JAVA_8 ./mvnw -B -ntp -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse
 
       # explicitly only -pl sgv2-quarkus-common
       - name: Publish Quarkus Common JAR
         if: ${{ !inputs.skipPublish }}
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw versions:set -DremoveSnapshot versions:commit
-          JAVA_HOME=$JAVA_17 ./mvnw -B -pl sgv2-quarkus-common -am -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp -pl sgv2-quarkus-common -am -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy
 
   # publishes the docker images for the coordinator and the APIs
   publish-docker:
@@ -239,14 +239,14 @@ jobs:
 
       - name: Install coordinator
         run: |
-          JAVA_HOME=$JAVA_8 ./mvnw versions:set -DremoveSnapshot versions:commit
-          JAVA_HOME=$JAVA_8 ./mvnw -B clean install -P dse -DskipTests 
+          JAVA_HOME=$JAVA_8 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          JAVA_HOME=$JAVA_8 ./mvnw -B -ntp clean install -P dse -DskipTests 
 
       # only set version here
       - name: Install APIs
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw versions:set -DremoveSnapshot versions:commit
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
           cd ../
 
       - name: Set up Docker QEMU
@@ -278,14 +278,14 @@ jobs:
         if: ${{ !inputs.skipPublish }}
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
           cd ../
 
       - name: Build without push (apis, DockerHub)
         if: ${{ inputs.skipPublish }}
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
           cd ../
 
       # repeat the same for the AWS ECR
@@ -309,7 +309,7 @@ jobs:
         if: ${{ !inputs.skipPublish }}
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
           cd ../
 
   # signs all docker images with cosign
@@ -398,14 +398,14 @@ jobs:
 
       - name: Update version numbers (coordinator)
         run: |
-          ./mvnw -B release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse
-          ./mvnw xml-format:xml-format fmt:format -Pdse
+          ./mvnw -B -ntp release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse
+          ./mvnw -B -ntp xml-format:xml-format fmt:format -Pdse
 
       - name: Update version numbers (apis)
         run: |
           cd apis/
-          ./mvnw -B release:update-versions -DautoVersionSubmodules=true versions:commit
-          ./mvnw xml-format:xml-format fmt:format
+          ./mvnw -B -ntp release:update-versions -DautoVersionSubmodules=true versions:commit
+          ./mvnw -B -ntp xml-format:xml-format fmt:format
           cd ../
 
       - name: Rev Version

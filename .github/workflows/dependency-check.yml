@@ -42,7 +42,7 @@ jobs:
           EOF
       - name: Check Maven Dependency Updates
         run: |
-          mvn -B versions:display-dependency-updates -Dversions.outputFile=target/dependency-updates-report.txt
+          mvn -B -ntp versions:display-dependency-updates -Dversions.outputFile=target/dependency-updates-report.txt
       - name: Archive dependency update results
         uses: actions/upload-artifact@v3
         with:
@@ -84,7 +84,7 @@ jobs:
           EOF
       - name: Check Maven Dependencies
         run: |
-          mvn -B dependency-check:aggregate
+          mvn -B -ntp dependency-check:aggregate
       - name: Archive vulnerability results
         uses: actions/upload-artifact@v3
         with:

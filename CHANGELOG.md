@@ -420,6 +420,20 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
 
+## [v1.0.66](https://github.com/stargate/stargate/tree/v1.0.66) (2022-09-29)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.65...v1.0.66)
+
+**Closed issues:**
+
+- Enable gRPC Server Reflection to help with API Consumer on-boarding [\#2068](https://github.com/stargate/stargate/issues/2068)
+- Update DSE to 6.8.26 [\#2065](https://github.com/stargate/stargate/issues/2065)
+
+**Merged pull requests:**
+
+- relates to \#2065: bump DSE version to 6.8.26  [\#2094](https://github.com/stargate/stargate/pull/2094) ([ivansenic](https://github.com/ivansenic))
+- closes \#2068: Enable gRPC reflection [\#1853](https://github.com/stargate/stargate/pull/1853) ([mpenick](https://github.com/mpenick))
+
 ## [v1.0.65](https://github.com/stargate/stargate/tree/v1.0.65) (2022-09-16)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.64...v1.0.65)
