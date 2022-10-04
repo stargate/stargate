@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: stargate-auth
+  name: stargate-auth
+spec:
+  ports:
+  - name: stargate-auth
+    port: 8081
+    protocol: TCP
+    targetPort: 8081
+  selector:
+    app: coordinator
+  type: ClusterIP
+status:
+  loadBalancer: {}

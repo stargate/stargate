@@ -1,0 +1,22 @@
+{{ if .Values.docsapi.enabled }}
+
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: stargate-docsapi
+  name: stargate-docsapi
+spec:
+  ports:
+  - name: stargate-docsapi
+    port: 8180
+    protocol: TCP
+    targetPort: 8180
+  selector:
+    app: stargate-docsapi
+  type: ClusterIP
+status:
+  loadBalancer: {}
+
+{{ end }}

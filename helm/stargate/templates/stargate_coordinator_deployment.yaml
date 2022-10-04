@@ -1,0 +1,85 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stargate-coordinator
+  labels:
+    app: coordinator
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: coordinator
+  template:
+    metadata:
+      labels:
+        app: coordinator
+    spec:
+      containers:
+      - name: coordinator
+        {{ if eq .Values.cassandra.clusterVersion "3.11" }}
+        image: "{{ .Values.image.repository311 }}:{{ .Values.image.tag }}" 
+        {{ else if eq .Values.cassandra.clusterVersion "6.8" }}
+        image: "{{ .Values.image.repositoryDse68 }}:{{ .Values.image.tag }}"
+        {{ else }}
+        image: "{{ .Values.image.repository40 }}:{{ .Values.image.tag }}"
+        {{end}}
+        ports:
+        - containerPort: 8091
+        - containerPort: 9042
+        - containerPort: 8081
+        args:          
+         {{  range .Values.arguments }}
+           - {{ . }}
+         {{ end }}
+        readinessProbe:
+          httpGet:
+            path: /checker/readiness
+            port: 8084
+          timeoutSeconds: 20
+          initialDelaySeconds: 80
+        livenessProbe:
+          httpGet:
+            path: /checker/liveness
+            port: 8084
+          initialDelaySeconds: 80
+          timeoutSeconds: 20
+        resources:
+          limits:
+            cpu: {{ mul 4 (.Values.cpuReqMillicores | default 500) }}m
+            memory: {{add 500 (.Values.heapMB | default 1024)}}Mi
+          requests:
+            cpu: {{ mul 4 (.Values.cpuReqMillicores | default 200) }}m
+            memory: {{add 500 (.Values.heapMB | default 1024)}}Mi
+        env:
+        - name: CLUSTER_NAME
+          value: "{{.Values.cassandra.clusterName}}"
+        - name: DATACENTER_NAME
+          value: "{{.Values.cassandra.dcName}}"
+        - name: RACK_NAME
+          value: "{{.Values.cassandra.rack}}"
+        - name: SEED
+          value: "{{.Values.cassandra.seed}}"
+        - name: DSE
+          value: "{{.Values.cassandra.isDse}}"
+        - name: CLUSTER_VERSION
+          value: "{{.Values.cassandra.clusterVersion}}"
+        - name: BRIDGE_TOKEN
+          value: "{{.Values.cassandra.bridgeToken}}"
+        - name: ENABLE_AUTH
+          value: "{{.Values.cassandra.enableCqlAuth}}"
+        - name: JAVA_OPTS
+          value: >-
+            -XX:+CrashOnOutOfMemoryError
+            -XX:+UnlockExperimentalVMOptions
+            -Xms{{ .Values.heapMB | default 1024 }}M
+            -Xmx{{ .Values.heapMB | default 1024 }}M
+            -XX:+UnlockDiagnosticVMOptions
+            -XX:GuaranteedSafepointInterval=300000
+            -XX:-UseBiasedLocking
+            -XX:+DebugNonSafepoints
+            -Xss256k
+            -XX:StringTableSize=1000003
+            -XX:+UseG1GC
+            -XX:MaxGCPauseMillis=100
+            -XX:+PrintGC
+            -Djava.awt.headless=true

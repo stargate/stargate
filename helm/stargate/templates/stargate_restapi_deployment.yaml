@@ -1,0 +1,51 @@
+{{ if .Values.restapi.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stargate-restapi
+  labels:
+    app: stargate-restapi
+spec:
+  replicas: {{ .Values.restapi.replicaCount }}
+  selector:
+    matchLabels:
+      app: stargate-restapi
+  template:
+    metadata:
+      labels:
+        app: stargate-restapi
+    spec:
+      containers:
+      - name: restapi
+        image: "stargateio/restapi:{{ .Values.image.tag }}"
+        ports:
+        - containerPort: 8082
+        readinessProbe:
+          httpGet:
+            path: /stargate/health/ready
+            port: 8082
+          timeoutSeconds: 20
+          initialDelaySeconds: 80
+        livenessProbe:
+          httpGet:
+            path: /stargate/health/live
+            port: 8082
+          initialDelaySeconds: 80
+          timeoutSeconds: 20
+        resources:
+          limits:
+            cpu: {{ mul 4 (.Values.restapi.cpuReqMillicores | default 500) }}m
+            memory: {{add 500 (.Values.restapi.memory | default 512)}}Mi
+          requests:
+            cpu: {{ mul 4 (.Values.restapi.cpuReqMillicores | default 200) }}m
+            memory: {{add 500 (.Values.restapi.memory | default 512)}}Mi
+        env:
+        - name: QUARKUS_GRPC_CLIENTS_BRIDGE_HOST
+          value: "stargate-coordinator"
+        - name: IO_STARGATE_SGV2_API_COMMON_PROPERTIES_DATASTORE_CONFIGURATION_DATASTOREPROPERTIESCONFIGURATION_FETCHSUPPORTEDFEATURES_RETRY_MAXRETRIES
+          value: "50"
+        - name: IO_STARGATE_SGV2_API_COMMON_PROPERTIES_DATASTORE_CONFIGURATION_DATASTOREPROPERTIESCONFIGURATION_FETCHSUPPORTEDFEATURES_RETRY_MAXDURATION
+          value: "300"
+        - name: IO_STARGATE_SGV2_API_COMMON_PROPERTIES_DATASTORE_CONFIGURATION_DATASTOREPROPERTIESCONFIGURATION_FETCHSUPPORTEDFEATURES_RETRY_DELAY
+          value: "10"
+{{ end }}

@@ -1,0 +1,49 @@
+# Default values for stargate.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  repository311: "stargateio/coordinator-3_11" 
+  repository40: "stargateio/coordinator-4_0" 
+  repositoryDse628: "stargateio/coordinator-dse-68" 
+  tag: "v2.0.0-BETA-3"
+
+cassandra:
+  clusterName: "cassandra"
+  dcName: "datacenter1"
+  rack: "rack1"
+  seed: "my-release-cassandra-headless" 
+  isDse: null
+  clusterVersion: "4.0"
+  enableCqlAuth: true
+
+cpuReqMillicores: 250
+heapMB: 512
+
+restapi:
+  enabled: true
+  replicaCount: 1
+  cpu: 250
+  memory: 512
+
+docsapi:
+  enabled: true
+  replicaCount: 1
+  cpu: 250
+  memory: 512
+
+graphqlapi:
+  enabled: true
+  replicaCount: 1
+  cpu: 250
+  memory: 512
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
