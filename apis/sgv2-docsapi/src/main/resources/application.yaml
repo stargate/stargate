@@ -108,8 +108,9 @@ quarkus:
           /v2/namespaces/[\\w]+/collections/[\\w]+/batch=/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}/batch,
           /v2/namespaces/[\\w]+/collections/[\\w]+/json-schema=/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}/json-schema,
           /v2/namespaces/[\\w]+/collections/[\\w]+/upgrade=/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}/upgrade,
-          /v2/namespaces/[\\w]+/collections/[\\w]+/(.*?)/?.*/function=/v2/namespaces/{namespace:\\w+}/collections/{collection:\w+}/{document-id: [^/]+}{slash: /?}{document-path: (.+)?}/function,
+          /v2/namespaces/[\\w]+/collections/[\\w]+/(.*?)/.*/function=/v2/namespaces/{namespace:\\w+}/collections/{collection:\w+}/{document-id}/{document-path:.*}/function,
           /v2/namespaces/[\\w]+/collections/[\\w]+/(.*?)/.*=/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}/{document-id}/{document-path:.*},
+          /v2/namespaces/[\\w]+/collections/[\\w]+/.*/function=/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}/{document-id}/function,
           /v2/namespaces/[\\w]+/collections/[\\w]+/.*=/v2/namespaces/{namespace:\\w+}/collections/{collection:\\w+}/{document-id},
           /v2/schemas/namespaces/[\\w]+=/v2/schemas/namespaces/{namespace:\\w+}
 

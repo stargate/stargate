@@ -167,7 +167,7 @@ public class BuiltInFunctionResource {
         @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
       })
   @POST
-  @Path("{collection:\\w+}/{document-id}/{document-path: .+}/function")
+  @Path("{collection:\\w+}/{document-id}/{document-path:.*}/function")
   public Uni<RestResponse<Object>> executeBuiltInFunction(
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
@@ -179,10 +179,7 @@ public class BuiltInFunctionResource {
     ExecutionContext context = ExecutionContext.create(profile);
 
     List<String> subPath =
-        documentPath.stream()
-            .map(PathSegment::getPath)
-            .filter(p -> !p.isEmpty())
-            .collect(Collectors.toList());
+        documentPath.stream().map(PathSegment::getPath).collect(Collectors.toList());
 
     // call table manager for valid table
     return collectionManager
