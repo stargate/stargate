@@ -19,6 +19,14 @@ separate Cassandra cluster is required. This can be run with the command:
 
 You can stop execution of this script with `Ctrl-C` and the stack will be torn down.
 
+# Script options
+
+Both scripts support the following options: 
+
+* You can specify a released image tag (version) using `-t [VERSION]`. Consult [Docker Hub](https://hub.docker.com/r/stargateio/coordinator-3_11/tags) for a list of available tags.
+
+* Alternatively, build the snapshot version locally using instructions in the [developer guide](../../DEV_GUIDE.md) and run the script using the `-l` option.
+
 # Notes
 
 * The `.env` file defines variables for the docker compose project name (`COMPOSE_PROJECT_NAME`),
@@ -41,5 +49,4 @@ ERROR: manifest for stargateio/coordinator-3_11:2.0.0-BETA-4-SNAPSHOT not found:
 ```
 
 you are trying to deploy a version that is neither publicly available (official release) nor built locally.
-You will either want to specify a non-snapshot image tag (version) using `-t [VERSION]`, or build the snapshot version locally.
-Consult [Docker Hub](https://hub.docker.com/r/stargateio/coordinator-3_11/tags) for a list of available tags.
+

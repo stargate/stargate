@@ -1,16 +1,20 @@
 #!/bin/sh
 
-# Set variable SGTAG
+# Default to using images tagged "v2"
+SGTAG=v2
 
-SGTAG="v$(../../mvnw -f ../.. help:evaluate -Dexpression=project.version -q -DforceStdout)"
-
-while getopts ":pt:" opt; do
+while getopts "lt:" opt; do
   case $opt in
     t)
       SGTAG=$OPTARG
       ;;
+    l)
+      SGTAG="v$(../../mvnw -f ../.. help:evaluate -Dexpression=project.version -q -DforceStdout)"
+      ;;
     \?)
-      echo "Invalid option: -$OPTARG" >&2
+      echo "Valid options:"
+      echo "  -t <tag> - use Docker images tagged with specified Stargate version (will pull images from Docker Hub if needed)"
+      echo "  -l - use Docker images from local build (see project README for build instructions)"
       exit 1
       ;;
   esac
