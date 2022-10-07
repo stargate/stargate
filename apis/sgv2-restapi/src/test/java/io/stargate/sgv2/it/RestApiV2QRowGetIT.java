@@ -610,39 +610,6 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     assertThat(rows.at("/0/firstName").asText()).isEqualTo("John");
   }
 
-  // for [stargate#2142]: failure observed via Postman, related to it only escaping some
-  // of characters it should (double-quotes yes, curly braces/brackets)
-  @Test
-  public void getRowsWithQueryNoEscapeForJSON() {
-    final String tableName = testTableName();
-    createSimpleTestTable(testKeyspaceName(), tableName);
-
-    final String rowIdentifier = UUID.randomUUID().toString();
-    insertTypedRows(
-            testKeyspaceName(),
-            tableName,
-            Arrays.asList(map("id", rowIdentifier, "firstName", "John")));
-
-    // Let's only escape double-quotes, similar to Postman
-    String whereClause = "{%22id%22:{%22$eq%22:%22"+rowIdentifier+"%22}}";
-    // Need to inline "" to prevent escaping with config setting:
-    String response =
-            givenWithAuth()
-                    .urlEncodingEnabled(false)
-                    .queryParam("raw", true)
-                    .queryParam("where", whereClause)
-                    .when()
-                    .get(endpointPathForRowGetWith(testKeyspaceName(), tableName))
-                    .then()
-                    .statusCode(HttpStatus.SC_OK)
-                    .extract()
-                    .asString();
-    JsonNode rows = readJsonAsTree(response);
-    assertThat(rows).hasSize(1);
-    assertThat(rows.at("/0/id").asText()).isEqualTo(rowIdentifier);
-    assertThat(rows.at("/0/firstName").asText()).isEqualTo("John");
-  }
-
   @Test
   public void getRowsWithQuery2Filters() {
     final String tableName = testTableName();
