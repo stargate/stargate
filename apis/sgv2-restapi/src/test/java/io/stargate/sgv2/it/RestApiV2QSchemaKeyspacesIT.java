@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.quarkus.test.common.QuarkusTestResource;
-import io.quarkus.test.common.ResourceArg;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
@@ -29,10 +28,7 @@ import org.slf4j.LoggerFactory;
 
 /** Integration tests for checking CRUD schema operations for Keyspaces. */
 @QuarkusIntegrationTest
-@QuarkusTestResource(
-    value = StargateTestResource.class,
-    initArgs =
-        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
+@QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   private static final String BASE_PATH = "/v2/schemas/keyspaces";
 

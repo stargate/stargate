@@ -19,10 +19,10 @@ package io.stargate.sgv2.common.testresource;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.common.DevServicesContext;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
 import io.stargate.sgv2.api.common.token.impl.FixedTokenResolver;
 import io.stargate.sgv2.common.IntegrationTestUtils;
-import io.stargate.sgv2.common.testprofiles.IntegrationTestProfile;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -43,7 +43,8 @@ import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
  * Quarkus test resource that starts Cassandra/DSE and Stargate Coordinator using test containers.
  *
  * <p>Should be used in the integration tests, that should be explicitly annotated with {@link
- * IntegrationTestProfile} class: <code>@TestProfile(IntegrationTestProfile.class)</code>
+ * QuarkusTestResource} class: <code>@QuarkusTestResource(value = StargateTestResource.class)</code>
+ * (and usually with {@code initArgs} property set as well).
  *
  * <p>When run from IDE, by default it uses container versions specified in {@link Defaults}. If you
  * wish to run locally with different Cassandra version or the DSE, please set up following system
@@ -61,12 +62,6 @@ import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
  */
 public class StargateTestResource
     implements QuarkusTestResourceLifecycleManager, DevServicesContext.ContextAware {
-
-  /** Options that can be passed using the resource init map. */
-  public interface Options {
-
-    String DISABLE_FIXED_TOKEN = "DISABLE_FIXED_TOKEN";
-  }
 
   /**
    * Set of defaults for the integration tests, usually used when running from IDE.
@@ -146,14 +141,6 @@ public class StargateTestResource
     propsBuilder.put(
         IntegrationTestUtils.CASSANDRA_CQL_PORT_PROP,
         cassandraContainer.getMappedPort(9042).toString());
-
-    // TODO if no end-to-end tests, inject the token instead of fixing it
-    //  keep fixed token until restapi and gqlapi are not updated
-    // enable fixed token
-    if (!"true".equals(initArgs.get(Options.DISABLE_FIXED_TOKEN))) {
-      propsBuilder.put("stargate.auth.token-resolver.type", "fixed");
-      propsBuilder.put("stargate.auth.token-resolver.fixed.token", token);
-    }
 
     // Some Integration tests need to know backend storage version, to work around
     // discrepancies between Cassandra/DSE versions
