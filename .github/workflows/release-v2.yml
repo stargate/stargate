@@ -328,11 +328,10 @@ jobs:
         uses: aws-actions/amazon-ecr-login@v1
 
       - name: Sign a docker image
-        shell: bash
         env:
           COSIGN_IMAGE: ${{ secrets.ECR_REPOSITORY }}/stargateio/${{ matrix.image }}:${{ needs.resolve-tag.outputs.release-tag }}
-          COSIGN_PRIVATE_BASE64: ${{ secrets.COSIGN_PRIVATE_BASE64}}
-          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD}}
+          COSIGN_PRIVATE_BASE64: ${{ secrets.COSIGN_PRIVATE_BASE64 }}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD }}
           COSIGN_KEY_FILE: _cosign_key_
           AUX_KEY: signedby
           AUX_VALUE: stargate
