@@ -6,7 +6,6 @@ import static org.junit.Assert.assertTrue;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.quarkus.test.common.QuarkusTestResource;
-import io.quarkus.test.common.ResourceArg;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.bridge.grpc.CqlDuration;
@@ -23,10 +22,7 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
-@QuarkusTestResource(
-    value = StargateTestResource.class,
-    initArgs =
-        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
+@QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
   public RestApiV2QRowGetIT() {
     super("rowget_ks_", "rowget_t_");

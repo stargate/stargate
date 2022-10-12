@@ -3,7 +3,6 @@ package io.stargate.sgv2.it;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.quarkus.test.common.QuarkusTestResource;
-import io.quarkus.test.common.ResourceArg;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
@@ -17,10 +16,7 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
-@QuarkusTestResource(
-    value = StargateTestResource.class,
-    initArgs =
-        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
+@QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
   public RestApiV2QSchemaIndexesIT() {
     super("idx_ks_", "idx_t_");

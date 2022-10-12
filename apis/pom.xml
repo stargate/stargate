@@ -85,8 +85,9 @@
             <maven.home>${maven.home}</maven.home>
           </systemPropertyVariables>
           <excludes>
-            <exclude>**/*IntegrationTest.*</exclude>
             <exclude>**/*EndToEndTest.*</exclude>
+            <exclude>**/*IntegrationTest.*</exclude>
+            <exclude>**/*IT.*</exclude>
           </excludes>
           <skip>${skipUnitTests}</skip>
         </configuration>
