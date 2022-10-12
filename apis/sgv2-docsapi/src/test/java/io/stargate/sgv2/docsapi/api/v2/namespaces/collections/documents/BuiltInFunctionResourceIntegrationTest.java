@@ -24,7 +24,6 @@ import static net.javacrumbs.jsonunit.JsonMatchers.jsonPartEquals;
 import static org.hamcrest.Matchers.equalTo;
 
 import io.quarkus.test.common.QuarkusTestResource;
-import io.quarkus.test.common.ResourceArg;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
@@ -38,10 +37,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
-@QuarkusTestResource(
-    value = StargateTestResource.class,
-    initArgs =
-        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
+@QuarkusTestResource(StargateTestResource.class)
 class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
 
   public static final String BASE_PATH =
