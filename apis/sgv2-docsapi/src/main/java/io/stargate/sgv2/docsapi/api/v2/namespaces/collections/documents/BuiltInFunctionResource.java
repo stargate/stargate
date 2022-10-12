@@ -25,6 +25,7 @@ import io.stargate.sgv2.docsapi.config.constants.OpenApiConstants;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.function.FunctionService;
 import io.stargate.sgv2.docsapi.service.schema.CollectionManager;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import javax.inject.Inject;
@@ -36,11 +37,9 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriInfo;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
 import org.eclipse.microprofile.openapi.annotations.media.ExampleObject;
@@ -69,6 +68,62 @@ public class BuiltInFunctionResource {
 
   @Operation(
       summary = "Executes a a built-in function",
+      description =
+          "Execute a built-in function (e.g. `$push` and `$pop`) against the root of this document. Performance may vary.")
+  @Parameters(
+      value = {
+        @Parameter(name = "namespace", ref = OpenApiConstants.Parameters.NAMESPACE),
+        @Parameter(name = "collection", ref = OpenApiConstants.Parameters.COLLECTION),
+        @Parameter(name = "document-id", ref = OpenApiConstants.Parameters.DOCUMENT_ID),
+        @Parameter(name = "profile", ref = OpenApiConstants.Parameters.PROFILE),
+        @Parameter(name = "raw", ref = OpenApiConstants.Parameters.RAW),
+      })
+  @RequestBody(ref = OpenApiConstants.RequestBodies.FUNCTION)
+  @APIResponses(
+      value = {
+        @APIResponse(
+            responseCode = "200",
+            description =
+                "Function is executed. Certain functions will return a value in the `data` property. Note that in case of unwrapping (`raw=true`), the response contains only the contents of the `data` property.",
+            content = {
+              @Content(
+                  schema =
+                      @org.eclipse.microprofile.openapi.annotations.media.Schema(
+                          implementation = DocumentResponseWrapper.class),
+                  examples = @ExampleObject(ref = OpenApiConstants.Examples.FUNCTION_RESPONSE))
+            }),
+        @APIResponse(
+            responseCode = "404",
+            description = "Not found.",
+            content =
+                @Content(
+                    examples = {
+                      @ExampleObject(ref = OpenApiConstants.Examples.NAMESPACE_DOES_NOT_EXIST),
+                      @ExampleObject(ref = OpenApiConstants.Examples.COLLECTION_DOES_NOT_EXIST),
+                    },
+                    schema =
+                        @org.eclipse.microprofile.openapi.annotations.media.Schema(
+                            implementation = ApiError.class))),
+        @APIResponse(ref = OpenApiConstants.Responses.GENERAL_400),
+        @APIResponse(ref = OpenApiConstants.Responses.GENERAL_401),
+        @APIResponse(ref = OpenApiConstants.Responses.GENERAL_500),
+        @APIResponse(ref = OpenApiConstants.Responses.GENERAL_503),
+      })
+  @POST
+  @Path("{collection:\\w+}/{document-id}/function")
+  public Uni<RestResponse<Object>> executeBuiltInFunction(
+      @PathParam("namespace") String namespace,
+      @PathParam("collection") String collection,
+      @PathParam("document-id") String documentId,
+      @QueryParam("profile") boolean profile,
+      @QueryParam("raw") boolean raw,
+      @NotNull(message = "payload not provided") @Valid BuiltInFunctionDto body) {
+    return executeBuiltInFunction(
+        namespace, collection, documentId, Collections.emptyList(), profile, raw, body);
+  }
+
+  @Operation(
+      summary = "Executes a a built-in function against a path in a document",
       description =
           "Execute a built-in function (e.g. `$push` and `$pop`) against a value in this document. Performance may vary.")
   @Parameters(
@@ -114,7 +169,6 @@ public class BuiltInFunctionResource {
   @POST
   @Path("{collection:\\w+}/{document-id}/{document-path:.*}/function")
   public Uni<RestResponse<Object>> executeBuiltInFunction(
-      @Context UriInfo uriInfo,
       @PathParam("namespace") String namespace,
       @PathParam("collection") String collection,
       @PathParam("document-id") String documentId,
@@ -123,6 +177,7 @@ public class BuiltInFunctionResource {
       @QueryParam("raw") boolean raw,
       @NotNull(message = "payload not provided") @Valid BuiltInFunctionDto body) {
     ExecutionContext context = ExecutionContext.create(profile);
+
     List<String> subPath =
         documentPath.stream().map(PathSegment::getPath).collect(Collectors.toList());
 

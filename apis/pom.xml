@@ -3,8 +3,11 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.stargate</groupId>
   <artifactId>sgv2-api-parent</artifactId>
-  <version>2.0.0-BETA-3-SNAPSHOT</version>
+  <name>Stargate V2 API parent pom</name>
+  <version>2.0.0-BETA-5-SNAPSHOT</version>
+  <description>Parent POM for Stargate v2 APIs</description>
   <packaging>pom</packaging>
+  <url>http://github.com/stargate/stargate</url>
   <modules>
     <module>sgv2-quarkus-common</module>
     <module>sgv2-docsapi</module>
@@ -82,8 +85,9 @@
             <maven.home>${maven.home}</maven.home>
           </systemPropertyVariables>
           <excludes>
-            <exclude>**/*IntegrationTest.*</exclude>
             <exclude>**/*EndToEndTest.*</exclude>
+            <exclude>**/*IntegrationTest.*</exclude>
+            <exclude>**/*IT.*</exclude>
           </excludes>
           <skip>${skipUnitTests}</skip>
         </configuration>

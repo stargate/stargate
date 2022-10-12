@@ -1,5 +1,50 @@
 # Changelog
 
+**Closed issues:**
+
+- REST API build complains about the wrong property name [\#2135](https://github.com/stargate/stargate/issues/2135)
+
+## [v2.0.0-BETA-4](https://github.com/stargate/stargate/tree/v2.0.0-BETA-4) (2022-10-04)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-BETA-3...v2.0.0-BETA-4)
+
+**Closed issues:**
+
+- Use `-ntp` \(no-transfer-progress\) option for Github action maven invocations [\#2124](https://github.com/stargate/stargate/issues/2124)
+- Define Quarkus micrometer "match-patterns" setting for REST API [\#2116](https://github.com/stargate/stargate/issues/2116)
+
+**Merged pull requests:**
+
+- Fix \#2135 add open telemetry to rest, graphql apis [\#2136](https://github.com/stargate/stargate/pull/2136) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- added health extension to the graphql v2 [\#2133](https://github.com/stargate/stargate/pull/2133) ([ivansenic](https://github.com/ivansenic))
+- publish to OSSRH not to fail job on error [\#2132](https://github.com/stargate/stargate/pull/2132) ([ivansenic](https://github.com/ivansenic))
+- Add "match-patterns" for REST API [\#2130](https://github.com/stargate/stargate/pull/2130) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Try to recreate fix from PR \#2074, to fix Mac M1 proto build [\#2128](https://github.com/stargate/stargate/pull/2128) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix DSE version upgrade changes that were not merged due to version c… [\#2127](https://github.com/stargate/stargate/pull/2127) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#2124: add `-ntp` flag for CI Maven invocations to avoid printing progress msgs [\#2125](https://github.com/stargate/stargate/pull/2125) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+-  Allow executing a built in function against the root of a document  [\#2067](https://github.com/stargate/stargate/pull/2067) ([EricBorczuk](https://github.com/EricBorczuk))
+
+## [v2.0.0-BETA-3](https://github.com/stargate/stargate/tree/v2.0.0-BETA-3) (2022-09-30)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-BETA-2...v2.0.0-BETA-3)
+
+**Merged pull requests:**
+
+- relates to \#2108: fix bridge interceptor context check [\#2115](https://github.com/stargate/stargate/pull/2115) ([ivansenic](https://github.com/ivansenic))
+- align base configuration for the quarkus based apis [\#2114](https://github.com/stargate/stargate/pull/2114) ([ivansenic](https://github.com/ivansenic))
+- Switch port numbers for in-coordinator/extracted-drop-wizard cases [\#2113](https://github.com/stargate/stargate/pull/2113) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- remove duplicate port usage from docker compose files [\#2112](https://github.com/stargate/stargate/pull/2112) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Remove old Documents API integration tests; replaced by ones in `apis/sgv2-docsapi` [\#2109](https://github.com/stargate/stargate/pull/2109) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix docker compose ports [\#2105](https://github.com/stargate/stargate/pull/2105) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- update quarkus version to 2.12.3 [\#2102](https://github.com/stargate/stargate/pull/2102) ([ivansenic](https://github.com/ivansenic))
+- eliminating obsolete extra starctl scripts [\#2093](https://github.com/stargate/stargate/pull/2093) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- fix flaky graphql v2 int tests [\#2092](https://github.com/stargate/stargate/pull/2092) ([ivansenic](https://github.com/ivansenic))
+- Fix "all keyspaces" test to work with CNDB backend [\#2088](https://github.com/stargate/stargate/pull/2088) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add retry for data store properties access; new property to enable use of fallbacks [\#2087](https://github.com/stargate/stargate/pull/2087) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- option to enable auth in the int tests [\#2086](https://github.com/stargate/stargate/pull/2086) ([ivansenic](https://github.com/ivansenic))
+- updating project description [\#2097](https://github.com/stargate/stargate/pull/2097) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- relates to \#2065: bump DSE version to 6.8.26  [\#2094](https://github.com/stargate/stargate/pull/2094) ([ivansenic](https://github.com/ivansenic))
+
 ## [v2.0.0-BETA-2](https://github.com/stargate/stargate/tree/v2.0.0-BETA-2) (2022-09-17)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-BETA-1...v2.0.0-BETA-2)
@@ -398,6 +443,20 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Rest integration test - initial work (#1359)
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
+
+## [v1.0.66](https://github.com/stargate/stargate/tree/v1.0.66) (2022-09-29)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.65...v1.0.66)
+
+**Closed issues:**
+
+- Enable gRPC Server Reflection to help with API Consumer on-boarding [\#2068](https://github.com/stargate/stargate/issues/2068)
+- Update DSE to 6.8.26 [\#2065](https://github.com/stargate/stargate/issues/2065)
+
+**Merged pull requests:**
+
+- relates to \#2065: bump DSE version to 6.8.26  [\#2094](https://github.com/stargate/stargate/pull/2094) ([ivansenic](https://github.com/ivansenic))
+- closes \#2068: Enable gRPC reflection [\#1853](https://github.com/stargate/stargate/pull/1853) ([mpenick](https://github.com/mpenick))
 
 ## [v1.0.65](https://github.com/stargate/stargate/tree/v1.0.65) (2022-09-16)
 

@@ -4,13 +4,14 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>sgv2-api-parent</artifactId>
-    <version>2.0.0-BETA-3-SNAPSHOT</version>
+    <version>2.0.0-BETA-5-SNAPSHOT</version>
   </parent>
   <artifactId>sgv2-graphqlapi</artifactId>
   <properties>
     <quarkus.container-image.group>stargateio</quarkus.container-image.group>
     <quarkus.container-image.name>graphqlapi</quarkus.container-image.name>
     <quarkus.container-image.tag>v${project.version}</quarkus.container-image.tag>
+    <quarkus.container-image.additional-tags>v2</quarkus.container-image.additional-tags>
   </properties>
   <dependencies>
     <dependency>
@@ -32,11 +33,31 @@
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-container-image-docker</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-smallrye-health</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-smallrye-openapi</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-security</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-cache</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.quarkus</groupId>
       <artifactId>quarkus-micrometer-registry-prometheus</artifactId>
     </dependency>
     <dependency>
       <groupId>io.quarkus</groupId>
-      <artifactId>quarkus-container-image-docker</artifactId>
+      <artifactId>quarkus-opentelemetry-exporter-otlp</artifactId>
     </dependency>
     <dependency>
       <groupId>com.graphql-java</groupId>

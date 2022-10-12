@@ -96,8 +96,8 @@ jobs:
 
       - name: Build with Maven
         run: |
-          mvn versions:set -DremoveSnapshot versions:commit
-          mvn -P dse -q -ff clean package -DskipTests
+          mvn -B -ntp versions:set -DremoveSnapshot versions:commit
+          mvn -P dse -B -ntp -q -ff clean package -DskipTests
 
       - name: Zip-up `stargate-lib`
         run: |
@@ -163,13 +163,13 @@ jobs:
       - name: Publish package
         if: ${{ !inputs.skipPublish }}
         run: |
-          ./mvnw versions:set -DremoveSnapshot versions:commit
-          ./mvnw -B -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse
+          ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          ./mvnw -B -ntp -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse
 
       - name: Bump versions
         run: |
-          ./mvnw -B release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse
-          ./mvnw xml-format:xml-format fmt:format -Pdse
+          ./mvnw -B -ntp release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse
+          ./mvnw -B -ntp xml-format:xml-format fmt:format -Pdse
 
       - name: Rev Version
         if: success()

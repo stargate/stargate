@@ -85,7 +85,7 @@ jobs:
 
       - name: Build
         if: steps.cache-coordinator-snapshots.outputs.cache-hit != 'true'
-        run: MAVEN_OPTS="-Xmx4g" ./mvnw install -P dse -DskipTests
+        run: MAVEN_OPTS="-Xmx4g" ./mvnw -B -ntp install -P dse -DskipTests
 
   # Builds C*3, C*4 and DSE coordinator images using matrix
   # Exports image to a file and then uploads it using action artifacts
@@ -191,7 +191,7 @@ jobs:
       - name: Build & Test Stargate v2 Quarkus-based APIs
         run: |
           cd apis/
-          ./mvnw -B clean test
+          ./mvnw -B -ntp clean test
 
   # runs int tests for the sgv2-docsapi
   # supports downloading and importing the built docker image
@@ -303,7 +303,7 @@ jobs:
           CONTAINER_TEST: true
         run: |
           cd apis/
-          ./mvnw -B verify -DskipUnitTests -pl ${{ matrix.project }} -am -P ${{ matrix.profile }} -Dquarkus.container-image.build=$CONTAINER_TEST -Dtesting.containers.stargate-image=${{ matrix.image }}
+          ./mvnw -B -ntp verify -DskipUnitTests -pl ${{ matrix.project }} -am -P ${{ matrix.profile }} -Dquarkus.container-image.build=$CONTAINER_TEST -Dtesting.containers.stargate-image=${{ matrix.image }}
 
   # runs always, deletes built docker image artifacts
   clean-up:

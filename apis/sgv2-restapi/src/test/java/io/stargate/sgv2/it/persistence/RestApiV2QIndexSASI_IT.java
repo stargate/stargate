@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assumptions.assumeThat;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.quarkus.test.common.QuarkusTestResource;
-import io.quarkus.test.common.ResourceArg;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.stargate.sgv2.common.IntegrationTestUtils;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
@@ -23,10 +22,7 @@ import org.slf4j.LoggerFactory;
  * tests since SASI not available on all backends.
  */
 @QuarkusIntegrationTest
-@QuarkusTestResource(
-    value = StargateTestResource.class,
-    initArgs =
-        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
+@QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QIndexSASI_IT extends RestApiV2QIntegrationTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(RestApiV2QIndexSASI_IT.class);
 
