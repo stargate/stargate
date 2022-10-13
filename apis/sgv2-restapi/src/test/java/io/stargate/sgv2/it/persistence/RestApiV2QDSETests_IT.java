@@ -15,6 +15,8 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+
 /**
  * Test suite that verifies DSE-specific features.
  *
@@ -32,7 +34,7 @@ public class RestApiV2QDSETests_IT extends RestApiV2QCqlEnabledTestBase {
 
   /*
   /////////////////////////////////////////////////////////////////////////
-  // Test methods
+  // Test methods for Collections (Lists, Sets)
   /////////////////////////////////////////////////////////////////////////
    */
 
@@ -40,9 +42,15 @@ public class RestApiV2QDSETests_IT extends RestApiV2QCqlEnabledTestBase {
   @DisplayName("Should query list column with $contains")
   public void listContainsTest() {
     verifyDSE();
-    createLists();
 
-    final String url = endpointPathForRowGetWith(testKeyspaceName(), "lists");
+    final String ks = testKeyspaceName();
+    executeCQLs(
+            "CREATE TABLE %s.lists(k int PRIMARY KEY, l list<int>)".formatted(ks),
+            "CREATE CUSTOM INDEX lists_l_idx ON %s.lists(l) USING 'StorageAttachedIndex'"
+                    .formatted(ks, ks),
+            "INSERT INTO %s.lists (k,l) VALUES (1, [1,2,3])".formatted(ks));
+
+    final String url = endpointPathForRowGetWith(ks, "lists");
     String response =
         givenWithAuth()
             .queryParam("raw", true)
@@ -71,6 +79,84 @@ public class RestApiV2QDSETests_IT extends RestApiV2QCqlEnabledTestBase {
     assertThat(rows).hasSize(0);
   }
 
+  @Test
+  @DisplayName("Should query set column with $contains")
+  public void setContainsTest() {
+    verifyDSE();
+
+    final String ks = testKeyspaceName();
+    executeCQLs(
+            "CREATE TABLE %s.sets(k int PRIMARY KEY, s set<int>)".formatted(ks),
+            "CREATE CUSTOM INDEX sets_s_idx ON %s.sets(s) USING 'StorageAttachedIndex'".formatted(ks),
+            "INSERT INTO %s.sets (k,s) VALUES (1, {1,2,3})".formatted(ks)
+    );
+  }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Test methods for Maps
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  @Test
+  @DisplayName("Should query map column with $containsKey")
+  public void mapContainsKeyTest() {
+    verifyDSE();
+
+    final String ks = testKeyspaceName();
+    executeCQLs(
+            // Map, indexed by key
+            "CREATE TABLE %s.maps_per_key(k int PRIMARY KEY, m map<int, text>)".formatted(ks),
+            "CREATE CUSTOM INDEX maps_per_key_m_idx ON %s.maps_per_key(keys(m)) USING 'StorageAttachedIndex'".formatted(ks),
+            "INSERT INTO %s.maps_per_key (k,m) values (1, {1:'a',2:'b',3:'c'})".formatted(ks)
+    );
+  }
+
+  @Test
+  @DisplayName("Should query map column with $contains")
+  public void mapContainsTest() {
+    verifyDSE();
+
+    final String ks = testKeyspaceName();
+    executeCQLs(
+            // Map, indexed by value
+            "CREATE TABLE %s.maps_per_value(k int PRIMARY KEY, m map<int, text>)".formatted(ks),
+            "CREATE CUSTOM INDEX maps_per_value_m_idx ON %s.maps_per_value(m) USING 'StorageAttachedIndex'".formatted(ks),
+            "INSERT INTO %s.maps_per_value (k,m) values (1, {1:'a',2:'b',3:'c'})".formatted(ks)
+            );
+  }
+
+  @Test
+  @DisplayName("Should query map column with $containsEntry")
+  public void mapContainsEntryTest() {
+    verifyDSE();
+
+    final String ks = testKeyspaceName();
+    executeCQLs(
+            // Map, indexed by entry
+            "CREATE TABLE %s.maps_per_entry(k int PRIMARY KEY, m map<int, text>)".formatted(ks),
+            "CREATE CUSTOM INDEX maps_per_entry_m_idx ON %s.maps_per_entry(entries(m)) USING 'StorageAttachedIndex'".formatted(ks),
+            "INSERT INTO %s.maps_per_entry (k,m) values (1, {1:'a',2:'b',3:'c'})".formatted(ks)
+            );
+  }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Test methods for Indexes
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  @Test
+  public void createCustomIndexes() {
+    // Start by creating test table needed
+    final String ks = testKeyspaceName();
+    executeCQLs(
+            "CREATE TABLE %s.index_test_table(k int PRIMARY KEY, l list<int>, m1 map<int, text>, m2 map<int, text>, m3 map<int, text>)"
+                    .formatted(ks)
+    );
+  }
+
+
   /*
   /////////////////////////////////////////////////////////////////////////
   // Helper methods
@@ -79,15 +165,6 @@ public class RestApiV2QDSETests_IT extends RestApiV2QCqlEnabledTestBase {
 
   private void verifyDSE() {
     assumeThat(IntegrationTestUtils.isDSE()).as("Test only applicable to DSE backend").isTrue();
-  }
-
-  private void createLists() {
-    final String ks = testKeyspaceName();
-    executeCQLs(
-        "CREATE TABLE %s.lists(k int PRIMARY KEY, l list<int>)".formatted(ks),
-        "CREATE CUSTOM INDEX lists_l_idx ON %s.lists(l) USING 'StorageAttachedIndex'"
-            .formatted(ks, ks),
-        "INSERT INTO %s.lists (k,l) VALUES (1, [1,2,3])".formatted(ks));
   }
 
   private void executeCQLs(String... stmts) {
