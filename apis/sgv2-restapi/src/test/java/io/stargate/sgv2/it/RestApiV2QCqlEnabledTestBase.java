@@ -31,9 +31,9 @@ public class RestApiV2QCqlEnabledTestBase extends RestApiV2QIntegrationTestBase 
     if (IntegrationTestUtils.isCassandraAuthEnabled()) {
       config.put(TypedDriverOption.AUTH_PROVIDER_CLASS, PlainTextAuthProvider.class.getName());
       config.put(
-              TypedDriverOption.AUTH_PROVIDER_USER_NAME, IntegrationTestUtils.getCassandraUsername());
+          TypedDriverOption.AUTH_PROVIDER_USER_NAME, IntegrationTestUtils.getCassandraUsername());
       config.put(
-              TypedDriverOption.AUTH_PROVIDER_PASSWORD, IntegrationTestUtils.getCassandraPassword());
+          TypedDriverOption.AUTH_PROVIDER_PASSWORD, IntegrationTestUtils.getCassandraPassword());
     }
 
     session =
