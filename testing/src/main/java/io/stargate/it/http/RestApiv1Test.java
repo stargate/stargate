@@ -25,6 +25,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.auth.model.AuthTokenResponse;
+import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.http.models.Credentials;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.web.restapi.models.Changeset;
@@ -61,8 +62,8 @@ import org.junit.jupiter.api.Test;
 
 /** Integration tests for legacy Rest V1 endpoints (both DDL and DML). */
 @NotThreadSafe
-//@Disabled("SGv2 does not currently support REST v1 API")
-public class RestApiv1Test extends BaseRestApiTest {
+// @Disabled("SGv2 does not currently support REST v1 API")
+public class RestApiv1Test extends BaseIntegrationTest {
   private static final Pattern GRAPHQL_OPERATIONS_METRIC_REGEXP =
       Pattern.compile(
           "(restapi_io_dropwizard_jetty_MutableServletContextHandler_dispatches_count\\s*)(\\d+.\\d+)");
@@ -76,8 +77,7 @@ public class RestApiv1Test extends BaseRestApiTest {
   private CqlSession session;
 
   @BeforeEach
-  public void setup(StargateConnectionInfo cluster)
-      throws IOException {
+  public void setup(StargateConnectionInfo cluster) throws IOException {
     authUrlBase = "http://" + cluster.seedAddress() + ":8081";
     restUrlBase = "http://" + cluster.seedAddress() + ":8082";
     metricsUrlBase = "http://" + cluster.seedAddress() + ":8084";
@@ -711,8 +711,7 @@ public class RestApiv1Test extends BaseRestApiTest {
     okhttp3.Response response =
         RestUtils.postRaw(
             authToken,
-            String.format(
-                "%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
+            String.format("%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
             "",
             422);
     Map<String, String> map = objectMapper.readValue(response.body().string(), Map.class);
@@ -721,8 +720,7 @@ public class RestApiv1Test extends BaseRestApiTest {
     response =
         RestUtils.postRaw(
             authToken,
-            String.format(
-                "%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
+            String.format("%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
             "{}",
             422);
     map = objectMapper.readValue(response.body().string(), Map.class);
@@ -732,8 +730,7 @@ public class RestApiv1Test extends BaseRestApiTest {
     response =
         RestUtils.postRaw(
             authToken,
-            String.format(
-                "%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
+            String.format("%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
             "{\"columns\":[]}",
             422);
     map = objectMapper.readValue(response.body().string(), Map.class);
@@ -743,8 +740,7 @@ public class RestApiv1Test extends BaseRestApiTest {
     response =
         RestUtils.postRaw(
             authToken,
-            String.format(
-                "%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
+            String.format("%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
             "{\"columns\":[{\"value\":\"firstname\"}]}",
             422);
     map = objectMapper.readValue(response.body().string(), Map.class);
@@ -754,8 +750,7 @@ public class RestApiv1Test extends BaseRestApiTest {
     response =
         RestUtils.postRaw(
             authToken,
-            String.format(
-                "%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
+            String.format("%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
             "{\"columns\":[{\"name\":\"\"}]}",
             422);
     map = objectMapper.readValue(response.body().string(), Map.class);
