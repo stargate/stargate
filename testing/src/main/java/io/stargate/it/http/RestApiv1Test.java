@@ -57,15 +57,11 @@ import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 
 /** Integration tests for legacy Rest V1 endpoints (both DDL and DML). */
 @NotThreadSafe
-@ExtendWith(ApiServiceExtension.class)
-@ApiServiceSpec(parametersCustomizer = "buildApiServiceParameters")
-@Disabled("SGv2 does not currently support REST v1 API")
+//@Disabled("SGv2 does not currently support REST v1 API")
 public class RestApiv1Test extends BaseRestApiTest {
   private static final Pattern GRAPHQL_OPERATIONS_METRIC_REGEXP =
       Pattern.compile(
@@ -75,15 +71,16 @@ public class RestApiv1Test extends BaseRestApiTest {
   private static String authToken;
   private String restUrlBase;
   private String authUrlBase;
+  private String metricsUrlBase;
   private String keyspace;
   private CqlSession session;
 
   @BeforeEach
-  public void setup(StargateConnectionInfo cluster, ApiServiceConnectionInfo restApi)
+  public void setup(StargateConnectionInfo cluster)
       throws IOException {
-    authUrlBase = "http://" + cluster.seedAddress() + ":8081"; // TODO: make auth port configurable
-    restUrlBase = "http://" + restApi.host() + ":" + restApi.port();
-
+    authUrlBase = "http://" + cluster.seedAddress() + ":8081";
+    restUrlBase = "http://" + cluster.seedAddress() + ":8082";
+    metricsUrlBase = "http://" + cluster.seedAddress() + ":8084";
     keyspace = "ks_restapitest";
 
     session =
@@ -378,14 +375,6 @@ public class RestApiv1Test extends BaseRestApiTest {
     RowResponse rowResponse = objectMapper.readValue(body, new TypeReference<RowResponse>() {});
     assertThat(rowResponse.getCount()).isEqualTo(1);
     assertThat(rowResponse.getRows().get(0).get("cluster_name")).isEqualTo(backend.clusterName());
-  }
-
-  @Test
-  public void getRowBadRequest() throws IOException {
-    RestUtils.get(
-        authToken,
-        String.format("%s/v1/keyspaces/%s/tables/%s/rows/peer", restUrlBase, "system", "peers"),
-        HttpStatus.SC_BAD_REQUEST);
   }
 
   @Test
@@ -723,7 +712,7 @@ public class RestApiv1Test extends BaseRestApiTest {
         RestUtils.postRaw(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
+                "%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
             "",
             422);
     Map<String, String> map = objectMapper.readValue(response.body().string(), Map.class);
@@ -733,7 +722,7 @@ public class RestApiv1Test extends BaseRestApiTest {
         RestUtils.postRaw(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
+                "%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
             "{}",
             422);
     map = objectMapper.readValue(response.body().string(), Map.class);
@@ -744,7 +733,7 @@ public class RestApiv1Test extends BaseRestApiTest {
         RestUtils.postRaw(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
+                "%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
             "{\"columns\":[]}",
             422);
     map = objectMapper.readValue(response.body().string(), Map.class);
@@ -755,7 +744,7 @@ public class RestApiv1Test extends BaseRestApiTest {
         RestUtils.postRaw(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
+                "%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
             "{\"columns\":[{\"value\":\"firstname\"}]}",
             422);
     map = objectMapper.readValue(response.body().string(), Map.class);
@@ -766,7 +755,7 @@ public class RestApiv1Test extends BaseRestApiTest {
         RestUtils.postRaw(
             authToken,
             String.format(
-                "%s:8082/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
+                "%s/v1/keyspaces/%s/tables/%s/rows", restUrlBase, keyspace, tableName),
             "{\"columns\":[{\"name\":\"\"}]}",
             422);
     map = objectMapper.readValue(response.body().string(), Map.class);
@@ -1504,7 +1493,7 @@ public class RestApiv1Test extends BaseRestApiTest {
     assertThat(successResponse.getSuccess()).isTrue();
 
     // when
-    body = RestUtils.get("", String.format("%s:8084/metrics", restUrlBase), HttpStatus.SC_OK);
+    body = RestUtils.get("", String.format("%s/metrics", metricsUrlBase), HttpStatus.SC_OK);
 
     // then
     double numberOfRestOperations = getRestOperations(body);
