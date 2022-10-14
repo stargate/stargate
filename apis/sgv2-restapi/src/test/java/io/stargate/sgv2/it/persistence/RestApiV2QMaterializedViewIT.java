@@ -9,7 +9,6 @@ import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.stargate.sgv2.common.IntegrationTestUtils;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.it.RestApiV2QCqlEnabledTestBase;
-
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
@@ -87,11 +86,13 @@ public class RestApiV2QMaterializedViewIT extends RestApiV2QCqlEnabledTestBase {
     //  Awaitility needs to be used to retry a few times.
 
     Awaitility.await()
-            .atMost(Duration.ofSeconds(5))
-            .atLeast(Duration.ofMillis(100L))
-            .pollInterval(Duration.ofMillis(500L))
-            .untilAsserted(() -> {
-              List<Map<String, Object>> rows = findAllRowsAsList(keyspaceName, materializedViewName);
+        .atMost(Duration.ofSeconds(5))
+        .atLeast(Duration.ofMillis(100L))
+        .pollInterval(Duration.ofMillis(500L))
+        .untilAsserted(
+            () -> {
+              List<Map<String, Object>> rows =
+                  findAllRowsAsList(keyspaceName, materializedViewName);
 
               // Alas, due to "id" as partition key, ordering is arbitrary; so need to
               // convert from List to something like Set
