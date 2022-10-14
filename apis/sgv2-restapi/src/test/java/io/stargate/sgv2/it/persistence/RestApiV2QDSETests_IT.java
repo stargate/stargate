@@ -131,6 +131,34 @@ public class RestApiV2QDSETests_IT extends RestApiV2QCqlEnabledTestBase {
         "CREATE CUSTOM INDEX maps_per_key_m_idx ON %s.maps_per_key(keys(m)) USING 'StorageAttachedIndex'"
             .formatted(ks),
         "INSERT INTO %s.maps_per_key (k,m) values (1, {1:'a',2:'b',3:'c'})".formatted(ks));
+
+    final String url = endpointPathForRowGetWith(ks, "maps_per_key");
+    String response =
+        givenWithAuth()
+            .queryParam("raw", true)
+            .queryParam("where", "{\"m\":{\"$containsKey\":1}}")
+            .when()
+            .get(url)
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    JsonNode rows = readJsonAsTree(response);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.at("/0/k").intValue()).isEqualTo(1);
+
+    response =
+        givenWithAuth()
+            .queryParam("raw", true)
+            .queryParam("where", "{\"m\":{\"$containsKey\":4}}")
+            .when()
+            .get(url)
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    rows = readJsonAsTree(response);
+    assertThat(rows).hasSize(0);
   }
 
   @Test
@@ -145,6 +173,34 @@ public class RestApiV2QDSETests_IT extends RestApiV2QCqlEnabledTestBase {
         "CREATE CUSTOM INDEX maps_per_value_m_idx ON %s.maps_per_value(m) USING 'StorageAttachedIndex'"
             .formatted(ks),
         "INSERT INTO %s.maps_per_value (k,m) values (1, {1:'a',2:'b',3:'c'})".formatted(ks));
+
+    final String url = endpointPathForRowGetWith(ks, "maps_per_value");
+    String response =
+        givenWithAuth()
+            .queryParam("raw", true)
+            .queryParam("where", "{\"m\":{\"$contains\":\"a\"}}")
+            .when()
+            .get(url)
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    JsonNode rows = readJsonAsTree(response);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.at("/0/k").intValue()).isEqualTo(1);
+
+    response =
+        givenWithAuth()
+            .queryParam("raw", true)
+            .queryParam("where", "{\"m\":{\"$contains\":\"d\"}}")
+            .when()
+            .get(url)
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    rows = readJsonAsTree(response);
+    assertThat(rows).hasSize(0);
   }
 
   @Test
@@ -159,6 +215,34 @@ public class RestApiV2QDSETests_IT extends RestApiV2QCqlEnabledTestBase {
         "CREATE CUSTOM INDEX maps_per_entry_m_idx ON %s.maps_per_entry(entries(m)) USING 'StorageAttachedIndex'"
             .formatted(ks),
         "INSERT INTO %s.maps_per_entry (k,m) values (1, {1:'a',2:'b',3:'c'})".formatted(ks));
+
+    final String url = endpointPathForRowGetWith(ks, "maps_per_entry");
+    String response =
+        givenWithAuth()
+            .queryParam("raw", true)
+            .queryParam("where", "{\"m\":{\"$containsEntry\":{\"key\": 1, \"value\":\"a\"}}}")
+            .when()
+            .get(url)
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    JsonNode rows = readJsonAsTree(response);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.at("/0/k").intValue()).isEqualTo(1);
+
+    response =
+        givenWithAuth()
+            .queryParam("raw", true)
+            .queryParam("where", "{\"m\":{\"$containsEntry\":{\"key\": 1, \"value\":\"b\"}}}")
+            .when()
+            .get(url)
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    rows = readJsonAsTree(response);
+    assertThat(rows).hasSize(0);
   }
 
   /*
@@ -191,6 +275,14 @@ public class RestApiV2QDSETests_IT extends RestApiV2QCqlEnabledTestBase {
     for (String stmt : stmts) {
       ResultSet resultSet = session.execute(stmt);
       assertThat(resultSet.wasApplied()).isTrue();
+
+      // 13-Oct-2022, tatu: For some reason it looks like there is some delay in above statements
+      //    getting completed and schema changes being visible; none of methods in CqlSession
+      //    appears to guarantee sync. But slight delay seems to work around the issue so...
+      try {
+        Thread.sleep(1000L);
+      } catch (InterruptedException e) {
+      }
     }
   }
 }

@@ -81,9 +81,9 @@ public class RestApiV2QMaterializedViewIT extends RestApiV2QCqlEnabledTestBase {
     // 14-Sep-2022, tatu: Not sure why but there is a transient issue here wrt timing.
     //   Locally test does not appear to ever fail, but in CI it does, with error suggesting
     //   MV has not been created or Schema metadata not (yet) updated. In absence of
-    //   better solution, let's try simple wait to give it time; 5 seconds should do it.
+    //   better solution, let's try simple wait to give it time; 3 seconds should do it.
 
-    Thread.sleep(5000L);
+    Thread.sleep(3000L);
 
     List<Map<String, Object>> rows = findAllRowsAsList(keyspaceName, materializedViewName);
 
