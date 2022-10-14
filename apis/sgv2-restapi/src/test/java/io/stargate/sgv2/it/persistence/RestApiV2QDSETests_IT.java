@@ -16,6 +16,8 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Test suite that verifies DSE-specific features.
@@ -90,6 +92,34 @@ public class RestApiV2QDSETests_IT extends RestApiV2QCqlEnabledTestBase {
             "CREATE CUSTOM INDEX sets_s_idx ON %s.sets(s) USING 'StorageAttachedIndex'".formatted(ks),
             "INSERT INTO %s.sets (k,s) VALUES (1, {1,2,3})".formatted(ks)
     );
+
+    final String url = endpointPathForRowGetWith(ks, "sets");
+    String response =
+            givenWithAuth()
+                    .queryParam("raw", true)
+                    .queryParam("where", "{\"s\":{\"$contains\":1}}")
+                    .when()
+                    .get(url)
+                    .then()
+                    .statusCode(HttpStatus.SC_OK)
+                    .extract()
+                    .asString();
+    JsonNode rows = readJsonAsTree(response);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.at("/0/k").intValue()).isEqualTo(1);
+
+    response =
+            givenWithAuth()
+                    .queryParam("raw", true)
+                    .queryParam("where", "{\"s\":{\"$contains\":4}}")
+                    .when()
+                    .get(url)
+                    .then()
+                    .statusCode(HttpStatus.SC_OK)
+                    .extract()
+                    .asString();
+    rows = readJsonAsTree(response);
+    assertThat(rows).hasSize(0);
   }
 
   /*
@@ -147,6 +177,7 @@ public class RestApiV2QDSETests_IT extends RestApiV2QCqlEnabledTestBase {
    */
 
   @Test
+  @DisplayName("Should be able to create custom indexes with 'StorageAttachedIndex'")
   public void createCustomIndexes() {
     // Start by creating test table needed
     final String ks = testKeyspaceName();
