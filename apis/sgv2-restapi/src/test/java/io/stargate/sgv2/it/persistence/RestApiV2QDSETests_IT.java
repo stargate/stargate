@@ -7,9 +7,11 @@ import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
+import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
 import io.stargate.sgv2.common.IntegrationTestUtils;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.it.RestApiV2QCqlEnabledTestBase;
+import io.stargate.sgv2.restapi.service.models.Sgv2IndexAddRequest;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -259,6 +261,23 @@ public class RestApiV2QDSETests_IT extends RestApiV2QCqlEnabledTestBase {
     executeCQLs(
         "CREATE TABLE %s.index_test_table(k int PRIMARY KEY, l list<int>, m1 map<int, text>, m2 map<int, text>, m3 map<int, text>)"
             .formatted(ks));
+
+    Sgv2IndexAddRequest indexAdd = new Sgv2IndexAddRequest("l", "idx1");
+    indexAdd.setIfNotExists(false);
+    indexAdd.setType("StorageAttachedIndex");
+    tryCreateIndex(ks, "index_test_table", indexAdd, HttpStatus.SC_CREATED);
+
+    indexAdd = new Sgv2IndexAddRequest("m1", "idx2");
+    indexAdd.setKind(CollectionIndexingType.KEYS);
+    tryCreateIndex(ks, "index_test_table", indexAdd, HttpStatus.SC_CREATED);
+
+    indexAdd = new Sgv2IndexAddRequest("m3", "idx3");
+    indexAdd.setKind(null);
+    tryCreateIndex(ks, "index_test_table", indexAdd, HttpStatus.SC_CREATED);
+
+    indexAdd = new Sgv2IndexAddRequest("m3", "idx4");
+    indexAdd.setKind(CollectionIndexingType.ENTRIES);
+    tryCreateIndex(ks, "index_test_table", indexAdd, HttpStatus.SC_CREATED);
   }
 
   /*
