@@ -75,16 +75,13 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                   required = true,
                   schema = @Schema(implementation = String.class),
                   description = "The ID of the document."),
-
-              // TODO there is no correct way to handle this in Swagger
-              //  simply the multi-paths can not be defined in a single param
               @Parameter(
                   in = ParameterIn.PATH,
                   name = OpenApiConstants.Parameters.DOCUMENT_PATH,
                   required = true,
-                  schema = @Schema(implementation = String.class, type = SchemaType.ARRAY),
+                  schema = @Schema(implementation = String.class),
                   description =
-                      "The path in the JSON that you want to target. Use `\\` to escape periods, commas, and asterisks."),
+                      "The path in the JSON that you want to target. Use path delimiter `/` to target sub-paths, for example to get a JSON object under `$.account.user` use `account/user`. Use `\\` to escape periods, commas, and asterisks."),
               @Parameter(
                   in = ParameterIn.QUERY,
                   name = OpenApiConstants.Parameters.WHERE,
@@ -96,8 +93,8 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                       * allowed hints: `$selectivity` (a number between 0.0 and 1.0, less is better), defines conditions that should be search for first
                       * Use `\\` to escape periods, commas, and asterisks
                       """,
-                  schema = @Schema(type = SchemaType.OBJECT),
                   examples = {
+                    @ExampleObject(name = "where.empty", summary = "No condition", value = ""),
                     @ExampleObject(
                         name = "where.single",
                         summary = "Single condition",
@@ -169,9 +166,14 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
               @Parameter(
                   in = ParameterIn.QUERY,
                   name = OpenApiConstants.Parameters.FIELDS,
-                  description = "The field names that you want to restrict the results to.",
-                  example = "[race,location]",
-                  schema = @Schema(implementation = String.class, type = SchemaType.ARRAY)),
+                  description = "A JSON array representing the field names that you want to restrict the results to.",
+                  examples = {
+                    @ExampleObject(name = "fields.empty", summary = "No fields", value = ""),
+                    @ExampleObject(
+                        name = "fields.notEmpty",
+                        summary = "Fields example",
+                        value = "[race,location]")
+                  }),
               @Parameter(
                   in = ParameterIn.QUERY,
                   name = OpenApiConstants.Parameters.PAGE_SIZE,
