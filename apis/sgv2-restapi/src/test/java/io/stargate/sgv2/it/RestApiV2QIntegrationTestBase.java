@@ -74,7 +74,7 @@ public abstract class RestApiV2QIntegrationTestBase {
   public void initPerTest(TestInfo testInfo) {
     // Let's force lower-case keyspace and table names for defaults; case-sensitive testing
     // needs to use explicitly different values
-    String testName = testInfo.getTestMethod().map(ti -> ti.getName()).get(); // .toLowerCase();
+    String testName = testInfo.getTestMethod().map(ti -> ti.getName()).get().toLowerCase();
     String timestamp = "_" + System.currentTimeMillis();
 
     int len = testKeyspacePrefix.length() + testName.length() + timestamp.length();
