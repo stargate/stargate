@@ -26,6 +26,10 @@ Both scripts support the following options:
 * You can specify a released image tag (version) using `-t [VERSION]`. Consult [Docker Hub](https://hub.docker.com/r/stargateio/coordinator-dse-68/tags) for a list of available tags.
 
 * Alternatively, build the snapshot version locally using instructions in the [developer guide](../../DEV_GUIDE.md) and run the script using the `-l` option.
+* 
+* You can change the default root log level using `-r [LEVEL]` (default `INFO`). Valid values: `ERROR`, `WARN`, `INFO`, `DEBUG`
+
+* You can enable reguest logging using `-q`: if so, each request is logged under category `io.quarkus.http.access-log`
 
 # Notes
 
