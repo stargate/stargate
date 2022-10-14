@@ -166,7 +166,8 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
               @Parameter(
                   in = ParameterIn.QUERY,
                   name = OpenApiConstants.Parameters.FIELDS,
-                  description = "A JSON array representing the field names that you want to restrict the results to.",
+                  description =
+                      "A JSON array representing the field names that you want to restrict the results to.",
                   examples = {
                     @ExampleObject(name = "fields.empty", summary = "No fields", value = ""),
                     @ExampleObject(
