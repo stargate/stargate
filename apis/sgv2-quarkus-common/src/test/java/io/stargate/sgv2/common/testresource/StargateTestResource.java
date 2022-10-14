@@ -63,12 +63,6 @@ import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
 public class StargateTestResource
     implements QuarkusTestResourceLifecycleManager, DevServicesContext.ContextAware {
 
-  /** Options that can be passed using the resource init map. */
-  public interface Options {
-
-    String DISABLE_FIXED_TOKEN = "DISABLE_FIXED_TOKEN";
-  }
-
   /**
    * Set of defaults for the integration tests, usually used when running from IDE.
    *
@@ -147,14 +141,6 @@ public class StargateTestResource
     propsBuilder.put(
         IntegrationTestUtils.CASSANDRA_CQL_PORT_PROP,
         cassandraContainer.getMappedPort(9042).toString());
-
-    // TODO if no end-to-end tests, inject the token instead of fixing it
-    //  keep fixed token until restapi and gqlapi are not updated
-    // enable fixed token
-    if (!"true".equals(initArgs.get(Options.DISABLE_FIXED_TOKEN))) {
-      propsBuilder.put("stargate.auth.token-resolver.type", "fixed");
-      propsBuilder.put("stargate.auth.token-resolver.fixed.token", token);
-    }
 
     // Some Integration tests need to know backend storage version, to work around
     // discrepancies between Cassandra/DSE versions
