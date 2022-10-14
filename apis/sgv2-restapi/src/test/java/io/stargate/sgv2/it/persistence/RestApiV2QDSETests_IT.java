@@ -256,8 +256,10 @@ public class RestApiV2QDSETests_IT extends RestApiV2QCqlEnabledTestBase {
   @Test
   @DisplayName("Should be able to create custom indexes with 'StorageAttachedIndex'")
   public void createCustomIndexes() {
-    // Start by creating test table needed
+    verifyDSE();
+
     final String ks = testKeyspaceName();
+    // Start by creating test table needed
     executeCQLs(
         "CREATE TABLE %s.index_test_table(k int PRIMARY KEY, l list<int>, m1 map<int, text>, m2 map<int, text>, m3 map<int, text>)"
             .formatted(ks));
