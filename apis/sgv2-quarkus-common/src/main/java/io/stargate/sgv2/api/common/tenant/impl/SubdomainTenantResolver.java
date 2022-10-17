@@ -17,6 +17,7 @@
 
 package io.stargate.sgv2.api.common.tenant.impl;
 
+import io.stargate.sgv2.api.common.config.MultiTenancyConfig;
 import io.stargate.sgv2.api.common.tenant.TenantResolver;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Optional;
@@ -31,6 +32,12 @@ import javax.ws.rs.core.SecurityContext;
  */
 public class SubdomainTenantResolver implements TenantResolver {
 
+  private final MultiTenancyConfig.TenantResolverConfig.SubdomainTenantResolverConfig config;
+
+  public SubdomainTenantResolver(MultiTenancyConfig.TenantResolverConfig.SubdomainTenantResolverConfig config) {
+    this.config = config;
+  }
+
   /** {@inheritDoc} */
   @Override
   public Optional<String> resolve(RoutingContext context, SecurityContext securityContext) {
@@ -42,6 +49,16 @@ public class SubdomainTenantResolver implements TenantResolver {
     // otherwise empty
     if (index > 0) {
       String tenantId = host.substring(0, index);
+
+      // if max chars is present
+      // ensure subdomain is trimmed
+      if (config.maxChars().isPresent()) {
+        int maxChars = config.maxChars().getAsInt();
+        if (maxChars < tenantId.length())  {
+          return Optional.of(tenantId.substring(0, maxChars));
+        }
+      }
+
       return Optional.of(tenantId);
     } else {
       return Optional.empty();

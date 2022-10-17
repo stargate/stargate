@@ -33,8 +33,8 @@ public class TenantConfiguration {
   @ApplicationScoped
   @LookupIfProperty(name = "stargate.multi-tenancy.tenant-resolver.type", stringValue = "subdomain")
   @LookupIfProperty(name = "stargate.multi-tenancy.enabled", stringValue = "true")
-  TenantResolver subdomainTenantResolver() {
-    return new SubdomainTenantResolver();
+  TenantResolver subdomainTenantResolver(MultiTenancyConfig config) {
+    return new SubdomainTenantResolver(config.tenantResolver().subdomain());
   }
 
   @Produces
