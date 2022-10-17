@@ -79,7 +79,8 @@ class SubdomainTenantResolverTest {
 
     @Test
     public void maxLengthEnsured() {
-      when(routingContext.request().host()).thenReturn("09cedbf6-9086-42bb-93ac-e497682227ba-eu-west-1.domain.host");
+      when(routingContext.request().host())
+          .thenReturn("09cedbf6-9086-42bb-93ac-e497682227ba-eu-west-1.domain.host");
 
       Optional<String> result = tenantResolver.get().resolve(routingContext, null);
 

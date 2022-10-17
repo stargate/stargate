@@ -34,7 +34,8 @@ public class SubdomainTenantResolver implements TenantResolver {
 
   private final MultiTenancyConfig.TenantResolverConfig.SubdomainTenantResolverConfig config;
 
-  public SubdomainTenantResolver(MultiTenancyConfig.TenantResolverConfig.SubdomainTenantResolverConfig config) {
+  public SubdomainTenantResolver(
+      MultiTenancyConfig.TenantResolverConfig.SubdomainTenantResolverConfig config) {
     this.config = config;
   }
 
@@ -54,7 +55,7 @@ public class SubdomainTenantResolver implements TenantResolver {
       // ensure subdomain is trimmed
       if (config.maxChars().isPresent()) {
         int maxChars = config.maxChars().getAsInt();
-        if (maxChars < tenantId.length())  {
+        if (maxChars < tenantId.length()) {
           return Optional.of(tenantId.substring(0, maxChars));
         }
       }
