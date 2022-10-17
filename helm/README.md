@@ -23,7 +23,7 @@ image:\
 &emsp;&emsp;repository311: "stargateio/coordinator-3_11"\
 &emsp;&emsp;repository40: "stargateio/coordinator-4_0"\
 &emsp;&emsp;repositoryDse628: "stargateio/coordinator-dse-68"\
-&emsp;&emsp;tag: "v2" -- image tag to be used for the deployment\
+&emsp;&emsp;tag: "v2" -- image tag to be used for the deployment
 
 cassandra:\
 &emsp;&emsp;clusterName: "cassandra" -- Deployed cassandra cluster name\
@@ -40,16 +40,16 @@ restapi:\
 &emsp;&emsp;enabled: true -- Set to true if rest api need to be enabled\
 &emsp;&emsp;replicaCount: 1 -- Number of replica for rest api service\
 &emsp;&emsp;cpu: 500 -- CPU request unit for rest api service\
-&emsp;&emsp;memory: 512 -- Memory request unit for rest api service\
+&emsp;&emsp;memory: 512 -- Memory request unit for rest api service
 
 docsapi:\
 &emsp;&emsp;enabled: true -- Set to true if document api need to be enabled\
 &emsp;&emsp;replicaCount: 1 -- Number of replica for document api service\
 &emsp;&emsp;cpu: 500 -- CPU request unit for document api service\
-&emsp;&emsp;memory: 512 -- Memory request unit for document api service\
+&emsp;&emsp;memory: 512 -- Memory request unit for document api service
 
 graphqlapi:\
 &emsp;&emsp;enabled: true -- Set to true if graphql api need to be enabled\
 &emsp;&emsp;replicaCount: 1 -- Number of replica for graphql api service\
 &emsp;&emsp;cpu: 500 -- CPU request unit for graphql api service\
-&emsp;&emsp;memory: 512 -- CPU request unit for graphql api service\
+&emsp;&emsp;memory: 512 -- CPU request unit for graphql api service
