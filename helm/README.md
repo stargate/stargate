@@ -31,10 +31,10 @@ cassandra:\
 &emsp;&emsp;rack: "rack1" -- Deployed cassandra rack name\
 &emsp;&emsp;seed: "my-release-cassandra-headless" -- Service name that corresponds to Cassandra's storage port\
 &emsp;&emsp;isDse: null -- Set to true if DSE is used\
-&emsp;&emsp;clusterVersion: "4.0" -- CLuster version is set as 3.11 for Cassandra 3x version, 4.0 for Cassandra 4x version and 6.8 for DSE Cassandra\
+&emsp;&emsp;clusterVersion: "4.0" -- CLuster version is set as 3.11 for Cassandra 3x version, 4.0 for Cassandra 4x version and 6.8 for DSE Cassandra
 
 cpuReqMillicores: 1000  -- CPU request unit for bridge service\
-heapMB: 1024 -- Memory MB for bridge service\
+heapMB: 1024 -- Memory MB for bridge service
 
 restapi:\
 &emsp;&emsp;enabled: true -- Set to true if rest api need to be enabled\
