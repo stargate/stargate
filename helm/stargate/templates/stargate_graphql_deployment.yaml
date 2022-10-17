@@ -3,6 +3,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: stargate-graphqlapi
+  namespace: {{ .Release.Namespace }}
   labels:
     app: stargate-graphqlapi
 spec:
@@ -20,18 +21,22 @@ spec:
         image: "stargateio/graphqlapi:{{ .Values.image.tag }}"
         ports:
         - containerPort: 8080
-        #readinessProbe:
-        #  httpGet:
-        #    path: /q/health/ready
-        #    port: 8080
-        #  timeoutSeconds: 20
-        #  initialDelaySeconds: 80
-        #livenessProbe:
-        #  httpGet:
-        #    path: /q/health/live
-        #    port: 8080
-        #  initialDelaySeconds: 80
-        #  timeoutSeconds: 20
+        readinessProbe:
+          httpGet:
+            path: /stargate/health/ready
+            port: 8080
+          timeoutSeconds: 10
+          periodSeconds: 5
+          failureThreshold: 20
+          initialDelaySeconds: 30
+        livenessProbe:
+          httpGet:
+            path: /stargate/health/live
+            port: 8080
+          timeoutSeconds: 10
+          periodSeconds: 5
+          failureThreshold: 20
+          initialDelaySeconds: 30
         resources:
           limits:
             cpu: {{ mul 4 (.Values.graphqlapi.cpu | default 500) }}m
@@ -41,7 +46,7 @@ spec:
             memory: {{add 500 (.Values.graphqlapi.memory | default 512)}}Mi
         env:
         - name: QUARKUS_GRPC_CLIENTS_BRIDGE_HOST
-          value: "stargate-coordinator"
+          value: "stargate-bridge"
         - name: IO_STARGATE_SGV2_API_COMMON_PROPERTIES_DATASTORE_CONFIGURATION_DATASTOREPROPERTIESCONFIGURATION_FETCHSUPPORTEDFEATURES_RETRY_MAXRETRIES
           value: "50"
         - name: IO_STARGATE_SGV2_API_COMMON_PROPERTIES_DATASTORE_CONFIGURATION_DATASTOREPROPERTIESCONFIGURATION_FETCHSUPPORTEDFEATURES_RETRY_MAXDURATION

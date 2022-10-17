@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: stargate-coordinator
+  namespace: {{ .Release.Namespace }}
   labels:
     app: coordinator
 spec:
@@ -25,6 +26,7 @@ spec:
         {{end}}
         ports:
         - containerPort: 8091
+        - containerPort: 8090
         - containerPort: 9042
         - containerPort: 8081
         args:          
@@ -35,14 +37,18 @@ spec:
           httpGet:
             path: /checker/readiness
             port: 8084
-          timeoutSeconds: 20
-          initialDelaySeconds: 80
+          timeoutSeconds: 10
+          periodSeconds: 10
+          failureThreshold: 30
+          initialDelaySeconds: 30
         livenessProbe:
           httpGet:
             path: /checker/liveness
             port: 8084
-          initialDelaySeconds: 80
-          timeoutSeconds: 20
+          timeoutSeconds: 10
+          periodSeconds: 10
+          failureThreshold: 5
+          initialDelaySeconds: 300
         resources:
           limits:
             cpu: {{ mul 4 (.Values.cpuReqMillicores | default 500) }}m

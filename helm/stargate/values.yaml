@@ -8,7 +8,7 @@ image:
   repository311: "stargateio/coordinator-3_11" 
   repository40: "stargateio/coordinator-4_0" 
   repositoryDse628: "stargateio/coordinator-dse-68" 
-  tag: "v2.0.0-BETA-3"
+  tag: "v2"
 
 cassandra:
   clusterName: "cassandra"
@@ -19,31 +19,24 @@ cassandra:
   clusterVersion: "4.0"
   enableCqlAuth: true
 
-cpuReqMillicores: 250
-heapMB: 512
+cpuReqMillicores: 1000
+heapMB: 1024
 
 restapi:
   enabled: true
   replicaCount: 1
-  cpu: 250
+  cpu: 500
   memory: 512
 
 docsapi:
   enabled: true
   replicaCount: 1
-  cpu: 250
+  cpu: 500
   memory: 512
 
 graphqlapi:
   enabled: true
   replicaCount: 1
-  cpu: 250
+  cpu: 500
   memory: 512
-
-autoscaling:
-  enabled: true
-  minReplicas: 1
-  maxReplicas: 100
-  targetCPUUtilizationPercentage: 80
-  # targetMemoryUtilizationPercentage: 80
 
