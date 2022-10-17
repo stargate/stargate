@@ -1,14 +1,16 @@
 ## Stargate deployment using helm
-Want to build Stargate on a k8s cluster using helm? follow the instruction as below
+Want to build Stargate on a k8s cluster using helm? Follow the instruction as below
 
 ## Pre-requisite
 
 Cassandra storage port 7000 accessible as a k8s service.
-install helm inthe environment.
+install helm in the environment.
 
 ## Helm installation instruction
 Clone the git repository.
+
 cd helm
+
 helm install stargate stargate
 
 Note:
