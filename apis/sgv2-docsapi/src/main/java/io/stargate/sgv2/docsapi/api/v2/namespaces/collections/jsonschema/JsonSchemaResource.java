@@ -90,7 +90,8 @@ public class JsonSchemaResource {
             mediaType = "application/json",
             examples =
                 @ExampleObject(
-                    ref = "{\"$schema\": \"https://json-schema.org/draft/2019-09/schema\"}"))
+                    name = "Schema",
+                    value = "{\"$schema\": \"https://json-schema.org/draft/2019-09/schema\"}"))
       })
   @APIResponses(
       value = {
