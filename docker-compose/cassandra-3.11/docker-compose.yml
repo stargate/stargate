@@ -66,6 +66,7 @@ services:
     environment:
       - QUARKUS_GRPC_CLIENTS_BRIDGE_HOST=coordinator
       - QUARKUS_GRPC_CLIENTS_BRIDGE_PORT=8091
+      - QUARKUS_LOG_LEVEL=${LOGLEVEL}
   graphqlapi:
     image: stargateio/graphqlapi:${SGTAG}
     depends_on:
@@ -78,6 +79,7 @@ services:
     environment:
       - QUARKUS_GRPC_CLIENTS_BRIDGE_HOST=coordinator
       - QUARKUS_GRPC_CLIENTS_BRIDGE_PORT=8091
+      - QUARKUS_LOG_LEVEL=${LOGLEVEL}
   docsapi:
     image: stargateio/docsapi:${SGTAG}
     depends_on:
@@ -90,5 +92,6 @@ services:
     environment:
       - QUARKUS_GRPC_CLIENTS_BRIDGE_HOST=coordinator
       - QUARKUS_GRPC_CLIENTS_BRIDGE_PORT=8091
+      - QUARKUS_LOG_LEVEL=${LOGLEVEL}
 networks:
   stargate:

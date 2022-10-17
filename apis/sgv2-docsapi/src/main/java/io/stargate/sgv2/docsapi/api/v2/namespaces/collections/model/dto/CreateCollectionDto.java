@@ -26,7 +26,7 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
  * @param name Name of the collection.
  */
 public record CreateCollectionDto(
-    @Schema(description = "The name of the collection.", pattern = "\\w+", example = "cycling")
+    @Schema(description = "The name of the collection.", pattern = "\\w+", example = "events")
         @NotNull(message = "`name` is required to create a collection")
         @NotBlank(message = "`name` is required to create a collection")
         String name) {}
