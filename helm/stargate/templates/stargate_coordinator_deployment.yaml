@@ -69,8 +69,6 @@ spec:
           value: "{{.Values.cassandra.isDse}}"
         - name: CLUSTER_VERSION
           value: "{{.Values.cassandra.clusterVersion}}"
-        - name: BRIDGE_TOKEN
-          value: "{{.Values.cassandra.bridgeToken}}"
         - name: ENABLE_AUTH
           value: "{{.Values.cassandra.enableCqlAuth}}"
         - name: JAVA_OPTS
