@@ -185,7 +185,7 @@ jobs:
         env:
           cache-name: cache-coordinator-snapshots
         with:
-          path: ~/.m2/repository/io/stargate
+          path: ~/.m2/repository
           key: snapshots-${{ github.sha }}
 
       - name: Build & Test Stargate v2 Quarkus-based APIs
@@ -292,7 +292,7 @@ jobs:
         env:
           cache-name: cache-coordinator-snapshots
         with:
-          path: ~/.m2/repository/io/stargate
+          path: ~/.m2/repository
           key: snapshots-${{ github.sha }}
 
       # run finally the int tests
