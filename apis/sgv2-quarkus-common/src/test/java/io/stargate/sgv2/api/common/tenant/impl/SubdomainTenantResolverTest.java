@@ -45,6 +45,7 @@ class SubdomainTenantResolverTest {
       return ImmutableMap.<String, String>builder()
           .put("stargate.multi-tenancy.enabled", "true")
           .put("stargate.multi-tenancy.tenant-resolver.type", "subdomain")
+          .put("stargate.multi-tenancy.tenant-resolver.subdomain.max-chars", "36")
           .build();
     }
   }
@@ -74,6 +75,16 @@ class SubdomainTenantResolverTest {
       Optional<String> result = tenantResolver.get().resolve(routingContext, null);
 
       assertThat(result).contains("domain");
+    }
+
+    @Test
+    public void maxLengthEnsured() {
+      when(routingContext.request().host())
+          .thenReturn("09cedbf6-9086-42bb-93ac-e497682227ba-eu-west-1.domain.host");
+
+      Optional<String> result = tenantResolver.get().resolve(routingContext, null);
+
+      assertThat(result).contains("09cedbf6-9086-42bb-93ac-e497682227ba");
     }
 
     @Test
