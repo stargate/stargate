@@ -36,7 +36,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '8'
-          cache: maven
 
       - name: Setup Maven
         env:
@@ -68,7 +67,7 @@ jobs:
         env:
           cache-name: cache-coordinator-snapshots
         with:
-          path: ~/.m2/repository/io/stargate
+          path: ~/.m2/repository
           key: snapshots-${{ github.sha }}
           restore-keys: |
             snapshots-

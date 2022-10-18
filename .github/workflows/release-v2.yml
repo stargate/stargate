@@ -37,14 +37,14 @@ jobs:
 
       - name: Set reference
         id: vars
-        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+        run: echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
 
       - name: Resolve tag
         id: resolve_tag
         run: |
           TAG=${{ inputs.tag != null && inputs.tag || steps.vars.outputs.tag }}
           echo "Resolved tag for the release $TAG"
-          echo "::set-output name=tag::${TAG}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
 
   # creates a new release if it's not existing
   # outputs the upload URL in the release-upload-url output var
