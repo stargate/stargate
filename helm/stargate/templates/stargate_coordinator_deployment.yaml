@@ -51,7 +51,7 @@ spec:
           initialDelaySeconds: 300
         resources:
           limits:
-            cpu: {{ mul 4 (.Values.cpuReqMillicores | default 500) }}m
+            cpu: {{ mul 4 (.Values.cpuReqMillicores | default 1000) }}m
             memory: {{add 500 (.Values.heapMB | default 1024)}}Mi
           requests:
             cpu: {{ mul 4 (.Values.cpuReqMillicores | default 200) }}m
