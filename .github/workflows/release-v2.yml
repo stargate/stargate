@@ -37,14 +37,14 @@ jobs:
 
       - name: Set reference
         id: vars
-        run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
+        run: echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
 
       - name: Resolve tag
         id: resolve_tag
         run: |
           TAG=${{ inputs.tag != null && inputs.tag || steps.vars.outputs.tag }}
           echo "Resolved tag for the release $TAG"
-          echo "::set-output name=tag::${TAG}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
 
   # creates a new release if it's not existing
   # outputs the upload URL in the release-upload-url output var
@@ -178,8 +178,11 @@ jobs:
         run: |
           cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
 
+      # coordinator jars
+      # continue on error as sometimes deploy works even if an error is reported and we want to try next step as well
       - name: Publish coordinator JARs
         if: ${{ !inputs.skipPublish }}
+        continue-on-error: true
         run: |
           JAVA_HOME=$JAVA_8 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
           JAVA_HOME=$JAVA_8 ./mvnw -B -ntp -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse

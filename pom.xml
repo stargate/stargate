@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>io.stargate</groupId>
   <artifactId>stargate</artifactId>
-  <version>2.0.0-BETA-4-SNAPSHOT</version>
+  <version>2.0.0-BETA-5-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>${project.groupId}:${project.artifactId}</name>
   <description>Core modules for Stargate</description>
@@ -169,8 +169,6 @@
         <module>cql</module>
         <module>graphqlapi</module>
         <module>restapi</module>
-        <module>sgv2-restapi</module>
-        <module>sgv2-service-common</module>
         <module>auth-api</module>
         <module>authnz</module>
         <module>auth-table-based-service</module>
@@ -206,8 +204,6 @@
         <module>cql</module>
         <module>graphqlapi</module>
         <module>restapi</module>
-        <module>sgv2-restapi</module>
-        <module>sgv2-service-common</module>
         <module>auth-api</module>
         <module>authnz</module>
         <module>auth-table-based-service</module>

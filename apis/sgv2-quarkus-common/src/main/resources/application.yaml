@@ -1,0 +1,4 @@
+quarkus:
+  log:
+    console:
+      format: "%-5p [%t] %d{yyyy-MM-dd HH:mm:ss,SSS} %F:%L - %m%n"

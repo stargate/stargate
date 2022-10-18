@@ -31,7 +31,6 @@ import com.example.graphql.client.betterbotz.products.UpdateProductsMutation;
 import com.example.graphql.client.betterbotz.type.OrdersInput;
 import com.example.graphql.client.betterbotz.type.ProductsInput;
 import io.quarkus.test.common.QuarkusTestResource;
-import io.quarkus.test.common.ResourceArg;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.graphql.integration.util.ApolloIntegrationTestBase;
@@ -69,10 +68,7 @@ import org.junit.jupiter.api.TestInstance;
  * </ul>
  */
 @QuarkusIntegrationTest
-@QuarkusTestResource(
-    value = StargateTestResource.class,
-    initArgs =
-        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
+@QuarkusTestResource(StargateTestResource.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class ApolloIntegrationTest extends ApolloIntegrationTestBase {
 

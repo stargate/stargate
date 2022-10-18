@@ -24,58 +24,52 @@ import javax.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.RestResponse.ResponseBuilder;
 import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Simple exception mapper for the {@link StatusRuntimeException}. */
 public class StatusRuntimeExceptionMapper {
 
-  @ServerExceptionMapper
-  public RestResponse<ApiError> statusRuntimeException(StatusRuntimeException grpcE) {
-    // TODO finalize mapper, messages, logs, etc.
+  private static final Logger LOGGER = LoggerFactory.getLogger(StatusRuntimeExceptionMapper.class);
 
-    Status.Code sc = grpcE.getStatus().getCode();
+  @ServerExceptionMapper
+  public RestResponse<ApiError> statusRuntimeException(StatusRuntimeException exception) {
+    Status.Code sc = exception.getStatus().getCode();
+    String msg = exception.getMessage();
 
     // Handling partly based on information from:
     // https://developers.google.com/maps-booking/reference/grpc-api/status_codes
     switch (sc) {
-        // Start with codes we know how to handle
+
+        // client-side problems, do not log
       case FAILED_PRECONDITION:
-        return grpcResponse(
+        return grpcResponseNoLog(
             sc,
             Response.Status.BAD_REQUEST,
             "Invalid state or argument(s) for gRPC operation",
-            grpcE.getMessage());
+            msg);
       case INVALID_ARGUMENT:
-        return grpcResponse(
-            sc,
-            Response.Status.BAD_REQUEST,
-            "Invalid argument for gRPC operation",
-            grpcE.getMessage());
+        return grpcResponseNoLog(
+            sc, Response.Status.BAD_REQUEST, "Invalid argument for gRPC operation", msg);
       case NOT_FOUND:
-        return grpcResponse(
-            sc, Response.Status.NOT_FOUND, "Unknown gRPC operation", grpcE.getMessage());
+        return grpcResponseNoLog(sc, Response.Status.NOT_FOUND, "Unknown gRPC operation", msg);
       case PERMISSION_DENIED:
-        return grpcResponse(
-            sc, Response.Status.UNAUTHORIZED, "Unauthorized gRPC operation", grpcE.getMessage());
+        return grpcResponseNoLog(
+            sc, Response.Status.UNAUTHORIZED, "Unauthorized gRPC operation", msg);
       case UNAUTHENTICATED:
-        return grpcResponse(
-            sc, Response.Status.UNAUTHORIZED, "Unauthenticated gRPC operation", grpcE.getMessage());
+        return grpcResponseNoLog(
+            sc, Response.Status.UNAUTHORIZED, "Unauthenticated gRPC operation", msg);
+
+        // server-side problems, do log
       case UNAVAILABLE:
-        // Should this be SERVICE_UNAVAILABLE (503) or BAD_GATEWAY (502)?
-        return grpcResponse(
-            sc,
-            Response.Status.SERVICE_UNAVAILABLE,
-            "gRPC service unavailable",
-            grpcE.getMessage());
+        return grpcResponseAndLogAsError(
+            sc, Response.Status.BAD_GATEWAY, "gRPC service unavailable", msg);
       case UNIMPLEMENTED:
-        return grpcResponse(
-            sc,
-            Response.Status.NOT_IMPLEMENTED,
-            "Unimplemented gRPC operation",
-            grpcE.getMessage());
+        return grpcResponseAndLogAsError(
+            sc, Response.Status.NOT_IMPLEMENTED, "Unimplemented gRPC operation", msg);
 
-        // And then codes we ... don't know how to handle
-      case OK: // huh?
-
+        // and then all codes we consider as not expected
+      case OK:
       case CANCELLED:
       case UNKNOWN:
       case DEADLINE_EXCEEDED:
@@ -88,15 +82,34 @@ public class StatusRuntimeExceptionMapper {
         break;
     }
 
-    return grpcResponse(
-        sc, Response.Status.INTERNAL_SERVER_ERROR, "Unhandled gRPC failure", grpcE.getMessage());
+    // Presumed to be server-side issue so log:
+    return grpcResponseAndLogAsError(
+        sc, Response.Status.INTERNAL_SERVER_ERROR, "Unhandled gRPC failure", msg);
   }
 
-  private static RestResponse<ApiError> grpcResponse(
+  private static RestResponse<ApiError> grpcResponseAndLogAsError(
       Status.Code grpcCode, Response.Status httpStatus, String prefix, String suffix) {
-    final String msg = String.format("%s (%s->%s): %s", prefix, grpcCode, httpStatus, suffix);
+    final String message = buildFailureMessage(grpcCode, httpStatus, prefix, suffix);
+    LOGGER.error("Bridge gRPC call failed, problem: {}", message);
+    return buildRestResponse(grpcCode, httpStatus, message);
+  }
+
+  private static RestResponse<ApiError> grpcResponseNoLog(
+      Status.Code grpcCode, Response.Status httpStatus, String prefix, String suffix) {
+    return buildRestResponse(
+        grpcCode, httpStatus, buildFailureMessage(grpcCode, httpStatus, prefix, suffix));
+  }
+
+  private static String buildFailureMessage(
+      Status.Code grpcCode, Response.Status httpStatus, String prefix, String suffix) {
+    return String.format(
+        "%s (Status.Code.%s->%d): %s", prefix, grpcCode, httpStatus.getStatusCode(), suffix);
+  }
+
+  private static RestResponse<ApiError> buildRestResponse(
+      Status.Code grpcCode, Response.Status httpStatus, String message) {
     return ResponseBuilder.create(
-            httpStatus, new ApiError(msg, httpStatus.getStatusCode(), grpcCode.toString()))
+            httpStatus, new ApiError(message, httpStatus.getStatusCode(), grpcCode.toString()))
         .build();
   }
 }

@@ -24,7 +24,6 @@ import static net.javacrumbs.jsonunit.JsonMatchers.jsonPartEquals;
 import static org.hamcrest.Matchers.equalTo;
 
 import io.quarkus.test.common.QuarkusTestResource;
-import io.quarkus.test.common.ResourceArg;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
@@ -38,10 +37,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
-@QuarkusTestResource(
-    value = StargateTestResource.class,
-    initArgs =
-        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
+@QuarkusTestResource(StargateTestResource.class)
 class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
 
   public static final String BASE_PATH =
@@ -387,6 +383,33 @@ class BuiltInFunctionResourceIntegrationTest extends DocsApiIntegrationTest {
           .body("data", jsonPartEquals("object.b[1].other", "awesome"))
           .body("data", jsonPartEquals("object.b[0].new", true))
           .body("data", jsonPartEquals("object.a", 9000))
+          .statusCode(200);
+    }
+
+    @Test
+    public void setUpdateManyValuesBaseDoc() {
+      String setOperation =
+          "{ \"b.[1].different\": \"newvalue\", \"b.[1].other\": \"awesome\", \"b.[0].new\": true, \"a\": 9000 }";
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .contentType(ContentType.JSON)
+          .body(String.format(SET_PAYLOAD, setOperation))
+          .when()
+          .post(BASE_PATH + "/function", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .statusCode(200);
+
+      // get whole document and check the value
+      given()
+          .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+          .when()
+          .get(BASE_PATH, DEFAULT_NAMESPACE, DEFAULT_COLLECTION, DOCUMENT_ID)
+          .then()
+          .body("documentId", equalTo(DOCUMENT_ID))
+          .body("data", jsonPartEquals("b[1].different", "newvalue"))
+          .body("data", jsonPartEquals("b[1].other", "awesome"))
+          .body("data", jsonPartEquals("b[0].new", true))
           .statusCode(200);
     }
 

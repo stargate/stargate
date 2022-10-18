@@ -16,12 +16,12 @@
 ### Data store configuration
 *Configuration of the data-store properties, defined by [DataStoreConfig.java](src/main/java/io/stargate/sgv2/api/common/config/DataStoreConfig.java).*
 
-| Property                                        | Type      | Default                             | Description                                                                                                                                        |
-|-------------------------------------------------|-----------|-------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| Property                                        | Type      | Default                             | Description                                                                                                                                            |
+|-------------------------------------------------|-----------|-------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `stargate.data-store.ignore-bridge`             | `boolean` | `${stargate.multi-tenancy.enabled}` | If the data store supported features cannot be read from the Bridge. In case of a failure to read, the properties listed below are taken as fall back. |
-| `stargate.data-store.secondary-indexes-enabled` | `boolean` | `true`                              | If the data store supports secondary indexes.                                                                                                      |
-| `stargate.data-store.sai-enabled`               | `boolean` | `false`                             | If the data store supports SAI (storage-attached indexes).                                                                                         |
-| `stargate.data-store.logged-batches-enabled`    | `boolean` | `true`                              | If the data store supports logged batches.                                                                                                         |
+| `stargate.data-store.secondary-indexes-enabled` | `boolean` | `true`                              | If the data store supports secondary indexes.                                                                                                          |
+| `stargate.data-store.sai-enabled`               | `boolean` | `false`                             | If the data store supports SAI (storage-attached indexes).                                                                                             |
+| `stargate.data-store.logged-batches-enabled`    | `boolean` | `true`                              | If the data store supports logged batches.                                                                                                             |
 
 ### gRPC metadata configuration
 *Configuration for the gRPC metadata passed to the Bridge, defined by [GrpcMetadataConfig.java](src/main/java/io/stargate/sgv2/api/common/config/GrpcMetadataConfig.java).*
@@ -45,11 +45,12 @@
 ### Multi-tenancy configuration
 *Configuration mapping for multi tenant operation mode, defined by [MultiTenancyConfig.java](src/main/java/io/stargate/sgv2/api/common/config/MultiTenancyConfig.java).*
 
-| Property                                                 | Type      | Default | Description                                                                                                          |
-|----------------------------------------------------------|-----------|---------|----------------------------------------------------------------------------------------------------------------------|
-| `stargate.multi-tenancy.enabled`                         | `boolean` | `false` | If multi-tenancy operation mode is enabled.                                                                          |
-| `stargate.multi-tenancy.tenant-resolver.type`            | `String`  | unset   | Tenant identifier resolver type if multi-tenancy is enabled. Possible options are `subdomain`, `fixed`, or `custom`. |
-| `stargate.multi-tenancy.tenant-resolver.fixed.tenant-id` | `String`  | unset   | Tenant identifier value if the `fixed` type is used.                                                                 |
+| Property                                                     | Type      | Default | Description                                                                                                          |
+|--------------------------------------------------------------|-----------|---------|----------------------------------------------------------------------------------------------------------------------|
+| `stargate.multi-tenancy.enabled`                             | `boolean` | `false` | If multi-tenancy operation mode is enabled.                                                                          |
+| `stargate.multi-tenancy.tenant-resolver.type`                | `String`  | unset   | Tenant identifier resolver type if multi-tenancy is enabled. Possible options are `subdomain`, `fixed`, or `custom`. |
+| `stargate.multi-tenancy.tenant-resolver.fixed.tenant-id`     | `String`  | unset   | Tenant identifier value if the `fixed` type is used.                                                                 |
+| `stargate.multi-tenancy.tenant-resolver.subdomain.max-chars` | `String`  | unset   | Optional, takes only a defined number of max characters from the resolved sub-domain as tenant id.                   |
 
 ### Queries configuration
 *Configuration mapping for the query properties, defined by [QueriesConfig.java](src/main/java/io/stargate/sgv2/api/common/config/QueriesConfig.java).*

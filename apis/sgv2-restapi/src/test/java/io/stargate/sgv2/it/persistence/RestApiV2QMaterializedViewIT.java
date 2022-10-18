@@ -5,15 +5,16 @@ import static org.assertj.core.api.Assumptions.assumeThat;
 
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import io.quarkus.test.common.QuarkusTestResource;
-import io.quarkus.test.common.ResourceArg;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.stargate.sgv2.common.IntegrationTestUtils;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.it.RestApiV2QCqlEnabledTestBase;
+import java.time.Duration;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,10 +24,7 @@ import org.slf4j.LoggerFactory;
  * not available on all backends.
  */
 @QuarkusIntegrationTest
-@QuarkusTestResource(
-    value = StargateTestResource.class,
-    initArgs =
-        @ResourceArg(name = StargateTestResource.Options.DISABLE_FIXED_TOKEN, value = "true"))
+@QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QMaterializedViewIT extends RestApiV2QCqlEnabledTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(RestApiV2QMaterializedViewIT.class);
 
@@ -43,7 +41,7 @@ public class RestApiV2QMaterializedViewIT extends RestApiV2QCqlEnabledTestBase {
   @Test
   public void getRowsFromMV() throws Exception {
     boolean isC4 = IntegrationTestUtils.isCassandra40();
-    LOG.info("getAllRowsFromMaterializedView(): is backend Cassandra 4.0? {}", isC4);
+    LOG.info("getRowsFromMV(): is backend Cassandra 4.0? {}", isC4);
     assumeThat(isC4)
         .as("Disabled because MVs are not enabled by default on a Cassandra 4 backend")
         .isFalse();
@@ -84,18 +82,24 @@ public class RestApiV2QMaterializedViewIT extends RestApiV2QCqlEnabledTestBase {
 
     // 14-Sep-2022, tatu: Not sure why but there is a transient issue here wrt timing.
     //   Locally test does not appear to ever fail, but in CI it does, with error suggesting
-    //   MV has not been created or Schema metadata not (yet) updated. In absence of
-    //   better solution, let's try simple wait to give it time; 5 seconds should do it.
+    //   MV has not been created or Schema metadata not (yet) updated.
+    //  Awaitility needs to be used to retry a few times.
 
-    Thread.sleep(5000L);
+    Awaitility.await()
+        .atMost(Duration.ofSeconds(5))
+        .atLeast(Duration.ofMillis(100L))
+        .pollInterval(Duration.ofMillis(500L))
+        .untilAsserted(
+            () -> {
+              List<Map<String, Object>> rows =
+                  findAllRowsAsList(keyspaceName, materializedViewName);
 
-    List<Map<String, Object>> rows = findAllRowsAsList(keyspaceName, materializedViewName);
+              // Alas, due to "id" as partition key, ordering is arbitrary; so need to
+              // convert from List to something like Set
+              expRows.remove(2); // the MV should only return the rows with a lastName
 
-    // Alas, due to "id" as partition key, ordering is arbitrary; so need to
-    // convert from List to something like Set
-    expRows.remove(2); // the MV should only return the rows with a lastName
-
-    assertThat(rows.size()).isEqualTo(2);
-    assertThat(new LinkedHashSet<>(rows)).isEqualTo(new LinkedHashSet<>(expRows));
+              assertThat(rows.size()).isEqualTo(2);
+              assertThat(new LinkedHashSet<>(rows)).isEqualTo(new LinkedHashSet<>(expRows));
+            });
   }
 }

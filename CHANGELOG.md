@@ -1,5 +1,29 @@
 # Changelog
 
+**Closed issues:**
+
+- REST API build complains about the wrong property name [\#2135](https://github.com/stargate/stargate/issues/2135)
+
+## [v2.0.0-BETA-4](https://github.com/stargate/stargate/tree/v2.0.0-BETA-4) (2022-10-04)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-BETA-3...v2.0.0-BETA-4)
+
+**Closed issues:**
+
+- Use `-ntp` \(no-transfer-progress\) option for Github action maven invocations [\#2124](https://github.com/stargate/stargate/issues/2124)
+- Define Quarkus micrometer "match-patterns" setting for REST API [\#2116](https://github.com/stargate/stargate/issues/2116)
+
+**Merged pull requests:**
+
+- Fix \#2135 add open telemetry to rest, graphql apis [\#2136](https://github.com/stargate/stargate/pull/2136) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- added health extension to the graphql v2 [\#2133](https://github.com/stargate/stargate/pull/2133) ([ivansenic](https://github.com/ivansenic))
+- publish to OSSRH not to fail job on error [\#2132](https://github.com/stargate/stargate/pull/2132) ([ivansenic](https://github.com/ivansenic))
+- Add "match-patterns" for REST API [\#2130](https://github.com/stargate/stargate/pull/2130) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Try to recreate fix from PR \#2074, to fix Mac M1 proto build [\#2128](https://github.com/stargate/stargate/pull/2128) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix DSE version upgrade changes that were not merged due to version c… [\#2127](https://github.com/stargate/stargate/pull/2127) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#2124: add `-ntp` flag for CI Maven invocations to avoid printing progress msgs [\#2125](https://github.com/stargate/stargate/pull/2125) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+-  Allow executing a built in function against the root of a document  [\#2067](https://github.com/stargate/stargate/pull/2067) ([EricBorczuk](https://github.com/EricBorczuk))
+
 ## [v2.0.0-BETA-3](https://github.com/stargate/stargate/tree/v2.0.0-BETA-3) (2022-09-30)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-BETA-2...v2.0.0-BETA-3)

@@ -36,7 +36,6 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: '8'
-          cache: maven
 
       - name: Setup Maven
         env:
@@ -68,7 +67,7 @@ jobs:
         env:
           cache-name: cache-coordinator-snapshots
         with:
-          path: ~/.m2/repository/io/stargate
+          path: ~/.m2/repository
           key: snapshots-${{ github.sha }}
           restore-keys: |
             snapshots-
@@ -139,6 +138,7 @@ jobs:
         with:
           name: img-${{ matrix.image }}-${{ github.sha }}
           path: ${{ matrix.image }}-${{ github.sha }}.tar
+          retention-days: 3
 
   # runs unit tests for the sgv2-docsapi
   build:
@@ -185,7 +185,7 @@ jobs:
         env:
           cache-name: cache-coordinator-snapshots
         with:
-          path: ~/.m2/repository/io/stargate
+          path: ~/.m2/repository
           key: snapshots-${{ github.sha }}
 
       - name: Build & Test Stargate v2 Quarkus-based APIs
@@ -292,7 +292,7 @@ jobs:
         env:
           cache-name: cache-coordinator-snapshots
         with:
-          path: ~/.m2/repository/io/stargate
+          path: ~/.m2/repository
           key: snapshots-${{ github.sha }}
 
       # run finally the int tests
@@ -305,12 +305,12 @@ jobs:
           cd apis/
           ./mvnw -B -ntp verify -DskipUnitTests -pl ${{ matrix.project }} -am -P ${{ matrix.profile }} -Dquarkus.container-image.build=$CONTAINER_TEST -Dtesting.containers.stargate-image=${{ matrix.image }}
 
-  # runs always, deletes built docker image artifacts
+  # runs only on success, deletes built docker image artifacts
+  # keep docker images for 3 days so we can re-run the workflows
   clean-up:
     name: Clean up
     runs-on: ubuntu-latest
     needs: int-tests
-    if: ${{ always() }}
 
     steps:
       - uses: geekyeggo/delete-artifact@v1
