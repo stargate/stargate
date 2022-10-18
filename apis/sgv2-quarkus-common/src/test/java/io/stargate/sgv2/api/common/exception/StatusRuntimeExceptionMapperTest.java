@@ -27,160 +27,177 @@ import org.junit.jupiter.api.Test;
 public class StatusRuntimeExceptionMapperTest {
 
   @Test
-  public void testGrpcStatusAborted() {
+  public void grpcStatusAborted() {
     StatusRuntimeExceptionMapper mapper = new StatusRuntimeExceptionMapper();
     StatusRuntimeException error = new StatusRuntimeException(Status.ABORTED);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
     assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.ABORTED.toString());
+    assertThat(response.getEntity().code()).isEqualTo(500);
   }
 
   @Test
-  public void testGrpcStatusAlreadyExists() {
+  public void grpcStatusAlreadyExists() {
     StatusRuntimeExceptionMapper mapper = new StatusRuntimeExceptionMapper();
     StatusRuntimeException error = new StatusRuntimeException(Status.ALREADY_EXISTS);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
     assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.ALREADY_EXISTS.toString());
+    assertThat(response.getEntity().code()).isEqualTo(500);
   }
 
   @Test
-  public void testGrpcStatusCancelled() {
+  public void grpcStatusCancelled() {
     StatusRuntimeExceptionMapper mapper = new StatusRuntimeExceptionMapper();
     StatusRuntimeException error = new StatusRuntimeException(Status.CANCELLED);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
     assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.CANCELLED.toString());
+    assertThat(response.getEntity().code()).isEqualTo(500);
   }
 
   @Test
-  public void testGrpcStatusDataLoss() {
+  public void grpcStatusDataLoss() {
     StatusRuntimeExceptionMapper mapper = new StatusRuntimeExceptionMapper();
     StatusRuntimeException error = new StatusRuntimeException(Status.DATA_LOSS);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
     assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.DATA_LOSS.toString());
+    assertThat(response.getEntity().code()).isEqualTo(500);
   }
 
   @Test
-  public void testGrpcStatusDeadlineExceeded() {
+  public void grpcStatusDeadlineExceeded() {
     StatusRuntimeExceptionMapper mapper = new StatusRuntimeExceptionMapper();
     StatusRuntimeException error = new StatusRuntimeException(Status.DEADLINE_EXCEEDED);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
     assertThat(response.getEntity().grpcStatus())
         .isEqualTo(Status.Code.DEADLINE_EXCEEDED.toString());
+    assertThat(response.getEntity().code()).isEqualTo(500);
   }
 
   @Test
-  public void testGrpcStatusFailedPrecondition() {
+  public void grpcStatusFailedPrecondition() {
     StatusRuntimeExceptionMapper mapper = new StatusRuntimeExceptionMapper();
     StatusRuntimeException error = new StatusRuntimeException(Status.FAILED_PRECONDITION);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
     assertThat(response.getEntity().grpcStatus())
         .isEqualTo(Status.Code.FAILED_PRECONDITION.toString());
+    assertThat(response.getEntity().code()).isEqualTo(400);
   }
 
   @Test
-  public void testGrpcStatusInternal() {
+  public void grpcStatusInternal() {
     StatusRuntimeExceptionMapper mapper = new StatusRuntimeExceptionMapper();
     StatusRuntimeException error = new StatusRuntimeException(Status.INTERNAL);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
     assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.INTERNAL.toString());
+    assertThat(response.getEntity().code()).isEqualTo(500);
   }
 
   @Test
-  public void testGrpcStatusInvalidArgument() {
+  public void grpcStatusInvalidArgument() {
     StatusRuntimeExceptionMapper mapper = new StatusRuntimeExceptionMapper();
     StatusRuntimeException error = new StatusRuntimeException(Status.INVALID_ARGUMENT);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
     assertThat(response.getEntity().grpcStatus())
         .isEqualTo(Status.Code.INVALID_ARGUMENT.toString());
+    assertThat(response.getEntity().code()).isEqualTo(400);
   }
 
   @Test
-  public void testGrpcStatusNotFound() {
+  public void grpcStatusNotFound() {
     StatusRuntimeExceptionMapper mapper = new StatusRuntimeExceptionMapper();
     StatusRuntimeException error = new StatusRuntimeException(Status.NOT_FOUND);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
     assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.NOT_FOUND.toString());
+    assertThat(response.getEntity().code()).isEqualTo(404);
   }
 
   @Test
-  public void testGrpcStatusOk() {
+  public void grpcStatusOk() {
     StatusRuntimeExceptionMapper mapper = new StatusRuntimeExceptionMapper();
     StatusRuntimeException error = new StatusRuntimeException(Status.OK);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
     assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.OK.toString());
+    assertThat(response.getEntity().code()).isEqualTo(500);
   }
 
   @Test
-  public void testGrpcStatusOutOfRange() {
+  public void grpcStatusOutOfRange() {
     StatusRuntimeExceptionMapper mapper = new StatusRuntimeExceptionMapper();
     StatusRuntimeException error = new StatusRuntimeException(Status.OUT_OF_RANGE);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
     assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.OUT_OF_RANGE.toString());
+    assertThat(response.getEntity().code()).isEqualTo(500);
   }
 
   @Test
-  public void testGrpcStatusPermissionDenied() {
+  public void grpcStatusPermissionDenied() {
     StatusRuntimeExceptionMapper mapper = new StatusRuntimeExceptionMapper();
     StatusRuntimeException error = new StatusRuntimeException(Status.PERMISSION_DENIED);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
     assertThat(response.getEntity().grpcStatus())
         .isEqualTo(Status.Code.PERMISSION_DENIED.toString());
+    assertThat(response.getEntity().code()).isEqualTo(401);
   }
 
   @Test
-  public void testGrpcStatusResourceExhausted() {
+  public void grpcStatusResourceExhausted() {
     StatusRuntimeExceptionMapper mapper = new StatusRuntimeExceptionMapper();
     StatusRuntimeException error = new StatusRuntimeException(Status.RESOURCE_EXHAUSTED);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
     assertThat(response.getEntity().grpcStatus())
         .isEqualTo(Status.Code.RESOURCE_EXHAUSTED.toString());
+    assertThat(response.getEntity().code()).isEqualTo(500);
   }
 
   @Test
-  public void testGrpcStatusUnauthenticated() {
+  public void grpcStatusUnauthenticated() {
     StatusRuntimeExceptionMapper mapper = new StatusRuntimeExceptionMapper();
     StatusRuntimeException error = new StatusRuntimeException(Status.UNAUTHENTICATED);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
     assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.UNAUTHENTICATED.toString());
+    assertThat(response.getEntity().code()).isEqualTo(401);
   }
 
   @Test
-  public void testGrpcStatusUnavailable() {
+  public void grpcStatusUnavailable() {
     StatusRuntimeExceptionMapper mapper = new StatusRuntimeExceptionMapper();
     StatusRuntimeException error = new StatusRuntimeException(Status.UNAVAILABLE);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
     assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.UNAVAILABLE.toString());
+    assertThat(response.getEntity().code()).isEqualTo(502);
   }
 
   @Test
-  public void testGrpcStatusUnimplemented() {
+  public void grpcStatusUnimplemented() {
     StatusRuntimeExceptionMapper mapper = new StatusRuntimeExceptionMapper();
     StatusRuntimeException error = new StatusRuntimeException(Status.UNIMPLEMENTED);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
     assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.UNIMPLEMENTED.toString());
+    assertThat(response.getEntity().code()).isEqualTo(501);
   }
 
   @Test
-  public void testGrpcStatusUnknown() {
+  public void grpcStatusUnknown() {
     StatusRuntimeExceptionMapper mapper = new StatusRuntimeExceptionMapper();
     StatusRuntimeException error = new StatusRuntimeException(Status.UNKNOWN);
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
     assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.UNKNOWN.toString());
+    assertThat(response.getEntity().code()).isEqualTo(500);
   }
 }
