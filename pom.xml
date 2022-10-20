@@ -389,6 +389,9 @@
             <id>enforce</id>
             <configuration>
               <rules>
+                <requireJavaVersion>
+                  <version>1.8</version>
+                </requireJavaVersion>
                 <requireUpperBoundDeps>
 		  <!-- If specifying includes ONLY those are checked
 		       (default: all)
