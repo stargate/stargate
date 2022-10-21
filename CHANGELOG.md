@@ -1,5 +1,17 @@
 # Changelog
 
+## [v2.0.0-RC-1](https://github.com/stargate/stargate/tree/v2.0.0-RC-1) (2022-10-18)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-BETA-5...v2.0.0-RC-1)
+
+**Closed issues:**
+
+- Cosign images for V2 not working [\#2140](https://github.com/stargate/stargate/issues/2140)
+
+**Merged pull requests:**
+
+- Bumping version for the v2 release candidate [\#2173](https://github.com/stargate/stargate/pull/2173) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.0.0-BETA-5](https://github.com/stargate/stargate/tree/v2.0.0-BETA-5) (2022-10-18)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-BETA-4...v2.0.0-BETA-5)
