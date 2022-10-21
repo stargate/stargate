@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: restapi
-        image: "stargateio/restapi:{{ .Values.image.tag }}"
+        image: "{{ .Values.image.registry }}/{{ .Values.restapi.image.repository }}:{{ .Values.image.tag }}"
         ports:
         - containerPort: 8082
         readinessProbe:

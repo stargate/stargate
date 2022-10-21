@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: graphqlapi
-        image: "stargateio/graphqlapi:{{ .Values.image.tag }}"
+        image: "{{ .Values.image.registry }}/{{ .Values.graphqlapi.image.repository }}:{{ .Values.image.tag }}"
         ports:
         - containerPort: 8080
         readinessProbe:

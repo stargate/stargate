@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: docsapi
-        image: "stargateio/docsapi:{{ .Values.image.tag }}"
+        image: "{{ .Values.image.registry }}/{{ .Values.docsapi.image.repository }}:{{ .Values.image.tag }}"
         ports:
         - containerPort: 8180
         readinessProbe:
