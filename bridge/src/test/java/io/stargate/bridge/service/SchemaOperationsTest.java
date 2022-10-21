@@ -15,39 +15,59 @@
  */
 package io.stargate.bridge.service;
 
+import static io.grpc.Metadata.ASCII_STRING_MARSHALLER;
 import static io.stargate.db.schema.Column.Kind.Clustering;
 import static io.stargate.db.schema.Column.Kind.PartitionKey;
 import static io.stargate.db.schema.Column.Kind.Static;
 import static io.stargate.db.schema.Column.Order.DESC;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
+import io.grpc.Metadata;
+import io.stargate.auth.AuthenticationService;
+import io.stargate.auth.AuthenticationSubject;
+import io.stargate.bridge.grpc.StargateBearerToken;
 import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridgeGrpc;
+import io.stargate.bridge.service.interceptors.NewConnectionInterceptor;
+import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.schema.Column;
 import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 
 // Note: StargateV2-only test
-public class SchemaOperationsTest extends BaseBridgeTest {
+public class SchemaOperationsTest extends BaseBridgeServiceTest {
+
+  @Captor ArgumentCaptor<Map<String, String>> headers;
 
   @Test
   @DisplayName(
       "Describe keyspace with a single table with columns using only simple types and no options")
-  public void schemaDescribeSingleTableSimpleTypesNoOptions() {
+  public void schemaDescribeSingleTableSimpleTypesNoOptions() throws Exception {
     // Given
-    StargateBridgeGrpc.StargateBridgeBlockingStub stub = makeBlockingStub();
-    when(persistence.decorateKeyspaceName(any(String.class), any())).thenReturn("my_keyspace");
+    StargateBridgeGrpc.StargateBridgeBlockingStub stub =
+        makeBlockingStubWithClientHeaders(
+                metadata -> {
+                  metadata.put(Metadata.Key.of("test-key", ASCII_STRING_MARSHALLER), "test-value");
+                })
+            .withCallCredentials(new StargateBearerToken("token"));
+    when(persistence.decorateKeyspaceName(eq("my_keyspace"), headers.capture()))
+        .thenReturn("my_keyspace_decorated");
 
     io.stargate.db.schema.Schema schema =
         io.stargate.db.schema.Schema.build()
-            .keyspace("my_keyspace")
+            .keyspace("my_keyspace_decorated")
             .table("my_table")
             .column("key", Column.Type.Text, PartitionKey)
             .column("leaf", Column.Type.Text, Clustering)
@@ -57,7 +77,18 @@ public class SchemaOperationsTest extends BaseBridgeTest {
             .build();
 
     when(persistence.schema()).thenReturn(schema);
-    startServer(persistence);
+    when(persistence.newConnection(any())).thenReturn(connection);
+
+    AuthenticatedUser authenticatedUser = mock(AuthenticatedUser.class);
+
+    AuthenticationSubject authenticationSubject = mock(AuthenticationSubject.class);
+    when(authenticationSubject.asUser()).thenReturn(authenticatedUser);
+
+    AuthenticationService authenticationService = mock(AuthenticationService.class);
+    when(authenticationService.validateToken(anyString(), any(Map.class)))
+        .thenReturn(authenticationSubject);
+
+    startServer(new NewConnectionInterceptor(persistence, authenticationService));
 
     // When
     Schema.CqlKeyspaceDescribe response =
@@ -65,6 +96,7 @@ public class SchemaOperationsTest extends BaseBridgeTest {
             Schema.DescribeKeyspaceQuery.newBuilder().setKeyspaceName("my_keyspace").build());
 
     // Then
+    assertThat(headers.getValue()).containsEntry("test-key", "test-value");
     assertThat(response.getCqlKeyspace().getName().equals("my_keyspace")).isTrue();
     assertThat(response.getTablesCount() == 1).isTrue();
     assertThat(response.getTables(0).getName().equals("my_table")).isTrue();
