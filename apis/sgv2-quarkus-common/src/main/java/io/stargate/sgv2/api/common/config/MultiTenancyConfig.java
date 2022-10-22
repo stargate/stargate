@@ -22,6 +22,7 @@ import io.stargate.sgv2.api.common.tenant.TenantResolver;
 import io.stargate.sgv2.api.common.tenant.impl.FixedTenantResolver;
 import io.stargate.sgv2.api.common.tenant.impl.SubdomainTenantResolver;
 import java.util.Optional;
+import java.util.OptionalInt;
 import javax.validation.Valid;
 import javax.validation.constraints.Pattern;
 
@@ -61,10 +62,20 @@ public interface MultiTenancyConfig {
     @Valid
     MultiTenancyConfig.TenantResolverConfig.FixedTenantResolverConfig fixed();
 
+    /** @return Specific settings for the <code>subdomain</code> tenant resolver type. */
+    @Valid
+    MultiTenancyConfig.TenantResolverConfig.SubdomainTenantResolverConfig subdomain();
+
     interface FixedTenantResolverConfig {
 
       /** @return Tenant ID value. */
       Optional<String> tenantId();
+    }
+
+    interface SubdomainTenantResolverConfig {
+
+      /** @return Maximum characters to pull from the subdomain. */
+      OptionalInt maxChars();
     }
   }
 }

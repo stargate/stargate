@@ -155,7 +155,9 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
   public void describeKeyspace(
       Schema.DescribeKeyspaceQuery request,
       StreamObserver<Schema.CqlKeyspaceDescribe> responseObserver) {
-    executor.execute(() -> SchemaHandler.describeKeyspace(request, persistence, responseObserver));
+    Map<String, String> headers = HEADERS_KEY.get();
+    executor.execute(
+        () -> SchemaHandler.describeKeyspace(request, persistence, headers, responseObserver));
   }
 
   @Override

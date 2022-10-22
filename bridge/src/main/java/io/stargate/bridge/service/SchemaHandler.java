@@ -53,14 +53,14 @@ class SchemaHandler {
   public static void describeKeyspace(
       DescribeKeyspaceQuery query,
       Persistence persistence,
+      Map<String, String> headers,
       StreamObserver<CqlKeyspaceDescribe> responseObserver) {
 
     // The name that the client asked for, e.g. "ks".
+    // If the persistence supports multi-tenancy, the decorated name contains tenant information,
+    // e.g.
     String simpleName = query.getKeyspaceName();
-    // If the persistence supports multi-tenancy, the actual name contains tenant information, e.g.
-    // "tenant1_ks".
-    String decoratedName =
-        persistence.decorateKeyspaceName(simpleName, BridgeService.HEADERS_KEY.get());
+    String decoratedName = persistence.decorateKeyspaceName(simpleName, headers);
 
     Keyspace keyspace = persistence.schema().keyspace(decoratedName);
     if (keyspace == null) {

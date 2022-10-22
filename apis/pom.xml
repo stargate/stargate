@@ -4,7 +4,7 @@
   <groupId>io.stargate</groupId>
   <artifactId>sgv2-api-parent</artifactId>
   <name>Stargate V2 API parent pom</name>
-  <version>2.0.0-BETA-5-SNAPSHOT</version>
+  <version>2.0.0-RC-2-SNAPSHOT</version>
   <description>Parent POM for Stargate v2 APIs</description>
   <packaging>pom</packaging>
   <url>http://github.com/stargate/stargate</url>
@@ -23,7 +23,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-    <quarkus.platform.version>2.12.3.Final</quarkus.platform.version>
+    <quarkus.platform.version>2.13.2.Final</quarkus.platform.version>
     <skipTests>false</skipTests>
     <skipUnitTests>${skipTests}</skipUnitTests>
     <surefire-plugin.version>3.0.0-M7</surefire-plugin.version>
