@@ -93,9 +93,17 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
       StreamObserver<Schema.QueryWithSchemaResponse> responseObserver) {
     String keyspaceName = request.getKeyspaceName();
     int keyspaceHash = request.getKeyspaceHash();
-    String decoratedName =
-        persistence.decorateKeyspaceName(keyspaceName, BridgeService.HEADERS_KEY.get());
-    Keyspace keyspace = persistence.schema().keyspace(decoratedName);
+    String decoratedName;
+    Keyspace keyspace;
+
+    try {
+      decoratedName =
+          persistence.decorateKeyspaceName(keyspaceName, BridgeService.HEADERS_KEY.get());
+      keyspace = persistence.schema().keyspace(decoratedName);
+    } catch (Throwable t) {
+      new ExceptionHandler(responseObserver).handleException(t);
+      return;
+    }
 
     if (keyspace == null) {
       executor.execute(
