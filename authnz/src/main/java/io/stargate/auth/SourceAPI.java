@@ -49,17 +49,20 @@ public enum SourceAPI {
     customPayload.put(CUSTOM_PAYLOAD_KEY, buffer);
   }
 
-  public static SourceAPI fromCustomPayload(Map<String, ByteBuffer> customPayload, SourceAPI defaultIfMissing) {
+  public static SourceAPI fromCustomPayload(
+      Map<String, ByteBuffer> customPayload, SourceAPI defaultIfMissing) {
     if (null == customPayload) {
       return defaultIfMissing;
     }
 
     return Optional.ofNullable(customPayload.get(CUSTOM_PAYLOAD_KEY))
-            .flatMap(buffer -> {
+        .flatMap(
+            buffer -> {
               String decode = StandardCharsets.UTF_8.decode(buffer).toString();
-              return Arrays.stream(SourceAPI.values()).filter(s -> Objects.equals(s.getName(), decode)).findFirst();
+              return Arrays.stream(SourceAPI.values())
+                  .filter(s -> Objects.equals(s.getName(), decode))
+                  .findFirst();
             })
-            .orElse(defaultIfMissing);
+        .orElse(defaultIfMissing);
   }
-
 }
