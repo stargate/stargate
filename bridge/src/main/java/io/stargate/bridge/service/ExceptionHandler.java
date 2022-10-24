@@ -43,9 +43,9 @@ public class ExceptionHandler {
   static final Metadata.Key<QueryOuterClass.CasWriteUnknown> CAS_WRITE_UNKNOWN_KEY =
       ProtoUtils.keyForProto(QueryOuterClass.CasWriteUnknown.getDefaultInstance());
 
-  private final StreamObserver<QueryOuterClass.Response> responseObserver;
+  private final StreamObserver<?> responseObserver;
 
-  public ExceptionHandler(StreamObserver<QueryOuterClass.Response> responseObserver) {
+  public ExceptionHandler(StreamObserver<?> responseObserver) {
     this.responseObserver = responseObserver;
   }
 
@@ -68,8 +68,9 @@ public class ExceptionHandler {
    * StreamObserver#onError(Throwable)} method.
    */
   public void handleException(Throwable throwable) {
-    if (throwable instanceof CompletionException
-        || throwable instanceof MessageHandler.ExceptionWithIdempotencyInfo) {
+    if ((throwable instanceof CompletionException
+            || throwable instanceof MessageHandler.ExceptionWithIdempotencyInfo)
+        && (throwable.getCause() != null)) {
       handleException(throwable.getCause());
     } else if (throwable instanceof StatusException
         || throwable instanceof StatusRuntimeException) {
