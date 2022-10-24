@@ -21,6 +21,7 @@ import static io.stargate.db.schema.Column.Kind.PartitionKey;
 import static io.stargate.db.schema.Column.Kind.Static;
 import static io.stargate.db.schema.Column.Order.DESC;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -28,6 +29,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import io.grpc.Metadata;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.bridge.grpc.StargateBearerToken;
@@ -252,5 +255,28 @@ public class SchemaOperationsTest extends BaseBridgeServiceTest {
         .isTrue();
     assertThat(response.getMaterializedViews(0).getColumnsCount() == 1).isTrue();
     assertThat(response.getMaterializedViews(0).getColumns(0).getName().equals("c")).isTrue();
+  }
+
+  @Test
+  @DisplayName("Handle and propagate server-side NPE appropriately")
+  public void schemaTableWithServerSideNPE() {
+    // Given
+    StargateBridgeGrpc.StargateBridgeBlockingStub stub = makeBlockingStub();
+    when(persistence.decorateKeyspaceName(any(String.class), any())).thenReturn("my_stuff");
+
+    when(persistence.schema()).thenThrow(new NullPointerException("No context"));
+    startServer(persistence);
+
+    // When
+    assertThatThrownBy(
+            () ->
+                stub.describeKeyspace(
+                        Schema.DescribeKeyspaceQuery.newBuilder().setKeyspaceName("ks").build())
+                    .getTables(0))
+        .isInstanceOf(StatusRuntimeException.class)
+        .hasMessageContaining("No context")
+        .extracting("status")
+        .extracting("code")
+        .isEqualTo(Status.UNKNOWN.getCode());
   }
 }
