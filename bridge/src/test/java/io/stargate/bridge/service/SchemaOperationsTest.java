@@ -264,9 +264,6 @@ public class SchemaOperationsTest extends BaseBridgeServiceTest {
     StargateBridgeGrpc.StargateBridgeBlockingStub stub = makeBlockingStub();
     when(persistence.decorateKeyspaceName(any(String.class), any())).thenReturn("my_stuff");
 
-    // Only need minimal schema for bootstrapping
-    io.stargate.db.schema.Schema schema = io.stargate.db.schema.Schema.build().build();
-
     when(persistence.schema()).thenThrow(new NullPointerException("No context"));
     startServer(persistence);
 
