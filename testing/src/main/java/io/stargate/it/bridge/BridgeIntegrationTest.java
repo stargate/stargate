@@ -21,8 +21,11 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.protobuf.StringValue;
+import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
+import io.grpc.Metadata;
+import io.grpc.stub.MetadataUtils;
 import io.stargate.auth.model.AuthTokenResponse;
 import io.stargate.bridge.grpc.StargateBearerToken;
 import io.stargate.bridge.proto.QueryOuterClass;
@@ -54,7 +57,12 @@ public class BridgeIntegrationTest extends BaseIntegrationTest {
   public static void setup(StargateConnectionInfo cluster) throws IOException {
     String seedAddress = cluster.seedAddress();
 
-    managedChannel = ManagedChannelBuilder.forAddress(seedAddress, 8091).usePlaintext().build();
+    ClientInterceptor interceptor = MetadataUtils.newAttachHeadersInterceptor(generateMetadata());
+    managedChannel =
+        ManagedChannelBuilder.forAddress(seedAddress, 8091)
+            .intercept(interceptor)
+            .usePlaintext()
+            .build();
     stub = StargateBridgeGrpc.newBlockingStub(managedChannel);
     asyncStub = StargateBridgeGrpc.newStub(managedChannel);
 
@@ -136,5 +144,15 @@ public class BridgeIntegrationTest extends BaseIntegrationTest {
 
   protected QueryOuterClass.QueryParameters.Builder queryParameters(CqlIdentifier keyspace) {
     return queryParameters(keyspace, false);
+  }
+
+  protected static String sourceApi() {
+    return "rest";
+  }
+
+  private static Metadata generateMetadata() {
+    Metadata metadata = new Metadata();
+    metadata.put(Metadata.Key.of("X-Source-Api", Metadata.ASCII_STRING_MARSHALLER), sourceApi());
+    return metadata;
   }
 }
