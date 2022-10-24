@@ -16,6 +16,7 @@
 package io.stargate.bridge.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -28,6 +29,8 @@ import com.google.protobuf.Int32Value;
 import com.google.protobuf.Int64Value;
 import com.google.protobuf.StringValue;
 import io.grpc.Metadata;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.stargate.auth.SourceAPI;
 import io.stargate.bridge.Utils;
 import io.stargate.bridge.proto.QueryOuterClass;
@@ -49,6 +52,7 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -130,6 +134,48 @@ public class QueryParametersTest extends BaseBridgeServiceTest {
         stub.executeQuery(
             Query.newBuilder().setCql("SELECT * FROM test").setParameters(actual).build());
     assertThat(response.hasResultSet()).isTrue();
+  }
+
+  @Test
+  public void queryParametersWithWrongSourceApi() {
+    startServer(new SourceApiInterceptor(true), new MockInterceptor(persistence));
+
+    StargateBridgeBlockingStub stub =
+        makeBlockingStubWithClientHeaders(
+            metadata ->
+                metadata.put(
+                    Metadata.Key.of("X-Source-Api", Metadata.ASCII_STRING_MARSHALLER), "whatever"));
+
+    Throwable t =
+        catchThrowable(
+            () -> stub.executeQuery(Query.newBuilder().setCql("SELECT * FROM test").build()));
+
+    assertThat(t)
+        .isInstanceOfSatisfying(
+            StatusRuntimeException.class,
+            e -> {
+              assertThat(e.getStatus().getCode()).isEqualTo(Status.Code.INVALID_ARGUMENT);
+              assertThat(e.getStatus().getDescription()).isNotBlank();
+            });
+  }
+
+  @Test
+  public void queryParametersWithoutSourceApi() {
+    startServer(new SourceApiInterceptor(true), new MockInterceptor(persistence));
+
+    StargateBridgeBlockingStub stub = makeBlockingStub();
+
+    Throwable t =
+        catchThrowable(
+            () -> stub.executeQuery(Query.newBuilder().setCql("SELECT * FROM test").build()));
+
+    assertThat(t)
+        .isInstanceOfSatisfying(
+            StatusRuntimeException.class,
+            e -> {
+              assertThat(e.getStatus().getCode()).isEqualTo(Status.Code.INVALID_ARGUMENT);
+              assertThat(e.getStatus().getDescription()).isNotBlank();
+            });
   }
 
   public static Stream<Arguments> queryParameterValues() {
