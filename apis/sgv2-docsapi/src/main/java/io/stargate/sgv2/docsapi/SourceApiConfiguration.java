@@ -15,17 +15,18 @@
  *
  */
 
-package io.stargate.sgv2.api.common.config.constants;
+package io.stargate.sgv2.docsapi;
 
-/** Static constants. */
-public interface HttpConstants {
+import io.stargate.sgv2.api.common.grpc.SourceApi;
+import javax.enterprise.context.ApplicationScoped;
+import javax.ws.rs.Produces;
 
-  /** Authentication token header name. */
-  String AUTHENTICATION_TOKEN_HEADER_NAME = "X-Cassandra-Token";
+@ApplicationScoped
+public class SourceApiConfiguration {
 
-  /** Tenant identifier header name. */
-  String TENANT_ID_HEADER_NAME = "X-Tenant-Id";
-
-  /** Source API header name. */
-  String SOURCE_API_HEADER_NAME = "X-Source-Api";
+  @Produces
+  @SourceApi
+  public String sourceApi() {
+    return "rest";
+  }
 }
