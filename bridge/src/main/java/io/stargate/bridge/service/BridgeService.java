@@ -19,6 +19,7 @@ import io.grpc.Context;
 import io.grpc.StatusException;
 import io.grpc.stub.StreamObserver;
 import io.stargate.auth.AuthorizationService;
+import io.stargate.auth.SourceAPI;
 import io.stargate.bridge.proto.QueryOuterClass.Batch;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.QueryOuterClass.Response;
@@ -38,6 +39,8 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
   public static final Context.Key<Persistence.Connection> CONNECTION_KEY =
       Context.key("connection");
   public static final Context.Key<Map<String, String>> HEADERS_KEY = Context.key("headers");
+
+  public static final Context.Key<SourceAPI> SOURCE_API_KEY = Context.key("source-api");
   public static final int DEFAULT_PAGE_SIZE = 100;
   public static final ConsistencyLevel DEFAULT_CONSISTENCY = ConsistencyLevel.LOCAL_QUORUM;
   public static final ConsistencyLevel DEFAULT_SERIAL_CONSISTENCY = ConsistencyLevel.SERIAL;
@@ -81,6 +84,7 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
             query,
             CONNECTION_KEY.get(),
             persistence,
+            SOURCE_API_KEY.get(),
             executor,
             schemaAgreementRetries,
             synchronizedStreamObserver)
@@ -148,7 +152,13 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
   public void executeBatch(Batch batch, StreamObserver<Response> responseObserver) {
     SynchronizedStreamObserver<Response> synchronizedStreamObserver =
         new SynchronizedStreamObserver<>(responseObserver);
-    new BatchHandler(batch, CONNECTION_KEY.get(), persistence, synchronizedStreamObserver).handle();
+    new BatchHandler(
+            batch,
+            CONNECTION_KEY.get(),
+            persistence,
+            SOURCE_API_KEY.get(),
+            synchronizedStreamObserver)
+        .handle();
   }
 
   @Override

@@ -27,6 +27,8 @@ import com.google.protobuf.BytesValue;
 import com.google.protobuf.Int32Value;
 import com.google.protobuf.Int64Value;
 import com.google.protobuf.StringValue;
+import io.grpc.Metadata;
+import io.stargate.auth.SourceAPI;
 import io.stargate.bridge.Utils;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.Consistency;
@@ -34,6 +36,7 @@ import io.stargate.bridge.proto.QueryOuterClass.ConsistencyValue;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.QueryOuterClass.QueryParameters;
 import io.stargate.bridge.proto.StargateBridgeGrpc.StargateBridgeBlockingStub;
+import io.stargate.bridge.service.interceptors.SourceApiInterceptor;
 import io.stargate.db.Parameters;
 import io.stargate.db.Result;
 import io.stargate.db.Result.Prepared;
@@ -41,6 +44,8 @@ import io.stargate.db.Result.ResultMetadata;
 import io.stargate.db.Statement;
 import java.nio.ByteBuffer;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
@@ -77,6 +82,49 @@ public class QueryParametersTest extends BaseBridgeServiceTest {
     startServer(persistence);
 
     StargateBridgeBlockingStub stub = makeBlockingStub();
+
+    QueryOuterClass.Response response =
+        stub.executeQuery(
+            Query.newBuilder().setCql("SELECT * FROM test").setParameters(actual).build());
+    assertThat(response.hasResultSet()).isTrue();
+  }
+
+  @ParameterizedTest
+  @MethodSource({"queryParameterValues"})
+  public void queryParametersWithSourceApi(QueryParameters actual, Parameters expected) {
+    ResultMetadata resultMetadata = Utils.makeResultMetadata();
+    Prepared prepared = Utils.makePrepared();
+
+    when(connection.prepare(anyString(), any(Parameters.class)))
+        .thenReturn(CompletableFuture.completedFuture(prepared));
+
+    when(connection.execute(any(Statement.class), any(Parameters.class), anyLong()))
+        .then(
+            invocation -> {
+              Parameters parameters = invocation.getArgument(1, Parameters.class);
+              Map<String, ByteBuffer> customPayload = new HashMap<>();
+              SourceAPI.REST.toCustomPayload(customPayload);
+              Parameters expectedWithPayload =
+                  Parameters.builder().from(expected).customPayload(customPayload).build();
+              assertThat(parameters).isEqualTo(expectedWithPayload);
+              return CompletableFuture.completedFuture(
+                  new Result.Rows(Collections.emptyList(), resultMetadata));
+            });
+
+    when(persistence.newConnection()).thenReturn(connection);
+
+    if (actual.hasKeyspace()) {
+      when(persistence.decorateKeyspaceName(anyString(), any()))
+          .thenReturn("decorated_" + actual.getKeyspace().getValue());
+    }
+
+    startServer(new SourceApiInterceptor(true), new MockInterceptor(persistence));
+
+    StargateBridgeBlockingStub stub =
+        makeBlockingStubWithClientHeaders(
+            metadata ->
+                metadata.put(
+                    Metadata.Key.of("X-Source-Api", Metadata.ASCII_STRING_MARSHALLER), "rest"));
 
     QueryOuterClass.Response response =
         stub.executeQuery(
