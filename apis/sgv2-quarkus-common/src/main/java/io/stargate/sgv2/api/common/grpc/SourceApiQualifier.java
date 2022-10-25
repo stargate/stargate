@@ -15,17 +15,15 @@
  *
  */
 
-package io.stargate.sgv2.api.common.config.constants;
+package io.stargate.sgv2.api.common.grpc;
 
-/** Static constants. */
-public interface HttpConstants {
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
 
-  /** Authentication token header name. */
-  String AUTHENTICATION_TOKEN_HEADER_NAME = "X-Cassandra-Token";
+import java.lang.annotation.Documented;
+import java.lang.annotation.Retention;
+import javax.inject.Qualifier;
 
-  /** Tenant identifier header name. */
-  String TENANT_ID_HEADER_NAME = "X-Tenant-Id";
-
-  /** Source API header name. */
-  String SOURCE_API_HEADER_NAME = "X-Source-Api";
-}
+@Documented
+@Retention(RUNTIME)
+@Qualifier
+public @interface SourceApiQualifier {}

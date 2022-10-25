@@ -145,13 +145,17 @@ public class BaseBridgeServiceTest {
     startServer(new MockInterceptor(persistence));
   }
 
-  protected void startServer(ServerInterceptor interceptor) {
+  protected void startServer(ServerInterceptor... interceptors) {
     assertThat(server).isNull();
     executor = Executors.newScheduledThreadPool(1);
+    InProcessServerBuilder builder = InProcessServerBuilder.forName(SERVER_NAME).directExecutor();
+
+    for (ServerInterceptor interceptor : interceptors) {
+      builder.intercept(interceptor);
+    }
+
     server =
-        InProcessServerBuilder.forName(SERVER_NAME)
-            .directExecutor()
-            .intercept(interceptor)
+        builder
             .addService(new BridgeService(persistence, authorizationService, executor, 2))
             .build();
     try {

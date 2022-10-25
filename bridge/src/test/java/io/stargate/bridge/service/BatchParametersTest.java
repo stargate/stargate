@@ -16,6 +16,7 @@
 package io.stargate.bridge.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -25,19 +26,28 @@ import static org.mockito.Mockito.when;
 import com.google.protobuf.Int32Value;
 import com.google.protobuf.Int64Value;
 import com.google.protobuf.StringValue;
+import io.grpc.Metadata;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import io.stargate.auth.SourceAPI;
 import io.stargate.bridge.Utils;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.BatchParameters;
 import io.stargate.bridge.proto.QueryOuterClass.Consistency;
 import io.stargate.bridge.proto.QueryOuterClass.ConsistencyValue;
 import io.stargate.bridge.proto.StargateBridgeGrpc.StargateBridgeBlockingStub;
+import io.stargate.bridge.service.interceptors.SourceApiInterceptor;
 import io.stargate.db.Batch;
 import io.stargate.db.Parameters;
 import io.stargate.db.Result;
 import io.stargate.db.Result.Prepared;
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Stream;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -66,7 +76,7 @@ public class BatchParametersTest extends BaseBridgeServiceTest {
           .thenReturn("decorated_" + actual.getKeyspace().getValue());
     }
 
-    startServer(persistence);
+    startServer(new MockInterceptor(persistence), new SourceApiInterceptor(false));
 
     StargateBridgeBlockingStub stub = makeBlockingStub();
 
@@ -77,6 +87,104 @@ public class BatchParametersTest extends BaseBridgeServiceTest {
                 .setParameters(actual)
                 .build());
     assertThat(response.hasResultSet()).isFalse();
+  }
+
+  @ParameterizedTest
+  @MethodSource({"batchParameterValues"})
+  public void batchParametersWithSourceApi(BatchParameters actual, Parameters expected) {
+    Prepared prepared = Utils.makePrepared();
+
+    when(connection.prepare(anyString(), any(Parameters.class)))
+        .thenReturn(CompletableFuture.completedFuture(prepared));
+
+    when(connection.batch(any(Batch.class), any(Parameters.class), anyLong()))
+        .then(
+            invocation -> {
+              Parameters parameters = invocation.getArgument(1, Parameters.class);
+              Map<String, ByteBuffer> customPayload = new HashMap<>();
+              SourceAPI.REST.toCustomPayload(customPayload);
+              Parameters expectedWithPayload =
+                  Parameters.builder().from(expected).customPayload(customPayload).build();
+              assertThat(parameters).isEqualTo(expectedWithPayload);
+              return CompletableFuture.completedFuture(new Result.Void());
+            });
+
+    when(persistence.newConnection()).thenReturn(connection);
+
+    if (actual.hasKeyspace()) {
+      when(persistence.decorateKeyspaceName(anyString(), any()))
+          .thenReturn("decorated_" + actual.getKeyspace().getValue());
+    }
+
+    startServer(new SourceApiInterceptor(true), new MockInterceptor(persistence));
+
+    StargateBridgeBlockingStub stub =
+        makeBlockingStubWithClientHeaders(
+            metadata ->
+                metadata.put(
+                    Metadata.Key.of("X-Source-Api", Metadata.ASCII_STRING_MARSHALLER), "rest"));
+
+    QueryOuterClass.Response response =
+        stub.executeBatch(
+            QueryOuterClass.Batch.newBuilder()
+                .addQueries(cqlBatchQuery("DOES NOT MATTER"))
+                .setParameters(actual)
+                .build());
+    assertThat(response.hasResultSet()).isFalse();
+  }
+
+  @Test
+  public void batchParametersWithWrongSourceApi() {
+    startServer(new SourceApiInterceptor(true), new MockInterceptor(persistence));
+
+    StargateBridgeBlockingStub stub =
+        makeBlockingStubWithClientHeaders(
+            metadata ->
+                metadata.put(
+                    Metadata.Key.of("X-Source-Api", Metadata.ASCII_STRING_MARSHALLER), "whatever"));
+
+    Throwable t =
+        catchThrowable(
+            () ->
+                stub.executeBatch(
+                    QueryOuterClass.Batch.newBuilder()
+                        .addQueries(cqlBatchQuery("DOES NOT MATTER"))
+                        .build()));
+
+    assertThat(t)
+        .isInstanceOfSatisfying(
+            StatusRuntimeException.class,
+            e -> {
+              assertThat(e.getStatus().getCode()).isEqualTo(Status.Code.INVALID_ARGUMENT);
+              assertThat(e.getStatus().getDescription())
+                  .isEqualTo(
+                      "Source API can not be found in metadata, expecting in the value in the X-Source-Api. Received: whatever");
+            });
+  }
+
+  @Test
+  public void batchParametersWithoutSourceApi() {
+    startServer(new SourceApiInterceptor(true), new MockInterceptor(persistence));
+
+    StargateBridgeBlockingStub stub = makeBlockingStub();
+
+    Throwable t =
+        catchThrowable(
+            () ->
+                stub.executeBatch(
+                    QueryOuterClass.Batch.newBuilder()
+                        .addQueries(cqlBatchQuery("DOES NOT MATTER"))
+                        .build()));
+
+    assertThat(t)
+        .isInstanceOfSatisfying(
+            StatusRuntimeException.class,
+            e -> {
+              assertThat(e.getStatus().getCode()).isEqualTo(Status.Code.INVALID_ARGUMENT);
+              assertThat(e.getStatus().getDescription())
+                  .isEqualTo(
+                      "Source API can not be found in metadata, expecting in the value in the X-Source-Api. Received: null");
+            });
   }
 
   public static Stream<Arguments> batchParameterValues() {

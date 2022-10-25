@@ -17,11 +17,26 @@
  */
 package io.stargate.auth;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+
+/** Defines what API is a source of the request performing the authorization. */
 public enum SourceAPI {
+
+  /** Used for GraphQL API. */
   GRAPHQL("graphql"),
+
+  /** Used for CQL traffic (and gRPC). */
   CQL("cql"),
+
+  /** Used for REST and Docs API, as historically they were one. */
   REST("rest");
 
+  public static final String CUSTOM_PAYLOAD_KEY = "stargate.sourceAPI";
   private final String name;
 
   SourceAPI(String name) {
@@ -30,5 +45,31 @@ public enum SourceAPI {
 
   public String getName() {
     return name;
+  }
+
+  public void toCustomPayload(Map<String, ByteBuffer> customPayload) {
+    if (null == customPayload) {
+      return;
+    }
+
+    ByteBuffer buffer = StandardCharsets.UTF_8.encode(this.getName()).asReadOnlyBuffer();
+    customPayload.put(CUSTOM_PAYLOAD_KEY, buffer);
+  }
+
+  public static SourceAPI fromCustomPayload(
+      Map<String, ByteBuffer> customPayload, SourceAPI defaultIfMissing) {
+    if (null == customPayload) {
+      return defaultIfMissing;
+    }
+
+    return Optional.ofNullable(customPayload.get(CUSTOM_PAYLOAD_KEY))
+        .flatMap(
+            buffer -> {
+              String decode = StandardCharsets.UTF_8.decode(buffer).toString();
+              return Arrays.stream(SourceAPI.values())
+                  .filter(s -> Objects.equals(s.getName(), decode))
+                  .findFirst();
+            })
+        .orElse(defaultIfMissing);
   }
 }
