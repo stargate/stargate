@@ -55,6 +55,7 @@ class StargateBridgeInterceptorTest extends BridgeTest {
           .putAll(super.getConfigOverrides())
           .put("stargate.grpc-metadata.tenant-id-key", "custom-tenant-key")
           .put("stargate.grpc-metadata.cassandra-token-key", "custom-token-key")
+          .put("stargate.grpc-metadata.source-api-key", "custom-source-api-key")
           .build();
     }
   }
@@ -107,6 +108,9 @@ class StargateBridgeInterceptorTest extends BridgeTest {
               Metadata.Key<String> tokenKey =
                   Metadata.Key.of("custom-token-key", Metadata.ASCII_STRING_MARSHALLER);
               assertThat(metadata.get(tokenKey)).isEqualTo(token);
+              Metadata.Key<String> sourceApiKey =
+                  Metadata.Key.of("custom-source-api-key", Metadata.ASCII_STRING_MARSHALLER);
+              assertThat(metadata.get(sourceApiKey)).isEqualTo("rest");
             });
   }
 
@@ -148,6 +152,9 @@ class StargateBridgeInterceptorTest extends BridgeTest {
               Metadata.Key<String> tokenKey =
                   Metadata.Key.of("custom-token-key", Metadata.ASCII_STRING_MARSHALLER);
               assertThat(metadata.containsKey(tokenKey)).isFalse();
+              Metadata.Key<String> sourceApiKey =
+                  Metadata.Key.of("custom-source-api-key", Metadata.ASCII_STRING_MARSHALLER);
+              assertThat(metadata.get(sourceApiKey)).isEqualTo("rest");
             });
   }
 }

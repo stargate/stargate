@@ -18,6 +18,7 @@ package io.stargate.bridge.service;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
+import io.stargate.auth.SourceAPI;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.QueryOuterClass.QueryParameters;
@@ -51,6 +52,7 @@ public class QueryHandler extends MessageHandler<Query, Prepared> {
   private final String decoratedKeyspace;
   private final SchemaAgreementHelper schemaAgreementHelper;
   private final boolean enrichResponse;
+  private final SourceAPI sourceAPI;
   private volatile Parameters parameters;
   public static final ByteBuffer EXHAUSTED_PAGE_STATE = ByteBuffer.allocate(0);
 
@@ -58,6 +60,7 @@ public class QueryHandler extends MessageHandler<Query, Prepared> {
       Query query,
       Connection connection,
       Persistence persistence,
+      SourceAPI sourceAPI,
       ScheduledExecutorService executor,
       int schemaAgreementRetries,
       StreamObserver<Response> responseObserver) {
@@ -65,12 +68,13 @@ public class QueryHandler extends MessageHandler<Query, Prepared> {
     this.schemaAgreementHelper =
         new SchemaAgreementHelper(connection, schemaAgreementRetries, executor);
     QueryParameters queryParameters = query.getParameters();
+    Map<String, String> headers = BridgeService.HEADERS_KEY.get();
     this.decoratedKeyspace =
         queryParameters.hasKeyspace()
-            ? persistence.decorateKeyspaceName(
-                queryParameters.getKeyspace().getValue(), BridgeService.HEADERS_KEY.get())
+            ? persistence.decorateKeyspaceName(queryParameters.getKeyspace().getValue(), headers)
             : null;
     this.enrichResponse = query.hasParameters() && query.getParameters().getEnriched();
+    this.sourceAPI = sourceAPI;
   }
 
   @Override
@@ -226,13 +230,27 @@ public class QueryHandler extends MessageHandler<Query, Prepared> {
       builder.nowInSeconds(parameters.getNowInSeconds().getValue());
     }
 
-    clientInfo.ifPresent(
-        c -> {
-          Map<String, ByteBuffer> customPayload = new HashMap<>();
-          c.storeAuthenticationData(customPayload);
-          builder.customPayload(customPayload);
-        });
+    Map<String, ByteBuffer> customPayload = getCustomPayload(clientInfo.orElse(null));
+    if (!customPayload.isEmpty()) {
+      builder.customPayload(customPayload);
+    }
 
     return builder.tracingRequested(parameters.getTracing()).build();
+  }
+
+  private Map<String, ByteBuffer> getCustomPayload(ClientInfo clientInfo) {
+    Map<String, ByteBuffer> customPayload = new HashMap<>();
+
+    // add source api if available
+    if (null != sourceAPI) {
+      sourceAPI.toCustomPayload(customPayload);
+    }
+
+    // same for the client info auth data
+    if (null != clientInfo) {
+      clientInfo.storeAuthenticationData(customPayload);
+    }
+
+    return customPayload;
   }
 }

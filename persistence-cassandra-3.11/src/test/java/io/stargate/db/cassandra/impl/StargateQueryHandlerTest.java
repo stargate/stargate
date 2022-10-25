@@ -19,9 +19,9 @@ import io.stargate.auth.SourceAPI;
 import io.stargate.auth.UnauthorizedException;
 import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.AuthenticatedUser;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 import org.apache.cassandra.config.CFMetaData;
@@ -72,6 +72,8 @@ import org.apache.cassandra.schema.Tables;
 import org.apache.cassandra.service.ClientState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.Mockito;
 
 class StargateQueryHandlerTest extends BaseCassandraTest {
@@ -114,17 +116,19 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     }
   }
 
-  @Test
-  void authorizeByTokenSelectStatement() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenSelectStatement(SourceAPI sourceApi) throws UnauthorizedException {
     SelectStatement.RawStatement rawStatement =
         (SelectStatement.RawStatement) QueryProcessor.parseStatement("select * from system.local");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
-        .authorizeDataRead(
-            refEq(authenticationSubject), eq("system"), eq("local"), eq(SourceAPI.CQL));
+        .authorizeDataRead(refEq(authenticationSubject), eq("system"), eq("local"), eq(expected));
   }
 
   @Test
@@ -145,8 +149,10 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     assertThat(thrown.getMessage()).isEqualTo("token and roleName must be provided");
   }
 
-  @Test
-  void authorizeByTokenModificationStatementDelete() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenModificationStatementDelete(SourceAPI sourceApi)
+      throws UnauthorizedException {
     DeleteStatement.Parsed rawStatement =
         (DeleteStatement.Parsed)
             QueryProcessor.parseStatement("delete from ks1.tbl1 where key = ?");
@@ -157,18 +163,18 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
                 Collections.singletonList(new ColumnIdentifier("key", true))),
             ClientState.forInternalCalls());
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeDataWrite(
-            refEq(authenticationSubject),
-            eq("ks1"),
-            eq("tbl1"),
-            eq(Scope.DELETE),
-            eq(SourceAPI.CQL));
+            refEq(authenticationSubject), eq("ks1"), eq("tbl1"), eq(Scope.DELETE), eq(expected));
   }
 
-  @Test
-  void authorizeByTokenModificationStatementModify() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenModificationStatementModify(SourceAPI sourceApi)
+      throws UnauthorizedException {
     UpdateStatement.Parsed rawStatement =
         (UpdateStatement.Parsed)
             QueryProcessor.parseStatement("update ks1.tbl1 set value = 'a' where key = ?");
@@ -179,34 +185,33 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
                 Collections.singletonList(new ColumnIdentifier("key", true))),
             ClientState.forInternalCalls());
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeDataWrite(
-            refEq(authenticationSubject),
-            eq("ks1"),
-            eq("tbl1"),
-            eq(Scope.MODIFY),
-            eq(SourceAPI.CQL));
+            refEq(authenticationSubject), eq("ks1"), eq("tbl1"), eq(Scope.MODIFY), eq(expected));
   }
 
-  @Test
-  void authorizeByTokenTruncateStatement() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenTruncateStatement(SourceAPI sourceApi) throws UnauthorizedException {
     ParsedStatement rawStatement = QueryProcessor.parseStatement("truncate ks1.tbl1");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeDataWrite(
-            refEq(authenticationSubject),
-            eq("ks1"),
-            eq("tbl1"),
-            eq(Scope.TRUNCATE),
-            eq(SourceAPI.CQL));
+            refEq(authenticationSubject), eq("ks1"), eq("tbl1"), eq(Scope.TRUNCATE), eq(expected));
   }
 
-  @Test
-  void authorizeByTokenAlterSchemaStatementCreateTable() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAlterSchemaStatementCreateTable(SourceAPI sourceApi)
+      throws UnauthorizedException {
     CreateTableStatement.RawStatement rawStatement =
         (CreateTableStatement.RawStatement)
             QueryProcessor.parseStatement(
@@ -214,55 +219,67 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
             refEq(authenticationSubject),
             eq("ks1"),
             eq("tbl2"),
             eq(Scope.CREATE),
-            eq(SourceAPI.CQL),
+            eq(expected),
             eq(ResourceKind.TABLE));
   }
 
-  @Test
-  void authorizeByTokenAlterSchemaStatementDropTable() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAlterSchemaStatementDropTable(SourceAPI sourceApi)
+      throws UnauthorizedException {
     DropTableStatement rawStatement =
         (DropTableStatement) QueryProcessor.parseStatement("drop table ks1.tbl1");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
             refEq(authenticationSubject),
             eq("ks1"),
             eq("tbl1"),
             eq(Scope.DROP),
-            eq(SourceAPI.CQL),
+            eq(expected),
             eq(ResourceKind.TABLE));
   }
 
-  @Test
-  void authorizeByTokenAlterSchemaStatementAlterTable() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAlterSchemaStatementAlterTable(SourceAPI sourceApi)
+      throws UnauthorizedException {
     AlterTableStatement rawStatement =
         (AlterTableStatement) QueryProcessor.parseStatement("ALTER TABLE ks1.tbl1 ADD val2 INT");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
             refEq(authenticationSubject),
             eq("ks1"),
             eq("tbl1"),
             eq(Scope.ALTER),
-            eq(SourceAPI.CQL),
+            eq(expected),
             eq(ResourceKind.TABLE));
   }
 
-  @Test
-  void authorizeByTokenAlterSchemaStatementCreateKeyspace() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAlterSchemaStatementCreateKeyspace(SourceAPI sourceApi)
+      throws UnauthorizedException {
     CreateKeyspaceStatement rawStatement =
         (CreateKeyspaceStatement)
             QueryProcessor.parseStatement(
@@ -270,37 +287,45 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
             refEq(authenticationSubject),
             eq("ks2"),
             eq(null),
             eq(Scope.CREATE),
-            eq(SourceAPI.CQL),
+            eq(expected),
             eq(ResourceKind.KEYSPACE));
   }
 
-  @Test
-  void authorizeByTokenAlterSchemaStatementDeleteKeyspace() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAlterSchemaStatementDeleteKeyspace(SourceAPI sourceApi)
+      throws UnauthorizedException {
     DropKeyspaceStatement rawStatement =
         (DropKeyspaceStatement) QueryProcessor.parseStatement("drop keyspace ks1");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
             refEq(authenticationSubject),
             eq("ks1"),
             eq(null),
             eq(Scope.DROP),
-            eq(SourceAPI.CQL),
+            eq(expected),
             eq(ResourceKind.KEYSPACE));
   }
 
-  @Test
-  void authorizeByTokenAlterSchemaStatementAlterKeyspace() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAlterSchemaStatementAlterKeyspace(SourceAPI sourceApi)
+      throws UnauthorizedException {
     AlterKeyspaceStatement rawStatement =
         (AlterKeyspaceStatement)
             QueryProcessor.parseStatement(
@@ -308,38 +333,46 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
             refEq(authenticationSubject),
             eq("ks1"),
             eq(null),
             eq(Scope.ALTER),
-            eq(SourceAPI.CQL),
+            eq(expected),
             eq(ResourceKind.KEYSPACE));
   }
 
-  @Test
-  void authorizeByTokenAlterSchemaStatementAlterType() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAlterSchemaStatementAlterType(SourceAPI sourceApi)
+      throws UnauthorizedException {
     AlterTypeStatement rawStatement =
         (AlterTypeStatement)
             QueryProcessor.parseStatement("ALTER TYPE cycling.fullname ADD middlename text;");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
             refEq(authenticationSubject),
             eq("cycling"),
             eq(null),
             eq(Scope.ALTER),
-            eq(SourceAPI.CQL),
+            eq(expected),
             eq(ResourceKind.TYPE));
   }
 
-  @Test
-  void authorizeByTokenAlterSchemaStatementAlterView() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAlterSchemaStatementAlterView(SourceAPI sourceApi)
+      throws UnauthorizedException {
     AlterViewStatement rawStatement =
         (AlterViewStatement)
             QueryProcessor.parseStatement(
@@ -355,19 +388,23 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
             refEq(authenticationSubject),
             eq("cycling"),
             eq("cyclist_by_age"),
             eq(Scope.ALTER),
-            eq(SourceAPI.CQL),
+            eq(expected),
             eq(ResourceKind.VIEW));
   }
 
-  @Test
-  void authorizeByTokenAlterSchemaStatementCreateAggregate() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAlterSchemaStatementCreateAggregate(SourceAPI sourceApi)
+      throws UnauthorizedException {
     CreateAggregateStatement rawStatement =
         (CreateAggregateStatement)
             QueryProcessor.parseStatement(
@@ -377,19 +414,23 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
                     + "  FINALFUNC avgFinal \n"
                     + "  INITCOND (1,1);");
 
-    queryHandler.authorizeByToken(createToken(), rawStatement);
+    queryHandler.authorizeByToken(createToken(sourceApi), rawStatement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
             refEq(authenticationSubject),
             eq("cycling"),
             eq(null),
             eq(Scope.CREATE),
-            eq(SourceAPI.CQL),
+            eq(expected),
             eq(ResourceKind.AGGREGATE));
   }
 
-  @Test
-  void authorizeByTokenAlterSchemaStatementCreateFunction() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAlterSchemaStatementCreateFunction(SourceAPI sourceApi)
+      throws UnauthorizedException {
     CreateFunctionStatement rawStatement =
         (CreateFunctionStatement)
             QueryProcessor.parseStatement(
@@ -406,19 +447,23 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
             refEq(authenticationSubject),
             eq("cycling"),
             eq(null),
             eq(Scope.CREATE),
-            eq(SourceAPI.CQL),
+            eq(expected),
             eq(ResourceKind.FUNCTION));
   }
 
-  @Test
-  void authorizeByTokenAlterSchemaStatementCreateIndex() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAlterSchemaStatementCreateIndex(SourceAPI sourceApi)
+      throws UnauthorizedException {
     CreateIndexStatement rawStatement =
         (CreateIndexStatement)
             QueryProcessor.parseStatement(
@@ -426,19 +471,23 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
             refEq(authenticationSubject),
             eq("ks1"),
             eq("tbl1"),
             eq(Scope.CREATE),
-            eq(SourceAPI.CQL),
+            eq(expected),
             eq(ResourceKind.INDEX));
   }
 
-  @Test
-  void authorizeByTokenAlterSchemaStatementCreateTrigger() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAlterSchemaStatementCreateTrigger(SourceAPI sourceApi)
+      throws UnauthorizedException {
     CreateTriggerStatement rawStatement =
         (CreateTriggerStatement)
             QueryProcessor.parseStatement(
@@ -448,38 +497,46 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
             refEq(authenticationSubject),
             eq("ks1"),
             eq("tbl1"),
             eq(Scope.CREATE),
-            eq(SourceAPI.CQL),
+            eq(expected),
             eq(ResourceKind.TRIGGER));
   }
 
-  @Test
-  void authorizeByTokenAlterSchemaStatementCreateType() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAlterSchemaStatementCreateType(SourceAPI sourceApi)
+      throws UnauthorizedException {
     CreateTypeStatement rawStatement =
         (CreateTypeStatement)
             QueryProcessor.parseStatement("CREATE TYPE IF NOT EXISTS ks1.type1 (a text, b text);");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
             refEq(authenticationSubject),
             eq("ks1"),
             eq(null),
             eq(Scope.CREATE),
-            eq(SourceAPI.CQL),
+            eq(expected),
             eq(ResourceKind.TYPE));
   }
 
-  @Test
-  void authorizeByTokenAlterSchemaStatementCreateView() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAlterSchemaStatementCreateView(SourceAPI sourceApi)
+      throws UnauthorizedException {
     CreateViewStatement rawStatement =
         (CreateViewStatement)
             QueryProcessor.parseStatement(
@@ -498,130 +555,157 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
             refEq(authenticationSubject),
             eq("cycling"),
             eq("cyclist_by_age"),
             eq(Scope.CREATE),
-            eq(SourceAPI.CQL),
+            eq(expected),
             eq(ResourceKind.VIEW));
   }
 
-  @Test
-  void authorizeByTokenAlterSchemaStatementDropAggregate() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAlterSchemaStatementDropAggregate(SourceAPI sourceApi)
+      throws UnauthorizedException {
     DropAggregateStatement rawStatement =
         (DropAggregateStatement)
             QueryProcessor.parseStatement("DROP AGGREGATE IF EXISTS ks1.agg1;");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
             refEq(authenticationSubject),
             eq("ks1"),
             eq(null),
             eq(Scope.DROP),
-            eq(SourceAPI.CQL),
+            eq(expected),
             eq(ResourceKind.AGGREGATE));
   }
 
-  @Test
-  void authorizeByTokenAlterSchemaStatementDropFunction() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAlterSchemaStatementDropFunction(SourceAPI sourceApi)
+      throws UnauthorizedException {
     DropFunctionStatement rawStatement =
         (DropFunctionStatement) QueryProcessor.parseStatement("DROP FUNCTION IF EXISTS ks1.fLog;");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
             refEq(authenticationSubject),
             eq("ks1"),
             eq(null),
             eq(Scope.DROP),
-            eq(SourceAPI.CQL),
+            eq(expected),
             eq(ResourceKind.FUNCTION));
   }
 
-  @Test
-  void authorizeByTokenAlterSchemaStatementDropIndex() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAlterSchemaStatementDropIndex(SourceAPI sourceApi)
+      throws UnauthorizedException {
     DropIndexStatement rawStatement =
         (DropIndexStatement) QueryProcessor.parseStatement("DROP INDEX IF EXISTS ks1.value_idx;");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
             refEq(authenticationSubject),
             eq("ks1"),
             eq(null),
             eq(Scope.DROP),
-            eq(SourceAPI.CQL),
+            eq(expected),
             eq(ResourceKind.INDEX));
   }
 
-  @Test
-  void authorizeByTokenAlterSchemaStatementDropTrigger() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAlterSchemaStatementDropTrigger(SourceAPI sourceApi)
+      throws UnauthorizedException {
     DropTriggerStatement rawStatement =
         (DropTriggerStatement)
             QueryProcessor.parseStatement("DROP TRIGGER IF EXISTS trigger1 ON ks1.tbl1;");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
             refEq(authenticationSubject),
             eq("ks1"),
             eq("tbl1"),
             eq(Scope.DROP),
-            eq(SourceAPI.CQL),
+            eq(expected),
             eq(ResourceKind.TRIGGER));
   }
 
-  @Test
-  void authorizeByTokenAlterSchemaStatementDropType() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAlterSchemaStatementDropType(SourceAPI sourceApi)
+      throws UnauthorizedException {
     DropTypeStatement rawStatement =
         (DropTypeStatement) QueryProcessor.parseStatement("DROP TYPE IF EXISTS ks1.typ1;");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
             refEq(authenticationSubject),
             eq("ks1"),
             eq(null),
             eq(Scope.DROP),
-            eq(SourceAPI.CQL),
+            eq(expected),
             eq(ResourceKind.TYPE));
   }
 
-  @Test
-  void authorizeByTokenAlterSchemaStatementDropView() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAlterSchemaStatementDropView(SourceAPI sourceApi)
+      throws UnauthorizedException {
     DropViewStatement rawStatement =
         (DropViewStatement)
             QueryProcessor.parseStatement("DROP MATERIALIZED VIEW IF EXISTS ks1.view1;");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeSchemaWrite(
             refEq(authenticationSubject),
             eq("ks1"),
             eq("view1"),
             eq(Scope.DROP),
-            eq(SourceAPI.CQL),
+            eq(expected),
             eq(ResourceKind.VIEW));
   }
 
-  @Test
-  void authorizeByTokenAuthorizationStatementPermissionsManagementStatement()
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAuthorizationStatementPermissionsManagementStatement(SourceAPI sourceApi)
       throws UnauthorizedException {
     PermissionsManagementStatement rawStatement =
         (PermissionsManagementStatement)
@@ -629,31 +713,37 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizePermissionManagement(
             refEq(authenticationSubject),
             eq("data/ks1"),
             eq("roles/role1"),
             eq(Scope.AUTHORIZE),
-            eq(SourceAPI.CQL));
+            eq(expected));
   }
 
-  @Test
-  void authorizeByTokenAuthorizationStatementListPermissionsStatement()
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAuthorizationStatementListPermissionsStatement(SourceAPI sourceApi)
       throws UnauthorizedException {
     ListPermissionsStatement rawStatement =
         (ListPermissionsStatement) QueryProcessor.parseStatement("LIST ALL PERMISSIONS OF sam;");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
-        .authorizePermissionRead(refEq(authenticationSubject), eq("roles/sam"), eq(SourceAPI.CQL));
+        .authorizePermissionRead(refEq(authenticationSubject), eq("roles/sam"), eq(expected));
   }
 
-  @Test
-  void authorizeListPermissionsException() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeListPermissionsException(SourceAPI sourceApi) throws UnauthorizedException {
     ListPermissionsStatement rawStatement =
         (ListPermissionsStatement) QueryProcessor.parseStatement("LIST ALL PERMISSIONS OF sam;");
 
@@ -663,24 +753,29 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
         .when(authorizationService)
         .authorizePermissionRead(any(), any(), any());
 
-    assertThatThrownBy(() -> queryHandler.authorizeByToken(createToken(), statement))
+    assertThatThrownBy(() -> queryHandler.authorizeByToken(createToken(sourceApi), statement))
         .hasMessageContaining("test-message");
   }
 
-  @Test
-  void authorizeByTokenAuthorizationStatementListRolesStatement() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAuthorizationStatementListRolesStatement(SourceAPI sourceApi)
+      throws UnauthorizedException {
     ListRolesStatement rawStatement =
         (ListRolesStatement) QueryProcessor.parseStatement("LIST ROLES;");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
-        .authorizeRoleRead(refEq(authenticationSubject), eq(null), eq(SourceAPI.CQL));
+        .authorizeRoleRead(refEq(authenticationSubject), eq(null), eq(expected));
   }
 
-  @Test
-  void authorizeByTokenAuthorizationStatementRevokePermissionsStatement()
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAuthorizationStatementRevokePermissionsStatement(SourceAPI sourceApi)
       throws UnauthorizedException {
     RevokePermissionsStatement rawStatement =
         (RevokePermissionsStatement)
@@ -689,18 +784,21 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizePermissionManagement(
             refEq(authenticationSubject),
             eq("data/cycling"),
             eq("roles/coach"),
             eq(Scope.AUTHORIZE),
-            eq(SourceAPI.CQL));
+            eq(expected));
   }
 
-  @Test
-  void authorizeByTokenAuthorizationStatementGrantPermissionsStatement()
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAuthorizationStatementGrantPermissionsStatement(SourceAPI sourceApi)
       throws UnauthorizedException {
     GrantPermissionsStatement rawStatement =
         (GrantPermissionsStatement)
@@ -708,18 +806,21 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizePermissionManagement(
             refEq(authenticationSubject),
             eq("data/cycling"),
             eq("roles/coach"),
             eq(Scope.AUTHORIZE),
-            eq(SourceAPI.CQL));
+            eq(expected));
   }
 
-  @Test
-  void authorizeAuthorizationStatementException() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeAuthorizationStatementException(SourceAPI sourceApi) throws UnauthorizedException {
     GrantPermissionsStatement rawStatement =
         (GrantPermissionsStatement)
             QueryProcessor.parseStatement("GRANT ALTER\n" + "ON KEYSPACE cycling\n" + "TO coach;");
@@ -730,25 +831,29 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
         .when(authorizationService)
         .authorizePermissionManagement(any(), any(), any(), any(), any());
 
-    assertThatThrownBy(() -> queryHandler.authorizeByToken(createToken(), statement))
+    assertThatThrownBy(() -> queryHandler.authorizeByToken(createToken(sourceApi), statement))
         .hasMessageContaining("test-message");
   }
 
-  @Test
-  void authorizeByTokenAuthorizationStatementListRolesStatementWithRole()
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAuthorizationStatementListRolesStatementWithRole(SourceAPI sourceApi)
       throws UnauthorizedException {
     ListRolesStatement rawStatement =
         (ListRolesStatement) QueryProcessor.parseStatement("LIST ROLES OF coach;");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
-        .authorizeRoleRead(refEq(authenticationSubject), eq("roles/coach"), eq(SourceAPI.CQL));
+        .authorizeRoleRead(refEq(authenticationSubject), eq("roles/coach"), eq(expected));
   }
 
-  @Test
-  void authorizeRoleReadException() throws Exception {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeRoleReadException(SourceAPI sourceApi) throws Exception {
     ListRolesStatement rawStatement =
         (ListRolesStatement) QueryProcessor.parseStatement("LIST ROLES OF coach;");
 
@@ -758,30 +863,35 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
         .when(authorizationService)
         .authorizeRoleRead(any(), any(), any());
 
-    assertThatThrownBy(() -> queryHandler.authorizeByToken(createToken(), statement))
+    assertThatThrownBy(() -> queryHandler.authorizeByToken(createToken(sourceApi), statement))
         .hasMessageContaining("test-message");
   }
 
-  @Test
-  void authorizeByTokenAuthenticationStatementRevokeRoleStatement() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAuthenticationStatementRevokeRoleStatement(SourceAPI sourceApi)
+      throws UnauthorizedException {
     RevokeRoleStatement rawStatement =
         (RevokeRoleStatement)
             QueryProcessor.parseStatement("REVOKE cycling_admin\n" + "FROM coach;");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeRoleManagement(
             refEq(authenticationSubject),
             eq("roles/cycling_admin"),
             eq("roles/coach"),
             eq(Scope.AUTHORIZE),
-            eq(SourceAPI.CQL));
+            eq(expected));
   }
 
-  @Test
-  void authorizeRevokeRoleException() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeRevokeRoleException(SourceAPI sourceApi) throws UnauthorizedException {
     RevokeRoleStatement rawStatement =
         (RevokeRoleStatement)
             QueryProcessor.parseStatement("REVOKE cycling_admin\n" + "FROM coach;");
@@ -792,29 +902,34 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
         .when(authorizationService)
         .authorizeRoleManagement(any(), any(), any(), any(), any());
 
-    assertThatThrownBy(() -> queryHandler.authorizeByToken(createToken(), statement))
+    assertThatThrownBy(() -> queryHandler.authorizeByToken(createToken(sourceApi), statement))
         .hasMessageContaining("test-message");
   }
 
-  @Test
-  void authorizeByTokenAuthenticationStatementGrantRoleStatement() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAuthenticationStatementGrantRoleStatement(SourceAPI sourceApi)
+      throws UnauthorizedException {
     GrantRoleStatement rawStatement =
         (GrantRoleStatement) QueryProcessor.parseStatement("GRANT cycling_admin\n" + "TO coach;");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeRoleManagement(
             refEq(authenticationSubject),
             eq("roles/cycling_admin"),
             eq("roles/coach"),
             eq(Scope.AUTHORIZE),
-            eq(SourceAPI.CQL));
+            eq(expected));
   }
 
-  @Test
-  void authorizeByTokenAuthenticationStatementGrantPermissionsStatementOnTable()
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAuthenticationStatementGrantPermissionsStatementOnTable(SourceAPI sourceApi)
       throws UnauthorizedException {
     GrantPermissionsStatement rawStatement =
         (GrantPermissionsStatement)
@@ -823,34 +938,39 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizePermissionManagement(
             refEq(authenticationSubject),
             eq("data/cycling/cyclist_name"),
             eq("roles/coach"),
             eq(Scope.AUTHORIZE),
-            eq(SourceAPI.CQL));
+            eq(expected));
   }
 
-  @Test
-  void authorizeByTokenAuthenticationStatementDropRoleStatement() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAuthenticationStatementDropRoleStatement(SourceAPI sourceApi)
+      throws UnauthorizedException {
     DropRoleStatement rawStatement =
         (DropRoleStatement) QueryProcessor.parseStatement("DROP ROLE IF EXISTS team_manager;");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeRoleManagement(
-            refEq(authenticationSubject),
-            eq("roles/team_manager"),
-            eq(Scope.DROP),
-            eq(SourceAPI.CQL));
+            refEq(authenticationSubject), eq("roles/team_manager"), eq(Scope.DROP), eq(expected));
   }
 
-  @Test
-  void authorizeByTokenAuthenticationStatementCreateRoleStatement() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAuthenticationStatementCreateRoleStatement(SourceAPI sourceApi)
+      throws UnauthorizedException {
     CreateRoleStatement rawStatement =
         (CreateRoleStatement)
             QueryProcessor.parseStatement(
@@ -860,28 +980,35 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeRoleManagement(
-            refEq(authenticationSubject), eq("roles/coach"), eq(Scope.CREATE), eq(SourceAPI.CQL));
+            refEq(authenticationSubject), eq("roles/coach"), eq(Scope.CREATE), eq(expected));
   }
 
-  @Test
-  void authorizeByTokenAuthenticationStatementAlterRoleStatement() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenAuthenticationStatementAlterRoleStatement(SourceAPI sourceApi)
+      throws UnauthorizedException {
     AlterRoleStatement rawStatement =
         (AlterRoleStatement)
             QueryProcessor.parseStatement("ALTER ROLE sandy WITH PASSWORD = 'bestTeam';");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
         .authorizeRoleManagement(
-            refEq(authenticationSubject), eq("roles/sandy"), eq(Scope.ALTER), eq(SourceAPI.CQL));
+            refEq(authenticationSubject), eq("roles/sandy"), eq(Scope.ALTER), eq(expected));
   }
 
-  @Test
-  void authorizeAuthenticationStatementException() throws Exception {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeAuthenticationStatementException(SourceAPI sourceApi) throws Exception {
     AlterRoleStatement rawStatement =
         (AlterRoleStatement)
             QueryProcessor.parseStatement("ALTER ROLE sandy WITH PASSWORD = 'bestTeam';");
@@ -892,22 +1019,25 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
         .when(authorizationService)
         .authorizeRoleManagement(any(), any(), any(), any());
 
-    assertThatThrownBy(() -> queryHandler.authorizeByToken(createToken(), statement))
+    assertThatThrownBy(() -> queryHandler.authorizeByToken(createToken(sourceApi), statement))
         .hasMessageContaining("test-message");
   }
 
-  @Test
-  void authorizeByTokenUseStatement() throws IOException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenUseStatement(SourceAPI sourceApi) {
     UseStatement rawStatement = (UseStatement) QueryProcessor.parseStatement("use ks1;");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls()).statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
     verifyNoInteractions(authorizationService);
   }
 
-  @Test
-  void authorizeByTokenBatchStatement() throws UnauthorizedException {
+  @ParameterizedTest
+  @MethodSource("sourceApiValues")
+  void authorizeByTokenBatchStatement(SourceAPI sourceApi) throws UnauthorizedException {
 
     ParsedStatement.Prepared prepared =
         QueryProcessor.getStatement(
@@ -933,17 +1063,36 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
             ClientState.forInternalCalls());
     CQLStatement statement = prepared.statement;
 
-    queryHandler.authorizeByToken(createToken(), statement);
+    queryHandler.authorizeByToken(createToken(sourceApi), statement);
+
+    SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(3))
         .authorizeDataWrite(
-            refEq(authenticationSubject),
-            eq("ks1"),
-            eq("tbl1"),
-            eq(Scope.MODIFY),
-            eq(SourceAPI.CQL));
+            refEq(authenticationSubject), eq("ks1"), eq("tbl1"), eq(Scope.MODIFY), eq(expected));
+  }
+
+  public static Object[][] sourceApiValues() {
+    return new Object[][] {
+      new Object[] {null},
+      new Object[] {SourceAPI.REST},
+      new Object[] {SourceAPI.GRAPHQL},
+      new Object[] {SourceAPI.CQL}
+    };
   }
 
   private Map<String, ByteBuffer> createToken() {
     return AuthenticatedUser.Serializer.serialize(authenticatedUser);
+  }
+
+  private Map<String, ByteBuffer> createToken(SourceAPI sourceAPI) {
+    Map<String, ByteBuffer> payload = createToken();
+
+    if (null == sourceAPI) {
+      return payload;
+    } else {
+      HashMap<String, ByteBuffer> payloadWithSource = new HashMap<>(payload);
+      sourceAPI.toCustomPayload(payloadWithSource);
+      return payloadWithSource;
+    }
   }
 }

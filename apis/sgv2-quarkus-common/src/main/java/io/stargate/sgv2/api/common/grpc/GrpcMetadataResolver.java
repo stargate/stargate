@@ -19,15 +19,35 @@ public class GrpcMetadataResolver {
   /** Metadata key for passing the cassandra token to the Bridge. */
   private final Metadata.Key<String> cassandraTokenKey;
 
+  /** Default metadata. */
+  private final Metadata defaultMetadata;
+
+  // TODO add validation @Pattern(regexp = "rest|graphql")  after
+  //  https://github.com/quarkusio/quarkus/issues/28783
   @Inject
-  public GrpcMetadataResolver(GrpcMetadataConfig config) {
+  public GrpcMetadataResolver(GrpcMetadataConfig config, @SourceApiQualifier String sourceApi) {
     this.tenantIdKey = Metadata.Key.of(config.tenantIdKey(), Metadata.ASCII_STRING_MARSHALLER);
     this.cassandraTokenKey =
         Metadata.Key.of(config.cassandraTokenKey(), Metadata.ASCII_STRING_MARSHALLER);
+
+    // default metadata includes source api
+    Metadata.Key<String> sourceApiKey =
+        Metadata.Key.of(config.sourceApiKey(), Metadata.ASCII_STRING_MARSHALLER);
+    Metadata defaultMetadata = new Metadata();
+    defaultMetadata.put(sourceApiKey, sourceApi);
+    this.defaultMetadata = defaultMetadata;
   }
 
   /**
-   * Returns GRPC metadata for the given {@link StargateRequestInfo}.
+   * @return Returns default metadata, without the information from the {@link StargateRequestInfo}.
+   */
+  public Metadata getDefaultMetadata() {
+    return defaultMetadata;
+  }
+
+  /**
+   * Returns GRPC metadata for the given {@link StargateRequestInfo}, including the {@link
+   * #defaultMetadata}.
    *
    * @param requestInfo Request info.
    * @return Metadata
@@ -36,6 +56,7 @@ public class GrpcMetadataResolver {
     Metadata metadata = new Metadata();
     requestInfo.getTenantId().ifPresent(t -> metadata.put(tenantIdKey, t));
     requestInfo.getCassandraToken().ifPresent(t -> metadata.put(cassandraTokenKey, t));
+    metadata.merge(defaultMetadata);
     return metadata;
   }
 }

@@ -35,18 +35,22 @@ public class StargateBridgeInterceptor implements ClientInterceptor {
   public <ReqT, RespT> ClientCall<ReqT, RespT> interceptCall(
       MethodDescriptor<ReqT, RespT> method, CallOptions callOptions, Channel next) {
 
+    // get default metadata
+    Metadata metadata = metadataResolver.getDefaultMetadata();
+
     // StargateRequestInfo is request scoped bean
     // there is no better way to know if if's available
     // as we can intercept outside request
     // thus ensure context is active and has instances
     InjectableContext.ContextState contextState =
         Arc.container().requestContext().getStateIfActive();
-    if (null == contextState || !hasStargateRequestBean(contextState.getContextualInstances())) {
-      return next.newCall(method, callOptions);
-    }
+    boolean contextEmpty =
+        null == contextState || !hasStargateRequestBean(contextState.getContextualInstances());
 
-    // resolve and construct metadata
-    Metadata metadata = metadataResolver.getMetadata(requestInfo);
+    // if context includes request info, reload metadata
+    if (!contextEmpty) {
+      metadata = metadataResolver.getMetadata(requestInfo);
+    }
 
     // call with extra metadata
     return new HeaderAttachingClientCall<>(next.newCall(method, callOptions), metadata);
