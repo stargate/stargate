@@ -91,64 +91,61 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
   public void executeQueryWithSchema(
       Schema.QueryWithSchema request,
       StreamObserver<Schema.QueryWithSchemaResponse> responseObserver) {
-    String keyspaceName = request.getKeyspaceName();
-    int keyspaceHash = request.getKeyspaceHash();
-    String decoratedName;
-    Keyspace keyspace;
-
     try {
-      decoratedName =
+      String keyspaceName = request.getKeyspaceName();
+      int keyspaceHash = request.getKeyspaceHash();
+      String decoratedName =
           persistence.decorateKeyspaceName(keyspaceName, BridgeService.HEADERS_KEY.get());
-      keyspace = persistence.schema().keyspace(decoratedName);
-    } catch (Throwable t) {
-      new ExceptionHandler(responseObserver).handleException(t);
-      return;
-    }
+      Keyspace keyspace = persistence.schema().keyspace(decoratedName);
 
-    if (keyspace == null) {
-      executor.execute(
-          () -> {
-            responseObserver.onNext(
-                Schema.QueryWithSchemaResponse.newBuilder()
-                    .setNoKeyspace(Schema.QueryWithSchemaResponse.NoKeyspace.getDefaultInstance())
-                    .build());
-            responseObserver.onCompleted();
-          });
-    } else if (keyspace.schemaHashCode() != keyspaceHash) {
-      executor.execute(
-          () -> {
-            try {
+      if (keyspace == null) {
+        executor.execute(
+            () -> {
               responseObserver.onNext(
                   Schema.QueryWithSchemaResponse.newBuilder()
-                      .setNewKeyspace(
-                          SchemaHandler.buildKeyspaceDescription(
-                              keyspace, keyspaceName, decoratedName))
+                      .setNoKeyspace(Schema.QueryWithSchemaResponse.NoKeyspace.getDefaultInstance())
                       .build());
               responseObserver.onCompleted();
-            } catch (StatusException e) {
-              responseObserver.onError(e);
-            }
-          });
-    } else {
-      executeQuery(
-          request.getQuery(),
-          new StreamObserver<Response>() {
-            @Override
-            public void onNext(Response response) {
-              responseObserver.onNext(
-                  Schema.QueryWithSchemaResponse.newBuilder().setResponse(response).build());
-            }
+            });
+      } else if (keyspace.schemaHashCode() != keyspaceHash) {
+        executor.execute(
+            () -> {
+              try {
+                responseObserver.onNext(
+                    Schema.QueryWithSchemaResponse.newBuilder()
+                        .setNewKeyspace(
+                            SchemaHandler.buildKeyspaceDescription(
+                                keyspace, keyspaceName, decoratedName))
+                        .build());
+                responseObserver.onCompleted();
+              } catch (StatusException e) {
+                responseObserver.onError(e);
+              }
+            });
+      } else {
+        executeQuery(
+            request.getQuery(),
+            new StreamObserver<Response>() {
+              @Override
+              public void onNext(Response response) {
+                responseObserver.onNext(
+                    Schema.QueryWithSchemaResponse.newBuilder().setResponse(response).build());
+              }
 
-            @Override
-            public void onError(Throwable throwable) {
-              responseObserver.onError(throwable);
-            }
+              @Override
+              public void onError(Throwable throwable) {
+                responseObserver.onError(throwable);
+              }
 
-            @Override
-            public void onCompleted() {
-              responseObserver.onCompleted();
-            }
-          });
+              @Override
+              public void onCompleted() {
+                responseObserver.onCompleted();
+              }
+            });
+      }
+
+    } catch (Throwable t) {
+      new ExceptionHandler(responseObserver).handleException(t);
     }
   }
 
