@@ -24,9 +24,16 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+/** Defines what API is a source of the request performing the authorization. */
 public enum SourceAPI {
+
+  /** Used for GraphQL API. */
   GRAPHQL("graphql"),
+
+  /** Used for CQL traffic (and gRPC). */
   CQL("cql"),
+
+  /** Used for REST and Docs API, as historically they were one. */
   REST("rest");
 
   public static final String CUSTOM_PAYLOAD_KEY = "stargate.sourceAPI";

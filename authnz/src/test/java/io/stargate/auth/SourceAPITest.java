@@ -59,7 +59,7 @@ class SourceAPITest {
     }
 
     @Test
-    public void emptyMap() {
+    public void emptyMapReturnsDefault() {
       Map<String, ByteBuffer> map = new HashMap<>();
 
       SourceAPI result = SourceAPI.fromCustomPayload(map, SourceAPI.CQL);
@@ -68,7 +68,7 @@ class SourceAPITest {
     }
 
     @Test
-    public void nullMap() {
+    public void nullMapReturnsDefault() {
       Map<String, ByteBuffer> map = new HashMap<>();
 
       SourceAPI result = SourceAPI.fromCustomPayload(map, SourceAPI.REST);

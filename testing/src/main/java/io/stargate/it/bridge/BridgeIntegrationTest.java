@@ -146,13 +146,9 @@ public class BridgeIntegrationTest extends BaseIntegrationTest {
     return queryParameters(keyspace, false);
   }
 
-  protected static String sourceApi() {
-    return "rest";
-  }
-
   private static Metadata generateMetadata() {
     Metadata metadata = new Metadata();
-    metadata.put(Metadata.Key.of("X-Source-Api", Metadata.ASCII_STRING_MARSHALLER), sourceApi());
+    metadata.put(Metadata.Key.of("X-Source-Api", Metadata.ASCII_STRING_MARSHALLER), "rest");
     return metadata;
   }
 }

@@ -17,7 +17,7 @@
 
 package io.stargate.sgv2.restapi;
 
-import io.stargate.sgv2.api.common.grpc.SourceApi;
+import io.stargate.sgv2.api.common.grpc.SourceApiQualifier;
 import javax.enterprise.context.ApplicationScoped;
 import javax.ws.rs.Produces;
 
@@ -25,7 +25,7 @@ import javax.ws.rs.Produces;
 public class SourceApiConfiguration {
 
   @Produces
-  @SourceApi
+  @SourceApiQualifier
   public String sourceApi() {
     return "rest";
   }

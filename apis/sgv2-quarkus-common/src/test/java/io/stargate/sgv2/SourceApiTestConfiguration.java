@@ -17,7 +17,7 @@
 
 package io.stargate.sgv2;
 
-import io.stargate.sgv2.api.common.grpc.SourceApi;
+import io.stargate.sgv2.api.common.grpc.SourceApiQualifier;
 import javax.enterprise.context.ApplicationScoped;
 import javax.ws.rs.Produces;
 
@@ -26,7 +26,7 @@ import javax.ws.rs.Produces;
 public class SourceApiTestConfiguration {
 
   @Produces
-  @SourceApi
+  @SourceApiQualifier
   public String sourceApi() {
     return "rest";
   }

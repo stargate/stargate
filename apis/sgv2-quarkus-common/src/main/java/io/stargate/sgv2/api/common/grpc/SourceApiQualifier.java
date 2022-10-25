@@ -26,4 +26,4 @@ import javax.inject.Qualifier;
 @Documented
 @Retention(RUNTIME)
 @Qualifier
-public @interface SourceApi {}
+public @interface SourceApiQualifier {}

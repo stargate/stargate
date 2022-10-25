@@ -25,7 +25,7 @@ public class GrpcMetadataResolver {
   // TODO add validation @Pattern(regexp = "rest|graphql")  after
   //  https://github.com/quarkusio/quarkus/issues/28783
   @Inject
-  public GrpcMetadataResolver(GrpcMetadataConfig config, @SourceApi String sourceApi) {
+  public GrpcMetadataResolver(GrpcMetadataConfig config, @SourceApiQualifier String sourceApi) {
     this.tenantIdKey = Metadata.Key.of(config.tenantIdKey(), Metadata.ASCII_STRING_MARSHALLER);
     this.cassandraTokenKey =
         Metadata.Key.of(config.cassandraTokenKey(), Metadata.ASCII_STRING_MARSHALLER);

@@ -156,7 +156,9 @@ public class BatchParametersTest extends BaseBridgeServiceTest {
             StatusRuntimeException.class,
             e -> {
               assertThat(e.getStatus().getCode()).isEqualTo(Status.Code.INVALID_ARGUMENT);
-              assertThat(e.getStatus().getDescription()).isNotBlank();
+              assertThat(e.getStatus().getDescription())
+                  .isEqualTo(
+                      "Source API can not be found in metadata, expecting in the value in the X-Source-Api. Received: whatever");
             });
   }
 
@@ -179,7 +181,9 @@ public class BatchParametersTest extends BaseBridgeServiceTest {
             StatusRuntimeException.class,
             e -> {
               assertThat(e.getStatus().getCode()).isEqualTo(Status.Code.INVALID_ARGUMENT);
-              assertThat(e.getStatus().getDescription()).isNotBlank();
+              assertThat(e.getStatus().getDescription())
+                  .isEqualTo(
+                      "Source API can not be found in metadata, expecting in the value in the X-Source-Api. Received: null");
             });
   }
 
