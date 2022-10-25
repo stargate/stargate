@@ -98,6 +98,7 @@ public class ExecuteQueryWithSchemaTest extends BaseBridgeServiceTest {
   @Test
   public void shouldHandleGrpcFailGracefully() {
     Exception fail = new StatusRuntimeException(Status.INVALID_ARGUMENT);
+    // To test regular gRPC fail, make exception be thrown from actual execute():
     assertThatThrownBy(() -> queryWithSchema(KEYSPACE.name(), KEYSPACE.schemaHashCode(), fail))
         .isInstanceOf(StatusRuntimeException.class)
         .hasMessageContaining("INVALID_ARGUMENT")
@@ -110,7 +111,12 @@ public class ExecuteQueryWithSchemaTest extends BaseBridgeServiceTest {
   @Test
   public void shouldHandleInternalNPEGracefully() {
     Exception fail = new NullPointerException("Missing stuff");
-    assertThatThrownBy(() -> queryWithSchema(KEYSPACE.name(), KEYSPACE.schemaHashCode(), fail))
+
+    // To test Runtime exceptions, throw from "persistence.schema()"; simpler setup
+    // (but must override what has already been set up)
+    when(persistence.schema()).thenThrow(fail);
+
+    assertThatThrownBy(() -> queryWithSchema(KEYSPACE.name(), KEYSPACE.schemaHashCode(), null))
         .isInstanceOf(StatusRuntimeException.class)
         .hasMessageContaining("Missing stuff")
         .extracting("status")
@@ -119,7 +125,7 @@ public class ExecuteQueryWithSchemaTest extends BaseBridgeServiceTest {
   }
 
   private QueryWithSchemaResponse queryWithSchema(
-      String keyspaceName, int keyspaceHash, Exception failWith) {
+      String keyspaceName, int keyspaceHash, Exception failExecuteWith) {
     final String query = "SELECT v FROM ks.tbl WHERE k = ?";
 
     Result.ResultMetadata resultMetadata =
@@ -135,9 +141,9 @@ public class ExecuteQueryWithSchemaTest extends BaseBridgeServiceTest {
     when(connection.prepare(eq(query), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
 
-    if (failWith != null) {
+    if (failExecuteWith != null) {
       when(connection.execute(any(Statement.class), any(Parameters.class), anyLong()))
-          .thenThrow(failWith);
+          .thenThrow(failExecuteWith);
     } else {
       when(connection.execute(any(Statement.class), any(Parameters.class), anyLong()))
           .then(
