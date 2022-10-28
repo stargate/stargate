@@ -2,8 +2,10 @@
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
+# Bridge relication count. This is also the replication for CQL, Auth and GRPC end points.
 replicaCount: 1
 
+# Coordinator or bridge registry and image
 image:
   registry: "docker.io"
   repository311: "stargateio/coordinator-3_11" 
@@ -11,6 +13,7 @@ image:
   repositoryDse68: "stargateio/coordinator-dse-68" 
   tag: "v2"
 
+# Storage cassandra details
 cassandra:
   clusterName: "cassandra"
   dcName: "datacenter1"
@@ -20,9 +23,11 @@ cassandra:
   clusterVersion: "4.0"
   enableCqlAuth: true
 
+# CPU and Memory request and limit for cordinator
 cpuReqMillicores: 1000
 heapMB: 1024
 
+# Rest service image - don't change it. Can be disabled with enabled flag set to false. replicaCount for number for replicas to start with. CPU and memory are both request and limits
 restapi:
   image:
     repository: "stargateio/restapi"
@@ -31,6 +36,8 @@ restapi:
   cpu: 500
   memory: 512
 
+
+# Document service image - don't change it. Can be disabled with enabled flag set to false. replicaCount for number for replicas to start with. CPU and memory are both request and limits
 docsapi:
   image:
     repository: "stargateio/docsapi"
@@ -39,6 +46,8 @@ docsapi:
   cpu: 500
   memory: 512
 
+
+# Graphql service image - don't change it. Can be disabled with enabled flag set to false. replicaCount for number for replicas to start with. CPU and memory are both request and limits
 graphqlapi:
   image:
     repository: "stargateio/graphqlapi"
@@ -47,6 +56,7 @@ graphqlapi:
   cpu: 500
   memory: 512
 
+# HorizontalPodAutoscaler for coordinator and all services. This needs metrics server installed (kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml) in the cluster. 
 autoscaling:
   enabled: false
   minReplicas: 1
