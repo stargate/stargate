@@ -16,6 +16,13 @@ spec:
       labels:
         app: stargate-graphqlapi
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: stargate-graphqlapi
+            topologyKey: "kubernetes.io/hostname"
       containers:
       - name: graphqlapi
         image: "{{ .Values.image.registry }}/{{ .Values.graphqlapi.image.repository }}:{{ .Values.image.tag }}"

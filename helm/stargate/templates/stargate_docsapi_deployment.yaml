@@ -16,6 +16,13 @@ spec:
       labels:
         app: stargate-docsapi
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: stargate-docsapi
+            topologyKey: "kubernetes.io/hostname"
       containers:
       - name: docsapi
         image: "{{ .Values.image.registry }}/{{ .Values.docsapi.image.repository }}:{{ .Values.image.tag }}"

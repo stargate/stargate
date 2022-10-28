@@ -15,6 +15,13 @@ spec:
       labels:
         app: coordinator
     spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: coordinator
+            topologyKey: "kubernetes.io/hostname"
       containers:
       - name: coordinator
         {{ if eq .Values.cassandra.clusterVersion "3.11" }}
@@ -22,7 +29,7 @@ spec:
         {{ else if eq .Values.cassandra.clusterVersion "6.8" }}
         image: "{{ .Values.image.registry }}/{{ .Values.image.repositoryDse68 }}:{{ .Values.image.tag }}" 
         {{ else }}
-        image: "{{ .Values.image.registry }}/{{ .Values.image.repositoryDse40 }}:{{ .Values.image.tag }}" 
+        image: "{{ .Values.image.registry }}/{{ .Values.image.repository40 }}:{{ .Values.image.tag }}" 
         {{end}}
         ports:
         - containerPort: 8091

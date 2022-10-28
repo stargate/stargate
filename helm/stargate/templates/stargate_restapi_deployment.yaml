@@ -16,6 +16,13 @@ spec:
       labels:
         app: stargate-restapi
     spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: stargate-restapi
+            topologyKey: "kubernetes.io/hostname"
       containers:
       - name: restapi
         image: "{{ .Values.image.registry }}/{{ .Values.restapi.image.repository }}:{{ .Values.image.tag }}"
