@@ -1,5 +1,14 @@
 # Changelog
 
+## [v1.0.67}](https://github.com/stargate/stargate/tree/v1.0.67}) (2022-10-24)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.66...v1.0.67})
+
+**Merged pull requests:**
+
+- Update DropWizard 2.0.32-\>2.0.34 to get commons-text upgraded [\#2188](https://github.com/stargate/stargate/pull/2188) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- enforce JDK 8 [\#2183](https://github.com/stargate/stargate/pull/2183) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+
 ## [v1.0.66](https://github.com/stargate/stargate/tree/v1.0.66) (2022-09-29)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.65...v1.0.66)
