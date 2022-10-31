@@ -18,14 +18,14 @@ cassandra:
   clusterName: "cassandra"
   dcName: "datacenter1"
   rack: "rack1"
-  seed: "my-release-cassandra-headless" 
+  seed: "my-release-cassandra-headless.default.svc.cluster.local" 
   isDse: null
   clusterVersion: "4.0"
   enableCqlAuth: true
 
 # CPU and Memory request and limit for cordinator
-cpuReqMillicores: 1000
-heapMB: 1024
+cpuReqMillicores: 2000
+heapMB: 2048
 
 # Rest service image - don't change it. Can be disabled with enabled flag set to false. replicaCount for number for replicas to start with. CPU and memory are both request and limits
 restapi:
@@ -33,8 +33,8 @@ restapi:
     repository: "stargateio/restapi"
   enabled: true
   replicaCount: 1
-  cpu: 500
-  memory: 512
+  cpu: 2000
+  memory: 2048
 
 
 # Document service image - don't change it. Can be disabled with enabled flag set to false. replicaCount for number for replicas to start with. CPU and memory are both request and limits
@@ -43,8 +43,8 @@ docsapi:
     repository: "stargateio/docsapi"
   enabled: true
   replicaCount: 1
-  cpu: 500
-  memory: 512
+  cpu: 2000
+  memory: 2048
 
 
 # Graphql service image - don't change it. Can be disabled with enabled flag set to false. replicaCount for number for replicas to start with. CPU and memory are both request and limits
@@ -53,8 +53,8 @@ graphqlapi:
     repository: "stargateio/graphqlapi"
   enabled: true
   replicaCount: 1
-  cpu: 500
-  memory: 512
+  cpu: 2000
+  memory: 2048
 
 # HorizontalPodAutoscaler for coordinator and all services. This needs metrics server installed (kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml) in the cluster. 
 autoscaling:
