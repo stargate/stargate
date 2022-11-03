@@ -19,6 +19,7 @@ import org.eclipse.microprofile.openapi.annotations.parameters.Parameter;
 import org.eclipse.microprofile.openapi.annotations.parameters.RequestBody;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
+import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 
 /**
@@ -29,6 +30,7 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 @Path("/v2/keyspaces/{keyspaceName}/{tableName}")
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
+@SecurityRequirement(name = RestOpenApiConstants.SecuritySchemes.TOKEN)
 @Tag(ref = RestOpenApiConstants.Tags.DATA)
 public interface Sgv2RowsResourceApi {
   @GET
