@@ -23,15 +23,14 @@ kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/late
 To use Ingress, ingress controller needs to be installed and appropriate ingress class name has to be updated in the helm values.yaml (ingress.ingressClassName). By default it uses nginx ingress controller. This can be installed as: \
  helm upgrade --install ingress-nginx ingress-nginx \
    --repo https://kubernetes.github.io/ingress-nginx \
-   --namespace ingress-nginx --create-namespace \
+   --namespace ingress-nginx --create-namespace 
 
 When using ingress, path need to be appended with the service url as per example below
 
-1) auth-api: -- http://localhost/api/auth/v1/auth \
-2) rest-api: --  http://localhost/api/rest/v2/schemas/keyspaces \
-3) docs-api: --  http://localhost/api/docs/v2/namespaces/test/collections/library \
-4) graphql-api: --  http://localhost/api/graphql/graphql-schema \
-
+1) auth-api: -- http://localhost/api/auth/v1/auth 
+2) rest-api: --  http://localhost/api/rest/v2/schemas/keyspaces 
+3) docs-api: --  http://localhost/api/docs/v2/namespaces/test/collections/library 
+4) graphql-api: --  http://localhost/api/graphql/graphql-schema 
 
 
 ## Helm values.yaml description
