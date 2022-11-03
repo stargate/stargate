@@ -63,3 +63,13 @@ autoscaling:
   maxReplicas: 100
   targetCPUUtilizationPercentage: 80
   # targetMemoryUtilizationPercentage: 80
+
+# Ingress is not added to deployment by default. This needs to have ingress controller installed. Default configuration uses nginx controller. (Controller installed using 
+# helm upgrade --install ingress-nginx ingress-nginx \           
+#   --repo https://kubernetes.github.io/ingress-nginx \
+#   --namespace ingress-nginx --create-namespace
+
+ingress:
+  enabled: false
+  ingressClassName: nginx
+ 
