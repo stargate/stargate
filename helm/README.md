@@ -27,10 +27,10 @@ Ingress requires ingress controller to be installed and appropriate class name u
 
 When using ingress, path need to be appended with the service url as per example below
 
-1)&emsp;&emsp; auth-api: &emsp;&emsp;&emsp;&emsp; http://localhost/api/auth/v1/auth
-2)&emsp;&emsp; rest-api: &emsp;&emsp;&emsp;&emsp; http://localhost/api/rest/v2/schemas/keyspaces
-3)&emsp;&emsp; docs-api: &emsp;&emsp;&emsp;&emsp; http://localhost/api/docs/v2/namespaces/test/collections/library
-4)&emsp;&emsp; graphql-api: &emsp;&emsp;&emsp;&emsp; http://localhost/api/graphql/graphql-schema
+1)&emsp;&emsp; auth-api: &emsp;&emsp;&emsp;&emsp; http://localhost/api/auth/v1/auth \
+2)&emsp;&emsp; rest-api: &emsp;&emsp;&emsp;&emsp; http://localhost/api/rest/v2/schemas/keyspaces \
+3)&emsp;&emsp; docs-api: &emsp;&emsp;&emsp;&emsp; http://localhost/api/docs/v2/namespaces/test/collections/library \
+4)&emsp;&emsp; graphql-api: &emsp;&emsp;&emsp;&emsp; http://localhost/api/graphql/graphql-schema \
 
 
 
