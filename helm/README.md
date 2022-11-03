@@ -6,15 +6,6 @@ Want to build Stargate on a k8s cluster using helm? Follow the instruction as be
 Cassandra storage port 7000 accessible as a k8s service.
 install helm in the environment.
 
-## Helm installation instruction
-Clone the stargate repository  
-cd helm  
-helm install stargate stargate
-
-Note:
-  - The helm values file (values.yaml) is updated with default values if cassandra is installed as - helm install my-release bitnami/cassandra
-  - Memory and CPU units provided in the values.yaml file is based on testing done on local environment with 6GB RAM and 4 CPU allocated to k8s environment.
-
 ## Autoscaling
 Auto scaling uses metrics server. Metrics server can be installed as:\
 kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
@@ -32,6 +23,14 @@ When using ingress, path need to be appended with the service url as per example
 3) docs-api: --  http://localhost/api/docs/v2/namespaces/test/collections/library 
 4) graphql-api: --  http://localhost/api/graphql/graphql-schema 
 
+## Helm installation instruction
+Clone the stargate repository
+cd helm
+helm install stargate stargate
+
+Note:
+  - The helm values file (values.yaml) is updated with default values if cassandra is installed as - helm install my-release bitnami/cassandra
+  - Memory and CPU units provided in the values.yaml file is based on testing done on local environment with 6GB RAM and 4 CPU allocated to k8s environment.
 
 ## Helm values.yaml description
 
