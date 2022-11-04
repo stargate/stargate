@@ -16,8 +16,6 @@ jobs:
         backend: [ cassandra-40, cassandra-311, dse-68 ]
     steps:
       - uses: actions/checkout@v3
-        with:
-          ref: "master"
       - uses: actions/setup-java@v3
         name: Setup Java JDK
         with:
