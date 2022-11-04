@@ -2,13 +2,13 @@
 name: Stargate APIs V2
 
 # runs on
-# * pushes and pull requests on the v2.0.0.
+# * pushes and pull requests on the "main" (Stargate v2)
 # * manual trigger
 on:
   push:
-    branches: [ "v2.0.0" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "v2.0.0" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 # Jobs structure:

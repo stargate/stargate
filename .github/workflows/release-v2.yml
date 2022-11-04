@@ -399,5 +399,5 @@ jobs:
           commit-message: "Bumping version for next v2 release"
           title: "Bumping version for next v2 release"
           branch-suffix: "short-commit-hash"
-          base: "v2.0.0"
+          base: "main"
           labels: "stargate-v2"

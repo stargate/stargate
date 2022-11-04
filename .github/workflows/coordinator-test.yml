@@ -1,4 +1,4 @@
-name: CI IT Experiment
+name: Coordinator Tests
 
 on:
   workflow_dispatch:
