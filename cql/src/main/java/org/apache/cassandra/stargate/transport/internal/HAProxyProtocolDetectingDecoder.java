@@ -59,20 +59,7 @@ public class HAProxyProtocolDetectingDecoder extends ByteToMessageDecoder {
 
     if (match(BINARY_PREFIX, in, idx) || match(TEXT_PREFIX, in, idx)) { // HA proxy protocol header
       ctx.pipeline().replace(this, NAME, new HAProxyMessageDecoder());
-      ctx.pipeline()
-          .addAfter(
-              NAME,
-              "proxyProtocolMessage",
-              new SimpleChannelInboundHandler<HAProxyMessage>() {
-                @Override
-                protected void channelRead0(ChannelHandlerContext ctx, HAProxyMessage msg) {
-                  Attribute<ProxyInfo> attrProxy = ctx.channel().attr(ProxyInfo.attributeKey);
-                  attrProxy.set(
-                      new ProxyInfo(
-                          new InetSocketAddress(msg.destinationAddress(), msg.destinationPort()),
-                          new InetSocketAddress(msg.sourceAddress(), msg.sourcePort())));
-                }
-              });
+      ctx.pipeline().addAfter(NAME, "proxyProtocolMessage", InboundHAProxyHandler.INSTANCE);
     } else {
       ctx.pipeline().remove(this);
     }
@@ -86,5 +73,28 @@ public class HAProxyProtocolDetectingDecoder extends ByteToMessageDecoder {
       }
     }
     return true;
+  }
+
+  static class InboundHAProxyHandler extends SimpleChannelInboundHandler<HAProxyMessage> {
+    public static final InboundHAProxyHandler INSTANCE = new InboundHAProxyHandler();
+
+    @Override
+    protected void channelRead0(ChannelHandlerContext ctx, HAProxyMessage msg) {
+      final String srcAddr = msg.sourceAddress();
+      if (srcAddr == null) {
+        throw new IllegalArgumentException(
+            "Invalid HAProxyMessage: missing source address. Message = " + msg);
+      }
+      final String dstAddr = msg.destinationAddress();
+      if (dstAddr == null) {
+        throw new IllegalArgumentException(
+            "Invalid HAProxyMessage: missing destination address. Message = " + msg);
+      }
+      final Attribute<ProxyInfo> attrProxy = ctx.channel().attr(ProxyInfo.attributeKey);
+      attrProxy.set(
+          new ProxyInfo(
+              new InetSocketAddress(dstAddr, msg.destinationPort()),
+              new InetSocketAddress(srcAddr, msg.sourcePort())));
+    }
   }
 }
