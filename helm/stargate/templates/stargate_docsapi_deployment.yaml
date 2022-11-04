@@ -22,7 +22,11 @@ spec:
           - labelSelector:
               matchLabels:
                 app: stargate-docsapi
-            topologyKey: "kubernetes.io/hostname"
+            topologyKey: {{ .Values.docsapi.topologyKey }} 
+      initContainers:
+      - name: wait-for-bridge
+        image: busybox
+        command: ["sh", "-c", "until nc -z stargate-bridge 8091 > /dev/null; do echo Waiting for bridge.; sleep 5;done;"]
       containers:
       - name: docsapi
         image: "{{ .Values.image.registry }}/{{ .Values.docsapi.image.repository }}:{{ .Values.image.tag }}"

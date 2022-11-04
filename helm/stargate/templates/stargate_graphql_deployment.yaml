@@ -22,7 +22,11 @@ spec:
           - labelSelector:
               matchLabels:
                 app: stargate-graphqlapi
-            topologyKey: "kubernetes.io/hostname"
+            topologyKey: {{ .Values.graphqlapi.topologyKey }} 
+      initContainers:
+      - name: wait-for-bridge
+        image: busybox
+        command: ["sh", "-c", "until nc -z stargate-bridge 8091 > /dev/null; do echo Waiting for bridge.; sleep 5;done;"]
       containers:
       - name: graphqlapi
         image: "{{ .Values.image.registry }}/{{ .Values.graphqlapi.image.repository }}:{{ .Values.image.tag }}"

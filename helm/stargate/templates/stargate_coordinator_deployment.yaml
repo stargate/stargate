@@ -21,7 +21,7 @@ spec:
           - labelSelector:
               matchLabels:
                 app: coordinator
-            topologyKey: "kubernetes.io/hostname"
+            topologyKey: {{ .Values.topologyKey }} 
       containers:
       - name: coordinator
         {{ if eq .Values.cassandra.clusterVersion "3.11" }}

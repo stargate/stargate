@@ -23,6 +23,9 @@ cassandra:
   clusterVersion: "4.0"
   enableCqlAuth: true
 
+# topology key for anti affinity
+topologyKey: "kubernetes.io/hostname"
+
 # CPU and Memory request and limit for cordinator
 cpuReqMillicores: 2000
 heapMB: 2048
@@ -35,6 +38,7 @@ restapi:
   replicaCount: 1
   cpu: 2000
   memory: 2048
+  topologyKey: "kubernetes.io/hostname"
 
 
 # Document service image - don't change it. Can be disabled with enabled flag set to false. replicaCount for number for replicas to start with. CPU and memory are both request and limits
@@ -45,7 +49,7 @@ docsapi:
   replicaCount: 1
   cpu: 2000
   memory: 2048
-
+  topologyKey: "kubernetes.io/hostname"
 
 # Graphql service image - don't change it. Can be disabled with enabled flag set to false. replicaCount for number for replicas to start with. CPU and memory are both request and limits
 graphqlapi:
@@ -55,6 +59,7 @@ graphqlapi:
   replicaCount: 1
   cpu: 2000
   memory: 2048
+  topologyKey: "kubernetes.io/hostname"
 
 # HorizontalPodAutoscaler for coordinator and all services. This needs metrics server installed (kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml) in the cluster. 
 autoscaling:
