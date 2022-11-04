@@ -23,6 +23,23 @@ cassandra:
   clusterVersion: "4.0"
   enableCqlAuth: true
 
+# Probe values for coordinator
+probe:
+  readiness:
+    url: /checker/readiness
+    port: 8084
+    timeoutSeconds: 10
+    periodSeconds: 10
+    failureThreshold: 30
+    initialDelaySeconds: 30
+  liveness:
+    url: /checker/liveness
+    port: 8084
+    timeoutSeconds: 10
+    periodSeconds: 10
+    failureThreshold: 5
+    initialDelaySeconds: 30
+
 # topology key for anti affinity
 topologyKey: "kubernetes.io/hostname"
 
@@ -39,7 +56,21 @@ restapi:
   cpu: 2000
   memory: 2048
   topologyKey: "kubernetes.io/hostname"
-
+  probe:
+    readiness:
+      url: /stargate/health/ready
+      port: 8082
+      timeoutSeconds: 10
+      periodSeconds: 10
+      failureThreshold: 30
+      initialDelaySeconds: 30
+    liveness:
+      url: /stargate/health/live
+      port: 8082
+      timeoutSeconds: 10
+      periodSeconds: 10
+      failureThreshold: 5
+      initialDelaySeconds: 30
 
 # Document service image - don't change it. Can be disabled with enabled flag set to false. replicaCount for number for replicas to start with. CPU and memory are both request and limits
 docsapi:
@@ -50,7 +81,21 @@ docsapi:
   cpu: 2000
   memory: 2048
   topologyKey: "kubernetes.io/hostname"
-
+  probe:
+    readiness:
+      url: /stargate/health/ready
+      port: 8180
+      timeoutSeconds: 10
+      periodSeconds: 10
+      failureThreshold: 30
+      initialDelaySeconds: 30
+    liveness:
+      url: /stargate/health/live
+      port: 8180
+      timeoutSeconds: 10
+      periodSeconds: 10
+      failureThreshold: 5
+      initialDelaySeconds: 30
 # Graphql service image - don't change it. Can be disabled with enabled flag set to false. replicaCount for number for replicas to start with. CPU and memory are both request and limits
 graphqlapi:
   image:
@@ -60,6 +105,21 @@ graphqlapi:
   cpu: 2000
   memory: 2048
   topologyKey: "kubernetes.io/hostname"
+  probe:
+    readiness:
+      url: /stargate/health/ready
+      port: 8080
+      timeoutSeconds: 10
+      periodSeconds: 10
+      failureThreshold: 30
+      initialDelaySeconds: 30
+    liveness:
+      url: /stargate/health/live
+      port: 8080
+      timeoutSeconds: 10
+      periodSeconds: 10
+      failureThreshold: 5
+      initialDelaySeconds: 30
 
 # HorizontalPodAutoscaler for coordinator and all services. This needs metrics server installed (kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml) in the cluster. 
 autoscaling:

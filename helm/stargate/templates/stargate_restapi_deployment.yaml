@@ -34,24 +34,21 @@ spec:
         - containerPort: 8082
         readinessProbe:
           httpGet:
-            path: /stargate/health/ready
-            port: 8082
-          timeoutSeconds: 10
-          periodSeconds: 5
-          failureThreshold: 20
-          initialDelaySeconds: 30
+            path: {{ .Values.restapi.probe.readiness.url }}
+            port: {{ .Values.restapi.probe.readiness.port }}
+          timeoutSeconds: {{ .Values.restapi.probe.readiness.timeoutSeconds }}
+          periodSeconds: {{ .Values.restapi.probe.readiness.periodSeconds }}
+          failureThreshold: {{ .Values.restapi.probe.readiness.failureThreshold }}
+          initialDelaySeconds: {{ .Values.restapi.probe.readiness.initialDelaySeconds }}
         livenessProbe:
           httpGet:
-            path: /stargate/health/live
-            port: 8082
-          timeoutSeconds: 10
-          periodSeconds: 5
-          failureThreshold: 20
-          initialDelaySeconds: 30
+            path: {{ .Values.restapi.probe.liveness.url }}
+            port: {{ .Values.restapi.probe.liveness.port }}
+          timeoutSeconds: {{ .Values.restapi.probe.liveness.timeoutSeconds }}
+          periodSeconds: {{ .Values.restapi.probe.liveness.periodSeconds }}
+          failureThreshold: {{ .Values.restapi.probe.liveness.failureThreshold }}
+          initialDelaySeconds: {{ .Values.restapi.probe.liveness.initialDelaySeconds }}
         resources:
-          limits:
-            cpu: {{ mul 4 (.Values.restapi.cpuReqMillicores | default 500) }}m
-            memory: {{add 500 (.Values.restapi.memory | default 512)}}Mi
           requests:
             cpu: {{ mul 4 (.Values.restapi.cpuReqMillicores | default 200) }}m
             memory: {{add 500 (.Values.restapi.memory | default 512)}}Mi

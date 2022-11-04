@@ -42,24 +42,21 @@ spec:
          {{ end }}
         readinessProbe:
           httpGet:
-            path: /checker/readiness
-            port: 8084
-          timeoutSeconds: 10
-          periodSeconds: 10
-          failureThreshold: 30
-          initialDelaySeconds: 30
+            path: {{ .Values.probe.readiness.url }} 
+            port: {{ .Values.probe.readiness.port }} 
+          timeoutSeconds: {{ .Values.probe.readiness.timeoutSeconds }}
+          periodSeconds: {{ .Values.probe.readiness.periodSeconds }}
+          failureThreshold: {{ .Values.probe.readiness.failureThreshold }}
+          initialDelaySeconds: {{ .Values.probe.readiness.initialDelaySeconds }}
         livenessProbe:
           httpGet:
-            path: /checker/liveness
-            port: 8084
-          timeoutSeconds: 10
-          periodSeconds: 10
-          failureThreshold: 5
-          initialDelaySeconds: 300
+            path: {{ .Values.probe.liveness.url }}
+            port: {{ .Values.probe.liveness.port }}
+          timeoutSeconds: {{ .Values.probe.liveness.timeoutSeconds }}
+          periodSeconds: {{ .Values.probe.liveness.periodSeconds }}
+          failureThreshold: {{ .Values.probe.liveness.failureThreshold }}
+          initialDelaySeconds: {{ .Values.probe.liveness.initialDelaySeconds }}
         resources:
-          limits:
-            cpu: {{ mul 4 (.Values.cpuReqMillicores | default 1000) }}m
-            memory: {{add 500 (.Values.heapMB | default 1024)}}Mi
           requests:
             cpu: {{ mul 4 (.Values.cpuReqMillicores | default 200) }}m
             memory: {{add 500 (.Values.heapMB | default 1024)}}Mi

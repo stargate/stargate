@@ -34,24 +34,21 @@ spec:
         - containerPort: 8180
         readinessProbe:
           httpGet:
-            path: /stargate/health/ready
-            port: 8180
-          timeoutSeconds: 10
-          periodSeconds: 5
-          failureThreshold: 20
-          initialDelaySeconds: 30
+            path: {{ .Values.docsapi.probe.readiness.url }}
+            port: {{ .Values.docsapi.probe.readiness.port }}
+          timeoutSeconds: {{ .Values.docsapi.probe.readiness.timeoutSeconds }}
+          periodSeconds: {{ .Values.docsapi.probe.readiness.periodSeconds }}
+          failureThreshold: {{ .Values.docsapi.probe.readiness.failureThreshold }}
+          initialDelaySeconds: {{ .Values.docsapi.probe.readiness.initialDelaySeconds }}
         livenessProbe:
           httpGet:
-            path: /stargate/health/live
-            port: 8180
-          timeoutSeconds: 10
-          periodSeconds: 5
-          failureThreshold: 20
-          initialDelaySeconds: 30
+            path: {{ .Values.docsapi.probe.liveness.url }}
+            port: {{ .Values.docsapi.probe.liveness.port }}
+          timeoutSeconds: {{ .Values.docsapi.probe.liveness.timeoutSeconds }}
+          periodSeconds: {{ .Values.docsapi.probe.liveness.periodSeconds }}
+          failureThreshold: {{ .Values.docsapi.probe.liveness.failureThreshold }}
+          initialDelaySeconds: {{ .Values.docsapi.probe.liveness.initialDelaySeconds }}
         resources:
-          limits:
-            cpu: {{ mul 4 (.Values.docsapi.cpuReqMillicores | default 500) }}m
-            memory: {{add 500 (.Values.docsapi.memory | default 512)}}Mi
           requests:
             cpu: {{ mul 4 (.Values.docsapi.cpuReqMillicores | default 200) }}m
             memory: {{add 500 (.Values.docsapi.memory | default 512)}}Mi

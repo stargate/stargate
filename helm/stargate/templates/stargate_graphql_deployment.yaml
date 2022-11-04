@@ -34,24 +34,21 @@ spec:
         - containerPort: 8080
         readinessProbe:
           httpGet:
-            path: /stargate/health/ready
-            port: 8080
-          timeoutSeconds: 10
-          periodSeconds: 5
-          failureThreshold: 20
-          initialDelaySeconds: 30
+            path: {{ .Values.graphqlapi.probe.readiness.url }}
+            port: {{ .Values.graphqlapi.probe.readiness.port }}
+          timeoutSeconds: {{ .Values.graphqlapi.probe.readiness.timeoutSeconds }}
+          periodSeconds: {{ .Values.graphqlapi.probe.readiness.periodSeconds }}
+          failureThreshold: {{ .Values.graphqlapi.probe.readiness.failureThreshold }}
+          initialDelaySeconds: {{ .Values.graphqlapi.probe.readiness.initialDelaySeconds }}
         livenessProbe:
           httpGet:
-            path: /stargate/health/live
-            port: 8080
-          timeoutSeconds: 10
-          periodSeconds: 5
-          failureThreshold: 20
-          initialDelaySeconds: 30
+            path: {{ .Values.graphqlapi.probe.liveness.url }}
+            port: {{ .Values.graphqlapi.probe.liveness.port }}
+          timeoutSeconds: {{ .Values.graphqlapi.probe.liveness.timeoutSeconds }}
+          periodSeconds: {{ .Values.graphqlapi.probe.liveness.periodSeconds }}
+          failureThreshold: {{ .Values.graphqlapi.probe.liveness.failureThreshold }}
+          initialDelaySeconds: {{ .Values.graphqlapi.probe.liveness.initialDelaySeconds }}
         resources:
-          limits:
-            cpu: {{ mul 4 (.Values.graphqlapi.cpu | default 500) }}m
-            memory: {{add 500 (.Values.graphqlapi.memory | default 512)}}Mi
           requests:
             cpu: {{ mul 4 (.Values.graphqlapi.cpu | default 200) }}m
             memory: {{add 500 (.Values.graphqlapi.memory | default 512)}}Mi
