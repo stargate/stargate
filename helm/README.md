@@ -24,8 +24,8 @@ When using ingress, path need to be appended with the service url as per example
 4) graphql-api: --  http://localhost/api/graphql/graphql-schema 
 
 ## Helm installation instruction
-Clone the stargate repository
-cd helm
+Clone the stargate repository\
+cd helm\
 helm install stargate stargate
 
 Note:
@@ -34,7 +34,7 @@ Note:
 
 ## Helm values.yaml description
 
-replicaCount: 1 -- Bridge relication count. This is also the replication for CQL, Auth and GRPC end points.
+replicaCount: 1 -- Bridge/coordinator replica count. This is also the replication for CQL, Auth and GRPC end points.
 
 image:\
 &emsp;&emsp;repository311: "stargateio/coordinator-3_11"\
@@ -73,8 +73,8 @@ graphqlapi:\
 
 autoscaling:\
 &emsp;&emsp;enabled: true -- Set to true if autoscaling need to be enabled\
-&emsp;&emsp;minReplicas: 1 -- Cluster can be downsized to 1 pod for each deploymemnt
-&emsp;&emsp;maxReplicas: 1 -- Cluster can be increased to 100 pod for each deploymemnt
+&emsp;&emsp;minReplicas: 1 -- Cluster can be downsized to 1 pod for each deploymemnt\
+&emsp;&emsp;maxReplicas: 1 -- Cluster can be increased to 100 pod for each deploymemnt\
 &emsp;&emsp;targetCPUUtilizationPercentage: 80 -- Average percentage to increase the pod count for a deployment
 
 ingress:\

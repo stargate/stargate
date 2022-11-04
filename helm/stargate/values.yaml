@@ -43,11 +43,11 @@ probe:
 # topology key for anti affinity
 topologyKey: "kubernetes.io/hostname"
 
-# CPU and Memory request and limit for cordinator
+# CPU and Memory request for cordinator
 cpuReqMillicores: 2000
 heapMB: 2048
 
-# Rest service image - don't change it. Can be disabled with enabled flag set to false. replicaCount for number for replicas to start with. CPU and memory are both request and limits
+# Rest service image - don't change it. Can be disabled with enabled flag set to false. replicaCount for number for replicas to start with. CPU and memory are both request
 restapi:
   image:
     repository: "stargateio/restapi"
@@ -72,7 +72,7 @@ restapi:
       failureThreshold: 5
       initialDelaySeconds: 30
 
-# Document service image - don't change it. Can be disabled with enabled flag set to false. replicaCount for number for replicas to start with. CPU and memory are both request and limits
+# Document service image - don't change it. Can be disabled with enabled flag set to false. replicaCount for number for replicas to start with. CPU and memory are both request
 docsapi:
   image:
     repository: "stargateio/docsapi"
@@ -96,7 +96,7 @@ docsapi:
       periodSeconds: 10
       failureThreshold: 5
       initialDelaySeconds: 30
-# Graphql service image - don't change it. Can be disabled with enabled flag set to false. replicaCount for number for replicas to start with. CPU and memory are both request and limits
+# Graphql service image - don't change it. Can be disabled with enabled flag set to false. replicaCount for number for replicas to start with. CPU and memory are both request
 graphqlapi:
   image:
     repository: "stargateio/graphqlapi"
