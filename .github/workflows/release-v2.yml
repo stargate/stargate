@@ -64,7 +64,7 @@ jobs:
           tag_name: ${{needs.resolve-tag.outputs.release-tag}}
           release_name: Release ${{needs.resolve-tag.outputs.release-tag}}
           draft: false
-          prerelease: true
+          prerelease: false
 
   # builds coordinator, zips stargate-lib folder and uploads the zip to the created release
   build:

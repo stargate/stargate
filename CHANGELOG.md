@@ -1,5 +1,34 @@
 # Changelog
 
+## [v2.0.0](https://github.com/stargate/stargate/tree/v2.0.0) (2022-10-25)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-RC-1...v2.0.0)
+
+**Fixed bugs:**
+
+- Bridge service is not handling runtime exceptions [\#2179](https://github.com/stargate/stargate/issues/2179)
+- API V2 bridge communication has wrong Source API [\#2175](https://github.com/stargate/stargate/issues/2175)
+- Bridge service uses the `Context.Key` without context propagation [\#2181](https://github.com/stargate/stargate/issues/2181)
+
+**Closed issues:**
+
+- Separate openapi paths for Docs and REST V2 [\#2182](https://github.com/stargate/stargate/issues/2182)
+- Enabling Quarkus access log must not print the access token [\#2176](https://github.com/stargate/stargate/issues/2176)
+
+**Merged pull requests:**
+
+- Second part of fix to \#2179: handle "executeQueryWithSchema\(\)" too [\#2194](https://github.com/stargate/stargate/pull/2194) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- enforce JDK 17+ for building SGv2 APIs [\#2193](https://github.com/stargate/stargate/pull/2193) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- update version to v2.0.0-SNAPSHOT [\#2191](https://github.com/stargate/stargate/pull/2191) ([ivansenic](https://github.com/ivansenic))
+- closes \#2175: apis to report source api in the grpc metadata [\#2190](https://github.com/stargate/stargate/pull/2190) ([ivansenic](https://github.com/ivansenic))
+- Update DropWizard 2.0.32-\>2.0.34 to get commons-text upgraded [\#2188](https://github.com/stargate/stargate/pull/2188) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix handling of `describeKeyspace` to catch RuntimeExceptions too, add a test [\#2187](https://github.com/stargate/stargate/pull/2187) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- OpenAPI schema URL context path changes [\#2186](https://github.com/stargate/stargate/pull/2186) ([kathirsvn](https://github.com/kathirsvn))
+- closes \#2181: bridge context key not to be used in another thread [\#2184](https://github.com/stargate/stargate/pull/2184) ([ivansenic](https://github.com/ivansenic))
+- enforce JDK 8 [\#2183](https://github.com/stargate/stargate/pull/2183) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Fix to skip printing the token received in the request header in the … [\#2178](https://github.com/stargate/stargate/pull/2178) ([kathirsvn](https://github.com/kathirsvn))
+- Bumping version for next v2 release [\#2174](https://github.com/stargate/stargate/pull/2174) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.0.0-RC-1](https://github.com/stargate/stargate/tree/v2.0.0-RC-1) (2022-10-18)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-BETA-5...v2.0.0-RC-1)
@@ -491,6 +520,15 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Rest integration test - initial work (#1359)
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
+
+## [v1.0.67}](https://github.com/stargate/stargate/tree/v1.0.67}) (2022-10-24)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.66...v1.0.67})
+
+**Merged pull requests:**
+
+- Update DropWizard 2.0.32-\>2.0.34 to get commons-text upgraded [\#2188](https://github.com/stargate/stargate/pull/2188) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- enforce JDK 8 [\#2183](https://github.com/stargate/stargate/pull/2183) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
 
 ## [v1.0.66](https://github.com/stargate/stargate/tree/v1.0.66) (2022-09-29)
 
