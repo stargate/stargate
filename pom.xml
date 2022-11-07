@@ -818,12 +818,9 @@
   </dependencyManagement>
   <repositories>
     <repository>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <id>central</id>
-      <name>bintray</name>
-      <url>https://jcenter.bintray.com</url>
+      <id>artifactory</id>
+      <name>artifactory</name>
+      <url>https://repo.datastax.com/artifactory/dse/</url>
     </repository>
   </repositories>
 </project>
