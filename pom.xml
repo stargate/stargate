@@ -816,11 +816,4 @@
 
     </dependencies>
   </dependencyManagement>
-  <repositories>
-    <repository>
-      <id>artifactory</id>
-      <name>artifactory</name>
-      <url>https://repo.datastax.com/artifactory/dse/</url>
-    </repository>
-  </repositories>
 </project>
