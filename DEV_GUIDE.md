@@ -34,7 +34,7 @@ export PATH="$JAVA_HOME/bin:$PATH"
 
 ## Building with Maven
 
-Stargate uses Maven for builds. You can download and install Maven from this [link](https://maven.apache.org/download.cgi) or use the included [maven wrapper](https://github.com/stargate/stargate/blob/master/mvnw) script as you would ordinarily use the `mvn` command.
+Stargate uses Maven for builds. You can download and install Maven from this [link](https://maven.apache.org/download.cgi) or use the included [maven wrapper](https://github.com/stargate/stargate/blob/main/mvnw) script as you would ordinarily use the `mvn` command.
 
 To build locally run the following:
 
