@@ -31,7 +31,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
   @Override
   public Response getAllTables(final String keyspaceName, final boolean raw) {
     requireNonEmptyKeyspace(keyspaceName);
-    List<Schema.CqlTable> tableDefs = bridge.getTables(keyspaceName);
+    List<Schema.CqlTable> tableDefs = getTables(keyspaceName);
     List<Sgv2Table> tableResponses =
         tableDefs.stream().map(t -> table2table(t, keyspaceName)).collect(Collectors.toList());
     final Object payload = raw ? tableResponses : new Sgv2RESTResponse(tableResponses);
@@ -44,8 +44,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     // NOTE: Can Not use "callWithTable()" as that would return 400 (Bad Request) for
     // missing Table; here we specifically want 404 instead.
-    return bridge
-        .getTable(keyspaceName, tableName, true)
+    return getTable(keyspaceName, tableName, true)
         .map(
             tableDef -> {
               Sgv2Table tableResponse = table2table(tableDef, keyspaceName);

@@ -53,7 +53,7 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
   public Response getAllKeyspaces(final boolean raw) {
 
     List<Sgv2Keyspace> keyspaces =
-        bridge.getAllKeyspaces().stream()
+        getKeyspaces().stream()
             .map(Sgv2KeyspacesResourceImpl::keyspaceFrom)
             .collect(Collectors.toList());
 
@@ -63,8 +63,7 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
 
   @Override
   public Response getOneKeyspace(final String keyspaceName, final boolean raw) {
-    return bridge
-        .getKeyspace(keyspaceName, true)
+    return getKeyspace(keyspaceName, true)
         .map(
             describe -> {
               Sgv2Keyspace keyspace = keyspaceFrom(describe);

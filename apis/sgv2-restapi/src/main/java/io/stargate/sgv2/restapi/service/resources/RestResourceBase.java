@@ -14,7 +14,8 @@ import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.api.common.futures.Futures;
-import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
+import io.stargate.sgv2.api.common.grpc.UnauthorizedKeyspaceException;
+import io.stargate.sgv2.api.common.grpc.UnauthorizedTableException;
 import io.stargate.sgv2.api.common.schema.SchemaManager;
 import io.stargate.sgv2.restapi.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restapi.grpc.FromProtoConverter;
@@ -23,10 +24,10 @@ import io.stargate.sgv2.restapi.service.models.Sgv2RowsResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import javax.inject.Inject;
@@ -43,42 +44,80 @@ public abstract class RestResourceBase {
   protected static final int DEFAULT_PAGE_SIZE = 100;
 
   private static final Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>>
-          MISSING_KEYSPACE = ks -> Uni.createFrom().nullItem();
+      MISSING_KEYSPACE = ks -> Uni.createFrom().nullItem();
 
   protected static final BridgeProtoValueConverters PROTO_CONVERTERS =
       BridgeProtoValueConverters.instance();
   protected static final QueryOuterClass.QueryParameters PARAMETERS_FOR_LOCAL_QUORUM =
       parametersBuilderForLocalQuorum().build();
 
-  @Inject protected StargateBridgeClient bridge;
+  @Inject SchemaManager schemaManager;
 
-  @Inject
-  SchemaManager schemaManager;
-
-  @Inject
-  StargateRequestInfo requestInfo;
+  @Inject StargateRequestInfo requestInfo;
 
   // // // Helper methods for Schema access
 
-  /**
-   * Gets the metadata of a table, when no additional data is needed to build the HTTP response.
-   *
-   * <p>This should be used for "schema" resources. If you are going to build and run another query
-   * based on the metadata, use {@link #queryWithTable} instead.
-   */
+  protected Optional<Schema.CqlKeyspaceDescribe> getKeyspace(
+      String keyspaceName, boolean checkIfAuthorized) throws UnauthorizedKeyspaceException {
+    return Futures.getUninterruptibly(getKeyspaceAsync(keyspaceName, checkIfAuthorized));
+  }
+
+  protected CompletionStage<Optional<Schema.CqlKeyspaceDescribe>> getKeyspaceAsync(
+      String keyspaceName, boolean checkIfAuthorized) {
+    Uni<Schema.CqlKeyspaceDescribe> keyspace =
+        checkIfAuthorized
+            ? schemaManager.getKeyspaceAuthorized(keyspaceName)
+            : schemaManager.getKeyspace(keyspaceName);
+    return keyspace.map(Optional::ofNullable).subscribeAsCompletionStage();
+  }
+
+  protected List<Schema.CqlKeyspaceDescribe> getKeyspaces() {
+    return Futures.getUninterruptibly(getKeyspacesAsync());
+  }
+
+  protected CompletionStage<List<Schema.CqlKeyspaceDescribe>> getKeyspacesAsync() {
+    return schemaManager.getKeyspaces().collect().asList().subscribeAsCompletionStage();
+  }
+
+  protected List<Schema.CqlTable> getTables(String keyspaceName) {
+    return Futures.getUninterruptibly(getTablesAsync(keyspaceName));
+  }
+
+  protected CompletionStage<List<Schema.CqlTable>> getTablesAsync(String keyspaceName) {
+    return schemaManager
+        .getTables(keyspaceName, MISSING_KEYSPACE)
+        .collect()
+        .asList()
+        .subscribeAsCompletionStage();
+  }
+
+  protected Optional<Schema.CqlTable> getTable(
+      String keyspaceName, String tableName, boolean checkIfAuthorized)
+      throws UnauthorizedTableException {
+    return Futures.getUninterruptibly(getTableAsync(keyspaceName, tableName, checkIfAuthorized));
+  }
+
   protected Schema.CqlTable getTable(String keyspaceName, String tableName) {
     final boolean checkIfAuthorized = true;
 
-    CompletionStage<Optional<Schema.CqlTable>> tableFuture = getTableAsync(
-            keyspaceName, tableName, checkIfAuthorized);
+    CompletionStage<Optional<Schema.CqlTable>> tableFuture =
+        getTableAsync(keyspaceName, tableName, checkIfAuthorized);
     Optional<Schema.CqlTable> maybeTable = Futures.getUninterruptibly(tableFuture);
 
-    return maybeTable
-        .orElseThrow(
-            () ->
-                new WebApplicationException(
-                    String.format("Table '%s' not found (in keyspace %s)", tableName, keyspaceName),
-                    Response.Status.BAD_REQUEST));
+    return maybeTable.orElseThrow(
+        () ->
+            new WebApplicationException(
+                String.format("Table '%s' not found (in keyspace %s)", tableName, keyspaceName),
+                Response.Status.BAD_REQUEST));
+  }
+
+  protected CompletionStage<Optional<Schema.CqlTable>> getTableAsync(
+      String keyspaceName, String tableName, boolean checkIfAuthorized) {
+    Uni<Schema.CqlTable> table =
+        checkIfAuthorized
+            ? schemaManager.getTableAuthorized(keyspaceName, tableName, MISSING_KEYSPACE)
+            : schemaManager.getTable(keyspaceName, tableName, MISSING_KEYSPACE);
+    return table.map(Optional::ofNullable).subscribeAsCompletionStage();
   }
 
   /** Gets the metadata of a table, then uses it to build another CQL query and executes it. */
@@ -86,7 +125,7 @@ public abstract class RestResourceBase {
       String keyspaceName,
       String tableName,
       Function<Schema.CqlTable, QueryOuterClass.Query> queryProducer) {
-    return bridge.executeQuery(
+    return executeQuery(
         keyspaceName,
         tableName,
         maybeTable -> {
@@ -105,36 +144,50 @@ public abstract class RestResourceBase {
     return Futures.getUninterruptibly(executeQueryAsync(query));
   }
 
-  /*
   protected QueryOuterClass.Response executeQuery(
-          String keyspaceName, String tableName, Function<Optional<Schema.CqlTable>, QueryOuterClass.Query> queryProducer) {
-    return Futures.getUninterruptibly(bridge.executeQueryAsync(keyspaceName, tableName, queryProducer));
+      String keyspaceName,
+      String tableName,
+      Function<Optional<Schema.CqlTable>, QueryOuterClass.Query> queryProducer) {
+    return Futures.getUninterruptibly(executeQueryAsync(keyspaceName, tableName, queryProducer));
   }
-   */
 
-  protected CompletionStage<QueryOuterClass.Response> executeQueryAsync(QueryOuterClass.Query query) {
+  protected CompletionStage<QueryOuterClass.Response> executeQueryAsync(
+      QueryOuterClass.Query query) {
     return requestInfo.getStargateBridge().executeQuery(query).subscribeAsCompletionStage();
   }
 
   protected CompletionStage<QueryOuterClass.Response> executeQueryAsync(
-          String keyspaceName,
-          String tableName,
-          Function<Optional<Schema.CqlTable>, QueryOuterClass.Query> queryProducer) {
+      String keyspaceName,
+      String tableName,
+      Function<Optional<Schema.CqlTable>, QueryOuterClass.Query> queryProducer) {
 
     // TODO implement optimistic queries (probably requires changes directly in SchemaManager)
     return getTableAsync(keyspaceName, tableName, true)
-            .thenCompose(table -> executeQueryAsync(queryProducer.apply(table)));
+        .thenCompose(table -> executeQueryAsync(queryProducer.apply(table)));
   }
 
-  protected CompletionStage<Optional<Schema.CqlTable>> getTableAsync(
-          String keyspaceName, String tableName, boolean checkIfAuthorized) {
-    Uni<Schema.CqlTable> table =
-            checkIfAuthorized
-                    ? schemaManager.getTableAuthorized(keyspaceName, tableName, MISSING_KEYSPACE)
-                    : schemaManager.getTable(keyspaceName, tableName, MISSING_KEYSPACE);
-    return table.map(Optional::ofNullable).subscribeAsCompletionStage();
+  protected boolean authorizeSchemaRead(Schema.SchemaRead schemaRead) {
+    return authorizeSchemaReads(Collections.singletonList(schemaRead)).get(0);
   }
 
+  protected List<Boolean> authorizeSchemaReads(List<Schema.SchemaRead> schemaReads) {
+    return Futures.getUninterruptibly(authorizeSchemaReadsAsync(schemaReads));
+  }
+
+  protected CompletionStage<Boolean> authorizeSchemaReadAsync(Schema.SchemaRead schemaRead) {
+    return authorizeSchemaReadsAsync(Collections.singletonList(schemaRead))
+        .thenApply(l -> l.get(0));
+  }
+
+  protected CompletionStage<List<Boolean>> authorizeSchemaReadsAsync(
+      List<Schema.SchemaRead> schemaReads) {
+    return requestInfo
+        .getStargateBridge()
+        .authorizeSchemaReads(
+            Schema.AuthorizeSchemaReadsRequest.newBuilder().addAllSchemaReads(schemaReads).build())
+        .map(Schema.AuthorizeSchemaReadsResponse::getAuthorizedList)
+        .subscribeAsCompletionStage();
+  }
 
   // // // Helper methods for JSON decoding
 

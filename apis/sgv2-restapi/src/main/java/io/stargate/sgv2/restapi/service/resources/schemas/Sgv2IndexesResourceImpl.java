@@ -41,7 +41,7 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
     }
 
     // check that we're authorized for the table
-    bridge.authorizeSchemaRead(
+    authorizeSchemaRead(
         SchemaReads.table(keyspaceName, tableName, Schema.SchemaRead.SourceApi.REST));
 
     Query query =
