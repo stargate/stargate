@@ -174,11 +174,6 @@ public abstract class RestResourceBase {
     return Futures.getUninterruptibly(authorizeSchemaReadsAsync(schemaReads));
   }
 
-  protected CompletionStage<Boolean> authorizeSchemaReadAsync(Schema.SchemaRead schemaRead) {
-    return authorizeSchemaReadsAsync(Collections.singletonList(schemaRead))
-        .thenApply(l -> l.get(0));
-  }
-
   protected CompletionStage<List<Boolean>> authorizeSchemaReadsAsync(
       List<Schema.SchemaRead> schemaReads) {
     return requestInfo
