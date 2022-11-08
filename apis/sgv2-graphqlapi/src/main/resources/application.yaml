@@ -29,8 +29,6 @@ quarkus:
   banner:
     path: banner/banner.txt
 
-        retry: true
-        max-hedged-attempts: 0
   # HTTP settings
   http:
     port: 8080

@@ -1,5 +1,6 @@
 ---
 # please keep properties in the alphabetical order
+# note that this config is shared among all APIs, unless explicitly overridden
 
 stargate:
 
@@ -58,6 +59,8 @@ quarkus:
       bridge:
         host: localhost
         port: 8091
+        retry: true
+        max-hedged-attempts: 0
 
     # force no grpc server start in dev as we have no grpc service
     dev-mode:
