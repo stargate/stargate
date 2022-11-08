@@ -533,7 +533,7 @@
   <scm>
     <connection>scm:git:git://github.com/stargate/stargate.git</connection>
     <developerConnection>scm:git:git@github.com:stargate/stargate.git</developerConnection>
-    <url>http://github.com/stargate/stargate/tree/master</url>
+    <url>http://github.com/stargate/stargate/tree/main</url>
   </scm>
   <developers>
     <developer>
@@ -822,14 +822,5 @@
 
     </dependencies>
   </dependencyManagement>
-  <repositories>
-    <repository>
-      <snapshots>
-        <enabled>false</enabled>
-      </snapshots>
-      <id>central</id>
-      <name>bintray</name>
-      <url>https://jcenter.bintray.com</url>
-    </repository>
-  </repositories>
+ 
 </project>
