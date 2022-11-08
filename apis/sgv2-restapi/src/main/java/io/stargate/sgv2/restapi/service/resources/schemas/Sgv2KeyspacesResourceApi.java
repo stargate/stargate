@@ -15,6 +15,7 @@
  */
 package io.stargate.sgv2.restapi.service.resources.schemas;
 
+import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.service.models.Sgv2Keyspace;
 import javax.enterprise.context.ApplicationScoped;
@@ -38,6 +39,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.jboss.resteasy.reactive.RestResponse;
 
 /**
  * Definition of REST API DDL endpoint methods for Keyspace access including JAX-RS and OpenAPI
@@ -64,7 +66,7 @@ public interface Sgv2KeyspacesResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500)
       })
-  Response getAllKeyspaces(
+  Uni<RestResponse<Object>> getAllKeyspaces(
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw);
 

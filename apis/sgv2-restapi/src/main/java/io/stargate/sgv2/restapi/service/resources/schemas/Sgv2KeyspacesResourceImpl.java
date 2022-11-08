@@ -19,6 +19,7 @@ import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
@@ -30,12 +31,11 @@ import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,15 +50,14 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
   private static final SchemaBuilderHelper schemaBuilder = new SchemaBuilderHelper(JSON_MAPPER);
 
   @Override
-  public Response getAllKeyspaces(final boolean raw) {
-
-    List<Sgv2Keyspace> keyspaces =
-        getKeyspaces().stream()
-            .map(Sgv2KeyspacesResourceImpl::keyspaceFrom)
-            .collect(Collectors.toList());
-
-    final Object payload = raw ? keyspaces : new Sgv2RESTResponse<>(keyspaces);
-    return Response.status(Status.OK).entity(payload).build();
+  public Uni<RestResponse<Object>> getAllKeyspaces(final boolean raw) {
+    return getKeyspacesAsync()
+        .map(ks -> convertKeyspace(ks))
+        .collect()
+        .asList()
+        // map to wrapper if needed
+        .map(results -> raw ? results : new Sgv2RESTResponse<>(results))
+        .map(RestResponse::ok);
   }
 
   @Override
@@ -66,7 +65,7 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
     return getKeyspace(keyspaceName, true)
         .map(
             describe -> {
-              Sgv2Keyspace keyspace = keyspaceFrom(describe);
+              Sgv2Keyspace keyspace = convertKeyspace(describe);
 
               final Object payload = raw ? keyspace : new Sgv2RESTResponse<>(keyspace);
               return Response.status(Status.OK).entity(payload).build();
@@ -132,7 +131,11 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
   /////////////////////////////////////////////////////////////////////////
    */
 
-  private static Sgv2Keyspace keyspaceFrom(CqlKeyspaceDescribe describe) {
+  private static Uni<Sgv2Keyspace> keyspaceFrom(Uni<CqlKeyspaceDescribe> describe) {
+    return describe.map(Sgv2KeyspacesResourceImpl::convertKeyspace);
+  }
+
+  private static Sgv2Keyspace convertKeyspace(CqlKeyspaceDescribe describe) {
     Schema.CqlKeyspace keyspace = describe.getCqlKeyspace();
     Sgv2Keyspace ks = new Sgv2Keyspace(keyspace.getName());
 

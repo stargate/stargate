@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
 import com.google.protobuf.Int32Value;
+import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
@@ -51,9 +52,9 @@ public abstract class RestResourceBase {
   protected static final QueryOuterClass.QueryParameters PARAMETERS_FOR_LOCAL_QUORUM =
       parametersBuilderForLocalQuorum().build();
 
-  @Inject SchemaManager schemaManager;
+  @Inject protected SchemaManager schemaManager;
 
-  @Inject StargateRequestInfo requestInfo;
+  @Inject protected StargateRequestInfo requestInfo;
 
   // // // Helper methods for Schema access
 
@@ -72,10 +73,14 @@ public abstract class RestResourceBase {
   }
 
   protected List<Schema.CqlKeyspaceDescribe> getKeyspaces() {
-    return Futures.getUninterruptibly(getKeyspacesAsync());
+    return Futures.getUninterruptibly(getKeyspacesAsyncOLD());
   }
 
-  protected CompletionStage<List<Schema.CqlKeyspaceDescribe>> getKeyspacesAsync() {
+  protected Multi<Schema.CqlKeyspaceDescribe> getKeyspacesAsync() {
+    return schemaManager.getKeyspaces();
+  }
+
+  protected CompletionStage<List<Schema.CqlKeyspaceDescribe>> getKeyspacesAsyncOLD() {
     return schemaManager.getKeyspaces().collect().asList().subscribeAsCompletionStage();
   }
 
