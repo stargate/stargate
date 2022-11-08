@@ -17,6 +17,7 @@ package io.stargate.bridge.service;
 
 import io.grpc.Status;
 import io.grpc.stub.StreamObserver;
+import io.stargate.auth.SourceAPI;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.Batch;
 import io.stargate.bridge.proto.QueryOuterClass.BatchParameters;
@@ -51,10 +52,13 @@ public class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIde
 
   private final String decoratedKeyspace;
 
+  private final SourceAPI sourceAPI;
+
   BatchHandler(
       Batch batch,
       Connection connection,
       Persistence persistence,
+      SourceAPI sourceAPI,
       StreamObserver<Response> responseObserver) {
     super(batch, connection, persistence, responseObserver);
     BatchParameters batchParameters = batch.getParameters();
@@ -63,6 +67,7 @@ public class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIde
             ? persistence.decorateKeyspaceName(
                 batchParameters.getKeyspace().getValue(), BridgeService.HEADERS_KEY.get())
             : null;
+    this.sourceAPI = sourceAPI;
   }
 
   @Override
@@ -153,14 +158,28 @@ public class BatchHandler extends MessageHandler<Batch, BatchHandler.BatchAndIde
       builder.nowInSeconds(parameters.getNowInSeconds().getValue());
     }
 
-    clientInfo.ifPresent(
-        c -> {
-          Map<String, ByteBuffer> customPayload = new HashMap<>();
-          c.storeAuthenticationData(customPayload);
-          builder.customPayload(customPayload);
-        });
+    Map<String, ByteBuffer> customPayload = getCustomPayload(clientInfo.orElse(null));
+    if (!customPayload.isEmpty()) {
+      builder.customPayload(customPayload);
+    }
 
     return builder.tracingRequested(parameters.getTracing()).build();
+  }
+
+  private Map<String, ByteBuffer> getCustomPayload(ClientInfo clientInfo) {
+    Map<String, ByteBuffer> customPayload = new HashMap<>();
+
+    // add source api if available
+    if (null != sourceAPI) {
+      sourceAPI.toCustomPayload(customPayload);
+    }
+
+    // same for the client info auth data
+    if (null != clientInfo) {
+      clientInfo.storeAuthenticationData(customPayload);
+    }
+
+    return customPayload;
   }
 
   /**

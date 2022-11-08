@@ -116,6 +116,7 @@ quarkus:
 
   # information for the generated Open API definitions
   smallrye-openapi:
+    path: /api/rest/openapi
     info-title: ${quarkus.application.name}
     info-version: ${quarkus.application.version:}
     info-description:

@@ -16,6 +16,7 @@
 package io.stargate.bridge.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -24,6 +25,8 @@ import static org.mockito.Mockito.when;
 
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
 import io.stargate.bridge.Utils;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.Schema.QueryWithSchemaResponse;
@@ -62,7 +65,7 @@ public class ExecuteQueryWithSchemaTest extends BaseBridgeServiceTest {
   @Test
   public void shouldReturnResponseWhenSchemaUpToDate() {
     QueryWithSchemaResponse withSchemaResponse =
-        queryWithSchema(KEYSPACE.name(), KEYSPACE.schemaHashCode());
+        queryWithSchema(KEYSPACE.name(), KEYSPACE.schemaHashCode(), null);
 
     assertThat(withSchemaResponse.hasResponse()).isTrue();
     assertThat(withSchemaResponse.getResponse())
@@ -78,7 +81,7 @@ public class ExecuteQueryWithSchemaTest extends BaseBridgeServiceTest {
   public void shouldReturnNewSchemaWhenOutOfDate() {
     int wrongKeyspaceHash = KEYSPACE.schemaHashCode() + 1;
     QueryWithSchemaResponse withSchemaResponse =
-        queryWithSchema(KEYSPACE.name(), wrongKeyspaceHash);
+        queryWithSchema(KEYSPACE.name(), wrongKeyspaceHash, null);
 
     assertThat(withSchemaResponse.hasNewKeyspace()).isTrue();
     assertThat(withSchemaResponse.getNewKeyspace().getHash().getValue())
@@ -87,12 +90,42 @@ public class ExecuteQueryWithSchemaTest extends BaseBridgeServiceTest {
 
   @Test
   public void shouldReturnEmptyResponseWhenKeyspaceDeleted() {
-    QueryWithSchemaResponse withSchemaResponse = queryWithSchema("nonExistingKs", 1);
+    QueryWithSchemaResponse withSchemaResponse = queryWithSchema("nonExistingKs", 1, null);
 
     assertThat(withSchemaResponse.hasNoKeyspace()).isTrue();
   }
 
-  private QueryWithSchemaResponse queryWithSchema(String keyspaceName, int keyspaceHash) {
+  @Test
+  public void shouldHandleGrpcFailGracefully() {
+    Exception fail = new StatusRuntimeException(Status.INVALID_ARGUMENT);
+    // To test regular gRPC fail, make exception be thrown from actual execute():
+    assertThatThrownBy(() -> queryWithSchema(KEYSPACE.name(), KEYSPACE.schemaHashCode(), fail))
+        .isInstanceOf(StatusRuntimeException.class)
+        .hasMessageContaining("INVALID_ARGUMENT")
+        .extracting("status")
+        .isEqualTo(Status.INVALID_ARGUMENT)
+        .extracting("code")
+        .isEqualTo(Status.INVALID_ARGUMENT.getCode());
+  }
+
+  @Test
+  public void shouldHandleInternalNPEGracefully() {
+    Exception fail = new NullPointerException("Missing stuff");
+
+    // To test Runtime exceptions, throw from "persistence.schema()"; simpler setup
+    // (but must override what has already been set up)
+    when(persistence.schema()).thenThrow(fail);
+
+    assertThatThrownBy(() -> queryWithSchema(KEYSPACE.name(), KEYSPACE.schemaHashCode(), null))
+        .isInstanceOf(StatusRuntimeException.class)
+        .hasMessageContaining("Missing stuff")
+        .extracting("status")
+        .extracting("code")
+        .isEqualTo(Status.UNKNOWN.getCode());
+  }
+
+  private QueryWithSchemaResponse queryWithSchema(
+      String keyspaceName, int keyspaceHash, Exception failExecuteWith) {
     final String query = "SELECT v FROM ks.tbl WHERE k = ?";
 
     Result.ResultMetadata resultMetadata =
@@ -108,19 +141,24 @@ public class ExecuteQueryWithSchemaTest extends BaseBridgeServiceTest {
     when(connection.prepare(eq(query), any(Parameters.class)))
         .thenReturn(CompletableFuture.completedFuture(prepared));
 
-    when(connection.execute(any(Statement.class), any(Parameters.class), anyLong()))
-        .then(
-            invocation -> {
-              BoundStatement statement =
-                  (BoundStatement) invocation.getArgument(0, Statement.class);
-              assertStatement(prepared, statement, Values.of("kValue"));
-              return CompletableFuture.completedFuture(
-                  new Result.Rows(
-                      Collections.singletonList(
-                          Collections.singletonList(
-                              TypeCodecs.TEXT.encode("vValue", ProtocolVersion.DEFAULT))),
-                      resultMetadata));
-            });
+    if (failExecuteWith != null) {
+      when(connection.execute(any(Statement.class), any(Parameters.class), anyLong()))
+          .thenThrow(failExecuteWith);
+    } else {
+      when(connection.execute(any(Statement.class), any(Parameters.class), anyLong()))
+          .then(
+              invocation -> {
+                BoundStatement statement =
+                    (BoundStatement) invocation.getArgument(0, Statement.class);
+                assertStatement(prepared, statement, Values.of("kValue"));
+                return CompletableFuture.completedFuture(
+                    new Result.Rows(
+                        Collections.singletonList(
+                            Collections.singletonList(
+                                TypeCodecs.TEXT.encode("vValue", ProtocolVersion.DEFAULT))),
+                        resultMetadata));
+              });
+    }
 
     when(persistence.newConnection()).thenReturn(connection);
 

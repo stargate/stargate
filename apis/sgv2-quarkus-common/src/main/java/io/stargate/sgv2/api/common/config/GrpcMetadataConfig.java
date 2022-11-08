@@ -41,4 +41,12 @@ public interface GrpcMetadataConfig {
   @NotBlank
   @WithDefault(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME)
   String cassandraTokenKey();
+
+  /**
+   * @return Metadata key for passing the source API information to the Bridge. Defaults to {@value
+   *     HttpConstants#SOURCE_API_HEADER_NAME}
+   */
+  @NotBlank
+  @WithDefault(HttpConstants.SOURCE_API_HEADER_NAME)
+  String sourceApiKey();
 }

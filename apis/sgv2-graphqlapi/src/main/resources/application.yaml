@@ -109,6 +109,9 @@ quarkus:
   swagger-ui:
     enable: false
 
+  smallrye-openapi:
+    enable: false
+
 # shared development properties
 "%dev":
 

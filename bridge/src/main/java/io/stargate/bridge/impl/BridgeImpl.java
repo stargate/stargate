@@ -23,6 +23,7 @@ import io.stargate.auth.AuthenticationService;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.bridge.service.BridgeService;
 import io.stargate.bridge.service.interceptors.NewConnectionInterceptor;
+import io.stargate.bridge.service.interceptors.SourceApiInterceptor;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
 import java.io.IOException;
@@ -75,6 +76,7 @@ public class BridgeImpl {
             // thread pool for handling gRPC callbacks in `GrpcService`.
             .directExecutor()
             .intercept(new NewConnectionInterceptor(persistence, authenticationService))
+            .intercept(new SourceApiInterceptor(true))
             .intercept(new MetricCollectingServerInterceptor(metrics.getMeterRegistry()))
             .addService(new BridgeService(persistence, authorizationService, executor))
             .build();

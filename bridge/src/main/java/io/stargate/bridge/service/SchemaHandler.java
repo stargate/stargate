@@ -53,32 +53,31 @@ class SchemaHandler {
   public static void describeKeyspace(
       DescribeKeyspaceQuery query,
       Persistence persistence,
+      Map<String, String> headers,
       StreamObserver<CqlKeyspaceDescribe> responseObserver) {
 
-    // The name that the client asked for, e.g. "ks".
-    String simpleName = query.getKeyspaceName();
-    // If the persistence supports multi-tenancy, the actual name contains tenant information, e.g.
-    // "tenant1_ks".
-    String decoratedName =
-        persistence.decorateKeyspaceName(simpleName, BridgeService.HEADERS_KEY.get());
-
-    Keyspace keyspace = persistence.schema().keyspace(decoratedName);
-    if (keyspace == null) {
-      responseObserver.onError(
-          Status.NOT_FOUND.withDescription("Keyspace not found").asException());
-    } else if (query.hasHash() && query.getHash().getValue() == keyspace.schemaHashCode()) {
-      // Client already has the latest version, don't resend
-      responseObserver.onNext(EMPTY_KEYSPACE_DESCRIPTION);
-      responseObserver.onCompleted();
-    } else {
-      try {
+    try {
+      // The name that the client asked for, e.g. "ks".
+      // If the persistence supports multi-tenancy, the decorated name contains tenant information,
+      // e.g.
+      String simpleName = query.getKeyspaceName();
+      String decoratedName = persistence.decorateKeyspaceName(simpleName, headers);
+      Keyspace keyspace = persistence.schema().keyspace(decoratedName);
+      if (keyspace == null) {
+        responseObserver.onError(
+            Status.NOT_FOUND.withDescription("Keyspace not found").asException());
+      } else if (query.hasHash() && query.getHash().getValue() == keyspace.schemaHashCode()) {
+        // Client already has the latest version, don't resend
+        responseObserver.onNext(EMPTY_KEYSPACE_DESCRIPTION);
+        responseObserver.onCompleted();
+      } else {
         CqlKeyspaceDescribe description =
             SchemaHandler.buildKeyspaceDescription(keyspace, simpleName, decoratedName);
         responseObserver.onNext(description);
         responseObserver.onCompleted();
-      } catch (StatusException e) {
-        responseObserver.onError(e);
       }
+    } catch (Throwable t) {
+      new ExceptionHandler(responseObserver).handleException(t);
     }
   }
 

@@ -1,8 +1,56 @@
 # Changelog
 
+## [v2.0.0-RC-1](https://github.com/stargate/stargate/tree/v2.0.0-RC-1) (2022-10-18)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-BETA-5...v2.0.0-RC-1)
+
 **Closed issues:**
 
+- Cosign images for V2 not working [\#2140](https://github.com/stargate/stargate/issues/2140)
+
+**Merged pull requests:**
+
+- Bumping version for the v2 release candidate [\#2173](https://github.com/stargate/stargate/pull/2173) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.0.0-BETA-5](https://github.com/stargate/stargate/tree/v2.0.0-BETA-5) (2022-10-18)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-BETA-4...v2.0.0-BETA-5)
+
+**Fixed bugs:**
+
+- Project name, description and url missing in the API V2 parent pom.xml [\#2145](https://github.com/stargate/stargate/issues/2145)
+- Swagger in Docs API v2 creates a wrong curl command [\#2131](https://github.com/stargate/stargate/issues/2131)
+
+**Closed issues:**
+
+- Add option to limit subdomain tenant resolver to a part of the subdomain [\#2164](https://github.com/stargate/stargate/issues/2164)
+- Can not re-run failing V2 API tests due to eager \("always"\) Docker cleanup [\#2163](https://github.com/stargate/stargate/issues/2163)
+- Remove unneeded `StargateTestResource` option `DISABLE\_FIXED\_TOKEN` \(default to `true`\) [\#2151](https://github.com/stargate/stargate/issues/2151)
+- The `set-output` command deprecated in GitHub actions [\#2150](https://github.com/stargate/stargate/issues/2150)
+- Docker-compose scripts should allow enabling request log by Quarkus [\#2148](https://github.com/stargate/stargate/issues/2148)
+- Docker-compose scripts should allow changing default log level \(from INFO to DEBUG\) [\#2141](https://github.com/stargate/stargate/issues/2141)
 - REST API build complains about the wrong property name [\#2135](https://github.com/stargate/stargate/issues/2135)
+- Build fails on M1 macs due to unavailable binaries [\#2073](https://github.com/stargate/stargate/issues/2073)
+
+**Merged pull requests:**
+
+- Add logging of gRPC failures in case where problem is from server-sid… [\#2171](https://github.com/stargate/stargate/pull/2171) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- update Quarkus to `2.13.2` [\#2170](https://github.com/stargate/stargate/pull/2170) ([ivansenic](https://github.com/ivansenic))
+- relates to \#2150: removes set-output from the V2 GH workflows [\#2168](https://github.com/stargate/stargate/pull/2168) ([ivansenic](https://github.com/ivansenic))
+- closes \#2163: don't delete docker imgs in failed GH workflows [\#2167](https://github.com/stargate/stargate/pull/2167) ([ivansenic](https://github.com/ivansenic))
+- closes \#2164: add option to limit max chars in the sub-domain for ten… [\#2165](https://github.com/stargate/stargate/pull/2165) ([ivansenic](https://github.com/ivansenic))
+- Remove intermediate DropWizard-based SGv2/REST API [\#2162](https://github.com/stargate/stargate/pull/2162) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add `-q` option to docker-compose scripts to enable Quarkus request logging [\#2161](https://github.com/stargate/stargate/pull/2161) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Quarkus log format is fixed to match the format defined in logback.xm… [\#2158](https://github.com/stargate/stargate/pull/2158) ([kathirsvn](https://github.com/kathirsvn))
+- closes \#2131: fixes swagger issues in the docs api v2 [\#2157](https://github.com/stargate/stargate/pull/2157) ([ivansenic](https://github.com/ivansenic))
+- fix RestApiV2QCqlEnabledTestBase to use C\* auth if needed [\#2153](https://github.com/stargate/stargate/pull/2153) ([ivansenic](https://github.com/ivansenic))
+- Remove `StargateTestResource.Options.DISABLE\_FIXED\_TOKEN`, all usage [\#2152](https://github.com/stargate/stargate/pull/2152) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Convert DSE-backed REST API tests SG v1-\>v2 [\#2149](https://github.com/stargate/stargate/pull/2149) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#2132 by adding missing properties to parent pom [\#2146](https://github.com/stargate/stargate/pull/2146) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add `-r` option for docker-compose scripts for configuring default log level [\#2143](https://github.com/stargate/stargate/pull/2143) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Stargate v2 Docker usability [\#2139](https://github.com/stargate/stargate/pull/2139) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- disable vert.x uri validation in the v2 docker images [\#2138](https://github.com/stargate/stargate/pull/2138) ([ivansenic](https://github.com/ivansenic))
+- Bumping version to 2.0.0-BETA-5-SNAPSHOT [\#2137](https://github.com/stargate/stargate/pull/2137) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v2.0.0-BETA-4](https://github.com/stargate/stargate/tree/v2.0.0-BETA-4) (2022-10-04)
 
