@@ -112,7 +112,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
             .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
             .build();
 
-    bridge.executeQuery(query);
+    executeQuery(query);
 
     return Response.status(Status.CREATED)
         .entity(Collections.singletonMap("name", tableName))
@@ -155,7 +155,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     QueryOuterClass.Query query =
         new QueryBuilder().drop().table(keyspaceName, tableName).ifExists().build();
-    /*QueryOuterClass.Response grpcResponse =*/ bridge.executeQuery(query);
+    /*QueryOuterClass.Response grpcResponse =*/ executeQuery(query);
     return Response.status(Status.NO_CONTENT).build();
   }
 

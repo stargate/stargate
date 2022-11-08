@@ -8,10 +8,14 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
 import com.google.protobuf.Int32Value;
+import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
+import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
+import io.stargate.sgv2.api.common.futures.Futures;
 import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
+import io.stargate.sgv2.api.common.schema.SchemaManager;
 import io.stargate.sgv2.restapi.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restapi.grpc.FromProtoConverter;
 import io.stargate.sgv2.restapi.grpc.ToProtoConverter;
@@ -21,6 +25,9 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import javax.inject.Inject;
 import javax.ws.rs.WebApplicationException;
@@ -35,12 +42,21 @@ public abstract class RestResourceBase {
   protected static final ObjectReader MAP_READER = JSON_MAPPER.readerFor(Map.class);
   protected static final int DEFAULT_PAGE_SIZE = 100;
 
+  private static final Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>>
+          MISSING_KEYSPACE = ks -> Uni.createFrom().nullItem();
+
   protected static final BridgeProtoValueConverters PROTO_CONVERTERS =
       BridgeProtoValueConverters.instance();
   protected static final QueryOuterClass.QueryParameters PARAMETERS_FOR_LOCAL_QUORUM =
       parametersBuilderForLocalQuorum().build();
 
   @Inject protected StargateBridgeClient bridge;
+
+  @Inject
+  SchemaManager schemaManager;
+
+  @Inject
+  StargateRequestInfo requestInfo;
 
   // // // Helper methods for Schema access
 
@@ -51,8 +67,13 @@ public abstract class RestResourceBase {
    * based on the metadata, use {@link #queryWithTable} instead.
    */
   protected Schema.CqlTable getTable(String keyspaceName, String tableName) {
-    return bridge
-        .getTable(keyspaceName, tableName, true)
+    final boolean checkIfAuthorized = true;
+
+    CompletionStage<Optional<Schema.CqlTable>> tableFuture = getTableAsync(
+            keyspaceName, tableName, checkIfAuthorized);
+    Optional<Schema.CqlTable> maybeTable = Futures.getUninterruptibly(tableFuture);
+
+    return maybeTable
         .orElseThrow(
             () ->
                 new WebApplicationException(
@@ -79,6 +100,41 @@ public abstract class RestResourceBase {
           return queryProducer.apply(table);
         });
   }
+
+  protected QueryOuterClass.Response executeQuery(QueryOuterClass.Query query) {
+    return Futures.getUninterruptibly(executeQueryAsync(query));
+  }
+
+  /*
+  protected QueryOuterClass.Response executeQuery(
+          String keyspaceName, String tableName, Function<Optional<Schema.CqlTable>, QueryOuterClass.Query> queryProducer) {
+    return Futures.getUninterruptibly(bridge.executeQueryAsync(keyspaceName, tableName, queryProducer));
+  }
+   */
+
+  protected CompletionStage<QueryOuterClass.Response> executeQueryAsync(QueryOuterClass.Query query) {
+    return requestInfo.getStargateBridge().executeQuery(query).subscribeAsCompletionStage();
+  }
+
+  protected CompletionStage<QueryOuterClass.Response> executeQueryAsync(
+          String keyspaceName,
+          String tableName,
+          Function<Optional<Schema.CqlTable>, QueryOuterClass.Query> queryProducer) {
+
+    // TODO implement optimistic queries (probably requires changes directly in SchemaManager)
+    return getTableAsync(keyspaceName, tableName, true)
+            .thenCompose(table -> executeQueryAsync(queryProducer.apply(table)));
+  }
+
+  protected CompletionStage<Optional<Schema.CqlTable>> getTableAsync(
+          String keyspaceName, String tableName, boolean checkIfAuthorized) {
+    Uni<Schema.CqlTable> table =
+            checkIfAuthorized
+                    ? schemaManager.getTableAuthorized(keyspaceName, tableName, MISSING_KEYSPACE)
+                    : schemaManager.getTable(keyspaceName, tableName, MISSING_KEYSPACE);
+    return table.map(Optional::ofNullable).subscribeAsCompletionStage();
+  }
+
 
   // // // Helper methods for JSON decoding
 
@@ -140,7 +196,7 @@ public abstract class RestResourceBase {
   }
 
   protected Response fetchRows(QueryOuterClass.Query query, boolean raw) {
-    QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
+    QueryOuterClass.Response grpcResponse = executeQuery(query);
     return toHttpResponse(grpcResponse, raw);
   }
 

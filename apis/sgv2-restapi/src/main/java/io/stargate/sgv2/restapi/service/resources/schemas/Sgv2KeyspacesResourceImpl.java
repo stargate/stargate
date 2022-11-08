@@ -112,7 +112,7 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
               .build();
     }
 
-    bridge.executeQuery(query);
+    executeQuery(query);
 
     // No real contents; can ignore ResultSet it seems and only worry about exceptions
 
@@ -123,7 +123,7 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
   @Override
   public Response deleteKeyspace(final String keyspaceName) {
     Query query = new QueryBuilder().drop().keyspace(keyspaceName).ifExists().build();
-    bridge.executeQuery(query);
+    executeQuery(query);
     return Response.status(Status.NO_CONTENT).build();
   }
 

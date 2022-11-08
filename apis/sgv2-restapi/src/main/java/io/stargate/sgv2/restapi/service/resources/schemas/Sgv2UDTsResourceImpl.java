@@ -38,7 +38,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
             .where("keyspace_name", Predicate.EQ, Values.of(keyspaceName))
             .build();
 
-    QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
+    QueryOuterClass.Response grpcResponse = executeQuery(query);
 
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
 
@@ -67,7 +67,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
             .where("type_name", Predicate.EQ, Values.of(typeName))
             .build();
 
-    QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
+    QueryOuterClass.Response grpcResponse = executeQuery(query);
 
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
 
@@ -120,7 +120,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
             .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
             .build();
     try {
-      bridge.executeQuery(query);
+      executeQuery(query);
     } catch (StatusRuntimeException grpcE) {
       // For most failures pass and let default handler deal; but for specific case of
       // trying to create existing UDT without "if-not-exists", try to dig actual fail
@@ -154,7 +154,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
             //    seems inconsistent; would be good for idempotency
             // .ifExists()
             .build();
-    /*QueryOuterClass.Response grpcResponse =*/ bridge.executeQuery(query);
+    /*QueryOuterClass.Response grpcResponse =*/ executeQuery(query);
     return Response.status(Response.Status.NO_CONTENT).build();
   }
 
@@ -178,7 +178,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
       List<Column> columns = columns2columns(addFields);
       QueryOuterClass.Query query =
           new QueryBuilder().alter().type(keyspaceName, typeName).addColumn(columns).build();
-      bridge.executeQuery(query);
+      executeQuery(query);
     }
 
     if (renameFields != null && !renameFields.isEmpty()) {
@@ -195,7 +195,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
               .type(keyspaceName, typeName)
               .renameColumn(columnRenames)
               .build();
-      bridge.executeQuery(query);
+      executeQuery(query);
     }
 
     return Response.status(Response.Status.OK).build();
