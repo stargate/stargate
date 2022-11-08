@@ -58,8 +58,8 @@ spec:
           initialDelaySeconds: {{ .Values.probe.liveness.initialDelaySeconds }}
         resources:
           requests:
-            cpu: {{ mul 4 (.Values.cpuReqMillicores | default 200) }}m
-            memory: {{add 500 (.Values.heapMB | default 1024)}}Mi
+            cpu: {{ .Values.cpuReqMillicores | default 1000 }}m
+            memory: {{ .Values.heapMB | default 1024}}Mi
         env:
         - name: CLUSTER_NAME
           value: "{{.Values.cassandra.clusterName}}"

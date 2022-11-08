@@ -50,8 +50,8 @@ spec:
           initialDelaySeconds: {{ .Values.graphqlapi.probe.liveness.initialDelaySeconds }}
         resources:
           requests:
-            cpu: {{ mul 4 (.Values.graphqlapi.cpu | default 200) }}m
-            memory: {{add 500 (.Values.graphqlapi.memory | default 512)}}Mi
+            cpu: {{ .Values.graphqlapi.cpu | default 1000 }}m
+            memory: {{ .Values.graphqlapi.memory | default 1024 }}Mi
         env:
         - name: QUARKUS_GRPC_CLIENTS_BRIDGE_HOST
           value: "stargate-bridge"

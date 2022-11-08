@@ -50,8 +50,8 @@ spec:
           initialDelaySeconds: {{ .Values.docsapi.probe.liveness.initialDelaySeconds }}
         resources:
           requests:
-            cpu: {{ mul 4 (.Values.docsapi.cpuReqMillicores | default 200) }}m
-            memory: {{add 500 (.Values.docsapi.memory | default 512)}}Mi
+            cpu: {{ .Values.docsapi.cpu | default 1000 }}m
+            memory: {{ .Values.docsapi.memory | default 1024 }}Mi
         env:
         - name: QUARKUS_GRPC_CLIENTS_BRIDGE_HOST
           value: "stargate-bridge"
