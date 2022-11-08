@@ -77,6 +77,7 @@ quarkus:
     # access log format, must be explicitly enabled
     access-log:
       pattern: "%h %l %t \"%r\" %s %b"
+      exclude-pattern: ${quarkus.http.non-application-root-path}.*|${quarkus.micrometer.export.prometheus.path}
 
     # non-application path to /stargate
     non-application-root-path: stargate
