@@ -25,6 +25,7 @@ import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.futures.Futures;
 import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.api.common.grpc.UnauthorizedKeyspaceException;
+import io.stargate.sgv2.graphql.config.GraphQLConfig;
 import io.stargate.sgv2.graphql.persistence.graphqlfirst.SchemaSource;
 import io.stargate.sgv2.graphql.persistence.graphqlfirst.SchemaSourceDao;
 import io.stargate.sgv2.graphql.schema.CassandraFetcherExceptionHandler;
@@ -40,7 +41,7 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import javax.enterprise.context.ApplicationScoped;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
+import javax.inject.Inject;
 
 /**
  * Manages the {@link GraphQL} instances used by our REST resources.
@@ -53,13 +54,17 @@ public class GraphqlCache {
   private final GraphQL ddlGraphql = newGraphql(SchemaFactory.newDdlSchema());
   private final GraphQL schemaFirstAdminGraphql = newGraphql(new AdminSchemaBuilder().build());
 
-  @ConfigProperty(name = "stargate.graphql.enable-default-keyspace")
-  boolean enableDefaultKeyspace;
+  private final boolean enableDefaultKeyspace;
 
   private volatile CompletionStage<Optional<String>> defaultKeyspaceName;
 
   private final Cache<String, GraphqlHolder> dmlGraphqlCache =
       Caffeine.newBuilder().maximumSize(1000).expireAfterAccess(5, TimeUnit.MINUTES).build();
+
+  @Inject
+  public GraphqlCache(GraphQLConfig graphQLConfig) {
+    this.enableDefaultKeyspace = graphQLConfig.enableDefaultKeyspace();
+  }
 
   public GraphQL getDdl() {
     return ddlGraphql;
