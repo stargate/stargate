@@ -1,9 +1,7 @@
-stargate:
+---
+# please keep properties in the alphabetical order
 
-  # configures data store
-  # see io.stargate.sgv2.api.common.config.DataStoreConfig for all config properties and options
-  data-store:
-    ignore-bridge: ${stargate.multi-tenancy.enabled}
+stargate:
 
   # graphql config
   graphql:
@@ -20,13 +18,6 @@ stargate:
   metrics:
     global-tags:
       module: sgv2-graphqlapi
-    tenant-request-counter:
-      enabled: ${stargate.multi-tenancy.enabled}
-
-  # multi tenancy settings
-  # see io.stargate.sgv2.api.common.config.MultiTenancyConfig for all config properties and options
-  multi-tenancy:
-    enabled: false
 
 quarkus:
 
@@ -38,33 +29,11 @@ quarkus:
   banner:
     path: banner/banner.txt
 
-  # cache properties
-  cache:
-    caffeine:
-      # keyspace cache for the schema management
-      keyspace-cache:
-        maximum-size: 1000
-        expire-after-access: PT5M
-        metrics-enabled: true
-
-  # properties for the gRPC clients
-  grpc:
-    # all the clients' setup, only bridge
-    clients:
-      bridge:
-        host: localhost
-        port: 8091
         retry: true
         max-hedged-attempts: 0
-
-    # force no grpc server start in dev as we have no grpc service
-    dev-mode:
-      force-server-start: false
-
   # HTTP settings
   http:
     port: 8080
-    non-application-root-path: stargate
 
     # Require authentication where relevant:
     auth:
@@ -88,46 +57,11 @@ quarkus:
           /graphql/[\\w]+=/graphql/{keyspaceName}
           /graphql-files/keyspace/[\\w]+.graphql=/graphql-files/keyspace/{keyspaceName}.graphql
 
-    # exports at prometheus default path
-    export:
-      prometheus:
-        path: /metrics
-
-  # OpenTelemetry configuration
-  opentelemetry:
-    tracer:
-      # in the dev env use the sampler that samples all requests
-      sampler:
-        ~: ratio
-        ratio: 1.0
-      # the OTPL should be enabled and endpoint should be specified in order to report traces
-      exporter:
-        otlp:
-          enabled: false
-          endpoint:
 
   # Don't enable Swagger: our REST resources are generic GraphQL endpoints, clients will typically
   # introspect the GraphQL schema instead.
-  swagger-ui:
-    enable: false
-
   smallrye-openapi:
     enable: false
 
-# shared development properties
-"%dev":
-
-  # disable retries in the data store config and enable fall back
-  stargate:
-    data-store:
-      bridge-fallback-enabled: true
-
-  io:
-    stargate:
-      sgv2:
-        api:
-          common:
-            properties:
-              datastore:
-                configuration:
-                  DataStorePropertiesConfiguration/fetchSupportedFeatures/Retry/maxRetries: 0
+  swagger-ui:
+    enable: false
