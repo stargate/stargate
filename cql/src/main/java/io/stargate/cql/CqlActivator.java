@@ -128,7 +128,8 @@ public class CqlActivator extends BaseActivator {
           Long.getLong(
               "stargate.cql.native_transport_max_concurrent_requests_in_bytes_per_ip",
               Runtime.getRuntime().maxMemory() / 40);
-
+      c.native_transport_flush_in_batches_legacy =
+          Boolean.getBoolean("stargate.cql.native_transport_flush_in_batches_legacy");
       return c;
     } catch (IOException e) {
       throw new UncheckedIOException(e);
