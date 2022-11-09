@@ -33,7 +33,6 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.slf4j.Logger;
@@ -79,7 +78,7 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
   }
 
   @Override
-  public Response createKeyspace(final String payloadString) {
+  public Uni<RestResponse<Object>> createKeyspace(final String payloadString) {
     SchemaBuilderHelper.KeyspaceCreateDefinition ksCreateDef;
     try {
       JsonNode payload = JSON_MAPPER.readTree(payloadString);
@@ -112,19 +111,18 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
               .build();
     }
 
-    executeQuery(query);
-
-    // No real contents; can ignore ResultSet it seems and only worry about exceptions
-
-    final Map<String, Object> responsePayload = Collections.singletonMap("name", keyspaceName);
-    return Response.status(Status.CREATED).entity(responsePayload).build();
+    return executeQueryAsync(query)
+        // No real contents; can ignore ResultSet it seems and only worry about exceptions
+        .map(
+            any ->
+                RestResponse.status(
+                    Status.CREATED, Collections.singletonMap("name", keyspaceName)));
   }
 
   @Override
-  public Response deleteKeyspace(final String keyspaceName) {
-    Query query = new QueryBuilder().drop().keyspace(keyspaceName).ifExists().build();
-    executeQuery(query);
-    return Response.status(Status.NO_CONTENT).build();
+  public Uni<RestResponse<Object>> deleteKeyspace(final String keyspaceName) {
+    return executeQueryAsync(new QueryBuilder().drop().keyspace(keyspaceName).ifExists().build())
+        .map(any -> RestResponse.noContent());
   }
 
   /*
@@ -132,10 +130,6 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
   // Helper methods for structural conversions
   /////////////////////////////////////////////////////////////////////////
    */
-
-  private static Uni<Sgv2Keyspace> keyspaceFrom(Uni<CqlKeyspaceDescribe> describe) {
-    return describe.map(Sgv2KeyspacesResourceImpl::convertKeyspace);
-  }
 
   private static Sgv2Keyspace convertKeyspace(CqlKeyspaceDescribe describe) {
     Schema.CqlKeyspace keyspace = describe.getCqlKeyspace();

@@ -28,7 +28,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
@@ -102,7 +101,7 @@ public interface Sgv2KeyspacesResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500)
       })
-  Response createKeyspace(
+  Uni<RestResponse<Object>> createKeyspace(
       @RequestBody(
               description =
                   "A map representing a keyspace with SimpleStrategy or NetworkTopologyStrategy with default replicas of 1 and 3 respectively \n"
@@ -132,7 +131,7 @@ public interface Sgv2KeyspacesResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
   @Path("/{keyspaceName}")
-  Response deleteKeyspace(
+  Uni<RestResponse<Object>> deleteKeyspace(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName);

@@ -130,7 +130,7 @@ public abstract class RestResourceBase {
   }
 
   protected QueryOuterClass.Response executeQuery(QueryOuterClass.Query query) {
-    return Futures.getUninterruptibly(executeQueryAsync(query));
+    return Futures.getUninterruptibly(executeQueryAsyncOLD(query));
   }
 
   protected QueryOuterClass.Response executeQuery(
@@ -140,9 +140,13 @@ public abstract class RestResourceBase {
     return Futures.getUninterruptibly(executeQueryAsync(keyspaceName, tableName, queryProducer));
   }
 
-  protected CompletionStage<QueryOuterClass.Response> executeQueryAsync(
+  protected CompletionStage<QueryOuterClass.Response> executeQueryAsyncOLD(
       QueryOuterClass.Query query) {
-    return requestInfo.getStargateBridge().executeQuery(query).subscribeAsCompletionStage();
+    return executeQueryAsync(query).subscribeAsCompletionStage();
+  }
+
+  protected Uni<QueryOuterClass.Response> executeQueryAsync(QueryOuterClass.Query query) {
+    return requestInfo.getStargateBridge().executeQuery(query);
   }
 
   protected CompletionStage<QueryOuterClass.Response> executeQueryAsync(
@@ -152,7 +156,7 @@ public abstract class RestResourceBase {
 
     // TODO implement optimistic queries (probably requires changes directly in SchemaManager)
     return getTableAsync(keyspaceName, tableName, true)
-        .thenCompose(table -> executeQueryAsync(queryProducer.apply(table)));
+        .thenCompose(table -> executeQueryAsyncOLD(queryProducer.apply(table)));
   }
 
   protected boolean authorizeSchemaRead(Schema.SchemaRead schemaRead) {
