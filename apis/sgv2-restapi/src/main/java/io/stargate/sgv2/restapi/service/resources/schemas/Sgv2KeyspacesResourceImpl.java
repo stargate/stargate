@@ -56,24 +56,26 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
         .collect()
         .asList()
         // map to wrapper if needed
-        .map(results -> raw ? results : new Sgv2RESTResponse<>(results))
+        .map(keyspaces -> raw ? keyspaces : new Sgv2RESTResponse<>(keyspaces))
         .map(RestResponse::ok);
   }
 
   @Override
-  public Response getOneKeyspace(final String keyspaceName, final boolean raw) {
-    return getKeyspace(keyspaceName, true)
-        .map(
-            describe -> {
-              Sgv2Keyspace keyspace = convertKeyspace(describe);
-
-              final Object payload = raw ? keyspace : new Sgv2RESTResponse<>(keyspace);
-              return Response.status(Status.OK).entity(payload).build();
-            })
-        .orElseThrow(
+  public Uni<RestResponse<Object>> getOneKeyspace(final String keyspaceName, final boolean raw) {
+    return getKeyspaceAsync(keyspaceName, true)
+        .onItem()
+        .ifNull()
+        .switchTo(
             () ->
-                new WebApplicationException(
-                    "Unable to describe keyspace '" + keyspaceName + "'", Status.NOT_FOUND));
+                Uni.createFrom()
+                    .failure(
+                        new WebApplicationException(
+                            "Unable to describe keyspace '" + keyspaceName + "'",
+                            Status.NOT_FOUND)))
+        .map(ks -> convertKeyspace(ks))
+        // map to wrapper if needed
+        .map(ks -> raw ? ks : new Sgv2RESTResponse<>(ks))
+        .map(RestResponse::ok);
   }
 
   @Override

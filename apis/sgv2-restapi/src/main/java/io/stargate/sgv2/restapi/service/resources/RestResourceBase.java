@@ -15,7 +15,6 @@ import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.api.common.futures.Futures;
-import io.stargate.sgv2.api.common.grpc.UnauthorizedKeyspaceException;
 import io.stargate.sgv2.api.common.grpc.UnauthorizedTableException;
 import io.stargate.sgv2.api.common.schema.SchemaManager;
 import io.stargate.sgv2.restapi.grpc.BridgeProtoValueConverters;
@@ -58,30 +57,15 @@ public abstract class RestResourceBase {
 
   // // // Helper methods for Schema access
 
-  protected Optional<Schema.CqlKeyspaceDescribe> getKeyspace(
-      String keyspaceName, boolean checkIfAuthorized) throws UnauthorizedKeyspaceException {
-    return Futures.getUninterruptibly(getKeyspaceAsync(keyspaceName, checkIfAuthorized));
-  }
-
-  protected CompletionStage<Optional<Schema.CqlKeyspaceDescribe>> getKeyspaceAsync(
+  protected Uni<Schema.CqlKeyspaceDescribe> getKeyspaceAsync(
       String keyspaceName, boolean checkIfAuthorized) {
-    Uni<Schema.CqlKeyspaceDescribe> keyspace =
-        checkIfAuthorized
-            ? schemaManager.getKeyspaceAuthorized(keyspaceName)
-            : schemaManager.getKeyspace(keyspaceName);
-    return keyspace.map(Optional::ofNullable).subscribeAsCompletionStage();
-  }
-
-  protected List<Schema.CqlKeyspaceDescribe> getKeyspaces() {
-    return Futures.getUninterruptibly(getKeyspacesAsyncOLD());
+    return checkIfAuthorized
+        ? schemaManager.getKeyspaceAuthorized(keyspaceName)
+        : schemaManager.getKeyspace(keyspaceName);
   }
 
   protected Multi<Schema.CqlKeyspaceDescribe> getKeyspacesAsync() {
     return schemaManager.getKeyspaces();
-  }
-
-  protected CompletionStage<List<Schema.CqlKeyspaceDescribe>> getKeyspacesAsyncOLD() {
-    return schemaManager.getKeyspaces().collect().asList().subscribeAsCompletionStage();
   }
 
   protected List<Schema.CqlTable> getTables(String keyspaceName) {

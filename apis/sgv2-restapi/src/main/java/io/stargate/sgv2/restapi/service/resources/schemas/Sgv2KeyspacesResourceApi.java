@@ -84,7 +84,7 @@ public interface Sgv2KeyspacesResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
   @Path("/{keyspaceName}")
-  Response getOneKeyspace(
+  Uni<RestResponse<Object>> getOneKeyspace(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
