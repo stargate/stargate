@@ -4,14 +4,8 @@
 stargate:
 
   # graphql config
+  # see io.stargate.sgv2.graphql.config.GraphQLConfig for all config properties and options
   graphql:
-    # Whether to default to the oldest keyspace when the user accesses /graphql.
-    # If this is disabled, /graphql throws an error, and the keyspace must be provided explicitly in
-    # the path, as in /graphql/ksName.
-    enable-default-keyspace: true
-
-    # Whether to expose the GraphQL Playground in-browser IDE at /playground.
-    enable-playground: true
 
   # metrics properties
   # see io.stargate.sgv2.api.common.config.MetricsConfig for all config properties and options
