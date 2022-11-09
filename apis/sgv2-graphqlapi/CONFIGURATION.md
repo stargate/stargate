@@ -11,7 +11,7 @@
 |--------------------------------------------|-----------|---------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `stargate.graphql.enable-default-keyspace` | `boolean` | `true`              | Whether to default to the oldest keyspace when the user accesses `/graphql`. If this is disabled, `/graphql` throws an error, and the keyspace must be provided explicitly in the path, as in `/graphql/{keyspace_name}`. |
 | `stargate.graphql.playground.enabled`      | `boolean` | `true`              | If GraphQL Playground is enabled at `/playground`.                                                                                                                                                                        |
-| `stargate.graphql.playground.token-header` | `String`  | `X-Cassandra-Token` | Optional, the header name that caries the token that should auto-injected to the playground. Note that this is used as a fallback if `CassandraTokenResolver` can not resolve the token.                                  |
+| `stargate.graphql.playground.token-header` | `String`  | `X-Cassandra-Token` | Optional, the header name that carries the token that should auto-injected to the playground. Note that this is used as a fallback if `CassandraTokenResolver` can not resolve the token.                                 |
 
 ## Quarkus Configuration
 
