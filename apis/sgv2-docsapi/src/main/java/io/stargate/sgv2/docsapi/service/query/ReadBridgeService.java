@@ -19,6 +19,8 @@ package io.stargate.sgv2.docsapi.service.query;
 
 import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.Literal;
+import com.bpodgursky.jbool_expressions.eval.EvalEngine;
+import com.bpodgursky.jbool_expressions.eval.EvalRule;
 import io.opentelemetry.extension.annotations.WithSpan;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
@@ -27,6 +29,7 @@ import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.common.model.Paginator;
+import io.stargate.sgv2.docsapi.service.query.eval.RawDocumentEvalRule;
 import io.stargate.sgv2.docsapi.service.query.executor.QueryExecutor;
 import io.stargate.sgv2.docsapi.service.query.model.RawDocument;
 import io.stargate.sgv2.docsapi.service.query.search.db.impl.DocumentTtlQueryBuilder;
@@ -37,6 +40,7 @@ import io.stargate.sgv2.docsapi.service.query.search.resolver.BaseResolver;
 import io.stargate.sgv2.docsapi.service.query.search.resolver.DocumentsResolver;
 import io.stargate.sgv2.docsapi.service.query.search.resolver.impl.SubDocumentsResolver;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -89,15 +93,24 @@ public class ReadBridgeService {
 
       // load the candidates
       Multi<RawDocument> candidates =
-          documentsResolver
-              .getDocuments(queryExecutor, keyspace, collection, paginator)
-
-              // limit to requested page size only to stop fetching extra docs
-              .select()
-              .first(paginator.docPageSize);
+          documentsResolver.getDocuments(queryExecutor, keyspace, collection, paginator);
 
       // then populate
-      return populateCandidates(candidates, keyspace, collection, nestedPopulate(context));
+      return populateCandidates(candidates, keyspace, collection, nestedPopulate(context))
+
+          // ensure that the document matches the expression
+          // this is to avoid race condition that a document can change between
+          // candidate searching and population
+          .filter(
+              document -> {
+                Map<String, EvalRule<FilterExpression>> rules = EvalEngine.booleanRules();
+                rules.put(FilterExpression.EXPR_TYPE, new RawDocumentEvalRule(document));
+                return EvalEngine.evaluate(expression, rules);
+              })
+
+          // limit to requested page size only to stop fetching extra docs
+          .select()
+          .first(paginator.docPageSize);
     }
   }
 
