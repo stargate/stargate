@@ -387,8 +387,8 @@ public class SchemaManager {
       StargateBridge bridge, String keyspaceName) {
     Optional<String> tenantId = requestInfo.getTenantId();
 
-      // check if cached, if so we need to revalidate hash
-      return Uni.createFrom()
+    // check if cached, if so we need to revalidate hash
+    return Uni.createFrom()
         .deferred(
             () -> {
               CompositeCacheKey cacheKey = new CompositeCacheKey(keyspaceName, tenantId);
