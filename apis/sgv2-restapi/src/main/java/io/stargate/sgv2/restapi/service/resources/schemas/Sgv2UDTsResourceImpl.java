@@ -3,6 +3,7 @@ package io.stargate.sgv2.restapi.service.resources.schemas;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.grpc.StatusRuntimeException;
+import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.api.common.cql.builder.Column;
@@ -22,6 +23,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
+import org.jboss.resteasy.reactive.RestResponse;
 
 public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsResourceApi {
   @Override
@@ -142,23 +144,6 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
   }
 
   @Override
-  public Response deleteType(final String keyspaceName, final String typeName) {
-    requireNonEmptyKeyspace(keyspaceName);
-    requireNonEmptyTypename(typeName);
-
-    QueryOuterClass.Query query =
-        new QueryBuilder()
-            .drop()
-            .type(keyspaceName, typeName)
-            // 15-Dec-2021, tatu: Why no "ifExists" option? SGv1 had none which
-            //    seems inconsistent; would be good for idempotency
-            // .ifExists()
-            .build();
-    /*QueryOuterClass.Response grpcResponse =*/ executeQuery(query);
-    return Response.status(Response.Status.NO_CONTENT).build();
-  }
-
-  @Override
   public Response updateType(final String keyspaceName, final Sgv2UDTUpdateRequest udtUpdate) {
     requireNonEmptyKeyspace(keyspaceName);
     final String typeName = udtUpdate.getName();
@@ -199,6 +184,16 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
     }
 
     return Response.status(Response.Status.OK).build();
+  }
+
+  @Override
+  public Uni<RestResponse<Object>> deleteType(final String keyspaceName, final String typeName) {
+    requireNonEmptyKeyspace(keyspaceName);
+    requireNonEmptyTypename(typeName);
+
+    return executeQueryAsync(
+            new QueryBuilder().drop().type(keyspaceName, typeName).ifExists().build())
+        .map(any -> RestResponse.noContent());
   }
 
   /*

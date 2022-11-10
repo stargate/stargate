@@ -1,5 +1,6 @@
 package io.stargate.sgv2.restapi.service.resources.schemas;
 
+import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.service.models.Sgv2UDT;
 import io.stargate.sgv2.restapi.service.models.Sgv2UDTUpdateRequest;
@@ -26,6 +27,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.jboss.resteasy.reactive.RestResponse;
 
 /**
  * Definition of REST API DDL endpoint for Cassandra User Defined Types access including JAX-RS and
@@ -113,29 +115,6 @@ public interface Sgv2UDTsResourceApi {
       @RequestBody(description = "Type definition as JSON", required = true) @NotNull
           final String udtAddPayload);
 
-  @DELETE
-  @Operation(
-      summary = "Delete an User Defined type (UDT)",
-      description = "Delete a single user defined type (UDT) in the specified keyspace.")
-  @APIResponses(
-      value = {
-        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_204),
-        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
-        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500)
-      })
-  @Path("/{typeName}")
-  Response deleteType(
-      @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
-          @PathParam("keyspaceName")
-          final String keyspaceName,
-      @Parameter(
-              name = "typeName",
-              description = "Name of the type to delete",
-              required = true,
-              schema = @Schema(type = SchemaType.STRING))
-          @PathParam("typeName")
-          final String typeName);
-
   @PUT
   @Operation(
       summary = "Update an User Defined type (UDT)",
@@ -152,4 +131,27 @@ public interface Sgv2UDTsResourceApi {
           final String keyspaceName,
       @RequestBody(description = "Type definition as JSON", required = true) @NotNull
           final Sgv2UDTUpdateRequest udtUpdate);
+
+  @DELETE
+  @Operation(
+      summary = "Delete an User Defined type (UDT)",
+      description = "Delete a single user defined type (UDT) in the specified keyspace.")
+  @APIResponses(
+      value = {
+        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_204),
+        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
+        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500)
+      })
+  @Path("/{typeName}")
+  Uni<RestResponse<Object>> deleteType(
+      @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @Parameter(
+              name = "typeName",
+              description = "Name of the type to delete",
+              required = true,
+              schema = @Schema(type = SchemaType.STRING))
+          @PathParam("typeName")
+          final String typeName);
 }

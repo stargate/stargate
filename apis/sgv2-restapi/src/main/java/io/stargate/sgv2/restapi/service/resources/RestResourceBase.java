@@ -32,6 +32,7 @@ import java.util.function.Function;
 import javax.inject.Inject;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
+import org.jboss.resteasy.reactive.RestResponse;
 
 /**
  * Base class for resource classes; contains utility/helper methods for which there is no more
@@ -293,6 +294,13 @@ public abstract class RestResourceBase {
   }
 
   // // // Helper methods for JAX-RS response construction
+
+  protected static Uni<RestResponse<Object>> restServiceErrorAsync(
+      Response.Status httpStatus, String failMessage) {
+    return Uni.createFrom()
+        .item(
+            RestResponse.status(httpStatus, new ApiError(failMessage, httpStatus.getStatusCode())));
+  }
 
   protected static Response restServiceError(Response.Status httpStatus, String failMessage) {
     return Response.status(httpStatus)
