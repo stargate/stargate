@@ -1,5 +1,6 @@
 package io.stargate.sgv2.restapi.service.resources.schemas;
 
+import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.cql.builder.Column;
@@ -17,11 +18,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,34 +30,43 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
   private static final Logger LOGGER = LoggerFactory.getLogger(Sgv2TablesResourceImpl.class);
 
   @Override
-  public Response getAllTables(final String keyspaceName, final boolean raw) {
+  public Uni<RestResponse<Object>> getAllTables(final String keyspaceName, final boolean raw) {
     requireNonEmptyKeyspace(keyspaceName);
-    List<Schema.CqlTable> tableDefs = getTables(keyspaceName);
-    List<Sgv2Table> tableResponses =
-        tableDefs.stream().map(t -> table2table(t, keyspaceName)).collect(Collectors.toList());
-    final Object payload = raw ? tableResponses : new Sgv2RESTResponse(tableResponses);
-    return Response.status(Status.OK).entity(payload).build();
+
+    return getTablesAsync(keyspaceName)
+        .map(t -> table2table(t, keyspaceName))
+        .collect()
+        .asList()
+        // map to wrapper if needed
+        .map(tables -> raw ? tables : new Sgv2RESTResponse<>(tables))
+        .map(RestResponse::ok);
   }
 
   @Override
-  public Response getOneTable(
+  public Uni<RestResponse<Object>> getOneTable(
       final String keyspaceName, final String tableName, final boolean raw) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     // NOTE: Can Not use "callWithTable()" as that would return 400 (Bad Request) for
     // missing Table; here we specifically want 404 instead.
-    return getTable(keyspaceName, tableName, true)
-        .map(
-            tableDef -> {
-              Sgv2Table tableResponse = table2table(tableDef, keyspaceName);
-              final Object payload = raw ? tableResponse : new Sgv2RESTResponse(tableResponse);
-              return Response.status(Status.OK).entity(payload).build();
-            })
-        .orElseThrow(
-            () -> new WebApplicationException("unable to describe table", Status.NOT_FOUND));
+
+    return getTableAsync(keyspaceName, tableName, true)
+        .onItem()
+        .ifNull()
+        .switchTo(
+            () ->
+                Uni.createFrom()
+                    .failure(
+                        new WebApplicationException(
+                            "Unable to describe table '" + tableName + "'", Status.NOT_FOUND)))
+        .map(t -> table2table(t, keyspaceName))
+        // map to wrapper if needed
+        .map(ks -> raw ? ks : new Sgv2RESTResponse<>(ks))
+        .map(RestResponse::ok);
   }
 
   @Override
-  public Response createTable(final String keyspaceName, final Sgv2TableAddRequest tableAdd) {
+  public Uni<RestResponse<Object>> createTable(
+      final String keyspaceName, final Sgv2TableAddRequest tableAdd) {
     final String tableName = tableAdd.getName();
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
 
@@ -111,11 +121,11 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
             .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
             .build();
 
-    executeQuery(query);
-
-    return Response.status(Status.CREATED)
-        .entity(Collections.singletonMap("name", tableName))
-        .build();
+    return executeQueryAsync(query)
+        // No real contents; can ignore ResultSet it seems and only worry about exceptions
+        .map(
+            any ->
+                RestResponse.status(Status.CREATED, Collections.singletonMap("name", tableName)));
   }
 
   @Override
@@ -150,12 +160,11 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
   }
 
   @Override
-  public Response deleteTable(final String keyspaceName, final String tableName) {
+  public Uni<RestResponse<Object>> deleteTable(final String keyspaceName, final String tableName) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    QueryOuterClass.Query query =
-        new QueryBuilder().drop().table(keyspaceName, tableName).ifExists().build();
-    /*QueryOuterClass.Response grpcResponse =*/ executeQuery(query);
-    return Response.status(Status.NO_CONTENT).build();
+    return executeQueryAsync(
+            new QueryBuilder().drop().table(keyspaceName, tableName).ifExists().build())
+        .map(any -> RestResponse.noContent());
   }
 
   /*

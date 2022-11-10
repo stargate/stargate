@@ -15,15 +15,19 @@
  */
 package io.stargate.sgv2.restapi.service.resources.schemas;
 
+import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.cql.builder.Predicate;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
+import io.stargate.sgv2.api.common.futures.Futures;
 import io.stargate.sgv2.api.common.grpc.proto.SchemaReads;
 import io.stargate.sgv2.restapi.service.models.Sgv2IndexAddRequest;
 import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
@@ -41,8 +45,11 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
     }
 
     // check that we're authorized for the table
-    authorizeSchemaRead(
-        SchemaReads.table(keyspaceName, tableName, Schema.SchemaRead.SourceApi.REST));
+    Uni<List<Boolean>> uni =
+        authorizeSchemaReadsAsync(
+            Arrays.asList(
+                SchemaReads.table(keyspaceName, tableName, Schema.SchemaRead.SourceApi.REST)));
+    Futures.getUninterruptibly(uni.subscribeAsCompletionStage());
 
     Query query =
         new QueryBuilder()

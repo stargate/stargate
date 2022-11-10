@@ -24,7 +24,6 @@ import io.stargate.sgv2.restapi.service.models.Sgv2RowsResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -68,29 +67,21 @@ public abstract class RestResourceBase {
     return schemaManager.getKeyspaces();
   }
 
-  protected List<Schema.CqlTable> getTables(String keyspaceName) {
-    return Futures.getUninterruptibly(getTablesAsync(keyspaceName));
-  }
-
-  protected CompletionStage<List<Schema.CqlTable>> getTablesAsync(String keyspaceName) {
-    return schemaManager
-        .getTables(keyspaceName, MISSING_KEYSPACE)
-        .collect()
-        .asList()
-        .subscribeAsCompletionStage();
+  protected Multi<Schema.CqlTable> getTablesAsync(String keyspaceName) {
+    return schemaManager.getTables(keyspaceName, MISSING_KEYSPACE);
   }
 
   protected Optional<Schema.CqlTable> getTable(
       String keyspaceName, String tableName, boolean checkIfAuthorized)
       throws UnauthorizedTableException {
-    return Futures.getUninterruptibly(getTableAsync(keyspaceName, tableName, checkIfAuthorized));
+    return Futures.getUninterruptibly(getTableAsyncOLD(keyspaceName, tableName, checkIfAuthorized));
   }
 
   protected Schema.CqlTable getTable(String keyspaceName, String tableName) {
     final boolean checkIfAuthorized = true;
 
     CompletionStage<Optional<Schema.CqlTable>> tableFuture =
-        getTableAsync(keyspaceName, tableName, checkIfAuthorized);
+        getTableAsyncOLD(keyspaceName, tableName, checkIfAuthorized);
     Optional<Schema.CqlTable> maybeTable = Futures.getUninterruptibly(tableFuture);
 
     return maybeTable.orElseThrow(
@@ -100,13 +91,26 @@ public abstract class RestResourceBase {
                 Response.Status.BAD_REQUEST));
   }
 
-  protected CompletionStage<Optional<Schema.CqlTable>> getTableAsync(
+  protected CompletionStage<Optional<Schema.CqlTable>> getTableAsyncOLD(
       String keyspaceName, String tableName, boolean checkIfAuthorized) {
     Uni<Schema.CqlTable> table =
         checkIfAuthorized
             ? schemaManager.getTableAuthorized(keyspaceName, tableName, MISSING_KEYSPACE)
             : schemaManager.getTable(keyspaceName, tableName, MISSING_KEYSPACE);
     return table.map(Optional::ofNullable).subscribeAsCompletionStage();
+  }
+
+  protected Uni<Schema.CqlTable> getTableAsync(
+      String keyspaceName, String tableName, boolean checkIfAuthorized) {
+    return checkIfAuthorized
+        ? schemaManager.getTableAuthorized(keyspaceName, tableName, MISSING_KEYSPACE)
+        : schemaManager.getTable(keyspaceName, tableName, MISSING_KEYSPACE);
+  }
+
+  protected Uni<Optional<Schema.CqlTable>> findTableAsync(
+      String keyspaceName, String tableName, boolean checkIfAuthorized) {
+    return getTableAsync(keyspaceName, tableName, checkIfAuthorized)
+        .map(t -> Optional.ofNullable(t));
   }
 
   /** Gets the metadata of a table, then uses it to build another CQL query and executes it. */
@@ -137,7 +141,7 @@ public abstract class RestResourceBase {
       String keyspaceName,
       String tableName,
       Function<Optional<Schema.CqlTable>, QueryOuterClass.Query> queryProducer) {
-    return Futures.getUninterruptibly(executeQueryAsync(keyspaceName, tableName, queryProducer));
+    return Futures.getUninterruptibly(executeQueryAsyncOLD(keyspaceName, tableName, queryProducer));
   }
 
   protected CompletionStage<QueryOuterClass.Response> executeQueryAsyncOLD(
@@ -149,32 +153,22 @@ public abstract class RestResourceBase {
     return requestInfo.getStargateBridge().executeQuery(query);
   }
 
-  protected CompletionStage<QueryOuterClass.Response> executeQueryAsync(
+  protected CompletionStage<QueryOuterClass.Response> executeQueryAsyncOLD(
       String keyspaceName,
       String tableName,
       Function<Optional<Schema.CqlTable>, QueryOuterClass.Query> queryProducer) {
 
     // TODO implement optimistic queries (probably requires changes directly in SchemaManager)
-    return getTableAsync(keyspaceName, tableName, true)
+    return getTableAsyncOLD(keyspaceName, tableName, true)
         .thenCompose(table -> executeQueryAsyncOLD(queryProducer.apply(table)));
   }
 
-  protected boolean authorizeSchemaRead(Schema.SchemaRead schemaRead) {
-    return authorizeSchemaReads(Collections.singletonList(schemaRead)).get(0);
-  }
-
-  protected List<Boolean> authorizeSchemaReads(List<Schema.SchemaRead> schemaReads) {
-    return Futures.getUninterruptibly(authorizeSchemaReadsAsync(schemaReads));
-  }
-
-  protected CompletionStage<List<Boolean>> authorizeSchemaReadsAsync(
-      List<Schema.SchemaRead> schemaReads) {
+  protected Uni<List<Boolean>> authorizeSchemaReadsAsync(List<Schema.SchemaRead> schemaReads) {
     return requestInfo
         .getStargateBridge()
         .authorizeSchemaReads(
             Schema.AuthorizeSchemaReadsRequest.newBuilder().addAllSchemaReads(schemaReads).build())
-        .map(Schema.AuthorizeSchemaReadsResponse::getAuthorizedList)
-        .subscribeAsCompletionStage();
+        .map(Schema.AuthorizeSchemaReadsResponse::getAuthorizedList);
   }
 
   // // // Helper methods for JSON decoding
