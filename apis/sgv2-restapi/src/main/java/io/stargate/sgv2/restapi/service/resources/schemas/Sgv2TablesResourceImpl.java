@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.slf4j.Logger;
@@ -129,34 +128,34 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
   }
 
   @Override
-  public Response updateTable(
+  public Uni<RestResponse<Object>> updateTable(
       final String keyspaceName, final String tableName, final Sgv2TableAddRequest tableUpdate) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    queryWithTable(
-        keyspaceName,
-        tableName,
-        (tableDef) -> {
-          Sgv2Table.TableOptions options = tableUpdate.getTableOptions();
-          List<?> clusteringExpressions = options.getClusteringExpression();
-          if (clusteringExpressions != null && !clusteringExpressions.isEmpty()) {
-            throw new WebApplicationException(
-                "Cannot update the clustering order of a table", Status.BAD_REQUEST);
-          }
-          Integer defaultTTL = options.getDefaultTimeToLive();
-          // 09-Dec-2021, tatu: Seems bit odd but this is the way SGv1/RESTv2 checks it,
-          //    probably since this is the only thing that can actually be changed:
-          if (defaultTTL == null) {
-            throw new WebApplicationException(
-                "No update provided for defaultTTL", Status.BAD_REQUEST);
-          }
-          return new QueryBuilder()
-              .alter()
-              .table(keyspaceName, tableName)
-              .withDefaultTTL(options.getDefaultTimeToLive())
-              .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
-              .build();
-        });
-    return Response.status(Status.OK).entity(Collections.singletonMap("name", tableName)).build();
+    return queryWithTableAsync(
+            keyspaceName,
+            tableName,
+            (tableDef) -> {
+              Sgv2Table.TableOptions options = tableUpdate.getTableOptions();
+              List<?> clusteringExpressions = options.getClusteringExpression();
+              if (clusteringExpressions != null && !clusteringExpressions.isEmpty()) {
+                throw new WebApplicationException(
+                    "Cannot update the clustering order of a table", Status.BAD_REQUEST);
+              }
+              Integer defaultTTL = options.getDefaultTimeToLive();
+              // 09-Dec-2021, tatu: Seems bit odd but this is the way SGv1/RESTv2 checks it,
+              //    probably since this is the only thing that can actually be changed:
+              if (defaultTTL == null) {
+                throw new WebApplicationException(
+                    "No update provided for defaultTTL", Status.BAD_REQUEST);
+              }
+              return new QueryBuilder()
+                  .alter()
+                  .table(keyspaceName, tableName)
+                  .withDefaultTTL(options.getDefaultTimeToLive())
+                  .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
+                  .build();
+            })
+        .map(any -> RestResponse.ok(Collections.singletonMap("name", tableName)));
   }
 
   @Override

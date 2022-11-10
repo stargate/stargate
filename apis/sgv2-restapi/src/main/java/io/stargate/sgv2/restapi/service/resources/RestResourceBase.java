@@ -134,6 +134,25 @@ public abstract class RestResourceBase {
         });
   }
 
+  protected Uni<QueryOuterClass.Response> queryWithTableAsync(
+      String keyspaceName,
+      String tableName,
+      Function<Schema.CqlTable, QueryOuterClass.Query> queryProducer) {
+    return executeQueryAsync(
+        keyspaceName,
+        tableName,
+        maybeTable -> {
+          Schema.CqlTable table =
+              maybeTable.orElseThrow(
+                  () ->
+                      new WebApplicationException(
+                          String.format(
+                              "Table '%s' not found (in keyspace %s)", tableName, keyspaceName),
+                          Response.Status.BAD_REQUEST));
+          return queryProducer.apply(table);
+        });
+  }
+
   protected QueryOuterClass.Response executeQuery(QueryOuterClass.Query query) {
     return Futures.getUninterruptibly(executeQueryAsyncOLD(query));
   }
@@ -162,6 +181,18 @@ public abstract class RestResourceBase {
     // TODO implement optimistic queries (probably requires changes directly in SchemaManager)
     return getTableAsyncOLD(keyspaceName, tableName, true)
         .thenCompose(table -> executeQueryAsyncOLD(queryProducer.apply(table)));
+  }
+
+  protected Uni<QueryOuterClass.Response> executeQueryAsync(
+      String keyspaceName,
+      String tableName,
+      Function<Optional<Schema.CqlTable>, QueryOuterClass.Query> queryProducer) {
+
+    // TODO implement optimistic queries (probably requires changes directly in SchemaManager)
+    Uni<Optional<Schema.CqlTable>> maybeTable = findTableAsync(keyspaceName, tableName, true);
+    return maybeTable
+        .onItem()
+        .transformToUni(table -> executeQueryAsync(queryProducer.apply(table)));
   }
 
   protected Uni<List<Boolean>> authorizeSchemaReadsAsync(List<Schema.SchemaRead> schemaReads) {
