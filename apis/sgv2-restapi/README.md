@@ -34,6 +34,8 @@ You can run your application in dev mode that enables live coding using:
 ../mvnw quarkus:dev
 ```
 
+By default, the application is served on port `8082`.
+
 > **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at http://localhost:8082/stargate/dev/.
 
 ## Configuration properties
@@ -45,3 +47,36 @@ Configuration settings can be found from `application.yaml` files located in:
 
 * `src/main/resources/application.yaml`: Production settings, used as the baseline for other modes
 * `src/test/resources/application.yaml`: Overrides for "test" phase
+
+## Quarkus Extensions
+
+This project uses various Quarkus extensions, modules that run on top of a Quarkus application.
+You can list, add and remove the extensions using the `quarkus ext` command.
+
+> *NOTE: Please check the shared extensions introduced by the [sgv2-quarkus-common](../sgv2-quarkus-common/README.md#shared-quarkus-extensions) project.
+
+### `quarkus-arc`
+[Related guide](https://quarkus.io/guides/cdi-reference)
+
+The Quarkus DI solution.
+
+### `quarkus-container-image-docker`
+[Related guide](https://quarkus.io/guides/container-image)
+
+The project uses Docker for building the Container images.
+Properties for Docker image building are defined in the [pom.xml](pom.xml) file.
+Note that under the hood, the generated Dockerfiles under [src/main/docker](src/main/docker) are used when building the images.
+When updating the Quarkus version, the Dockerfiles must be re-generated.
+
+### `quarkus-smallrye-health`
+[Related guide](https://quarkus.io/guides/smallrye-health)
+
+The extension setups the health endpoints under `/stargate/health`.
+
+### `quarkus-smallrye-openapi`
+[Related guide](https://quarkus.io/guides/openapi-swaggerui)
+
+The OpenAPI definitions are generated and available under `/api/rest/openapi` endpoint.
+The [StargateDocsApi](src/main/java/io/stargate/sgv2/restapi/StargateRestApi.java) class defines the `@OpenAPIDefinition` annotation.
+This definition defines the default *SecurityScheme* named `Token`, which expects the header based authentication with the HTTP Header `X-Cassandra-Token`.
+The `info` portions of the Open API definitions are set using the `quarkus.smallrye-openapi.info-` configuration properties.
