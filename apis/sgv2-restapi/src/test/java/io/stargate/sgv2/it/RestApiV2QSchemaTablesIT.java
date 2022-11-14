@@ -137,7 +137,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
             .asString();
     ApiError error = readJsonAs(body, ApiError.class);
     assertThat(error.code()).isEqualTo(HttpStatus.SC_NOT_FOUND);
-    assertThat(error.description()).startsWith("unable to describe table");
+    assertThat(error.description()).containsIgnoringCase("Unable to describe table");
   }
 
   /*
