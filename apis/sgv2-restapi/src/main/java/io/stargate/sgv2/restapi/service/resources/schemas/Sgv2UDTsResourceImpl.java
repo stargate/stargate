@@ -141,7 +141,8 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
   }
 
   @Override
-  public Response updateType(final String keyspaceName, final Sgv2UDTUpdateRequest udtUpdate) {
+  public Uni<RestResponse<Object>> updateType(
+      final String keyspaceName, final Sgv2UDTUpdateRequest udtUpdate) {
     requireNonEmptyKeyspace(keyspaceName);
     final String typeName = udtUpdate.getName();
     requireNonEmptyTypename(typeName);
@@ -153,18 +154,19 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
     final boolean hasRenameFields = (renameFields != null && !renameFields.isEmpty());
 
     if (!hasAddFields && !hasRenameFields) {
-      // return restResponseUni(
-      return restServiceErrorResponse(
+      return restResponseUni(
           Response.Status.BAD_REQUEST,
           "addFields and/or renameFields is required to update an UDT");
     }
 
-    if (hasAddFields) {
-      final List<Column> columns = columns2columns(addFields);
-      QueryOuterClass.Query query =
-          new QueryBuilder().alter().type(keyspaceName, typeName).addColumn(columns).build();
-      executeQuery(query);
-    }
+    final QueryOuterClass.Query addQuery =
+        hasAddFields
+            ? new QueryBuilder()
+                .alter()
+                .type(keyspaceName, typeName)
+                .addColumn(columns2columns(addFields))
+                .build()
+            : null;
 
     if (hasRenameFields) {
       final Map<String, String> columnRenames =
@@ -173,17 +175,22 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
                   Collectors.toMap(
                       Sgv2UDTUpdateRequest.FieldRename::getFrom,
                       Sgv2UDTUpdateRequest.FieldRename::getTo));
-
-      QueryOuterClass.Query query =
+      final QueryOuterClass.Query renameQuery =
           new QueryBuilder()
               .alter()
               .type(keyspaceName, typeName)
               .renameColumn(columnRenames)
               .build();
-      executeQuery(query);
+      if (addQuery != null) {
+        return executeQueryAsync(addQuery)
+            .chain(any -> executeQueryAsync(renameQuery))
+            .map(any -> RestResponse.ok());
+      }
+      return executeQueryAsync(renameQuery).map(any -> RestResponse.ok());
     }
 
-    return Response.status(Response.Status.OK).build();
+    // Must still have add-columns
+    return executeQueryAsync(addQuery).map(any -> RestResponse.ok());
   }
 
   @Override
