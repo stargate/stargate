@@ -149,27 +149,25 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
     List<Sgv2UDT.UDTField> addFields = udtUpdate.getAddFields();
     List<Sgv2UDTUpdateRequest.FieldRename> renameFields = udtUpdate.getRenameFields();
 
-    if ((addFields == null || addFields.isEmpty())
-        && (renameFields == null || renameFields.isEmpty())) {
+    final boolean hasAddFields = (addFields != null && !addFields.isEmpty());
+    final boolean hasRenameFields = (renameFields != null && !renameFields.isEmpty());
+
+    if (!hasAddFields && !hasRenameFields) {
       // return restResponseUni(
       return restServiceErrorResponse(
           Response.Status.BAD_REQUEST,
           "addFields and/or renameFields is required to update an UDT");
     }
 
-    final boolean doAddFields = (addFields != null && !addFields.isEmpty());
-
-    if (doAddFields) {
-      List<Column> columns = columns2columns(addFields);
+    if (hasAddFields) {
+      final List<Column> columns = columns2columns(addFields);
       QueryOuterClass.Query query =
           new QueryBuilder().alter().type(keyspaceName, typeName).addColumn(columns).build();
       executeQuery(query);
     }
 
-    final boolean doRenameFields = (renameFields != null && !renameFields.isEmpty());
-
-    if (doRenameFields) {
-      Map<String, String> columnRenames =
+    if (hasRenameFields) {
+      final Map<String, String> columnRenames =
           renameFields.stream()
               .collect(
                   Collectors.toMap(
