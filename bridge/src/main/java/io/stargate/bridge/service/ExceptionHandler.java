@@ -74,8 +74,10 @@ public class ExceptionHandler {
       handleException(throwable.getCause());
     } else if (throwable instanceof StatusException
         || throwable instanceof StatusRuntimeException) {
+      LOG.error(getErrorMessage(null, throwable), throwable);
       onError(throwable);
     } else if (throwable instanceof UnhandledClientException) {
+      LOG.error(getErrorMessage(Status.UNAVAILABLE, throwable), throwable);
       onError(Status.UNAVAILABLE, throwable);
     } else if (throwable instanceof PersistenceException) {
       handlePersistenceException((PersistenceException) throwable);
@@ -85,11 +87,34 @@ public class ExceptionHandler {
     }
   }
 
+  /**
+   * @param status
+   * @param throwable
+   * @return generic error message for gRPC exceptions using gRPC Status and Exception thrown. If
+   *     the status is null and throwable is a {@link StatusException} or {@link
+   *     StatusRuntimeException} it extracts its status. If the status is null and throwable is
+   *     another instance type, it will have the status code {@code Status.UNKNOWN}.
+   */
+  protected String getErrorMessage(@Nullable Status status, @Nonnull Throwable throwable) {
+    if (status == null) {
+      if (throwable instanceof StatusException) {
+        status = ((StatusException) throwable).getStatus();
+      } else if (throwable instanceof StatusRuntimeException) {
+        status = ((StatusRuntimeException) throwable).getStatus();
+      } else {
+        status = Status.UNKNOWN;
+      }
+    }
+
+    return status.withDescription(throwable.getMessage()).toString();
+  }
+
   private void handlePersistenceException(PersistenceException pe) {
     switch (pe.code()) {
       case SERVER_ERROR:
       case PROTOCOL_ERROR: // Fallthrough
       case UNPREPARED: // Fallthrough
+        LOG.error(getErrorMessage(Status.INTERNAL, pe), pe);
         onError(Status.INTERNAL, pe);
         break;
       case INVALID:
@@ -98,6 +123,7 @@ public class ExceptionHandler {
         break;
       case TRUNCATE_ERROR:
       case CDC_WRITE_FAILURE: // Fallthrough
+        LOG.error(getErrorMessage(Status.ABORTED, pe), pe);
         onError(Status.ABORTED, pe);
         break;
       case BAD_CREDENTIALS:
@@ -110,6 +136,7 @@ public class ExceptionHandler {
         onError(Status.RESOURCE_EXHAUSTED, pe);
         break;
       case IS_BOOTSTRAPPING:
+        LOG.error(getErrorMessage(Status.UNAVAILABLE, pe), pe);
         onError(Status.UNAVAILABLE, pe);
         break;
       case WRITE_TIMEOUT:
@@ -134,6 +161,7 @@ public class ExceptionHandler {
         onError(Status.PERMISSION_DENIED, pe);
         break;
       case CONFIG_ERROR:
+        LOG.error(getErrorMessage(Status.FAILED_PRECONDITION, pe), pe);
         onError(Status.FAILED_PRECONDITION, pe);
         break;
       case ALREADY_EXISTS:
@@ -147,6 +175,7 @@ public class ExceptionHandler {
   }
 
   private void handleUnavailable(UnavailableException ue) {
+    LOG.error(getErrorMessage(Status.UNAVAILABLE, ue), ue);
     onError(
         Status.UNAVAILABLE,
         ue,
@@ -160,6 +189,7 @@ public class ExceptionHandler {
   }
 
   private void handleWriteTimeout(WriteTimeoutException wte) {
+    LOG.error(getErrorMessage(Status.DEADLINE_EXCEEDED, wte));
     onError(
         Status.DEADLINE_EXCEEDED,
         wte,
@@ -174,6 +204,7 @@ public class ExceptionHandler {
   }
 
   private void handleReadTimeout(ReadTimeoutException rte) {
+    LOG.error(getErrorMessage(Status.DEADLINE_EXCEEDED, rte));
     onError(
         Status.DEADLINE_EXCEEDED,
         rte,
@@ -188,6 +219,7 @@ public class ExceptionHandler {
   }
 
   private void handleReadFailure(ReadFailureException rfe) {
+    LOG.error(getErrorMessage(Status.ABORTED, rfe), rfe);
     onError(
         Status.ABORTED,
         rfe,
@@ -203,6 +235,7 @@ public class ExceptionHandler {
   }
 
   private void handleFunctionExecutionException(FunctionExecutionException fee) {
+    LOG.error(getErrorMessage(Status.FAILED_PRECONDITION, fee), fee);
     onError(
         Status.FAILED_PRECONDITION,
         fee,
@@ -216,6 +249,7 @@ public class ExceptionHandler {
   }
 
   private void handleWriteFailure(WriteFailureException wfe) {
+    LOG.error(getErrorMessage(Status.ABORTED, wfe), wfe);
     onError(
         Status.ABORTED,
         wfe,
@@ -231,6 +265,7 @@ public class ExceptionHandler {
   }
 
   private void handleCasWriteUnknown(CasWriteUnknownResultException cwe) {
+    LOG.error(getErrorMessage(Status.ABORTED, cwe), cwe);
     onError(
         Status.ABORTED,
         cwe,

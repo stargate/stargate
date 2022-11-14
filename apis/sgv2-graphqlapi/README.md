@@ -46,6 +46,36 @@ To run your application in dev mode with live coding enabled, use the command:
 > **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at http://localhost:8080/star\
 gate/dev/.
 
+## Quarkus Extensions
+
+This project uses various Quarkus extensions, modules that run on top of a Quarkus application.
+You can list, add and remove the extensions using the `quarkus ext` command.
+
+> *NOTE: Please check the shared extensions introduced by the [sgv2-quarkus-common](../sgv2-quarkus-common/README.md#shared-quarkus-extensions) project.
+
+### `quarkus-arc`
+[Related guide](https://quarkus.io/guides/cdi-reference)
+
+The Quarkus DI solution.
+
+### `quarkus-container-image-docker`
+[Related guide](https://quarkus.io/guides/container-image)
+
+The project uses Docker for building the Container images.
+Properties for Docker image building are defined in the [pom.xml](pom.xml) file.
+Note that under the hood, the generated Dockerfiles under [src/main/docker](src/main/docker) are used when building the images.
+When updating the Quarkus version, the Dockerfiles must be re-generated.
+
+### `quarkus-smallrye-health`
+[Related guide](https://quarkus.io/guides/smallrye-health)
+
+The extension setups the health endpoints under `/stargate/health`.
+
+### `quarkus-smallrye-openapi`
+[Related guide](https://quarkus.io/guides/openapi-swaggerui)
+
+This project disables the OpenAPI and SwaggerUI, due to the availability of the GraphQL Playground.
+
 ## Testing
 
 ### Manually

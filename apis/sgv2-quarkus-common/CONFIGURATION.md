@@ -30,6 +30,7 @@
 |----------------------------------------------|----------|---------------------|-------------------------------------------------------------|
 | `stargate.grpc-metadata.tenant-id-key`       | `String` | `X-Tenant-Id`       | Metadata key for passing the tenant-id to the Bridge.       |
 | `stargate.grpc-metadata.cassandra-token-key` | `String` | `X-Cassandra-Token` | Metadata key for passing the cassandra token to the Bridge. |
+| `stargate.grpc-metadata.source-api-key`      | `String` | `X-Source-Api`      | Metadata key for passing the source API to the Bridge.      |
 
 ### Metrics configuration
 *Configuration mapping for the additional metrics properties, defined by [MetricsConfig.java](src/main/java/io/stargate/sgv2/api/common/config/MetricsConfig.java).*

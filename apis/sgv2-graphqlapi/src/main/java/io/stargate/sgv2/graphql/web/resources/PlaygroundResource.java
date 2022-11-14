@@ -17,11 +17,12 @@ package io.stargate.sgv2.graphql.web.resources;
 
 import com.google.common.io.Resources;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
+import io.stargate.sgv2.graphql.config.GraphQLConfig;
 import java.io.IOException;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
-import javax.inject.Inject;
+import java.util.function.Function;
 import javax.inject.Singleton;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -30,21 +31,22 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 @Produces(MediaType.TEXT_HTML)
 @Path("/playground")
 @Singleton
 public class PlaygroundResource {
 
-  @Inject StargateRequestInfo requestInfo;
+  private final TokenSupplier tokenSupplier;
 
   private final Optional<String> playgroundFile;
 
-  public PlaygroundResource(
-      @ConfigProperty(name = "stargate.graphql.enable-playground") boolean enabled)
+  public PlaygroundResource(StargateRequestInfo requestInfo, GraphQLConfig config)
       throws IOException {
-    if (enabled) {
+    this.tokenSupplier = new TokenSupplier(requestInfo, config);
+
+    // if enabled get the HTML
+    if (config.playground().enabled()) {
       // Save the templated file away for later so that we only have to do this conversion once.
       URL url = Resources.getResource("playground.html");
       playgroundFile = Optional.of(Resources.toString(url, StandardCharsets.UTF_8));
@@ -56,7 +58,7 @@ public class PlaygroundResource {
   @GET
   public Response get(@Context HttpHeaders headers) {
     return playgroundFile
-        .map(html -> serve(html, requestInfo.getCassandraToken().orElse("")))
+        .map(html -> serve(html, tokenSupplier.apply(headers)))
         .orElse(Response.status(Response.Status.NOT_FOUND).build());
   }
 
@@ -67,5 +69,28 @@ public class PlaygroundResource {
     String formattedPlaygroundFile = html.replaceFirst("AUTHENTICATION_TOKEN", token);
 
     return Response.ok(formattedPlaygroundFile).build();
+  }
+
+  // simple function that can resolve token used in the playground
+  record TokenSupplier(StargateRequestInfo requestInfo, GraphQLConfig config)
+      implements Function<HttpHeaders, String> {
+
+    @Override
+    public String apply(HttpHeaders httpHeaders) {
+      // first go for the request info
+      return requestInfo
+          .getCassandraToken()
+          .orElseGet(
+              () -> {
+
+                // if not available check if header to look in exists
+                // if not, empty string
+                return config
+                    .playground()
+                    .tokenHeader()
+                    .flatMap(header -> Optional.ofNullable(httpHeaders.getHeaderString(header)))
+                    .orElse("");
+              });
+    }
   }
 }

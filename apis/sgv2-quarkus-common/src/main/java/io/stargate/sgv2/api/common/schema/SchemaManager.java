@@ -43,6 +43,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -387,58 +388,76 @@ public class SchemaManager {
     Optional<String> tenantId = requestInfo.getTenantId();
 
     // check if cached, if so we need to revalidate hash
-    CompositeCacheKey cacheKey = new CompositeCacheKey(keyspaceName, tenantId);
-    boolean cached = keyspaceCache.as(CaffeineCache.class).keySet().contains(cacheKey);
+    return Uni.createFrom()
+        .deferred(
+            () -> {
+              CompositeCacheKey cacheKey = new CompositeCacheKey(keyspaceName, tenantId);
+              CompletableFuture<Object> keyspace =
+                  keyspaceCache.as(CaffeineCache.class).getIfPresent(cacheKey);
 
-    // get keyspace from cache
-    return fetchKeyspace(keyspaceName, tenantId, bridge)
-
-        // check hash still matches
-        .flatMap(
-            keyspace -> {
-              // if it was not cached before, we can simply return
-              // no need to check
-              if (!cached) {
-                return Uni.createFrom().item(keyspace);
+              // if exists ensure it's not null
+              if (null != keyspace) {
+                return Uni.createFrom().future(keyspace).map(Objects::nonNull);
+              } else {
+                return Uni.createFrom().item(false);
               }
-
-              Schema.DescribeKeyspaceQuery request =
-                  Schema.DescribeKeyspaceQuery.newBuilder()
-                      .setKeyspaceName(keyspaceName)
-                      .setHash(keyspace.getHash())
-                      .build();
-
-              // call bridge
-              return bridge
-                  .describeKeyspace(request)
-                  .onItem()
-                  .transformToUni(
-                      updatedKeyspace -> {
-                        // if we have updated keyspace cache and return
-                        // otherwise return what we had in the cache already
-                        if (null != updatedKeyspace && updatedKeyspace.hasCqlKeyspace()) {
-                          return invalidateKeyspace(keyspaceName, tenantId)
-                              .flatMap(v -> cacheKeyspace(keyspaceName, tenantId, updatedKeyspace));
-                        } else {
-                          return Uni.createFrom().item(keyspace);
-                        }
-                      });
             })
+        .flatMap(
+            cached ->
 
-        // in case of failure, check if status is not found
-        // and invalidate the cache
-        .onFailure()
-        .recoverWithUni(
-            t -> {
-              if (t instanceof StatusRuntimeException sre) {
-                if (Objects.equals(sre.getStatus().getCode(), Status.Code.NOT_FOUND)) {
-                  return invalidateKeyspace(keyspaceName, tenantId)
-                      .flatMap(v -> Uni.createFrom().nullItem());
-                }
-              }
+                // get keyspace from cache
+                fetchKeyspace(keyspaceName, tenantId, bridge)
 
-              return Uni.createFrom().failure(t);
-            });
+                    // check hash still matches
+                    .flatMap(
+                        keyspace -> {
+                          // if it was not cached before, we can simply return
+                          // no need to check
+                          if (!cached) {
+                            return Uni.createFrom().item(keyspace);
+                          }
+
+                          Schema.DescribeKeyspaceQuery request =
+                              Schema.DescribeKeyspaceQuery.newBuilder()
+                                  .setKeyspaceName(keyspaceName)
+                                  .setHash(keyspace.getHash())
+                                  .build();
+
+                          // call bridge
+                          return bridge
+                              .describeKeyspace(request)
+                              .onItem()
+                              .transformToUni(
+                                  updatedKeyspace -> {
+                                    // if we have updated keyspace cache and return
+                                    // otherwise return what we had in the cache already
+                                    if (null != updatedKeyspace
+                                        && updatedKeyspace.hasCqlKeyspace()) {
+                                      return invalidateKeyspace(keyspaceName, tenantId)
+                                          .flatMap(
+                                              v ->
+                                                  cacheKeyspace(
+                                                      keyspaceName, tenantId, updatedKeyspace));
+                                    } else {
+                                      return Uni.createFrom().item(keyspace);
+                                    }
+                                  });
+                        })
+
+                    // in case of failure, check if status is not found
+                    // and invalidate the cache
+                    .onFailure()
+                    .recoverWithUni(
+                        t -> {
+                          if (t instanceof StatusRuntimeException sre) {
+                            if (Objects.equals(sre.getStatus().getCode(), Status.Code.NOT_FOUND)) {
+                              return invalidateKeyspace(keyspaceName, tenantId)
+                                  .flatMap(v -> Uni.createFrom().nullItem());
+                            }
+                          }
+
+                          return Uni.createFrom().failure(t);
+                        }));
   }
 
   // gets a table by provided name in the given keyspace
