@@ -292,27 +292,9 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
     // and then verify it doesn't exist any more
     verifyTypeNotFound(testKeyspaceName(), typeName);
 
-    // Then try 2 invalid cases; first, trying to delete again
-    String response =
-        givenWithAuth()
-            .when()
-            .delete(deletePath)
-            .then()
-            .statusCode(HttpStatus.SC_BAD_REQUEST)
-            .extract()
-            .asString();
-    // 23-Aug-2022, tatu: Not optimal, straight gRPC error but it is what it is:
-    ApiError apiError = readJsonAs(response, ApiError.class);
-    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(apiError.description())
-        // Further: C*3/C*4 have different failure messages
-        // C*3: "Invalid argument for gRPC operation (INVALID_ARGUMENT->Bad Request):
-        //   INVALID_ARGUMENT:
-        //   No user type named udt_ks_udtDelete_1662051039657.test_udt_delete exists."
-        // C*4: "Invalid argument for gRPC operation (INVALID_ARGUMENT->Bad Request):
-        //   INVALID_ARGUMENT:
-        //   Type 'udt_ks_udtDelete_1662052163437.test_udt_delete' doesn't exist"
-        .matches(String.format("Invalid argument.*%s.*exist.*", typeName));
+    // Then try 2 invalid cases; first, trying to delete again: deletion now
+    // idempotent (same as other resources) due to "ifExists", so
+    givenWithAuth().when().delete(deletePath).then().statusCode(HttpStatus.SC_NO_CONTENT);
 
     // And then failure due to attempt at deleting Type that is in use:
     final String tableName = testTableName();
@@ -330,7 +312,7 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
         Arrays.asList("id text", "name " + typeInUse),
         Arrays.asList("id"),
         Arrays.asList());
-    response =
+    String response =
         givenWithAuth()
             .when()
             .delete(endpointPathForUDT(testKeyspaceName(), typeInUse))
@@ -339,7 +321,7 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
             .extract()
             .asString();
     // As with earlier fail message, could be improved
-    apiError = readJsonAs(response, ApiError.class);
+    ApiError apiError = readJsonAs(response, ApiError.class);
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(apiError.description())
         .matches(
