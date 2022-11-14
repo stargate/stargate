@@ -24,6 +24,7 @@ import io.stargate.sgv2.restapi.service.models.Sgv2RowsResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -326,14 +327,23 @@ public abstract class RestResourceBase {
 
   // // // Helper methods for JAX-RS response construction
 
-  protected static Uni<RestResponse<Object>> restServiceErrorAsync(
+  protected static Uni<RestResponse<Object>> restResponseUni(
       Response.Status httpStatus, String failMessage) {
-    return Uni.createFrom()
-        .item(
-            RestResponse.status(httpStatus, new ApiError(failMessage, httpStatus.getStatusCode())));
+    return Uni.createFrom().item(restResponse(httpStatus, failMessage));
   }
 
-  protected static Response restServiceError(Response.Status httpStatus, String failMessage) {
+  protected static RestResponse<Object> restResponse(
+      Response.Status httpStatus, String failMessage) {
+    return RestResponse.status(httpStatus, new ApiError(failMessage, httpStatus.getStatusCode()));
+  }
+
+  protected static RestResponse<Object> restResponseCreated(String createdName) {
+    return RestResponse.status(
+        Response.Status.CREATED, Collections.singletonMap("name", createdName));
+  }
+
+  protected static Response restServiceErrorResponse(
+      Response.Status httpStatus, String failMessage) {
     return Response.status(httpStatus)
         .entity(new ApiError(failMessage, httpStatus.getStatusCode()))
         .build();

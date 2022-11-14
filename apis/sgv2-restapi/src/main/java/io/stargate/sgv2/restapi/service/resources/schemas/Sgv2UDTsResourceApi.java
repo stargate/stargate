@@ -58,7 +58,7 @@ public interface Sgv2UDTsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_404),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500)
       })
-  Response findAllTypes(
+  Uni<RestResponse<Object>> findAllTypes(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -80,7 +80,7 @@ public interface Sgv2UDTsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500)
       })
   @Path("/{typeName}")
-  Response findTypeById(
+  Uni<RestResponse<Object>> findTypeById(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -108,7 +108,7 @@ public interface Sgv2UDTsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500)
       })
-  Response createType(
+  Uni<RestResponse<Object>> createType(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
