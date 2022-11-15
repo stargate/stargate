@@ -14,7 +14,6 @@ import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
-import io.stargate.sgv2.api.common.futures.Futures;
 import io.stargate.sgv2.api.common.schema.SchemaManager;
 import io.stargate.sgv2.restapi.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restapi.grpc.FromProtoConverter;
@@ -27,7 +26,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import javax.inject.Inject;
 import javax.ws.rs.WebApplicationException;
@@ -72,15 +70,6 @@ public abstract class RestResourceBase {
     return schemaManager.getTables(keyspaceName, MISSING_KEYSPACE);
   }
 
-  protected CompletionStage<Optional<Schema.CqlTable>> getTableAsyncOLD(
-      String keyspaceName, String tableName, boolean checkIfAuthorized) {
-    Uni<Schema.CqlTable> table =
-        checkIfAuthorized
-            ? schemaManager.getTableAuthorized(keyspaceName, tableName, MISSING_KEYSPACE)
-            : schemaManager.getTable(keyspaceName, tableName, MISSING_KEYSPACE);
-    return table.map(Optional::ofNullable).subscribeAsCompletionStage();
-  }
-
   protected Uni<Schema.CqlTable> getTableAsync(
       String keyspaceName, String tableName, boolean checkIfAuthorized) {
     return checkIfAuthorized
@@ -108,26 +97,17 @@ public abstract class RestResourceBase {
         .map(t -> Optional.ofNullable(t));
   }
 
-  /** Gets the metadata of a table, then uses it to build another CQL query and executes it. */
-  protected QueryOuterClass.Response queryWithTable(
-      String keyspaceName,
-      String tableName,
-      Function<Schema.CqlTable, QueryOuterClass.Query> queryProducer) {
-    return executeQuery(
-        keyspaceName,
-        tableName,
-        maybeTable -> {
-          Schema.CqlTable table =
-              maybeTable.orElseThrow(
-                  () ->
-                      new WebApplicationException(
-                          String.format(
-                              "Table '%s' not found (in keyspace %s)", tableName, keyspaceName),
-                          Response.Status.BAD_REQUEST));
-          return queryProducer.apply(table);
-        });
+  protected Uni<List<Boolean>> authorizeSchemaReadsAsync(List<Schema.SchemaRead> schemaReads) {
+    return requestInfo
+        .getStargateBridge()
+        .authorizeSchemaReads(
+            Schema.AuthorizeSchemaReadsRequest.newBuilder().addAllSchemaReads(schemaReads).build())
+        .map(Schema.AuthorizeSchemaReadsResponse::getAuthorizedList);
   }
 
+  // // // Helper methods for Query execution
+
+  /** Gets the metadata of a table, then uses it to build another CQL query and executes it. */
   protected Uni<QueryOuterClass.Response> queryWithTableAsync(
       String keyspaceName,
       String tableName,
@@ -147,34 +127,8 @@ public abstract class RestResourceBase {
         });
   }
 
-  protected QueryOuterClass.Response executeQuery(QueryOuterClass.Query query) {
-    return Futures.getUninterruptibly(executeQueryAsyncOLD(query));
-  }
-
-  protected QueryOuterClass.Response executeQuery(
-      String keyspaceName,
-      String tableName,
-      Function<Optional<Schema.CqlTable>, QueryOuterClass.Query> queryProducer) {
-    return Futures.getUninterruptibly(executeQueryAsyncOLD(keyspaceName, tableName, queryProducer));
-  }
-
-  protected CompletionStage<QueryOuterClass.Response> executeQueryAsyncOLD(
-      QueryOuterClass.Query query) {
-    return executeQueryAsync(query).subscribeAsCompletionStage();
-  }
-
   protected Uni<QueryOuterClass.Response> executeQueryAsync(QueryOuterClass.Query query) {
     return requestInfo.getStargateBridge().executeQuery(query);
-  }
-
-  protected CompletionStage<QueryOuterClass.Response> executeQueryAsyncOLD(
-      String keyspaceName,
-      String tableName,
-      Function<Optional<Schema.CqlTable>, QueryOuterClass.Query> queryProducer) {
-
-    // TODO implement optimistic queries (probably requires changes directly in SchemaManager)
-    return getTableAsyncOLD(keyspaceName, tableName, true)
-        .thenCompose(table -> executeQueryAsyncOLD(queryProducer.apply(table)));
   }
 
   protected Uni<QueryOuterClass.Response> executeQueryAsync(
@@ -189,12 +143,19 @@ public abstract class RestResourceBase {
         .transformToUni(table -> executeQueryAsync(queryProducer.apply(table)));
   }
 
-  protected Uni<List<Boolean>> authorizeSchemaReadsAsync(List<Schema.SchemaRead> schemaReads) {
-    return requestInfo
-        .getStargateBridge()
-        .authorizeSchemaReads(
-            Schema.AuthorizeSchemaReadsRequest.newBuilder().addAllSchemaReads(schemaReads).build())
-        .map(Schema.AuthorizeSchemaReadsResponse::getAuthorizedList);
+  protected Uni<RestResponse<Object>> fetchRowsAsync(QueryOuterClass.Query query, boolean raw) {
+    return executeQueryAsync(query)
+        // inline "toHttpResponse()"
+        .map(
+            response -> {
+              final QueryOuterClass.ResultSet rs = response.getResultSet();
+              final int count = rs.getRowsCount();
+
+              String pageStateStr = extractPagingStateFromResultSet(rs);
+              List<Map<String, Object>> rows = convertRows(rs);
+              return raw ? rows : new Sgv2RowsResponse(count, pageStateStr, rows);
+            })
+        .map(result -> RestResponse.ok(result));
   }
 
   // // // Helper methods for JSON decoding
@@ -256,39 +217,15 @@ public abstract class RestResourceBase {
     return PROTO_CONVERTERS.toProtoConverter(tableDef);
   }
 
-  protected Response fetchRows(QueryOuterClass.Query query, boolean raw) {
-    QueryOuterClass.Response grpcResponse = executeQuery(query);
-    return toHttpResponse(grpcResponse, raw);
-  }
-
-  protected Uni<RestResponse<Object>> fetchRowsAsync(QueryOuterClass.Query query, boolean raw) {
-    Uni<QueryOuterClass.Response> asyncResponse = executeQueryAsync(query);
-    return toHttpResponseAsync(asyncResponse, raw);
-  }
-
-  protected Response toHttpResponse(QueryOuterClass.Response grpcResponse, boolean raw) {
+  protected RestResponse<Object> toHttpResponse(
+      QueryOuterClass.Response grpcResponse, boolean raw) {
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
     final int count = rs.getRowsCount();
 
     String pageStateStr = extractPagingStateFromResultSet(rs);
     List<Map<String, Object>> rows = convertRows(rs);
     Object response = raw ? rows : new Sgv2RowsResponse(count, pageStateStr, rows);
-    return Response.status(Response.Status.OK).entity(response).build();
-  }
-
-  protected Uni<RestResponse<Object>> toHttpResponseAsync(
-      Uni<QueryOuterClass.Response> asyncResponse, boolean raw) {
-    return asyncResponse
-        .map(
-            response -> {
-              final QueryOuterClass.ResultSet rs = response.getResultSet();
-              final int count = rs.getRowsCount();
-
-              String pageStateStr = extractPagingStateFromResultSet(rs);
-              List<Map<String, Object>> rows = convertRows(rs);
-              return raw ? rows : new Sgv2RowsResponse(count, pageStateStr, rows);
-            })
-        .map(RestResponse::ok);
+    return RestResponse.ok(response);
   }
 
   protected List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {

@@ -30,7 +30,7 @@ import org.jboss.resteasy.reactive.RestResponse;
 
 public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsResourceApi {
   @Override
-  public Response getRowWithWhere(
+  public Uni<RestResponse<Object>> getRowWithWhere(
       final String keyspaceName,
       final String tableName,
       final String where,
@@ -53,8 +53,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       throw invalidSortParameterException(e);
     }
 
-    QueryOuterClass.Response response =
-        queryWithTable(
+    return queryWithTableAsync(
             keyspaceName,
             tableName,
             tableDef -> {
@@ -86,12 +85,12 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
                     .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
                     .build();
               }
-            });
-    return toHttpResponse(response, raw);
+            })
+        .map(response -> toHttpResponse(response, raw));
   }
 
   @Override
-  public Response getRows(
+  public Uni<RestResponse<Object>> getRows(
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
@@ -110,8 +109,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       throw invalidSortParameterException(e);
     }
 
-    QueryOuterClass.Response response =
-        queryWithTable(
+    return queryWithTableAsync(
             keyspaceName,
             tableName,
             tableDef -> {
@@ -131,8 +129,8 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
                 throw new WebApplicationException(
                     "Invalid path for row to find, problem: " + e.getMessage(), Status.BAD_REQUEST);
               }
-            });
-    return toHttpResponse(response, raw);
+            })
+        .map(response -> toHttpResponse(response, raw));
   }
 
   @Override
@@ -204,7 +202,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
   }
 
   @Override
-  public Response updateRows(
+  public Uni<RestResponse<Object>> updateRows(
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
@@ -214,7 +212,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
   }
 
   @Override
-  public Response patchRows(
+  public Uni<RestResponse<Object>> patchRows(
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
@@ -245,7 +243,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
   }
 
   /** Implementation of POST/PATCH (update/patch rows) endpoints */
-  private Response modifyRow(
+  private Uni<RestResponse<Object>> modifyRow(
       final String keyspaceName,
       final String tableName,
       final List<PathSegment> path,
@@ -258,23 +256,23 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     } catch (Exception e) {
       throw invalidPayloadException(e);
     }
-    queryWithTable(
-        keyspaceName,
-        tableName,
-        tableDef -> {
-          final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
-          try {
-            return buildUpdateRowQuery(
-                keyspaceName, tableName, path, tableDef, payloadMap, toProtoConverter);
-          } catch (IllegalArgumentException e) {
-            throw new WebApplicationException(
-                "Invalid path for row to update, problem: " + e.getMessage(), Status.BAD_REQUEST);
-          }
-        });
-
-    // apparently no useful data in ResultSet, we should simply return payload we got:
-    final Object responsePayload = raw ? payloadMap : new Sgv2RESTResponse(payloadMap);
-    return Response.status(Status.OK).entity(responsePayload).build();
+    return queryWithTableAsync(
+            keyspaceName,
+            tableName,
+            tableDef -> {
+              final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+              try {
+                return buildUpdateRowQuery(
+                    keyspaceName, tableName, path, tableDef, payloadMap, toProtoConverter);
+              } catch (IllegalArgumentException e) {
+                throw new WebApplicationException(
+                    "Invalid path for row to update, problem: " + e.getMessage(),
+                    Status.BAD_REQUEST);
+              }
+            })
+        // apparently no useful data in ResultSet, we should simply return payload we got:
+        .map(any -> raw ? payloadMap : new Sgv2RESTResponse<>(payloadMap))
+        .map(payload -> RestResponse.ok(payload));
   }
 
   /*

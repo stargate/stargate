@@ -10,7 +10,6 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.PathSegment;
-import javax.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.enums.ParameterIn;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
@@ -52,7 +51,7 @@ public interface Sgv2RowsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
-  Response getRowWithWhere(
+  Uni<RestResponse<Object>> getRowWithWhere(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -113,7 +112,7 @@ public interface Sgv2RowsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
   @Path("/{primaryKey: .+}")
-  Response getRows(
+  Uni<RestResponse<Object>> getRows(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -217,7 +216,7 @@ public interface Sgv2RowsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
   @Path("/{primaryKey: .+}")
-  Response updateRows(
+  Uni<RestResponse<Object>> updateRows(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -247,7 +246,7 @@ public interface Sgv2RowsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
   @Path("/{primaryKey: .+}")
-  Response patchRows(
+  Uni<RestResponse<Object>> patchRows(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
