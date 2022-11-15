@@ -78,7 +78,7 @@ public abstract class RestResourceBase {
   }
 
   protected Uni<Schema.CqlTable> getTableAsyncCheckExistence(
-      String keyspaceName, String tableName, boolean checkIfAuthorized) {
+      String keyspaceName, String tableName, boolean checkIfAuthorized, Response.Status failCode) {
     return getTableAsync(keyspaceName, tableName, checkIfAuthorized)
         .onItem()
         .ifNull()
@@ -88,7 +88,7 @@ public abstract class RestResourceBase {
                     .failure(
                         new WebApplicationException(
                             "Table '" + tableName + "' not found (keyspace '" + keyspaceName + "')",
-                            Response.Status.NOT_FOUND)));
+                            failCode)));
   }
 
   protected Uni<Optional<Schema.CqlTable>> findTableAsync(
@@ -217,7 +217,7 @@ public abstract class RestResourceBase {
     return PROTO_CONVERTERS.toProtoConverter(tableDef);
   }
 
-  protected RestResponse<Object> toHttpResponse(
+  protected RestResponse<Object> convertRowsToResponse(
       QueryOuterClass.Response grpcResponse, boolean raw) {
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
     final int count = rs.getRowsCount();

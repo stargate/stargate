@@ -22,7 +22,7 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
       String keyspaceName, String tableName, boolean raw) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
 
-    return getTableAsyncCheckExistence(keyspaceName, tableName, true)
+    return getTableAsyncCheckExistence(keyspaceName, tableName, true, Response.Status.BAD_REQUEST)
         .map(t -> table2columns(t))
         // map to wrapper if needed
         .map(t -> raw ? t : new Sgv2RESTResponse<>(t))
@@ -66,7 +66,7 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
     if (isStringEmpty(columnName)) {
       throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
     }
-    return getTableAsyncCheckExistence(keyspaceName, tableName, true)
+    return getTableAsyncCheckExistence(keyspaceName, tableName, true, Response.Status.BAD_REQUEST)
         .map(
             tableDef -> {
               Sgv2ColumnDefinition column = findColumn(tableDef, columnName);

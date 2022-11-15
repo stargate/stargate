@@ -84,10 +84,10 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void columnGetBadKeyspace() {
     final String badKeyspace = "column-get-bad-keyspace-" + System.currentTimeMillis();
-    String response = tryFindOneColumn(badKeyspace, "table", "column1", HttpStatus.SC_NOT_FOUND);
+    String response = tryFindOneColumn(badKeyspace, "table", "column1", HttpStatus.SC_BAD_REQUEST);
     ApiError apiError = readJsonAs(response, ApiError.class);
 
-    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_NOT_FOUND);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     // 02-Sep-2022, tatu: Error message is bit misleading but it is what it is; verify:
     assertThat(apiError.description())
         .matches("Table 'table' not found.*keyspace.*" + badKeyspace + ".*");
@@ -97,9 +97,9 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
   public void columnGetBadTable() {
     String tableName = "column-bad-bogus-table";
     String response =
-        tryFindOneColumn(testKeyspaceName(), tableName, "column1", HttpStatus.SC_NOT_FOUND);
+        tryFindOneColumn(testKeyspaceName(), tableName, "column1", HttpStatus.SC_BAD_REQUEST);
     ApiError apiError = readJsonAs(response, ApiError.class);
-    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_NOT_FOUND);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(apiError.description()).matches("Table.*" + tableName + ".* not found.*");
   }
 
@@ -152,9 +152,9 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void columnsGetBadKeyspace() {
     final String badKeyspace = "columns-get-bad-keyspace-" + System.currentTimeMillis();
-    String response = tryFindAllColumns(badKeyspace, "table", HttpStatus.SC_NOT_FOUND);
+    String response = tryFindAllColumns(badKeyspace, "table", HttpStatus.SC_BAD_REQUEST);
     ApiError apiError = readJsonAs(response, ApiError.class);
-    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_NOT_FOUND);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     // 02-Sep-2022, tatu: Error message is bit misleading but it is what it is; verify:
     assertThat(apiError.description())
         .matches("Table 'table' not found.*keyspace.*" + badKeyspace + ".*");
@@ -163,9 +163,9 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void columnsGetBadTable() {
     String tableName = "column-bad-bogus-table";
-    String response = tryFindAllColumns(testKeyspaceName(), tableName, HttpStatus.SC_NOT_FOUND);
+    String response = tryFindAllColumns(testKeyspaceName(), tableName, HttpStatus.SC_BAD_REQUEST);
     ApiError apiError = readJsonAs(response, ApiError.class);
-    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_NOT_FOUND);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(apiError.description()).matches("Table.*" + tableName + ".* not found.*");
   }
 

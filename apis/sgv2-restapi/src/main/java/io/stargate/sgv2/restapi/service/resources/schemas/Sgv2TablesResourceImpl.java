@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.slf4j.Logger;
@@ -46,7 +47,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
       final String keyspaceName, final String tableName, final boolean raw) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
 
-    return getTableAsyncCheckExistence(keyspaceName, tableName, true)
+    return getTableAsyncCheckExistence(keyspaceName, tableName, true, Response.Status.NOT_FOUND)
         .map(t -> table2table(t, keyspaceName))
         // map to wrapper if needed
         .map(t -> raw ? t : new Sgv2RESTResponse<>(t))

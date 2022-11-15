@@ -86,7 +86,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
                     .build();
               }
             })
-        .map(response -> toHttpResponse(response, raw));
+        .map(response -> convertRowsToResponse(response, raw));
   }
 
   @Override
@@ -130,7 +130,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
                     "Invalid path for row to find, problem: " + e.getMessage(), Status.BAD_REQUEST);
               }
             })
-        .map(response -> toHttpResponse(response, raw));
+        .map(response -> convertRowsToResponse(response, raw));
   }
 
   @Override
