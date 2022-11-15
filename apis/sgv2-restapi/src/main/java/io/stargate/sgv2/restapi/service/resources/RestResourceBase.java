@@ -144,18 +144,7 @@ public abstract class RestResourceBase {
   }
 
   protected Uni<RestResponse<Object>> fetchRowsAsync(QueryOuterClass.Query query, boolean raw) {
-    return executeQueryAsync(query)
-        // inline "toHttpResponse()"
-        .map(
-            response -> {
-              final QueryOuterClass.ResultSet rs = response.getResultSet();
-              final int count = rs.getRowsCount();
-
-              String pageStateStr = extractPagingStateFromResultSet(rs);
-              List<Map<String, Object>> rows = convertRows(rs);
-              return raw ? rows : new Sgv2RowsResponse(count, pageStateStr, rows);
-            })
-        .map(result -> RestResponse.ok(result));
+    return executeQueryAsync(query).map(response -> convertRowsToResponse(response, raw));
   }
 
   // // // Helper methods for JSON decoding

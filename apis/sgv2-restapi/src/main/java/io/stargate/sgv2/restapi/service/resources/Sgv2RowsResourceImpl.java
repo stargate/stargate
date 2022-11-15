@@ -150,27 +150,27 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     } catch (IllegalArgumentException e) {
       throw invalidSortParameterException(e);
     }
-    final QueryOuterClass.Query query;
-    if (columns.isEmpty()) {
-      query =
-          new QueryBuilder()
-              .select()
-              .star()
-              .from(keyspaceName, tableName)
-              .orderBy(sortOrder)
-              .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
-              .build();
-    } else {
-      query =
-          new QueryBuilder()
-              .select()
-              .column(columns)
-              .from(keyspaceName, tableName)
-              .orderBy(sortOrder)
-              .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
-              .build();
-    }
-    return fetchRowsAsync(query, raw);
+
+    return queryWithTableAsync(
+            keyspaceName,
+            tableName,
+            tableDef ->
+                columns.isEmpty()
+                    ? new QueryBuilder()
+                        .select()
+                        .star()
+                        .from(keyspaceName, tableName)
+                        .orderBy(sortOrder)
+                        .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
+                        .build()
+                    : new QueryBuilder()
+                        .select()
+                        .column(columns)
+                        .from(keyspaceName, tableName)
+                        .orderBy(sortOrder)
+                        .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
+                        .build())
+        .map(response -> convertRowsToResponse(response, raw));
   }
 
   @Override
