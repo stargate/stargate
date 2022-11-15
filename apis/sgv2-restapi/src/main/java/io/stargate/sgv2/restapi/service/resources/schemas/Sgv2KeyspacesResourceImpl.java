@@ -29,7 +29,6 @@ import io.stargate.sgv2.restapi.service.models.Sgv2Keyspace;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
 import javax.ws.rs.WebApplicationException;
@@ -113,10 +112,7 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
 
     return executeQueryAsync(query)
         // No real contents; can ignore ResultSet it seems and only worry about exceptions
-        .map(
-            any ->
-                RestResponse.status(
-                    Status.CREATED, Collections.singletonMap("name", keyspaceName)));
+        .map(any -> restResponseOkWithName(keyspaceName));
   }
 
   @Override

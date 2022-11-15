@@ -87,7 +87,8 @@ public abstract class RestResourceBase {
                 Uni.createFrom()
                     .failure(
                         new WebApplicationException(
-                            "Table '" + tableName + "' not found (keyspace '" + keyspaceName + "')",
+                            String.format(
+                                "Table '%s' not found (in keyspace %s)", tableName, keyspaceName),
                             failCode)));
   }
 

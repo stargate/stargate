@@ -184,13 +184,13 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
       if (addQuery != null) {
         return executeQueryAsync(addQuery)
             .chain(any -> executeQueryAsync(renameQuery))
-            .map(any -> RestResponse.ok());
+            .map(RestResponse::ok);
       }
-      return executeQueryAsync(renameQuery).map(any -> RestResponse.ok());
+      return executeQueryAsync(renameQuery).map(RestResponse::ok);
     }
 
     // Must still have add-columns
-    return executeQueryAsync(addQuery).map(any -> RestResponse.ok());
+    return executeQueryAsync(addQuery).map(RestResponse::ok);
   }
 
   @Override

@@ -13,7 +13,6 @@ import io.stargate.sgv2.restapi.service.models.Sgv2Table;
 import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
 import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -113,9 +112,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
 
     return executeQueryAsync(query)
         // No real contents; can ignore ResultSet it seems and only worry about exceptions
-        .map(
-            any ->
-                RestResponse.status(Status.CREATED, Collections.singletonMap("name", tableName)));
+        .map(any -> restResponseOkWithName(tableName));
   }
 
   @Override
@@ -146,7 +143,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
                   .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
                   .build();
             })
-        .map(any -> RestResponse.ok(Collections.singletonMap("name", tableName)));
+        .map(any -> restResponseOkWithName(tableName));
   }
 
   @Override
