@@ -45,21 +45,11 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
   public Uni<RestResponse<Object>> getOneTable(
       final String keyspaceName, final String tableName, final boolean raw) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    // NOTE: Can Not use "callWithTable()" as that would return 400 (Bad Request) for
-    // missing Table; here we specifically want 404 instead.
 
-    return getTableAsync(keyspaceName, tableName, true)
-        .onItem()
-        .ifNull()
-        .switchTo(
-            () ->
-                Uni.createFrom()
-                    .failure(
-                        new WebApplicationException(
-                            "Unable to describe table '" + tableName + "'", Status.NOT_FOUND)))
+    return getTableAsyncCheckExistence(keyspaceName, tableName, true)
         .map(t -> table2table(t, keyspaceName))
         // map to wrapper if needed
-        .map(ks -> raw ? ks : new Sgv2RESTResponse<>(ks))
+        .map(t -> raw ? t : new Sgv2RESTResponse<>(t))
         .map(RestResponse::ok);
   }
 

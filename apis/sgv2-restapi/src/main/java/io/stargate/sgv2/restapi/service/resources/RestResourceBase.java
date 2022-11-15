@@ -109,6 +109,20 @@ public abstract class RestResourceBase {
         : schemaManager.getTable(keyspaceName, tableName, MISSING_KEYSPACE);
   }
 
+  protected Uni<Schema.CqlTable> getTableAsyncCheckExistence(
+      String keyspaceName, String tableName, boolean checkIfAuthorized) {
+    return getTableAsync(keyspaceName, tableName, checkIfAuthorized)
+        .onItem()
+        .ifNull()
+        .switchTo(
+            () ->
+                Uni.createFrom()
+                    .failure(
+                        new WebApplicationException(
+                            "Table '" + tableName + "' not found (keyspace '" + keyspaceName + "')",
+                            Response.Status.NOT_FOUND)));
+  }
+
   protected Uni<Optional<Schema.CqlTable>> findTableAsync(
       String keyspaceName, String tableName, boolean checkIfAuthorized) {
     return getTableAsync(keyspaceName, tableName, checkIfAuthorized)
@@ -340,6 +354,10 @@ public abstract class RestResourceBase {
   protected static RestResponse<Object> restResponseCreated(String createdName) {
     return RestResponse.status(
         Response.Status.CREATED, Collections.singletonMap("name", createdName));
+  }
+
+  protected static RestResponse<Object> restResponseOkWithName(String name) {
+    return RestResponse.status(Response.Status.OK, Collections.singletonMap("name", name));
   }
 
   protected static Response restServiceErrorResponse(
