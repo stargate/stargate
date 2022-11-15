@@ -38,7 +38,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
         .asList()
         // map to wrapper if needed
         .map(tables -> raw ? tables : new Sgv2RESTResponse<>(tables))
-        .map(RestResponse::ok);
+        .map(result -> RestResponse.ok(result));
   }
 
   @Override
@@ -50,7 +50,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
         .map(t -> table2table(t, keyspaceName))
         // map to wrapper if needed
         .map(t -> raw ? t : new Sgv2RESTResponse<>(t))
-        .map(RestResponse::ok);
+        .map(result -> RestResponse.ok(result));
   }
 
   @Override

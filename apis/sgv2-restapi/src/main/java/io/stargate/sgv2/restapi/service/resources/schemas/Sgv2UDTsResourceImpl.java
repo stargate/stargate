@@ -49,7 +49,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
               return jsonArray2Udts(keyspaceName, ksRows);
             })
         .map(udts -> raw ? udts : new Sgv2RESTResponse<>(udts))
-        .map(RestResponse::ok);
+        .map(result -> RestResponse.ok(result));
   }
 
   @Override

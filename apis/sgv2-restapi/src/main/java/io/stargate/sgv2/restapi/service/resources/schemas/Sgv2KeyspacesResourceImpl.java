@@ -55,7 +55,7 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
         .asList()
         // map to wrapper if needed
         .map(keyspaces -> raw ? keyspaces : new Sgv2RESTResponse<>(keyspaces))
-        .map(RestResponse::ok);
+        .map(result -> RestResponse.ok(result));
   }
 
   @Override
@@ -73,7 +73,7 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
         .map(ks -> convertKeyspace(ks))
         // map to wrapper if needed
         .map(ks -> raw ? ks : new Sgv2RESTResponse<>(ks))
-        .map(RestResponse::ok);
+        .map(result -> RestResponse.ok(result));
   }
 
   @Override

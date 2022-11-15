@@ -26,7 +26,7 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
         .map(t -> table2columns(t))
         // map to wrapper if needed
         .map(t -> raw ? t : new Sgv2RESTResponse<>(t))
-        .map(RestResponse::ok);
+        .map(result -> RestResponse.ok(result));
   }
 
   @Override
@@ -78,7 +78,7 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
               return column;
             })
         .map(t -> raw ? t : new Sgv2RESTResponse<>(t))
-        .map(RestResponse::ok);
+        .map(result -> RestResponse.ok(result));
   }
 
   @Override
