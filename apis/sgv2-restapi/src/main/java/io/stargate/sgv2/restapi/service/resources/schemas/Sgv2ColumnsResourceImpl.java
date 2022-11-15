@@ -56,7 +56,7 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
                   .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
                   .build();
             })
-        .map(any -> restResponseCreated(columnName));
+        .map(any -> restResponseCreatedWithName(columnName));
   }
 
   @Override

@@ -112,7 +112,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
 
     return executeQueryAsync(query)
         // No real contents; can ignore ResultSet it seems and only worry about exceptions
-        .map(any -> restResponseOkWithName(tableName));
+        .map(any -> restResponseCreatedWithName(tableName));
   }
 
   @Override

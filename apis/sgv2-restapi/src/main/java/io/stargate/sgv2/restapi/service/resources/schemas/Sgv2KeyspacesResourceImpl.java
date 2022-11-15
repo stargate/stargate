@@ -112,7 +112,7 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
 
     return executeQueryAsync(query)
         // No real contents; can ignore ResultSet it seems and only worry about exceptions
-        .map(any -> restResponseOkWithName(keyspaceName));
+        .map(any -> restResponseCreatedWithName(keyspaceName));
   }
 
   @Override

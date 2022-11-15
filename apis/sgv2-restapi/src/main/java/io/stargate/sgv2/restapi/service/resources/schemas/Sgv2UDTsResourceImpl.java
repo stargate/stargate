@@ -124,7 +124,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
         // For most failures pass and let default handler deal; but for specific case of
         // trying to create existing UDT without "if-not-exists", try to dig actual fail
         // message
-        .map(any -> restResponseCreated(typeName))
+        .map(any -> restResponseCreatedWithName(typeName))
         .onFailure(
             failure ->
                 (failure instanceof StatusRuntimeException)

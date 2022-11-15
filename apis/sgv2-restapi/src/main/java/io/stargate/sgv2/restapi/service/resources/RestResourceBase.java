@@ -277,7 +277,7 @@ public abstract class RestResourceBase {
     return RestResponse.status(httpStatus, new ApiError(failMessage, httpStatus.getStatusCode()));
   }
 
-  protected static RestResponse<Object> restResponseCreated(String createdName) {
+  protected static RestResponse<Object> restResponseCreatedWithName(String createdName) {
     return RestResponse.status(
         Response.Status.CREATED, Collections.singletonMap("name", createdName));
   }
