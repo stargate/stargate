@@ -15,7 +15,6 @@ import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.api.common.futures.Futures;
-import io.stargate.sgv2.api.common.grpc.UnauthorizedTableException;
 import io.stargate.sgv2.api.common.schema.SchemaManager;
 import io.stargate.sgv2.restapi.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restapi.grpc.FromProtoConverter;
@@ -71,26 +70,6 @@ public abstract class RestResourceBase {
 
   protected Multi<Schema.CqlTable> getTablesAsync(String keyspaceName) {
     return schemaManager.getTables(keyspaceName, MISSING_KEYSPACE);
-  }
-
-  protected Optional<Schema.CqlTable> getTable(
-      String keyspaceName, String tableName, boolean checkIfAuthorized)
-      throws UnauthorizedTableException {
-    return Futures.getUninterruptibly(getTableAsyncOLD(keyspaceName, tableName, checkIfAuthorized));
-  }
-
-  protected Schema.CqlTable getTable(String keyspaceName, String tableName) {
-    final boolean checkIfAuthorized = true;
-
-    CompletionStage<Optional<Schema.CqlTable>> tableFuture =
-        getTableAsyncOLD(keyspaceName, tableName, checkIfAuthorized);
-    Optional<Schema.CqlTable> maybeTable = Futures.getUninterruptibly(tableFuture);
-
-    return maybeTable.orElseThrow(
-        () ->
-            new WebApplicationException(
-                String.format("Table '%s' not found (in keyspace %s)", tableName, keyspaceName),
-                Response.Status.BAD_REQUEST));
   }
 
   protected CompletionStage<Optional<Schema.CqlTable>> getTableAsyncOLD(
@@ -282,6 +261,11 @@ public abstract class RestResourceBase {
     return toHttpResponse(grpcResponse, raw);
   }
 
+  protected Uni<RestResponse<Object>> fetchRowsAsync(QueryOuterClass.Query query, boolean raw) {
+    Uni<QueryOuterClass.Response> asyncResponse = executeQueryAsync(query);
+    return toHttpResponseAsync(asyncResponse, raw);
+  }
+
   protected Response toHttpResponse(QueryOuterClass.Response grpcResponse, boolean raw) {
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
     final int count = rs.getRowsCount();
@@ -290,6 +274,21 @@ public abstract class RestResourceBase {
     List<Map<String, Object>> rows = convertRows(rs);
     Object response = raw ? rows : new Sgv2RowsResponse(count, pageStateStr, rows);
     return Response.status(Response.Status.OK).entity(response).build();
+  }
+
+  protected Uni<RestResponse<Object>> toHttpResponseAsync(
+      Uni<QueryOuterClass.Response> asyncResponse, boolean raw) {
+    return asyncResponse
+        .map(
+            response -> {
+              final QueryOuterClass.ResultSet rs = response.getResultSet();
+              final int count = rs.getRowsCount();
+
+              String pageStateStr = extractPagingStateFromResultSet(rs);
+              List<Map<String, Object>> rows = convertRows(rs);
+              return raw ? rows : new Sgv2RowsResponse(count, pageStateStr, rows);
+            })
+        .map(RestResponse::ok);
   }
 
   protected List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
@@ -358,12 +357,5 @@ public abstract class RestResourceBase {
 
   protected static RestResponse<Object> restResponseOkWithName(String name) {
     return RestResponse.status(Response.Status.OK, Collections.singletonMap("name", name));
-  }
-
-  protected static Response restServiceErrorResponse(
-      Response.Status httpStatus, String failMessage) {
-    return Response.status(httpStatus)
-        .entity(new ApiError(failMessage, httpStatus.getStatusCode()))
-        .build();
   }
 }
