@@ -1,5 +1,34 @@
 # Changelog
 
+## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.1...HEAD)
+
+**Closed issues:**
+
+- InboundHAProxyHandler is not @Sharable [\#2232](https://github.com/stargate/stargate/issues/2232)
+
+## [v2.0.1](https://github.com/stargate/stargate/tree/v2.0.1) (2022-11-14)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.68...v2.0.1)
+
+**Merged pull requests:**
+
+- Make InboundHAProxyHandler @Sharable [\#2233](https://github.com/stargate/stargate/pull/2233) ([jakubzytka](https://github.com/jakubzytka))
+- Bump graphql-java from 18.1 to 18.3 in /graphqlapi on `v1` [\#2230](https://github.com/stargate/stargate/pull/2230) ([ivansenic](https://github.com/ivansenic))
+- organize shared dependencies in common project [\#2227](https://github.com/stargate/stargate/pull/2227) ([ivansenic](https://github.com/ivansenic))
+- use getIfPresent in SchemaManager [\#2226](https://github.com/stargate/stargate/pull/2226) ([ivansenic](https://github.com/ivansenic))
+- Fix for \#2221 -\> enhanced logging for the gRPC bridge exceptions [\#2225](https://github.com/stargate/stargate/pull/2225) ([versaurabh](https://github.com/versaurabh))
+- Bump graphql-java from 18.1 to 18.3 in /apis/sgv2-graphqlapi [\#2222](https://github.com/stargate/stargate/pull/2222) ([dependabot[bot]](https://github.com/apps/dependabot))
+- relates to \#2177: basic branding of the index pages [\#2219](https://github.com/stargate/stargate/pull/2219) ([ivansenic](https://github.com/ivansenic))
+- closes \#2201: playground to auto-inject token from headers [\#2217](https://github.com/stargate/stargate/pull/2217) ([ivansenic](https://github.com/ivansenic))
+- closes \#2159: moved common configuration to sgv2-quarkus-commons  [\#2216](https://github.com/stargate/stargate/pull/2216) ([ivansenic](https://github.com/ivansenic))
+- update Quarkus to v2.13.4 [\#2215](https://github.com/stargate/stargate/pull/2215) ([ivansenic](https://github.com/ivansenic))
+- closes \#2209: add transient retries to the grpc client [\#2214](https://github.com/stargate/stargate/pull/2214) ([ivansenic](https://github.com/ivansenic))
+- Fix \#2200: include auth header for OpenAPI \(Swagger\) by adding annota… [\#2202](https://github.com/stargate/stargate/pull/2202) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- update changelog and bump version to `v2.0.1-SNAPSHOT` [\#2196](https://github.com/stargate/stargate/pull/2196) ([ivansenic](https://github.com/ivansenic))
+- Bump graphql-java from 18.1 to 18.3 in /graphqlapi [\#2080](https://github.com/stargate/stargate/pull/2080) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [v2.0.0](https://github.com/stargate/stargate/tree/v2.0.0) (2022-10-25)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0-RC-1...v2.0.0)
