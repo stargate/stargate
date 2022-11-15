@@ -340,12 +340,12 @@ public abstract class RestResourceBase {
 
   // // // Helper methods for JAX-RS response construction
 
-  protected static Uni<RestResponse<Object>> restResponseUni(
+  protected static Uni<RestResponse<Object>> apiErrorResponseUni(
       Response.Status httpStatus, String failMessage) {
-    return Uni.createFrom().item(restResponse(httpStatus, failMessage));
+    return Uni.createFrom().item(apiErrorResponse(httpStatus, failMessage));
   }
 
-  protected static RestResponse<Object> restResponse(
+  protected static RestResponse<Object> apiErrorResponse(
       Response.Status httpStatus, String failMessage) {
     return RestResponse.status(httpStatus, new ApiError(failMessage, httpStatus.getStatusCode()));
   }

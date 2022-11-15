@@ -1,5 +1,6 @@
 package io.stargate.sgv2.restapi.service.resources;
 
+import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
@@ -21,6 +22,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.jboss.resteasy.reactive.RestResponse;
 
 /**
  * Definition of REST API DML endpoint methods including JAX-RS and OpenAPI annotations. No
@@ -155,7 +157,7 @@ public interface Sgv2RowsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
   @Path("/rows")
-  Response getAllRows(
+  Uni<RestResponse<Object>> getAllRows(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -192,7 +194,7 @@ public interface Sgv2RowsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
-  Response createRow(
+  Uni<RestResponse<Object>> createRow(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -230,27 +232,6 @@ public interface Sgv2RowsResourceApi {
       @RequestBody(description = "Fields of the Row to update as JSON", required = true)
           String payloadAsString);
 
-  @DELETE
-  @Operation(summary = "Delete row(s)", description = "Delete one or more rows in a table")
-  @APIResponses(
-      value = {
-        @APIResponse(responseCode = "204", description = "No Content"),
-        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_400),
-        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
-        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
-      })
-  @Path("/{primaryKey: .+}")
-  Response deleteRows(
-      @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
-          @PathParam("keyspaceName")
-          final String keyspaceName,
-      @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
-          @PathParam("tableName")
-          final String tableName,
-      @Parameter(name = "primaryKey", ref = RestOpenApiConstants.Parameters.PRIMARY_KEY)
-          @PathParam("primaryKey")
-          List<PathSegment> path);
-
   @PATCH
   @Operation(
       summary = "Update part of a row(s)",
@@ -280,4 +261,25 @@ public interface Sgv2RowsResourceApi {
           final boolean raw,
       @RequestBody(description = "Fields of the Row to patch as JSON", required = true)
           String payloadAsString);
+
+  @DELETE
+  @Operation(summary = "Delete row(s)", description = "Delete one or more rows in a table")
+  @APIResponses(
+      value = {
+        @APIResponse(responseCode = "204", description = "No Content"),
+        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_400),
+        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
+        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
+      })
+  @Path("/{primaryKey: .+}")
+  Uni<RestResponse<Object>> deleteRows(
+      @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
+          @PathParam("tableName")
+          final String tableName,
+      @Parameter(name = "primaryKey", ref = RestOpenApiConstants.Parameters.PRIMARY_KEY)
+          @PathParam("primaryKey")
+          List<PathSegment> path);
 }

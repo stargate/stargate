@@ -1,6 +1,7 @@
 package io.stargate.sgv2.restapi.service.resources;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.cql.builder.BuiltCondition;
@@ -25,6 +26,7 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.PathSegment;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import org.jboss.resteasy.reactive.RestResponse;
 
 public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsResourceApi {
   @Override
@@ -134,7 +136,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
   }
 
   @Override
-  public Response getAllRows(
+  public Uni<RestResponse<Object>> getAllRows(
       final String keyspaceName,
       final String tableName,
       final String fields,
@@ -170,11 +172,11 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
               .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
               .build();
     }
-    return fetchRows(query, raw);
+    return fetchRowsAsync(query, raw);
   }
 
   @Override
-  public Response createRow(
+  public Uni<RestResponse<Object>> createRow(
       final String keyspaceName, final String tableName, final String payloadAsString) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     Map<String, Object> payloadMap;
@@ -184,22 +186,21 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       throw invalidPayloadException(e);
     }
 
-    queryWithTable(
-        keyspaceName,
-        tableName,
-        tableDef -> {
-          final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+    return queryWithTableAsync(
+            keyspaceName,
+            tableName,
+            tableDef -> {
+              final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
 
-          try {
-            return buildAddRowQuery(keyspaceName, tableName, payloadMap, toProtoConverter);
-          } catch (IllegalArgumentException e) {
-            throw new WebApplicationException(
-                "Invalid path for row to create, problem: " + e.getMessage(), Status.BAD_REQUEST);
-          }
-        });
-
-    // apparently no useful data in ResultSet, we should simply return payload we got:
-    return Response.status(Status.CREATED).entity(payloadAsString).build();
+              try {
+                return buildAddRowQuery(keyspaceName, tableName, payloadMap, toProtoConverter);
+              } catch (IllegalArgumentException e) {
+                throw new WebApplicationException(
+                    "Invalid path for row to create, problem: " + e.getMessage(),
+                    Status.BAD_REQUEST);
+              }
+            })
+        .map(any -> RestResponse.status(Response.Status.CREATED, payloadAsString));
   }
 
   @Override
@@ -213,26 +214,6 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
   }
 
   @Override
-  public Response deleteRows(
-      final String keyspaceName, final String tableName, final List<PathSegment> path) {
-    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    queryWithTable(
-        keyspaceName,
-        tableName,
-        (tableDef) -> {
-          final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
-          try {
-            return buildDeleteRowsByPKCQuery(
-                keyspaceName, tableName, path, tableDef, toProtoConverter);
-          } catch (IllegalArgumentException e) {
-            throw new WebApplicationException(
-                "Invalid path for row to delete, problem: " + e.getMessage(), Status.BAD_REQUEST);
-          }
-        });
-    return Response.status(Status.NO_CONTENT).build();
-  }
-
-  @Override
   public Response patchRows(
       final String keyspaceName,
       final String tableName,
@@ -240,6 +221,27 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       final boolean raw,
       final String payload) {
     return modifyRow(keyspaceName, tableName, path, raw, payload);
+  }
+
+  @Override
+  public Uni<RestResponse<Object>> deleteRows(
+      final String keyspaceName, final String tableName, final List<PathSegment> path) {
+    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
+    return queryWithTableAsync(
+            keyspaceName,
+            tableName,
+            (tableDef) -> {
+              final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
+              try {
+                return buildDeleteRowsByPKCQuery(
+                    keyspaceName, tableName, path, tableDef, toProtoConverter);
+              } catch (IllegalArgumentException e) {
+                throw new WebApplicationException(
+                    "Invalid path for row to delete, problem: " + e.getMessage(),
+                    Status.BAD_REQUEST);
+              }
+            })
+        .map(any -> RestResponse.status(Response.Status.NO_CONTENT));
   }
 
   /** Implementation of POST/PATCH (update/patch rows) endpoints */

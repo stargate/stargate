@@ -77,7 +77,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
               // Must get one and only one response, verify
               switch (ksRows.size()) {
                 case 0:
-                  return restResponse(
+                  return apiErrorResponse(
                       Response.Status.NOT_FOUND,
                       String.format(
                           "No definition found for UDT '%s' (keyspace '%s')",
@@ -87,7 +87,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
                   final Object udtResult = raw ? udt : new Sgv2RESTResponse(udt);
                   return RestResponse.ok(udtResult);
                 default:
-                  return restResponse(
+                  return apiErrorResponse(
                       Response.Status.INTERNAL_SERVER_ERROR,
                       String.format(
                           "Multiple definitions (%d) found for UDT '%s' (keyspace '%s')",
@@ -136,7 +136,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
             failure -> {
               final String desc =
                   "Bad request: " + ((StatusRuntimeException) failure).getStatus().getDescription();
-              return restResponse(Response.Status.BAD_REQUEST, desc);
+              return apiErrorResponse(Response.Status.BAD_REQUEST, desc);
             });
   }
 
@@ -154,7 +154,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
     final boolean hasRenameFields = (renameFields != null && !renameFields.isEmpty());
 
     if (!hasAddFields && !hasRenameFields) {
-      return restResponseUni(
+      return apiErrorResponseUni(
           Response.Status.BAD_REQUEST,
           "addFields and/or renameFields is required to update an UDT");
     }
