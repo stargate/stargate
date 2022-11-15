@@ -1,5 +1,70 @@
 # Changelog
 
+## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.68...HEAD)
+
+**Closed issues:**
+
+- InboundHAProxyHandler is not @Sharable [\#2232](https://github.com/stargate/stargate/issues/2232)
+
+**Merged pull requests:**
+
+- Make InboundHAProxyHandler @Sharable [\#2233](https://github.com/stargate/stargate/pull/2233) ([jakubzytka](https://github.com/jakubzytka))
+- organize shared dependencies in common project [\#2227](https://github.com/stargate/stargate/pull/2227) ([ivansenic](https://github.com/ivansenic))
+- use getIfPresent in SchemaManager [\#2226](https://github.com/stargate/stargate/pull/2226) ([ivansenic](https://github.com/ivansenic))
+- Fix for \#2221 -\> enhanced logging for the gRPC bridge exceptions [\#2225](https://github.com/stargate/stargate/pull/2225) ([versaurabh](https://github.com/versaurabh))
+- Bump graphql-java from 18.1 to 18.3 in /apis/sgv2-graphqlapi [\#2222](https://github.com/stargate/stargate/pull/2222) ([dependabot[bot]](https://github.com/apps/dependabot))
+- relates to \#2177: basic branding of the index pages [\#2219](https://github.com/stargate/stargate/pull/2219) ([ivansenic](https://github.com/ivansenic))
+- closes \#2201: playground to auto-inject token from headers [\#2217](https://github.com/stargate/stargate/pull/2217) ([ivansenic](https://github.com/ivansenic))
+- closes \#2159: moved common configuration to sgv2-quarkus-commons  [\#2216](https://github.com/stargate/stargate/pull/2216) ([ivansenic](https://github.com/ivansenic))
+- update Quarkus to v2.13.4 [\#2215](https://github.com/stargate/stargate/pull/2215) ([ivansenic](https://github.com/ivansenic))
+- closes \#2209: add transient retries to the grpc client [\#2214](https://github.com/stargate/stargate/pull/2214) ([ivansenic](https://github.com/ivansenic))
+- Fix \#2200: include auth header for OpenAPI \(Swagger\) by adding annota… [\#2202](https://github.com/stargate/stargate/pull/2202) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- update changelog and bump version to `v2.0.1-SNAPSHOT` [\#2196](https://github.com/stargate/stargate/pull/2196) ([ivansenic](https://github.com/ivansenic))
+- Bump graphql-java from 18.1 to 18.3 in /graphqlapi [\#2080](https://github.com/stargate/stargate/pull/2080) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [v1.0.68](https://github.com/stargate/stargate/tree/v1.0.68) (2022-11-14)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0...v1.0.68)
+
+**Fixed bugs:**
+
+- REST API tests fail with `Abrupt GOAWAY closed sent stream` [\#2209](https://github.com/stargate/stargate/issues/2209)
+- Bridge service client is not handling runtime exceptions [\#2179](https://github.com/stargate/stargate/issues/2179)
+- API V2 bridge communication has wrong Source API [\#2175](https://github.com/stargate/stargate/issues/2175)
+
+**Closed issues:**
+
+- Commons test jar not published to maven repo [\#2229](https://github.com/stargate/stargate/issues/2229)
+- gRPC bridge exception handlers should log exceptions [\#2221](https://github.com/stargate/stargate/issues/2221)
+- CI build failure due to use of Bintray for accessing 3rd party OSS libraries from Maven Central [\#2211](https://github.com/stargate/stargate/issues/2211)
+- GraphQL playground must not get auth token from the token resolver [\#2201](https://github.com/stargate/stargate/issues/2201)
+- REST API V2 not including authentication token in Swagger when specified [\#2200](https://github.com/stargate/stargate/issues/2200)
+- Update `graphql-java` from 18.1 to 18.3 as per Dependabot alert [\#2189](https://github.com/stargate/stargate/issues/2189)
+- Quarkus Logging - Add Exclude Pattern for non application related API calls [\#2185](https://github.com/stargate/stargate/issues/2185)
+- gRPC service exception handlers should log exceptions [\#2166](https://github.com/stargate/stargate/issues/2166)
+- Move common and shared configuration to the `quarkus-common` `application.yaml` [\#2159](https://github.com/stargate/stargate/issues/2159)
+- Bridge get supported features should be available without C\* token [\#1821](https://github.com/stargate/stargate/issues/1821)
+- Rename `master` branch to `main` [\#1490](https://github.com/stargate/stargate/issues/1490)
+
+**Merged pull requests:**
+
+- Fix release version for v1 [\#2235](https://github.com/stargate/stargate/pull/2235) ([versaurabh](https://github.com/versaurabh))
+- Bump graphql-java from 18.1 to 18.3 in /graphqlapi on `v1` [\#2230](https://github.com/stargate/stargate/pull/2230) ([ivansenic](https://github.com/ivansenic))
+- Change 1 "master" reference to "v1" for \#1490 [\#2220](https://github.com/stargate/stargate/pull/2220) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#2211: change default Maven repo used to resolve deps [\#2212](https://github.com/stargate/stargate/pull/2212) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix for \#2166 -\> enhanced logging for the public grpc API exceptions [\#2208](https://github.com/stargate/stargate/pull/2208) ([versaurabh](https://github.com/versaurabh))
+- Changes to CI jobs related to \#1490, first part: renaming of v2.0.0-\>… [\#2207](https://github.com/stargate/stargate/pull/2207) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Remove unneeded "master" refs \(for near term rename\); rename "ci-test… [\#2206](https://github.com/stargate/stargate/pull/2206) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Help troubleshoot \#2193 \(IAE for null proxy message\) by explicit arg validation [\#2205](https://github.com/stargate/stargate/pull/2205) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Allow legacy flush to be used with property [\#2203](https://github.com/stargate/stargate/pull/2203) ([tjake](https://github.com/tjake))
+- Update v1.0.67 release notes [\#2199](https://github.com/stargate/stargate/pull/2199) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v1.0.67](https://github.com/stargate/stargate/tree/v1.0.67) (2022-10-24)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.67}...v1.0.67)
+
 ## [v1.0.67}](https://github.com/stargate/stargate/tree/v1.0.67}) (2022-10-24)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.66...v1.0.67})
