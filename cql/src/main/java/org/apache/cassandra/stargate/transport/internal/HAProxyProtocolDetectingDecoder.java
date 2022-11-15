@@ -75,6 +75,7 @@ public class HAProxyProtocolDetectingDecoder extends ByteToMessageDecoder {
     return true;
   }
 
+  @Sharable
   static class InboundHAProxyHandler extends SimpleChannelInboundHandler<HAProxyMessage> {
     public static final InboundHAProxyHandler INSTANCE = new InboundHAProxyHandler();
 
