@@ -100,8 +100,8 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
               // Optional, could let backend verify but this gives us better error reporting
               if (findColumn(tableDef, columnName) == null) {
                 throw new WebApplicationException(
-                    String.format("column '%s' not found in table '%s'", columnName, tableName),
-                    Response.Status.NOT_FOUND);
+                    String.format("Column '%s' not found in table '%s'", columnName, tableName),
+                    Response.Status.BAD_REQUEST);
               }
               return new QueryBuilder()
                   .alter()

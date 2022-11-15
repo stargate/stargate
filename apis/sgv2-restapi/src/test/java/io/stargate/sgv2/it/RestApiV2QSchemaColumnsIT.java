@@ -270,9 +270,9 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
             tableName,
             "id0",
             new Sgv2ColumnDefinition("id-renamed", "text", false),
-            HttpStatus.SC_NOT_FOUND);
+            HttpStatus.SC_BAD_REQUEST);
     ApiError apiError = readJsonAs(response, ApiError.class);
-    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_NOT_FOUND);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(apiError.description()).matches("column.*id0.* not found in table.*");
   }
 
