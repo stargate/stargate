@@ -6,27 +6,61 @@ Want to build Stargate on a k8s cluster using helm? Follow the instruction as be
 Cassandra storage port 7000 accessible as a k8s service.
 install helm in the environment.
 
+## Cassandra installation
+For quick start install cassandra in kubernetes cluster using helm.
+```shell script
+ helm install my-release bitnami/cassandra
+```
+
 ## Autoscaling
-Auto scaling uses metrics server. Metrics server can be installed as:\
+Autoscaling uses metrics server. Metrics server can be installed as:\
+```shell script
 kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+```
 
 ## Ingress
 To use Ingress, ingress controller needs to be installed and appropriate ingress class name has to be updated in the helm values.yaml (ingress.ingressClassName). By default it uses nginx ingress controller. This can be installed as: \
+```shell script
  helm upgrade --install ingress-nginx ingress-nginx \
    --repo https://kubernetes.github.io/ingress-nginx \
    --namespace ingress-nginx --create-namespace 
+```
 
 When using ingress, path need to be appended with the service url as per example below
 
-1) auth-api: -- http://localhost/api/auth/v1/auth 
-2) rest-api: --  http://localhost/api/rest/v2/schemas/keyspaces 
-3) docs-api: --  http://localhost/api/docs/v2/namespaces/test/collections/library 
-4) graphql-api: --  http://localhost/api/graphql/graphql-schema 
+
+| API                 | Default path when using ingress                                                                   |
+|---------------------|---------------------------------------------------------------------------------------------------|
+| auth-api        | http://localhost/api/auth/v1/auth |
+| rest-api      | http://localhost/api/rest/v2/schemas/keyspaces                                                              |
+| docs-api | http://localhost/api/docs/v2/namespaces/test/collections/library                            |
+| image.repository40  | http://localhost/api/graphql/graphql-schema                            |
+
 
 ## Helm installation instruction
 Clone the stargate repository\
+```shell script
 cd helm\
 helm install stargate stargate
+```
+
+To install with override values
+```shell script
+helm install stargatev2 \
+--namespace <ENTER_NAMESPACE_HERE> \
+--set replicaCount=2 \
+--set cassandra.clusterName=<ENTER_VALUE_HERE> \
+--set cassandra.dcName=<ENTER_VALUE_HERE> \
+--set cassandra.rack=<ENTER_VALUE_HERE> \
+--set cassandra.seed=<ENTER_VALUE_HERE> \
+--set cassandra.clusterVersion=<ENTER_VALUE_HERE> \
+--set restapi.enabled=true \
+--set restapi.replicaCount=2 \
+--set docsapi.enabled=true \
+--set docsapi.replicaCount=2 \
+--set graphqlapi.enabled=true \
+--set graphqlapi.replicaCount=2
+```
 
 Note:
   - The helm values file (values.yaml) is updated with default values if cassandra is installed as - helm install my-release bitnami/cassandra
