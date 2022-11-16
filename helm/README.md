@@ -3,11 +3,11 @@ Want to build Stargate on a k8s cluster using helm? Follow the instruction as be
 
 ## Pre-requisite
 
-Cassandra storage port 7000 accessible as a k8s service.
+Cassandra installed with its storage port 7000 accessible as a headless service. \
 install helm in the environment.
 
 ## Cassandra installation
-For quick start install cassandra in kubernetes cluster using helm.
+For quick start, install cassandra in kubernetes cluster using helm. 
 ```shell script
  helm install my-release bitnami/cassandra
 ```
@@ -19,14 +19,14 @@ kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/late
 ```
 
 ## Ingress
-To use Ingress, ingress controller needs to be installed and appropriate ingress class name has to be updated in the helm values.yaml (ingress.ingressClassName). By default it uses nginx ingress controller. This can be installed as: \
+To use Ingress, ingress controller needs to be installed and respective ingress class name has to be set for ingress.ingressClassName. By default it uses nginx ingress controller. This can be installed as: \
 ```shell script
  helm upgrade --install ingress-nginx ingress-nginx \
    --repo https://kubernetes.github.io/ingress-nginx \
    --namespace ingress-nginx --create-namespace 
 ```
 
-When using ingress, path need to be appended with the service url as per example below
+When using ingress, api services path needs to be used as specified below
 
 
 | API                 | Default path when using ingress                                                                   |
@@ -38,7 +38,7 @@ When using ingress, path need to be appended with the service url as per example
 
 
 ## Helm installation instruction
-Clone the stargate repository\
+Clone the stargate code from the github repository
 ```shell script
 cd helm\
 helm install stargate stargate
@@ -63,8 +63,7 @@ helm install stargatev2 \
 ```
 
 Note:
-  - The helm values file (values.yaml) is updated with default values if cassandra is installed as - helm install my-release bitnami/cassandra
-  - Memory and CPU units provided in the values.yaml file is based on testing done on local environment with 6GB RAM and 4 CPU allocated to k8s environment.
+  - The helm values file (values.yaml) is updated with default values if cassandra is installed as - helm install my-release bitnami/cassandra \
 
 | Helm value                                    | Description                                                                        | Default                                 |
 |--------------------------------------------|------------------------------------------------------------------------------------|--------------------------------------------|
