@@ -151,26 +151,26 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       throw invalidSortParameterException(e);
     }
 
-    return queryWithTableAsync(
-            keyspaceName,
-            tableName,
-            tableDef ->
-                columns.isEmpty()
-                    ? new QueryBuilder()
-                        .select()
-                        .star()
-                        .from(keyspaceName, tableName)
-                        .orderBy(sortOrder)
-                        .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
-                        .build()
-                    : new QueryBuilder()
-                        .select()
-                        .column(columns)
-                        .from(keyspaceName, tableName)
-                        .orderBy(sortOrder)
-                        .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
-                        .build())
-        .map(response -> convertRowsToResponse(response, raw));
+    // 15-Nov-2022, tatu: Since we do not need Table definition for anything let's just
+    //     call simpler method. Note that this may mean we get slightly different error
+    //     for missing Table than with "getRowWithWhere()" and "getRows()"
+    final QueryOuterClass.Query query =
+        columns.isEmpty()
+            ? new QueryBuilder()
+                .select()
+                .star()
+                .from(keyspaceName, tableName)
+                .orderBy(sortOrder)
+                .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
+                .build()
+            : new QueryBuilder()
+                .select()
+                .column(columns)
+                .from(keyspaceName, tableName)
+                .orderBy(sortOrder)
+                .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
+                .build();
+    return fetchRowsAsync(query, raw);
   }
 
   @Override
