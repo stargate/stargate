@@ -10,7 +10,8 @@ It's built with extensibility as a first-class citizen to enable rapid innovatio
 For operators, Stargate introduces microservice architecture, allowing independent deployment and scale of storage nodes, API Service nodes, and coordinator nodes in Cassandra clusters.
 
 - For quick instructions on how to bring up Stargate on your desktop using Docker, check out the [Docker compose](docker-compose/README.md) instructions.
-- For more information about how to deploy use Stargate, visit [stargate.io](https://stargate.io/)
+- If you wish to deploy in Kubernetes, there is also a [Helm chart](helm/README.md) you can use to install Stargate alongside an existing Cassandra cluster, or visit the [K8ssandra](https://k8ssandra.io) project for a distribution that packages Cassandra, Stargate, and additional tooling.
+- For more information about how to deploy and use Stargate, visit [stargate.io](https://stargate.io/)
 - To learn how to participate in our community, visit our [community page](https://stargate.io/community)
 - To set up and use a Stargate development environment, visit the [dev guide](DEV_GUIDE.md)
 
