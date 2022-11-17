@@ -8,6 +8,7 @@ import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Collections;
 import org.junit.jupiter.api.DisplayName;
@@ -24,6 +25,7 @@ public class ToProtoConverterTest {
 
   private static Arguments[] fromExternalSamplesStrict() {
     return new Arguments[] {
+      // Basic scalars
       arguments(123, basicType(TypeSpec.Basic.INT), Values.of(123)),
       arguments(-4567L, basicType(TypeSpec.Basic.BIGINT), Values.of(-4567L)),
       arguments("abc", basicType(TypeSpec.Basic.VARCHAR), Values.of("abc")),
@@ -62,12 +64,52 @@ public class ToProtoConverterTest {
   }
   ;
 
+  private static Arguments[] fromExternalSamplesTimestamp() {
+    return new Arguments[] {
+      arguments(
+          "2021-04-23T18:42:22.139Z",
+          Values.of(Instant.parse("2021-04-23T18:42:22.139Z").toEpochMilli())),
+      // Should accept offsets with or without colon, timezone offset needs to work (we'll
+      // compare to value in UTC)
+      arguments(
+          "2021-04-23T18:42:22.139+02:00",
+          Values.of(Instant.parse("2021-04-23T16:42:22.139Z").toEpochMilli())),
+      arguments(
+          "2021-04-23T18:42:22.139+0200",
+          Values.of(Instant.parse("2021-04-23T16:42:22.139Z").toEpochMilli())),
+      arguments(
+          "2021-04-23T18:42:22.139+02",
+          Values.of(Instant.parse("2021-04-23T16:42:22.139Z").toEpochMilli())),
+      arguments(
+          "2021-04-23T18:42:22.139-03:00",
+          Values.of(Instant.parse("2021-04-23T21:42:22.139Z").toEpochMilli())),
+      arguments(
+          "2021-04-23T18:42:22.139-0300",
+          Values.of(Instant.parse("2021-04-23T21:42:22.139Z").toEpochMilli())),
+      arguments(
+          "2021-04-23T18:42:22.139-03",
+          Values.of(Instant.parse("2021-04-23T21:42:22.139Z").toEpochMilli())),
+    };
+  }
+
   @ParameterizedTest
   @MethodSource("fromExternalSamplesStrict")
   @DisplayName("Should coerce 'strict' external value to Bridge/grpc value")
   public void strictExternalToBridgeValueTest(
       Object externalValue, TypeSpec typeSpec, QueryOuterClass.Value bridgeValue) {
     ToProtoConverter conv = createConverter(typeSpec);
+    // First verify that it works in strict mode
+    assertThat(conv.protoValueFromStrictlyTyped(TEST_COLUMN, externalValue)).isEqualTo(bridgeValue);
+    // But also that "loose" accepts it as well
+    assertThat(conv.protoValueFromLooselyTyped(TEST_COLUMN, externalValue)).isEqualTo(bridgeValue);
+  }
+
+  @ParameterizedTest
+  @MethodSource("fromExternalSamplesTimestamp")
+  @DisplayName("Should coerce 'strict' external Timestamp to Bridge/grpc value")
+  public void strictExternalTimestampToBridgeValueTest(
+      Object externalValue, QueryOuterClass.Value bridgeValue) {
+    ToProtoConverter conv = createConverter(basicType(TypeSpec.Basic.TIMESTAMP));
     // First verify that it works in strict mode
     assertThat(conv.protoValueFromStrictlyTyped(TEST_COLUMN, externalValue)).isEqualTo(bridgeValue);
     // But also that "loose" accepts it as well
