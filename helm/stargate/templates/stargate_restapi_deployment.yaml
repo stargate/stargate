@@ -1,0 +1,64 @@
+{{ if .Values.restapi.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stargate-restapi
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: stargate-restapi
+spec:
+  replicas: {{ .Values.restapi.replicaCount }}
+  selector:
+    matchLabels:
+      app: stargate-restapi
+  template:
+    metadata:
+      labels:
+        app: stargate-restapi
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: stargate-restapi
+            topologyKey: {{ .Values.restapi.topologyKey }} 
+      initContainers:
+      - name: wait-for-bridge
+        image: busybox
+        command: ["sh", "-c", "until nc -z stargate-bridge 8091 > /dev/null; do echo Waiting for bridge.; sleep 5;done;"]
+      containers:
+      - name: restapi
+        image: "{{ .Values.image.registry }}/{{ .Values.restapi.image.repository }}:{{ .Values.image.tag }}"
+        ports:
+        - containerPort: 8082
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.restapi.probe.readiness.url }}
+            port: {{ .Values.restapi.probe.readiness.port }}
+          timeoutSeconds: {{ .Values.restapi.probe.readiness.timeoutSeconds }}
+          periodSeconds: {{ .Values.restapi.probe.readiness.periodSeconds }}
+          failureThreshold: {{ .Values.restapi.probe.readiness.failureThreshold }}
+          initialDelaySeconds: {{ .Values.restapi.probe.readiness.initialDelaySeconds }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.restapi.probe.liveness.url }}
+            port: {{ .Values.restapi.probe.liveness.port }}
+          timeoutSeconds: {{ .Values.restapi.probe.liveness.timeoutSeconds }}
+          periodSeconds: {{ .Values.restapi.probe.liveness.periodSeconds }}
+          failureThreshold: {{ .Values.restapi.probe.liveness.failureThreshold }}
+          initialDelaySeconds: {{ .Values.restapi.probe.liveness.initialDelaySeconds }}
+        resources:
+          requests:
+            cpu: {{ .Values.restapi.cpu | default 200 }}m
+            memory: {{ .Values.restapi.memory | default 512 }}Mi
+        env:
+        - name: QUARKUS_GRPC_CLIENTS_BRIDGE_HOST
+          value: "stargate-bridge"
+        - name: IO_STARGATE_SGV2_API_COMMON_PROPERTIES_DATASTORE_CONFIGURATION_DATASTOREPROPERTIESCONFIGURATION_FETCHSUPPORTEDFEATURES_RETRY_MAXRETRIES
+          value: "50"
+        - name: IO_STARGATE_SGV2_API_COMMON_PROPERTIES_DATASTORE_CONFIGURATION_DATASTOREPROPERTIESCONFIGURATION_FETCHSUPPORTEDFEATURES_RETRY_MAXDURATION
+          value: "300"
+        - name: IO_STARGATE_SGV2_API_COMMON_PROPERTIES_DATASTORE_CONFIGURATION_DATASTOREPROPERTIESCONFIGURATION_FETCHSUPPORTEDFEATURES_RETRY_DELAY
+          value: "10"
+{{ end }}

@@ -1,0 +1,140 @@
+# Default values for stargate.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# Bridge relication count. This is also the replication for CQL, Auth and GRPC end points.
+replicaCount: 1
+
+# Coordinator or bridge registry and image
+image:
+  registry: "docker.io"
+  repository311: "stargateio/coordinator-3_11" 
+  repository40: "stargateio/coordinator-4_0" 
+  repositoryDse68: "stargateio/coordinator-dse-68" 
+  tag: "v2"
+
+# Storage cassandra details
+cassandra:
+  clusterName: "cassandra"
+  dcName: "datacenter1"
+  rack: "rack1"
+  seed: "my-release-cassandra-headless.default.svc.cluster.local" 
+  isDse: null
+  clusterVersion: "4.0"
+  enableCqlAuth: true
+
+# Probe values for coordinator
+probe:
+  readiness:
+    url: /checker/readiness
+    port: 8084
+    timeoutSeconds: 10
+    periodSeconds: 10
+    failureThreshold: 30
+    initialDelaySeconds: 30
+  liveness:
+    url: /checker/liveness
+    port: 8084
+    timeoutSeconds: 10
+    periodSeconds: 10
+    failureThreshold: 5
+    initialDelaySeconds: 30
+
+# topology key for anti affinity
+topologyKey: "kubernetes.io/hostname"
+
+# CPU and Memory request for cordinator
+cpuReqMillicores: 2000
+heapMB: 2048
+
+# Rest service image - don't change it. Can be disabled with enabled flag set to false. replicaCount for number for replicas to start with. CPU and memory are both request
+restapi:
+  image:
+    repository: "stargateio/restapi"
+  enabled: true
+  replicaCount: 1
+  cpu: 2000
+  memory: 2048
+  topologyKey: "kubernetes.io/hostname"
+  probe:
+    readiness:
+      url: /stargate/health/ready
+      port: 8082
+      timeoutSeconds: 10
+      periodSeconds: 10
+      failureThreshold: 30
+      initialDelaySeconds: 30
+    liveness:
+      url: /stargate/health/live
+      port: 8082
+      timeoutSeconds: 10
+      periodSeconds: 10
+      failureThreshold: 5
+      initialDelaySeconds: 30
+
+# Document service image - don't change it. Can be disabled with enabled flag set to false. replicaCount for number for replicas to start with. CPU and memory are both request
+docsapi:
+  image:
+    repository: "stargateio/docsapi"
+  enabled: true
+  replicaCount: 1
+  cpu: 2000
+  memory: 2048
+  topologyKey: "kubernetes.io/hostname"
+  probe:
+    readiness:
+      url: /stargate/health/ready
+      port: 8180
+      timeoutSeconds: 10
+      periodSeconds: 10
+      failureThreshold: 30
+      initialDelaySeconds: 30
+    liveness:
+      url: /stargate/health/live
+      port: 8180
+      timeoutSeconds: 10
+      periodSeconds: 10
+      failureThreshold: 5
+      initialDelaySeconds: 30
+# Graphql service image - don't change it. Can be disabled with enabled flag set to false. replicaCount for number for replicas to start with. CPU and memory are both request
+graphqlapi:
+  image:
+    repository: "stargateio/graphqlapi"
+  enabled: true
+  replicaCount: 1
+  cpu: 2000
+  memory: 2048
+  topologyKey: "kubernetes.io/hostname"
+  probe:
+    readiness:
+      url: /stargate/health/ready
+      port: 8080
+      timeoutSeconds: 10
+      periodSeconds: 10
+      failureThreshold: 30
+      initialDelaySeconds: 30
+    liveness:
+      url: /stargate/health/live
+      port: 8080
+      timeoutSeconds: 10
+      periodSeconds: 10
+      failureThreshold: 5
+      initialDelaySeconds: 30
+
+# HorizontalPodAutoscaler for coordinator and all services. This needs metrics server installed (kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml) in the cluster. 
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+# Ingress is not added to deployment by default. This needs to have ingress controller installed. Default configuration uses nginx controller. (Controller installed using 
+# helm upgrade --install ingress-nginx ingress-nginx \           
+#   --repo https://kubernetes.github.io/ingress-nginx \
+#   --namespace ingress-nginx --create-namespace
+
+ingress:
+  enabled: false
+  ingressClassName: nginx
+ 
