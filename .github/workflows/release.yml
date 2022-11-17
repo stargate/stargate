@@ -39,7 +39,7 @@ jobs:
 
       - name: Set reference
         id: vars
-        run: echo "tag=${GITHUB_REF#refs/*/}}" >> $GITHUB_OUTPUT
+        run: echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
 
       - name: Resolve tag
         id: resolve_tag

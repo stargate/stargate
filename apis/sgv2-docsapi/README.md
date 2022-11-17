@@ -68,6 +68,8 @@ To run your application in dev mode with live coding enabled, use the command:
 ../mvnw quarkus:dev
 ```
 
+By default, the application is served on port `8180`.
+
 > **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at http://localhost:8180/stargate/dev/.
 
 #### Debugging
@@ -221,13 +223,12 @@ If you want to learn more about building container images, please consult [Conta
 This project uses various Quarkus extensions, modules that run on top of a Quarkus application.
 You can list, add and remove the extensions using the `quarkus ext` command.
 
-### `quarkus-config-yaml`
-[Related guide](https://quarkus.io/guides/config-yaml)
+> *NOTE: Please check the shared extensions introduced by the [sgv2-quarkus-common](../sgv2-quarkus-common/README.md#shared-quarkus-extensions) project.
 
-The application configuration is specified using the YAML format.
-Default configuration properties are specified in the [application.yaml](src/main/resources/application.yaml) file.
-The YAML configuration also support profile aware files. 
-In this case, properties for a specific profile may reside in an `application-{profile}.yaml` named file.
+### `quarkus-arc`
+[Related guide](https://quarkus.io/guides/cdi-reference)
+
+The Quarkus DI solution.
 
 ### `quarkus-container-image-docker`
 [Related guide](https://quarkus.io/guides/container-image)
@@ -237,74 +238,6 @@ Properties for Docker image building are defined in the [pom.xml](pom.xml) file.
 Note that under the hood, the generated Dockerfiles under [src/main/docker](src/main/docker) are used when building the images.
 When updating the Quarkus version, the Dockerfiles must be re-generated.
 
-### `quarkus-grpc`
-[Related guide](https://quarkus.io/guides/grpc)
-
-The gRPC extension provides an easy way for consuming gRPC services, in this case the Stargate Bridge gRPC service.
-The [pom.xml](pom.xml) file defines what proto files should be used for generating the stubs:
-
-```xml
-<quarkus.generate-code.grpc.scan-for-proto>io.stargate.grpc:grpc-proto</quarkus.generate-code.grpc.scan-for-proto>
-```
-
-The clients are configured using the `quarkus.grpc.clients.[client-name]` properties.
-In order to pass the request context information to the Bridge, the client should be obtained using the [GrpcClients](../sgv2-quarkus-common/src/main/java/io/stargate/sgv2/api/common/grpc/GrpcClients.java) utility class.
-
-### `quarkus-hibernate-validator`
-[Related guide](https://quarkus.io/guides/validation)
-
-Enables validation of configuration, beans, REST endpoints, etc.
-
-### `quarkus-micrometer-registry-prometheus`
-[Related guide](https://quarkus.io/guides/micrometer)
-
-Enables out-of-the-box metrics collection and the Prometheus exporter.
-Metrics are exported at the Prometheus default `/metrics` endpoint.
-All non-application endpoints are ignored from the collection.
-
-### `quarkus-opentelemetry-exporter-otlp`
-[Related guide](https://quarkus.io/guides/opentelemetry)
-
-Enables the [OpenTelemetry](https://opentelemetry.io/) tracing support.
-In order to activate the tracing, you need to supply the OTLP gRPC endpoint using the JVM parameters `-Dquarkus.opentelemetry.tracer.exporter.otlp.enabled=true -Dquarkus.opentelemetry.tracer.exporter.otlp.endpoint=http://localhost:55680`.
-The easiest way to locally collect and visualize traces is to use the [jaegertracing/opentelemetry-all-in-one](https://www.jaegertracing.io/docs/1.21/opentelemetry/) Docker image with [in-memory](https://www.jaegertracing.io/docs/1.21/deployment/#badger---local-storage) storage:
-
-```shell
-docker run \
-  --rm \
-  -e SPAN_STORAGE_TYPE=badger \
-  -e BADGER_EPHEMERAL=false \
-  -e BADGER_DIRECTORY_VALUE=/badger/data \
-  -e BADGER_DIRECTORY_KEY=/badger/key \
-  -v badger:/badger \
-  -p 55680:55680 \
-  -p 16686:16686 \
-  jaegertracing/opentelemetry-all-in-one
-```
-
-You can then visualize traces using Jaeger UI started on http://localhost:16686.
-
-### `quarkus-resteasy-reactive`
-[Related guide](https://quarkus.io/guides/resteasy-reactive)
-
-The project uses the reactive implementation of the `resteasy` to create HTTP resources.
-The JSON serialization is done using the Jackson library (provided by `quarkus-resteasy-reactive-jackson` extension).
-The exception handling is done using the dedicated handlers annotated with `org.jboss.resteasy.reactive.server.ServerExceptionMapper`.
-
-By default, the application is served on port `8180`.
-The root path for the non-application endpoints (health, Open API, etc.) is `/stargate`.
-All configuration options for the HTTP server can be found in https://quarkus.io/guides/all-config#quarkus-vertx-http_quarkus-vertx-http-eclipse-vert.x-http.
-
-### `quarkus-resteasy-reactive`
-[Related guide](https://quarkus.io/guides/resteasy-reactive)
-
-The project uses the reactive implementation of the `resteasy` to create HTTP resources.
-The exception handling is done using the dedicated handlers annotated with `org.jboss.resteasy.reactive.server.ServerExceptionMapper`.
-
-By default, the application is served on port `8180`.
-The root path for the non-application endpoints (health, Open API, etc.) is `/stargate`.
-All configuration options for the HTTP server can be found in the [Quarkus Configuration Options](https://quarkus.io/guides/all-config#quarkus-vertx-http_quarkus-vertx-http-eclipse-vert.x-http).
-
 ### `quarkus-smallrye-health`
 [Related guide](https://quarkus.io/guides/smallrye-health)
 
@@ -313,10 +246,7 @@ The extension setups the health endpoints under `/stargate/health`.
 ### `quarkus-smallrye-openapi`
 [Related guide](https://quarkus.io/guides/openapi-swaggerui)
 
-The OpenAPI definitions are generated and available under `/stargate/openapi` endpoint.
+The OpenAPI definitions are generated and available under `/api/docs/openapi` endpoint.
 The [StargateDocsApi](src/main/java/io/stargate/sgv2/docsapi/StargateDocsApi.java) class defines the `@OpenAPIDefinition` annotation.
 This definition defines the default *SecurityScheme* named `Token`, which expects the header based authentication with the HTTP Header `X-Cassandra-Token`.
 The `info` portions of the Open API definitions are set using the `quarkus.smallrye-openapi.info-` configuration properties.
-
-The Swagger UI is available at the `/swagger-ui` endpoint.
-Note that Swagger UI is enabled by default in the production profile and can be disabled by setting the `quarkus.swagger-ui.always-include` property to `false`.

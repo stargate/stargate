@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>2.0.1-SNAPSHOT</version>
+    <version>2.0.2-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.graphql</groupId>
   <artifactId>graphqlapi</artifactId>
@@ -51,7 +51,7 @@
     <dependency>
       <groupId>com.graphql-java</groupId>
       <artifactId>graphql-java</artifactId>
-      <version>18.1</version>
+      <version>18.3</version>
     </dependency>
     <dependency>
       <groupId>io.dropwizard</groupId>
