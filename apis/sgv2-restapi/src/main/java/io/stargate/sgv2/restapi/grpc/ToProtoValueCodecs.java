@@ -31,7 +31,7 @@ public class ToProtoValueCodecs {
    * </ul>
    */
   private static final DateTimeFormatter ISO_OFFSET_DATE_TIME_OPTIONAL_COLON =
-      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss.SSS[XXX][X]");
+      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss[.SSS][XXX][X]");
 
   protected static final QueryOuterClass.Value VALUE_FALSE = Values.of(false);
   protected static final QueryOuterClass.Value VALUE_TRUE = Values.of(true);

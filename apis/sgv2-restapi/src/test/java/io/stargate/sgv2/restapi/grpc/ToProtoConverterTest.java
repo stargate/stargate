@@ -66,11 +66,15 @@ public class ToProtoConverterTest {
 
   private static Arguments[] fromExternalSamplesTimestamp() {
     return new Arguments[] {
+      // First, canonical version
       arguments(
           "2021-04-23T18:42:22.139Z",
           Values.of(Instant.parse("2021-04-23T18:42:22.139Z").toEpochMilli())),
-      // Should accept offsets with or without colon, timezone offset needs to work (we'll
-      // compare to value in UTC)
+      // same, but no milliseconds
+      arguments(
+          "2021-04-23T18:42:22Z", Values.of(Instant.parse("2021-04-23T18:42:22Z").toEpochMilli())),
+
+      // Should accept offsets with or without colon, but with tz-offset
       arguments(
           "2021-04-23T18:42:22.139+02:00",
           Values.of(Instant.parse("2021-04-23T16:42:22.139Z").toEpochMilli())),
@@ -81,6 +85,9 @@ public class ToProtoConverterTest {
           "2021-04-23T18:42:22.139+02",
           Values.of(Instant.parse("2021-04-23T16:42:22.139Z").toEpochMilli())),
       arguments(
+          "2021-04-23T18:42:22+02",
+          Values.of(Instant.parse("2021-04-23T16:42:22Z").toEpochMilli())),
+      arguments(
           "2021-04-23T18:42:22.139-03:00",
           Values.of(Instant.parse("2021-04-23T21:42:22.139Z").toEpochMilli())),
       arguments(
@@ -89,6 +96,9 @@ public class ToProtoConverterTest {
       arguments(
           "2021-04-23T18:42:22.139-03",
           Values.of(Instant.parse("2021-04-23T21:42:22.139Z").toEpochMilli())),
+      arguments(
+          "2021-04-23T18:42:22-03",
+          Values.of(Instant.parse("2021-04-23T21:42:22Z").toEpochMilli())),
     };
   }
 
