@@ -1,0 +1,21 @@
+{{ if .Values.graphqlapi.enabled }}
+
+apiVersion: v1
+kind: Service
+metadata:
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: stargate-graphqlapi
+  name: stargate-graphqlapi
+spec:
+  ports:
+  - name: stargate-graphqlapi
+    port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: stargate-graphqlapi
+  type: ClusterIP
+status:
+  loadBalancer: {}
+{{ end }}

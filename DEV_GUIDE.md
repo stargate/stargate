@@ -67,6 +67,12 @@ Recognizing that users will have different preferences on how to run Stargate, m
 
 We've provided [Docker Compose scripts](docker-compose/README.md) that can be used to run Stargate locally. These scripts can use Stargate Docker images created from a local build. Alternatively you can reference a released Stargate version to use containers from Docker Hub, without requiring a local build.
 
+### Running in Kubernetes
+
+There are two options available for running Stargate in Kubernetes. If you already have a Cassandra cluster, we provide a [Helm chart](helm/README.md) you can use to install Stargate alongside that cluster.
+
+For a more complete distribution including Stargate, Cassandra, and operational tools such as Medusa and Reaper, see the [K8ssandra](https://k8ssandra.io) project. K8ssandra includes multiple Kubernetes operators and more advanced features such as multi-cluster deployments.
+
 ### Running a local build with scripts
 
 #### Starting Cassandra 

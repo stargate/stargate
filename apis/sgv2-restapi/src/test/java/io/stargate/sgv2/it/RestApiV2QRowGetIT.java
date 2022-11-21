@@ -832,10 +832,15 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     insertTypedRows(
         testKeyspaceName(),
         tableName,
+        // Insert with variations of timezone-offset:
         Arrays.asList(
             map("id", 1, "firstName", "John", "created", timestamp),
-            map("id", 1, "firstName", "Sarah", "created", "2021-04-20T18:42:22.139Z"),
-            map("id", 2, "firstName", "Jane", "created", "2021-04-22T18:42:22.139Z")));
+            map("id", 1, "firstName", "Sarah", "created", "2021-04-20T18:42:22.139+02:00"),
+            map("id", 2, "firstName", "Jane", "created", "2021-04-22T18:42:22.139-03:00"),
+            map("id", 3, "firstName", "Billy", "created", "2021-04-22T18:42:22.139+1000"),
+            map("id", 3, "firstName", "Graham", "created", "2021-04-22T18:42:22.139-0800"),
+            map("id", 4, "firstName", "Joel", "created", "2021-04-22T18:42:22.139+07"),
+            map("id", 4, "firstName", "Deborah", "created", "2021-04-22T18:42:22.139-05")));
 
     String whereClause =
         String.format("{\"id\":{\"$eq\":\"1\"},\"created\":{\"$in\":[\"%s\"]}}", timestamp);

@@ -12,6 +12,7 @@ import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -21,6 +22,26 @@ import java.util.Map;
 import java.util.UUID;
 
 public class ToProtoValueCodecs {
+  /**
+   * Ok, this formatter is combination of info from:
+   *
+   * <ul>
+   *   <li>https://stackoverflow.com/questions/43360852/cannot-parse-string-in-iso-8601-format-lacking-colon-in-offset-to-java-8-date
+   *   <li>https://stackoverflow.com/questions/34637626/java-datetimeformatter-for-time-zone-with-an-optional-colon-separator
+   * </ul>
+   *
+   * <p>Notes:
+   *
+   * <ul>
+   *   <li>[XXX][X] is needed to allow either 2- or 4-digit timezone offset (and 4 digits with or
+   *       without colon)
+   *   <li>[.SSS] is needed to make millisecond part optional (and not required)
+   *   <li>Date part is mandatory; similarly hours/minutes/seconds time part
+   * </ul>
+   */
+  private static final DateTimeFormatter ISO_OFFSET_DATE_TIME_OPTIONAL_COLON =
+      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss[.SSS][XXX][X]");
+
   protected static final QueryOuterClass.Value VALUE_FALSE = Values.of(false);
   protected static final QueryOuterClass.Value VALUE_TRUE = Values.of(true);
 
@@ -596,10 +617,10 @@ public class ToProtoValueCodecs {
     @Override
     public QueryOuterClass.Value protoValueFromStringified(String value) {
       try {
-        // TODO: this implementation requires full date/time specification including timezone
-        // we could support more flexibility in format as requested in
-        // https://github.com/stargate/stargate/issues/839
-        return Values.of(Instant.parse(value).toEpochMilli());
+        // 16-Nov-2022, tatu: [#2223] Allow use of offsets (Colon or no) requires using
+        //   DateTimeFormatter different from default used by "Instant.parse(...)"
+        return Values.of(
+            ISO_OFFSET_DATE_TIME_OPTIONAL_COLON.parse(value, Instant::from).toEpochMilli());
       } catch (IllegalArgumentException e) {
         return invalidStringValue(value);
       }
