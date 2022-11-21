@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stargate-coordinator
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: coordinator
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: coordinator
+  template:
+    metadata:
+      labels:
+        app: coordinator
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: coordinator
+            topologyKey: {{ .Values.topologyKey }} 
+      containers:
+      - name: coordinator
+        {{ if eq .Values.cassandra.clusterVersion "3.11" }}
+        image: "{{ .Values.image.registry }}/{{ .Values.image.repository311 }}:{{ .Values.image.tag }}" 
+        {{ else if eq .Values.cassandra.clusterVersion "6.8" }}
+        image: "{{ .Values.image.registry }}/{{ .Values.image.repositoryDse68 }}:{{ .Values.image.tag }}" 
+        {{ else }}
+        image: "{{ .Values.image.registry }}/{{ .Values.image.repository40 }}:{{ .Values.image.tag }}" 
+        {{end}}
+        ports:
+        - containerPort: 8091
+        - containerPort: 8090
+        - containerPort: 9042
+        - containerPort: 8081
+        args:          
+         {{  range .Values.arguments }}
+           - {{ . }}
+         {{ end }}
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.probe.readiness.url }} 
+            port: {{ .Values.probe.readiness.port }} 
+          timeoutSeconds: {{ .Values.probe.readiness.timeoutSeconds }}
+          periodSeconds: {{ .Values.probe.readiness.periodSeconds }}
+          failureThreshold: {{ .Values.probe.readiness.failureThreshold }}
+          initialDelaySeconds: {{ .Values.probe.readiness.initialDelaySeconds }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.probe.liveness.url }}
+            port: {{ .Values.probe.liveness.port }}
+          timeoutSeconds: {{ .Values.probe.liveness.timeoutSeconds }}
+          periodSeconds: {{ .Values.probe.liveness.periodSeconds }}
+          failureThreshold: {{ .Values.probe.liveness.failureThreshold }}
+          initialDelaySeconds: {{ .Values.probe.liveness.initialDelaySeconds }}
+        resources:
+          requests:
+            cpu: {{ .Values.cpuReqMillicores | default 1000 }}m
+            memory: {{ .Values.heapMB | default 1024}}Mi
+        env:
+        - name: CLUSTER_NAME
+          value: "{{.Values.cassandra.clusterName}}"
+        - name: DATACENTER_NAME
+          value: "{{.Values.cassandra.dcName}}"
+        - name: RACK_NAME
+          value: "{{.Values.cassandra.rack}}"
+        - name: SEED
+          value: "{{.Values.cassandra.seed}}"
+        - name: DSE
+          value: "{{.Values.cassandra.isDse}}"
+        - name: CLUSTER_VERSION
+          value: "{{.Values.cassandra.clusterVersion}}"
+        - name: ENABLE_AUTH
+          value: "{{.Values.cassandra.enableCqlAuth}}"
+        - name: JAVA_OPTS
+          value: >-
+            -XX:+CrashOnOutOfMemoryError
+            -XX:+UnlockExperimentalVMOptions
+            -Xms{{ .Values.heapMB | default 1024 }}M
+            -Xmx{{ .Values.heapMB | default 1024 }}M
+            -XX:+UnlockDiagnosticVMOptions
+            -XX:GuaranteedSafepointInterval=300000
+            -XX:-UseBiasedLocking
+            -XX:+DebugNonSafepoints
+            -Xss256k
+            -XX:StringTableSize=1000003
+            -XX:+UseG1GC
+            -XX:MaxGCPauseMillis=100
+            -XX:+PrintGC
+            -Djava.awt.headless=true

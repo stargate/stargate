@@ -1,0 +1,64 @@
+{{ if .Values.graphqlapi.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stargate-graphqlapi
+  namespace: {{ .Release.Namespace }}
+  labels:
+    app: stargate-graphqlapi
+spec:
+  replicas: {{ .Values.graphqlapi.replicaCount }}
+  selector:
+    matchLabels:
+      app: stargate-graphqlapi
+  template:
+    metadata:
+      labels:
+        app: stargate-graphqlapi
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchLabels:
+                app: stargate-graphqlapi
+            topologyKey: {{ .Values.graphqlapi.topologyKey }} 
+      initContainers:
+      - name: wait-for-bridge
+        image: busybox
+        command: ["sh", "-c", "until nc -z stargate-bridge 8091 > /dev/null; do echo Waiting for bridge.; sleep 5;done;"]
+      containers:
+      - name: graphqlapi
+        image: "{{ .Values.image.registry }}/{{ .Values.graphqlapi.image.repository }}:{{ .Values.image.tag }}"
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          httpGet:
+            path: {{ .Values.graphqlapi.probe.readiness.url }}
+            port: {{ .Values.graphqlapi.probe.readiness.port }}
+          timeoutSeconds: {{ .Values.graphqlapi.probe.readiness.timeoutSeconds }}
+          periodSeconds: {{ .Values.graphqlapi.probe.readiness.periodSeconds }}
+          failureThreshold: {{ .Values.graphqlapi.probe.readiness.failureThreshold }}
+          initialDelaySeconds: {{ .Values.graphqlapi.probe.readiness.initialDelaySeconds }}
+        livenessProbe:
+          httpGet:
+            path: {{ .Values.graphqlapi.probe.liveness.url }}
+            port: {{ .Values.graphqlapi.probe.liveness.port }}
+          timeoutSeconds: {{ .Values.graphqlapi.probe.liveness.timeoutSeconds }}
+          periodSeconds: {{ .Values.graphqlapi.probe.liveness.periodSeconds }}
+          failureThreshold: {{ .Values.graphqlapi.probe.liveness.failureThreshold }}
+          initialDelaySeconds: {{ .Values.graphqlapi.probe.liveness.initialDelaySeconds }}
+        resources:
+          requests:
+            cpu: {{ .Values.graphqlapi.cpu | default 1000 }}m
+            memory: {{ .Values.graphqlapi.memory | default 1024 }}Mi
+        env:
+        - name: QUARKUS_GRPC_CLIENTS_BRIDGE_HOST
+          value: "stargate-bridge"
+        - name: IO_STARGATE_SGV2_API_COMMON_PROPERTIES_DATASTORE_CONFIGURATION_DATASTOREPROPERTIESCONFIGURATION_FETCHSUPPORTEDFEATURES_RETRY_MAXRETRIES
+          value: "50"
+        - name: IO_STARGATE_SGV2_API_COMMON_PROPERTIES_DATASTORE_CONFIGURATION_DATASTOREPROPERTIESCONFIGURATION_FETCHSUPPORTEDFEATURES_RETRY_MAXDURATION
+          value: "300"
+        - name: IO_STARGATE_SGV2_API_COMMON_PROPERTIES_DATASTORE_CONFIGURATION_DATASTOREPROPERTIESCONFIGURATION_FETCHSUPPORTEDFEATURES_RETRY_DELAY
+          value: "10"
+{{ end }}
