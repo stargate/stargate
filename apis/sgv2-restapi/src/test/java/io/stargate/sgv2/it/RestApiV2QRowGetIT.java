@@ -12,6 +12,7 @@ import io.stargate.bridge.grpc.CqlDuration;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashSet;
@@ -829,10 +830,11 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
         Arrays.asList("id"),
         Arrays.asList("created"));
     final String timestamp = "2021-04-23T18:42:22.139Z";
+    final long timestampAsMsecs = Instant.parse(timestamp).toEpochMilli();
     insertTypedRows(
         testKeyspaceName(),
         tableName,
-        // Insert with variations of timezone-offset:
+        // Insert with variations of timezone-offset as well as Long-valued numeric timestamp
         Arrays.asList(
             map("id", 1, "firstName", "John", "created", timestamp),
             map("id", 1, "firstName", "Sarah", "created", "2021-04-20T18:42:22.139+02:00"),
@@ -840,7 +842,8 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
             map("id", 3, "firstName", "Billy", "created", "2021-04-22T18:42:22.139+1000"),
             map("id", 3, "firstName", "Graham", "created", "2021-04-22T18:42:22.139-0800"),
             map("id", 4, "firstName", "Joel", "created", "2021-04-22T18:42:22.139+07"),
-            map("id", 4, "firstName", "Deborah", "created", "2021-04-22T18:42:22.139-05")));
+            map("id", 4, "firstName", "Deborah", "created", "2021-04-22T18:42:22.139-05"),
+            map("id", 5, "firstName", "Timothy", "created", timestampAsMsecs)));
 
     String whereClause =
         String.format("{\"id\":{\"$eq\":\"1\"},\"created\":{\"$in\":[\"%s\"]}}", timestamp);

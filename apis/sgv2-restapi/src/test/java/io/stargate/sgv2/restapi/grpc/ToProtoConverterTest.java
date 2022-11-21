@@ -64,12 +64,13 @@ public class ToProtoConverterTest {
   }
   ;
 
+  private static String DEFAULT_INSTANT_STR = "2021-04-23T18:42:22.139Z";
+  private static Instant DEFAULT_INSTANT = Instant.parse(DEFAULT_INSTANT_STR);
+
   private static Arguments[] fromExternalSamplesTimestamp() {
     return new Arguments[] {
       // First, canonical version
-      arguments(
-          "2021-04-23T18:42:22.139Z",
-          Values.of(Instant.parse("2021-04-23T18:42:22.139Z").toEpochMilli())),
+      arguments(DEFAULT_INSTANT_STR, Values.of(DEFAULT_INSTANT.toEpochMilli())),
       // same, but no milliseconds
       arguments(
           "2021-04-23T18:42:22Z", Values.of(Instant.parse("2021-04-23T18:42:22Z").toEpochMilli())),
@@ -99,6 +100,9 @@ public class ToProtoConverterTest {
       arguments(
           "2021-04-23T18:42:22-03",
           Values.of(Instant.parse("2021-04-23T21:42:22Z").toEpochMilli())),
+
+      // Also: timestamp as Long should be supported
+      arguments(DEFAULT_INSTANT.toEpochMilli(), Values.of(DEFAULT_INSTANT.toEpochMilli()))
     };
   }
 
