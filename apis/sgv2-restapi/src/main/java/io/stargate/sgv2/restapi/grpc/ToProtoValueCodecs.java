@@ -29,6 +29,14 @@ public class ToProtoValueCodecs {
    *   <li>https://stackoverflow.com/questions/43360852/cannot-parse-string-in-iso-8601-format-lacking-colon-in-offset-to-java-8-date
    *   <li>https://stackoverflow.com/questions/34637626/java-datetimeformatter-for-time-zone-with-an-optional-colon-separator
    * </ul>
+   *<p>
+   *  Notes:
+   * <ul>
+   *   <li>[XXX][X] is needed to allow either 2- or 4-digit timezone offset (and 4 digits with or without colon)</li>
+   *   <li>[.SSS] is needed to make millisecond part optional (and not required)</li>
+   *   <li>Date part is mandatory; similarly hours/minutes/seconds time part</li>
+   * </ul>
+   *</p>
    */
   private static final DateTimeFormatter ISO_OFFSET_DATE_TIME_OPTIONAL_COLON =
       DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss[.SSS][XXX][X]");
@@ -608,10 +616,6 @@ public class ToProtoValueCodecs {
     @Override
     public QueryOuterClass.Value protoValueFromStringified(String value) {
       try {
-        // TODO: this implementation requires full date/time specification including timezone
-        // we could support more flexibility in format as requested in
-        // https://github.com/stargate/stargate/issues/839
-
         // 16-Nov-2022, tatu: [#2223] Allow use of offsets (Colon or no) requires using
         //   DateTimeFormatter different from default used by "Instant.parse(...)"
         return Values.of(
