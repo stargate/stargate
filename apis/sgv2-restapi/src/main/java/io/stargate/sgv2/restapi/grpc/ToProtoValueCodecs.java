@@ -29,14 +29,15 @@ public class ToProtoValueCodecs {
    *   <li>https://stackoverflow.com/questions/43360852/cannot-parse-string-in-iso-8601-format-lacking-colon-in-offset-to-java-8-date
    *   <li>https://stackoverflow.com/questions/34637626/java-datetimeformatter-for-time-zone-with-an-optional-colon-separator
    * </ul>
-   *<p>
-   *  Notes:
+   *
+   * <p>Notes:
+   *
    * <ul>
-   *   <li>[XXX][X] is needed to allow either 2- or 4-digit timezone offset (and 4 digits with or without colon)</li>
-   *   <li>[.SSS] is needed to make millisecond part optional (and not required)</li>
-   *   <li>Date part is mandatory; similarly hours/minutes/seconds time part</li>
+   *   <li>[XXX][X] is needed to allow either 2- or 4-digit timezone offset (and 4 digits with or
+   *       without colon)
+   *   <li>[.SSS] is needed to make millisecond part optional (and not required)
+   *   <li>Date part is mandatory; similarly hours/minutes/seconds time part
    * </ul>
-   *</p>
    */
   private static final DateTimeFormatter ISO_OFFSET_DATE_TIME_OPTIONAL_COLON =
       DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss[.SSS][XXX][X]");
