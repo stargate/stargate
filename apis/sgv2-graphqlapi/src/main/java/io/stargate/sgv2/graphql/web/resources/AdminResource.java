@@ -20,6 +20,7 @@ import io.stargate.sgv2.graphql.web.models.GraphqlFormData;
 import io.stargate.sgv2.graphql.web.models.GraphqlJsonBody;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.ws.rs.BeanParam;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -29,7 +30,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
-import org.jboss.resteasy.reactive.MultipartForm;
 
 /**
  * A GraphQL service that allows users to deploy and manage custom GraphQL schemas for their
@@ -70,7 +70,7 @@ public class AdminResource extends StargateGraphqlResourceBase {
   @POST
   @Consumes(MediaType.MULTIPART_FORM_DATA)
   public void postMultipartJson(
-      @MultipartForm GraphqlFormData formData, @Suspended AsyncResponse asyncResponse) {
+      @BeanParam GraphqlFormData formData, @Suspended AsyncResponse asyncResponse) {
     postMultipartJson(formData, graphql, newContext(), asyncResponse);
   }
 
