@@ -43,6 +43,9 @@ stargate:
 
 quarkus:
 
+  application:
+    ui-header: ${quarkus.application.name} (powered by DataStax)
+
   # cache properties
   cache:
     caffeine:

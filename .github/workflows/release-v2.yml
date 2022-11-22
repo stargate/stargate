@@ -308,11 +308,50 @@ jobs:
         run: |
           ./build_docker_images.sh -p -t ${{needs.resolve-tag.outputs.release-tag}} -r ${{ secrets.ECR_REPOSITORY }} -a
 
-      - name: Build and push (apis, Amazon ECR)
+      # downloads and prepares datastax assets
+      - name: Download branding assets
+        if: ${{ !inputs.skipPublish }}
+        run : |
+          curl https://www.datastax.com/favicon.ico -o ./sgv2-quarkus-common/src/main/resources/META-INF/branding/favicon.ico
+          curl https://cdn.sanity.io/files/bbnkhnhl/production/cf8b48832cfd43cdb24aec0e0d1c656e9234b620.zip -o icons.zip
+          unzip -j icons.zip 'Brand\ Icons/astra-square.png' -d ./sgv2-quarkus-common/src/main/resources/META-INF/branding/
+          mv ./sgv2-quarkus-common/src/main/resources/META-INF/branding/astra-square.png ./sgv2-quarkus-common/src/main/resources/META-INF/branding/logo.png
+
+      - name: Build and push (graphqlapi, Amazon ECR)
         if: ${{ !inputs.skipPublish }}
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-graphqlapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          cd ../
+
+      - name: Build and push (docsapi, Amazon ECR)
+        if: ${{ !inputs.skipPublish }}
+        env:
+          QUARKUS_APPLICATION_NAME: 'Astra DB Document API'
+          QUARKUS_SMALLRYE_OPENAPI_INFO_DESCRIPTION: 'The Astra DB Document API modifies and queries data stored as unstructured JSON documents in collections. See the [documentation site](https://docs.datastax.com/en/astra-serverless/docs/develop/dev-with-doc.html) for additional information.'
+          QUARKUS_SMALLRYE_OPENAPI_INFO_TERMS_OF_SERVICE: 'https://www.datastax.com/legal'
+          QUARKUS_SMALLRYE_OPENAPI_INFO_CONTACT_NAME: 'DataStax'
+          QUARKUS_SMALLRYE_OPENAPI_INFO_CONTACT_URL: 'https://www.datastax.com/contact-us'
+          QUARKUS_SMALLRYE_OPENAPI_INFO_LICENSE_NAME: ''
+          QUARKUS_SMALLRYE_OPENAPI_INFO_LICENSE_URL: ''
+        run: |
+          cd apis/
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-docsapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          cd ../
+
+      - name: Build and push (restapi, Amazon ECR)
+        if: ${{ !inputs.skipPublish }}
+        env:
+          QUARKUS_APPLICATION_NAME: 'Astra DB REST API'
+          QUARKUS_SMALLRYE_OPENAPI_INFO_DESCRIPTION: 'The Astra DB REST API exposes CRUD access to data stored in Cassandra tables. See the [documentation site](https://docs.datastax.com/en/astra-serverless/docs/develop/dev-with-rest.html) for additional information.'
+          QUARKUS_SMALLRYE_OPENAPI_INFO_TERMS_OF_SERVICE: 'https://www.datastax.com/legal'
+          QUARKUS_SMALLRYE_OPENAPI_INFO_CONTACT_NAME: 'DataStax'
+          QUARKUS_SMALLRYE_OPENAPI_INFO_CONTACT_URL: 'https://www.datastax.com/contact-us'
+          QUARKUS_SMALLRYE_OPENAPI_INFO_LICENSE_NAME: ''
+          QUARKUS_SMALLRYE_OPENAPI_INFO_LICENSE_URL: ''
+        run: |
+          cd apis/
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-restapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
           cd ../
 
   # signs all docker images with cosign
