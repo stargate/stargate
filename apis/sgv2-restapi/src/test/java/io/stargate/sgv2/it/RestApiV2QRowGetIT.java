@@ -910,6 +910,17 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     assertThat(rows.at("/0/data/1").booleanValue()).isTrue();
     assertThat(rows.at("/0/data").size()).isEqualTo(3);
     assertTrue(rows.at("/0/alt_id").isNull());
+
+    // 22-Nov-2022, tatu: [stargate#2246] empty/missing Tuples should work too
+    String altUid2 = UUID.randomUUID().toString();
+    insertTypedRows(
+        testKeyspaceName(), tableName, Arrays.asList(map("id", "3", "alt_id", altUid2)));
+    rows = findRowsAsJsonNode(testKeyspaceName(), tableName, "3");
+    assertThat(rows).hasSize(1);
+    assertThat(rows.at("/0/id").asText()).isEqualTo("3");
+    // Should get explicit `null` for missing Tuple
+    assertTrue(rows.at("/0/data").isNull());
+    assertThat(rows.at("/0/alt_id").asText()).isEqualTo(altUid2);
   }
 
   @Test

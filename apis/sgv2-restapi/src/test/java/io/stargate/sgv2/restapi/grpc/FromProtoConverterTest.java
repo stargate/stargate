@@ -12,6 +12,7 @@ import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -76,6 +77,25 @@ public class FromProtoConverterTest {
     Map<String, Object> result = conv.mapFromProtoValues(Arrays.asList(bridgeValue));
 
     assertThat(result.get(TEST_COLUMN)).isEqualTo(externalValue);
+  }
+
+  // For [stargate#2246]: handle conversion for "missing" Tuple value
+  @Test
+  public void emptyOrMissingTupleToNullTest() {
+    QueryOuterClass.TypeSpec textType = basicType(QueryOuterClass.TypeSpec.Basic.VARCHAR);
+    QueryOuterClass.TypeSpec.Tuple.Builder tupleBuilder =
+        QueryOuterClass.TypeSpec.Tuple.newBuilder().addElements(textType).addElements(textType);
+    QueryOuterClass.TypeSpec tupleType =
+        QueryOuterClass.TypeSpec.newBuilder().setTuple(tupleBuilder.build()).build();
+    FromProtoConverter conv = createConverter(tupleType);
+
+    // Tuples are represents as Lists
+    QueryOuterClass.Value emptyTuple =
+        QueryOuterClass.Value.newBuilder()
+            .setCollection(QueryOuterClass.Collection.newBuilder())
+            .build();
+    Map<String, Object> result = conv.mapFromProtoValues(Arrays.asList(emptyTuple));
+    assertThat(result.get(TEST_COLUMN)).isNull();
   }
 
   /*
