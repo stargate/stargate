@@ -43,6 +43,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.common.collect.ImmutableList;
 import io.reactivex.rxjava3.core.Flowable;
 import io.reactivex.rxjava3.core.Maybe;
 import io.reactivex.rxjava3.core.Single;
@@ -197,13 +198,14 @@ class ReactiveDocumentServiceTest {
               eq(collection),
               anyString(),
               eq(rows),
+              any(),
               eq(true),
               eq(context)))
           .thenReturn(Single.just(ResultSet.empty()));
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.writeDocument(
-              documentDB, namespace, collection, payload, context);
+              documentDB, namespace, collection, payload, null, context);
 
       MutableObject<String> documentId = new MutableObject<>();
       result
@@ -221,7 +223,55 @@ class ReactiveDocumentServiceTest {
 
       verify(writeService)
           .writeDocument(
-              dataStore, namespace, collection, documentId.getValue(), rows, true, context);
+              dataStore, namespace, collection, documentId.getValue(), rows, null, true, context);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void happyPathWithTtl() throws Exception {
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+
+      when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
+      when(jsonDocumentShredder.shred(objectMapper.readTree(payload), Collections.emptyList()))
+          .thenReturn(rows);
+      when(writeService.writeDocument(
+              eq(dataStore),
+              eq(namespace),
+              eq(collection),
+              anyString(),
+              eq(rows),
+              eq(100),
+              eq(true),
+              eq(context)))
+          .thenReturn(Single.just(ResultSet.empty()));
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.writeDocument(
+              documentDB, namespace, collection, payload, 100, context);
+
+      MutableObject<String> documentId = new MutableObject<>();
+      result
+          .test()
+          .await()
+          .assertValue(
+              v -> {
+                documentId.setValue(v.getDocumentId());
+                assertThat(v.getDocumentId()).isNotNull();
+                assertThat(v.getData()).isNull();
+                assertThat(v.getPageState()).isNull();
+                assertThat(v.getProfile()).isEqualTo(context.toProfile());
+                return true;
+              });
+
+      verify(writeService)
+          .writeDocument(
+              dataStore, namespace, collection, documentId.getValue(), rows, 100, true, context);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
       verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
@@ -247,13 +297,14 @@ class ReactiveDocumentServiceTest {
               eq(collection),
               anyString(),
               eq(rows),
+              any(),
               eq(false),
               eq(context)))
           .thenReturn(Single.just(ResultSet.empty()));
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.writeDocument(
-              documentDB, namespace, collection, payload, context);
+              documentDB, namespace, collection, payload, null, context);
 
       MutableObject<String> documentId = new MutableObject<>();
       result
@@ -270,7 +321,7 @@ class ReactiveDocumentServiceTest {
 
       verify(writeService)
           .writeDocument(
-              dataStore, namespace, collection, documentId.getValue(), rows, false, context);
+              dataStore, namespace, collection, documentId.getValue(), rows, null, false, context);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
       verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
@@ -287,7 +338,7 @@ class ReactiveDocumentServiceTest {
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.writeDocument(
-              documentDB, namespace, collection, payload, context);
+              documentDB, namespace, collection, payload, null, context);
 
       result
           .test()
@@ -322,7 +373,7 @@ class ReactiveDocumentServiceTest {
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.writeDocument(
-              documentDB, namespace, collection, payload, context);
+              documentDB, namespace, collection, payload, null, context);
 
       result.test().await().assertError(exception);
 
@@ -344,7 +395,7 @@ class ReactiveDocumentServiceTest {
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.writeDocument(
-              documentDB, namespace, collection, payload, context);
+              documentDB, namespace, collection, payload, null, context);
 
       result
           .test()
@@ -388,13 +439,14 @@ class ReactiveDocumentServiceTest {
               eq(collection),
               anyString(),
               any(),
+              any(),
               eq(true),
               eq(context)))
           .thenReturn(Single.just(ResultSet.empty()));
 
       Single<MultiDocsResponse> result =
           reactiveDocumentService.writeDocuments(
-              documentDB, namespace, collection, payload, null, context);
+              documentDB, namespace, collection, payload, null, null, context);
 
       MutableObject<String> documentId1 = new MutableObject<>();
       MutableObject<String> documentId2 = new MutableObject<>();
@@ -413,10 +465,66 @@ class ReactiveDocumentServiceTest {
 
       verify(writeService)
           .writeDocument(
-              dataStore, namespace, collection, documentId1.getValue(), rows1, true, context);
+              dataStore, namespace, collection, documentId1.getValue(), rows1, null, true, context);
       verify(writeService)
           .writeDocument(
-              dataStore, namespace, collection, documentId2.getValue(), rows2, true, context);
+              dataStore, namespace, collection, documentId2.getValue(), rows2, null, true, context);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(jsonSchemaHandler, times(2)).getCachedJsonSchema(documentDB, namespace, collection);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void happyPathWithTtl() throws Exception {
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String doc1Payload = "{\"id\": \"1\"}";
+      String doc2Payload = "{\"id\": \"2\"}";
+      String payload = String.format("[%s,%s]", doc1Payload, doc2Payload);
+
+      when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
+      when(jsonDocumentShredder.shred(objectMapper.readTree(doc1Payload), Collections.emptyList()))
+          .thenReturn(rows1);
+      when(jsonDocumentShredder.shred(objectMapper.readTree(doc2Payload), Collections.emptyList()))
+          .thenReturn(rows2);
+      when(writeService.writeDocument(
+              eq(dataStore),
+              eq(namespace),
+              eq(collection),
+              anyString(),
+              any(),
+              eq(100),
+              eq(true),
+              eq(context)))
+          .thenReturn(Single.just(ResultSet.empty()));
+
+      Single<MultiDocsResponse> result =
+          reactiveDocumentService.writeDocuments(
+              documentDB, namespace, collection, payload, null, 100, context);
+
+      MutableObject<String> documentId1 = new MutableObject<>();
+      MutableObject<String> documentId2 = new MutableObject<>();
+      result
+          .test()
+          .await()
+          .assertValue(
+              v -> {
+                List<String> documentIds = v.getDocumentIds();
+                assertThat(documentIds).hasSize(2).allSatisfy(id -> assertThat(id).isNotEmpty());
+                assertThat(v.getProfile()).isEqualTo(context.toProfile());
+                documentId1.setValue(documentIds.get(0));
+                documentId2.setValue(documentIds.get(1));
+                return true;
+              });
+
+      verify(writeService)
+          .writeDocument(
+              dataStore, namespace, collection, documentId1.getValue(), rows1, 100, true, context);
+      verify(writeService)
+          .writeDocument(
+              dataStore, namespace, collection, documentId2.getValue(), rows2, 100, true, context);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
       verify(jsonSchemaHandler, times(2)).getCachedJsonSchema(documentDB, namespace, collection);
@@ -443,13 +551,14 @@ class ReactiveDocumentServiceTest {
               eq(collection),
               anyString(),
               any(),
+              any(),
               eq(true),
               eq(context)))
           .thenReturn(Single.just(ResultSet.empty()));
 
       Single<MultiDocsResponse> result =
           reactiveDocumentService.writeDocuments(
-              documentDB, namespace, collection, payload, "id", context);
+              documentDB, namespace, collection, payload, "id", null, context);
 
       result
           .test()
@@ -463,9 +572,9 @@ class ReactiveDocumentServiceTest {
               });
 
       verify(writeService)
-          .updateDocument(dataStore, namespace, collection, "1", rows1, true, context);
+          .updateDocument(dataStore, namespace, collection, "1", rows1, null, true, context);
       verify(writeService)
-          .updateDocument(dataStore, namespace, collection, "2", rows2, true, context);
+          .updateDocument(dataStore, namespace, collection, "2", rows2, null, true, context);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
       verify(authService)
@@ -494,6 +603,7 @@ class ReactiveDocumentServiceTest {
               eq(collection),
               anyString(),
               eq(rows1),
+              any(),
               eq(true),
               eq(context)))
           .thenReturn(Single.error(new IOException()));
@@ -503,13 +613,14 @@ class ReactiveDocumentServiceTest {
               eq(collection),
               anyString(),
               eq(rows2),
+              any(),
               eq(true),
               eq(context)))
           .thenReturn(Single.just(ResultSet.empty()));
 
       Single<MultiDocsResponse> result =
           reactiveDocumentService.writeDocuments(
-              documentDB, namespace, collection, payload, "id", context);
+              documentDB, namespace, collection, payload, "id", null, context);
 
       result
           .test()
@@ -523,9 +634,9 @@ class ReactiveDocumentServiceTest {
               });
 
       verify(writeService)
-          .updateDocument(dataStore, namespace, collection, "1", rows1, true, context);
+          .updateDocument(dataStore, namespace, collection, "1", rows1, null, true, context);
       verify(writeService)
-          .updateDocument(dataStore, namespace, collection, "2", rows2, true, context);
+          .updateDocument(dataStore, namespace, collection, "2", rows2, null, true, context);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
       verify(authService)
@@ -555,7 +666,7 @@ class ReactiveDocumentServiceTest {
 
       Single<MultiDocsResponse> result =
           reactiveDocumentService.writeDocuments(
-              documentDB, namespace, collection, payload, "id", context);
+              documentDB, namespace, collection, payload, "id", null, context);
 
       result
           .test()
@@ -592,7 +703,7 @@ class ReactiveDocumentServiceTest {
 
       Single<MultiDocsResponse> result =
           reactiveDocumentService.writeDocuments(
-              documentDB, namespace, collection, payload, "id", context);
+              documentDB, namespace, collection, payload, "id", null, context);
 
       result
           .test()
@@ -623,7 +734,7 @@ class ReactiveDocumentServiceTest {
 
       Single<MultiDocsResponse> result =
           reactiveDocumentService.writeDocuments(
-              documentDB, namespace, collection, payload, "id", context);
+              documentDB, namespace, collection, payload, "id", null, context);
 
       result
           .test()
@@ -659,7 +770,7 @@ class ReactiveDocumentServiceTest {
 
       Single<MultiDocsResponse> result =
           reactiveDocumentService.writeDocuments(
-              documentDB, namespace, collection, payload, "id", context);
+              documentDB, namespace, collection, payload, "id", null, context);
 
       result
           .test()
@@ -699,13 +810,14 @@ class ReactiveDocumentServiceTest {
               documentId,
               Collections.emptyList(),
               rows,
+              null,
               true,
               context))
           .thenReturn(Single.just(ResultSet.empty()));
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.updateDocument(
-              documentDB, namespace, collection, documentId, payload, context);
+              documentDB, namespace, collection, documentId, payload, null, context);
 
       result
           .test()
@@ -727,6 +839,65 @@ class ReactiveDocumentServiceTest {
               documentId,
               Collections.emptyList(),
               rows,
+              null,
+              true,
+              context);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void happyPathWithTtl() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+
+      when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
+      when(jsonDocumentShredder.shred(objectMapper.readTree(payload), Collections.emptyList()))
+          .thenReturn(rows);
+      when(writeService.updateDocument(
+              dataStore,
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              rows,
+              100,
+              true,
+              context))
+          .thenReturn(Single.just(ResultSet.empty()));
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.updateDocument(
+              documentDB, namespace, collection, documentId, payload, 100, context);
+
+      result
+          .test()
+          .await()
+          .assertValue(
+              v -> {
+                assertThat(v.getDocumentId()).isEqualTo(documentId);
+                assertThat(v.getData()).isNull();
+                assertThat(v.getPageState()).isNull();
+                assertThat(v.getProfile()).isEqualTo(context.toProfile());
+                return true;
+              });
+
+      verify(writeService)
+          .updateDocument(
+              dataStore,
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              rows,
+              100,
               true,
               context);
       verify(authService)
@@ -750,12 +921,12 @@ class ReactiveDocumentServiceTest {
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
       when(jsonDocumentShredder.shred(objectMapper.readTree(payload), subPath)).thenReturn(rows);
       when(writeService.updateDocument(
-              dataStore, namespace, collection, documentId, subPath, rows, true, context))
+              dataStore, namespace, collection, documentId, subPath, rows, 0, true, context))
           .thenReturn(Single.just(ResultSet.empty()));
 
       Single<DocumentResponseWrapper<Void>> result =
-          reactiveDocumentService.updateDocument(
-              documentDB, namespace, collection, documentId, subPath, payload, context);
+          reactiveDocumentService.updateSubDocument(
+              documentDB, namespace, collection, documentId, subPath, payload, false, context);
 
       result
           .test()
@@ -771,7 +942,54 @@ class ReactiveDocumentServiceTest {
 
       verify(writeService)
           .updateDocument(
-              dataStore, namespace, collection, documentId, subPath, rows, true, context);
+              dataStore, namespace, collection, documentId, subPath, rows, 0, true, context);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void happyPathWithSubPathTtlAuto() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      String path = RandomStringUtils.randomAlphanumeric(16);
+      List<String> subPath = Collections.singletonList(path);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{}";
+
+      when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
+      when(jsonDocumentShredder.shred(objectMapper.readTree(payload), subPath)).thenReturn(rows);
+      when(writeService.updateDocument(
+              dataStore, namespace, collection, documentId, subPath, rows, 0, true, context))
+          .thenReturn(Single.just(ResultSet.empty()));
+      when(rawDocument.rows()).thenReturn(ImmutableList.of(row));
+      when(row.getInt("ttl(leaf)")).thenReturn(0);
+      when(searchService.getDocumentTtlInfo(any(), any(), any(), any(), any()))
+          .thenReturn(Flowable.just(rawDocument));
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.updateSubDocument(
+              documentDB, namespace, collection, documentId, subPath, payload, true, context);
+
+      result
+          .test()
+          .await()
+          .assertValue(
+              v -> {
+                assertThat(v.getDocumentId()).isEqualTo(documentId);
+                assertThat(v.getData()).isNull();
+                assertThat(v.getPageState()).isNull();
+                assertThat(v.getProfile()).isEqualTo(context.toProfile());
+                return true;
+              });
+
+      verify(writeService)
+          .updateDocument(
+              dataStore, namespace, collection, documentId, subPath, rows, 0, true, context);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
       verify(authService)
@@ -801,13 +1019,14 @@ class ReactiveDocumentServiceTest {
               documentId,
               Collections.emptyList(),
               rows,
+              null,
               false,
               context))
           .thenReturn(Single.just(ResultSet.empty()));
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.updateDocument(
-              documentDB, namespace, collection, documentId, payload, context);
+              documentDB, namespace, collection, documentId, payload, null, context);
 
       result
           .test()
@@ -829,6 +1048,7 @@ class ReactiveDocumentServiceTest {
               documentId,
               Collections.emptyList(),
               rows,
+              null,
               false,
               context);
       verify(authService)
@@ -855,8 +1075,8 @@ class ReactiveDocumentServiceTest {
           .thenReturn(schema);
 
       Single<DocumentResponseWrapper<Void>> result =
-          reactiveDocumentService.updateDocument(
-              documentDB, namespace, collection, documentId, subPath, payload, context);
+          reactiveDocumentService.updateSubDocument(
+              documentDB, namespace, collection, documentId, subPath, payload, false, context);
 
       result
           .test()
@@ -888,7 +1108,7 @@ class ReactiveDocumentServiceTest {
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.updateDocument(
-              documentDB, namespace, collection, documentId, payload, context);
+              documentDB, namespace, collection, documentId, payload, null, context);
 
       result
           .test()
@@ -926,7 +1146,7 @@ class ReactiveDocumentServiceTest {
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.updateDocument(
-              documentDB, namespace, collection, documentId, payload, context);
+              documentDB, namespace, collection, documentId, payload, null, context);
 
       result.test().await().assertError(exception);
 
@@ -954,7 +1174,7 @@ class ReactiveDocumentServiceTest {
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.updateDocument(
-              documentDB, namespace, collection, documentId, payload, context);
+              documentDB, namespace, collection, documentId, payload, null, context);
 
       result
           .test()
@@ -996,13 +1216,21 @@ class ReactiveDocumentServiceTest {
               documentId,
               Collections.emptyList(),
               rows,
+              0,
               true,
               context))
           .thenReturn(Single.just(ResultSet.empty()));
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.patchDocument(
-              documentDB, namespace, collection, documentId, payload, context);
+              documentDB,
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              payload,
+              false,
+              context);
 
       result
           .test()
@@ -1024,6 +1252,7 @@ class ReactiveDocumentServiceTest {
               documentId,
               Collections.emptyList(),
               rows,
+              0,
               true,
               context);
       verify(authService)
@@ -1047,12 +1276,12 @@ class ReactiveDocumentServiceTest {
       when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
       when(jsonDocumentShredder.shred(objectMapper.readTree(payload), subPath)).thenReturn(rows);
       when(writeService.patchDocument(
-              dataStore, namespace, collection, documentId, subPath, rows, true, context))
+              dataStore, namespace, collection, documentId, subPath, rows, 0, true, context))
           .thenReturn(Single.just(ResultSet.empty()));
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.patchDocument(
-              documentDB, namespace, collection, documentId, subPath, payload, context);
+              documentDB, namespace, collection, documentId, subPath, payload, false, context);
 
       result
           .test()
@@ -1068,7 +1297,54 @@ class ReactiveDocumentServiceTest {
 
       verify(writeService)
           .patchDocument(
-              dataStore, namespace, collection, documentId, subPath, rows, true, context);
+              dataStore, namespace, collection, documentId, subPath, rows, 0, true, context);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
+      verify(authService)
+          .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
+      verify(jsonSchemaHandler).getCachedJsonSchema(documentDB, namespace, collection);
+      verifyNoMoreInteractions(writeService, authService, searchService, jsonSchemaHandler);
+    }
+
+    @Test
+    public void happyPathWithSubPathTtlAuto() throws Exception {
+      String documentId = RandomStringUtils.randomAlphanumeric(16);
+      String namespace = RandomStringUtils.randomAlphanumeric(16);
+      String collection = RandomStringUtils.randomAlphanumeric(16);
+      String path = RandomStringUtils.randomAlphanumeric(16);
+      List<String> subPath = Collections.singletonList(path);
+      ExecutionContext context = ExecutionContext.create(true);
+      String payload = "{\"key\":\"value\"}";
+
+      when(documentDB.treatBooleansAsNumeric()).thenReturn(true);
+      when(jsonDocumentShredder.shred(objectMapper.readTree(payload), subPath)).thenReturn(rows);
+      when(writeService.patchDocument(
+              dataStore, namespace, collection, documentId, subPath, rows, 0, true, context))
+          .thenReturn(Single.just(ResultSet.empty()));
+      when(rawDocument.rows()).thenReturn(ImmutableList.of(row));
+      when(row.getInt("ttl(leaf)")).thenReturn(0);
+      when(searchService.getDocumentTtlInfo(any(), any(), any(), any(), any()))
+          .thenReturn(Flowable.just(rawDocument));
+
+      Single<DocumentResponseWrapper<Void>> result =
+          reactiveDocumentService.patchDocument(
+              documentDB, namespace, collection, documentId, subPath, payload, true, context);
+
+      result
+          .test()
+          .await()
+          .assertValue(
+              v -> {
+                assertThat(v.getDocumentId()).isEqualTo(documentId);
+                assertThat(v.getData()).isNull();
+                assertThat(v.getPageState()).isNull();
+                assertThat(v.getProfile()).isEqualTo(context.toProfile());
+                return true;
+              });
+
+      verify(writeService)
+          .patchDocument(
+              dataStore, namespace, collection, documentId, subPath, rows, 0, true, context);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
       verify(authService)
@@ -1091,7 +1367,14 @@ class ReactiveDocumentServiceTest {
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.patchDocument(
-              documentDB, namespace, collection, documentId, payload, context);
+              documentDB,
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              payload,
+              false,
+              context);
 
       result
           .test()
@@ -1123,7 +1406,14 @@ class ReactiveDocumentServiceTest {
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.patchDocument(
-              documentDB, namespace, collection, documentId, payload, context);
+              documentDB,
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              payload,
+              false,
+              context);
 
       result
           .test()
@@ -1155,7 +1445,14 @@ class ReactiveDocumentServiceTest {
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.patchDocument(
-              documentDB, namespace, collection, documentId, payload, context);
+              documentDB,
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              payload,
+              false,
+              context);
 
       result
           .test()
@@ -1187,7 +1484,14 @@ class ReactiveDocumentServiceTest {
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.patchDocument(
-              documentDB, namespace, collection, documentId, payload, context);
+              documentDB,
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              payload,
+              false,
+              context);
 
       result
           .test()
@@ -1225,7 +1529,14 @@ class ReactiveDocumentServiceTest {
 
       Single<DocumentResponseWrapper<Void>> result =
           reactiveDocumentService.patchDocument(
-              documentDB, namespace, collection, documentId, payload, context);
+              documentDB,
+              namespace,
+              collection,
+              documentId,
+              Collections.emptyList(),
+              payload,
+              false,
+              context);
 
       result
           .test()
@@ -2157,8 +2468,10 @@ class ReactiveDocumentServiceTest {
           .convertToJsonDoc(any(), any(), anyBoolean(), anyBoolean());
       when(searchService.getDocument(queryExecutor, namespace, collection, docId, path, context))
           .thenReturn(Flowable.just(rawDocument));
+      when(searchService.getDocumentTtlInfo(queryExecutor, namespace, collection, docId, context))
+          .thenReturn(Flowable.just(rawDocument));
       when(writeService.updateDocument(
-              dataStore, namespace, collection, docId, path, shreddedRows, false, context))
+              dataStore, namespace, collection, docId, path, shreddedRows, 0, false, context))
           .thenReturn(Single.just(ResultSet.empty()));
       when(jsonDocumentShredder.shred(Mockito.<JsonNode>any(), anyList())).thenReturn(shreddedRows);
 
@@ -2183,7 +2496,6 @@ class ReactiveDocumentServiceTest {
               })
           .assertComplete();
 
-      verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
       verify(authService)
@@ -2246,7 +2558,7 @@ class ReactiveDocumentServiceTest {
           .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
       verify(jsonDocumentShredder, never()).shred(Mockito.<JsonNode>any(), anyList());
       verify(writeService, never())
-          .updateDocument(any(), any(), any(), any(), anyList(), anyBoolean(), any());
+          .updateDocument(any(), any(), any(), any(), anyList(), any(), anyBoolean(), any());
     }
 
     @Test
@@ -2281,7 +2593,7 @@ class ReactiveDocumentServiceTest {
           .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
       verify(jsonDocumentShredder, never()).shred(Mockito.<JsonNode>any(), anyList());
       verify(writeService, never())
-          .updateDocument(any(), any(), any(), any(), anyList(), anyBoolean(), any());
+          .updateDocument(any(), any(), any(), any(), anyList(), any(), anyBoolean(), any());
     }
 
     @Test
@@ -2304,8 +2616,10 @@ class ReactiveDocumentServiceTest {
           .convertToJsonDoc(any(), any(), anyBoolean(), anyBoolean());
       when(searchService.getDocument(queryExecutor, namespace, collection, docId, path, context))
           .thenReturn(Flowable.just(rawDocument));
+      when(searchService.getDocumentTtlInfo(queryExecutor, namespace, collection, docId, context))
+          .thenReturn(Flowable.just(rawDocument));
       when(writeService.updateDocument(
-              dataStore, namespace, collection, docId, path, shreddedRows, false, context))
+              dataStore, namespace, collection, docId, path, shreddedRows, 0, false, context))
           .thenReturn(Single.just(ResultSet.empty()));
       when(jsonDocumentShredder.shred(Mockito.<JsonNode>any(), anyList())).thenReturn(shreddedRows);
 
@@ -2324,7 +2638,6 @@ class ReactiveDocumentServiceTest {
               })
           .assertComplete();
 
-      verify(authService).authorizeDataRead(authSubject, namespace, collection, SourceAPI.REST);
       verify(authService)
           .authorizeDataWrite(authSubject, namespace, collection, Scope.MODIFY, SourceAPI.REST);
       verify(authService)
@@ -2379,7 +2692,7 @@ class ReactiveDocumentServiceTest {
           .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
       verify(jsonDocumentShredder, never()).shred(Mockito.<JsonNode>any(), anyList());
       verify(writeService, never())
-          .updateDocument(any(), any(), any(), any(), anyList(), anyBoolean(), any());
+          .updateDocument(any(), any(), any(), any(), anyList(), any(), anyBoolean(), any());
     }
 
     @Test
@@ -2413,7 +2726,7 @@ class ReactiveDocumentServiceTest {
           .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
       verify(jsonDocumentShredder, never()).shred(Mockito.<JsonNode>any(), anyList());
       verify(writeService, never())
-          .updateDocument(any(), any(), any(), any(), anyList(), anyBoolean(), any());
+          .updateDocument(any(), any(), any(), any(), anyList(), any(), anyBoolean(), any());
     }
 
     @Test
@@ -2460,7 +2773,8 @@ class ReactiveDocumentServiceTest {
           .thenReturn(Single.just(ResultSet.empty()));
 
       Single<Boolean> result =
-          reactiveDocumentService.deleteDocument(documentDB, namespace, collection, docId, context);
+          reactiveDocumentService.deleteDocument(
+              documentDB, namespace, collection, docId, Collections.emptyList(), context);
 
       result.test().await().assertValue(success -> success).assertComplete();
 
@@ -2520,7 +2834,8 @@ class ReactiveDocumentServiceTest {
           .authorizeDataWrite(authSubject, namespace, collection, Scope.DELETE, SourceAPI.REST);
 
       Single<Boolean> result =
-          reactiveDocumentService.deleteDocument(documentDB, namespace, collection, docId, context);
+          reactiveDocumentService.deleteDocument(
+              documentDB, namespace, collection, docId, Collections.emptyList(), context);
 
       result
           .test()

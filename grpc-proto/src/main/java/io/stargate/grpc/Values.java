@@ -78,6 +78,10 @@ public class Values {
     return Value.newBuilder().setBytes(ByteString.copyFrom(value)).build();
   }
 
+  /**
+   * Note that this method "consumes" its argument: after the call, {@code value} will have its
+   * position set to its limit, and thus appear empty.
+   */
   public static Value of(ByteBuffer value) {
     return Value.newBuilder().setBytes(ByteString.copyFrom(value)).build();
   }
@@ -232,9 +236,7 @@ public class Values {
   public static ByteBuffer byteBuffer(Value value) {
     checkInnerCase(value, InnerCase.BYTES);
 
-    ByteBuffer bytes = ByteBuffer.allocate(value.getBytes().size());
-    value.getBytes().copyTo(bytes);
-    return bytes;
+    return value.getBytes().asReadOnlyByteBuffer();
   }
 
   public static byte[] bytes(Value value) {

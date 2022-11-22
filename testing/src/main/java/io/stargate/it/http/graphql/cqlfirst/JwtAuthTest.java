@@ -101,6 +101,6 @@ public class JwtAuthTest extends BaseIntegrationTest {
         client.getDmlQueryError(
             keyspaceId, "mutation { insertSecret(value: {k:1}) { value { k } } }");
     // Don't rely on the full message because it's not standardized across Cassandra/DSE versions
-    assertThat(error).contains("UnauthorizedException");
+    assertThat(error).matches(".*User web_user has no (MODIFY|UPDATE) permission.*");
   }
 }

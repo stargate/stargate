@@ -40,7 +40,7 @@ public class QueryFetcher extends DeployedFetcher<Object> {
 
   @SuppressWarnings("unchecked")
   private static final Coercing<ByteBuffer, String> BLOB_COERCING =
-      CqlScalar.BLOB.getGraphqlType().getCoercing();
+      (Coercing<ByteBuffer, String>) CqlScalar.BLOB.getGraphqlType().getCoercing();
 
   private final QueryModel model;
 

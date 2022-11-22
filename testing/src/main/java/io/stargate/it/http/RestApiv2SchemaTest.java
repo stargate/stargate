@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import net.jcip.annotations.NotThreadSafe;
 import org.apache.http.HttpStatus;
@@ -170,7 +171,7 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
   }
 
   @Test
-  public void keyspaceCreate() throws IOException {
+  public void keyspaceCreateSimple() throws IOException {
     String keyspaceName = "ks_createkeyspace_" + System.currentTimeMillis();
     createTestKeyspace(keyspaceName);
 
@@ -183,6 +184,45 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
     Keyspace keyspace = objectMapper.readValue(body, Keyspace.class);
 
     assertThat(keyspace).usingRecursiveComparison().isEqualTo(new Keyspace(keyspaceName, null));
+  }
+
+  // For [stargate#1817]. Unfortunately our current CI set up only has single DC ("dc1")
+  // configured, with a single node. But this is only about constructing keyspace anyway,
+  // including handling of variant request structure; as long as that maps to query builder
+  // we should be good.
+  @Test
+  public void keyspaceCreateWithExplicitDC() throws IOException {
+    String keyspaceName = "ks_createkeyspace_" + System.currentTimeMillis();
+    String createKeyspaceRequest =
+        String.format(
+            "{\"name\": \"%s\", \"datacenters\" : [\n"
+                + "       { \"name\":\"dc1\", \"replicas\":1}\n"
+                + "]}",
+            keyspaceName);
+
+    RestUtils.post(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces", restUrlBase),
+        createKeyspaceRequest,
+        HttpStatus.SC_CREATED);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format("%s/v2/schemas/keyspaces/%s?raw=true", restUrlBase, keyspaceName),
+            HttpStatus.SC_OK);
+
+    Keyspace keyspace = objectMapper.readValue(body, Keyspace.class);
+
+    assertThat(keyspace.getName()).isEqualTo(keyspaceName);
+
+    Map<String, Keyspace.Datacenter> expectedDCs = new HashMap<>();
+    expectedDCs.put("dc1", new Keyspace.Datacenter("dc1", 1));
+    Map<String, Keyspace.Datacenter> actualDCs =
+        keyspace.getDatacenters().stream()
+            .collect(Collectors.toMap(Keyspace.Datacenter::getName, Function.identity()));
+
+    assertThat(actualDCs).usingRecursiveComparison().isEqualTo(expectedDCs);
   }
 
   @Test
@@ -317,6 +357,63 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
   }
 
   @Test
+  public void tableCreateWithMultClustering() throws IOException {
+    createTestKeyspace(keyspaceName);
+    TableAdd tableAdd = new TableAdd();
+    tableAdd.setName(tableName);
+
+    // Add columns in sort of reverse order wrt primary key columns
+    List<ColumnDefinition> columnDefinitions =
+        Arrays.asList(
+            new ColumnDefinition("value", "int"),
+            new ColumnDefinition("ck2", "int"),
+            new ColumnDefinition("ck1", "int"),
+            new ColumnDefinition("pk2", "int"),
+            new ColumnDefinition("pk1", "int"));
+
+    tableAdd.setColumnDefinitions(columnDefinitions);
+
+    // Create partition and clustering keys in order different from that of all-columns
+    // definitions
+    PrimaryKey primaryKey = new PrimaryKey();
+    primaryKey.setPartitionKey(Arrays.asList("pk1", "pk2"));
+    primaryKey.setClusteringKey(Arrays.asList("ck1", "ck2"));
+    tableAdd.setPrimaryKey(primaryKey);
+
+    tableAdd.setTableOptions(new TableOptions(0, null));
+
+    RestUtils.post(
+        authToken,
+        String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+        objectMapper.writeValueAsString(tableAdd),
+        HttpStatus.SC_CREATED);
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/schemas/keyspaces/%s/tables/%s?raw=true",
+                restUrlBase, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+
+    TableResponse table = objectMapper.readValue(body, TableResponse.class);
+
+    // First, verify that partition key ordering is like we expect
+    assertThat(table.getTableOptions().getClusteringExpression().size()).isEqualTo(2);
+    assertThat(table.getTableOptions().getClusteringExpression().get(0).getColumn())
+        .isEqualTo("ck1");
+    assertThat(table.getTableOptions().getClusteringExpression().get(1).getColumn())
+        .isEqualTo("ck2");
+
+    // And then the same wrt full primary key definition
+    PrimaryKey pk = table.getPrimaryKey();
+    assertThat(pk.getPartitionKey().size()).isEqualTo(2);
+    assertThat(pk.getPartitionKey()).isEqualTo(Arrays.asList("pk1", "pk2"));
+    assertThat(pk.getClusteringKey().size()).isEqualTo(2);
+    assertThat(pk.getClusteringKey()).isEqualTo(Arrays.asList("ck1", "ck2"));
+  }
+
+  @Test
   public void tableUpdateSimple() throws IOException {
     createTestKeyspace(keyspaceName);
     createSimpleTestTable(keyspaceName, tableName);
@@ -333,6 +430,23 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
         String.format("%s/v2/schemas/keyspaces/%s/tables/%s", restUrlBase, keyspaceName, tableName),
         objectMapper.writeValueAsString(tableUpdate),
         HttpStatus.SC_OK);
+
+    // Let's also verify that TTL is updated (related to [stargate#1836])
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/schemas/keyspaces/%s/tables/%s?raw=true",
+                restUrlBase, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+
+    TableResponse table = objectMapper.readValue(body, TableResponse.class);
+    assertThat(table.getKeyspace()).isEqualTo(keyspaceName);
+    assertThat(table.getName()).isEqualTo(tableName);
+    assertThat(table.getColumnDefinitions()).isNotNull().isNotEmpty();
+
+    assertThat(table.getTableOptions()).isNotNull();
+    assertThat(table.getTableOptions().getDefaultTimeToLive()).isEqualTo(5);
   }
 
   @Test
@@ -1089,19 +1203,38 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
   @Test
   public void indexListAll() throws IOException {
     createTestKeyspace(keyspaceName);
+    final String altKeyspaceName = "alt_" + System.currentTimeMillis();
+    createTestKeyspace(altKeyspaceName);
     tableName = "tbl_createtable_" + System.currentTimeMillis();
-    createTestTable(
+    createTestTableIn(
+        keyspaceName,
+        tableName,
+        Arrays.asList("id text", "firstName text", "email list<text>"),
+        Collections.singletonList("id"),
+        null);
+    // We'll need another table in another keyspace to test [stargate#1463]
+    createTestTableIn(
+        altKeyspaceName,
         tableName,
         Arrays.asList("id text", "firstName text", "email list<text>"),
         Collections.singletonList("id"),
         null);
 
+    // Verify that neither keyspace (primary test; alt) have no indexes defined:
     String body =
         RestUtils.get(
             authToken,
             String.format(
                 "%s/v2/schemas/keyspaces/%s/tables/%s/indexes",
                 restUrlBase, keyspaceName, tableName),
+            HttpStatus.SC_OK);
+    assertThat(body).isEqualTo("[]");
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/schemas/keyspaces/%s/tables/%s/indexes",
+                restUrlBase, altKeyspaceName, tableName),
             HttpStatus.SC_OK);
     assertThat(body).isEqualTo("[]");
 
@@ -1117,6 +1250,7 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
         objectMapper.writeValueAsString(indexAdd),
         HttpStatus.SC_CREATED);
 
+    // Then first verify that actual test table (in main keyspace) has the index
     body =
         RestUtils.get(
             authToken,
@@ -1129,6 +1263,17 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
         objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
 
     assertThat(data.stream().anyMatch(m -> "test_idx".equals(m.get("index_name")))).isTrue();
+
+    // but also that the other table with same name (but in diff keyspace) does not
+    body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/schemas/keyspaces/%s/tables/%s/indexes",
+                restUrlBase, altKeyspaceName, tableName),
+            HttpStatus.SC_OK);
+    data = objectMapper.readValue(body, new TypeReference<List<Map<String, Object>>>() {});
+    assertThat(data).isEqualTo(Arrays.asList());
   }
 
   @Test
@@ -1582,6 +1727,16 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
   private void createTestTable(
       String tableName, List<String> columns, List<String> partitionKey, List<String> clusteringKey)
       throws IOException {
+    createTestTableIn(keyspaceName, tableName, columns, partitionKey, clusteringKey);
+  }
+
+  private void createTestTableIn(
+      String keyspaceForTable,
+      String tableName,
+      List<String> columns,
+      List<String> partitionKey,
+      List<String> clusteringKey)
+      throws IOException {
     TableAdd tableAdd = new TableAdd();
     tableAdd.setName(tableName);
 
@@ -1602,7 +1757,7 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
     String body =
         RestUtils.post(
             authToken,
-            String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceName),
+            String.format("%s/v2/schemas/keyspaces/%s/tables", restUrlBase, keyspaceForTable),
             objectMapper.writeValueAsString(tableAdd),
             HttpStatus.SC_CREATED);
 

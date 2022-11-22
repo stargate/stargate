@@ -17,6 +17,7 @@
  */
 package io.stargate.db.cassandra.impl;
 
+import com.google.common.util.concurrent.Striped;
 import io.stargate.auth.AuthenticationSubject;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.auth.Scope;
@@ -33,6 +34,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.Lock;
 import org.apache.cassandra.auth.IResource;
 import org.apache.cassandra.auth.RoleResource;
 import org.apache.cassandra.cql3.BatchQueryOptions;
@@ -94,6 +96,14 @@ import org.slf4j.LoggerFactory;
 public class StargateQueryHandler implements QueryHandler {
 
   private static final Logger logger = LoggerFactory.getLogger(StargateQueryHandler.class);
+
+  // Locks for synchronizing prepared statements. This default uses the recommended number of locks
+  // suggested in the Java docs for CPU-bound tasks (which preparing a statement is).
+  private static final Striped<Lock> PREPARE_LOCKS =
+      Striped.lock(
+          Integer.getInteger(
+              "stargate.prepare_lock_count", Runtime.getRuntime().availableProcessors() * 4));
+
   private final List<QueryInterceptor> interceptors = new CopyOnWriteArrayList<>();
   private AtomicReference<AuthorizationService> authorizationService;
 
@@ -149,7 +159,19 @@ public class StargateQueryHandler implements QueryHandler {
   public ResultMessage.Prepared prepare(
       String s, ClientState clientState, Map<String, ByteBuffer> map)
       throws RequestValidationException {
-    ResultMessage.Prepared prepare = QueryProcessor.instance.prepare(s, clientState, map);
+    // The behavior of prepared statements was changed as part of CASSANDRA-15252
+    // (and CASSANDRA-17248) which can cause multiple prepares of the same query to evict each
+    // other from the prepared cache. A few Stargate APIs eagerly prepare queries which
+    // increases this chance and to avoid this we serialize prepares for similar queries.
+    Lock lock = PREPARE_LOCKS.get(s);
+    ResultMessage.Prepared prepare;
+    try {
+      lock.lock();
+      prepare = QueryProcessor.instance.prepare(s, clientState, map);
+    } finally {
+      lock.unlock();
+    }
+
     CQLStatement statement =
         Optional.ofNullable(QueryProcessor.instance.getPrepared(prepare.statementId))
             .map(p -> p.statement)
@@ -638,10 +660,14 @@ public class StargateQueryHandler implements QueryHandler {
       authorization.authorizeSchemaWrite(
           authenticationSubject, keyspaceName, tableName, scope, SourceAPI.CQL, resource);
     } catch (io.stargate.auth.UnauthorizedException e) {
-      throw new UnauthorizedException(
+      String msg =
           String.format(
               "Missing correct permission on %s.%s",
-              keyspaceName, (tableName == null ? "" : tableName)));
+              keyspaceName, (tableName == null ? "" : tableName));
+      if (e.getMessage() != null) {
+        msg += ": " + e.getMessage();
+      }
+      throw new UnauthorizedException(msg);
     }
 
     logger.debug(

@@ -1,5 +1,348 @@
 # Changelog
 
+## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.68...HEAD)
+
+**Closed issues:**
+
+- InboundHAProxyHandler is not @Sharable [\#2232](https://github.com/stargate/stargate/issues/2232)
+
+**Merged pull requests:**
+
+- Make InboundHAProxyHandler @Sharable [\#2233](https://github.com/stargate/stargate/pull/2233) ([jakubzytka](https://github.com/jakubzytka))
+- organize shared dependencies in common project [\#2227](https://github.com/stargate/stargate/pull/2227) ([ivansenic](https://github.com/ivansenic))
+- use getIfPresent in SchemaManager [\#2226](https://github.com/stargate/stargate/pull/2226) ([ivansenic](https://github.com/ivansenic))
+- Fix for \#2221 -\> enhanced logging for the gRPC bridge exceptions [\#2225](https://github.com/stargate/stargate/pull/2225) ([versaurabh](https://github.com/versaurabh))
+- Bump graphql-java from 18.1 to 18.3 in /apis/sgv2-graphqlapi [\#2222](https://github.com/stargate/stargate/pull/2222) ([dependabot[bot]](https://github.com/apps/dependabot))
+- relates to \#2177: basic branding of the index pages [\#2219](https://github.com/stargate/stargate/pull/2219) ([ivansenic](https://github.com/ivansenic))
+- closes \#2201: playground to auto-inject token from headers [\#2217](https://github.com/stargate/stargate/pull/2217) ([ivansenic](https://github.com/ivansenic))
+- closes \#2159: moved common configuration to sgv2-quarkus-commons  [\#2216](https://github.com/stargate/stargate/pull/2216) ([ivansenic](https://github.com/ivansenic))
+- update Quarkus to v2.13.4 [\#2215](https://github.com/stargate/stargate/pull/2215) ([ivansenic](https://github.com/ivansenic))
+- closes \#2209: add transient retries to the grpc client [\#2214](https://github.com/stargate/stargate/pull/2214) ([ivansenic](https://github.com/ivansenic))
+- Fix \#2200: include auth header for OpenAPI \(Swagger\) by adding annota… [\#2202](https://github.com/stargate/stargate/pull/2202) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- update changelog and bump version to `v2.0.1-SNAPSHOT` [\#2196](https://github.com/stargate/stargate/pull/2196) ([ivansenic](https://github.com/ivansenic))
+- Bump graphql-java from 18.1 to 18.3 in /graphqlapi [\#2080](https://github.com/stargate/stargate/pull/2080) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [v1.0.68](https://github.com/stargate/stargate/tree/v1.0.68) (2022-11-14)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0...v1.0.68)
+
+**Fixed bugs:**
+
+- REST API tests fail with `Abrupt GOAWAY closed sent stream` [\#2209](https://github.com/stargate/stargate/issues/2209)
+- Bridge service client is not handling runtime exceptions [\#2179](https://github.com/stargate/stargate/issues/2179)
+- API V2 bridge communication has wrong Source API [\#2175](https://github.com/stargate/stargate/issues/2175)
+
+**Closed issues:**
+
+- Commons test jar not published to maven repo [\#2229](https://github.com/stargate/stargate/issues/2229)
+- gRPC bridge exception handlers should log exceptions [\#2221](https://github.com/stargate/stargate/issues/2221)
+- CI build failure due to use of Bintray for accessing 3rd party OSS libraries from Maven Central [\#2211](https://github.com/stargate/stargate/issues/2211)
+- GraphQL playground must not get auth token from the token resolver [\#2201](https://github.com/stargate/stargate/issues/2201)
+- REST API V2 not including authentication token in Swagger when specified [\#2200](https://github.com/stargate/stargate/issues/2200)
+- Update `graphql-java` from 18.1 to 18.3 as per Dependabot alert [\#2189](https://github.com/stargate/stargate/issues/2189)
+- Quarkus Logging - Add Exclude Pattern for non application related API calls [\#2185](https://github.com/stargate/stargate/issues/2185)
+- gRPC service exception handlers should log exceptions [\#2166](https://github.com/stargate/stargate/issues/2166)
+- Move common and shared configuration to the `quarkus-common` `application.yaml` [\#2159](https://github.com/stargate/stargate/issues/2159)
+- Bridge get supported features should be available without C\* token [\#1821](https://github.com/stargate/stargate/issues/1821)
+- Rename `master` branch to `main` [\#1490](https://github.com/stargate/stargate/issues/1490)
+
+**Merged pull requests:**
+
+- Fix release version for v1 [\#2235](https://github.com/stargate/stargate/pull/2235) ([versaurabh](https://github.com/versaurabh))
+- Bump graphql-java from 18.1 to 18.3 in /graphqlapi on `v1` [\#2230](https://github.com/stargate/stargate/pull/2230) ([ivansenic](https://github.com/ivansenic))
+- Change 1 "master" reference to "v1" for \#1490 [\#2220](https://github.com/stargate/stargate/pull/2220) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#2211: change default Maven repo used to resolve deps [\#2212](https://github.com/stargate/stargate/pull/2212) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix for \#2166 -\> enhanced logging for the public grpc API exceptions [\#2208](https://github.com/stargate/stargate/pull/2208) ([versaurabh](https://github.com/versaurabh))
+- Changes to CI jobs related to \#1490, first part: renaming of v2.0.0-\>… [\#2207](https://github.com/stargate/stargate/pull/2207) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Remove unneeded "master" refs \(for near term rename\); rename "ci-test… [\#2206](https://github.com/stargate/stargate/pull/2206) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Help troubleshoot \#2193 \(IAE for null proxy message\) by explicit arg validation [\#2205](https://github.com/stargate/stargate/pull/2205) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Allow legacy flush to be used with property [\#2203](https://github.com/stargate/stargate/pull/2203) ([tjake](https://github.com/tjake))
+- Update v1.0.67 release notes [\#2199](https://github.com/stargate/stargate/pull/2199) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v1.0.67](https://github.com/stargate/stargate/tree/v1.0.67) (2022-10-24)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.67}...v1.0.67)
+
+## [v1.0.67}](https://github.com/stargate/stargate/tree/v1.0.67}) (2022-10-24)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.66...v1.0.67})
+
+**Merged pull requests:**
+
+- Update DropWizard 2.0.32-\>2.0.34 to get commons-text upgraded [\#2188](https://github.com/stargate/stargate/pull/2188) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- enforce JDK 8 [\#2183](https://github.com/stargate/stargate/pull/2183) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+
+## [v1.0.66](https://github.com/stargate/stargate/tree/v1.0.66) (2022-09-29)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.65...v1.0.66)
+
+**Closed issues:**
+
+- Enable gRPC Server Reflection to help with API Consumer on-boarding [\#2068](https://github.com/stargate/stargate/issues/2068)
+- Update DSE to 6.8.26 [\#2065](https://github.com/stargate/stargate/issues/2065)
+
+**Merged pull requests:**
+
+- relates to \#2065: bump DSE version to 6.8.26  [\#2094](https://github.com/stargate/stargate/pull/2094) ([ivansenic](https://github.com/ivansenic))
+- closes \#2068: Enable gRPC reflection [\#1853](https://github.com/stargate/stargate/pull/1853) ([mpenick](https://github.com/mpenick))
+
+## [v1.0.65](https://github.com/stargate/stargate/tree/v1.0.65) (2022-09-16)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.64...v1.0.65)
+
+**Closed issues:**
+
+- Update SnakeYAML dependency to 1.32 to resolve CVE-2022-38725 [\#2078](https://github.com/stargate/stargate/issues/2078)
+- Improve `docker-compose` scripts to wait for Coordinator to start up before APIs [\#2076](https://github.com/stargate/stargate/issues/2076)
+- Failure to create table with nested `Map` type [\#2062](https://github.com/stargate/stargate/issues/2062)
+- Failure to support deeply nested structured datatypes by REST API \(in SGv2\) [\#2061](https://github.com/stargate/stargate/issues/2061)
+
+**Merged pull requests:**
+
+- Upgrade SnakeYAML dependency to 1.32 for CVE-2022-38725 [\#2079](https://github.com/stargate/stargate/pull/2079) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Upgrade Jackson from 2.12.7 to 2.13.4; snakeyaml to 1.0.31 [\#2066](https://github.com/stargate/stargate/pull/2066) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+
+## [v1.0.64](https://github.com/stargate/stargate/tree/v1.0.64) (2022-08-30)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.63...v1.0.64)
+
+**Closed issues:**
+
+- Allow `dse.yaml` to be passed to DSE persistence backend [\#2011](https://github.com/stargate/stargate/issues/2011)
+- Cql client encryption is not working [\#1001](https://github.com/stargate/stargate/issues/1001)
+
+**Merged pull requests:**
+
+- include auth excepion message in the thrown exception [\#2046](https://github.com/stargate/stargate/pull/2046) ([ivansenic](https://github.com/ivansenic))
+- Add ability to load `dse.yaml` when using DSE persistence [\#2013](https://github.com/stargate/stargate/pull/2013) ([mpenick](https://github.com/mpenick))
+- Fix TLS \(`client\_encryption\_options`\) configuration for CQL [\#1992](https://github.com/stargate/stargate/pull/1992) ([mpenick](https://github.com/mpenick))
+
+## [v1.0.63](https://github.com/stargate/stargate/tree/v1.0.63) (2022-08-15)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.61...v1.0.63)
+
+**Fixed bugs:**
+
+- `NullPointerException` on the `RowResource` [\#1994](https://github.com/stargate/stargate/issues/1994)
+- Documents API should handle `OverloadedException` gracefully [\#1972](https://github.com/stargate/stargate/issues/1972)
+- GET by primary key with frozen\<udt\> using REST V1 is returning 500 error [\#205](https://github.com/stargate/stargate/issues/205)
+
+**Closed issues:**
+
+- Update DSE to 6.8.25 [\#2022](https://github.com/stargate/stargate/issues/2022)
+- CQL module needs to be upgraded [\#2015](https://github.com/stargate/stargate/issues/2015)
+- Upgrade DropWizard to latest \(2.0.32\), dependencies [\#1968](https://github.com/stargate/stargate/issues/1968)
+- Result structure for REST GET `/v2/schemas/keyspaces` \(and `/v2/schemas/keyspaces/{keyspaceName}`\) different from Swagger model in "simple" topology case [\#1396](https://github.com/stargate/stargate/issues/1396)
+
+**Merged pull requests:**
+
+- fix release workflows input defaults [\#2026](https://github.com/stargate/stargate/pull/2026) ([ivansenic](https://github.com/ivansenic))
+- Bumping version to 1.0.63-SNAPSHOT [\#2025](https://github.com/stargate/stargate/pull/2025) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Update Stargate-builder image to use DSE 6.8.25 [\#2024](https://github.com/stargate/stargate/pull/2024) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update DSE dependency to 6.8.25 [\#2023](https://github.com/stargate/stargate/pull/2023) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- id-path now accepts a path to a non-string value [\#2020](https://github.com/stargate/stargate/pull/2020) ([EricBorczuk](https://github.com/EricBorczuk))
+- Fix for Issue \# 205: Fix for Rest V1 API GET by primary key with frozen udt. [\#2018](https://github.com/stargate/stargate/pull/2018) ([maheshrajamani](https://github.com/maheshrajamani))
+- closes \#1994: Validation for Rest v1 row update API [\#2009](https://github.com/stargate/stargate/pull/2009) ([maheshrajamani](https://github.com/maheshrajamani))
+- release workflows port-back [\#2003](https://github.com/stargate/stargate/pull/2003) ([ivansenic](https://github.com/ivansenic))
+- closes \#2001: fixing `StargateV1ConfigurationSourceProviderTest` on the CI [\#2002](https://github.com/stargate/stargate/pull/2002) ([ivansenic](https://github.com/ivansenic))
+- improving release v1 github workflow [\#1993](https://github.com/stargate/stargate/pull/1993) ([ivansenic](https://github.com/ivansenic))
+- remove codacy result upload in CI [\#1985](https://github.com/stargate/stargate/pull/1985) ([ivansenic](https://github.com/ivansenic))
+- closes \#1972: correctly unwrap data store exceptions in the QueryExec… [\#1975](https://github.com/stargate/stargate/pull/1975) ([ivansenic](https://github.com/ivansenic))
+- Bumping version to "1.0.62-SNAPSHOT" [\#1973](https://github.com/stargate/stargate/pull/1973) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v1.0.61](https://github.com/stargate/stargate/tree/v1.0.61) (2022-07-12)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.60...v1.0.61)
+
+**Closed issues:**
+
+- Upgrade DropWizard to latest \(2.0.32\), dependencies [\#1968](https://github.com/stargate/stargate/issues/1968)
+- Allow yaml configuration file overrides per-service [\#1953](https://github.com/stargate/stargate/issues/1953)
+- Test out running full IT suite for one backend \(C\*4.0\) using Github Actions [\#1913](https://github.com/stargate/stargate/issues/1913)
+
+**Merged pull requests:**
+
+- Fix for \#1953: add ability to override DropWizard app config file [\#1954](https://github.com/stargate/stargate/pull/1954) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Continuation of CI/IT experiment -- build all 3 backends in parallel [\#1914](https://github.com/stargate/stargate/pull/1914) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#1968: update DropWizard dep 2.0.28-\>2.0.32, its dependencies [\#1969](https://github.com/stargate/stargate/pull/1969) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v1.0.60](https://github.com/stargate/stargate/tree/v1.0.60) (2022-07-05)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.59...v1.0.60)
+
+**Fixed bugs:**
+
+- NPE thrown when the system property `stargate.proxy\_protocol.dns\_name` is not provided [\#1934](https://github.com/stargate/stargate/issues/1934)
+
+**Closed issues:**
+
+**Merged pull requests:**
+
+- Revert "Fix `ByteBuf` leak caused by not releasing `HAProxyMessage` \(… [\#1943](https://github.com/stargate/stargate/pull/1943) ([mpenick](https://github.com/mpenick))
+- Change generic NPE to IllegalArgumentException with descriptive message [\#1939](https://github.com/stargate/stargate/pull/1939) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v1.0.59](https://github.com/stargate/stargate/tree/v1.0.59) (2022-06-30)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.58...v1.0.59)
+
+**Fixed bugs:**
+
+- Rest v2 "Get a Table" endpoint does not correctly report defaultTimeToLive [\#1836](https://github.com/stargate/stargate/issues/1836)
+- `ByteBuf` leak in `HAProxyMessageDecoder` \(proxy protocol handling?\) [\#1397](https://github.com/stargate/stargate/issues/1397)
+
+**Closed issues:**
+
+- Update persistence to C\*3.11.13, 4.0.4 [\#1920](https://github.com/stargate/stargate/issues/1920)
+- Port read and search paths of the `ReactiveDocumentService` to the `ReadDocumentService` [\#1732](https://github.com/stargate/stargate/issues/1732)
+- Javascript: Can't run codegen. [\#1691](https://github.com/stargate/stargate/issues/1691)
+- Configure GraphQL-java's `DataFetcherExceptionHandler` to reduce log noise [\#1279](https://github.com/stargate/stargate/issues/1279)
+- Expose "default time-to-live" configuration of Tables via `persistence-api` [\#1896](https://github.com/stargate/stargate/issues/1896)
+- Bridge does not expose "defaultTTL" for `CqlTable` [\#1881](https://github.com/stargate/stargate/issues/1881)
+
+**Merged pull requests:**
+
+- Build docker build image for c3.11.13 / c4.0.4 [\#1932](https://github.com/stargate/stargate/pull/1932) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Upgrade C\*3 \(3.11.13\) and C\*4 \(4.0.4\) dependencies [\#1926](https://github.com/stargate/stargate/pull/1926) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#1836 \(expose default TTL for Table resource\) [\#1917](https://github.com/stargate/stargate/pull/1917) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix link on DSE-persistence README [\#1915](https://github.com/stargate/stargate/pull/1915) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix `ByteBuf` leak caused by not releasing `HAProxyMessage` [\#1910](https://github.com/stargate/stargate/pull/1910) ([mpenick](https://github.com/mpenick))
+- Test GH actions for CI [\#1904](https://github.com/stargate/stargate/pull/1904) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Reduce GraphQLJava induced log noise [\#1903](https://github.com/stargate/stargate/pull/1903) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add CLA [\#1902](https://github.com/stargate/stargate/pull/1902) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Update `dse-core` dependency from 6.8.21 to 6.8.24 [\#1898](https://github.com/stargate/stargate/pull/1898) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add `ttl\(\)` method to persistence backends [\#1897](https://github.com/stargate/stargate/pull/1897) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Publish new Stargate-builder \(1.0.8\) for DSE core 6.8.24 [\#1906](https://github.com/stargate/stargate/pull/1906) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v1.0.58](https://github.com/stargate/stargate/tree/v1.0.58) (2022-06-15)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.57...v1.0.58)
+
+**Closed issues:**
+
+- Update java-driver-code dependency from 4.13.0 to 4.14.1 [\#1890](https://github.com/stargate/stargate/pull/1890) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v1.0.57](https://github.com/stargate/stargate/tree/v1.0.57) (2022-05-26)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.56...v1.0.57)
+
+**Closed issues:**
+
+- Update Stargate "org.json" dependency version [\#1848](https://github.com/stargate/stargate/issues/1848)
+- Table creation via REST API does not enforce requested order of clustering columns [\#1841](https://github.com/stargate/stargate/issues/1841)
+- Implement `WriteBridgeService` in the Document API V2 [\#1728](https://github.com/stargate/stargate/issues/1728)
+
+**Merged pull requests:**
+
+- Upgrade org.json version to latest (to avoid CVE in deps) [\#1849](https://github.com/stargate/stargate/pull/1849) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Enforce requested clustering column order on REST API [\#1842](https://github.com/stargate/stargate/pull/1842) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+
+## [v1.0.56](https://github.com/stargate/stargate/tree/v1.0.56) (2022-05-20)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.55...v1.0.56)
+
+**Merged pull requests:**
+
+- Make test result uploads not break CI when fail [\#1832](https://github.com/stargate/stargate/pull/1832) ([EricBorczuk](https://github.com/EricBorczuk))
+- Remove invalid comma for HOST\_ID in `starctl` [\#1826](https://github.com/stargate/stargate/pull/1826) ([mpenick](https://github.com/mpenick))
+- Update `.github/CODEOWNERS` [\#1815](https://github.com/stargate/stargate/pull/1815) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v1.0.55](https://github.com/stargate/stargate/tree/v1.0.55) (2022-04-27)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.54...v1.0.55)
+
+**Closed issues:**
+
+- Revert Persistence.unregisterEventListener [\#1777](https://github.com/stargate/stargate/issues/1777)
+- Values.byteBuffer returns an empty buffer [\#1676](https://github.com/stargate/stargate/issues/1676)
+
+**Merged pull requests:**
+
+- Add exception message in ErrorCodeRuntimeException for inclusion in Response [\#1800](https://github.com/stargate/stargate/pull/1800) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Improve Stargate V1 logging by adding more info to help Splunk indexing [\#1798](https://github.com/stargate/stargate/pull/1798) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update maven-compiler-plugin 3.8.1-\>3.10.1 \(for post-Java-8 builds\) [\#1791](https://github.com/stargate/stargate/pull/1791) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update Duzzt dependency, indirect StringTemplate, jacoco \(for Java 9+ support\) [\#1788](https://github.com/stargate/stargate/pull/1788) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix Values.byteBuffer to return non-empty buffer \(fixes \#1676\) [\#1781](https://github.com/stargate/stargate/pull/1781) ([olim7t](https://github.com/olim7t))
+
+## [v1.0.54](https://github.com/stargate/stargate/tree/v1.0.54) (2022-04-18)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.53...v1.0.54)
+
+**Closed issues:**
+
+
+**Merged pull requests:**
+
+- Update Maven wrapper plugin settings to simplify PR \#1769 [\#1784](https://github.com/stargate/stargate/pull/1784) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- update the CI image to include needed v2 changes [\#1774](https://github.com/stargate/stargate/pull/1774) ([ivansenic](https://github.com/ivansenic))
+- Upgrade io.grpc dependencies from 1.42.1 to 1.45.1, use grpc-bom [\#1758](https://github.com/stargate/stargate/pull/1758) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Upgrade json-path 2.5.0-\>2.7.0 to get json-smart upgrade [\#1756](https://github.com/stargate/stargate/pull/1756) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- upload dependency update results [\#1754](https://github.com/stargate/stargate/pull/1754) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+
+## [v1.0.53](https://github.com/stargate/stargate/tree/v1.0.53) (2022-03-30)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.52...v1.0.53)
+
+**Implemented enhancements:**
+
+- Enhancement request to include TTL for Documents in Astra DB [\#1414](https://github.com/stargate/stargate/issues/1414)
+
+**Closed issues:**
+
+**Merged pull requests:**
+
+- Netty version update to 4.1.75.Final [\#1751](https://github.com/stargate/stargate/pull/1751) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Updated `jersey-common` dependency to 2.34 for vulns [\#1749](https://github.com/stargate/stargate/pull/1749) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- updating to dropwizard 2.0.28 [\#1748](https://github.com/stargate/stargate/pull/1748) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Upgrade Java driver 4.10-\>4.13 [\#1746](https://github.com/stargate/stargate/pull/1746) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Force C\*4 persistence to use latest Netty \(4.1.75-final\) [\#1745](https://github.com/stargate/stargate/pull/1745) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- updating apollo graphql federation library [\#1744](https://github.com/stargate/stargate/pull/1744) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Bump logback-core from 1.2.8 to 1.2.9 [\#1743](https://github.com/stargate/stargate/pull/1743) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Update jackson-databind to 2.12.6.1 \(via jackson-bom\) for CVE-2020-36518 [\#1741](https://github.com/stargate/stargate/pull/1741) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Remove `auto-factory` dependency if possible; or if not, update version from pre-1.0 to 1.0.1 [\#1740](https://github.com/stargate/stargate/pull/1740) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Upgrade java driver 4.9 -\> 4.10, to make gremlin dep optional [\#1739](https://github.com/stargate/stargate/pull/1739) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix prepared query not found in Cassandra 4.0 by adding lock to StargateQueryHandler [\#1714](https://github.com/stargate/stargate/pull/1714) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Change nimbus-jose-jwt version to be "managed" to change version globally [\#1708](https://github.com/stargate/stargate/pull/1708) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add in TTL work, with tests [\#1670](https://github.com/stargate/stargate/pull/1670) ([EricBorczuk](https://github.com/EricBorczuk))
+
+## [v1.0.52](https://github.com/stargate/stargate/tree/v1.0.52) (2022-03-22)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.51...v1.0.52)
+
+**Closed issues:**
+
+- Update DSE to 6.8.21  [\#1692](https://github.com/stargate/stargate/issues/1692)
+
+**Merged pull requests:**
+
+- updating netty versions [\#1709](https://github.com/stargate/stargate/pull/1709) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- update slf4j library version [\#1705](https://github.com/stargate/stargate/pull/1705) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- updating version of nimbus-jose-jwt library [\#1704](https://github.com/stargate/stargate/pull/1704) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Fix changelog reference for release v1.0.51 to get proper delta [\#1702](https://github.com/stargate/stargate/pull/1702) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- closes \#1692: updates DSE version to 6.8.21 [\#1699](https://github.com/stargate/stargate/pull/1699) ([ivansenic](https://github.com/ivansenic))
+- Add testing of Duration/CqlDuration values wrt REST API [\#1695](https://github.com/stargate/stargate/pull/1695) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v1.0.51](https://github.com/stargate/stargate/tree/v1.0.51) (2022-03-14)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.50...v1.0.51)
+
+**Fixed bugs:**
+
+- REST API serializes `timestamp` values as POJOs: should be ISO-8601 [\#1685](https://github.com/stargate/stargate/issues/1685)
+- `ExecuteBatchStreamingTest` fails sporadically for the C\* 4.0 [\#1679](https://github.com/stargate/stargate/issues/1679)
+
+**Closed issues:**
+
+- Update Jackson dependency to 2.12.6 \(from 2.10 and others\) [\#1680](https://github.com/stargate/stargate/issues/1680)
+
+**Merged pull requests:**
+
+- Fix eviction race for prepared statements on Cassandra 4.0 [\#1688](https://github.com/stargate/stargate/pull/1688) ([mpenick](https://github.com/mpenick))
+- Fix \#1685 handling of `timestamp` values on REST/json output [\#1686](https://github.com/stargate/stargate/pull/1686) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#1680: update Jackson dependency to 2.12.6 [\#1681](https://github.com/stargate/stargate/pull/1681) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v1.0.50](https://github.com/stargate/stargate/tree/v1.0.50) (2022-03-03)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.49...v1.0.50)

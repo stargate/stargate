@@ -3,7 +3,7 @@
     <parent>
         <artifactId>stargate</artifactId>
         <groupId>io.stargate</groupId>
-        <version>1.0.51-SNAPSHOT</version>
+        <version>1.0.69-SNAPSHOT</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -18,7 +18,6 @@
         <dependency>
             <groupId>io.grpc</groupId>
             <artifactId>grpc-netty-shaded</artifactId>
-            <version>${grpc.version}</version>
         </dependency>
     </dependencies>
 </project>

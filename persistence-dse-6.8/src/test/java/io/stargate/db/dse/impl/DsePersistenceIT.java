@@ -1,15 +1,22 @@
 package io.stargate.db.dse.impl;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
+import com.datastax.bdp.config.DseConfig;
+import com.datastax.oss.driver.shaded.guava.common.io.Resources;
 import io.stargate.db.Persistence;
 import io.stargate.db.dse.DsePersistenceActivator;
 import io.stargate.it.PersistenceTest;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.net.URL;
 import java.nio.file.Files;
+import java.util.Objects;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Test;
 
 /*
  * Copyright The Stargate Authors
@@ -28,12 +35,11 @@ import org.junit.jupiter.api.BeforeAll;
  */
 public class DsePersistenceIT extends PersistenceTest {
 
-  private static File baseDir;
   private static DsePersistence persistence;
 
   @BeforeAll
   public static void createDsePersistence(ClusterConnectionInfo backend) throws IOException {
-    baseDir = Files.createTempDirectory("stargate-dse-test").toFile();
+    File baseDir = Files.createTempDirectory("stargate-dse-test").toFile();
     baseDir.deleteOnExit();
 
     System.setProperty("stargate.listen_address", "127.0.0.11");
@@ -48,6 +54,18 @@ public class DsePersistenceIT extends PersistenceTest {
       System.setProperty("logback.configurationFile", file.getAbsolutePath());
     }
 
+    // Setup a custom `dse.yaml`
+    File f = null;
+    try (OutputStream os =
+        Files.newOutputStream((f = File.createTempFile("dse", ".yaml", null)).toPath())) {
+      Resources.copy(
+          Objects.requireNonNull(
+              DsePersistenceIT.class.getResource("/dse-test.yaml"),
+              "Unable to load '/dse-test.yaml' resource"),
+          os);
+    }
+    System.setProperty(DsePersistence.SYSPROP_UNSAFE_DSE_CONFIG_PATH, f.getAbsolutePath());
+
     persistence = new DsePersistence();
     persistence.initialize(DsePersistenceActivator.makeConfig(baseDir));
   }
@@ -57,6 +75,13 @@ public class DsePersistenceIT extends PersistenceTest {
     if (persistence != null) {
       persistence.destroy();
     }
+  }
+
+  @Test
+  public void verifyDseYamlFileSettings() throws IOException {
+    // Verify settings loaded from custom `dse.yaml`
+    assertThat(DseConfig.getauditLoggingOptions().retention_time).isEqualTo(12345);
+    assertThat(DseConfig.getInternodeMessagingPort()).isEqualTo(54321);
   }
 
   @Override

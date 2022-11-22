@@ -29,6 +29,9 @@ import static org.mockito.Mockito.when;
 import io.grpc.Attributes;
 import io.grpc.Grpc;
 import io.grpc.Metadata;
+import io.grpc.MethodDescriptor;
+import io.grpc.MethodDescriptor.Marshaller;
+import io.grpc.MethodDescriptor.MethodType;
 import io.grpc.ServerCall;
 import io.grpc.ServerCallHandler;
 import io.grpc.Status;
@@ -44,28 +47,49 @@ import java.util.Map;
 import java.util.Optional;
 import org.apache.cassandra.stargate.exceptions.UnhandledClientException;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+@ExtendWith(MockitoExtension.class)
 public class NewConnectionInterceptorTest {
+
+  public static MethodDescriptor TEST_METHOD_DESCRIPTOR =
+      MethodDescriptor.newBuilder()
+          .setType(MethodType.UNARY)
+          .setFullMethodName("test")
+          .setRequestMarshaller(mock(Marshaller.class))
+          .setResponseMarshaller(mock(Marshaller.class))
+          .build();
+
+  @Mock ServerCall call;
+
+  @Mock ServerCallHandler next;
+
+  @Mock Persistence persistence;
+
+  @Mock Connection connection;
+
+  @Mock AuthenticationService authenticationService;
+
+  @Mock AuthenticatedUser authenticatedUser;
+
+  @Mock AuthenticationSubject authenticationSubject;
 
   @Test
   public void correctCredentials() throws UnauthorizedException {
-    AuthenticatedUser authenticatedUser = mock(AuthenticatedUser.class);
     when(authenticatedUser.name()).thenReturn("def");
 
-    AuthenticationSubject authenticationSubject = mock(AuthenticationSubject.class);
     when(authenticationSubject.asUser()).thenReturn(authenticatedUser);
 
-    AuthenticationService authenticationService = mock(AuthenticationService.class);
     when(authenticationService.validateToken(eq("abc"), any(Map.class)))
         .thenReturn(authenticationSubject);
 
-    Connection connection = mock(Connection.class);
     when(connection.loggedUser()).thenReturn(Optional.of(authenticatedUser));
 
-    Persistence persistence = mock(Persistence.class);
     when(persistence.newConnection(any())).thenReturn(connection);
 
-    ServerCall call = mock(ServerCall.class);
+    when(call.getMethodDescriptor()).thenReturn(TEST_METHOD_DESCRIPTOR);
 
     Attributes attributes =
         Attributes.newBuilder()
@@ -94,12 +118,7 @@ public class NewConnectionInterceptorTest {
 
   @Test
   public void emptyCredentials() throws UnauthorizedException {
-    Persistence persistence = mock(Persistence.class);
-
-    AuthenticationService authenticationService = mock(AuthenticationService.class);
-
-    ServerCallHandler next = mock(ServerCallHandler.class);
-    ServerCall call = mock(ServerCall.class);
+    when(call.getMethodDescriptor()).thenReturn(TEST_METHOD_DESCRIPTOR);
 
     Metadata metadata = new Metadata();
     NewConnectionInterceptor interceptor =
@@ -119,14 +138,10 @@ public class NewConnectionInterceptorTest {
 
   @Test
   public void invalidCredentials() throws UnauthorizedException {
-    Persistence persistence = mock(Persistence.class);
-
-    AuthenticationService authenticationService = mock(AuthenticationService.class);
     when(authenticationService.validateToken(eq("invalid"), any(Map.class)))
         .thenThrow(new UnauthorizedException(""));
 
-    ServerCallHandler next = mock(ServerCallHandler.class);
-    ServerCall call = mock(ServerCall.class);
+    when(call.getMethodDescriptor()).thenReturn(TEST_METHOD_DESCRIPTOR);
 
     Attributes attributes =
         Attributes.newBuilder()
@@ -153,14 +168,10 @@ public class NewConnectionInterceptorTest {
 
   @Test
   public void unhandledClientException() throws UnauthorizedException {
-    Persistence persistence = mock(Persistence.class);
-
-    AuthenticationService authenticationService = mock(AuthenticationService.class);
     when(authenticationService.validateToken(anyString(), any(Map.class)))
         .thenThrow(new UnhandledClientException(""));
 
-    ServerCallHandler next = mock(ServerCallHandler.class);
-    ServerCall call = mock(ServerCall.class);
+    when(call.getMethodDescriptor()).thenReturn(TEST_METHOD_DESCRIPTOR);
 
     Attributes attributes =
         Attributes.newBuilder()
@@ -182,13 +193,8 @@ public class NewConnectionInterceptorTest {
 
   @Test
   public void setHostHeaderUsingAuthorityPseudoHeader() throws UnauthorizedException {
-    AuthenticatedUser authenticatedUser = mock(AuthenticatedUser.class);
-    when(authenticatedUser.name()).thenReturn("abc");
-
-    AuthenticationSubject authenticationSubject = mock(AuthenticationSubject.class);
     when(authenticationSubject.asUser()).thenReturn(authenticatedUser);
 
-    AuthenticationService authenticationService = mock(AuthenticationService.class);
     when(authenticationService.validateToken(anyString(), any(Map.class)))
         .then(
             invocation -> {
@@ -197,14 +203,9 @@ public class NewConnectionInterceptorTest {
               return authenticationSubject;
             });
 
-    Connection connection = mock(Connection.class);
-    when(connection.loggedUser()).thenReturn(Optional.of(authenticatedUser));
-
-    Persistence persistence = mock(Persistence.class);
     when(persistence.newConnection(any())).thenReturn(connection);
 
-    ServerCallHandler next = mock(ServerCallHandler.class);
-    ServerCall call = mock(ServerCall.class);
+    when(call.getMethodDescriptor()).thenReturn(TEST_METHOD_DESCRIPTOR);
 
     when(call.getAuthority()).thenReturn("example.com");
 

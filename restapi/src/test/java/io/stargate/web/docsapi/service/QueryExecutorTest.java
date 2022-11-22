@@ -44,6 +44,7 @@ import io.stargate.db.schema.Table;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Map;
+import org.apache.cassandra.stargate.exceptions.OverloadedException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -123,6 +124,16 @@ class QueryExecutorTest extends AbstractDataStoreTest {
 
     List<RawDocument> r1 = values(executor.queryDocs(allDocsQuery, 100, false, null, context));
     assertThat(r1).extracting(RawDocument::id).containsExactly("1", "2");
+  }
+
+  @Test
+  void testFullScanWithExecutionException() throws Exception {
+    OverloadedException error = new OverloadedException("Testing purposes");
+    withQuery(table, "SELECT * FROM %s").withExecutionException(error);
+
+    executor.queryDocs(allDocsQuery, 100, false, null, context).test().await().assertError(error);
+
+    resetExpectations();
   }
 
   private void withFiveTestDocs(int pageSize) {

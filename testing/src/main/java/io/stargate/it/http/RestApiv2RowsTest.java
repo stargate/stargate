@@ -18,6 +18,7 @@ package io.stargate.it.http;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import com.datastax.oss.driver.api.core.data.CqlDuration;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
@@ -598,6 +599,35 @@ public class RestApiv2RowsTest extends BaseIntegrationTest {
     assertThat(data.get(0).get("id")).isEqualTo("1");
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
     assertThat(data.get(0).get("created")).isEqualTo(timestamp);
+  }
+
+  @Test
+  public void getRowsWithDurationValue() throws IOException {
+    createTestKeyspace(keyspaceName);
+    createTestTable(
+        tableName,
+        Arrays.asList("id text", "firstName text", "time duration"),
+        Collections.singletonList("id"),
+        Collections.singletonList("firstName"));
+
+    CqlDuration expDuration = CqlDuration.from("2w");
+    insertTestTableRows(
+        Arrays.asList(
+            Arrays.asList("id 1", "firstName John", "time 2d"),
+            Arrays.asList("id 2", "firstName Sarah", "time " + expDuration),
+            Arrays.asList("id 3", "firstName Jane", "time 30h20m")));
+
+    String body =
+        RestUtils.get(
+            authToken,
+            String.format(
+                "%s/v2/keyspaces/%s/%s/%s?raw=true", restUrlBase, keyspaceName, tableName, "2"),
+            HttpStatus.SC_OK);
+    JsonNode json = objectMapper.readTree(body);
+    assertThat(json.size()).isEqualTo(1);
+    assertThat(json.at("/0/firstName").asText()).isEqualTo("Sarah");
+    // NOTE: "2 weeks" may become "14 days" (or vice versa); so let's compare CqlDuration equality
+    assertThat(CqlDuration.from(json.at("/0/time").asText())).isEqualTo(expDuration);
   }
 
   @Test
@@ -1675,17 +1705,28 @@ public class RestApiv2RowsTest extends BaseIntegrationTest {
     assertThat(data.get(0).get("v")).isEqualTo(9);
   }
 
-  /*
-  /************************************************************************
-  /* Test methods for Column CRUD operations
-  /************************************************************************
-   */
+  @Test
+  public void deleteRowNoSuchKey() throws IOException {
+    createTestKeyspace(keyspaceName);
+    createTestTable(keyspaceName, tableName);
 
-  /*
-  /************************************************************************
-  /* Test methods for User-Defined Type (UDT) CRUD operations
-  /************************************************************************
-   */
+    // First, try deleting row with valid UUID but one for which there is no row
+    // We should just get usual "NO_CONTENT" as DELETE is idempotent
+
+    final String rowIdentifier = UUID.randomUUID().toString();
+    RestUtils.delete(
+        authToken,
+        String.format(
+            "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, rowIdentifier),
+        HttpStatus.SC_NO_CONTENT);
+
+    // But then see what happens with invalid key (String that is not UUID, in this case)
+    RestUtils.delete(
+        authToken,
+        String.format(
+            "%s:8082/v2/keyspaces/%s/%s/%s", host, keyspaceName, tableName, "not-really-an-uuid"),
+        HttpStatus.SC_BAD_REQUEST);
+  }
 
   /*
   /************************************************************************
