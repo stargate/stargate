@@ -222,7 +222,9 @@ public class StargateTestResource
                 "-Dcassandra.skip_wait_for_gossip_to_settle=0 -Dcassandra.load_ring_state=false -Dcassandra.initial_token=1")
             .withNetworkAliases("cassandra")
             .withExposedPorts(7000, 9042)
-            .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("cassandra-docker")))
+            .withLogConsumer(
+                new Slf4jLogConsumer(LoggerFactory.getLogger("cassandra-docker"))
+                    .withPrefix("CASSANDRA"))
             .waitingFor(Wait.forLogMessage(".*Created default superuser role.*\\n", 1))
             .withStartupTimeout(getCassandraStartupTimeout())
             .withReuse(reuse);
@@ -246,7 +248,9 @@ public class StargateTestResource
             .withEnv("ENABLE_AUTH", "true")
             .withNetworkAliases("coordinator")
             .withExposedPorts(8091, 8081, 8084)
-            .withLogConsumer(new Slf4jLogConsumer(LoggerFactory.getLogger("coordinator-docker")))
+            .withLogConsumer(
+                new Slf4jLogConsumer(LoggerFactory.getLogger("coordinator-docker"))
+                    .withPrefix("COORDINATOR"))
             .waitingFor(Wait.forHttp("/checker/readiness").forPort(8084).forStatusCode(200))
             .withStartupTimeout(getCoordinatorStartupTimeout())
             .withReuse(reuse);
