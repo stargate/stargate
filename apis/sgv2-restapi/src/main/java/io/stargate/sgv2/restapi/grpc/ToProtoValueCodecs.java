@@ -611,6 +611,11 @@ public class ToProtoValueCodecs {
       if (value instanceof String) {
         return protoValueFromStringified((String) value);
       }
+      // Should only accept integral numbers; Jackson will expose these as Integers and Longs
+      // (unfortunately "java.lang.Number" has no convenience methods for determining this)
+      if (value instanceof Long || value instanceof Integer) {
+        return Values.of(((Number) value).longValue());
+      }
       return cannotCoerce(value);
     }
 
