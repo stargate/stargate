@@ -1,5 +1,6 @@
 package io.stargate.sgv2.restapi.service.resources.schemas;
 
+import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.cql.builder.Column;
@@ -10,73 +11,78 @@ import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
+import org.jboss.resteasy.reactive.RestResponse;
 
 public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2ColumnsResourceApi {
   @Override
-  public Response getAllColumns(String keyspaceName, String tableName, boolean raw) {
+  public Uni<RestResponse<Object>> getAllColumns(
+      String keyspaceName, String tableName, boolean raw) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    Schema.CqlTable tableDef = getTable(keyspaceName, tableName);
-    List<Sgv2ColumnDefinition> columns = table2columns(tableDef);
-    final Object payload = raw ? columns : new Sgv2RESTResponse<>(columns);
-    return Response.status(Response.Status.OK).entity(payload).build();
+
+    return getTableAsyncCheckExistence(keyspaceName, tableName, true, Response.Status.BAD_REQUEST)
+        .map(t -> table2columns(t))
+        // map to wrapper if needed
+        .map(t -> raw ? t : new Sgv2RESTResponse<>(t))
+        .map(result -> RestResponse.ok(result));
   }
 
   @Override
-  public Response createColumn(
+  public Uni<RestResponse<Object>> createColumn(
       String keyspaceName, String tableName, Sgv2ColumnDefinition columnDefinition) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     final String columnName = columnDefinition.getName();
     if (isStringEmpty(tableName)) {
       throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
     }
-    queryWithTable(
-        keyspaceName,
-        tableName,
-        (tableDef) -> {
-          Column.Kind kind =
-              columnDefinition.getIsStatic() ? Column.Kind.STATIC : Column.Kind.REGULAR;
-          Column columnDef =
-              ImmutableColumn.builder()
-                  .name(columnName)
-                  .kind(kind)
-                  .type(columnDefinition.getTypeDefinition())
+    return queryWithTableAsync(
+            keyspaceName,
+            tableName,
+            (tableDef) -> {
+              Column.Kind kind =
+                  columnDefinition.getIsStatic() ? Column.Kind.STATIC : Column.Kind.REGULAR;
+              Column columnDef =
+                  ImmutableColumn.builder()
+                      .name(columnName)
+                      .kind(kind)
+                      .type(columnDefinition.getTypeDefinition())
+                      .build();
+              return new QueryBuilder()
+                  .alter()
+                  .table(keyspaceName, tableName)
+                  .addColumn(columnDef)
+                  .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
                   .build();
-          return new QueryBuilder()
-              .alter()
-              .table(keyspaceName, tableName)
-              .addColumn(columnDef)
-              .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
-              .build();
-        });
-    return Response.status(Response.Status.CREATED)
-        .entity(Collections.singletonMap("name", columnName))
-        .build();
+            })
+        .map(any -> restResponseCreatedWithName(columnName));
   }
 
   @Override
-  public Response getOneColumn(
+  public Uni<RestResponse<Object>> getOneColumn(
       String keyspaceName, String tableName, String columnName, boolean raw) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     if (isStringEmpty(columnName)) {
       throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
     }
-    Schema.CqlTable tableDef = getTable(keyspaceName, tableName);
-    Sgv2ColumnDefinition column = findColumn(tableDef, columnName);
-    if (column == null) {
-      throw new WebApplicationException(
-          String.format("column '%s' not found in table '%s'", columnName, tableName),
-          Response.Status.NOT_FOUND);
-    }
-    final Object payload = raw ? column : new Sgv2RESTResponse<>(column);
-    return Response.status(Response.Status.OK).entity(payload).build();
+    return getTableAsyncCheckExistence(keyspaceName, tableName, true, Response.Status.BAD_REQUEST)
+        .map(
+            tableDef -> {
+              Sgv2ColumnDefinition column = findColumn(tableDef, columnName);
+              if (column == null) {
+                throw new WebApplicationException(
+                    String.format("Column '%s' not found in table '%s'", columnName, tableName),
+                    Response.Status.NOT_FOUND);
+              }
+              return column;
+            })
+        .map(t -> raw ? t : new Sgv2RESTResponse<>(t))
+        .map(result -> RestResponse.ok(result));
   }
 
   @Override
-  public Response updateColumn(
+  public Uni<RestResponse<Object>> updateColumn(
       String keyspaceName, String tableName, String columnName, Sgv2ColumnDefinition columnUpdate) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     if (isStringEmpty(columnName)) {
@@ -84,56 +90,54 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
     }
     final String newName = columnUpdate.getName();
     // Avoid call if there is no need to rename
-    if (!columnName.equals(newName)) {
-      queryWithTable(
-          keyspaceName,
-          tableName,
-          (tableDef) -> {
-            // Optional, could let backend verify but this gives us better error reporting
-            if (findColumn(tableDef, columnName) == null) {
-              // 13-Dec-2021, tatu: Seems like maybe it should be NOT_FOUND but SGv1 returns
-              // BAD_REQUEST
-              throw new WebApplicationException(
-                  String.format("column '%s' not found in table '%s'", columnName, tableName),
-                  Response.Status.BAD_REQUEST);
-            }
-            return new QueryBuilder()
-                .alter()
-                .table(keyspaceName, tableName)
-                .renameColumn(columnName, newName)
-                .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
-                .build();
-          });
+    if (columnName.equals(newName)) {
+      return Uni.createFrom().item(restResponseOkWithName(newName));
     }
-    return Response.status(Response.Status.OK)
-        .entity(Collections.singletonMap("name", newName))
-        .build();
+    return queryWithTableAsync(
+            keyspaceName,
+            tableName,
+            (tableDef) -> {
+              // Optional, could let backend verify but this gives us better error reporting
+              if (findColumn(tableDef, columnName) == null) {
+                throw new WebApplicationException(
+                    String.format("Column '%s' not found in table '%s'", columnName, tableName),
+                    Response.Status.BAD_REQUEST);
+              }
+              return new QueryBuilder()
+                  .alter()
+                  .table(keyspaceName, tableName)
+                  .renameColumn(columnName, newName)
+                  .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
+                  .build();
+            })
+        .map(any -> restResponseOkWithName(newName));
   }
 
   @Override
-  public Response deleteColumn(String keyspaceName, String tableName, String columnName) {
+  public Uni<RestResponse<Object>> deleteColumn(
+      String keyspaceName, String tableName, String columnName) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     if (isStringEmpty(columnName)) {
       throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
     }
-    queryWithTable(
-        keyspaceName,
-        tableName,
-        (tableDef) -> {
-          // Optional, could let backend verify but this gives us better error reporting
-          if (findColumn(tableDef, columnName) == null) {
-            throw new WebApplicationException(
-                String.format("column '%s' not found in table '%s'", columnName, tableName),
-                Response.Status.BAD_REQUEST);
-          }
-          return new QueryBuilder()
-              .alter()
-              .table(keyspaceName, tableName)
-              .dropColumn(columnName)
-              .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
-              .build();
-        });
-    return Response.status(Response.Status.NO_CONTENT).build();
+    return queryWithTableAsync(
+            keyspaceName,
+            tableName,
+            (tableDef) -> {
+              // Optional, could let backend verify but this gives us better error reporting
+              if (findColumn(tableDef, columnName) == null) {
+                throw new WebApplicationException(
+                    String.format("Column '%s' not found in table '%s'", columnName, tableName),
+                    Response.Status.BAD_REQUEST);
+              }
+              return new QueryBuilder()
+                  .alter()
+                  .table(keyspaceName, tableName)
+                  .dropColumn(columnName)
+                  .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
+                  .build();
+            })
+        .map(any -> RestResponse.status(Response.Status.NO_CONTENT));
   }
 
   /*

@@ -3,6 +3,7 @@ package io.stargate.sgv2.restapi.service.resources.schemas;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.grpc.StatusRuntimeException;
+import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.api.common.cql.builder.Column;
@@ -16,16 +17,16 @@ import io.stargate.sgv2.restapi.service.models.Sgv2UDTUpdateRequest;
 import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
+import org.jboss.resteasy.reactive.RestResponse;
 
 public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsResourceApi {
   @Override
-  public Response findAllTypes(final String keyspaceName, final boolean raw) {
+  public Uni<RestResponse<Object>> findAllTypes(final String keyspaceName, final boolean raw) {
     requireNonEmptyKeyspace(keyspaceName);
 
     QueryOuterClass.Query query =
@@ -38,20 +39,21 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
             .where("keyspace_name", Predicate.EQ, Values.of(keyspaceName))
             .build();
 
-    QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
-
-    final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
-
-    // two-part conversion: first from proto to JsonNode for easier traversability,
-    // then from that to actual response we need:
-    ArrayNode ksRows = convertRowsToArrayNode(rs);
-    List<Sgv2UDT> udts = jsonArray2Udts(keyspaceName, ksRows);
-    final Object payload = raw ? udts : new Sgv2RESTResponse(udts);
-    return Response.status(Response.Status.OK).entity(payload).build();
+    return executeQueryAsync(query)
+        .map(response -> response.getResultSet())
+        .map(
+            rs -> {
+              // two-part conversion: first from proto to JsonNode for easier traversability,
+              // then from that to actual response we need:
+              ArrayNode ksRows = convertRowsToArrayNode(rs);
+              return jsonArray2Udts(keyspaceName, ksRows);
+            })
+        .map(udts -> raw ? udts : new Sgv2RESTResponse<>(udts))
+        .map(result -> RestResponse.ok(result));
   }
 
   @Override
-  public Response findTypeById(
+  public Uni<RestResponse<Object>> findTypeById(
       final String keyspaceName, final String typeName, final boolean raw) {
     requireNonEmptyKeyspace(keyspaceName);
     requireNonEmptyTypename(typeName);
@@ -67,38 +69,36 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
             .where("type_name", Predicate.EQ, Values.of(typeName))
             .build();
 
-    QueryOuterClass.Response grpcResponse = bridge.executeQuery(query);
-
-    final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
-
-    // two-part conversion: first from proto to JsonNode for easier traversability,
-    // then from that to actual response we need:
-    ArrayNode ksRows = convertRowsToArrayNode(rs);
-
-    // Must get one and only one response, verify
-    switch (ksRows.size()) {
-      case 0:
-        return restServiceError(
-            Response.Status.NOT_FOUND,
-            String.format(
-                "No definition found for UDT '%s' (keyspace '%s')", typeName, keyspaceName));
-      case 1:
-        break; // correct choice :)
-      default:
-        return restServiceError(
-            Response.Status.INTERNAL_SERVER_ERROR,
-            String.format(
-                "Multiple definitions (%d) found for UDT '%s' (keyspace '%s')",
-                ksRows.size(), typeName, keyspaceName));
-    }
-
-    Sgv2UDT udt = jsonArray2Udts(keyspaceName, ksRows).get(0);
-    final Object payload = raw ? udt : new Sgv2RESTResponse(udt);
-    return Response.status(Response.Status.OK).entity(payload).build();
+    return executeQueryAsync(query)
+        .map(response -> response.getResultSet())
+        .map(rs -> convertRowsToArrayNode(rs))
+        .map(
+            ksRows -> {
+              // Must get one and only one response, verify
+              switch (ksRows.size()) {
+                case 0:
+                  return apiErrorResponse(
+                      Response.Status.NOT_FOUND,
+                      String.format(
+                          "No definition found for UDT '%s' (keyspace '%s')",
+                          typeName, keyspaceName));
+                case 1:
+                  Sgv2UDT udt = jsonArray2Udts(keyspaceName, ksRows).get(0);
+                  final Object udtResult = raw ? udt : new Sgv2RESTResponse(udt);
+                  return RestResponse.ok(udtResult);
+                default:
+                  return apiErrorResponse(
+                      Response.Status.INTERNAL_SERVER_ERROR,
+                      String.format(
+                          "Multiple definitions (%d) found for UDT '%s' (keyspace '%s')",
+                          ksRows.size(), typeName, keyspaceName));
+              }
+            });
   }
 
   @Override
-  public Response createType(final String keyspaceName, final String udtAddPayload) {
+  public Uni<RestResponse<Object>> createType(
+      final String keyspaceName, final String udtAddPayload) {
     requireNonEmptyKeyspace(keyspaceName);
     Sgv2UDTAddRequest udtAdd;
 
@@ -119,47 +119,30 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
             .column(columns2columns(udtAdd.getFields()))
             .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
             .build();
-    try {
-      bridge.executeQuery(query);
-    } catch (StatusRuntimeException grpcE) {
-      // For most failures pass and let default handler deal; but for specific case of
-      // trying to create existing UDT without "if-not-exists", try to dig actual fail
-      // message
-      switch (grpcE.getStatus().getCode()) {
-        case INVALID_ARGUMENT:
-          final String desc = grpcE.getStatus().getDescription();
-          if (desc.contains("already exists")) {
-            return restServiceError(Response.Status.BAD_REQUEST, "Bad request: " + desc);
-          }
-      }
-      // otherwise just pass it along
-      throw grpcE;
-    }
 
-    return Response.status(Response.Status.CREATED)
-        .entity(Collections.singletonMap("name", typeName))
-        .build();
+    return executeQueryAsync(query)
+        // For most failures pass and let default handler deal; but for specific case of
+        // trying to create existing UDT without "if-not-exists", try to dig actual fail
+        // message
+        .map(any -> restResponseCreatedWithName(typeName))
+        .onFailure(
+            failure ->
+                (failure instanceof StatusRuntimeException)
+                    && ((StatusRuntimeException) failure)
+                        .getStatus()
+                        .getDescription()
+                        .contains("already exists"))
+        .recoverWithItem(
+            failure -> {
+              final String desc =
+                  "Bad request: " + ((StatusRuntimeException) failure).getStatus().getDescription();
+              return apiErrorResponse(Response.Status.BAD_REQUEST, desc);
+            });
   }
 
   @Override
-  public Response deleteType(final String keyspaceName, final String typeName) {
-    requireNonEmptyKeyspace(keyspaceName);
-    requireNonEmptyTypename(typeName);
-
-    QueryOuterClass.Query query =
-        new QueryBuilder()
-            .drop()
-            .type(keyspaceName, typeName)
-            // 15-Dec-2021, tatu: Why no "ifExists" option? SGv1 had none which
-            //    seems inconsistent; would be good for idempotency
-            // .ifExists()
-            .build();
-    /*QueryOuterClass.Response grpcResponse =*/ bridge.executeQuery(query);
-    return Response.status(Response.Status.NO_CONTENT).build();
-  }
-
-  @Override
-  public Response updateType(final String keyspaceName, final Sgv2UDTUpdateRequest udtUpdate) {
+  public Uni<RestResponse<Object>> updateType(
+      final String keyspaceName, final Sgv2UDTUpdateRequest udtUpdate) {
     requireNonEmptyKeyspace(keyspaceName);
     final String typeName = udtUpdate.getName();
     requireNonEmptyTypename(typeName);
@@ -167,38 +150,57 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
     List<Sgv2UDT.UDTField> addFields = udtUpdate.getAddFields();
     List<Sgv2UDTUpdateRequest.FieldRename> renameFields = udtUpdate.getRenameFields();
 
-    if ((addFields == null || addFields.isEmpty())
-        && (renameFields == null || renameFields.isEmpty())) {
-      return restServiceError(
+    final boolean hasAddFields = (addFields != null && !addFields.isEmpty());
+    final boolean hasRenameFields = (renameFields != null && !renameFields.isEmpty());
+
+    if (!hasAddFields && !hasRenameFields) {
+      return apiErrorResponseUni(
           Response.Status.BAD_REQUEST,
           "addFields and/or renameFields is required to update an UDT");
     }
 
-    if (addFields != null && !addFields.isEmpty()) {
-      List<Column> columns = columns2columns(addFields);
-      QueryOuterClass.Query query =
-          new QueryBuilder().alter().type(keyspaceName, typeName).addColumn(columns).build();
-      bridge.executeQuery(query);
-    }
+    final QueryOuterClass.Query addQuery =
+        hasAddFields
+            ? new QueryBuilder()
+                .alter()
+                .type(keyspaceName, typeName)
+                .addColumn(columns2columns(addFields))
+                .build()
+            : null;
 
-    if (renameFields != null && !renameFields.isEmpty()) {
-      Map<String, String> columnRenames =
+    if (hasRenameFields) {
+      final Map<String, String> columnRenames =
           renameFields.stream()
               .collect(
                   Collectors.toMap(
                       Sgv2UDTUpdateRequest.FieldRename::getFrom,
                       Sgv2UDTUpdateRequest.FieldRename::getTo));
-
-      QueryOuterClass.Query query =
+      final QueryOuterClass.Query renameQuery =
           new QueryBuilder()
               .alter()
               .type(keyspaceName, typeName)
               .renameColumn(columnRenames)
               .build();
-      bridge.executeQuery(query);
+      if (addQuery != null) {
+        return executeQueryAsync(addQuery)
+            .chain(any -> executeQueryAsync(renameQuery))
+            .map(any -> RestResponse.ok());
+      }
+      return executeQueryAsync(renameQuery).map(any -> RestResponse.ok());
     }
 
-    return Response.status(Response.Status.OK).build();
+    // Must still have add-columns
+    return executeQueryAsync(addQuery).map(any -> RestResponse.ok());
+  }
+
+  @Override
+  public Uni<RestResponse<Object>> deleteType(final String keyspaceName, final String typeName) {
+    requireNonEmptyKeyspace(keyspaceName);
+    requireNonEmptyTypename(typeName);
+
+    return executeQueryAsync(
+            new QueryBuilder().drop().type(keyspaceName, typeName).ifExists().build())
+        .map(any -> RestResponse.noContent());
   }
 
   /*

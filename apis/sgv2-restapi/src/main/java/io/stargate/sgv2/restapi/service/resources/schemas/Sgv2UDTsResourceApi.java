@@ -1,5 +1,6 @@
 package io.stargate.sgv2.restapi.service.resources.schemas;
 
+import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.service.models.Sgv2UDT;
 import io.stargate.sgv2.restapi.service.models.Sgv2UDTUpdateRequest;
@@ -15,7 +16,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
 import org.eclipse.microprofile.openapi.annotations.media.Content;
@@ -26,6 +26,7 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponse;
 import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
+import org.jboss.resteasy.reactive.RestResponse;
 
 /**
  * Definition of REST API DDL endpoint for Cassandra User Defined Types access including JAX-RS and
@@ -56,7 +57,7 @@ public interface Sgv2UDTsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_404),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500)
       })
-  Response findAllTypes(
+  Uni<RestResponse<Object>> findAllTypes(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -78,7 +79,7 @@ public interface Sgv2UDTsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500)
       })
   @Path("/{typeName}")
-  Response findTypeById(
+  Uni<RestResponse<Object>> findTypeById(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -106,12 +107,29 @@ public interface Sgv2UDTsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500)
       })
-  Response createType(
+  Uni<RestResponse<Object>> createType(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
       @RequestBody(description = "Type definition as JSON", required = true) @NotNull
           final String udtAddPayload);
+
+  @PUT
+  @Operation(
+      summary = "Update an User Defined type (UDT)",
+      description = "Update an user defined type (UDT) adding or renaming fields.")
+  @APIResponses(
+      value = {
+        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_204),
+        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
+        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
+      })
+  Uni<RestResponse<Object>> updateType(
+      @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
+          @PathParam("keyspaceName")
+          final String keyspaceName,
+      @RequestBody(description = "Type definition as JSON", required = true) @NotNull
+          final Sgv2UDTUpdateRequest udtUpdate);
 
   @DELETE
   @Operation(
@@ -124,7 +142,7 @@ public interface Sgv2UDTsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500)
       })
   @Path("/{typeName}")
-  Response deleteType(
+  Uni<RestResponse<Object>> deleteType(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -135,21 +153,4 @@ public interface Sgv2UDTsResourceApi {
               schema = @Schema(type = SchemaType.STRING))
           @PathParam("typeName")
           final String typeName);
-
-  @PUT
-  @Operation(
-      summary = "Update an User Defined type (UDT)",
-      description = "Update an user defined type (UDT) adding or renaming fields.")
-  @APIResponses(
-      value = {
-        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_204),
-        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
-        @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
-      })
-  Response updateType(
-      @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
-          @PathParam("keyspaceName")
-          final String keyspaceName,
-      @RequestBody(description = "Type definition as JSON", required = true) @NotNull
-          final Sgv2UDTUpdateRequest udtUpdate);
 }

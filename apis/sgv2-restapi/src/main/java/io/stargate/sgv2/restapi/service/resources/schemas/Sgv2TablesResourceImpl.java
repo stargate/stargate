@@ -1,5 +1,6 @@
 package io.stargate.sgv2.restapi.service.resources.schemas;
 
+import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.cql.builder.Column;
@@ -12,16 +13,15 @@ import io.stargate.sgv2.restapi.service.models.Sgv2Table;
 import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
 import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,35 +29,33 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
   private static final Logger LOGGER = LoggerFactory.getLogger(Sgv2TablesResourceImpl.class);
 
   @Override
-  public Response getAllTables(final String keyspaceName, final boolean raw) {
+  public Uni<RestResponse<Object>> getAllTables(final String keyspaceName, final boolean raw) {
     requireNonEmptyKeyspace(keyspaceName);
-    List<Schema.CqlTable> tableDefs = bridge.getTables(keyspaceName);
-    List<Sgv2Table> tableResponses =
-        tableDefs.stream().map(t -> table2table(t, keyspaceName)).collect(Collectors.toList());
-    final Object payload = raw ? tableResponses : new Sgv2RESTResponse(tableResponses);
-    return Response.status(Status.OK).entity(payload).build();
+
+    return getTablesAsync(keyspaceName)
+        .map(t -> table2table(t, keyspaceName))
+        .collect()
+        .asList()
+        // map to wrapper if needed
+        .map(tables -> raw ? tables : new Sgv2RESTResponse<>(tables))
+        .map(result -> RestResponse.ok(result));
   }
 
   @Override
-  public Response getOneTable(
+  public Uni<RestResponse<Object>> getOneTable(
       final String keyspaceName, final String tableName, final boolean raw) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    // NOTE: Can Not use "callWithTable()" as that would return 400 (Bad Request) for
-    // missing Table; here we specifically want 404 instead.
-    return bridge
-        .getTable(keyspaceName, tableName, true)
-        .map(
-            tableDef -> {
-              Sgv2Table tableResponse = table2table(tableDef, keyspaceName);
-              final Object payload = raw ? tableResponse : new Sgv2RESTResponse(tableResponse);
-              return Response.status(Status.OK).entity(payload).build();
-            })
-        .orElseThrow(
-            () -> new WebApplicationException("unable to describe table", Status.NOT_FOUND));
+
+    return getTableAsyncCheckExistence(keyspaceName, tableName, true, Response.Status.NOT_FOUND)
+        .map(t -> table2table(t, keyspaceName))
+        // map to wrapper if needed
+        .map(t -> raw ? t : new Sgv2RESTResponse<>(t))
+        .map(result -> RestResponse.ok(result));
   }
 
   @Override
-  public Response createTable(final String keyspaceName, final Sgv2TableAddRequest tableAdd) {
+  public Uni<RestResponse<Object>> createTable(
+      final String keyspaceName, final Sgv2TableAddRequest tableAdd) {
     final String tableName = tableAdd.getName();
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
 
@@ -112,51 +110,48 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
             .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
             .build();
 
-    bridge.executeQuery(query);
-
-    return Response.status(Status.CREATED)
-        .entity(Collections.singletonMap("name", tableName))
-        .build();
+    return executeQueryAsync(query)
+        // No real contents; can ignore ResultSet it seems and only worry about exceptions
+        .map(any -> restResponseCreatedWithName(tableName));
   }
 
   @Override
-  public Response updateTable(
+  public Uni<RestResponse<Object>> updateTable(
       final String keyspaceName, final String tableName, final Sgv2TableAddRequest tableUpdate) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    queryWithTable(
-        keyspaceName,
-        tableName,
-        (tableDef) -> {
-          Sgv2Table.TableOptions options = tableUpdate.getTableOptions();
-          List<?> clusteringExpressions = options.getClusteringExpression();
-          if (clusteringExpressions != null && !clusteringExpressions.isEmpty()) {
-            throw new WebApplicationException(
-                "Cannot update the clustering order of a table", Status.BAD_REQUEST);
-          }
-          Integer defaultTTL = options.getDefaultTimeToLive();
-          // 09-Dec-2021, tatu: Seems bit odd but this is the way SGv1/RESTv2 checks it,
-          //    probably since this is the only thing that can actually be changed:
-          if (defaultTTL == null) {
-            throw new WebApplicationException(
-                "No update provided for defaultTTL", Status.BAD_REQUEST);
-          }
-          return new QueryBuilder()
-              .alter()
-              .table(keyspaceName, tableName)
-              .withDefaultTTL(options.getDefaultTimeToLive())
-              .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
-              .build();
-        });
-    return Response.status(Status.OK).entity(Collections.singletonMap("name", tableName)).build();
+    return queryWithTableAsync(
+            keyspaceName,
+            tableName,
+            (tableDef) -> {
+              Sgv2Table.TableOptions options = tableUpdate.getTableOptions();
+              List<?> clusteringExpressions = options.getClusteringExpression();
+              if (clusteringExpressions != null && !clusteringExpressions.isEmpty()) {
+                throw new WebApplicationException(
+                    "Cannot update the clustering order of a table", Status.BAD_REQUEST);
+              }
+              Integer defaultTTL = options.getDefaultTimeToLive();
+              // 09-Dec-2021, tatu: Seems bit odd but this is the way SGv1/RESTv2 checks it,
+              //    probably since this is the only thing that can actually be changed:
+              if (defaultTTL == null) {
+                throw new WebApplicationException(
+                    "No update provided for defaultTTL", Status.BAD_REQUEST);
+              }
+              return new QueryBuilder()
+                  .alter()
+                  .table(keyspaceName, tableName)
+                  .withDefaultTTL(options.getDefaultTimeToLive())
+                  .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
+                  .build();
+            })
+        .map(any -> restResponseOkWithName(tableName));
   }
 
   @Override
-  public Response deleteTable(final String keyspaceName, final String tableName) {
+  public Uni<RestResponse<Object>> deleteTable(final String keyspaceName, final String tableName) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    QueryOuterClass.Query query =
-        new QueryBuilder().drop().table(keyspaceName, tableName).ifExists().build();
-    /*QueryOuterClass.Response grpcResponse =*/ bridge.executeQuery(query);
-    return Response.status(Status.NO_CONTENT).build();
+    return executeQueryAsync(
+            new QueryBuilder().drop().table(keyspaceName, tableName).ifExists().build())
+        .map(any -> RestResponse.noContent());
   }
 
   /*
