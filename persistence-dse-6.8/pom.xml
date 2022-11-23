@@ -10,7 +10,7 @@
   <groupId>io.stargate.db.dse</groupId>
   <artifactId>persistence-dse-6.8</artifactId>
   <properties>
-    <dse.version>6.8.26</dse.version>
+    <dse.version>6.8.29</dse.version>
   </properties>
   <repositories>
     <repository>
@@ -123,6 +123,11 @@
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-shaded-guava</artifactId>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-codec</artifactId>
+      <version>4.1.78.1.dse</version>
     </dependency>
 
     <!-- 3rd party dependencies -->

@@ -11,7 +11,7 @@
 #
 # Then run the container using:
 #
-# docker run -i --rm -p 8080:8080 quarkus/sgv2-restapi
+# docker run -i --rm -p 8082:8082 quarkus/sgv2-restapi
 #
 ###
 FROM registry.access.redhat.com/ubi8/ubi-minimal:8.7

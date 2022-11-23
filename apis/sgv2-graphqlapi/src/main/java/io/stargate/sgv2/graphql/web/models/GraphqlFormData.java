@@ -50,5 +50,6 @@ public class GraphqlFormData {
   public Map<String, List<String>> map;
 
   /** The file parts. */
-  @RestForm public List<FileUpload> files;
+  @RestForm(FileUpload.ALL)
+  public List<FileUpload> files;
 }
