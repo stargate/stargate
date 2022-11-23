@@ -601,6 +601,9 @@ public class FromProtoValueCodecs {
     public Object fromProtoValue(QueryOuterClass.Value value) {
       QueryOuterClass.Collection coll = value.getCollection();
       final int len = verifyTupleLength(coll);
+      if (len == 0) {
+        return null;
+      }
       List<Object> result = new ArrayList<>(len);
       for (int i = 0; i < len; ++i) {
         result.add(elementCodecs.get(i).fromProtoValue(coll.getElements(i)));
@@ -611,8 +614,11 @@ public class FromProtoValueCodecs {
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
       QueryOuterClass.Collection coll = value.getCollection();
-      ArrayNode result = jsonNodeFactory.arrayNode();
       final int len = verifyTupleLength(coll);
+      if (len == 0) {
+        return jsonNodeFactory.nullNode();
+      }
+      ArrayNode result = jsonNodeFactory.arrayNode();
       for (int i = 0; i < len; ++i) {
         result.add(elementCodecs.get(i).jsonNodeFrom(coll.getElements(i)));
       }
@@ -622,10 +628,14 @@ public class FromProtoValueCodecs {
     private int verifyTupleLength(QueryOuterClass.Collection tupleValue) {
       int len = tupleValue.getElementsCount();
       if (len != elementCodecs.size()) {
-        throw new IllegalArgumentException(
-            String.format(
-                "Illegal Tuple representation, expected %d values, received %d",
-                elementCodecs.size(), len));
+        // 22-Nov-2022, tatu: [stargate#2246] need to accept "missing" Tuple value
+        //    (converted to "null")
+        if (len != 0) {
+          throw new IllegalArgumentException(
+              String.format(
+                  "Illegal Tuple representation, expected %d values, received %d",
+                  elementCodecs.size(), len));
+        }
       }
       return len;
     }
