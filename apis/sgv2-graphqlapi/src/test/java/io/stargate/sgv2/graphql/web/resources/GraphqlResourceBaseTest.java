@@ -20,15 +20,22 @@ import static org.hamcrest.CoreMatchers.is;
 
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
+import io.restassured.RestAssured;
 import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
 import javax.ws.rs.core.MediaType;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 @TestProfile(NoGlobalResourcesTestProfile.Impl.class)
 public class GraphqlResourceBaseTest {
+
+  @BeforeAll
+  public static void initRestAssured() {
+    RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
+  }
 
   @Test
   public void shouldGet() {
