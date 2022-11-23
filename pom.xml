@@ -52,7 +52,7 @@
     <snakeyaml.version>1.32</snakeyaml.version>
     <swagger-ui.version>3.52.5</swagger-ui.version>
     <swagger-jersey2-jaxrs.version>1.6.3</swagger-jersey2-jaxrs.version>
-    <netty.version>4.1.78.Final</netty.version>
+    <netty.version>4.1.75.Final</netty.version>
     <netty-boringssl.version>2.0.51.Final</netty-boringssl.version>
 
     <!-- And finally test/build deps -->
