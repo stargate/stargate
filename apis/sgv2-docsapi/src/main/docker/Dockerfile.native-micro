@@ -14,10 +14,10 @@
 #
 # Then run the container using:
 #
-# docker run -i --rm -p 8080:8080 quarkus/sgv2-docsapi
+# docker run -i --rm -p 8180:8180 quarkus/sgv2-docsapi
 #
 ###
-FROM quay.io/quarkus/quarkus-micro-image:1.0
+FROM quay.io/quarkus/quarkus-micro-image:2.0
 WORKDIR /work/
 RUN chown 1001 /work \
     && chmod "g+rwX" /work \

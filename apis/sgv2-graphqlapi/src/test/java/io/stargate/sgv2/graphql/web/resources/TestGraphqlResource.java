@@ -34,6 +34,7 @@ import io.stargate.sgv2.graphql.web.models.GraphqlJsonBody;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import javax.ws.rs.BeanParam;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -43,7 +44,6 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.container.AsyncResponse;
 import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
-import org.jboss.resteasy.reactive.MultipartForm;
 
 /**
  * A test-only resource without any Stargate-specific logic, just to cover the generic functionality
@@ -119,7 +119,7 @@ public class TestGraphqlResource extends GraphqlResourceBase {
   @POST
   @Consumes(MediaType.MULTIPART_FORM_DATA)
   public void postMultipartJson(
-      @MultipartForm GraphqlFormData formData, @Suspended AsyncResponse asyncResponse) {
+      @BeanParam GraphqlFormData formData, @Suspended AsyncResponse asyncResponse) {
     super.postMultipartJson(formData, GRAPHQL, CONTEXT, asyncResponse);
   }
 }
