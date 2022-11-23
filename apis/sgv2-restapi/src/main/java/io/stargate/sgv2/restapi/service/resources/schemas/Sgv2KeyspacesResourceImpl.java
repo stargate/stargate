@@ -19,6 +19,7 @@ import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
@@ -28,14 +29,11 @@ import io.stargate.sgv2.restapi.service.models.Sgv2Keyspace;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -50,36 +48,36 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
   private static final SchemaBuilderHelper schemaBuilder = new SchemaBuilderHelper(JSON_MAPPER);
 
   @Override
-  public Response getAllKeyspaces(final boolean raw) {
-
-    List<Sgv2Keyspace> keyspaces =
-        bridge.getAllKeyspaces().stream()
-            .map(Sgv2KeyspacesResourceImpl::keyspaceFrom)
-            .collect(Collectors.toList());
-
-    final Object payload = raw ? keyspaces : new Sgv2RESTResponse<>(keyspaces);
-    return Response.status(Status.OK).entity(payload).build();
+  public Uni<RestResponse<Object>> getAllKeyspaces(final boolean raw) {
+    return getKeyspacesAsync()
+        .map(ks -> convertKeyspace(ks))
+        .collect()
+        .asList()
+        // map to wrapper if needed
+        .map(keyspaces -> raw ? keyspaces : new Sgv2RESTResponse<>(keyspaces))
+        .map(result -> RestResponse.ok(result));
   }
 
   @Override
-  public Response getOneKeyspace(final String keyspaceName, final boolean raw) {
-    return bridge
-        .getKeyspace(keyspaceName, true)
-        .map(
-            describe -> {
-              Sgv2Keyspace keyspace = keyspaceFrom(describe);
-
-              final Object payload = raw ? keyspace : new Sgv2RESTResponse<>(keyspace);
-              return Response.status(Status.OK).entity(payload).build();
-            })
-        .orElseThrow(
+  public Uni<RestResponse<Object>> getOneKeyspace(final String keyspaceName, final boolean raw) {
+    return getKeyspaceAsync(keyspaceName, true)
+        .onItem()
+        .ifNull()
+        .switchTo(
             () ->
-                new WebApplicationException(
-                    "Unable to describe keyspace '" + keyspaceName + "'", Status.NOT_FOUND));
+                Uni.createFrom()
+                    .failure(
+                        new WebApplicationException(
+                            "Unable to describe keyspace '" + keyspaceName + "'",
+                            Status.NOT_FOUND)))
+        .map(ks -> convertKeyspace(ks))
+        // map to wrapper if needed
+        .map(ks -> raw ? ks : new Sgv2RESTResponse<>(ks))
+        .map(result -> RestResponse.ok(result));
   }
 
   @Override
-  public Response createKeyspace(final String payloadString) {
+  public Uni<RestResponse<Object>> createKeyspace(final String payloadString) {
     SchemaBuilderHelper.KeyspaceCreateDefinition ksCreateDef;
     try {
       JsonNode payload = JSON_MAPPER.readTree(payloadString);
@@ -112,19 +110,15 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
               .build();
     }
 
-    bridge.executeQuery(query);
-
-    // No real contents; can ignore ResultSet it seems and only worry about exceptions
-
-    final Map<String, Object> responsePayload = Collections.singletonMap("name", keyspaceName);
-    return Response.status(Status.CREATED).entity(responsePayload).build();
+    return executeQueryAsync(query)
+        // No real contents; can ignore ResultSet it seems and only worry about exceptions
+        .map(any -> restResponseCreatedWithName(keyspaceName));
   }
 
   @Override
-  public Response deleteKeyspace(final String keyspaceName) {
-    Query query = new QueryBuilder().drop().keyspace(keyspaceName).ifExists().build();
-    bridge.executeQuery(query);
-    return Response.status(Status.NO_CONTENT).build();
+  public Uni<RestResponse<Object>> deleteKeyspace(final String keyspaceName) {
+    return executeQueryAsync(new QueryBuilder().drop().keyspace(keyspaceName).ifExists().build())
+        .map(any -> RestResponse.noContent());
   }
 
   /*
@@ -133,7 +127,7 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
   /////////////////////////////////////////////////////////////////////////
    */
 
-  private static Sgv2Keyspace keyspaceFrom(CqlKeyspaceDescribe describe) {
+  private static Sgv2Keyspace convertKeyspace(CqlKeyspaceDescribe describe) {
     Schema.CqlKeyspace keyspace = describe.getCqlKeyspace();
     Sgv2Keyspace ks = new Sgv2Keyspace(keyspace.getName());
 

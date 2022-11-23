@@ -47,8 +47,9 @@ public class RestApiV2QMaterializedViewIT extends RestApiV2QCqlEnabledTestBase {
         .isFalse();
 
     final String keyspaceName = testKeyspaceName();
+    final long testTimestamp = System.currentTimeMillis();
     // Let's not use super long default name but instead:
-    final String tableName = "tbl_mvread_" + System.currentTimeMillis();
+    final String tableName = "tbl_mvread_" + testTimestamp;
     createTestTable(
         keyspaceName,
         tableName,
@@ -64,7 +65,7 @@ public class RestApiV2QMaterializedViewIT extends RestApiV2QCqlEnabledTestBase {
                 Arrays.asList("id 1", "firstName John", "lastName Doe"),
                 Arrays.asList("id 2", "firstName Sarah", "lastName Smith"),
                 Arrays.asList("id 3", "firstName Jane")));
-    String materializedViewName = "mv_test_" + System.currentTimeMillis();
+    String materializedViewName = "mv_test_" + testTimestamp;
     ResultSet resultSet =
         session.execute(
             String.format(
@@ -87,7 +88,7 @@ public class RestApiV2QMaterializedViewIT extends RestApiV2QCqlEnabledTestBase {
 
     Awaitility.await()
         .atMost(Duration.ofSeconds(5))
-        .atLeast(Duration.ofMillis(100L))
+        .atLeast(Duration.ofMillis(200L))
         .pollInterval(Duration.ofMillis(500L))
         .untilAsserted(
             () -> {
