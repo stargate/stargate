@@ -46,16 +46,8 @@
       <scope>provided</scope>
       <exclusions>
         <exclusion>
-          <groupId>com.datastax.oss</groupId>
-          <artifactId>java-driver-core</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>com.datastax.oss</groupId>
-          <artifactId>java-driver-shaded-guava</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>com.esri.geometry</groupId>
-          <artifactId>esri-geometry-api</artifactId>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-handler</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -93,6 +85,10 @@
         <exclusion>
           <groupId>com.datastax.logging</groupId>
           <artifactId>cassandra-log4j-appender</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.datastax.oss</groupId>
+          <artifactId>java-driver-core</artifactId>
         </exclusion>
         <exclusion>
           <groupId>dnsjava</groupId>
