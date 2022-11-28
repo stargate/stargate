@@ -23,6 +23,7 @@ import edu.umd.cs.findbugs.annotations.NonNull;
 import edu.umd.cs.findbugs.annotations.Nullable;
 import io.grpc.Status;
 import io.grpc.StatusException;
+import io.grpc.StatusRuntimeException;
 import io.stargate.db.BoundStatement;
 import io.stargate.db.Result.Prepared;
 import io.stargate.db.Result.Rows;
@@ -43,32 +44,43 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import javax.annotation.Nonnull;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class ValuesHelper {
+  private static final Logger LOG = LoggerFactory.getLogger(ValuesHelper.class);
+
   public static BoundStatement bindValues(Prepared prepared, Values values, ByteBuffer unsetValue)
       throws StatusException {
     final List<Column> columns = prepared.metadata.columns;
     final int columnCount = columns.size();
     final int valuesCount = values.getValuesCount();
     if (columnCount != valuesCount) {
-      throw Status.FAILED_PRECONDITION
-          .withDescription(
-              String.format(
-                  "Invalid number of bind values. Expected %d, but received %d",
-                  columnCount, valuesCount))
-          .asException();
+      StatusException statusException =
+          Status.FAILED_PRECONDITION
+              .withDescription(
+                  String.format(
+                      "Invalid number of bind values. Expected %d, but received %d",
+                      columnCount, valuesCount))
+              .asException();
+      LOG.error(getErrorMessage(statusException.getStatus(), statusException), statusException);
+      throw statusException;
     }
     final List<ByteBuffer> boundValues = new ArrayList<>(columnCount);
     List<String> boundValueNames = null;
     if (values.getValueNamesCount() != 0) {
       final int namesCount = values.getValueNamesCount();
       if (namesCount != columnCount) {
-        throw Status.FAILED_PRECONDITION
-            .withDescription(
-                String.format(
-                    "Invalid number of bind names. Expected %d, but received %d",
-                    columnCount, namesCount))
-            .asException();
+        StatusException statusException =
+            Status.FAILED_PRECONDITION
+                .withDescription(
+                    String.format(
+                        "Invalid number of bind names. Expected %d, but received %d",
+                        columnCount, namesCount))
+                .asException();
+        LOG.error(getErrorMessage(statusException.getStatus(), statusException), statusException);
+        throw statusException;
       }
       boundValueNames = new ArrayList<>(namesCount);
       for (int i = 0; i < namesCount; ++i) {
@@ -178,9 +190,13 @@ public class ValuesHelper {
   public static ColumnType columnTypeNotNull(Column column) throws StatusException {
     ColumnType type = column.type();
     if (type == null) {
-      throw Status.INTERNAL
-          .withDescription(String.format("Column '%s' doesn't have a valid type", column.name()))
-          .asException();
+      StatusException statusException =
+          Status.INTERNAL
+              .withDescription(
+                  String.format("Column '%s' doesn't have a valid type", column.name()))
+              .asException();
+      LOG.error(getErrorMessage(statusException.getStatus(), statusException), statusException);
+      throw statusException;
     }
     return type;
   }
@@ -189,72 +205,100 @@ public class ValuesHelper {
     TypeSpec.Builder builder = TypeSpec.newBuilder();
     List<ColumnType> parameters;
 
-    switch (columnType.rawType()) {
-      case List:
-        parameters = columnType.parameters();
-        if (parameters.size() != 1) {
-          throw Status.FAILED_PRECONDITION
-              .withDescription("Expected list type to have a parameterized type")
-              .asException();
-        }
-        builder.setList(
-            TypeSpec.List.newBuilder().setElement(convertType(parameters.get(0))).build());
-        break;
-      case Map:
-        parameters = columnType.parameters();
-        if (parameters.size() != 2) {
-          throw Status.FAILED_PRECONDITION
-              .withDescription("Expected map type to have key/value parameterized types")
-              .asException();
-        }
-        builder.setMap(
-            TypeSpec.Map.newBuilder()
-                .setKey(convertType(parameters.get(0)))
-                .setValue(convertType(parameters.get(1)))
-                .build());
-        break;
-      case Set:
-        parameters = columnType.parameters();
-        if (parameters.size() != 1) {
-          throw Status.FAILED_PRECONDITION
-              .withDescription("Expected set type to have a parameterized type")
-              .asException();
-        }
-        builder.setSet(
-            TypeSpec.Set.newBuilder().setElement(convertType(parameters.get(0))).build());
-        break;
-      case Tuple:
-        parameters = columnType.parameters();
-        if (parameters.isEmpty()) {
-          throw Status.FAILED_PRECONDITION
-              .withDescription("Expected tuple type to have at least one parameterized type")
-              .asException();
-        }
-        TypeSpec.Tuple.Builder tupleBuilder = TypeSpec.Tuple.newBuilder();
-        for (ColumnType parameter : parameters) {
-          tupleBuilder.addElements(convertType(parameter));
-        }
-        builder.setTuple(tupleBuilder.build());
-        break;
-      case UDT:
-        UserDefinedType udt = (UserDefinedType) columnType;
-        if (udt.columns().isEmpty()) {
-          throw Status.FAILED_PRECONDITION
-              .withDescription("Expected user defined type to have at least one field")
-              .asException();
-        }
-        TypeSpec.Udt.Builder udtBuilder = TypeSpec.Udt.newBuilder();
-        for (Column column : udt.columns()) {
-          udtBuilder.putFields(column.name(), convertType(columnTypeNotNull(column)));
-        }
-        builder.setUdt(udtBuilder.build());
-        break;
-      default:
-        builder.setBasic(
-            Objects.requireNonNull(
-                TypeSpec.Basic.forNumber(columnType.id()), "Unhandled parameterized type"));
+    try {
+      switch (columnType.rawType()) {
+        case List:
+          parameters = columnType.parameters();
+          if (parameters.size() != 1) {
+            throw Status.FAILED_PRECONDITION
+                .withDescription("Expected list type to have a parameterized type")
+                .asException();
+          }
+          builder.setList(
+              TypeSpec.List.newBuilder().setElement(convertType(parameters.get(0))).build());
+          break;
+        case Map:
+          parameters = columnType.parameters();
+          if (parameters.size() != 2) {
+            throw Status.FAILED_PRECONDITION
+                .withDescription("Expected map type to have key/value parameterized types")
+                .asException();
+          }
+          builder.setMap(
+              TypeSpec.Map.newBuilder()
+                  .setKey(convertType(parameters.get(0)))
+                  .setValue(convertType(parameters.get(1)))
+                  .build());
+          break;
+        case Set:
+          parameters = columnType.parameters();
+          if (parameters.size() != 1) {
+            throw Status.FAILED_PRECONDITION
+                .withDescription("Expected set type to have a parameterized type")
+                .asException();
+          }
+          builder.setSet(
+              TypeSpec.Set.newBuilder().setElement(convertType(parameters.get(0))).build());
+          break;
+        case Tuple:
+          parameters = columnType.parameters();
+          if (parameters.isEmpty()) {
+            throw Status.FAILED_PRECONDITION
+                .withDescription("Expected tuple type to have at least one parameterized type")
+                .asException();
+          }
+          TypeSpec.Tuple.Builder tupleBuilder = TypeSpec.Tuple.newBuilder();
+          for (ColumnType parameter : parameters) {
+            tupleBuilder.addElements(convertType(parameter));
+          }
+          builder.setTuple(tupleBuilder.build());
+          break;
+        case UDT:
+          UserDefinedType udt = (UserDefinedType) columnType;
+          if (udt.columns().isEmpty()) {
+            throw Status.FAILED_PRECONDITION
+                .withDescription("Expected user defined type to have at least one field")
+                .asException();
+          }
+          TypeSpec.Udt.Builder udtBuilder = TypeSpec.Udt.newBuilder();
+          for (Column column : udt.columns()) {
+            udtBuilder.putFields(column.name(), convertType(columnTypeNotNull(column)));
+          }
+          builder.setUdt(udtBuilder.build());
+          break;
+        default:
+          builder.setBasic(
+              Objects.requireNonNull(
+                  TypeSpec.Basic.forNumber(columnType.id()), "Unhandled parameterized type"));
+      }
+    } catch (StatusException statusException) {
+      LOG.error(getErrorMessage(statusException.getStatus(), statusException), statusException);
+      throw statusException;
     }
 
     return builder.build();
+  }
+
+  /**
+   * @param status
+   * @param throwable
+   * @return generic error message for gRPC exceptions using gRPC Status and Exception thrown. If
+   *     the status is null and throwable is a {@link StatusException} or {@link
+   *     StatusRuntimeException} it extracts its status. If the status is null and throwable is
+   *     another instance type, it will have the status code {@code Status.UNKNOWN}.
+   */
+  protected static String getErrorMessage(
+      @javax.annotation.Nullable Status status, @Nonnull Throwable throwable) {
+    if (status == null) {
+      if (throwable instanceof StatusException) {
+        status = ((StatusException) throwable).getStatus();
+      } else if (throwable instanceof StatusRuntimeException) {
+        status = ((StatusRuntimeException) throwable).getStatus();
+      } else {
+        status = Status.UNKNOWN;
+      }
+    }
+
+    return status.withDescription(throwable.getMessage()).toString();
   }
 }
