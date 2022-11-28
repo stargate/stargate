@@ -133,7 +133,7 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
     response = tryCreateIndex(testKeyspaceName(), tableName, indexAdd, HttpStatus.SC_NOT_FOUND);
     apiError = readJsonAs(response, ApiError.class);
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_NOT_FOUND);
-    assertThat(apiError.description()).isEqualTo("Column 'invalid_column' not found in table.");
+    assertThat(apiError.description()).startsWith("Column 'invalid_column' not found in table");
 
     // invalid index kind
     indexAdd.setColumn("firstName");
