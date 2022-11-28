@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.Objects;
+import javax.validation.constraints.NotBlank;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 // Copied from SGv1 ColumnDefinition
@@ -28,6 +29,7 @@ public class Sgv2ColumnDefinition {
       example = "emailaddress",
       required = true,
       description = "Name for the column, which must be unique.")
+  @NotBlank(message = "columnDefinition.name must be provided")
   public String getName() {
     return name;
   }

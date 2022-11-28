@@ -4,16 +4,10 @@ import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
 import javax.enterprise.context.ApplicationScoped;
+import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.DELETE;
-import javax.ws.rs.GET;
-import javax.ws.rs.POST;
-import javax.ws.rs.PUT;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
-import javax.ws.rs.QueryParam;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
@@ -58,9 +52,11 @@ public interface Sgv2ColumnsResourceApi {
   Uni<RestResponse<Object>> getAllColumns(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
+          @NotBlank(message = "tableName must be provided")
           final String tableName,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw);
@@ -80,11 +76,13 @@ public interface Sgv2ColumnsResourceApi {
   Uni<RestResponse<Object>> createColumn(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
+          @NotBlank(message = "tableName must be provided")
           final String tableName,
-      @RequestBody(description = "Column definition as JSON", required = true) @NotNull
+      @RequestBody(description = "Column definition as JSON", required = true) @NotNull @Valid
           final Sgv2ColumnDefinition columnDefinition);
 
   @GET
@@ -105,11 +103,15 @@ public interface Sgv2ColumnsResourceApi {
   Uni<RestResponse<Object>> getOneColumn(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
+          @NotBlank(message = "tableName must be provided")
           final String tableName,
-      @Parameter(name = "columnName", required = true) @PathParam("columnName")
+      @Parameter(name = "columnName", required = true)
+          @PathParam("columnName")
+          @NotBlank(message = "columnName must be provided")
           final String columnName,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw);
@@ -133,12 +135,15 @@ public interface Sgv2ColumnsResourceApi {
   Uni<RestResponse<Object>> updateColumn(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
+          @NotBlank(message = "tableName must be provided")
           final String tableName,
-      @PathParam("columnName") final String columnName,
-      @NotNull final Sgv2ColumnDefinition columnUpdate);
+      @PathParam("columnName") @NotBlank(message = "columnName must be provided")
+          final String columnName,
+      @NotNull @Valid final Sgv2ColumnDefinition columnUpdate);
 
   @DELETE
   @Operation(
@@ -154,10 +159,14 @@ public interface Sgv2ColumnsResourceApi {
   public Uni<RestResponse<Object>> deleteColumn(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
+          @NotBlank(message = "tableName must be provided")
           final String tableName,
-      @Parameter(name = "column name", required = true) @PathParam("columnName")
+      @Parameter(name = "column name", required = true)
+          @PathParam("columnName")
+          @NotBlank(message = "columnName must be provided")
           final String columnName);
 }

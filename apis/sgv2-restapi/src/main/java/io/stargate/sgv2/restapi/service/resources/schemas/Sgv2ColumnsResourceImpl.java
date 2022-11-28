@@ -20,8 +20,6 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
   @Override
   public Uni<RestResponse<Object>> getAllColumns(
       String keyspaceName, String tableName, boolean raw) {
-    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-
     return getTableAsyncCheckExistence(keyspaceName, tableName, true, Response.Status.BAD_REQUEST)
         .map(t -> table2columns(t))
         // map to wrapper if needed
@@ -32,11 +30,7 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
   @Override
   public Uni<RestResponse<Object>> createColumn(
       String keyspaceName, String tableName, Sgv2ColumnDefinition columnDefinition) {
-    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     final String columnName = columnDefinition.getName();
-    if (isStringEmpty(tableName)) {
-      throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
-    }
     return queryWithTableAsync(
             keyspaceName,
             tableName,
@@ -62,10 +56,6 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
   @Override
   public Uni<RestResponse<Object>> getOneColumn(
       String keyspaceName, String tableName, String columnName, boolean raw) {
-    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    if (isStringEmpty(columnName)) {
-      throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
-    }
     return getTableAsyncCheckExistence(keyspaceName, tableName, true, Response.Status.BAD_REQUEST)
         .map(
             tableDef -> {
@@ -84,10 +74,6 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
   @Override
   public Uni<RestResponse<Object>> updateColumn(
       String keyspaceName, String tableName, String columnName, Sgv2ColumnDefinition columnUpdate) {
-    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    if (isStringEmpty(columnName)) {
-      throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
-    }
     final String newName = columnUpdate.getName();
     // Avoid call if there is no need to rename
     if (columnName.equals(newName)) {
@@ -117,9 +103,6 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
   public Uni<RestResponse<Object>> deleteColumn(
       String keyspaceName, String tableName, String columnName) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    if (isStringEmpty(columnName)) {
-      throw new WebApplicationException("columnName must be provided", Response.Status.BAD_REQUEST);
-    }
     return queryWithTableAsync(
             keyspaceName,
             tableName,
