@@ -76,6 +76,37 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
     assertThat(indexes).hasSize(2);
   }
 
+  // For https://github.com/stargate/stargate/issues/2244
+  @Test
+  public void indexCreateIssue2244() {
+    final String tableName = testTableName();
+    createTestTable(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList(
+            "genre text",
+            "year int",
+            "title text",
+            "formats frozen<map<text,text>>",
+            "tuples frozen<tuple<text,text,text>>",
+            "upload timestamp",
+            "frames list<int>",
+            "tags set<text>"),
+        Arrays.asList("genre", "year", "title"),
+        Arrays.asList("year", "title"));
+
+    Sgv2IndexAddRequest indexAdd = new Sgv2IndexAddRequest("title", "test_idx_2244");
+    indexAdd.setIfNotExists(false);
+
+    String response =
+        tryCreateIndex(testKeyspaceName(), tableName, indexAdd, HttpStatus.SC_CREATED);
+    IndexResponse successResponse = readJsonAs(response, IndexResponse.class);
+    assertThat(successResponse.success).isTrue();
+
+    List<IndexDesc> indexes = findAllIndexes(testKeyspaceName(), tableName);
+    assertThat(indexes).hasSize(1);
+  }
+
   @Test
   public void indexCreateInvalid() {
     final String tableName = testTableName();
