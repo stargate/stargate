@@ -27,8 +27,6 @@ import org.jboss.resteasy.reactive.RestResponse;
 public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsResourceApi {
   @Override
   public Uni<RestResponse<Object>> findAllTypes(final String keyspaceName, final boolean raw) {
-    requireNonEmptyKeyspace(keyspaceName);
-
     QueryOuterClass.Query query =
         new QueryBuilder()
             .select()
@@ -55,9 +53,6 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
   @Override
   public Uni<RestResponse<Object>> findTypeById(
       final String keyspaceName, final String typeName, final boolean raw) {
-    requireNonEmptyKeyspace(keyspaceName);
-    requireNonEmptyTypename(typeName);
-
     QueryOuterClass.Query query =
         new QueryBuilder()
             .select()
@@ -99,7 +94,6 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
   @Override
   public Uni<RestResponse<Object>> createType(
       final String keyspaceName, final String udtAddPayload) {
-    requireNonEmptyKeyspace(keyspaceName);
     Sgv2UDTAddRequest udtAdd;
 
     try {
@@ -109,7 +103,9 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
           "Invalid JSON payload: " + e.getMessage(), Response.Status.BAD_REQUEST);
     }
     final String typeName = udtAdd.getName();
-    requireNonEmptyTypename(typeName);
+    if (typeName == null || typeName.isEmpty()) {
+      throw new WebApplicationException("typeName must be provided", Response.Status.BAD_REQUEST);
+    }
 
     QueryOuterClass.Query query =
         new QueryBuilder()
@@ -143,9 +139,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
   @Override
   public Uni<RestResponse<Object>> updateType(
       final String keyspaceName, final Sgv2UDTUpdateRequest udtUpdate) {
-    requireNonEmptyKeyspace(keyspaceName);
     final String typeName = udtUpdate.getName();
-    requireNonEmptyTypename(typeName);
 
     List<Sgv2UDT.UDTField> addFields = udtUpdate.getAddFields();
     List<Sgv2UDTUpdateRequest.FieldRename> renameFields = udtUpdate.getRenameFields();
@@ -195,9 +189,6 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
 
   @Override
   public Uni<RestResponse<Object>> deleteType(final String keyspaceName, final String typeName) {
-    requireNonEmptyKeyspace(keyspaceName);
-    requireNonEmptyTypename(typeName);
-
     return executeQueryAsync(
             new QueryBuilder().drop().type(keyspaceName, typeName).ifExists().build())
         .map(any -> RestResponse.noContent());
@@ -282,11 +273,5 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
               propertyName, object));
     }
     return value;
-  }
-
-  private static void requireNonEmptyTypename(String typeName) {
-    if (isStringEmpty(typeName)) {
-      throw new WebApplicationException("Type name must be provided", Response.Status.BAD_REQUEST);
-    }
   }
 }
