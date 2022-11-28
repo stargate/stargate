@@ -102,7 +102,6 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
   @Override
   public Uni<RestResponse<Object>> deleteColumn(
       String keyspaceName, String tableName, String columnName) {
-    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     return queryWithTableAsync(
             keyspaceName,
             tableName,
