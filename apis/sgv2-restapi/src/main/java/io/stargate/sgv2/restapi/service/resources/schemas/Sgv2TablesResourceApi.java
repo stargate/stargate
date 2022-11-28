@@ -5,6 +5,8 @@ import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.service.models.Sgv2Table;
 import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
 import javax.enterprise.context.ApplicationScoped;
+import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -58,6 +60,7 @@ public interface Sgv2TablesResourceApi {
   Uni<RestResponse<Object>> getAllTables(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw);
@@ -80,9 +83,11 @@ public interface Sgv2TablesResourceApi {
   Uni<RestResponse<Object>> getOneTable(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
+          @NotBlank(message = "tableName must be provided")
           final String tableName,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw);
@@ -102,8 +107,9 @@ public interface Sgv2TablesResourceApi {
   Uni<RestResponse<Object>> createTable(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
-      @RequestBody(description = "Table definition as JSON", required = true) @NotNull
+      @RequestBody(description = "Table definition as JSON", required = true) @NotNull @Valid
           final Sgv2TableAddRequest tableAdd);
 
   @PUT
@@ -125,11 +131,13 @@ public interface Sgv2TablesResourceApi {
   Uni<RestResponse<Object>> updateTable(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
+          @NotBlank(message = "tableName must be provided")
           final String tableName,
-      @RequestBody(description = "Table update definition as JSON", required = true) @NotNull
+      @RequestBody(description = "Table update definition as JSON", required = true) @NotNull @Valid
           final Sgv2TableAddRequest tableUpdate);
 
   @DELETE
@@ -146,8 +154,10 @@ public interface Sgv2TablesResourceApi {
   Uni<RestResponse<Object>> deleteTable(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
+          @NotBlank(message = "tableName must be provided")
           final String tableName);
 }
