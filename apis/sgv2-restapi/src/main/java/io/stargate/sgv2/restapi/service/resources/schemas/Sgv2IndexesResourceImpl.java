@@ -82,7 +82,7 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
             tableName,
             table -> {
               if (!hasColumn(table, columnName)) {
-                new WebApplicationException(
+                throw new WebApplicationException(
                     String.format("Column '%s' not found in table '%s'", columnName, tableName),
                     Status.NOT_FOUND);
               }
