@@ -36,13 +36,6 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
 
   @Override
   public Uni<RestResponse<Object>> getAllIndexes(String keyspaceName, String tableName) {
-    if (isStringEmpty(keyspaceName)) {
-      throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
-    }
-    if (isStringEmpty(tableName)) {
-      throw new WebApplicationException("tableName must be provided", Status.BAD_REQUEST);
-    }
-
     // check that we're authorized for the table
     Uni<List<Boolean>> uni =
         authorizeSchemaReadsAsync(
@@ -64,18 +57,7 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
   @Override
   public Uni<RestResponse<Object>> addIndex(
       final String keyspaceName, final String tableName, final Sgv2IndexAddRequest indexAdd) {
-    if (isStringEmpty(keyspaceName)) {
-      throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
-    }
-    if (isStringEmpty(tableName)) {
-      throw new WebApplicationException("tableName must be provided", Status.BAD_REQUEST);
-    }
-
     String columnName = indexAdd.getColumn();
-    if (isStringEmpty(columnName)) {
-      throw new WebApplicationException("columnName must be provided", Status.BAD_REQUEST);
-    }
-
     return queryWithTableAsync(
             keyspaceName,
             tableName,
@@ -104,16 +86,6 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
   @Override
   public Uni<RestResponse<Object>> deleteIndex(
       String keyspaceName, String tableName, String indexName, boolean ifExists) {
-    if (isStringEmpty(keyspaceName)) {
-      throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
-    }
-    if (isStringEmpty(tableName)) {
-      throw new WebApplicationException("tableName must be provided", Status.BAD_REQUEST);
-    }
-    if (isStringEmpty(indexName)) {
-      throw new WebApplicationException("columnName must be provided", Status.BAD_REQUEST);
-    }
-
     return queryWithTableAsync(
             keyspaceName,
             tableName,
