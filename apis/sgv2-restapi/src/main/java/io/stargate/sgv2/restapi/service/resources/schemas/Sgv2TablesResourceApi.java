@@ -4,6 +4,7 @@ import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.service.models.Sgv2Table;
 import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
+import java.util.Map;
 import javax.enterprise.context.ApplicationScoped;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
@@ -99,7 +100,7 @@ public interface Sgv2TablesResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
-  Uni<RestResponse<Object>> createTable(
+  Uni<RestResponse<Map<String, String>>> createTable(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -122,7 +123,7 @@ public interface Sgv2TablesResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
   @Path("/{tableName}")
-  Uni<RestResponse<Object>> updateTable(
+  Uni<RestResponse<Map<String, String>>> updateTable(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,
@@ -143,7 +144,7 @@ public interface Sgv2TablesResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
   @Path("/{tableName}")
-  Uni<RestResponse<Object>> deleteTable(
+  Uni<RestResponse<Void>> deleteTable(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName,

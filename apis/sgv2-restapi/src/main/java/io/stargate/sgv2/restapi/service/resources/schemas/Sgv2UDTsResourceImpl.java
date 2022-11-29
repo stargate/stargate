@@ -97,7 +97,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
   }
 
   @Override
-  public Uni<RestResponse<Object>> createType(
+  public Uni<RestResponse<Map<String, String>>> createType(
       final String keyspaceName, final String udtAddPayload) {
     requireNonEmptyKeyspace(keyspaceName);
     Sgv2UDTAddRequest udtAdd;
@@ -141,7 +141,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
   }
 
   @Override
-  public Uni<RestResponse<Object>> updateType(
+  public Uni<RestResponse<Void>> updateType(
       final String keyspaceName, final Sgv2UDTUpdateRequest udtUpdate) {
     requireNonEmptyKeyspace(keyspaceName);
     final String typeName = udtUpdate.getName();
@@ -194,7 +194,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
   }
 
   @Override
-  public Uni<RestResponse<Object>> deleteType(final String keyspaceName, final String typeName) {
+  public Uni<RestResponse<Void>> deleteType(final String keyspaceName, final String typeName) {
     requireNonEmptyKeyspace(keyspaceName);
     requireNonEmptyTypename(typeName);
 

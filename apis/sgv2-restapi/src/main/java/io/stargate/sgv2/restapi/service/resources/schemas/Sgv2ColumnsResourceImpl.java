@@ -12,6 +12,7 @@ import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;
@@ -30,7 +31,7 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
   }
 
   @Override
-  public Uni<RestResponse<Object>> createColumn(
+  public Uni<RestResponse<Map<String, String>>> createColumn(
       String keyspaceName, String tableName, Sgv2ColumnDefinition columnDefinition) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     final String columnName = columnDefinition.getName();
@@ -82,7 +83,7 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
   }
 
   @Override
-  public Uni<RestResponse<Object>> updateColumn(
+  public Uni<RestResponse<Map<String, String>>> updateColumn(
       String keyspaceName, String tableName, String columnName, Sgv2ColumnDefinition columnUpdate) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     if (isStringEmpty(columnName)) {
@@ -114,7 +115,7 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
   }
 
   @Override
-  public Uni<RestResponse<Object>> deleteColumn(
+  public Uni<RestResponse<Void>> deleteColumn(
       String keyspaceName, String tableName, String columnName) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     if (isStringEmpty(columnName)) {

@@ -29,6 +29,7 @@ import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response.Status;
 import org.jboss.resteasy.reactive.RestResponse;
@@ -63,7 +64,7 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
   }
 
   @Override
-  public Uni<RestResponse<Object>> addIndex(
+  public Uni<RestResponse<Map<String, Object>>> addIndex(
       final String keyspaceName, final String tableName, final Sgv2IndexAddRequest indexAdd) {
     if (isStringEmpty(keyspaceName)) {
       throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
@@ -100,7 +101,7 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
   }
 
   @Override
-  public Uni<RestResponse<Object>> deleteIndex(
+  public Uni<RestResponse<Void>> deleteIndex(
       String keyspaceName, String tableName, String indexName, boolean ifExists) {
     if (isStringEmpty(keyspaceName)) {
       throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);

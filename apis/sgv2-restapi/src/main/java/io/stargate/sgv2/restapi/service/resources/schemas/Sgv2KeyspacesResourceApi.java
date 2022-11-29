@@ -18,6 +18,7 @@ package io.stargate.sgv2.restapi.service.resources.schemas;
 import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.service.models.Sgv2Keyspace;
+import java.util.Map;
 import javax.enterprise.context.ApplicationScoped;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -101,7 +102,7 @@ public interface Sgv2KeyspacesResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500)
       })
-  Uni<RestResponse<Object>> createKeyspace(
+  Uni<RestResponse<Map<String, String>>> createKeyspace(
       @RequestBody(
               description =
                   "A map representing a keyspace with SimpleStrategy or NetworkTopologyStrategy with default replicas of 1 and 3 respectively \n"
@@ -131,7 +132,7 @@ public interface Sgv2KeyspacesResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
   @Path("/{keyspaceName}")
-  Uni<RestResponse<Object>> deleteKeyspace(
+  Uni<RestResponse<Void>> deleteKeyspace(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           final String keyspaceName);

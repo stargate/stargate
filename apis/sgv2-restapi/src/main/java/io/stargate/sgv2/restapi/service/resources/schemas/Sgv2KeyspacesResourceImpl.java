@@ -77,7 +77,7 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
   }
 
   @Override
-  public Uni<RestResponse<Object>> createKeyspace(final String payloadString) {
+  public Uni<RestResponse<Map<String, String>>> createKeyspace(final String payloadString) {
     SchemaBuilderHelper.KeyspaceCreateDefinition ksCreateDef;
     try {
       JsonNode payload = JSON_MAPPER.readTree(payloadString);
@@ -116,7 +116,7 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
   }
 
   @Override
-  public Uni<RestResponse<Object>> deleteKeyspace(final String keyspaceName) {
+  public Uni<RestResponse<Void>> deleteKeyspace(final String keyspaceName) {
     return executeQueryAsync(new QueryBuilder().drop().keyspace(keyspaceName).ifExists().build())
         .map(any -> RestResponse.noContent());
   }

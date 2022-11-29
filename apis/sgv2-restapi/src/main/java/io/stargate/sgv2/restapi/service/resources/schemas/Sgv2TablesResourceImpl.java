@@ -54,7 +54,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
   }
 
   @Override
-  public Uni<RestResponse<Object>> createTable(
+  public Uni<RestResponse<Map<String, String>>> createTable(
       final String keyspaceName, final Sgv2TableAddRequest tableAdd) {
     final String tableName = tableAdd.getName();
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
@@ -116,7 +116,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
   }
 
   @Override
-  public Uni<RestResponse<Object>> updateTable(
+  public Uni<RestResponse<Map<String, String>>> updateTable(
       final String keyspaceName, final String tableName, final Sgv2TableAddRequest tableUpdate) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     return queryWithTableAsync(
@@ -147,7 +147,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
   }
 
   @Override
-  public Uni<RestResponse<Object>> deleteTable(final String keyspaceName, final String tableName) {
+  public Uni<RestResponse<Void>> deleteTable(final String keyspaceName, final String tableName) {
     requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     return executeQueryAsync(
             new QueryBuilder().drop().table(keyspaceName, tableName).ifExists().build())

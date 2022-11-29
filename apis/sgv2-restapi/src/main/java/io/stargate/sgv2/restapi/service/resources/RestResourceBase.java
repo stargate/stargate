@@ -266,12 +266,13 @@ public abstract class RestResourceBase {
 
   // // // Helper methods for JAX-RS response construction
 
-  protected static RestResponse<Object> restResponseCreatedWithName(String createdName) {
+  protected static RestResponse<Map<String, String>> restResponseCreatedWithName(
+      String createdName) {
     return RestResponse.status(
         Response.Status.CREATED, Collections.singletonMap("name", createdName));
   }
 
-  protected static RestResponse<Object> restResponseOkWithName(String name) {
+  protected static RestResponse<Map<String, String>> restResponseOkWithName(String name) {
     return RestResponse.status(Response.Status.OK, Collections.singletonMap("name", name));
   }
 }
