@@ -60,3 +60,4 @@ quarkus:
   # information for the generated Open API definitions
   smallrye-openapi:
     path: /api/rest/openapi
+    info-description: The Stargate REST API exposes CRUD access to data stored in Cassandra tables. See the [documentation site](https://stargate.io/docs/latest/develop/dev-with-rest.html) for additional information.
