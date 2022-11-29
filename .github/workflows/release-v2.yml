@@ -319,6 +319,8 @@ jobs:
 
       - name: Build and push (graphqlapi, Amazon ECR)
         if: ${{ !inputs.skipPublish }}
+        env:
+          QUARKUS_APPLICATION_NAME: 'Astra DB GraphQL API'
         run: |
           cd apis/
           JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-graphqlapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
