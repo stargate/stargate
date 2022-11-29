@@ -17,6 +17,7 @@ package io.stargate.sgv2.restapi.service.resources.schemas;
 
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.cql.builder.Predicate;
@@ -80,14 +81,11 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
             keyspaceName,
             tableName,
             table -> {
-              table.getColumnsList().stream()
-                  .filter(c -> columnName.equals(c.getName()))
-                  .findAny()
-                  .orElseThrow(
-                      () ->
-                          new WebApplicationException(
-                              String.format("Column '%s' not found in table.", columnName),
-                              Status.NOT_FOUND));
+              if (!hasColumn(table, columnName)) {
+                throw new WebApplicationException(
+                    String.format("Column '%s' not found in table '%s'", columnName, tableName),
+                    Status.NOT_FOUND);
+              }
               return new QueryBuilder()
                   .create()
                   .index(indexAdd.getName())
@@ -131,5 +129,16 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
                   .build();
             })
         .map(any -> RestResponse.noContent());
+  }
+
+  private boolean hasColumn(Schema.CqlTable table, String columnName) {
+    List<QueryOuterClass.ColumnSpec> s = table.getColumnsList();
+    return hasColumn(table.getColumnsList(), columnName)
+        || hasColumn(table.getPartitionKeyColumnsList(), columnName)
+        || hasColumn(table.getClusteringKeyColumnsList(), columnName);
+  }
+
+  private boolean hasColumn(List<QueryOuterClass.ColumnSpec> columns, String nameToFind) {
+    return columns.stream().anyMatch(c -> nameToFind.equals(c.getName()));
   }
 }
