@@ -20,6 +20,6 @@ Note that this project uses Java 17, please ensure that you have the target JDK 
 | Project                                    | Description                                                                        |
 |--------------------------------------------|------------------------------------------------------------------------------------|
 | [sgv2-quarkus-common](sgv2-quarkus-common) | The common project for all APIs, holding shared functionality, configuration, etc. |
-| [sgv2-docsapi](sgv2-docsapi)               | The Stargate Docs API provides a document store on top of Cassandra. |
+| [sgv2-docsapi](sgv2-docsapi)               | The Stargate Docs API provides a document store on top of Cassandra.               |
 | [sgv2-graphqlapi](sgv2-graphqlapi)         | The Stargate GraphQL API provides access to Cassandra data using GraphQL queries.  |
-| [sgv2-restapi](sgv2-restapi)               | The Stargate REST API provides an HTTP interface for accessing Cassandra data.  |
+| [sgv2-restapi](sgv2-restapi)               | The Stargate REST API provides an HTTP interface for accessing Cassandra data.     |
