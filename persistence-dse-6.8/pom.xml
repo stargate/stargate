@@ -44,6 +44,12 @@
       <artifactId>persistence-api</artifactId>
       <version>${project.version}</version>
       <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-handler</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>io.stargate.core</groupId>
@@ -95,15 +101,6 @@
         </exclusion>
       </exclusions>
     </dependency>
-    <!--
-      dse-java-driver-core is a transitive dependency of dse-core, but if we don't redeclare it
-      explicitly then for some reason Stargate can't gossip with peers in integration tests.
-    -->
-    <dependency>
-      <groupId>com.datastax.dse</groupId>
-      <artifactId>dse-java-driver-core</artifactId>
-      <version>1.10.0-dse+20210424</version>
-    </dependency>
     <dependency>
       <groupId>com.datastax.dse</groupId>
       <artifactId>dse-commons</artifactId>
@@ -126,11 +123,6 @@
     </dependency>
 
     <!-- 3rd party dependencies -->
-    <dependency>
-      <groupId>io.netty</groupId>
-      <artifactId>netty-codec</artifactId>
-      <version>4.1.78.1.dse</version>
-    </dependency>
     <dependency>
       <groupId>org.immutables</groupId>
       <artifactId>value</artifactId>
