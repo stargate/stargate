@@ -20,9 +20,12 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.ArrayList;
 import java.util.List;
+
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
+@RegisterForReflection
 public class Sgv2Keyspace {
   protected String name;
 
