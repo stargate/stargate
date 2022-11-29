@@ -13,7 +13,6 @@ import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
-import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.api.common.schema.SchemaManager;
 import io.stargate.sgv2.restapi.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restapi.grpc.FromProtoConverter;
@@ -266,16 +265,6 @@ public abstract class RestResourceBase {
   }
 
   // // // Helper methods for JAX-RS response construction
-
-  protected static Uni<RestResponse<Object>> apiErrorResponseUni(
-      Response.Status httpStatus, String failMessage) {
-    return Uni.createFrom().item(apiErrorResponse(httpStatus, failMessage));
-  }
-
-  protected static RestResponse<Object> apiErrorResponse(
-      Response.Status httpStatus, String failMessage) {
-    return RestResponse.status(httpStatus, new ApiError(failMessage, httpStatus.getStatusCode()));
-  }
 
   protected static RestResponse<Object> restResponseCreatedWithName(String createdName) {
     return RestResponse.status(

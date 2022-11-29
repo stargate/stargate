@@ -77,21 +77,21 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
               // Must get one and only one response, verify
               switch (ksRows.size()) {
                 case 0:
-                  return apiErrorResponse(
-                      Response.Status.NOT_FOUND,
+                  throw new WebApplicationException(
                       String.format(
                           "No definition found for UDT '%s' (keyspace '%s')",
-                          typeName, keyspaceName));
+                          typeName, keyspaceName),
+                      Response.Status.NOT_FOUND);
                 case 1:
                   Sgv2UDT udt = jsonArray2Udts(keyspaceName, ksRows).get(0);
                   final Object udtResult = raw ? udt : new Sgv2RESTResponse(udt);
                   return RestResponse.ok(udtResult);
                 default:
-                  return apiErrorResponse(
-                      Response.Status.INTERNAL_SERVER_ERROR,
+                  throw new WebApplicationException(
                       String.format(
                           "Multiple definitions (%d) found for UDT '%s' (keyspace '%s')",
-                          ksRows.size(), typeName, keyspaceName));
+                          ksRows.size(), typeName, keyspaceName),
+                      Response.Status.INTERNAL_SERVER_ERROR);
               }
             });
   }
@@ -132,12 +132,12 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
                         .getStatus()
                         .getDescription()
                         .contains("already exists"))
-        .recoverWithItem(
-            failure -> {
-              final String desc =
-                  "Bad request: " + ((StatusRuntimeException) failure).getStatus().getDescription();
-              return apiErrorResponse(Response.Status.BAD_REQUEST, desc);
-            });
+        .transform(
+            failure ->
+                new WebApplicationException(
+                    "Bad request: "
+                        + ((StatusRuntimeException) failure).getStatus().getDescription(),
+                    Response.Status.BAD_REQUEST));
   }
 
   @Override
@@ -154,9 +154,9 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
     final boolean hasRenameFields = (renameFields != null && !renameFields.isEmpty());
 
     if (!hasAddFields && !hasRenameFields) {
-      return apiErrorResponseUni(
-          Response.Status.BAD_REQUEST,
-          "addFields and/or renameFields is required to update an UDT");
+      throw new WebApplicationException(
+          "addFields and/or renameFields is required to update an UDT",
+          Response.Status.BAD_REQUEST);
     }
 
     final QueryOuterClass.Query addQuery =
