@@ -180,7 +180,7 @@ public class DocumentReadResource {
           """
           Retrieve the JSON representation of a single document.
 
-          > Note that in case when conditions are given using the `where` query parameter, the response will contain an array of sub-documents where the condition is matched.
+          > Note that in case when conditions are given using the `where` query parameter  or the `page-size` query parameter is defined, the response will contain an array of sub-documents where the condition is matched.
           The structure of returned sub-documents will only contain the path to the field which was included in the condition.
           Other fields of the matched sub-document can be included using the `fields` parameter.
           Only single field conditions are possible at the moment. Multiple conditions targeting the same field are allowed.
@@ -197,7 +197,7 @@ public class DocumentReadResource {
             name = "page-size",
             in = ParameterIn.QUERY,
             description = "The max number of results to return.",
-            schema = @Schema(implementation = Integer.class, defaultValue = "100", minimum = "1")),
+            schema = @Schema(implementation = Integer.class, minimum = "1")),
         @Parameter(name = "page-state", ref = OpenApiConstants.Parameters.PAGE_STATE),
         @Parameter(name = "profile", ref = OpenApiConstants.Parameters.PROFILE),
         @Parameter(name = "raw", ref = OpenApiConstants.Parameters.RAW),
@@ -263,7 +263,7 @@ public class DocumentReadResource {
           """
           Retrieve the JSON representation of the document at a provided path.
 
-          > Note that in case when conditions are given using the `where` query parameter, the response will contain an array of sub-documents where the condition is matched.
+          > Note that in case when conditions are given using the `where` query parameter or the `page-size` query parameter is defined, the response will contain an array of sub-documents where the condition is matched.
           The structure of returned sub-documents will only contain the path to the field which was included in the condition.
           Other fields of the matched sub-document can be included using the `fields` parameter.
           Only single field conditions are possible at the moment. Multiple conditions targeting the same field are allowed.
@@ -281,7 +281,7 @@ public class DocumentReadResource {
             name = "page-size",
             in = ParameterIn.QUERY,
             description = "The max number of results to return.",
-            schema = @Schema(implementation = Integer.class, defaultValue = "100", minimum = "1")),
+            schema = @Schema(implementation = Integer.class, minimum = "1")),
         @Parameter(name = "page-state", ref = OpenApiConstants.Parameters.PAGE_STATE),
         @Parameter(name = "profile", ref = OpenApiConstants.Parameters.PROFILE),
         @Parameter(name = "raw", ref = OpenApiConstants.Parameters.RAW),
