@@ -22,7 +22,6 @@ import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.cql.builder.Predicate;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
-import io.stargate.sgv2.api.common.futures.Futures;
 import io.stargate.sgv2.api.common.grpc.proto.SchemaReads;
 import io.stargate.sgv2.restapi.service.models.Sgv2IndexAddRequest;
 import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
@@ -43,14 +42,6 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
     if (isStringEmpty(tableName)) {
       throw new WebApplicationException("tableName must be provided", Status.BAD_REQUEST);
     }
-
-    // check that we're authorized for the table
-    Uni<List<Boolean>> uni =
-        authorizeSchemaReadsAsync(
-            Arrays.asList(
-                SchemaReads.table(keyspaceName, tableName, Schema.SchemaRead.SourceApi.REST)));
-    Futures.getUninterruptibly(uni.subscribeAsCompletionStage());
-
     Query query =
         new QueryBuilder()
             .select()
@@ -59,7 +50,24 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
             .where("table_name", Predicate.EQ, Values.of(tableName))
             .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
             .build();
-    return fetchRowsAsync(query, true);
+
+    // check that we're authorized for the table
+    return authorizeSchemaReadsAsync(
+            Arrays.asList(
+                SchemaReads.table(keyspaceName, tableName, Schema.SchemaRead.SourceApi.REST)))
+        .onItem()
+        .invoke(
+            accessChecks -> {
+              System.err.println("DEBUG: getAllIndexes -- Access check stuff == " + accessChecks);
+              if (!accessChecks.get(0).booleanValue()) {
+                throw new WebApplicationException(
+                    "Not authorized for read access to table '" + tableName + "'",
+                    Status.UNAUTHORIZED);
+              }
+            })
+        .onItem()
+        .transformToUni(access -> executeQueryAsync(query))
+        .map(response -> convertRowsToResponse(response, true));
   }
 
   @Override
