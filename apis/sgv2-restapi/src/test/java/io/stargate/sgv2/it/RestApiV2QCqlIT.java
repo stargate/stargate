@@ -30,6 +30,10 @@ public class RestApiV2QCqlIT extends RestApiV2QIntegrationTestBase {
             .extract()
             .asString();
 
-    assertThat(r).isEqualTo("{\"count\":1,\"data\":[{\"cluster_name\":\"int-test-cluster\"}]}");
+    assertThat(r)
+        .isEqualTo(
+            "{\"count\":1,\"data\":[{\"cluster_name\":\""
+                + StargateTestResource.getClusterName()
+                + "\"}]}");
   }
 }
