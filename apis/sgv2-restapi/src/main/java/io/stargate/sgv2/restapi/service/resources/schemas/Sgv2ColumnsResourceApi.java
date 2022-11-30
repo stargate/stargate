@@ -3,6 +3,7 @@ package io.stargate.sgv2.restapi.service.resources.schemas;
 import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
+import io.stargate.sgv2.restapi.service.models.Sgv2NameResponse;
 import javax.enterprise.context.ApplicationScoped;
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
@@ -73,7 +74,7 @@ public interface Sgv2ColumnsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500)
       })
-  Uni<RestResponse<Object>> createColumn(
+  Uni<RestResponse<Sgv2NameResponse>> createColumn(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           @NotBlank(message = "keyspaceName must be provided")
@@ -132,7 +133,7 @@ public interface Sgv2ColumnsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500)
       })
   @Path("/{columnName}")
-  Uni<RestResponse<Object>> updateColumn(
+  Uni<RestResponse<Sgv2NameResponse>> updateColumn(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           @NotBlank(message = "keyspaceName must be provided")
@@ -156,7 +157,7 @@ public interface Sgv2ColumnsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500)
       })
   @Path("/{columnName}")
-  public Uni<RestResponse<Object>> deleteColumn(
+  public Uni<RestResponse<Void>> deleteColumn(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           @NotBlank(message = "keyspaceName must be provided")

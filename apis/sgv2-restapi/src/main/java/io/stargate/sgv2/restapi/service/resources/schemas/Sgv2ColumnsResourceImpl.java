@@ -8,6 +8,7 @@ import io.stargate.sgv2.api.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.restapi.grpc.BridgeProtoTypeTranslator;
 import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
+import io.stargate.sgv2.restapi.service.models.Sgv2NameResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
 import java.util.ArrayList;
@@ -28,7 +29,7 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
   }
 
   @Override
-  public Uni<RestResponse<Object>> createColumn(
+  public Uni<RestResponse<Sgv2NameResponse>> createColumn(
       String keyspaceName, String tableName, Sgv2ColumnDefinition columnDefinition) {
     final String columnName = columnDefinition.getName();
     return queryWithTableAsync(
@@ -72,7 +73,7 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
   }
 
   @Override
-  public Uni<RestResponse<Object>> updateColumn(
+  public Uni<RestResponse<Sgv2NameResponse>> updateColumn(
       String keyspaceName, String tableName, String columnName, Sgv2ColumnDefinition columnUpdate) {
     final String newName = columnUpdate.getName();
     // Avoid call if there is no need to rename
@@ -100,7 +101,7 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
   }
 
   @Override
-  public Uni<RestResponse<Object>> deleteColumn(
+  public Uni<RestResponse<Void>> deleteColumn(
       String keyspaceName, String tableName, String columnName) {
     return queryWithTableAsync(
             keyspaceName,

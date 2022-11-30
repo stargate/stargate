@@ -3,6 +3,7 @@ package io.stargate.sgv2.restapi.service.models;
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import java.util.Objects;
 import javax.validation.constraints.NotBlank;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
@@ -10,6 +11,7 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 // Copied from SGv1 ColumnDefinition
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @Schema(name = "ColumnDefinition")
+@RegisterForReflection
 public class Sgv2ColumnDefinition {
   private String name;
   private String typeDefinition;

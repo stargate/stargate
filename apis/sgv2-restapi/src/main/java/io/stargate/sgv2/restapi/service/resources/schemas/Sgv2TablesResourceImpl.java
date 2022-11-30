@@ -8,6 +8,7 @@ import io.stargate.sgv2.api.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.restapi.grpc.BridgeProtoTypeTranslator;
 import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
+import io.stargate.sgv2.restapi.service.models.Sgv2NameResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2Table;
 import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
@@ -50,7 +51,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
   }
 
   @Override
-  public Uni<RestResponse<Object>> createTable(
+  public Uni<RestResponse<Sgv2NameResponse>> createTable(
       final String keyspaceName, final Sgv2TableAddRequest tableAdd) {
     final String tableName = tableAdd.getName();
 
@@ -120,7 +121,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
   }
 
   @Override
-  public Uni<RestResponse<Object>> updateTable(
+  public Uni<RestResponse<Sgv2NameResponse>> updateTable(
       final String keyspaceName, final String tableName, final Sgv2TableAddRequest tableUpdate) {
     return queryWithTableAsync(
             keyspaceName,
@@ -150,7 +151,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
   }
 
   @Override
-  public Uni<RestResponse<Object>> deleteTable(final String keyspaceName, final String tableName) {
+  public Uni<RestResponse<Void>> deleteTable(final String keyspaceName, final String tableName) {
     return executeQueryAsync(
             new QueryBuilder().drop().table(keyspaceName, tableName).ifExists().build())
         .map(any -> RestResponse.noContent());

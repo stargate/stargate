@@ -2,6 +2,7 @@ package io.stargate.sgv2.restapi.service.resources.schemas;
 
 import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
+import io.stargate.sgv2.restapi.service.models.Sgv2NameResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2UDT;
 import io.stargate.sgv2.restapi.service.models.Sgv2UDTUpdateRequest;
 import javax.enterprise.context.ApplicationScoped;
@@ -112,7 +113,7 @@ public interface Sgv2UDTsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500)
       })
-  Uni<RestResponse<Object>> createType(
+  Uni<RestResponse<Sgv2NameResponse>> createType(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           @NotBlank(message = "keyspaceName must be provided")
@@ -130,7 +131,7 @@ public interface Sgv2UDTsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
-  Uni<RestResponse<Object>> updateType(
+  Uni<RestResponse<Void>> updateType(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           @NotBlank(message = "keyspaceName must be provided")
@@ -149,7 +150,7 @@ public interface Sgv2UDTsResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500)
       })
   @Path("/{typeName}")
-  Uni<RestResponse<Object>> deleteType(
+  Uni<RestResponse<Void>> deleteType(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
           @NotBlank(message = "keyspaceName must be provided")
