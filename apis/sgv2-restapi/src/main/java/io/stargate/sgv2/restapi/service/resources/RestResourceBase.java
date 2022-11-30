@@ -116,7 +116,7 @@ public abstract class RestResourceBase {
                   () ->
                       new WebApplicationException(
                           String.format(
-                              "Table '%s' not found (in keyspace %s)", tableName, keyspaceName),
+                              "Table '%s' not found (in keyspace '%s')", tableName, keyspaceName),
                           Response.Status.BAD_REQUEST));
           return queryProducer.apply(table);
         });

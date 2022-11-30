@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.http.HttpStatus;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
@@ -202,7 +203,7 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
   }
 
   @Test
-  public void indexListAll() {
+  public void indexListAllOk() {
     final String tableName = testTableName();
     final String altKeyspaceName = "idx_ks_indexListAlternate" + System.currentTimeMillis();
     createKeyspace(altKeyspaceName);
@@ -237,6 +238,28 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
     assertThat(findAllIndexesViaEndpoint(altKeyspaceName, tableName)).hasSize(0);
   }
 
+  /** Test to verify failure modes for "get all indexes" */
+  @Test
+  public void indexListAllFails() {
+    // First try to access with non-existing keyspace
+    givenWithAuth()
+        .when()
+        .get(endpointPathForAllIndexes("no-such-keyspace", "no-such-table"))
+        .then()
+        .statusCode(HttpStatus.SC_BAD_REQUEST)
+        .body("code", Matchers.is(HttpStatus.SC_BAD_REQUEST))
+        .body("description", Matchers.startsWith("Table 'no-such-table' not found"));
+
+    // Then try with non-existing table
+    givenWithAuth()
+        .when()
+        .get(endpointPathForAllIndexes(testKeyspaceName(), "no-such-table"))
+        .then()
+        .statusCode(HttpStatus.SC_BAD_REQUEST)
+        .body("code", Matchers.is(HttpStatus.SC_BAD_REQUEST))
+        .body("description", Matchers.startsWith("Table 'no-such-table' not found"));
+  }
+
   /*
   /////////////////////////////////////////////////////////////////////////
   // Helper methods
@@ -248,12 +271,19 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
         "/v2/schemas/keyspaces/%s/tables/%s/indexes/%s", ksName, tableName, indexName);
   }
 
-  protected List<IndexDesc> findAllIndexesViaEndpoint(String ksName, String tableName) {
-    final String path =
-        String.format("/v2/schemas/keyspaces/%s/tables/%s/indexes", ksName, tableName);
+  protected String endpointPathForAllIndexes(String ksName, String tableName) {
+    return String.format("/v2/schemas/keyspaces/%s/tables/%s/indexes", ksName, tableName);
+  }
 
+  protected List<IndexDesc> findAllIndexesViaEndpoint(String ksName, String tableName) {
     String response =
-        givenWithAuth().when().get(path).then().statusCode(HttpStatus.SC_OK).extract().asString();
+        givenWithAuth()
+            .when()
+            .get(endpointPathForAllIndexes(ksName, tableName))
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
     return Arrays.asList(readJsonAs(response, IndexDesc[].class));
   }
 
