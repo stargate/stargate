@@ -10,6 +10,7 @@ import io.stargate.sgv2.api.common.cql.builder.Column;
 import io.stargate.sgv2.api.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.api.common.cql.builder.Predicate;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
+import io.stargate.sgv2.restapi.service.models.Sgv2NameResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2UDT;
 import io.stargate.sgv2.restapi.service.models.Sgv2UDTAddRequest;
@@ -27,8 +28,6 @@ import org.jboss.resteasy.reactive.RestResponse;
 public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsResourceApi {
   @Override
   public Uni<RestResponse<Object>> findAllTypes(final String keyspaceName, final boolean raw) {
-    requireNonEmptyKeyspace(keyspaceName);
-
     QueryOuterClass.Query query =
         new QueryBuilder()
             .select()
@@ -55,9 +54,6 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
   @Override
   public Uni<RestResponse<Object>> findTypeById(
       final String keyspaceName, final String typeName, final boolean raw) {
-    requireNonEmptyKeyspace(keyspaceName);
-    requireNonEmptyTypename(typeName);
-
     QueryOuterClass.Query query =
         new QueryBuilder()
             .select()
@@ -77,29 +73,28 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
               // Must get one and only one response, verify
               switch (ksRows.size()) {
                 case 0:
-                  return apiErrorResponse(
-                      Response.Status.NOT_FOUND,
+                  throw new WebApplicationException(
                       String.format(
                           "No definition found for UDT '%s' (keyspace '%s')",
-                          typeName, keyspaceName));
+                          typeName, keyspaceName),
+                      Response.Status.NOT_FOUND);
                 case 1:
                   Sgv2UDT udt = jsonArray2Udts(keyspaceName, ksRows).get(0);
                   final Object udtResult = raw ? udt : new Sgv2RESTResponse(udt);
                   return RestResponse.ok(udtResult);
                 default:
-                  return apiErrorResponse(
-                      Response.Status.INTERNAL_SERVER_ERROR,
+                  throw new WebApplicationException(
                       String.format(
                           "Multiple definitions (%d) found for UDT '%s' (keyspace '%s')",
-                          ksRows.size(), typeName, keyspaceName));
+                          ksRows.size(), typeName, keyspaceName),
+                      Response.Status.INTERNAL_SERVER_ERROR);
               }
             });
   }
 
   @Override
-  public Uni<RestResponse<Object>> createType(
+  public Uni<RestResponse<Sgv2NameResponse>> createType(
       final String keyspaceName, final String udtAddPayload) {
-    requireNonEmptyKeyspace(keyspaceName);
     Sgv2UDTAddRequest udtAdd;
 
     try {
@@ -109,7 +104,9 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
           "Invalid JSON payload: " + e.getMessage(), Response.Status.BAD_REQUEST);
     }
     final String typeName = udtAdd.getName();
-    requireNonEmptyTypename(typeName);
+    if (typeName == null || typeName.isEmpty()) {
+      throw new WebApplicationException("typeName must be provided", Response.Status.BAD_REQUEST);
+    }
 
     QueryOuterClass.Query query =
         new QueryBuilder()
@@ -132,20 +129,18 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
                         .getStatus()
                         .getDescription()
                         .contains("already exists"))
-        .recoverWithItem(
-            failure -> {
-              final String desc =
-                  "Bad request: " + ((StatusRuntimeException) failure).getStatus().getDescription();
-              return apiErrorResponse(Response.Status.BAD_REQUEST, desc);
-            });
+        .transform(
+            failure ->
+                new WebApplicationException(
+                    "Bad request: "
+                        + ((StatusRuntimeException) failure).getStatus().getDescription(),
+                    Response.Status.BAD_REQUEST));
   }
 
   @Override
-  public Uni<RestResponse<Object>> updateType(
+  public Uni<RestResponse<Void>> updateType(
       final String keyspaceName, final Sgv2UDTUpdateRequest udtUpdate) {
-    requireNonEmptyKeyspace(keyspaceName);
     final String typeName = udtUpdate.getName();
-    requireNonEmptyTypename(typeName);
 
     List<Sgv2UDT.UDTField> addFields = udtUpdate.getAddFields();
     List<Sgv2UDTUpdateRequest.FieldRename> renameFields = udtUpdate.getRenameFields();
@@ -154,9 +149,9 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
     final boolean hasRenameFields = (renameFields != null && !renameFields.isEmpty());
 
     if (!hasAddFields && !hasRenameFields) {
-      return apiErrorResponseUni(
-          Response.Status.BAD_REQUEST,
-          "addFields and/or renameFields is required to update an UDT");
+      throw new WebApplicationException(
+          "addFields and/or renameFields is required to update an UDT",
+          Response.Status.BAD_REQUEST);
     }
 
     final QueryOuterClass.Query addQuery =
@@ -194,10 +189,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
   }
 
   @Override
-  public Uni<RestResponse<Object>> deleteType(final String keyspaceName, final String typeName) {
-    requireNonEmptyKeyspace(keyspaceName);
-    requireNonEmptyTypename(typeName);
-
+  public Uni<RestResponse<Void>> deleteType(final String keyspaceName, final String typeName) {
     return executeQueryAsync(
             new QueryBuilder().drop().type(keyspaceName, typeName).ifExists().build())
         .map(any -> RestResponse.noContent());
@@ -282,11 +274,5 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
               propertyName, object));
     }
     return value;
-  }
-
-  private static void requireNonEmptyTypename(String typeName) {
-    if (isStringEmpty(typeName)) {
-      throw new WebApplicationException("Type name must be provided", Response.Status.BAD_REQUEST);
-    }
   }
 }

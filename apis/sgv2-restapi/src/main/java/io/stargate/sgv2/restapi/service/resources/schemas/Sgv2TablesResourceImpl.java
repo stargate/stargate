@@ -8,6 +8,7 @@ import io.stargate.sgv2.api.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.restapi.grpc.BridgeProtoTypeTranslator;
 import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
+import io.stargate.sgv2.restapi.service.models.Sgv2NameResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2Table;
 import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
@@ -30,8 +31,6 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
 
   @Override
   public Uni<RestResponse<Object>> getAllTables(final String keyspaceName, final boolean raw) {
-    requireNonEmptyKeyspace(keyspaceName);
-
     return getTablesAsync(keyspaceName)
         .map(t -> table2table(t, keyspaceName))
         .collect()
@@ -44,8 +43,6 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
   @Override
   public Uni<RestResponse<Object>> getOneTable(
       final String keyspaceName, final String tableName, final boolean raw) {
-    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-
     return getTableAsyncCheckExistence(keyspaceName, tableName, true, Response.Status.NOT_FOUND)
         .map(t -> table2table(t, keyspaceName))
         // map to wrapper if needed
@@ -54,17 +51,25 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
   }
 
   @Override
-  public Uni<RestResponse<Object>> createTable(
+  public Uni<RestResponse<Sgv2NameResponse>> createTable(
       final String keyspaceName, final Sgv2TableAddRequest tableAdd) {
     final String tableName = tableAdd.getName();
-    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
 
     // Need to create name-accessible Map of column objects to make
     // it easier to sort PK columns
     Map<String, Column> columnsByName = new LinkedHashMap<>();
     final Sgv2Table.PrimaryKey primaryKeys = tableAdd.getPrimaryKey();
     final List<Sgv2Table.ClusteringExpression> clusterings = tableAdd.findClusteringExpressions();
-    for (Sgv2ColumnDefinition columnDef : tableAdd.getColumnDefinitions()) {
+    final List<Sgv2ColumnDefinition> columnDefs = tableAdd.getColumnDefinitions();
+
+    // Cannot use Bean Validation annotations because columns are optional for Update, only
+    // mandatory here:
+    if (columnDefs == null || columnDefs.isEmpty()) {
+      throw new WebApplicationException(
+          "TableAdd.columnDefinitions must be provided", Status.BAD_REQUEST);
+    }
+
+    for (Sgv2ColumnDefinition columnDef : columnDefs) {
       final String columnName = columnDef.getName();
       ImmutableColumn.Builder column =
           ImmutableColumn.builder().name(columnName).type(columnDef.getTypeDefinition());
@@ -116,9 +121,8 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
   }
 
   @Override
-  public Uni<RestResponse<Object>> updateTable(
+  public Uni<RestResponse<Sgv2NameResponse>> updateTable(
       final String keyspaceName, final String tableName, final Sgv2TableAddRequest tableUpdate) {
-    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     return queryWithTableAsync(
             keyspaceName,
             tableName,
@@ -147,8 +151,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
   }
 
   @Override
-  public Uni<RestResponse<Object>> deleteTable(final String keyspaceName, final String tableName) {
-    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
+  public Uni<RestResponse<Void>> deleteTable(final String keyspaceName, final String tableName) {
     return executeQueryAsync(
             new QueryBuilder().drop().table(keyspaceName, tableName).ifExists().build())
         .map(any -> RestResponse.noContent());

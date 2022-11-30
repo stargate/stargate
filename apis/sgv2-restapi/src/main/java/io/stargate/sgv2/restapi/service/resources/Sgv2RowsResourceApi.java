@@ -7,6 +7,7 @@ import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2RowsResponse;
 import java.util.List;
 import javax.enterprise.context.ApplicationScoped;
+import javax.validation.constraints.NotBlank;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.PathSegment;
@@ -54,9 +55,11 @@ public interface Sgv2RowsResourceApi {
   Uni<RestResponse<Object>> getRowWithWhere(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
+          @NotBlank(message = "tableName must be provided")
           final String tableName,
       @Parameter(
               in = ParameterIn.QUERY,
@@ -79,6 +82,7 @@ public interface Sgv2RowsResourceApi {
               schema = @Schema(type = SchemaType.OBJECT),
               required = true)
           @QueryParam("where")
+          @NotBlank(message = "'where' must be provided")
           final String where,
       @Parameter(name = "fields", ref = RestOpenApiConstants.Parameters.FIELDS)
           @QueryParam("fields")
@@ -115,9 +119,11 @@ public interface Sgv2RowsResourceApi {
   Uni<RestResponse<Object>> getRows(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
+          @NotBlank(message = "tableName must be provided")
           final String tableName,
       @Parameter(name = "primaryKey", ref = RestOpenApiConstants.Parameters.PRIMARY_KEY)
           @PathParam("primaryKey")
@@ -159,9 +165,11 @@ public interface Sgv2RowsResourceApi {
   Uni<RestResponse<Object>> getAllRows(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
+          @NotBlank(message = "tableName must be provided")
           final String tableName,
       @Parameter(name = "fields", ref = RestOpenApiConstants.Parameters.FIELDS)
           @QueryParam("fields")
@@ -196,9 +204,11 @@ public interface Sgv2RowsResourceApi {
   Uni<RestResponse<Object>> createRow(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
+          @NotBlank(message = "tableName must be provided")
           final String tableName,
       @RequestBody(description = "Fields of the Row to create as JSON", required = true)
           final String payloadAsString);
@@ -219,9 +229,11 @@ public interface Sgv2RowsResourceApi {
   Uni<RestResponse<Object>> updateRows(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
+          @NotBlank(message = "tableName must be provided")
           final String tableName,
       @Parameter(name = "primaryKey", ref = RestOpenApiConstants.Parameters.PRIMARY_KEY)
           @PathParam("primaryKey")
@@ -249,9 +261,11 @@ public interface Sgv2RowsResourceApi {
   Uni<RestResponse<Object>> patchRows(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
+          @NotBlank(message = "tableName must be provided")
           final String tableName,
       @Parameter(name = "primaryKey", ref = RestOpenApiConstants.Parameters.PRIMARY_KEY)
           @PathParam("primaryKey")
@@ -274,9 +288,11 @@ public interface Sgv2RowsResourceApi {
   Uni<RestResponse<Object>> deleteRows(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
+          @NotBlank(message = "tableName must be provided")
           final String tableName,
       @Parameter(name = "primaryKey", ref = RestOpenApiConstants.Parameters.PRIMARY_KEY)
           @PathParam("primaryKey")

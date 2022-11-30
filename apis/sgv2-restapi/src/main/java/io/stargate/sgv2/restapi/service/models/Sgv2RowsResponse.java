@@ -17,10 +17,12 @@ package io.stargate.sgv2.restapi.service.models;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import io.quarkus.runtime.annotations.RegisterForReflection;
 import java.util.List;
 import java.util.Map;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
+@RegisterForReflection
 public class Sgv2RowsResponse extends Sgv2GetResponse<List<Map<String, Object>>> {
   // Override to add better description
   @Schema(description = "The rows returned by the request.")

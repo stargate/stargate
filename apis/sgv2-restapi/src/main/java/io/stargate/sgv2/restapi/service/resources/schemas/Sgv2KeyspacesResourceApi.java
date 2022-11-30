@@ -18,7 +18,9 @@ package io.stargate.sgv2.restapi.service.resources.schemas;
 import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.service.models.Sgv2Keyspace;
+import io.stargate.sgv2.restapi.service.models.Sgv2NameResponse;
 import javax.enterprise.context.ApplicationScoped;
+import javax.validation.constraints.NotBlank;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -86,6 +88,7 @@ public interface Sgv2KeyspacesResourceApi {
   Uni<RestResponse<Object>> getOneKeyspace(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw);
@@ -101,7 +104,7 @@ public interface Sgv2KeyspacesResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500)
       })
-  Uni<RestResponse<Object>> createKeyspace(
+  Uni<RestResponse<Sgv2NameResponse>> createKeyspace(
       @RequestBody(
               description =
                   "A map representing a keyspace with SimpleStrategy or NetworkTopologyStrategy with default replicas of 1 and 3 respectively \n"
@@ -120,6 +123,7 @@ public interface Sgv2KeyspacesResourceApi {
                       + "      ],\n"
                       + "}\n"
                       + "```")
+          @NotBlank
           String payload);
 
   @DELETE
@@ -131,8 +135,9 @@ public interface Sgv2KeyspacesResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
   @Path("/{keyspaceName}")
-  Uni<RestResponse<Object>> deleteKeyspace(
+  Uni<RestResponse<Void>> deleteKeyspace(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName);
 }
