@@ -1,6 +1,8 @@
 package io.stargate.sgv2.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.matchesRegex;
 
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
@@ -312,22 +314,18 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
         Arrays.asList("id text", "name " + typeInUse),
         Arrays.asList("id"),
         Arrays.asList());
-    String response =
-        givenWithAuth()
-            .when()
-            .delete(endpointPathForUDT(testKeyspaceName(), typeInUse))
-            .then()
-            .statusCode(HttpStatus.SC_BAD_REQUEST)
-            .extract()
-            .asString();
-    // As with earlier fail message, could be improved
-    ApiError apiError = readJsonAs(response, ApiError.class);
-    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(apiError.description())
-        .matches(
-            String.format(
-                "Invalid argument.*Cannot drop user type.*%s.* as it is still used by .*",
-                typeInUse));
+    givenWithAuth()
+        .when()
+        .delete(endpointPathForUDT(testKeyspaceName(), typeInUse))
+        .then()
+        .statusCode(HttpStatus.SC_BAD_REQUEST)
+        .body("code", is(HttpStatus.SC_BAD_REQUEST))
+        .body(
+            "description",
+            matchesRegex(
+                String.format(
+                    "Invalid argument.*Cannot drop user type.*%s.* as it is still used by .*",
+                    typeInUse)));
   }
 
   /*

@@ -18,6 +18,7 @@ package io.stargate.sgv2.restapi.service.models;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
 import java.util.Map;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
@@ -45,6 +46,7 @@ public class Sgv2IndexAddRequest {
   }
 
   @Schema(required = true, description = "Column name")
+  @NotBlank(message = "IndexAddRequest.column must be provided")
   public String getColumn() {
     return column;
   }

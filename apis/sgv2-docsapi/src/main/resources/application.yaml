@@ -62,3 +62,4 @@ quarkus:
   # adapt path of the open api definitions
   smallrye-openapi:
     path: /api/docs/openapi
+    info-description: The Stargate Document API modifies and queries data stored as unstructured JSON documents in collections. See the [documentation site](https://stargate.io/docs/latest/develop/dev-with-doc.html) for additional information.

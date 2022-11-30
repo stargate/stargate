@@ -17,6 +17,7 @@ package io.stargate.sgv2.restapi.service.resources.schemas;
 
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.grpc.Values;
+import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.cql.builder.Predicate;
@@ -28,6 +29,7 @@ import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response.Status;
 import org.jboss.resteasy.reactive.RestResponse;
@@ -36,13 +38,6 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
 
   @Override
   public Uni<RestResponse<Object>> getAllIndexes(String keyspaceName, String tableName) {
-    if (isStringEmpty(keyspaceName)) {
-      throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
-    }
-    if (isStringEmpty(tableName)) {
-      throw new WebApplicationException("tableName must be provided", Status.BAD_REQUEST);
-    }
-
     // check that we're authorized for the table
     Uni<List<Boolean>> uni =
         authorizeSchemaReadsAsync(
@@ -62,32 +57,18 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
   }
 
   @Override
-  public Uni<RestResponse<Object>> addIndex(
+  public Uni<RestResponse<Map<String, Object>>> addIndex(
       final String keyspaceName, final String tableName, final Sgv2IndexAddRequest indexAdd) {
-    if (isStringEmpty(keyspaceName)) {
-      throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
-    }
-    if (isStringEmpty(tableName)) {
-      throw new WebApplicationException("tableName must be provided", Status.BAD_REQUEST);
-    }
-
     String columnName = indexAdd.getColumn();
-    if (isStringEmpty(columnName)) {
-      throw new WebApplicationException("columnName must be provided", Status.BAD_REQUEST);
-    }
-
     return queryWithTableAsync(
             keyspaceName,
             tableName,
             table -> {
-              table.getColumnsList().stream()
-                  .filter(c -> columnName.equals(c.getName()))
-                  .findAny()
-                  .orElseThrow(
-                      () ->
-                          new WebApplicationException(
-                              String.format("Column '%s' not found in table.", columnName),
-                              Status.NOT_FOUND));
+              if (!hasColumn(table, columnName)) {
+                throw new WebApplicationException(
+                    String.format("Column '%s' not found in table '%s'", columnName, tableName),
+                    Status.NOT_FOUND);
+              }
               return new QueryBuilder()
                   .create()
                   .index(indexAdd.getName())
@@ -102,18 +83,8 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
   }
 
   @Override
-  public Uni<RestResponse<Object>> deleteIndex(
+  public Uni<RestResponse<Void>> deleteIndex(
       String keyspaceName, String tableName, String indexName, boolean ifExists) {
-    if (isStringEmpty(keyspaceName)) {
-      throw new WebApplicationException("keyspaceName must be provided", Status.BAD_REQUEST);
-    }
-    if (isStringEmpty(tableName)) {
-      throw new WebApplicationException("tableName must be provided", Status.BAD_REQUEST);
-    }
-    if (isStringEmpty(indexName)) {
-      throw new WebApplicationException("columnName must be provided", Status.BAD_REQUEST);
-    }
-
     return queryWithTableAsync(
             keyspaceName,
             tableName,
@@ -131,5 +102,16 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
                   .build();
             })
         .map(any -> RestResponse.noContent());
+  }
+
+  private boolean hasColumn(Schema.CqlTable table, String columnName) {
+    List<QueryOuterClass.ColumnSpec> s = table.getColumnsList();
+    return hasColumn(table.getColumnsList(), columnName)
+        || hasColumn(table.getPartitionKeyColumnsList(), columnName)
+        || hasColumn(table.getClusteringKeyColumnsList(), columnName);
+  }
+
+  private boolean hasColumn(List<QueryOuterClass.ColumnSpec> columns, String nameToFind) {
+    return columns.stream().anyMatch(c -> nameToFind.equals(c.getName()));
   }
 }
