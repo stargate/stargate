@@ -39,11 +39,6 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       final String pageStateParam,
       final boolean raw,
       final String sortJson) {
-    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
-    if (isStringEmpty(where)) {
-      throw new WebApplicationException("Missing required 'where' parameter", Status.BAD_REQUEST);
-    }
-
     final List<Column> columns =
         isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
     final Map<String, Column.Order> sortOrder;
@@ -99,7 +94,6 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       final String pageStateParam,
       final boolean raw,
       final String sortJson) {
-    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     final List<Column> columns =
         isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
     final Map<String, Column.Order> sortOrder;
@@ -142,7 +136,6 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       final String pageStateParam,
       final boolean raw,
       final String sortJson) {
-    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     List<Column> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
     Map<String, Column.Order> sortOrder;
     try {
@@ -176,7 +169,6 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
   @Override
   public Uni<RestResponse<Object>> createRow(
       final String keyspaceName, final String tableName, final String payloadAsString) {
-    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     Map<String, Object> payloadMap;
     try {
       payloadMap = parseJsonAsMap(payloadAsString);
@@ -224,7 +216,6 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
   @Override
   public Uni<RestResponse<Object>> deleteRows(
       final String keyspaceName, final String tableName, final List<PathSegment> path) {
-    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     return queryWithTableAsync(
             keyspaceName,
             tableName,
@@ -249,7 +240,6 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       final List<PathSegment> path,
       final boolean raw,
       final String payloadAsString) {
-    requireNonEmptyKeyspaceAndTable(keyspaceName, tableName);
     Map<String, Object> payloadMap;
     try {
       payloadMap = parseJsonAsMap(payloadAsString);
