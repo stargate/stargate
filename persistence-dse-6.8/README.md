@@ -12,8 +12,6 @@ In order to update to a newer patch version, please follow the guidelines below:
 * Update the `ccm.version` property (`it-dse-6.8` profile section) in [testing/pom.xml](../testing/pom.xml)
 * Update the [CI Dockerfile](../ci/Dockerfile) and set the new version in the `ccm create` command related to DSE 6.8.
 Note that this will have no effect until the docker image is rebuilt and pushed to the remote repository, thus creating an issue for that would be a good idea (see below for one such PR)
-* Check the Netty dependencies
-  * The explicit `netty-codec` dependency in the [pom.xml](pom.xml) should be removed, if the `dse-db` declares it as transitive dep (issue in `6.8.29`).
 * Create a separate PR for bumping the DSE version in the Quarkus-based API integration tests on the `v2.0.0` branch. Test profiles are defined in the `apis/pom.xml`.
 * Make sure everything compiles and CI tests are green.
 * Update the [default docker-compose env variables](../docker-compose/dse-6.8/.env) to reference the new version.
