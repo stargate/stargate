@@ -58,7 +58,6 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
         .onItem()
         .invoke(
             accessChecks -> {
-              System.err.println("DEBUG: getAllIndexes -- Access check stuff == " + accessChecks);
               if (!accessChecks.get(0).booleanValue()) {
                 throw new WebApplicationException(
                     "Not authorized for read access to table '" + tableName + "'",
