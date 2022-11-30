@@ -20,6 +20,7 @@ import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.service.models.Sgv2Keyspace;
 import java.util.Map;
 import javax.enterprise.context.ApplicationScoped;
+import javax.validation.constraints.NotBlank;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -87,6 +88,7 @@ public interface Sgv2KeyspacesResourceApi {
   Uni<RestResponse<Object>> getOneKeyspace(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw);
@@ -121,6 +123,7 @@ public interface Sgv2KeyspacesResourceApi {
                       + "      ],\n"
                       + "}\n"
                       + "```")
+          @NotBlank
           String payload);
 
   @DELETE
@@ -135,5 +138,6 @@ public interface Sgv2KeyspacesResourceApi {
   Uni<RestResponse<Void>> deleteKeyspace(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName);
 }

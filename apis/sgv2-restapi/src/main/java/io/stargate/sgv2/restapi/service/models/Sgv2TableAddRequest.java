@@ -2,13 +2,14 @@ package io.stargate.sgv2.restapi.service.models;
 
 import java.util.Collections;
 import java.util.List;
-import javax.validation.constraints.NotNull;
+import javax.validation.constraints.NotBlank;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 public class Sgv2TableAddRequest {
-  @NotNull private String name;
-  @NotNull private Sgv2Table.PrimaryKey primaryKey;
-  @NotNull private List<Sgv2ColumnDefinition> columnDefinitions;
+  private String name;
+  private Sgv2Table.PrimaryKey primaryKey;
+
+  private List<Sgv2ColumnDefinition> columnDefinitions;
 
   boolean ifNotExists;
 
@@ -22,6 +23,7 @@ public class Sgv2TableAddRequest {
   }
 
   @Schema(required = true, description = "The name of the table to add.")
+  @NotBlank(message = "TableAdd.name must be provided")
   public String getName() {
     return name;
   }
@@ -53,6 +55,7 @@ public class Sgv2TableAddRequest {
     this.primaryKey = primaryKey;
   }
 
+  // Cannot enforce non-null/non-emptiness since optional for Update (but mandatory for Create)
   @Schema(
       required = true,
       description = "Definition of columns that belong to the table to be added.")

@@ -6,6 +6,8 @@ import io.stargate.sgv2.restapi.service.models.Sgv2UDT;
 import io.stargate.sgv2.restapi.service.models.Sgv2UDTUpdateRequest;
 import java.util.Map;
 import javax.enterprise.context.ApplicationScoped;
+import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -61,6 +63,7 @@ public interface Sgv2UDTsResourceApi {
   Uni<RestResponse<Object>> findAllTypes(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw);
@@ -83,6 +86,7 @@ public interface Sgv2UDTsResourceApi {
   Uni<RestResponse<Object>> findTypeById(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(
               name = "typeName",
@@ -90,6 +94,7 @@ public interface Sgv2UDTsResourceApi {
               required = true,
               schema = @Schema(type = SchemaType.STRING))
           @PathParam("typeName")
+          @NotBlank(message = "typeName must be provided")
           final String typeName,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw);
@@ -111,6 +116,7 @@ public interface Sgv2UDTsResourceApi {
   Uni<RestResponse<Map<String, String>>> createType(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @RequestBody(description = "Type definition as JSON", required = true) @NotNull
           final String udtAddPayload);
@@ -128,8 +134,9 @@ public interface Sgv2UDTsResourceApi {
   Uni<RestResponse<Void>> updateType(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
-      @RequestBody(description = "Type definition as JSON", required = true) @NotNull
+      @RequestBody(description = "Type definition as JSON", required = true) @NotNull @Valid
           final Sgv2UDTUpdateRequest udtUpdate);
 
   @DELETE
@@ -146,6 +153,7 @@ public interface Sgv2UDTsResourceApi {
   Uni<RestResponse<Void>> deleteType(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(
               name = "typeName",
@@ -153,5 +161,6 @@ public interface Sgv2UDTsResourceApi {
               required = true,
               schema = @Schema(type = SchemaType.STRING))
           @PathParam("typeName")
+          @NotBlank(message = "typeName must be provided")
           final String typeName);
 }

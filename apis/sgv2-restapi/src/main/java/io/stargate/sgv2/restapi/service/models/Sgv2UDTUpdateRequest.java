@@ -3,6 +3,7 @@ package io.stargate.sgv2.restapi.service.models;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import java.util.List;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
@@ -25,6 +26,7 @@ public class Sgv2UDTUpdateRequest {
   }
 
   @Schema(required = true, description = "User Defined Type name")
+  @NotBlank(message = "UserDefinedTypeUpdate.name must be provided")
   public String getName() {
     return name;
   }

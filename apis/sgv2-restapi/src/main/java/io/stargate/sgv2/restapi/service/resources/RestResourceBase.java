@@ -241,20 +241,6 @@ public abstract class RestResourceBase {
 
   // // // Helper methods for input validation
 
-  protected static void requireNonEmptyKeyspace(String keyspaceName) {
-    if (isStringEmpty(keyspaceName)) {
-      throw new WebApplicationException(
-          "keyspaceName must be provided", Response.Status.BAD_REQUEST);
-    }
-  }
-
-  protected static void requireNonEmptyKeyspaceAndTable(String keyspaceName, String tableName) {
-    requireNonEmptyKeyspace(keyspaceName);
-    if (isStringEmpty(tableName)) {
-      throw new WebApplicationException("table name must be provided", Response.Status.BAD_REQUEST);
-    }
-  }
-
   protected static final boolean isStringEmpty(String str) {
     return (str == null) || str.isEmpty();
   }

@@ -27,21 +27,6 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
    */
 
   @Test
-  public void columnAddBadType() {
-    final String tableName = testTableName();
-    createSimpleTestTable(testKeyspaceName(), tableName);
-
-    final String columnToAdd = "name";
-    Sgv2ColumnDefinition columnDef = new Sgv2ColumnDefinition(columnToAdd, "badType", false);
-    String response =
-        tryAddColumn(testKeyspaceName(), tableName, columnDef, HttpStatus.SC_BAD_REQUEST);
-    ApiError apiError = readJsonAs(response, ApiError.class);
-    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    // Sub-optimal failure message, should improve:
-    assertThat(apiError.description()).matches("Invalid argument.*Unknown type.*badType.*");
-  }
-
-  @Test
   public void columnAddBasic() {
     final String tableName = testTableName();
     createSimpleTestTable(testKeyspaceName(), tableName);
@@ -73,6 +58,35 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
     Sgv2ColumnDefinition columnFound =
         findOneColumn(testKeyspaceName(), tableName, columnToAdd, true);
     assertThat(columnFound).isEqualTo(columnDef);
+  }
+
+  @Test
+  public void columnAddBadType() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+
+    final String columnToAdd = "name";
+    Sgv2ColumnDefinition columnDef = new Sgv2ColumnDefinition(columnToAdd, "badType", false);
+    String response =
+        tryAddColumn(testKeyspaceName(), tableName, columnDef, HttpStatus.SC_BAD_REQUEST);
+    ApiError apiError = readJsonAs(response, ApiError.class);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    // Sub-optimal failure message, should improve:
+    assertThat(apiError.description()).matches("Invalid argument.*Unknown type.*badType.*");
+  }
+
+  @Test
+  public void columnAddMissingName() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+
+    Sgv2ColumnDefinition columnDef = new Sgv2ColumnDefinition(null, "badType", false);
+    String response =
+        tryAddColumn(testKeyspaceName(), tableName, columnDef, HttpStatus.SC_BAD_REQUEST);
+    ApiError apiError = readJsonAs(response, ApiError.class);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(apiError.description())
+        .startsWith("Request invalid: columnDefinition.name must be provided");
   }
 
   /*

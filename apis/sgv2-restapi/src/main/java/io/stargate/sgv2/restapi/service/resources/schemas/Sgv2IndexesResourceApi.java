@@ -20,6 +20,8 @@ import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.service.models.Sgv2IndexAddRequest;
 import java.util.Map;
 import javax.enterprise.context.ApplicationScoped;
+import javax.validation.Valid;
+import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -70,9 +72,11 @@ public interface Sgv2IndexesResourceApi {
   Uni<RestResponse<Object>> getAllIndexes(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
+          @NotBlank(message = "tableName must be provided")
           final String tableName);
 
   @POST
@@ -92,11 +96,13 @@ public interface Sgv2IndexesResourceApi {
   Uni<RestResponse<Map<String, Object>>> addIndex(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
+          @NotBlank(message = "tableName must be provided")
           final String tableName,
-      @RequestBody(description = "Index definition as JSON", required = true) @NotNull
+      @RequestBody(description = "Index definition as JSON", required = true) @NotNull @Valid
           final Sgv2IndexAddRequest indexAdd);
 
   @DELETE
@@ -112,15 +118,18 @@ public interface Sgv2IndexesResourceApi {
   Uni<RestResponse<Void>> deleteIndex(
       @Parameter(name = "keyspaceName", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
           @PathParam("keyspaceName")
+          @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "tableName", ref = RestOpenApiConstants.Parameters.TABLE_NAME)
           @PathParam("tableName")
+          @NotBlank(message = "tableName must be provided")
           final String tableName,
       @Parameter(
               name = "Name of the index to use for the request",
               required = true,
               schema = @Schema(type = SchemaType.STRING))
           @PathParam("indexName")
+          @NotBlank(message = "indexName must be provided")
           final String indexName,
       @Parameter(
               name =
