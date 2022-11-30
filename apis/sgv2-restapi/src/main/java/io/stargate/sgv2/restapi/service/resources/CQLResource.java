@@ -1,7 +1,7 @@
 package io.stargate.sgv2.restapi.service.resources;
 
 import static io.stargate.sgv2.restapi.service.resources.RestResourceBase.convertRowsToResponse;
-import static io.stargate.sgv2.restapi.service.resources.RestResourceBase.parametersForPageSizeAndState;
+import static io.stargate.sgv2.restapi.service.resources.RestResourceBase.parametersForPageSizeStateAndKeyspace;
 
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
@@ -65,16 +65,19 @@ public class CQLResource {
       @Parameter(name = "page-state", ref = RestOpenApiConstants.Parameters.PAGE_STATE)
           @QueryParam("page-state")
           final String pageStateParam,
+      @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
+          final boolean raw,
       @RequestBody(description = "CQL Query String", required = true)
           final String payloadAsString) {
     QueryOuterClass.Query query =
         new QueryBuilder()
             .cql(payloadAsString)
-            .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
+            .parameters(
+                parametersForPageSizeStateAndKeyspace(pageSizeParam, pageStateParam, keyspace))
             .build();
     return requestInfo
         .getStargateBridge()
         .executeQuery(query)
-        .map(response -> convertRowsToResponse(response, false));
+        .map(response -> convertRowsToResponse(response, raw));
   }
 }

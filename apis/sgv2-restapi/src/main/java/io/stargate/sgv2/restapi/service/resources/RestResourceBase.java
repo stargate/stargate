@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
 import com.google.protobuf.Int32Value;
+import com.google.protobuf.StringValue;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
@@ -178,6 +179,25 @@ public abstract class RestResourceBase {
     }
     if (pageSizeParam > 0) {
       paramsB = paramsB.setPageSize(Int32Value.of(pageSizeParam));
+    }
+    return paramsB.build();
+  }
+
+  static QueryOuterClass.QueryParameters parametersForPageSizeStateAndKeyspace(
+      int pageSizeParam, String pageStateParam, String keyspace) {
+    if (isStringEmpty(pageStateParam) && pageSizeParam <= 0 && isStringEmpty(keyspace)) {
+      return PARAMETERS_FOR_LOCAL_QUORUM;
+    }
+    QueryOuterClass.QueryParameters.Builder paramsB = parametersBuilderForLocalQuorum();
+    if (!isStringEmpty(pageStateParam)) {
+      paramsB =
+          paramsB.setPagingState(BytesValue.of(ByteString.copyFrom(decodeBase64(pageStateParam))));
+    }
+    if (pageSizeParam > 0) {
+      paramsB = paramsB.setPageSize(Int32Value.of(pageSizeParam));
+    }
+    if (!isStringEmpty(keyspace)) {
+      paramsB = paramsB.setKeyspace(StringValue.of(keyspace));
     }
     return paramsB.build();
   }
