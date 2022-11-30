@@ -10,6 +10,7 @@ import io.stargate.sgv2.api.common.cql.builder.Column;
 import io.stargate.sgv2.api.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.api.common.cql.builder.Predicate;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
+import io.stargate.sgv2.restapi.service.models.Sgv2NameResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2UDT;
 import io.stargate.sgv2.restapi.service.models.Sgv2UDTAddRequest;
@@ -92,7 +93,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
   }
 
   @Override
-  public Uni<RestResponse<Map<String, String>>> createType(
+  public Uni<RestResponse<Sgv2NameResponse>> createType(
       final String keyspaceName, final String udtAddPayload) {
     Sgv2UDTAddRequest udtAdd;
 

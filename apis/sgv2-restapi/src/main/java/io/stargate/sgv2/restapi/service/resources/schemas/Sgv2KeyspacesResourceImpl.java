@@ -26,6 +26,7 @@ import io.stargate.bridge.proto.Schema.CqlKeyspaceDescribe;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.api.common.cql.builder.Replication;
 import io.stargate.sgv2.restapi.service.models.Sgv2Keyspace;
+import io.stargate.sgv2.restapi.service.models.Sgv2NameResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
 import java.io.IOException;
@@ -77,7 +78,7 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
   }
 
   @Override
-  public Uni<RestResponse<Map<String, String>>> createKeyspace(final String payloadString) {
+  public Uni<RestResponse<Sgv2NameResponse>> createKeyspace(final String payloadString) {
     SchemaBuilderHelper.KeyspaceCreateDefinition ksCreateDef;
     try {
       JsonNode payload = JSON_MAPPER.readTree(payloadString);

@@ -17,11 +17,11 @@ import io.stargate.sgv2.api.common.schema.SchemaManager;
 import io.stargate.sgv2.restapi.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restapi.grpc.FromProtoConverter;
 import io.stargate.sgv2.restapi.grpc.ToProtoConverter;
+import io.stargate.sgv2.restapi.service.models.Sgv2NameResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2RowsResponse;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -252,13 +252,11 @@ public abstract class RestResourceBase {
 
   // // // Helper methods for JAX-RS response construction
 
-  protected static RestResponse<Map<String, String>> restResponseCreatedWithName(
-      String createdName) {
-    return RestResponse.status(
-        Response.Status.CREATED, Collections.singletonMap("name", createdName));
+  protected static RestResponse<Sgv2NameResponse> restResponseCreatedWithName(String createdName) {
+    return RestResponse.status(Response.Status.CREATED, new Sgv2NameResponse(createdName));
   }
 
-  protected static RestResponse<Map<String, String>> restResponseOkWithName(String name) {
-    return RestResponse.status(Response.Status.OK, Collections.singletonMap("name", name));
+  protected static RestResponse<Sgv2NameResponse> restResponseOkWithName(String name) {
+    return RestResponse.status(Response.Status.OK, new Sgv2NameResponse(name));
   }
 }

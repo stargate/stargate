@@ -18,7 +18,7 @@ package io.stargate.sgv2.restapi.service.resources.schemas;
 import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.service.models.Sgv2Keyspace;
-import java.util.Map;
+import io.stargate.sgv2.restapi.service.models.Sgv2NameResponse;
 import javax.enterprise.context.ApplicationScoped;
 import javax.validation.constraints.NotBlank;
 import javax.ws.rs.Consumes;
@@ -104,7 +104,7 @@ public interface Sgv2KeyspacesResourceApi {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_401),
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500)
       })
-  Uni<RestResponse<Map<String, String>>> createKeyspace(
+  Uni<RestResponse<Sgv2NameResponse>> createKeyspace(
       @RequestBody(
               description =
                   "A map representing a keyspace with SimpleStrategy or NetworkTopologyStrategy with default replicas of 1 and 3 respectively \n"
