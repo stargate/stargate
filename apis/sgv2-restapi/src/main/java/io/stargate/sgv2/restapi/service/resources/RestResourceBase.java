@@ -166,7 +166,7 @@ public abstract class RestResourceBase {
         .setPageSize(Int32Value.of(DEFAULT_PAGE_SIZE));
   }
 
-  protected QueryOuterClass.QueryParameters parametersForPageSizeAndState(
+  static QueryOuterClass.QueryParameters parametersForPageSizeAndState(
       int pageSizeParam, String pageStateParam) {
     if (isStringEmpty(pageStateParam) && pageSizeParam <= 0) {
       return PARAMETERS_FOR_LOCAL_QUORUM;
@@ -201,7 +201,7 @@ public abstract class RestResourceBase {
     return PROTO_CONVERTERS.toProtoConverter(tableDef);
   }
 
-  protected RestResponse<Object> convertRowsToResponse(
+  static RestResponse<Object> convertRowsToResponse(
       QueryOuterClass.Response grpcResponse, boolean raw) {
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
     final int count = rs.getRowsCount();
@@ -212,7 +212,7 @@ public abstract class RestResourceBase {
     return RestResponse.ok(response);
   }
 
-  protected List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
+  static List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
     FromProtoConverter converter =
         BridgeProtoValueConverters.instance().fromProtoConverter(rs.getColumnsList());
     List<Map<String, Object>> resultRows = new ArrayList<>();

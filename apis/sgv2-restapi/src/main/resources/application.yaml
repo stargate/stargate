@@ -43,6 +43,7 @@ quarkus:
         # we need to define uri templating on our own for now
         # note that order is important
         match-patterns: |
+          /v2/cql,
           /v2/keyspaces/[\\w]+/[\\w]+=/v2/keyspaces/{keyspaceName}/{tableName},
           /v2/keyspaces/[\\w]+/[\\w]+/rows=/v2/keyspaces/{keyspaceName}/{tableName}/rows,
           /v2/keyspaces/[\\w]+/[\\w]+/[\\w]+=/v2/keyspaces/{keyspaceName}/{tableName}/{primaryKey},

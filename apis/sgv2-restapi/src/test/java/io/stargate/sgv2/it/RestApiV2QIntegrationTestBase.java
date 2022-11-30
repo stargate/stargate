@@ -123,6 +123,10 @@ public abstract class RestApiV2QIntegrationTestBase {
   /////////////////////////////////////////////////////////////////////////
    */
 
+  protected String endpointPathForCQL() {
+    return "/v2/cql";
+  }
+
   protected String endpointPathForAllKeyspaces() {
     return "/v2/schemas/keyspaces";
   }
