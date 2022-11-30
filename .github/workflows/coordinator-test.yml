@@ -1,6 +1,13 @@
 name: Coordinator Tests
 
+# runs on
+# * pushes and pull requests on the "main" (Stargate v2)
+# * manual trigger
 on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
   workflow_dispatch:
 
 jobs:
@@ -20,7 +27,7 @@ jobs:
         name: Setup Java JDK
         with:
           distribution: 'temurin'
-          java-version: 8.0.332
+          java-version: 8.0.345
           cache: 'maven'
       - name: Setup Maven
         env:
