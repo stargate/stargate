@@ -22,10 +22,8 @@ import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.cql.builder.Predicate;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
-import io.stargate.sgv2.api.common.grpc.proto.SchemaReads;
 import io.stargate.sgv2.restapi.service.models.Sgv2IndexAddRequest;
 import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -46,21 +44,9 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
             .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
             .build();
 
-    // check that we're authorized for the table
-    return authorizeSchemaReadsAsync(
-            Arrays.asList(
-                SchemaReads.table(keyspaceName, tableName, Schema.SchemaRead.SourceApi.REST)))
-        .onItem()
-        .invoke(
-            accessChecks -> {
-              if (!accessChecks.get(0).booleanValue()) {
-                throw new WebApplicationException(
-                    "Not authorized for read access to table '" + tableName + "'",
-                    Status.UNAUTHORIZED);
-              }
-            })
-        .onItem()
-        .transformToUni(access -> executeQueryAsync(query))
+    // This call will authorize lookup on "table" so no separate access checks
+    // should be needed
+    return queryWithTableAsync(keyspaceName, tableName, table -> query)
         .map(response -> convertRowsToResponse(response, true));
   }
 
