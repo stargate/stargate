@@ -46,12 +46,13 @@
 ### Multi-tenancy configuration
 *Configuration mapping for multi tenant operation mode, defined by [MultiTenancyConfig.java](src/main/java/io/stargate/sgv2/api/common/config/MultiTenancyConfig.java).*
 
-| Property                                                     | Type      | Default | Description                                                                                                          |
-|--------------------------------------------------------------|-----------|---------|----------------------------------------------------------------------------------------------------------------------|
-| `stargate.multi-tenancy.enabled`                             | `boolean` | `false` | If multi-tenancy operation mode is enabled.                                                                          |
-| `stargate.multi-tenancy.tenant-resolver.type`                | `String`  | unset   | Tenant identifier resolver type if multi-tenancy is enabled. Possible options are `subdomain`, `fixed`, or `custom`. |
-| `stargate.multi-tenancy.tenant-resolver.fixed.tenant-id`     | `String`  | unset   | Tenant identifier value if the `fixed` type is used.                                                                 |
-| `stargate.multi-tenancy.tenant-resolver.subdomain.max-chars` | `String`  | unset   | Optional, takes only a defined number of max characters from the resolved sub-domain as tenant id.                   |
+| Property                                                     | Type      | Default | Description                                                                                                                                        |
+|--------------------------------------------------------------|-----------|---------|----------------------------------------------------------------------------------------------------------------------------------------------------|
+| `stargate.multi-tenancy.enabled`                             | `boolean` | `false` | If multi-tenancy operation mode is enabled.                                                                                                        |
+| `stargate.multi-tenancy.tenant-resolver.type`                | `String`  | unset   | Tenant identifier resolver type if multi-tenancy is enabled. Possible options are `subdomain`, `fixed`, or `custom`.                               |
+| `stargate.multi-tenancy.tenant-resolver.fixed.tenant-id`     | `String`  | unset   | Tenant identifier value if the `fixed` type is used.                                                                                               |
+| `stargate.multi-tenancy.tenant-resolver.subdomain.max-chars` | `String`  | unset   | Optional, takes only a defined number of max characters from the resolved sub-domain as tenant id. If config value is negative, then it's ignored. |
+| `stargate.multi-tenancy.tenant-resolver.subdomain.regex`     | `String`  | unset   | Optional, validates the resolved tenant id against the provided regular expression. If not matching the regex, resolves to empty (unknown) tenant. |
 
 ### Queries configuration
 *Configuration mapping for the query properties, defined by [QueriesConfig.java](src/main/java/io/stargate/sgv2/api/common/config/QueriesConfig.java).*
