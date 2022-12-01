@@ -21,6 +21,7 @@ import io.stargate.sgv2.api.common.config.MultiTenancyConfig;
 import io.stargate.sgv2.api.common.tenant.TenantResolver;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Optional;
+import java.util.regex.Pattern;
 import javax.ws.rs.core.SecurityContext;
 
 /**
@@ -32,11 +33,23 @@ import javax.ws.rs.core.SecurityContext;
  */
 public class SubdomainTenantResolver implements TenantResolver {
 
-  private final MultiTenancyConfig.TenantResolverConfig.SubdomainTenantResolverConfig config;
+  private final Pattern validationPattern;
+  private final int maxChars;
 
   public SubdomainTenantResolver(
       MultiTenancyConfig.TenantResolverConfig.SubdomainTenantResolverConfig config) {
-    this.config = config;
+    if (config.maxChars().isPresent()) {
+      this.maxChars = config.maxChars().getAsInt();
+    } else {
+      this.maxChars = -1;
+    }
+
+    if (config.regex().isPresent()) {
+      String regex = config.regex().get();
+      this.validationPattern = Pattern.compile(regex);
+    } else {
+      this.validationPattern = null;
+    }
   }
 
   /** {@inheritDoc} */
@@ -53,10 +66,15 @@ public class SubdomainTenantResolver implements TenantResolver {
 
       // if max chars is present
       // ensure subdomain is trimmed
-      if (config.maxChars().isPresent()) {
-        int maxChars = config.maxChars().getAsInt();
-        if (maxChars < tenantId.length()) {
-          return Optional.of(tenantId.substring(0, maxChars));
+      if (maxChars >= 0 && maxChars < tenantId.length()) {
+        tenantId = tenantId.substring(0, maxChars);
+      }
+
+      // if regex defined check
+      if (null != validationPattern) {
+        boolean matches = validationPattern.matcher(tenantId).matches();
+        if (!matches) {
+          return Optional.empty();
         }
       }
 

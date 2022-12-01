@@ -76,6 +76,9 @@ public interface MultiTenancyConfig {
 
       /** @return Maximum characters to pull from the subdomain. */
       OptionalInt maxChars();
+
+      /** @return The regex to validate the resolved tenant against. */
+      Optional<String> regex();
     }
   }
 }
