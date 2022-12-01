@@ -11,8 +11,10 @@ import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.restapi.service.models.Sgv2IndexAddRequest;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.http.HttpStatus;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
@@ -48,7 +50,7 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
     IndexResponse successResponse = readJsonAs(response, IndexResponse.class);
     assertThat(successResponse.success).isTrue();
 
-    List<IndexDesc> indexes = findAllIndexes(testKeyspaceName(), tableName);
+    List<IndexDesc> indexes = findAllIndexesFromSystemSchema(testKeyspaceName(), tableName);
     assertThat(indexes).hasSize(1);
 
     // Verify that idempotent call succeeds:
@@ -72,7 +74,7 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
     assertThat(successResponse.success).isTrue();
 
     // and verify we can now see 2 indexes
-    indexes = findAllIndexes(testKeyspaceName(), tableName);
+    indexes = findAllIndexesFromSystemSchema(testKeyspaceName(), tableName);
     assertThat(indexes).hasSize(2);
   }
 
@@ -103,7 +105,7 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
     IndexResponse successResponse = readJsonAs(response, IndexResponse.class);
     assertThat(successResponse.success).isTrue();
 
-    List<IndexDesc> indexes = findAllIndexes(testKeyspaceName(), tableName);
+    List<IndexDesc> indexes = findAllIndexesFromSystemSchema(testKeyspaceName(), tableName);
     assertThat(indexes).hasSize(1);
   }
 
@@ -155,7 +157,7 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
         Arrays.asList("id"),
         Arrays.asList());
     // No indexes, initially
-    List<IndexDesc> indexes = findAllIndexes(testKeyspaceName(), tableName);
+    List<IndexDesc> indexes = findAllIndexesFromSystemSchema(testKeyspaceName(), tableName);
     assertThat(indexes).isEmpty();
 
     Sgv2IndexAddRequest indexAdd = new Sgv2IndexAddRequest("firstName", indexName);
@@ -163,7 +165,7 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
     tryCreateIndex(testKeyspaceName(), tableName, indexAdd, HttpStatus.SC_CREATED);
 
     // And now 1 index:
-    indexes = findAllIndexes(testKeyspaceName(), tableName);
+    indexes = findAllIndexesFromSystemSchema(testKeyspaceName(), tableName);
     assertThat(indexes).hasSize(1);
     assertThat(indexes.get(0).index_name).isEqualTo(indexName);
 
@@ -173,7 +175,7 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
     givenWithAuth().when().delete(deletePath).then().statusCode(HttpStatus.SC_NO_CONTENT);
 
     // And back to "no indexes"
-    indexes = findAllIndexes(testKeyspaceName(), tableName);
+    indexes = findAllIndexesFromSystemSchema(testKeyspaceName(), tableName);
     assertThat(indexes).isEmpty();
 
     // And now an invalid case (could extract into separate test method in future
@@ -201,7 +203,7 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
   }
 
   @Test
-  public void indexListAll() {
+  public void indexListAllOk() {
     final String tableName = testTableName();
     final String altKeyspaceName = "idx_ks_indexListAlternate" + System.currentTimeMillis();
     createKeyspace(altKeyspaceName);
@@ -220,8 +222,8 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
         Arrays.asList());
 
     // Verify that neither keyspace (primary test; alt) have no indexes defined:
-    assertThat(findAllIndexes(testKeyspaceName(), tableName)).hasSize(0);
-    assertThat(findAllIndexes(altKeyspaceName, tableName)).hasSize(0);
+    assertThat(findAllIndexesViaEndpoint(testKeyspaceName(), tableName)).hasSize(0);
+    assertThat(findAllIndexesViaEndpoint(altKeyspaceName, tableName)).hasSize(0);
 
     final String indexName = "test_index_list_idx";
     Sgv2IndexAddRequest indexAdd = new Sgv2IndexAddRequest("firstName", indexName);
@@ -229,11 +231,33 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
     tryCreateIndex(testKeyspaceName(), tableName, indexAdd, HttpStatus.SC_CREATED);
 
     // And now main keyspace has 1 index; the alternate one still 0
-    List<IndexDesc> indexes = findAllIndexes(testKeyspaceName(), tableName);
+    List<IndexDesc> indexes = findAllIndexesViaEndpoint(testKeyspaceName(), tableName);
     assertThat(indexes).hasSize(1);
     assertThat(indexes.get(0).index_name).isEqualTo(indexName);
 
-    assertThat(findAllIndexes(altKeyspaceName, tableName)).hasSize(0);
+    assertThat(findAllIndexesViaEndpoint(altKeyspaceName, tableName)).hasSize(0);
+  }
+
+  /** Test to verify failure modes for "get all indexes" */
+  @Test
+  public void indexListAllFails() {
+    // First try to access with non-existing keyspace
+    givenWithAuth()
+        .when()
+        .get(endpointPathForAllIndexes("no-such-keyspace", "no-such-table"))
+        .then()
+        .statusCode(HttpStatus.SC_BAD_REQUEST)
+        .body("code", Matchers.is(HttpStatus.SC_BAD_REQUEST))
+        .body("description", Matchers.startsWith("Table 'no-such-table' not found"));
+
+    // Then try with non-existing table
+    givenWithAuth()
+        .when()
+        .get(endpointPathForAllIndexes(testKeyspaceName(), "no-such-table"))
+        .then()
+        .statusCode(HttpStatus.SC_BAD_REQUEST)
+        .body("code", Matchers.is(HttpStatus.SC_BAD_REQUEST))
+        .body("description", Matchers.startsWith("Table 'no-such-table' not found"));
   }
 
   /*
@@ -247,7 +271,30 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
         "/v2/schemas/keyspaces/%s/tables/%s/indexes/%s", ksName, tableName, indexName);
   }
 
-  protected List<IndexDesc> findAllIndexes() {
+  protected String endpointPathForAllIndexes(String ksName, String tableName) {
+    return String.format("/v2/schemas/keyspaces/%s/tables/%s/indexes", ksName, tableName);
+  }
+
+  protected List<IndexDesc> findAllIndexesViaEndpoint(String ksName, String tableName) {
+    String response =
+        givenWithAuth()
+            .when()
+            .get(endpointPathForAllIndexes(ksName, tableName))
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    return Arrays.asList(readJsonAs(response, IndexDesc[].class));
+  }
+
+  protected List<IndexDesc> findAllIndexesFromSystemSchema(String keyspaceName, String tableName) {
+    List<IndexDesc> indexList = findAllIndexesFromSystemSchema();
+    return indexList.stream()
+        .filter(i -> keyspaceName.equals(i.keyspace_name) && tableName.equals(i.table_name))
+        .collect(Collectors.toList());
+  }
+
+  protected List<IndexDesc> findAllIndexesFromSystemSchema() {
     final String path = endpointPathForAllRows("system_schema", "indexes");
     String response =
         givenWithAuth()
@@ -260,13 +307,6 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
             .extract()
             .asString();
     return Arrays.asList(readJsonAs(response, IndexDesc[].class));
-  }
-
-  protected List<IndexDesc> findAllIndexes(String keyspaceName, String tableName) {
-    List<IndexDesc> indexList = findAllIndexes();
-    return indexList.stream()
-        .filter(i -> keyspaceName.equals(i.keyspace_name) && tableName.equals(i.table_name))
-        .collect(Collectors.toList());
   }
 
   protected String tryCreateIndex(
@@ -282,17 +322,10 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
         .asString();
   }
 
-  static class IndexDesc {
-    public String keyspace_name;
-    public String table_name;
-    public String index_name;
-    public String kind;
-
-    @Override
-    public String toString() {
-      return String.format(
-          "[IndexDesc: keyspace=%s, table=%s, name=%s, kind=%s]",
-          keyspace_name, table_name, index_name, kind);
-    }
-  }
+  record IndexDesc(
+      String keyspace_name,
+      String table_name,
+      String index_name,
+      String kind,
+      Map<String, String> options) {}
 }
