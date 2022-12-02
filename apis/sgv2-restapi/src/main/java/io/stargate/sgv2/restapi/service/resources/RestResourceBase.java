@@ -97,17 +97,12 @@ public abstract class RestResourceBase {
         .map(t -> Optional.ofNullable(t));
   }
 
-  protected Uni<List<Boolean>> authorizeSchemaReadsAsync(List<Schema.SchemaRead> schemaReads) {
-    return requestInfo
-        .getStargateBridge()
-        .authorizeSchemaReads(
-            Schema.AuthorizeSchemaReadsRequest.newBuilder().addAllSchemaReads(schemaReads).build())
-        .map(Schema.AuthorizeSchemaReadsResponse::getAuthorizedList);
-  }
-
   // // // Helper methods for Query execution
 
-  /** Gets the metadata of a table, then uses it to build another CQL query and executes it. */
+  /**
+   * Gets the metadata of a table (verifying that the call is authorized), then uses it to build
+   * another CQL query and executes it.
+   */
   protected Uni<QueryOuterClass.Response> queryWithTableAsync(
       String keyspaceName,
       String tableName,
@@ -121,7 +116,7 @@ public abstract class RestResourceBase {
                   () ->
                       new WebApplicationException(
                           String.format(
-                              "Table '%s' not found (in keyspace %s)", tableName, keyspaceName),
+                              "Table '%s' not found (in keyspace '%s')", tableName, keyspaceName),
                           Response.Status.BAD_REQUEST));
           return queryProducer.apply(table);
         });
