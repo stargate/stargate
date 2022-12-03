@@ -51,9 +51,6 @@ jobs:
            </servers>
           </settings>
           EOF
-	  cat <<EOF > ~/.mvn/jvm.config
-	  -Xmx2048m
-          EOF
       - name: Clone CCM
         # 24-Jun-2022, tatu: CCM install copied from C2 repo's ".github/workflows/ci.yml":
         uses: actions/checkout@v3
