@@ -51,6 +51,9 @@ jobs:
            </servers>
           </settings>
           EOF
+	  cat <<EOF > ~/.mvn/jvm.config
+	  -Xmx3000m
+          EOF
       - name: Clone CCM
         # 24-Jun-2022, tatu: CCM install copied from C2 repo's ".github/workflows/ci.yml":
         uses: actions/checkout@v3
@@ -71,7 +74,5 @@ jobs:
           sudo ./setup.py install
           ccm list
       - name: Run Unit and Integration Tests
-        env:
-	  MAVEN_OPTS: "-Xms1024m -Xmx2500m"
         run: |
           ./mvnw clean verify -B -ntp -P it-${{ matrix.backend }}
