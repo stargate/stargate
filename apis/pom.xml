@@ -70,6 +70,45 @@
     </dependencies>
   </dependencyManagement>
   <build>
+    <pluginManagement>
+      <plugins>
+        <!-- We will specify settings for replacer plugin that allows us to inject
+             name and version of APis into (dev) home page: mostly to get version
+          -->
+        <plugin>
+          <groupId>com.google.code.maven-replacer-plugin</groupId>
+          <artifactId>replacer</artifactId>
+          <version>1.5.3</version>
+          <executions>
+            <execution>
+              <phase>prepare-package</phase>
+              <goals>
+                <goal>replace</goal>
+              </goals>
+            </execution>
+          </executions>
+          <configuration>
+            <ignoreMissingFile>false</ignoreMissingFile>
+            <file>${basedir}/src/main/resources/META-INF/resources/index.html</file>
+            <outputFile>${basedir}/target/classes/META-INF/resources/index.html</outputFile>
+            <replacements>
+              <replacement>
+                <token>%MAVEN_GROUP_ID%</token>
+                <value>${project.groupId}</value>
+              </replacement>
+              <replacement>
+                <token>%MAVEN_ARTIFACT_ID%</token>
+                <value>${project.artifactId}</value>
+              </replacement>
+              <replacement>
+                <token>%MAVEN_VERSION%</token>
+                <value>${project.version}</value>
+              </replacement>
+            </replacements>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>
