@@ -71,5 +71,7 @@ jobs:
           sudo ./setup.py install
           ccm list
       - name: Run Unit and Integration Tests
+        env:
+	  MAVEN_OPTS: '-Xmx4g'
         run: |
           ./mvnw clean verify -B -ntp -P it-${{ matrix.backend }}
