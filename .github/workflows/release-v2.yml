@@ -306,7 +306,7 @@ jobs:
       - name: Build and push (coordinator, Amazon ECR)
         if: ${{ !inputs.skipPublish }}
         run: |
-          ./build_docker_images.sh -p -t ${{needs.resolve-tag.outputs.release-tag}} -r ${{ secrets.ECR_REPOSITORY }} -a
+          ./build_docker_images.sh -p -t ${{needs.resolve-tag.outputs.release-tag}} -r ${{ secrets.ECR_REPOSITORY }}
 
       # downloads and prepares datastax assets
       - name: Download branding assets
