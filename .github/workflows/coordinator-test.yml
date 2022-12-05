@@ -72,6 +72,6 @@ jobs:
           ccm list
       - name: Run Unit and Integration Tests
         env:
-          MAVEN_OPTS: '-Xmx4g'
+          MAVEN_OPTS: '-Xmx3g'
         run: |
           ./mvnw clean verify -B -ntp -P it-${{ matrix.backend }}
