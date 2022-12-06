@@ -1,13 +1,5 @@
 # Changelog
 
-## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.1...HEAD)
-
-**Closed issues:**
-
-- InboundHAProxyHandler is not @Sharable [\#2232](https://github.com/stargate/stargate/issues/2232)
-
 ## [v2.0.1](https://github.com/stargate/stargate/tree/v2.0.1) (2022-11-14)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.68...v2.0.1)
