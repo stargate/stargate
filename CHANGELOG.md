@@ -1,5 +1,14 @@
 # Changelog
 
+## [v2.0.3](https://github.com/stargate/stargate/tree/v2.0.3) (2022-12-06)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.2...v2.0.3)
+
+**Merged pull requests:**
+
+- Merge revert \#2296 of early-auth-check \(\#619\) into main \(v2\) [\#2297](https://github.com/stargate/stargate/pull/2297) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- fix release v2 workflow failing due to the branding issues [\#2295](https://github.com/stargate/stargate/pull/2295) ([ivansenic](https://github.com/ivansenic))
+
 ## [v2.0.2](https://github.com/stargate/stargate/tree/v2.0.2) (2022-12-05)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.1...v2.0.2)
@@ -581,6 +590,19 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Rest integration test - initial work (#1359)
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
+
+## [v1.0.70](https://github.com/stargate/stargate/tree/v1.0.70) (2022-12-06)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.2...v1.0.70)
+
+**Closed issues:**
+
+- Inject build version number of APIs into `index.html` \(or another easily accessible place\) [\#2285](https://github.com/stargate/stargate/issues/2285)
+
+**Merged pull requests:**
+
+- Revert "Perform authz before query interception" [\#2296](https://github.com/stargate/stargate/pull/2296) ([ivansenic](https://github.com/ivansenic))
+- Bumping version for next release [\#2290](https://github.com/stargate/stargate/pull/2290) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v1.0.69](https://github.com/stargate/stargate/tree/v1.0.69) (2022-11-29)
 
