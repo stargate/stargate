@@ -1,16 +1,48 @@
 # Changelog
 
-## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
+## [v2.0.2](https://github.com/stargate/stargate/tree/v2.0.2) (2022-12-05)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.1...HEAD)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.1...v2.0.2)
+
+**Fixed bugs:**
+
+- DSE dependencies broken by the old `dse-java-driver-core` [\#2269](https://github.com/stargate/stargate/issues/2269)
 
 **Closed issues:**
 
-- InboundHAProxyHandler is not @Sharable [\#2232](https://github.com/stargate/stargate/issues/2232)
+- Inject build version number of APIs into `index.html` \(or another easily accessible place\) [\#2285](https://github.com/stargate/stargate/issues/2285)
+- Add `min-chars` and `regex` to subdomain tenant resolver [\#2280](https://github.com/stargate/stargate/issues/2280)
+- We should check the result of this uni \(check all the booleans in the list\) in `Sgv2IndexesResourceImpl` [\#2268](https://github.com/stargate/stargate/issues/2268)
+- Replace SGv2/REST explicit input parameter validation with Java Bean Validation annotations [\#2263](https://github.com/stargate/stargate/issues/2263)
+- Improve SGv2/REST-API async endpoint signatures to be typed [\#2262](https://github.com/stargate/stargate/issues/2262)
+- Index Creation KO: mark existing column as not present. [\#2244](https://github.com/stargate/stargate/issues/2244)
+- Poor document read performance in Docs API V2 [\#1996](https://github.com/stargate/stargate/issues/1996)
+
+**Merged pull requests:**
+
+- Complete \#2285 by adding version info to docs, graphql too & refactor [\#2289](https://github.com/stargate/stargate/pull/2289) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- updating docker building script, update release workflow [\#2287](https://github.com/stargate/stargate/pull/2287) ([ivansenic](https://github.com/ivansenic))
+- Add simple substitution for Maven project.version into "index.html" [\#2286](https://github.com/stargate/stargate/pull/2286) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- closes \#2280: regex validation in the subdomain tenant resolver [\#2283](https://github.com/stargate/stargate/pull/2283) ([ivansenic](https://github.com/ivansenic))
+- Fix \#2268: check access rights as expected \(plus IT improvements\) [\#2279](https://github.com/stargate/stargate/pull/2279) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#2262: use typed responses for REST/Async endpoints where possible [\#2278](https://github.com/stargate/stargate/pull/2278) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- remove page size default value from swagger for get doc [\#2277](https://github.com/stargate/stargate/pull/2277) ([ivansenic](https://github.com/ivansenic))
+- Convert REST API to use Validation API annotations instead of explicit checks [\#2276](https://github.com/stargate/stargate/pull/2276) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#2244: include all columns in existence check wrt index creation [\#2275](https://github.com/stargate/stargate/pull/2275) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- setup the branding for the ECR images [\#2271](https://github.com/stargate/stargate/pull/2271) ([ivansenic](https://github.com/ivansenic))
+- Update Netty version to align with one DSE uses [\#2260](https://github.com/stargate/stargate/pull/2260) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- upgrade DSE to v6.8.29 in the V2 APIs [\#2258](https://github.com/stargate/stargate/pull/2258) ([versaurabh](https://github.com/versaurabh))
+- Add explicit handling of "empty" Tuples Bridge returns for missing Tuples [\#2256](https://github.com/stargate/stargate/pull/2256) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add prefix to Cassandra/Coordinator container log redirects [\#2255](https://github.com/stargate/stargate/pull/2255) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#2245: allow numeric timestamp for CQL `timestamp` valued columns [\#2252](https://github.com/stargate/stargate/pull/2252) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- update Quarkus to `v2.14.1.Final` [\#2249](https://github.com/stargate/stargate/pull/2249) ([ivansenic](https://github.com/ivansenic))
+- document exposed endpoints from docker compose scripts [\#2243](https://github.com/stargate/stargate/pull/2243) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Allow more Timezone formats for "Instant" in REST API [\#2241](https://github.com/stargate/stargate/pull/2241) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Convert SGv2/REST to Async handling with Quarkus/Mutiny [\#2213](https://github.com/stargate/stargate/pull/2213) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 
 ## [v2.0.1](https://github.com/stargate/stargate/tree/v2.0.1) (2022-11-14)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.68...v2.0.1)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.0...v2.0.1)
 
 **Merged pull requests:**
 
@@ -549,6 +581,36 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Rest integration test - initial work (#1359)
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
+
+## [v1.0.69](https://github.com/stargate/stargate/tree/v1.0.69) (2022-11-29)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.68...v1.0.69)
+
+**Fixed bugs:**
+
+- Cannot retrieve tuples field from GET REST API V2 when value is null [\#2246](https://github.com/stargate/stargate/issues/2246)
+- Issue with Timezones when writing timestamp data type [\#2223](https://github.com/stargate/stargate/issues/2223)
+
+**Closed issues:**
+
+- Timestamp fields are now expected to be provided as `Instant` and no more numbers [\#2245](https://github.com/stargate/stargate/issues/2245)
+- Update DSE to 6.8.29 [\#2236](https://github.com/stargate/stargate/issues/2236)
+- InboundHAProxyHandler is not @Sharable [\#2232](https://github.com/stargate/stargate/issues/2232)
+- Update gRPC version on coordinator to `1.49.2` [\#2224](https://github.com/stargate/stargate/issues/2224)
+- Perform authz before query interception [\#2198](https://github.com/stargate/stargate/issues/2198)
+- Update DSE to 6.8.28 [\#2197](https://github.com/stargate/stargate/issues/2197)
+- Improve Docs API V1 documentation exposed in Swagger [\#1858](https://github.com/stargate/stargate/issues/1858)
+- Change SGv2/REST api gRPC client from blocking to non-blocking/async operation [\#1599](https://github.com/stargate/stargate/issues/1599)
+
+**Merged pull requests:**
+
+- organize dependencies in the DSE [\#2270](https://github.com/stargate/stargate/pull/2270) ([ivansenic](https://github.com/ivansenic))
+- fixing missing netty-codec dependency for dse [\#2259](https://github.com/stargate/stargate/pull/2259) ([ivansenic](https://github.com/ivansenic))
+- dse version upgraded to 6.8.29 [\#2251](https://github.com/stargate/stargate/pull/2251) ([versaurabh](https://github.com/versaurabh))
+- Update grpc.version from 1.45.1 to 1.49.2 [\#2240](https://github.com/stargate/stargate/pull/2240) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release [\#2237](https://github.com/stargate/stargate/pull/2237) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Upgrade dse version to 6.8.28 [\#2204](https://github.com/stargate/stargate/pull/2204) ([maheshrajamani](https://github.com/maheshrajamani))
+- Perform authz before query interception [\#619](https://github.com/stargate/stargate/pull/619) ([dougwettlaufer](https://github.com/dougwettlaufer))
 
 ## [v1.0.67}](https://github.com/stargate/stargate/tree/v1.0.67}) (2022-10-24)
 
