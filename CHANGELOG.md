@@ -1,5 +1,19 @@
 # Changelog
 
+## [v1.0.70](https://github.com/stargate/stargate/tree/v1.0.70) (2022-12-06)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.69...v1.0.70)
+
+**Fixed bugs:**
+
+**Closed issues:**
+
+**Merged pull requests:**
+
+- Revert "Perform authz before query interception" [\#2296](https://github.com/stargate/stargate/pull/2296) ([ivansenic](https://github.com/ivansenic))
+
+## [v1.0.69](https://github.com/stargate/stargate/tree/v1.0.69) (2022-12-05)
+
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.68...v1.0.69)
 
 **Fixed bugs:**
