@@ -312,10 +312,10 @@ jobs:
       - name: Download branding assets
         if: ${{ !inputs.skipPublish }}
         run : |
-          curl https://www.datastax.com/favicon.ico -o ./sgv2-quarkus-common/src/main/resources/META-INF/branding/favicon.ico
+          curl https://www.datastax.com/favicon.ico -o ./apis/sgv2-quarkus-common/src/main/resources/META-INF/branding/favicon.ico
           curl https://cdn.sanity.io/files/bbnkhnhl/production/cf8b48832cfd43cdb24aec0e0d1c656e9234b620.zip -o icons.zip
-          unzip -j icons.zip 'Brand\ Icons/astra-square.png' -d ./sgv2-quarkus-common/src/main/resources/META-INF/branding/
-          mv ./sgv2-quarkus-common/src/main/resources/META-INF/branding/astra-square.png ./sgv2-quarkus-common/src/main/resources/META-INF/branding/logo.png
+          unzip -j icons.zip 'Brand\ Icons/astra-square.png' -d ./apis/sgv2-quarkus-common/src/main/resources/META-INF/branding/
+          mv ./apis/sgv2-quarkus-common/src/main/resources/META-INF/branding/astra-square.png ./apis/sgv2-quarkus-common/src/main/resources/META-INF/branding/logo.png
 
       - name: Build and push (graphqlapi, Amazon ECR)
         if: ${{ !inputs.skipPublish }}
