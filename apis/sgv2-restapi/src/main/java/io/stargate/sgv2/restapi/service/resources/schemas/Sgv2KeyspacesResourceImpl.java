@@ -124,14 +124,16 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
     // Simple execution but resulting failure from bad DC needs to be mapped to something
     // more useful (as per [stargate#2231])
     return executeQueryAsync(query)
-        .onFailure(failure -> failureMatchesBadDC(failure, dcMap))
+        .onFailure()
         .transform(
             failure ->
-                new WebApplicationException(
-                    String.format(
-                        "Bad request: one or more of datacenters passed (%s) invalid",
-                        dcMap.keySet()),
-                    Response.Status.BAD_REQUEST))
+                failureMatchesBadDC(failure, dcMap)
+                    ? new WebApplicationException(
+                        String.format(
+                            "Bad request: one or more of datacenters passed (%s) invalid",
+                            dcMap.keySet()),
+                        Response.Status.BAD_REQUEST)
+                    : failure)
         // No real contents; can ignore ResultSet it seems and only worry about exceptions
         .map(any -> restResponseCreatedWithName(keyspaceName));
   }

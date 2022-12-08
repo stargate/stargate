@@ -1,6 +1,7 @@
 package io.stargate.sgv2.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -213,9 +214,16 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
     assertThat(actualDCs).usingRecursiveComparison().isEqualTo(expectedDCs);
   }
 
-  // Verify that attempts to use non-existing DC produce useful fail message:
+  // Verify that attempts to use non-existing DC produce useful fail message
   @Test
   public void keyspaceCreateWithInvalidDC() {
+    // 08-Dec-2022, tatu: Alas, neither C-3.11 nor DSE appear to ever validate DC (either it
+    //   defaults to valid one, or just fails KS create quietly).
+    //   So for now limit test to C-4.0
+    assumeThat(IntegrationTestUtils.isCassandra40())
+        .as("Test only applicable to C-4.x backend")
+        .isTrue();
+
     final String invalidDC = "noSuchDC";
     String keyspaceName = "ks_createw_invalid_dc_" + System.currentTimeMillis();
     String requestJSON =
