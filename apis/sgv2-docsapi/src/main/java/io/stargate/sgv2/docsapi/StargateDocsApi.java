@@ -173,7 +173,9 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                     @ExampleObject(
                         name = "fields.notEmpty",
                         summary = "Fields example",
-                        value = "[race,location]")
+                        value = """
+                                ["race", "location"]
+                                """)
                   }),
               @Parameter(
                   in = ParameterIn.QUERY,
