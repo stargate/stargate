@@ -140,12 +140,6 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
     if (t instanceof StatusRuntimeException) {
       StatusRuntimeException failure = (StatusRuntimeException) t;
       Matcher m = BAD_DC_PATTERN.matcher(failure.getStatus().getDescription());
-      if (m.matches()) {
-        LOGGER.warn("KEYSPACE: match! " + m.matches() + " Group #1 = " + m.group(1));
-      } else {
-        LOGGER.warn(
-            "KEYSPACE: no match! Message to match [" + failure.getStatus().getDescription() + "]");
-      }
       return m.matches() && dcMap.containsKey(m.group(1));
     }
     return false;
