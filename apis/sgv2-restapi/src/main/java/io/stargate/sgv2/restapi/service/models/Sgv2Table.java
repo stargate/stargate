@@ -164,35 +164,18 @@ public class Sgv2Table {
   }
 
   // copied from SGv1 ClusteringExpression
-  public static class ClusteringExpression {
+  public record ClusteringExpression(
+      @Schema(required = true, description = "The name of the column to order by") String column,
+      // 18-Jul-2022, tatu: Originally with DropWizard, Swagger 3, we had:
+      //    allowableValues = "ASC,DESC"
+      // but hoping "enumeration" works as replacement
+      @Schema(
+              required = true,
+              description = "The clustering order",
+              enumeration = {"ASC", "DESC"})
+          String order) {
     public static final String VALUE_ASC = "ASC";
     public static final String VALUE_DESC = "DESC";
-
-    private final String column;
-    private final String order;
-
-    @JsonCreator
-    public ClusteringExpression(
-        @JsonProperty("name") String column, @JsonProperty("order") String order) {
-      this.column = column;
-      this.order = order;
-    }
-
-    @Schema(required = true, description = "The name of the column to order by")
-    public String getColumn() {
-      return column;
-    }
-
-    // 18-Jul-2022, tatu: Originally with DropWizard, Swagger 3, we had:
-    //    allowableValues = "ASC,DESC"
-    // but hoping "enumeration" works as replacement
-    @Schema(
-        required = true,
-        description = "The clustering order",
-        enumeration = {"ASC", "DESC"})
-    public String getOrder() {
-      return order;
-    }
 
     public boolean hasOrderAsc() {
       return VALUE_ASC.equalsIgnoreCase(order);

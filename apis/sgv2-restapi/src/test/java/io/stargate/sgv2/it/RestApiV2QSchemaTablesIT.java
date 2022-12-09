@@ -223,8 +223,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
     final Sgv2Table table = findTable(testKeyspaceName(), tableName);
     assertThat(table.getName()).isEqualTo(tableAdd.name());
     assertThat(table.getColumnDefinitions()).hasSameElementsAs(columnDefs);
-    assertThat(table.getTableOptions().getClusteringExpression().get(0).getOrder())
-        .isEqualTo("ASC");
+    assertThat(table.getTableOptions().getClusteringExpression().get(0).order()).isEqualTo("ASC");
   }
 
   @Test
@@ -251,10 +250,8 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
     final Sgv2Table table = findTable(testKeyspaceName(), tableName);
     // First, verify that partition key ordering is like we expect
     assertThat(table.getTableOptions().getClusteringExpression().size()).isEqualTo(2);
-    assertThat(table.getTableOptions().getClusteringExpression().get(0).getColumn())
-        .isEqualTo("ck1");
-    assertThat(table.getTableOptions().getClusteringExpression().get(1).getColumn())
-        .isEqualTo("ck2");
+    assertThat(table.getTableOptions().getClusteringExpression().get(0).column()).isEqualTo("ck1");
+    assertThat(table.getTableOptions().getClusteringExpression().get(1).column()).isEqualTo("ck2");
 
     // And then the same wrt full primary key definition
     Sgv2Table.PrimaryKey pk = table.getPrimaryKey();

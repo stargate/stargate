@@ -81,14 +81,14 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
         column.kind(Column.Kind.STATIC);
       }
       for (Sgv2Table.ClusteringExpression clustering : clusterings) {
-        if (columnName.equals(clustering.getColumn())) {
+        if (columnName.equals(clustering.column())) {
           if (clustering.hasOrderAsc()) {
             column.order(Column.Order.ASC);
           } else if (clustering.hasOrderDesc()) {
             column.order(Column.Order.DESC);
           } else {
             throw new IllegalArgumentException(
-                "Unrecognized ordering value '" + clustering.getOrder() + "'");
+                "Unrecognized ordering value '" + clustering.order() + "'");
           }
         }
       }
