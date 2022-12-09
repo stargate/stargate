@@ -91,14 +91,14 @@ public class RestApiV2QRowUpdateIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void updateRowWithCounter() {
     final String tableName = testTableName();
-    final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
-    tableAdd.setColumnDefinitions(
+    List<Sgv2ColumnDefinition> columnDefs =
         Arrays.asList(
             new Sgv2ColumnDefinition("id", "text", false),
-            new Sgv2ColumnDefinition("counter", "counter", false)));
+            new Sgv2ColumnDefinition("counter", "counter", false));
     Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
     primaryKey.setPartitionKey(Arrays.asList("id"));
-    tableAdd.setPrimaryKey(primaryKey);
+    final Sgv2TableAddRequest tableAdd =
+        new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);
     createTable(testKeyspaceName(), tableAdd);
 
     // Since create row cannot increase counter we have to use PUT
@@ -131,15 +131,15 @@ public class RestApiV2QRowUpdateIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void updateRowWithMultipleCounters() {
     final String tableName = testTableName();
-    final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
-    tableAdd.setColumnDefinitions(
+    List<Sgv2ColumnDefinition> columnDefs =
         Arrays.asList(
             new Sgv2ColumnDefinition("id", "text", false),
             new Sgv2ColumnDefinition("counter1", "counter", false),
-            new Sgv2ColumnDefinition("counter2", "counter", false)));
+            new Sgv2ColumnDefinition("counter2", "counter", false));
     Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
     primaryKey.setPartitionKey(Arrays.asList("id"));
-    tableAdd.setPrimaryKey(primaryKey);
+    final Sgv2TableAddRequest tableAdd =
+        new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);
     createTable(testKeyspaceName(), tableAdd);
 
     final String rowIdentifier = UUID.randomUUID().toString();

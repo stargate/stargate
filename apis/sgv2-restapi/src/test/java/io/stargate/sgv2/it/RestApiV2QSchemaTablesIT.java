@@ -177,17 +177,16 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void tableCreateWithNullOptions() {
     final String tableName = "t1"; // not sure why but was that way in original test
-    final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
-    final List<Sgv2ColumnDefinition> columns =
+    final List<Sgv2ColumnDefinition> columnDefs =
         Arrays.asList(
             new Sgv2ColumnDefinition("id", "uuid", false),
             new Sgv2ColumnDefinition("lastName", "text", false),
             new Sgv2ColumnDefinition("firstName", "text", false));
-    tableAdd.setColumnDefinitions(columns);
     Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
     primaryKey.setPartitionKey(Arrays.asList("id"));
-    tableAdd.setPrimaryKey(primaryKey);
-    tableAdd.setTableOptions(null);
+
+    final Sgv2TableAddRequest tableAdd =
+        new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);
 
     // First verify response
     NameResponse response = createTable(testKeyspaceName(), tableAdd);
@@ -197,33 +196,33 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
     final Sgv2Table table = findTable(testKeyspaceName(), tableName);
     assertThat(table.getName()).isEqualTo(tableName);
     // Alas, returned column order unpredictable, so:
-    assertThat(table.getColumnDefinitions()).hasSameElementsAs(columns);
+    assertThat(table.getColumnDefinitions()).hasSameElementsAs(columnDefs);
   }
 
   @Test
   public void tableCreateWithNoClustering() {
     final String tableName = testTableName();
-    final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
 
-    final List<Sgv2ColumnDefinition> columns =
+    final List<Sgv2ColumnDefinition> columnDefs =
         Arrays.asList(
             new Sgv2ColumnDefinition("pk1", "int", false),
             new Sgv2ColumnDefinition("ck1", "int", false));
-    tableAdd.setColumnDefinitions(columns);
     Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
     primaryKey.setPartitionKey(Arrays.asList("pk1"));
     primaryKey.setClusteringKey(Arrays.asList("ck1"));
-    tableAdd.setPrimaryKey(primaryKey);
-    tableAdd.setTableOptions(new Sgv2Table.TableOptions(0, null));
+
+    final Sgv2TableAddRequest tableAdd =
+        new Sgv2TableAddRequest(
+            tableName, primaryKey, columnDefs, false, new Sgv2Table.TableOptions(0, null));
 
     // First verify response
     NameResponse response = createTable(testKeyspaceName(), tableAdd);
-    assertThat(response.name).isEqualTo(tableAdd.getName());
+    assertThat(response.name).isEqualTo(tableAdd.name());
 
     // And then find the table itself
     final Sgv2Table table = findTable(testKeyspaceName(), tableName);
-    assertThat(table.getName()).isEqualTo(tableAdd.getName());
-    assertThat(table.getColumnDefinitions()).hasSameElementsAs(columns);
+    assertThat(table.getName()).isEqualTo(tableAdd.name());
+    assertThat(table.getColumnDefinitions()).hasSameElementsAs(columnDefs);
     assertThat(table.getTableOptions().getClusteringExpression().get(0).getOrder())
         .isEqualTo("ASC");
   }
@@ -231,22 +230,22 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void tableCreateWithMultClustering() {
     final String tableName = testTableName();
-    final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
-    final List<Sgv2ColumnDefinition> columns =
+    final List<Sgv2ColumnDefinition> columnDefs =
         Arrays.asList(
             new Sgv2ColumnDefinition("value", "int", false),
             new Sgv2ColumnDefinition("ck2", "int", false),
             new Sgv2ColumnDefinition("ck1", "int", false),
             new Sgv2ColumnDefinition("pk2", "int", false),
             new Sgv2ColumnDefinition("pk1", "int", false));
-    tableAdd.setColumnDefinitions(columns);
     // Create partition and clustering keys in order different from that of all-columns
     // definitions
     Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
     primaryKey.setPartitionKey(Arrays.asList("pk1", "pk2"));
     primaryKey.setClusteringKey(Arrays.asList("ck1", "ck2"));
-    tableAdd.setPrimaryKey(primaryKey);
-    tableAdd.setTableOptions(new Sgv2Table.TableOptions(0, null));
+
+    final Sgv2TableAddRequest tableAdd =
+        new Sgv2TableAddRequest(
+            tableName, primaryKey, columnDefs, false, new Sgv2Table.TableOptions(0, null));
     createTable(testKeyspaceName(), tableAdd);
 
     final Sgv2Table table = findTable(testKeyspaceName(), tableName);
@@ -268,17 +267,15 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void tableCreateWithMixedCaseNames() {
     final String tableName = testTableName();
-    final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
-
-    final List<Sgv2ColumnDefinition> columns =
+    final List<Sgv2ColumnDefinition> columnDefs =
         Arrays.asList(
             new Sgv2ColumnDefinition("ID", "uuid", false),
             new Sgv2ColumnDefinition("Lastname", "text", false),
             new Sgv2ColumnDefinition("Firstname", "text", false));
-    tableAdd.setColumnDefinitions(columns);
     Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
     primaryKey.setPartitionKey(Arrays.asList("ID"));
-    tableAdd.setPrimaryKey(primaryKey);
+    final Sgv2TableAddRequest tableAdd =
+        new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);
 
     NameResponse response = createTable(testKeyspaceName(), tableAdd);
     assertThat(response.name).isEqualTo(tableName);
@@ -321,10 +318,10 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
     final String tableName = testTableName();
     createSimpleTestTable(testKeyspaceName(), tableName);
 
-    Sgv2TableAddRequest tableUpdate = new Sgv2TableAddRequest(tableName);
     Sgv2Table.TableOptions tableOptions = new Sgv2Table.TableOptions();
     tableOptions.setDefaultTimeToLive(5);
-    tableUpdate.setTableOptions(tableOptions);
+    final Sgv2TableAddRequest tableUpdate =
+        new Sgv2TableAddRequest(tableName, null, null, false, tableOptions);
 
     String response =
         givenWithAuth()

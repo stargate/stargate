@@ -53,14 +53,14 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
   @Override
   public Uni<RestResponse<Sgv2NameResponse>> createTable(
       final String keyspaceName, final Sgv2TableAddRequest tableAdd) {
-    final String tableName = tableAdd.getName();
+    final String tableName = tableAdd.name();
 
     // Need to create name-accessible Map of column objects to make
     // it easier to sort PK columns
     Map<String, Column> columnsByName = new LinkedHashMap<>();
-    final Sgv2Table.PrimaryKey primaryKeys = tableAdd.getPrimaryKey();
+    final Sgv2Table.PrimaryKey primaryKeys = tableAdd.primaryKey();
     final List<Sgv2Table.ClusteringExpression> clusterings = tableAdd.findClusteringExpressions();
-    final List<Sgv2ColumnDefinition> columnDefs = tableAdd.getColumnDefinitions();
+    final List<Sgv2ColumnDefinition> columnDefs = tableAdd.columnDefinitions();
 
     // Cannot use Bean Validation annotations because columns are optional for Update, only
     // mandatory here:
@@ -109,8 +109,8 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
     QueryOuterClass.Query query =
         new QueryBuilder()
             .create()
-            .table(keyspaceName, tableAdd.getName())
-            .ifNotExists(tableAdd.getIfNotExists())
+            .table(keyspaceName, tableAdd.name())
+            .ifNotExists(tableAdd.ifNotExists())
             .column(columns)
             .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
             .build();
@@ -127,7 +127,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
             keyspaceName,
             tableName,
             (tableDef) -> {
-              Sgv2Table.TableOptions options = tableUpdate.getTableOptions();
+              Sgv2Table.TableOptions options = tableUpdate.tableOptions();
               List<?> clusteringExpressions = options.getClusteringExpression();
               if (clusteringExpressions != null && !clusteringExpressions.isEmpty()) {
                 throw new WebApplicationException(
