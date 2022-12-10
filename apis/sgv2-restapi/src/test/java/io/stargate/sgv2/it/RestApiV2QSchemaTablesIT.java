@@ -290,7 +290,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
             .extract()
             .asString();
     ListOfMapsGetResponseWrapper wrapper = readJsonAs(body, ListOfMapsGetResponseWrapper.class);
-    List<Map<String, Object>> data = wrapper.getData();
+    List<Map<String, Object>> data = wrapper.data();
     assertThat(data).hasSize(1);
     assertThat(data.get(0).get("ID")).isEqualTo(rowIdentifier);
     assertThat(data.get(0).get("Firstname")).isEqualTo("John");

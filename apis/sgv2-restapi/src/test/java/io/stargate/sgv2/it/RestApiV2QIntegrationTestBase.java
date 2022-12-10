@@ -16,7 +16,6 @@ import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
 import io.stargate.sgv2.common.IntegrationTestUtils;
 import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
-import io.stargate.sgv2.restapi.service.models.Sgv2GetResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2IndexAddRequest;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2Table;
@@ -201,7 +200,7 @@ public abstract class RestApiV2QIntegrationTestBase {
         objectMapper.getTypeFactory().constructParametricType(Sgv2RESTResponse.class, wrappedType);
     try {
       Sgv2RESTResponse<T> wrapped = objectMapper.readValue(body, wrapperType);
-      return wrapped.getData();
+      return wrapped.data();
     } catch (IOException e) {
       throw new RuntimeException(e);
     }
@@ -245,10 +244,10 @@ public abstract class RestApiV2QIntegrationTestBase {
   /////////////////////////////////////////////////////////////////////////
    */
 
-  protected static class ListOfMapsGetResponseWrapper
-      extends Sgv2GetResponse<List<Map<String, Object>>> {
+  protected record ListOfMapsGetResponseWrapper(
+      int count, String pageState, List<Map<String, Object>> data) {
     public ListOfMapsGetResponseWrapper() {
-      super(-1, null, null);
+      this(-1, null, null);
     }
   }
 

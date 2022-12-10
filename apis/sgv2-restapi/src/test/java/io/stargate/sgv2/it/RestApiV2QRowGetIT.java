@@ -60,8 +60,8 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
             .extract()
             .asString();
     ListOfMapsGetResponseWrapper wrapper = readJsonAs(response, ListOfMapsGetResponseWrapper.class);
-    assertThat(wrapper.getCount()).isEqualTo(4);
-    List<Map<String, Object>> actualRows = wrapper.getData();
+    assertThat(wrapper.count()).isEqualTo(4);
+    List<Map<String, Object>> actualRows = wrapper.data();
 
     // Alas, due to "id" as partition key, ordering is arbitrary; so need to
     // convert from List to something like Set
@@ -102,11 +102,11 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
             .extract()
             .asString();
     ListOfMapsGetResponseWrapper wrapper = readJsonAs(response, ListOfMapsGetResponseWrapper.class);
-    assertThat(wrapper.getCount()).isEqualTo(2);
-    String pageState = wrapper.getPageState();
+    assertThat(wrapper.count()).isEqualTo(2);
+    String pageState = wrapper.pageState();
     assertThat(pageState).isNotEmpty();
-    assertThat(wrapper.getData()).hasSize(2);
-    allRows.addAll(wrapper.getData());
+    assertThat(wrapper.data()).hasSize(2);
+    allRows.addAll(wrapper.data());
 
     // Then second
     response =
@@ -120,11 +120,11 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
             .extract()
             .asString();
     wrapper = readJsonAs(response, ListOfMapsGetResponseWrapper.class);
-    assertThat(wrapper.getCount()).isEqualTo(2);
-    pageState = wrapper.getPageState();
+    assertThat(wrapper.count()).isEqualTo(2);
+    pageState = wrapper.pageState();
     assertThat(pageState).isNotEmpty();
-    assertThat(wrapper.getData()).hasSize(2);
-    allRows.addAll(wrapper.getData());
+    assertThat(wrapper.data()).hasSize(2);
+    allRows.addAll(wrapper.data());
 
     // Now no more pages, shouldn't get PagingState either
     response =
@@ -138,9 +138,9 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
             .extract()
             .asString();
     wrapper = readJsonAs(response, ListOfMapsGetResponseWrapper.class);
-    assertThat(wrapper.getPageState()).isNull();
-    assertThat(wrapper.getCount()).isEqualTo(0);
-    assertThat(wrapper.getData()).hasSize(0);
+    assertThat(wrapper.pageState()).isNull();
+    assertThat(wrapper.count()).isEqualTo(0);
+    assertThat(wrapper.data()).hasSize(0);
 
     assertThat(new LinkedHashSet(allRows)).isEqualTo(new LinkedHashSet(expRows));
   }
@@ -191,8 +191,8 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     ListOfMapsGetResponseWrapper wrapper =
         findRowsAsWrapped(testKeyspaceName(), tableName, rowIdentifier);
     // Verify we fetch one and only one entry
-    assertThat(wrapper.getCount()).isEqualTo(1);
-    List<Map<String, Object>> data = wrapper.getData();
+    assertThat(wrapper.count()).isEqualTo(1);
+    List<Map<String, Object>> data = wrapper.data();
     assertThat(data.size()).isEqualTo(1);
     // and that its contents match
     assertThat(data.get(0).get("id")).isEqualTo(rowIdentifier);
@@ -212,8 +212,8 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     final String NOT_MATCHING_ID = "f0014be3-b69f-4884-b9a6-49765fb40df3";
     ListOfMapsGetResponseWrapper wrapper =
         findRowsAsWrapped(testKeyspaceName(), tableName, NOT_MATCHING_ID);
-    assertThat(wrapper.getCount()).isEqualTo(0);
-    assertThat(wrapper.getData()).isEmpty();
+    assertThat(wrapper.count()).isEqualTo(0);
+    assertThat(wrapper.data()).isEmpty();
   }
 
   @Test
@@ -232,9 +232,9 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
             .extract()
             .asString();
     ListOfMapsGetResponseWrapper wrapper = readJsonAs(response, ListOfMapsGetResponseWrapper.class);
-    List<Map<String, Object>> data = wrapper.getData();
-    assertThat(wrapper.getCount()).isEqualTo(1);
-    assertThat(wrapper.getPageState()).isNotEmpty();
+    List<Map<String, Object>> data = wrapper.data();
+    assertThat(wrapper.count()).isEqualTo(1);
+    assertThat(wrapper.pageState()).isNotEmpty();
     assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
     assertThat(data.get(0).get("expense_id")).isEqualTo(1);
@@ -318,8 +318,8 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
 
     ListOfMapsGetResponseWrapper wrapper =
         findRowsAsWrapped(testKeyspaceName(), tableName, rowIdentifier, 2);
-    assertThat(wrapper.getCount()).isEqualTo(1);
-    List<Map<String, Object>> data = wrapper.getData();
+    assertThat(wrapper.count()).isEqualTo(1);
+    List<Map<String, Object>> data = wrapper.data();
     assertThat(data).hasSize(1);
     assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
@@ -333,8 +333,8 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
 
     ListOfMapsGetResponseWrapper wrapper =
         findRowsAsWrapped(testKeyspaceName(), tableName, rowIdentifier);
-    assertThat(wrapper.getCount()).isEqualTo(2);
-    List<Map<String, Object>> data = wrapper.getData();
+    assertThat(wrapper.count()).isEqualTo(2);
+    List<Map<String, Object>> data = wrapper.data();
     assertThat(data).hasSize(2);
     assertThat(data.get(0).get("id")).isEqualTo(1);
     assertThat(data.get(0).get("firstName")).isEqualTo("John");
@@ -397,8 +397,8 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
             .extract()
             .asString();
     ListOfMapsGetResponseWrapper wrapper = readJsonAs(response, ListOfMapsGetResponseWrapper.class);
-    assertThat(wrapper.getCount()).isEqualTo(2);
-    List<Map<String, Object>> rows = wrapper.getData();
+    assertThat(wrapper.count()).isEqualTo(2);
+    List<Map<String, Object>> rows = wrapper.data();
     assertThat(rows.get(0).get("id")).isEqualTo(1);
     assertThat(rows.get(0).get("firstName")).isEqualTo("John");
     assertThat(rows.get(0).get("expense_id")).isEqualTo(2);
@@ -743,8 +743,8 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
             .extract()
             .asString();
     ListOfMapsGetResponseWrapper wrapper = readJsonAs(response, ListOfMapsGetResponseWrapper.class);
-    assertThat(wrapper.getCount()).isEqualTo(2);
-    List<Map<String, Object>> rows = wrapper.getData();
+    assertThat(wrapper.count()).isEqualTo(2);
+    List<Map<String, Object>> rows = wrapper.data();
     assertThat(rows.get(0).get("id")).isEqualTo(1);
     assertThat(rows.get(0).get("firstName")).isEqualTo("John");
     assertThat(rows.get(0).get("expense_id")).isEqualTo(2);

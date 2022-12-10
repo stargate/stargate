@@ -7,9 +7,9 @@ import java.util.List;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 // Note: copy from SGv1 TableResponse
+@RegisterForReflection
 @Schema(name = "TableResponse", description = "A description of a Table")
 @JsonInclude(JsonInclude.Include.NON_NULL)
-@RegisterForReflection
 public record Sgv2Table(
     @Schema(description = "The name of the table.") String name,
     @Schema(description = "Name of the keyspace the table belongs.") String keyspace,

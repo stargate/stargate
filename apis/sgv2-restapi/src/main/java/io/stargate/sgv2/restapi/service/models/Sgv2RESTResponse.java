@@ -15,31 +15,11 @@
  */
 package io.stargate.sgv2.restapi.service.models;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.annotation.JsonProperty;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 // Copy of "RESTResponseWrapper" of StargateV1
-@JsonInclude(JsonInclude.Include.NON_NULL)
 @RegisterForReflection
-public class Sgv2RESTResponse<T> {
-  @JsonProperty("data")
-  private T data;
-
-  @Schema(description = "Response data returned by the request.")
-  public T getData() {
-    return data;
-  }
-
-  public Sgv2RESTResponse setData(T data) {
-    this.data = data;
-    return this;
-  }
-
-  @JsonCreator
-  public Sgv2RESTResponse(@JsonProperty("data") final T data) {
-    this.data = data;
-  }
-}
+@Schema(name = "RESTResponseWrapper")
+public record Sgv2RESTResponse<T>(
+    @Schema(description = "Response data returned by the request.") T data) {}
