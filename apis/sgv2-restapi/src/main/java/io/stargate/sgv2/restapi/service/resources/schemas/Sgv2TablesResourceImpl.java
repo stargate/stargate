@@ -99,7 +99,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
     // so that QueryBuilder will create partition and clustering keys (if any) in
     // correct order, as per "primary key" definition and NOT order of columns passed
     final List<Column> columns = new ArrayList<>(columnsByName.size());
-    Stream.concat(primaryKeys.getPartitionKey().stream(), primaryKeys.getClusteringKey().stream())
+    Stream.concat(primaryKeys.partitionKey().stream(), primaryKeys.clusteringKey().stream())
         .map(key -> columnsByName.remove(key))
         .filter(Objects::nonNull) // should never happen but let QueryBuilder catch, not NPE
         .forEach(column -> columns.add(column));
@@ -128,12 +128,12 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
             tableName,
             (tableDef) -> {
               Sgv2Table.TableOptions options = tableUpdate.tableOptions();
-              List<?> clusteringExpressions = options.getClusteringExpression();
+              List<?> clusteringExpressions = options.clusteringExpression();
               if (clusteringExpressions != null && !clusteringExpressions.isEmpty()) {
                 throw new WebApplicationException(
                     "Cannot update the clustering order of a table", Status.BAD_REQUEST);
               }
-              Integer defaultTTL = options.getDefaultTimeToLive();
+              Integer defaultTTL = options.defaultTimeToLive();
               // 09-Dec-2021, tatu: Seems bit odd but this is the way SGv1/RESTv2 checks it,
               //    probably since this is the only thing that can actually be changed:
               if (defaultTTL == null) {
@@ -143,7 +143,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
               return new QueryBuilder()
                   .alter()
                   .table(keyspaceName, tableName)
-                  .withDefaultTTL(options.getDefaultTimeToLive())
+                  .withDefaultTTL(options.defaultTimeToLive())
                   .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
                   .build();
             })
@@ -165,16 +165,17 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
 
   private Sgv2Table table2table(Schema.CqlTable grpcTable, String keyspace) {
     final List<Sgv2ColumnDefinition> columns = new ArrayList<>();
-    final Sgv2Table.PrimaryKey primaryKeys = new Sgv2Table.PrimaryKey();
+    final List<String> partitionKeys = new ArrayList<>();
+    final List<String> clusteringKeys = new ArrayList<>();
 
     // Not very pretty but need to both add columns AND create PrimaryKey defs so:
     for (QueryOuterClass.ColumnSpec column : grpcTable.getPartitionKeyColumnsList()) {
       columns.add(column2column(column, false));
-      primaryKeys.addPartitionKey(column.getName());
+      partitionKeys.add(column.getName());
     }
     for (QueryOuterClass.ColumnSpec column : grpcTable.getClusteringKeyColumnsList()) {
       columns.add(column2column(column, false));
-      primaryKeys.addClusteringKey(column.getName());
+      clusteringKeys.add(column.getName());
     }
     for (QueryOuterClass.ColumnSpec column : grpcTable.getStaticColumnsList()) {
       columns.add(column2column(column, true));
@@ -198,6 +199,9 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
       }
     }
     final Sgv2Table.TableOptions tableOptions = new Sgv2Table.TableOptions(defaultTTL, clustering);
+    final Sgv2Table.PrimaryKey primaryKeys =
+        new Sgv2Table.PrimaryKey(partitionKeys, clusteringKeys);
+
     return new Sgv2Table(grpcTable.getName(), keyspace, columns, primaryKeys, tableOptions);
   }
 

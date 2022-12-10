@@ -95,8 +95,7 @@ public class RestApiV2QRowUpdateIT extends RestApiV2QIntegrationTestBase {
         Arrays.asList(
             new Sgv2ColumnDefinition("id", "text", false),
             new Sgv2ColumnDefinition("counter", "counter", false));
-    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
-    primaryKey.setPartitionKey(Arrays.asList("id"));
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey(Arrays.asList("id"), null);
     final Sgv2TableAddRequest tableAdd =
         new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);
     createTable(testKeyspaceName(), tableAdd);
@@ -136,8 +135,7 @@ public class RestApiV2QRowUpdateIT extends RestApiV2QIntegrationTestBase {
             new Sgv2ColumnDefinition("id", "text", false),
             new Sgv2ColumnDefinition("counter1", "counter", false),
             new Sgv2ColumnDefinition("counter2", "counter", false));
-    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
-    primaryKey.setPartitionKey(Arrays.asList("id"));
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey(Arrays.asList("id"), null);
     final Sgv2TableAddRequest tableAdd =
         new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);
     createTable(testKeyspaceName(), tableAdd);

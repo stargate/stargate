@@ -42,7 +42,7 @@ public record Sgv2TableAddRequest(
 
   public List<Sgv2Table.ClusteringExpression> findClusteringExpressions() {
     if (tableOptions != null) {
-      List<Sgv2Table.ClusteringExpression> clustering = tableOptions.getClusteringExpression();
+      List<Sgv2Table.ClusteringExpression> clustering = tableOptions.clusteringExpression();
       if (clustering != null) {
         return clustering;
       }

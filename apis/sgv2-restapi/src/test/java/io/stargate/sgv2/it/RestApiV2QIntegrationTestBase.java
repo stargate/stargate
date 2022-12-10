@@ -295,8 +295,7 @@ public abstract class RestApiV2QIntegrationTestBase {
             new Sgv2ColumnDefinition("firstName", "text", false),
             new Sgv2ColumnDefinition("age", "int", false));
 
-    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
-    primaryKey.setPartitionKey(Arrays.asList("id"));
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey(Arrays.asList("id"), null);
     final Sgv2TableAddRequest tableAdd =
         new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);
     return createTable(keyspaceName, tableAdd);
@@ -310,8 +309,7 @@ public abstract class RestApiV2QIntegrationTestBase {
             new Sgv2ColumnDefinition("col2", "frozen<set<boolean>>", false),
             new Sgv2ColumnDefinition("col3", "tuple<duration, inet>", false));
 
-    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
-    primaryKey.setPartitionKey(Arrays.asList("pk0"));
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey(Arrays.asList("pk0"), null);
     final Sgv2TableAddRequest tableAdd =
         new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);
 
@@ -329,11 +327,7 @@ public abstract class RestApiV2QIntegrationTestBase {
             .map(x -> x.split(" "))
             .map(y -> new Sgv2ColumnDefinition(y[0], y[1], false))
             .collect(Collectors.toList());
-    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
-    primaryKey.setPartitionKey(partitionKey);
-    if (clusteringKey != null) {
-      primaryKey.setClusteringKey(clusteringKey);
-    }
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey(partitionKey, clusteringKey);
     final Sgv2TableAddRequest tableAdd =
         new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);
     return createTable(keyspaceName, tableAdd);
@@ -545,9 +539,8 @@ public abstract class RestApiV2QIntegrationTestBase {
             new Sgv2ColumnDefinition("firstName", "text", false),
             new Sgv2ColumnDefinition("age", "int", true),
             new Sgv2ColumnDefinition("expense_id", "int", false));
-    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
-    primaryKey.setPartitionKey(Arrays.asList("id"));
-    primaryKey.setClusteringKey(Arrays.asList("expense_id"));
+    Sgv2Table.PrimaryKey primaryKey =
+        new Sgv2Table.PrimaryKey(Arrays.asList("id"), Arrays.asList("expense_id"));
     final Sgv2TableAddRequest tableAdd =
         new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);
     createTable(keyspaceName, tableAdd);
@@ -590,9 +583,8 @@ public abstract class RestApiV2QIntegrationTestBase {
             new Sgv2ColumnDefinition("ck0", "int", false),
             new Sgv2ColumnDefinition("ck1", "text", false),
             new Sgv2ColumnDefinition("v", "int", false));
-    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
-    primaryKey.setPartitionKey(Arrays.asList("pk0", "pk1", "pk2"));
-    primaryKey.setClusteringKey(Arrays.asList("ck0", "ck1"));
+    Sgv2Table.PrimaryKey primaryKey =
+        new Sgv2Table.PrimaryKey(Arrays.asList("pk0", "pk1", "pk2"), Arrays.asList("ck0", "ck1"));
     final Sgv2TableAddRequest tableAdd =
         new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);
     createTable(keyspaceName, tableAdd);

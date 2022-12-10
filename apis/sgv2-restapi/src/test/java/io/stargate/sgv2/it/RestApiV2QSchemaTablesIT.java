@@ -97,9 +97,9 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
   }
 
   private void assertSystemTable(Sgv2Table table, String expName) {
-    assertThat(table.getKeyspace()).isEqualTo("system");
-    assertThat(table.getName()).isEqualTo(expName);
-    assertThat(table.getColumnDefinitions()).isNotNull().isNotEmpty();
+    assertThat(table.keyspace()).isEqualTo("system");
+    assertThat(table.name()).isEqualTo(expName);
+    assertThat(table.columnDefinitions()).isNotNull().isNotEmpty();
   }
 
   @Test
@@ -109,9 +109,9 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
     assertThat(createResponse.name).isEqualTo(tableName);
 
     Sgv2Table table = findTable(testKeyspaceName(), tableName);
-    assertThat(table.getKeyspace()).isEqualTo(testKeyspaceName());
-    assertThat(table.getName()).isEqualTo(tableName);
-    assertThat(table.getColumnDefinitions())
+    assertThat(table.keyspace()).isEqualTo(testKeyspaceName());
+    assertThat(table.name()).isEqualTo(tableName);
+    assertThat(table.columnDefinitions())
         .hasSize(4)
         .hasSameElementsAs(
             Arrays.asList(
@@ -153,9 +153,9 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
 
     final Sgv2Table table = findTable(testKeyspaceName(), tableName);
 
-    assertThat(table.getKeyspace()).isEqualTo(testKeyspaceName());
-    assertThat(table.getName()).isEqualTo(tableName);
-    assertThat(table.getColumnDefinitions()).isNotNull();
+    assertThat(table.keyspace()).isEqualTo(testKeyspaceName());
+    assertThat(table.name()).isEqualTo(tableName);
+    assertThat(table.columnDefinitions()).isNotNull();
   }
 
   @Test
@@ -170,8 +170,8 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
 
     final Sgv2Table table = findTable(testKeyspaceName(), tableName);
 
-    assertThat(table.getKeyspace()).isEqualTo(testKeyspaceName());
-    assertThat(table.getName()).isEqualTo(tableName);
+    assertThat(table.keyspace()).isEqualTo(testKeyspaceName());
+    assertThat(table.name()).isEqualTo(tableName);
   }
 
   @Test
@@ -182,9 +182,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
             new Sgv2ColumnDefinition("id", "uuid", false),
             new Sgv2ColumnDefinition("lastName", "text", false),
             new Sgv2ColumnDefinition("firstName", "text", false));
-    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
-    primaryKey.setPartitionKey(Arrays.asList("id"));
-
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey(Arrays.asList("id"), null);
     final Sgv2TableAddRequest tableAdd =
         new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);
 
@@ -194,9 +192,9 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
 
     // And then find the table itself
     final Sgv2Table table = findTable(testKeyspaceName(), tableName);
-    assertThat(table.getName()).isEqualTo(tableName);
+    assertThat(table.name()).isEqualTo(tableName);
     // Alas, returned column order unpredictable, so:
-    assertThat(table.getColumnDefinitions()).hasSameElementsAs(columnDefs);
+    assertThat(table.columnDefinitions()).hasSameElementsAs(columnDefs);
   }
 
   @Test
@@ -207,9 +205,8 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
         Arrays.asList(
             new Sgv2ColumnDefinition("pk1", "int", false),
             new Sgv2ColumnDefinition("ck1", "int", false));
-    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
-    primaryKey.setPartitionKey(Arrays.asList("pk1"));
-    primaryKey.setClusteringKey(Arrays.asList("ck1"));
+    Sgv2Table.PrimaryKey primaryKey =
+        new Sgv2Table.PrimaryKey(Arrays.asList("pk1"), Arrays.asList("ck1"));
 
     final Sgv2TableAddRequest tableAdd =
         new Sgv2TableAddRequest(
@@ -221,9 +218,9 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
 
     // And then find the table itself
     final Sgv2Table table = findTable(testKeyspaceName(), tableName);
-    assertThat(table.getName()).isEqualTo(tableAdd.name());
-    assertThat(table.getColumnDefinitions()).hasSameElementsAs(columnDefs);
-    assertThat(table.getTableOptions().getClusteringExpression().get(0).order()).isEqualTo("ASC");
+    assertThat(table.name()).isEqualTo(tableAdd.name());
+    assertThat(table.columnDefinitions()).hasSameElementsAs(columnDefs);
+    assertThat(table.tableOptions().clusteringExpression().get(0).order()).isEqualTo("ASC");
   }
 
   @Test
@@ -238,9 +235,8 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
             new Sgv2ColumnDefinition("pk1", "int", false));
     // Create partition and clustering keys in order different from that of all-columns
     // definitions
-    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
-    primaryKey.setPartitionKey(Arrays.asList("pk1", "pk2"));
-    primaryKey.setClusteringKey(Arrays.asList("ck1", "ck2"));
+    Sgv2Table.PrimaryKey primaryKey =
+        new Sgv2Table.PrimaryKey(Arrays.asList("pk1", "pk2"), Arrays.asList("ck1", "ck2"));
 
     final Sgv2TableAddRequest tableAdd =
         new Sgv2TableAddRequest(
@@ -249,16 +245,14 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
 
     final Sgv2Table table = findTable(testKeyspaceName(), tableName);
     // First, verify that partition key ordering is like we expect
-    assertThat(table.getTableOptions().getClusteringExpression().size()).isEqualTo(2);
-    assertThat(table.getTableOptions().getClusteringExpression().get(0).column()).isEqualTo("ck1");
-    assertThat(table.getTableOptions().getClusteringExpression().get(1).column()).isEqualTo("ck2");
+    assertThat(table.tableOptions().clusteringExpression().size()).isEqualTo(2);
+    assertThat(table.tableOptions().clusteringExpression().get(0).column()).isEqualTo("ck1");
+    assertThat(table.tableOptions().clusteringExpression().get(1).column()).isEqualTo("ck2");
 
     // And then the same wrt full primary key definition
-    Sgv2Table.PrimaryKey pk = table.getPrimaryKey();
-    assertThat(pk.getPartitionKey().size()).isEqualTo(2);
-    assertThat(pk.getPartitionKey()).isEqualTo(Arrays.asList("pk1", "pk2"));
-    assertThat(pk.getClusteringKey().size()).isEqualTo(2);
-    assertThat(pk.getClusteringKey()).isEqualTo(Arrays.asList("ck1", "ck2"));
+    Sgv2Table.PrimaryKey pk = table.primaryKey();
+    assertThat(pk.partitionKey()).isEqualTo(Arrays.asList("pk1", "pk2"));
+    assertThat(pk.clusteringKey()).isEqualTo(Arrays.asList("ck1", "ck2"));
   }
 
   @Test
@@ -269,8 +263,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
             new Sgv2ColumnDefinition("ID", "uuid", false),
             new Sgv2ColumnDefinition("Lastname", "text", false),
             new Sgv2ColumnDefinition("Firstname", "text", false));
-    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
-    primaryKey.setPartitionKey(Arrays.asList("ID"));
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey(Arrays.asList("ID"), null);
     final Sgv2TableAddRequest tableAdd =
         new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);
 
@@ -315,8 +308,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
     final String tableName = testTableName();
     createSimpleTestTable(testKeyspaceName(), tableName);
 
-    Sgv2Table.TableOptions tableOptions = new Sgv2Table.TableOptions();
-    tableOptions.setDefaultTimeToLive(5);
+    Sgv2Table.TableOptions tableOptions = new Sgv2Table.TableOptions(5, null);
     final Sgv2TableAddRequest tableUpdate =
         new Sgv2TableAddRequest(tableName, null, null, false, tableOptions);
 
@@ -334,12 +326,12 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
     assertThat(putResponse.name).isEqualTo(tableName);
 
     final Sgv2Table modifiedTable = findTable(testKeyspaceName(), tableName);
-    assertThat(modifiedTable.getKeyspace()).isEqualTo(testKeyspaceName());
-    assertThat(modifiedTable.getName()).isEqualTo(tableName);
-    assertThat(modifiedTable.getColumnDefinitions()).isNotNull().isNotEmpty();
+    assertThat(modifiedTable.keyspace()).isEqualTo(testKeyspaceName());
+    assertThat(modifiedTable.name()).isEqualTo(tableName);
+    assertThat(modifiedTable.columnDefinitions()).isNotNull().isNotEmpty();
 
-    assertThat(modifiedTable.getTableOptions()).isNotNull();
-    assertThat(modifiedTable.getTableOptions().getDefaultTimeToLive()).isEqualTo(5);
+    assertThat(modifiedTable.tableOptions()).isNotNull();
+    assertThat(modifiedTable.tableOptions().defaultTimeToLive()).isEqualTo(5);
   }
 
   /*
@@ -354,7 +346,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
     createSimpleTestTable(testKeyspaceName(), tableName);
 
     final Sgv2Table table = findTable(testKeyspaceName(), tableName);
-    assertThat(table.getName()).isEqualTo(tableName);
+    assertThat(table.name()).isEqualTo(tableName);
 
     givenWithAuth()
         .when()
