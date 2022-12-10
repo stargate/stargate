@@ -307,7 +307,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     assertThat(data.at("/0/id").asText()).isEqualTo(mainKey);
     assertThat(data.at("/0/id2").asText()).isEqualTo("x");
     assertThat(data.at("/0/name").asText()).isEqualTo("Patrick");
-
+    // Either missing or empty String
     assertThat(json.at("/pageState").asText()).isEmpty();
   }
 

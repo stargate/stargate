@@ -15,6 +15,7 @@
  */
 package io.stargate.sgv2.restapi.service.models;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import java.util.List;
 import java.util.Map;
@@ -22,6 +23,7 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 @RegisterForReflection
 @Schema(name = "RowsResponse")
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public record Sgv2RowsResponse(
     @Schema(description = "The count of records returned.") int count,
     @Schema(
