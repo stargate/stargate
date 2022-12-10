@@ -25,13 +25,10 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 @RegisterForReflection
 public class Sgv2GetResponse<T> {
-  @JsonProperty("count")
   protected final int count;
 
-  @JsonProperty("pageState")
   protected final String pageState;
 
-  @JsonProperty("data")
   protected T data;
 
   @Schema(description = "The count of records returned")

@@ -70,14 +70,14 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
     }
 
     for (Sgv2ColumnDefinition columnDef : columnDefs) {
-      final String columnName = columnDef.getName();
+      final String columnName = columnDef.name();
       ImmutableColumn.Builder column =
-          ImmutableColumn.builder().name(columnName).type(columnDef.getTypeDefinition());
+          ImmutableColumn.builder().name(columnName).type(columnDef.typeDefinition());
       if (primaryKeys.hasPartitionKey(columnName)) {
         column.kind(Column.Kind.PARTITION_KEY);
       } else if (primaryKeys.hasClusteringKey(columnName)) {
         column.kind(Column.Kind.CLUSTERING);
-      } else if (columnDef.getIsStatic()) {
+      } else if (columnDef.isStatic()) {
         column.kind(Column.Kind.STATIC);
       }
       for (Sgv2Table.ClusteringExpression clustering : clusterings) {
