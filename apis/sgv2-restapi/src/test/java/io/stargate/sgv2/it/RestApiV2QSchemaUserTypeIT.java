@@ -123,11 +123,11 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
 
     // Are they to be returned in insertion/alphabetic order? Assume so
     for (int i = 0; i < udts.length; ++i) {
-      assertThat(udts[i].getName()).isEqualTo("udt" + i);
-      List<Sgv2UDT.UDTField> fields = udts[i].getFields();
+      assertThat(udts[i].name()).isEqualTo("udt" + i);
+      List<Sgv2UDT.UDTField> fields = udts[i].fields();
       assertThat(fields).hasSize(1);
-      assertThat(fields.get(0).getName()).isEqualTo("firstName");
-      assertThat(fields.get(0).getTypeDefinition()).isEqualTo("text");
+      assertThat(fields.get(0).name()).isEqualTo("firstName");
+      assertThat(fields.get(0).typeDefinition()).isEqualTo("text");
     }
   }
 
@@ -152,13 +152,13 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
   }
 
   private void verifyGetOneType(String typeName, Sgv2UDT udt) {
-    assertThat(udt.getName()).isEqualTo(typeName);
-    List<Sgv2UDT.UDTField> fields = udt.getFields();
+    assertThat(udt.name()).isEqualTo(typeName);
+    List<Sgv2UDT.UDTField> fields = udt.fields();
     assertThat(fields).hasSize(2);
-    assertThat(fields.get(0).getName()).isEqualTo("arrival");
-    assertThat(fields.get(0).getTypeDefinition()).isEqualTo("timestamp");
-    assertThat(fields.get(1).getName()).isEqualTo("props");
-    assertThat(fields.get(1).getTypeDefinition()).isEqualTo("frozen<map<text, text>>");
+    assertThat(fields.get(0).name()).isEqualTo("arrival");
+    assertThat(fields.get(0).typeDefinition()).isEqualTo("timestamp");
+    assertThat(fields.get(1).name()).isEqualTo("props");
+    assertThat(fields.get(1).typeDefinition()).isEqualTo("frozen<map<text, text>>");
   }
 
   /*
@@ -195,11 +195,11 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
 
     // Fetch and verify UDT:
     Sgv2UDT udt = findOneUDT(testKeyspaceName(), typeName, true);
-    assertThat(udt.getName()).isEqualTo(typeName);
-    List<Sgv2UDT.UDTField> fields = udt.getFields();
+    assertThat(udt.name()).isEqualTo(typeName);
+    List<Sgv2UDT.UDTField> fields = udt.fields();
     assertThat(fields).hasSize(2);
 
-    List<String> fieldNames = Arrays.asList(fields.get(0).getName(), fields.get(1).getName());
+    List<String> fieldNames = Arrays.asList(fields.get(0).name(), fields.get(1).name());
     assertThat(fieldNames).isEqualTo(Arrays.asList("name1", "name2"));
   }
 
@@ -214,20 +214,21 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
             + "\", \"fields\":[{\"name\":\"age\",\"typeDefinition\":\"int\"}]}";
     tryCreateUDT(testKeyspaceName(), createUDT, HttpStatus.SC_CREATED);
 
-    Sgv2UDTUpdateRequest updateRequest = new Sgv2UDTUpdateRequest(typeName);
-    updateRequest.setAddFields(Arrays.asList(new Sgv2UDT.UDTField("name", "text")));
-    updateRequest.setRenameFields(
-        Arrays.asList(new Sgv2UDTUpdateRequest.FieldRename("name", "firstname")));
+    Sgv2UDTUpdateRequest updateRequest =
+        new Sgv2UDTUpdateRequest(
+            typeName,
+            Arrays.asList(new Sgv2UDT.UDTField("name", "text")),
+            Arrays.asList(new Sgv2UDTUpdateRequest.FieldRename("name", "firstname")));
 
     tryUpdateUDT(testKeyspaceName(), asJsonString(updateRequest), HttpStatus.SC_OK);
 
     // Verify changes
     Sgv2UDT udt = findOneUDT(testKeyspaceName(), typeName, true);
-    assertThat(udt.getName()).isEqualTo(typeName);
-    List<Sgv2UDT.UDTField> fields = udt.getFields();
+    assertThat(udt.name()).isEqualTo(typeName);
+    List<Sgv2UDT.UDTField> fields = udt.fields();
     assertThat(fields).hasSize(2);
 
-    List<String> fieldNames = Arrays.asList(fields.get(0).getName(), fields.get(1).getName());
+    List<String> fieldNames = Arrays.asList(fields.get(0).name(), fields.get(1).name());
     assertThat(fieldNames).isEqualTo(Arrays.asList("age", "firstname"));
   }
 
@@ -285,7 +286,7 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
     tryCreateUDT(testKeyspaceName(), createUDT, HttpStatus.SC_CREATED);
     // verify it's there
     Sgv2UDT udt = findOneUDT(testKeyspaceName(), typeName, true);
-    assertThat(udt.getName()).isEqualTo(typeName);
+    assertThat(udt.name()).isEqualTo(typeName);
 
     // before deleting:
     String deletePath = endpointPathForUDT(testKeyspaceName(), typeName);
