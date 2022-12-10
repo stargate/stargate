@@ -6,7 +6,10 @@ import javax.validation.constraints.NotBlank;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 public record Sgv2TableAddRequest(
-    @Schema(required = true, description = "The name of the table to add.")
+    @Schema(
+            required = true,
+            description = "The name of the table to add.",
+            example = "cycling_events")
         @NotBlank(message = "TableAdd.name must be provided")
         String name,
     @Schema(

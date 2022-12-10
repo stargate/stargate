@@ -11,8 +11,9 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 @Schema(name = "TableResponse", description = "A description of a Table")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record Sgv2Table(
-    @Schema(description = "The name of the table.") String name,
-    @Schema(description = "Name of the keyspace the table belongs.") String keyspace,
+    @Schema(description = "The name of the table.", example = "cycling_events") String name,
+    @Schema(description = "Name of the keyspace the table belongs.", example = "cycling")
+        String keyspace,
     @Schema(description = "Definition of columns within the table.")
         List<Sgv2ColumnDefinition> columnDefinitions,
     @Schema(
@@ -47,9 +48,9 @@ public record Sgv2Table(
   public record PrimaryKey(
       @Schema(
               required = true,
-              description = "Name of the column(s) that constitute the partition key.")
+              description = "Name(s) of the column(s) that constitute the partition key.")
           List<String> partitionKey,
-      @Schema(description = "Name of the column or columns that constitute the clustering key.")
+      @Schema(description = "Name(s) of the column(s) that constitute the clustering key.")
           List<String> clusteringKey) {
     public PrimaryKey(List<String> partitionKey, List<String> clusteringKey) {
       this.partitionKey = (partitionKey == null) ? Collections.emptyList() : partitionKey;
