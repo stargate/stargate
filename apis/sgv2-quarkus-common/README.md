@@ -123,7 +123,7 @@ Enables out-of-the-box metrics collection and the Prometheus exporter.
 Metrics are exported at the Prometheus default `/metrics` endpoint.
 All non-application endpoints are ignored from the collection.
 
-### `quarkus-opentelemetry-exporter-otlp`
+### `quarkus-opentelemetry`
 [Related guide](https://quarkus.io/guides/opentelemetry)
 
 Enables the [OpenTelemetry](https://opentelemetry.io/) tracing support.

@@ -4,7 +4,7 @@
   <groupId>io.stargate</groupId>
   <artifactId>sgv2-api-parent</artifactId>
   <name>Stargate V2 API parent pom</name>
-  <version>2.0.2-SNAPSHOT</version>
+  <version>2.0.4-SNAPSHOT</version>
   <description>Parent POM for Stargate v2 APIs</description>
   <packaging>pom</packaging>
   <url>http://github.com/stargate/stargate</url>
@@ -23,7 +23,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-    <quarkus.platform.version>2.14.1.Final</quarkus.platform.version>
+    <quarkus.platform.version>2.14.3.Final</quarkus.platform.version>
     <skipTests>false</skipTests>
     <skipUnitTests>${skipTests}</skipUnitTests>
     <surefire-plugin.version>3.0.0-M7</surefire-plugin.version>
@@ -70,6 +70,45 @@
     </dependencies>
   </dependencyManagement>
   <build>
+    <pluginManagement>
+      <plugins>
+        <!-- We will specify settings for replacer plugin that allows us to inject
+             name and version of APis into (dev) home page: mostly to get version
+          -->
+        <plugin>
+          <groupId>com.google.code.maven-replacer-plugin</groupId>
+          <artifactId>replacer</artifactId>
+          <version>1.5.3</version>
+          <executions>
+            <execution>
+              <phase>prepare-package</phase>
+              <goals>
+                <goal>replace</goal>
+              </goals>
+            </execution>
+          </executions>
+          <configuration>
+            <ignoreMissingFile>false</ignoreMissingFile>
+            <file>${basedir}/src/main/resources/META-INF/resources/index.html</file>
+            <outputFile>${basedir}/target/classes/META-INF/resources/index.html</outputFile>
+            <replacements>
+              <replacement>
+                <token>%MAVEN_GROUP_ID%</token>
+                <value>${project.groupId}</value>
+              </replacement>
+              <replacement>
+                <token>%MAVEN_ARTIFACT_ID%</token>
+                <value>${project.artifactId}</value>
+              </replacement>
+              <replacement>
+                <token>%MAVEN_VERSION%</token>
+                <value>${project.version}</value>
+              </replacement>
+            </replacements>
+          </configuration>
+        </plugin>
+      </plugins>
+    </pluginManagement>
     <plugins>
       <plugin>
         <artifactId>maven-compiler-plugin</artifactId>

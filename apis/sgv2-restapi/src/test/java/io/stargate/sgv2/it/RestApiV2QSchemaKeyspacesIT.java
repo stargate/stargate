@@ -1,6 +1,8 @@
 package io.stargate.sgv2.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assumptions.assumeThat;
+import static org.hamcrest.Matchers.is;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.quarkus.test.common.QuarkusTestResource;
@@ -210,6 +212,37 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
         dcs.orElse(Collections.emptyList()).stream()
             .collect(Collectors.toMap(Sgv2Keyspace.Datacenter::getName, Function.identity()));
     assertThat(actualDCs).usingRecursiveComparison().isEqualTo(expectedDCs);
+  }
+
+  // Verify that attempts to use non-existing DC produce useful fail message
+  @Test
+  public void keyspaceCreateWithInvalidDC() {
+    // 08-Dec-2022, tatu: Alas, neither C-3.11 nor DSE appear to ever validate DC (either it
+    //   defaults to valid one, or just fails KS create quietly).
+    //   So for now limit test to C-4.0
+    assumeThat(IntegrationTestUtils.isCassandra40())
+        .as("Test only applicable to C-4.x backend")
+        .isTrue();
+
+    final String invalidDC = "noSuchDC";
+    String keyspaceName = "ks_createw_invalid_dc_" + System.currentTimeMillis();
+    String requestJSON =
+        String.format(
+            "{\"name\": \"%s\", \"datacenters\" : [\n"
+                + "       { \"name\":\"%s\", \"replicas\":1}\n"
+                + "]}",
+            keyspaceName, invalidDC);
+    givenWithAuth()
+        .contentType(ContentType.JSON)
+        .body(requestJSON)
+        .when()
+        .post(BASE_PATH)
+        .then()
+        .statusCode(HttpStatus.SC_BAD_REQUEST)
+        .body("code", is(HttpStatus.SC_BAD_REQUEST))
+        .body(
+            "description",
+            is("Bad request: one or more of datacenters passed ([noSuchDC]) invalid"));
   }
 
   @Test
