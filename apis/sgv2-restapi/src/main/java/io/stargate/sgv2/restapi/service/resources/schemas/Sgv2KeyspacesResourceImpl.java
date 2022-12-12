@@ -19,6 +19,7 @@ import com.fasterxml.jackson.core.json.JsonReadFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectReader;
 import com.fasterxml.jackson.databind.json.JsonMapper;
+import io.grpc.StatusRuntimeException;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.Schema;
@@ -30,9 +31,13 @@ import io.stargate.sgv2.restapi.service.models.Sgv2NameResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.slf4j.Logger;
@@ -41,6 +46,9 @@ import org.slf4j.LoggerFactory;
 public class Sgv2KeyspacesResourceImpl extends RestResourceBase
     implements Sgv2KeyspacesResourceApi {
   private static final Logger LOGGER = LoggerFactory.getLogger(Sgv2KeyspacesResourceImpl.class);
+
+  private static final Pattern BAD_DC_PATTERN =
+      Pattern.compile("Unrecognized strategy option \\{(\\w+)\\}.*");
 
   private static final JsonMapper JSON_MAPPER = new JsonMapper();
   private static final ObjectReader REPLICA_SETTINGS_READER =
@@ -92,6 +100,7 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
     }
     final String keyspaceName = ksCreateDef.name;
     Query query;
+    Map<String, Integer> dcMap;
     if (ksCreateDef.datacenters == null) {
       query =
           new QueryBuilder()
@@ -100,8 +109,9 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
               .ifNotExists()
               .withReplication(Replication.simpleStrategy(ksCreateDef.replicas))
               .build();
+      dcMap = Collections.emptyMap();
     } else {
-      Map<String, Integer> dcMap = ksCreateDef.datacentersAsMap();
+      dcMap = ksCreateDef.datacentersAsMap();
       query =
           new QueryBuilder()
               .create()
@@ -111,9 +121,30 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
               .build();
     }
 
+    // Simple execution but resulting failure from bad DC needs to be mapped to something
+    // more useful (as per [stargate#2231])
     return executeQueryAsync(query)
+        .onFailure()
+        .transform(
+            failure ->
+                failureMatchesBadDC(failure, dcMap)
+                    ? new WebApplicationException(
+                        String.format(
+                            "Bad request: one or more of datacenters passed (%s) invalid",
+                            dcMap.keySet()),
+                        Response.Status.BAD_REQUEST)
+                    : failure)
         // No real contents; can ignore ResultSet it seems and only worry about exceptions
         .map(any -> restResponseCreatedWithName(keyspaceName));
+  }
+
+  private boolean failureMatchesBadDC(Throwable t, Map<String, Integer> dcMap) {
+    if (t instanceof StatusRuntimeException) {
+      StatusRuntimeException failure = (StatusRuntimeException) t;
+      Matcher m = BAD_DC_PATTERN.matcher(failure.getStatus().getDescription());
+      return m.matches() && dcMap.containsKey(m.group(1));
+    }
+    return false;
   }
 
   @Override
