@@ -70,6 +70,19 @@ but the short of it is below.
 - If you're not sure about it or want to chat, reach out on our [Discord](https://discord.gg/GravUqY) 
 - If you want to write some user docs 🎉 head over to the [stargate/docs](https://github.com/stargate/docs) repo, Pull Requests accepted!
 
+## Supported Versions and Branching Strategy
+
+The Stargate project maintains support for the current major version number and one major version number previous. We mark the previous major version number as deprecated in order to encourage usage of the latest version. When a new major number version number release N is created, the N-2 release is no longer supported. For example, when Stargate v3 is released, v1 will no longer be supported.
+
+Supporting a release entails making bug fixes, keeping dependencies up to date, and making sure Docker images are free from vulnerabilities.
+
+The current major version is maintained on the default `main` branch. The prior major version number is maintained on a version branch, for example, `v1`.
+
+We make bug fixes in all supported releases. The recommended approach is to commit a fix first to the previous major version branch (if applicable) and merge it forward into the current major version branch.
+
+We iterate forward rather than producing patch releases. For example, for a vulnerability found in `v2.0.3`, we'd make any required fixes and dependency updates and release `v2.0.4`. We maintain a regular release cadence of approximately twice a month but can iterate more quickly as the situation dictates. 
+
+
 ## Thanks
 
 ![YourKit Logo](https://www.yourkit.com/images/yklogo.png)
