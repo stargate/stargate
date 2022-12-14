@@ -3,10 +3,12 @@ package io.stargate.sgv2.restapi.service.models;
 import java.util.Collections;
 import java.util.List;
 import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotEmpty;
-import javax.validation.constraints.NotNull;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
+/**
+ * Request DTO used when Creating or Updating Table: fields required vary between cases (Update has
+ * fewer required fields)
+ */
 @Schema(name = "TableAdd", description = "Definition of a Table to add.")
 public record Sgv2TableAddRequest(
     @Schema(
@@ -15,16 +17,13 @@ public record Sgv2TableAddRequest(
             example = "cycling_events")
         @NotBlank(message = "TableAdd.name must be provided")
         String name,
+    // Primary key required for Table Create but not for Update
     @Schema(
-            required = true,
             description =
                 "The primary key definition of the table, consisting of partition and clustering keys.")
-        @NotNull(message = "TableAdd.primaryKey must be provided")
         Sgv2Table.PrimaryKey primaryKey,
-    @Schema(
-            required = true,
-            description = "Definition of columns that belong to the table to be added.")
-        @NotEmpty(message = "TableAdd.columnDefinitions must be provided and not be empty")
+    // Column definitions required for Table Create but not for Update
+    @Schema(description = "Definition of columns that belong to the table to be added.")
         List<Sgv2ColumnDefinition> columnDefinitions,
     @Schema(
             description =
