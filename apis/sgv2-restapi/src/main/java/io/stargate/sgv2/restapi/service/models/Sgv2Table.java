@@ -11,10 +11,10 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 @Schema(name = "TableResponse", description = "A description of a Table")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record Sgv2Table(
-    @Schema(description = "The name of the table.", example = "cycling_events") String name,
-    @Schema(description = "Name of the keyspace the table belongs.", example = "cycling")
+    @Schema(description = "The name of the table.", nullable = false, example = "cycling_events") String name,
+    @Schema(description = "Name of the keyspace the table belongs.", nullable = false, example = "cycling")
         String keyspace,
-    @Schema(description = "Definition of columns within the table.")
+    @Schema(description = "Definition of columns within the table.", nullable = false)
         List<Sgv2ColumnDefinition> columnDefinitions,
     @Schema(
             description =
@@ -57,6 +57,10 @@ public record Sgv2Table(
       this.clusteringKey = (clusteringKey == null) ? Collections.emptyList() : clusteringKey;
     }
 
+    public PrimaryKey(List<String> partitionKey) {
+      this(partitionKey, null);
+    }
+
     public PrimaryKey() {
       this(null, null);
     }
@@ -89,9 +93,6 @@ public record Sgv2Table(
   // copied from SGv1 ClusteringExpression
   public record ClusteringExpression(
       @Schema(required = true, description = "The name of the column to order by") String column,
-      // 18-Jul-2022, tatu: Originally with DropWizard, Swagger 3, we had:
-      //    allowableValues = "ASC,DESC"
-      // but hoping "enumeration" works as replacement
       @Schema(
               required = true,
               description = "The clustering order",

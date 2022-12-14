@@ -22,4 +22,4 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 @RegisterForReflection
 @Schema(name = "RESTResponseWrapper")
 public record Sgv2RESTResponse<T>(
-    @Schema(description = "Response data returned by the request.") T data) {}
+    @Schema(description = "Response data returned by the request.", nullable = false) T data) {}

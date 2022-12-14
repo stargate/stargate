@@ -294,7 +294,7 @@ public abstract class RestApiV2QIntegrationTestBase {
             new Sgv2ColumnDefinition("firstName", "text", false),
             new Sgv2ColumnDefinition("age", "int", false));
 
-    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey(Arrays.asList("id"), null);
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey(Arrays.asList("id"));
     final Sgv2TableAddRequest tableAdd =
         new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);
     return createTable(keyspaceName, tableAdd);
@@ -308,7 +308,7 @@ public abstract class RestApiV2QIntegrationTestBase {
             new Sgv2ColumnDefinition("col2", "frozen<set<boolean>>", false),
             new Sgv2ColumnDefinition("col3", "tuple<duration, inet>", false));
 
-    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey(Arrays.asList("pk0"), null);
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey(Arrays.asList("pk0"));
     final Sgv2TableAddRequest tableAdd =
         new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);
 

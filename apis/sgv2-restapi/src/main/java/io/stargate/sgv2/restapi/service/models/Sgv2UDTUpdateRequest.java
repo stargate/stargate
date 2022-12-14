@@ -3,6 +3,8 @@ package io.stargate.sgv2.restapi.service.models;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
 import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotEmpty;
+
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 @Schema(name = "UserDefinedTypeUpdate")
@@ -17,6 +19,6 @@ public record Sgv2UDTUpdateRequest(
   @Schema(name = "UserDefinedTypeFieldRename")
   @JsonInclude(JsonInclude.Include.NON_NULL)
   public record FieldRename(
-      @Schema(description = "User Defined Type's old field name") String from,
-      @Schema(description = "User Defined Type's new field name") String to) {}
+      @Schema(description = "User Defined Type's old field name") @NotEmpty String from,
+      @Schema(description = "User Defined Type's new field name") @NotEmpty String to) {}
 }
