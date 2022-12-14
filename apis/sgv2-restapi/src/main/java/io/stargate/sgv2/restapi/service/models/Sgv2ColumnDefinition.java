@@ -23,8 +23,9 @@ public record Sgv2ColumnDefinition(
             required = true,
             description = "The type of data allowed in the column.")
         String typeDefinition,
-    @Schema(description = "Denotes whether the column is shared by all rows of a partition.",
-            defaultValue="false")
+    @Schema(
+            description = "Denotes whether the column is shared by all rows of a partition.",
+            defaultValue = "false")
         @JsonProperty("static")
         boolean isStatic) {
   // NOTE: unfortunately we need extra annotations here for renaming: this is a bug in Jackson

@@ -29,6 +29,6 @@ public record Sgv2RowsResponse(
     @Schema(
             description =
                 "A string representing the paging state to be used on future paging requests.",
-    nullable = true)
+            nullable = true)
         String pageState,
     @Schema(description = "The rows returned by the request.") List<Map<String, Object>> data) {}

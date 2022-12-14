@@ -19,12 +19,12 @@ public record Sgv2TableAddRequest(
             required = true,
             description =
                 "The primary key definition of the table, consisting of partition and clustering keys.")
-    @NotNull(message = "TableAdd.primaryKey must be provided")
+        @NotNull(message = "TableAdd.primaryKey must be provided")
         Sgv2Table.PrimaryKey primaryKey,
     @Schema(
             required = true,
             description = "Definition of columns that belong to the table to be added.")
-    @NotEmpty(message = "TableAdd.columnDefinitions must be provided and not be empty")
+        @NotEmpty(message = "TableAdd.columnDefinitions must be provided and not be empty")
         List<Sgv2ColumnDefinition> columnDefinitions,
     @Schema(
             description =

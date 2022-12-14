@@ -11,8 +11,12 @@ import org.eclipse.microprofile.openapi.annotations.media.Schema;
 @Schema(name = "TableResponse", description = "A description of a Table")
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record Sgv2Table(
-    @Schema(description = "The name of the table.", nullable = false, example = "cycling_events") String name,
-    @Schema(description = "Name of the keyspace the table belongs.", nullable = false, example = "cycling")
+    @Schema(description = "The name of the table.", nullable = false, example = "cycling_events")
+        String name,
+    @Schema(
+            description = "Name of the keyspace the table belongs.",
+            nullable = false,
+            example = "cycling")
         String keyspace,
     @Schema(description = "Definition of columns within the table.", nullable = false)
         List<Sgv2ColumnDefinition> columnDefinitions,
