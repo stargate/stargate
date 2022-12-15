@@ -55,7 +55,6 @@ import java.util.stream.Collectors;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.cassandra.auth.AuthenticatedUser;
-import org.apache.cassandra.auth.CassandraRoleManager;
 import org.apache.cassandra.auth.IAuthContext;
 import org.apache.cassandra.auth.RoleResource;
 import org.apache.cassandra.auth.user.UserRolesAndPermissions;
@@ -126,11 +125,6 @@ public class DsePersistence
       Boolean.parseBoolean(System.getProperty("stargate.use_proxy_protocol", "false"));
   private static final boolean USE_TRANSITIONAL_AUTH =
       Boolean.getBoolean("stargate.cql_use_transitional_auth");
-  private static final String EXTERNAL_USER_ROLE_NAME =
-      System.getProperty(
-          "stargate.auth.proxy.external.users.as", CassandraRoleManager.DEFAULT_SUPERUSER_NAME);
-  private static final AuthenticatedUser EXTERNAL_AUTH_USER =
-      new ExternalAuthenticatedUser(EXTERNAL_USER_ROLE_NAME);
 
   /*
    * Initial schema migration can take greater than 2 * MigrationManager.MIGRATION_DELAY_IN_MS if a
@@ -488,7 +482,7 @@ public class DsePersistence
       try {
         Single<ClientState> loginSingle;
         if (user.isFromExternalAuth() && USE_TRANSITIONAL_AUTH) {
-          loginSingle = this.clientState.login(EXTERNAL_AUTH_USER);
+          loginSingle = this.clientState.login(new ExternalAuthenticatedUser(user.name()));
           clientState.setExternalAuth(true);
         } else {
           loginSingle = this.clientState.login(new AuthenticatedUser(user.name()));
