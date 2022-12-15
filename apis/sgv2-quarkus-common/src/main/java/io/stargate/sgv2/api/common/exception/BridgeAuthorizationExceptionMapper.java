@@ -21,12 +21,10 @@ import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.api.common.grpc.BridgeAuthorizationException;
 import javax.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;
-import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 
 /** Simple exception mapper for the {@link BridgeAuthorizationException}. */
 public class BridgeAuthorizationExceptionMapper {
 
-  @ServerExceptionMapper
   public RestResponse<ApiError> bridgeAuthorizationException(
       BridgeAuthorizationException exception) {
     int code = Response.Status.UNAUTHORIZED.getStatusCode();

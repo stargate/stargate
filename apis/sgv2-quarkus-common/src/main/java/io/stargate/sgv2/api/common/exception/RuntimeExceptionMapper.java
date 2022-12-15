@@ -21,7 +21,6 @@ import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import javax.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.RestResponse.ResponseBuilder;
-import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -30,7 +29,6 @@ public class RuntimeExceptionMapper {
 
   private static final Logger log = LoggerFactory.getLogger(RuntimeExceptionMapper.class);
 
-  @ServerExceptionMapper
   public RestResponse<ApiError> runtimeException(RuntimeException exception) {
     log.error("Unexpected runtime exception occurred.", exception);
 

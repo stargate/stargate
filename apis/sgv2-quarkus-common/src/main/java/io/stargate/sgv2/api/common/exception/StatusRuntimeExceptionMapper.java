@@ -23,7 +23,6 @@ import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import javax.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.RestResponse.ResponseBuilder;
-import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -32,7 +31,6 @@ public class StatusRuntimeExceptionMapper {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(StatusRuntimeExceptionMapper.class);
 
-  @ServerExceptionMapper
   public RestResponse<ApiError> statusRuntimeException(StatusRuntimeException exception) {
     Status.Code sc = exception.getStatus().getCode();
     String msg = exception.getMessage();

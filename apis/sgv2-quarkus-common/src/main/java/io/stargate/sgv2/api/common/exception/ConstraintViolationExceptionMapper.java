@@ -25,12 +25,10 @@ import javax.validation.ConstraintViolationException;
 import javax.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.RestResponse.ResponseBuilder;
-import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 
 /** Simple exception mapper for the {@link ConstraintViolationException}. */
 public class ConstraintViolationExceptionMapper {
 
-  @ServerExceptionMapper
   public RestResponse<ApiError> constraintViolationException(
       ConstraintViolationException exception) {
     // figure out the message in the same way as V1

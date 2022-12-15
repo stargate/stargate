@@ -24,10 +24,20 @@ import io.quarkus.test.junit.QuarkusTest;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
+import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
+import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
 public class WebApplicationExceptionMapperTest {
+
+  private final WebApplicationExceptionMapper mapper = new WebApplicationExceptionMapper();
+
+  @ServerExceptionMapper
+  public Response webApplicationException(WebApplicationException exception) {
+    return mapper.webApplicationException(exception);
+  }
 
   @Path("web-application-exception-mapper-test")
   public static class TestingResource {
