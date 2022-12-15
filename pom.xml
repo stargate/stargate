@@ -823,7 +823,6 @@
         <artifactId>nimbus-jose-jwt</artifactId>
         <version>9.21</version>
       </dependency>
-
     </dependencies>
   </dependencyManagement>
  
