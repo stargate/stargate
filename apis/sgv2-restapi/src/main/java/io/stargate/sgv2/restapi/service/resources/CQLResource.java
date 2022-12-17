@@ -11,6 +11,7 @@ import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.service.models.Sgv2RowsResponse;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import javax.validation.constraints.NotBlank;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -68,6 +69,7 @@ public class CQLResource {
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw,
       @RequestBody(description = "CQL Query String", required = true)
+          @NotBlank(message = "CQL query body required")
           final String payloadAsString) {
     QueryOuterClass.Query query =
         new QueryBuilder()

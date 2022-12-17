@@ -22,7 +22,7 @@ public class RestApiV2QCqlIT extends RestApiV2QIntegrationTestBase {
     String r =
         givenWithAuth()
             .contentType(ContentType.TEXT)
-            .body("SELECT cluster_name FROM system.local")
+            .body("SELECT key FROM system.local")
             .when()
             .post(endpointPathForCQL())
             .then()
@@ -30,10 +30,43 @@ public class RestApiV2QCqlIT extends RestApiV2QIntegrationTestBase {
             .extract()
             .asString();
 
+    assertThat(r).isEqualTo("{\"count\":1,\"data\":[{\"key\":\"local\"}]}");
+  }
+
+  @Test
+  public void testBadCqlQuery() {
+
+    String r =
+        givenWithAuth()
+            .contentType(ContentType.TEXT)
+            .body("SELsECT fo FROM sjkakk")
+            .when()
+            .post(endpointPathForCQL())
+            .then()
+            .statusCode(400)
+            .extract()
+            .asString();
+
     assertThat(r)
         .isEqualTo(
-            "{\"count\":1,\"data\":[{\"cluster_name\":\""
-                + StargateTestResource.getClusterName()
-                + "\"}]}");
+            "{\"description\":\"Invalid argument for gRPC operation (Status.Code.INVALID_ARGUMENT->400): INVALID_ARGUMENT: line 1:0 no viable alternative at input 'SELsECT' ([SELsECT]...)\",\"code\":400,\"grpcStatus\":\"INVALID_ARGUMENT\",\"internalTxId\":null}");
+  }
+
+  @Test
+  public void testMissingCqlQuery() {
+
+    String r =
+        givenWithAuth()
+            .contentType(ContentType.TEXT)
+            .when()
+            .post(endpointPathForCQL())
+            .then()
+            .statusCode(400)
+            .extract()
+            .asString();
+
+    assertThat(r)
+        .isEqualTo(
+            "{\"description\":\"Request invalid: CQL query body required.\",\"code\":400,\"grpcStatus\":null,\"internalTxId\":null}");
   }
 }

@@ -287,7 +287,7 @@ public class StargateTestResource
     }
   }
 
-  public static String getClusterName() {
+  private static String getClusterName() {
     return System.getProperty("testing.containers.cluster-name", Defaults.CLUSTER_NAME);
   }
 
