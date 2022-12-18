@@ -53,14 +53,14 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
   @Override
   public Uni<RestResponse<Sgv2NameResponse>> createTable(
       final String keyspaceName, final Sgv2TableAddRequest tableAdd) {
-    final String tableName = tableAdd.getName();
+    final String tableName = tableAdd.name();
 
     // Need to create name-accessible Map of column objects to make
     // it easier to sort PK columns
     Map<String, Column> columnsByName = new LinkedHashMap<>();
-    final Sgv2Table.PrimaryKey primaryKeys = tableAdd.getPrimaryKey();
+    final Sgv2Table.PrimaryKey primaryKeys = tableAdd.primaryKey();
     final List<Sgv2Table.ClusteringExpression> clusterings = tableAdd.findClusteringExpressions();
-    final List<Sgv2ColumnDefinition> columnDefs = tableAdd.getColumnDefinitions();
+    final List<Sgv2ColumnDefinition> columnDefs = tableAdd.columnDefinitions();
 
     // Cannot use Bean Validation annotations because columns are optional for Update, only
     // mandatory here:
@@ -70,25 +70,25 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
     }
 
     for (Sgv2ColumnDefinition columnDef : columnDefs) {
-      final String columnName = columnDef.getName();
+      final String columnName = columnDef.name();
       ImmutableColumn.Builder column =
-          ImmutableColumn.builder().name(columnName).type(columnDef.getTypeDefinition());
+          ImmutableColumn.builder().name(columnName).type(columnDef.typeDefinition());
       if (primaryKeys.hasPartitionKey(columnName)) {
         column.kind(Column.Kind.PARTITION_KEY);
       } else if (primaryKeys.hasClusteringKey(columnName)) {
         column.kind(Column.Kind.CLUSTERING);
-      } else if (columnDef.getIsStatic()) {
+      } else if (columnDef.isStatic()) {
         column.kind(Column.Kind.STATIC);
       }
       for (Sgv2Table.ClusteringExpression clustering : clusterings) {
-        if (columnName.equals(clustering.getColumn())) {
+        if (columnName.equals(clustering.column())) {
           if (clustering.hasOrderAsc()) {
             column.order(Column.Order.ASC);
           } else if (clustering.hasOrderDesc()) {
             column.order(Column.Order.DESC);
           } else {
             throw new IllegalArgumentException(
-                "Unrecognized ordering value '" + clustering.getOrder() + "'");
+                "Unrecognized ordering value '" + clustering.order() + "'");
           }
         }
       }
@@ -99,7 +99,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
     // so that QueryBuilder will create partition and clustering keys (if any) in
     // correct order, as per "primary key" definition and NOT order of columns passed
     final List<Column> columns = new ArrayList<>(columnsByName.size());
-    Stream.concat(primaryKeys.getPartitionKey().stream(), primaryKeys.getClusteringKey().stream())
+    Stream.concat(primaryKeys.partitionKey().stream(), primaryKeys.clusteringKey().stream())
         .map(key -> columnsByName.remove(key))
         .filter(Objects::nonNull) // should never happen but let QueryBuilder catch, not NPE
         .forEach(column -> columns.add(column));
@@ -109,8 +109,8 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
     QueryOuterClass.Query query =
         new QueryBuilder()
             .create()
-            .table(keyspaceName, tableAdd.getName())
-            .ifNotExists(tableAdd.getIfNotExists())
+            .table(keyspaceName, tableAdd.name())
+            .ifNotExists(tableAdd.ifNotExists())
             .column(columns)
             .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
             .build();
@@ -127,13 +127,13 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
             keyspaceName,
             tableName,
             (tableDef) -> {
-              Sgv2Table.TableOptions options = tableUpdate.getTableOptions();
-              List<?> clusteringExpressions = options.getClusteringExpression();
+              Sgv2Table.TableOptions options = tableUpdate.tableOptions();
+              List<?> clusteringExpressions = options.clusteringExpression();
               if (clusteringExpressions != null && !clusteringExpressions.isEmpty()) {
                 throw new WebApplicationException(
                     "Cannot update the clustering order of a table", Status.BAD_REQUEST);
               }
-              Integer defaultTTL = options.getDefaultTimeToLive();
+              Integer defaultTTL = options.defaultTimeToLive();
               // 09-Dec-2021, tatu: Seems bit odd but this is the way SGv1/RESTv2 checks it,
               //    probably since this is the only thing that can actually be changed:
               if (defaultTTL == null) {
@@ -143,7 +143,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
               return new QueryBuilder()
                   .alter()
                   .table(keyspaceName, tableName)
-                  .withDefaultTTL(options.getDefaultTimeToLive())
+                  .withDefaultTTL(options.defaultTimeToLive())
                   .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
                   .build();
             })
@@ -165,16 +165,17 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
 
   private Sgv2Table table2table(Schema.CqlTable grpcTable, String keyspace) {
     final List<Sgv2ColumnDefinition> columns = new ArrayList<>();
-    final Sgv2Table.PrimaryKey primaryKeys = new Sgv2Table.PrimaryKey();
+    final List<String> partitionKeys = new ArrayList<>();
+    final List<String> clusteringKeys = new ArrayList<>();
 
     // Not very pretty but need to both add columns AND create PrimaryKey defs so:
     for (QueryOuterClass.ColumnSpec column : grpcTable.getPartitionKeyColumnsList()) {
       columns.add(column2column(column, false));
-      primaryKeys.addPartitionKey(column.getName());
+      partitionKeys.add(column.getName());
     }
     for (QueryOuterClass.ColumnSpec column : grpcTable.getClusteringKeyColumnsList()) {
       columns.add(column2column(column, false));
-      primaryKeys.addClusteringKey(column.getName());
+      clusteringKeys.add(column.getName());
     }
     for (QueryOuterClass.ColumnSpec column : grpcTable.getStaticColumnsList()) {
       columns.add(column2column(column, true));
@@ -198,6 +199,9 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
       }
     }
     final Sgv2Table.TableOptions tableOptions = new Sgv2Table.TableOptions(defaultTTL, clustering);
+    final Sgv2Table.PrimaryKey primaryKeys =
+        new Sgv2Table.PrimaryKey(partitionKeys, clusteringKeys);
+
     return new Sgv2Table(grpcTable.getName(), keyspace, columns, primaryKeys, tableOptions);
   }
 

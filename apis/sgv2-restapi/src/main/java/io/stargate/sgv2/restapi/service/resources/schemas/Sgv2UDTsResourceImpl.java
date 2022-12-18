@@ -103,7 +103,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
       throw new WebApplicationException(
           "Invalid JSON payload: " + e.getMessage(), Response.Status.BAD_REQUEST);
     }
-    final String typeName = udtAdd.getName();
+    final String typeName = udtAdd.name();
     if (typeName == null || typeName.isEmpty()) {
       throw new WebApplicationException("typeName must be provided", Response.Status.BAD_REQUEST);
     }
@@ -112,8 +112,8 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
         new QueryBuilder()
             .create()
             .type(keyspaceName, typeName)
-            .ifNotExists(udtAdd.getIfNotExists())
-            .column(columns2columns(udtAdd.getFields()))
+            .ifNotExists(udtAdd.ifNotExists())
+            .column(columns2columns(udtAdd.fields()))
             .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
             .build();
 
@@ -140,10 +140,10 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
   @Override
   public Uni<RestResponse<Void>> updateType(
       final String keyspaceName, final Sgv2UDTUpdateRequest udtUpdate) {
-    final String typeName = udtUpdate.getName();
+    final String typeName = udtUpdate.name();
 
-    List<Sgv2UDT.UDTField> addFields = udtUpdate.getAddFields();
-    List<Sgv2UDTUpdateRequest.FieldRename> renameFields = udtUpdate.getRenameFields();
+    List<Sgv2UDT.UDTField> addFields = udtUpdate.addFields();
+    List<Sgv2UDTUpdateRequest.FieldRename> renameFields = udtUpdate.renameFields();
 
     final boolean hasAddFields = (addFields != null && !addFields.isEmpty());
     final boolean hasRenameFields = (renameFields != null && !renameFields.isEmpty());
@@ -168,8 +168,8 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
           renameFields.stream()
               .collect(
                   Collectors.toMap(
-                      Sgv2UDTUpdateRequest.FieldRename::getFrom,
-                      Sgv2UDTUpdateRequest.FieldRename::getTo));
+                      Sgv2UDTUpdateRequest.FieldRename::from,
+                      Sgv2UDTUpdateRequest.FieldRename::to));
       final QueryOuterClass.Query renameQuery =
           new QueryBuilder()
               .alter()
@@ -204,8 +204,8 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
   private List<Column> columns2columns(List<Sgv2UDT.UDTField> fields) {
     List<Column> result = new ArrayList<>();
     for (Sgv2UDT.UDTField colDef : fields) {
-      String columnName = colDef.getName();
-      String typeDef = colDef.getTypeDefinition();
+      String columnName = colDef.name();
+      String typeDef = colDef.typeDefinition();
       if (isStringEmpty(columnName) || isStringEmpty(typeDef)) {
         throw new WebApplicationException(
             "Field 'name' and 'typeDefinition' must be provided", Response.Status.BAD_REQUEST);
