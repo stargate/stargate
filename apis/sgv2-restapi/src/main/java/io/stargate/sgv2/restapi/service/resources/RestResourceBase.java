@@ -221,7 +221,7 @@ public abstract class RestResourceBase {
     return PROTO_CONVERTERS.toProtoConverter(tableDef);
   }
 
-  static RestResponse<Object> convertRowsToResponse(
+  public static RestResponse<Object> convertRowsToResponse(
       QueryOuterClass.Response grpcResponse, boolean raw) {
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
     final int count = rs.getRowsCount();
