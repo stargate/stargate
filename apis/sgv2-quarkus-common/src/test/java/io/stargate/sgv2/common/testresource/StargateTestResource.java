@@ -287,11 +287,11 @@ public class StargateTestResource
     }
   }
 
-  private String getClusterName() {
+  private static String getClusterName() {
     return System.getProperty("testing.containers.cluster-name", Defaults.CLUSTER_NAME);
   }
 
-  private String getClusterVersion() {
+  public static String getClusterVersion() {
     return System.getProperty("testing.containers.cluster-version", Defaults.CLUSTER_VERSION);
   }
 

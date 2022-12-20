@@ -52,7 +52,7 @@ import java.util.stream.Stream;
     autoVarArgs = false,
     name = "QueryBuilder",
     syntax =
-        "(<keyspace>|<table>|<insert>|<update>|<delete>|<select>|<index>|<type>) parameters? (build|buildForBatch)",
+        "(<keyspace>|<table>|<insert>|<update>|<delete>|<select>|<index>|<type>|<other>) parameters? (build|buildForBatch)",
     where = {
       @SubExpr(
           name = "keyspace",
@@ -84,6 +84,7 @@ import java.util.stream.Stream;
           definedAs =
               "(drop ((materializedView|index) ifExists?)) | (create ((materializedView ifNotExists? asSelect (column+) from withComment?)"
                   + " | (index ifNotExists? on column (indexKeys|indexValues|indexEntries|indexFull|indexingType)? (custom options?)?)))"),
+      @SubExpr(name = "other", definedAs = "cql")
     })
 @SuppressWarnings("PMD.ExcessiveClassLength")
 public class QueryBuilderImpl {
@@ -101,6 +102,7 @@ public class QueryBuilderImpl {
   private boolean isType;
   private boolean isIndex;
   private boolean isTruncate;
+  private boolean isOther;
   private CollectionIndexingType indexingType;
 
   private String keyspaceName;
@@ -161,6 +163,7 @@ public class QueryBuilderImpl {
   private Long timestampLong;
   private boolean allowFiltering;
   private QueryParameters parameters;
+  private String cql;
 
   @DSLAction
   public void create() {
@@ -180,6 +183,12 @@ public class QueryBuilderImpl {
   @DSLAction
   public void truncate() {
     isTruncate = true;
+  }
+
+  @DSLAction
+  public void cql(String cql) {
+    this.isOther = true;
+    this.cql = cql;
   }
 
   @DSLAction
@@ -823,6 +832,9 @@ public class QueryBuilderImpl {
     }
     if (isSelect) {
       return selectQuery();
+    }
+    if (isOther) {
+      return cql;
     }
 
     throw new AssertionError("Unknown query type");

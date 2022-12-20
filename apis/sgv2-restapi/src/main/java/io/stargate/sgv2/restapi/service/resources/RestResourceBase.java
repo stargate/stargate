@@ -8,6 +8,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.BytesValue;
 import com.google.protobuf.Int32Value;
+import com.google.protobuf.StringValue;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
@@ -166,7 +167,7 @@ public abstract class RestResourceBase {
         .setPageSize(Int32Value.of(DEFAULT_PAGE_SIZE));
   }
 
-  protected QueryOuterClass.QueryParameters parametersForPageSizeAndState(
+  static QueryOuterClass.QueryParameters parametersForPageSizeAndState(
       int pageSizeParam, String pageStateParam) {
     if (isStringEmpty(pageStateParam) && pageSizeParam <= 0) {
       return PARAMETERS_FOR_LOCAL_QUORUM;
@@ -178,6 +179,25 @@ public abstract class RestResourceBase {
     }
     if (pageSizeParam > 0) {
       paramsB = paramsB.setPageSize(Int32Value.of(pageSizeParam));
+    }
+    return paramsB.build();
+  }
+
+  static QueryOuterClass.QueryParameters parametersForPageSizeStateAndKeyspace(
+      int pageSizeParam, String pageStateParam, String keyspace) {
+    if (isStringEmpty(pageStateParam) && pageSizeParam <= 0 && isStringEmpty(keyspace)) {
+      return PARAMETERS_FOR_LOCAL_QUORUM;
+    }
+    QueryOuterClass.QueryParameters.Builder paramsB = parametersBuilderForLocalQuorum();
+    if (!isStringEmpty(pageStateParam)) {
+      paramsB =
+          paramsB.setPagingState(BytesValue.of(ByteString.copyFrom(decodeBase64(pageStateParam))));
+    }
+    if (pageSizeParam > 0) {
+      paramsB = paramsB.setPageSize(Int32Value.of(pageSizeParam));
+    }
+    if (!isStringEmpty(keyspace)) {
+      paramsB = paramsB.setKeyspace(StringValue.of(keyspace));
     }
     return paramsB.build();
   }
@@ -201,7 +221,7 @@ public abstract class RestResourceBase {
     return PROTO_CONVERTERS.toProtoConverter(tableDef);
   }
 
-  protected RestResponse<Object> convertRowsToResponse(
+  public static RestResponse<Object> convertRowsToResponse(
       QueryOuterClass.Response grpcResponse, boolean raw) {
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
     final int count = rs.getRowsCount();
@@ -212,7 +232,7 @@ public abstract class RestResourceBase {
     return RestResponse.ok(response);
   }
 
-  protected List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
+  static List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
     FromProtoConverter converter =
         BridgeProtoValueConverters.instance().fromProtoConverter(rs.getColumnsList());
     List<Map<String, Object>> resultRows = new ArrayList<>();
