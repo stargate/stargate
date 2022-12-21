@@ -8,6 +8,7 @@ import io.restassured.http.ContentType;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
 import org.junit.jupiter.api.Test;
 
+/** Integration tests for CQL endpoint (at {@code /v2/cql}). */
 @QuarkusIntegrationTest
 @QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QCqlIT extends RestApiV2QIntegrationTestBase {
