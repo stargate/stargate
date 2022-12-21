@@ -36,6 +36,13 @@
       <artifactId>graphql-java</artifactId>
       <version>18.3</version>
     </dependency>
+    <!-- Quarkus sets it's own antlr version, keep this is sync with graphql-java deps -->
+    <dependency>
+      <groupId>org.antlr</groupId>
+      <artifactId>antlr4-runtime</artifactId>
+      <version>4.9.3</version>
+      <scope>runtime</scope>
+    </dependency>
     <dependency>
       <groupId>com.apollographql.federation</groupId>
       <artifactId>federation-graphql-java-support</artifactId>

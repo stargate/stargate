@@ -39,7 +39,7 @@
 
     <caffeine.version>2.9.3</caffeine.version>
     <commons-io.version>2.7</commons-io.version>
-    <grpc.version>1.50.2</grpc.version>
+    <grpc.version>1.51.0</grpc.version>
     <immutables.version>2.8.8</immutables.version>
     <jackson.version>2.13.4</jackson.version>
     <javatuples.version>1.2</javatuples.version>
@@ -823,7 +823,6 @@
         <artifactId>nimbus-jose-jwt</artifactId>
         <version>9.21</version>
       </dependency>
-
     </dependencies>
   </dependencyManagement>
  
