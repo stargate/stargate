@@ -23,7 +23,6 @@ import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.Matchers.endsWith;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.nullValue;
-import static org.hamcrest.Matchers.startsWith;
 
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
@@ -166,7 +165,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
           .then()
           .statusCode(400)
           .body("code", is(400))
-          .body("description", startsWith("Unable to process JSON"));
+          .body("description", is("HTTP 400 Bad Request"));
     }
 
     @Test

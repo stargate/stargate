@@ -23,7 +23,6 @@ import static net.javacrumbs.jsonunit.JsonMatchers.jsonPartEquals;
 import static net.javacrumbs.jsonunit.core.util.ResourceUtils.resource;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
-import static org.hamcrest.Matchers.startsWith;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 import com.google.common.io.CharStreams;
@@ -391,7 +390,7 @@ class DocumentUpdateResourceIntegrationTest extends DocsApiIntegrationTest {
           .then()
           .statusCode(400)
           .body("code", is(400))
-          .body("description", startsWith("Unable to process JSON"));
+          .body("description", is("HTTP 400 Bad Request"));
     }
 
     @Test
