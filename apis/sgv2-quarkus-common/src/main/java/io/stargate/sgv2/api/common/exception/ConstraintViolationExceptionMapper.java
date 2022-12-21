@@ -17,6 +17,7 @@
 
 package io.stargate.sgv2.api.common.exception;
 
+import io.quarkus.arc.lookup.LookupIfProperty;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -28,6 +29,10 @@ import org.jboss.resteasy.reactive.RestResponse.ResponseBuilder;
 import org.jboss.resteasy.reactive.server.ServerExceptionMapper;
 
 /** Simple exception mapper for the {@link ConstraintViolationException}. */
+@LookupIfProperty(
+    name = "stargate.exception-mappers.enabled",
+    stringValue = "true",
+    lookupIfMissing = true)
 public class ConstraintViolationExceptionMapper {
 
   @ServerExceptionMapper
