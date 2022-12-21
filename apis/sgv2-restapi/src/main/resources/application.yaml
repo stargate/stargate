@@ -2,6 +2,10 @@
 # please keep properties in the alphabetical order
 
 stargate:
+  rest:
+    cql:
+      # By default CQL endpoint (/v2/cql) is NOT enabled
+      enabled: false
 
   # metrics properties
   # see io.stargate.sgv2.api.common.config.MetricsConfig for all config properties and options
