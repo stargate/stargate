@@ -17,6 +17,7 @@
 
 package io.stargate.sgv2.api.common.exception;
 
+import io.quarkus.arc.lookup.LookupIfProperty;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import javax.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;
@@ -26,6 +27,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Simple exception mapper for the {@link RuntimeException}. */
+@LookupIfProperty(
+    name = "stargate.exception-mappers.enabled",
+    stringValue = "true",
+    lookupIfMissing = true)
 public class RuntimeExceptionMapper {
 
   private static final Logger log = LoggerFactory.getLogger(RuntimeExceptionMapper.class);
