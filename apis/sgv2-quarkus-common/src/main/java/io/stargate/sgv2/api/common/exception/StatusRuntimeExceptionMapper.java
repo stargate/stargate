@@ -67,12 +67,14 @@ public class StatusRuntimeExceptionMapper {
       case UNIMPLEMENTED:
         return grpcResponseAndLogAsError(
             sc, Response.Status.NOT_IMPLEMENTED, "Unimplemented gRPC operation", msg);
+      case DEADLINE_EXCEEDED:
+        return grpcResponseAndLogAsError(
+            sc, Response.Status.GATEWAY_TIMEOUT, "gRPC service timeout", msg);
 
         // and then all codes we consider as not expected
       case OK:
       case CANCELLED:
       case UNKNOWN:
-      case DEADLINE_EXCEEDED:
       case ALREADY_EXISTS:
       case RESOURCE_EXHAUSTED:
       case ABORTED:
