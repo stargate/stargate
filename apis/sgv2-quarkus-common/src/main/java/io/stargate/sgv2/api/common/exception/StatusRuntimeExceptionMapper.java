@@ -19,6 +19,7 @@ package io.stargate.sgv2.api.common.exception;
 
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
+import io.quarkus.arc.lookup.LookupIfProperty;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import javax.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;
@@ -28,6 +29,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Simple exception mapper for the {@link StatusRuntimeException}. */
+@LookupIfProperty(
+    name = "stargate.exception-mappers.enabled",
+    stringValue = "true",
+    lookupIfMissing = true)
 public class StatusRuntimeExceptionMapper {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(StatusRuntimeExceptionMapper.class);
