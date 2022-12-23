@@ -1,5 +1,14 @@
 # Changelog
 
+## [v1.0.71](https://github.com/stargate/stargate/tree/v1.0.71) (2022-12-06)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.3...v1.0.71)
+
+**Merged pull requests:**
+
+- Bump version to `1.0.71-SNAPSHOT` [\#2298](https://github.com/stargate/stargate/pull/2298) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+
 ## [v1.0.70](https://github.com/stargate/stargate/tree/v1.0.70) (2022-12-06)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.69...v1.0.70)
