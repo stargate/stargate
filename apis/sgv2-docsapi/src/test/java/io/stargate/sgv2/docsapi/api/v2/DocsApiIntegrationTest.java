@@ -117,4 +117,24 @@ public abstract class DocsApiIntegrationTest {
               });
     }
   }
+
+  @Nested
+  @Order(Integer.MAX_VALUE)
+  class CleanUp {
+
+    @Test
+    public void deleteNamespace() {
+      createNamespace()
+          .ifPresent(
+              namespace -> {
+                // delete
+                given()
+                    .contentType(ContentType.JSON)
+                    .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+                    .delete(NamespacesResource.BASE_PATH + "/{namespace}", namespace)
+                    .then()
+                    .statusCode(204);
+              });
+    }
+  }
 }
