@@ -26,6 +26,7 @@ import graphql.com.google.common.base.Strings;
 import graphql.com.google.common.collect.ImmutableList;
 import graphql.com.google.common.collect.ImmutableMap;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.stargate.sgv2.graphql.web.models.GraphqlFormData;
 import io.stargate.sgv2.graphql.web.models.GraphqlJsonBody;
 import java.io.IOException;
@@ -33,7 +34,6 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
@@ -281,12 +281,8 @@ public abstract class GraphqlResourceBase {
   }
 
   protected static Uni<Map<String, Object>> execute(ExecutionInput input, GraphQL graphql) {
-    // invoke graphql
-    CompletableFuture<ExecutionResult> future = graphql.executeAsync(input);
-
-    // create uni from future
-    return Uni.createFrom()
-        .future(future)
+    // execute graphql call
+    return executeGraphql(input, graphql)
 
         // on item check if we are not maybe overloaded
         .onItem()
@@ -312,6 +308,17 @@ public abstract class GraphqlResourceBase {
                   .failure(
                       graphqlError(Response.Status.INTERNAL_SERVER_ERROR, "Internal server error"));
             });
+  }
+
+  private static Uni<ExecutionResult> executeGraphql(ExecutionInput input, GraphQL graphql) {
+    // create uni from future
+    return Uni.createFrom()
+        .future(() -> graphql.executeAsync(input))
+
+        // always run subscription on workers thread
+        // b/c although return type is completable future
+        // we are blocking inside of the graphql
+        .runSubscriptionOn(Infrastructure.getDefaultWorkerPool());
   }
 
   protected static WebApplicationException graphqlError(Response.Status status, String message) {
