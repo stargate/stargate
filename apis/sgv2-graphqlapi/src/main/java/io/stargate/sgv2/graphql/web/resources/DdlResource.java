@@ -16,6 +16,7 @@
 package io.stargate.sgv2.graphql.web.resources;
 
 import graphql.GraphQL;
+import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.graphql.web.models.GraphqlJsonBody;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -24,9 +25,8 @@ import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
+import org.jboss.resteasy.reactive.RestResponse;
 
 /**
  * A GraphQL service that allows users to execute CQL DDL queries directly (e.g. create a keyspace,
@@ -44,29 +44,26 @@ public class DdlResource extends StargateGraphqlResourceBase {
   }
 
   @GET
-  public void get(
+  public Uni<RestResponse<?>> get(
       @QueryParam("query") String query,
       @QueryParam("operationName") String operationName,
-      @QueryParam("variables") String variables,
-      @Suspended AsyncResponse asyncResponse) {
+      @QueryParam("variables") String variables) {
 
-    get(query, operationName, variables, graphql, newContext(), asyncResponse);
+    return get(query, operationName, variables, graphql, newContext());
   }
 
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
-  public void postJson(
-      GraphqlJsonBody jsonBody,
-      @QueryParam("query") String queryFromUrl,
-      @Suspended AsyncResponse asyncResponse) {
+  public Uni<RestResponse<?>> postJson(
+      GraphqlJsonBody jsonBody, @QueryParam("query") String queryFromUrl) {
 
-    postJson(jsonBody, queryFromUrl, graphql, newContext(), asyncResponse);
+    return postJson(jsonBody, queryFromUrl, graphql, newContext());
   }
 
   @POST
   @Consumes(APPLICATION_GRAPHQL)
-  public void postGraphql(String query, @Suspended AsyncResponse asyncResponse) {
+  public Uni<RestResponse<?>> postGraphql(String query) {
 
-    postGraphql(query, graphql, newContext(), asyncResponse);
+    return postGraphql(query, graphql, newContext());
   }
 }

@@ -17,6 +17,7 @@ package io.stargate.sgv2.graphql.web.resources;
 
 import graphql.GraphQL;
 import graphql.GraphqlErrorException;
+import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.graphql.web.models.GraphqlJsonBody;
 import java.util.Optional;
 import java.util.regex.Pattern;
@@ -28,10 +29,9 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response.Status;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,75 +53,67 @@ public class DmlResource extends StargateGraphqlResourceBase {
   static final Pattern KEYSPACE_NAME_PATTERN = Pattern.compile("\\w+");
 
   @GET
-  public void get(
+  public Uni<RestResponse<?>> get(
       @QueryParam("query") String query,
       @QueryParam("operationName") String operationName,
-      @QueryParam("variables") String variables,
-      @Suspended AsyncResponse asyncResponse) {
+      @QueryParam("variables") String variables) {
 
     GraphQL graphql = getDefaultGraphql();
-    get(query, operationName, variables, graphql, newContext(), asyncResponse);
+    return get(query, operationName, variables, graphql, newContext());
   }
 
   @GET
   @Path("/{keyspaceName}")
-  public void get(
+  public Uni<RestResponse<?>> get(
       @PathParam("keyspaceName") String keyspaceName,
       @QueryParam("query") String query,
       @QueryParam("operationName") String operationName,
-      @QueryParam("variables") String variables,
-      @Suspended AsyncResponse asyncResponse) {
+      @QueryParam("variables") String variables) {
 
     GraphQL graphql = getGraphql(keyspaceName);
-    get(query, operationName, variables, graphql, newContext(), asyncResponse);
+    return get(query, operationName, variables, graphql, newContext());
   }
 
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
-  public void postJson(
-      GraphqlJsonBody jsonBody,
-      @QueryParam("query") String queryFromUrl,
-      @Suspended AsyncResponse asyncResponse) {
+  public Uni<RestResponse<?>> postJson(
+      GraphqlJsonBody jsonBody, @QueryParam("query") String queryFromUrl) {
 
     GraphQL graphql = getDefaultGraphql();
-    postJson(jsonBody, queryFromUrl, graphql, newContext(), asyncResponse);
+    return postJson(jsonBody, queryFromUrl, graphql, newContext());
   }
 
   @POST
   @Path("/{keyspaceName}")
   @Consumes(MediaType.APPLICATION_JSON)
-  public void postJson(
+  public Uni<RestResponse<?>> postJson(
       @PathParam("keyspaceName") String keyspaceName,
       GraphqlJsonBody jsonBody,
-      @QueryParam("query") String queryFromUrl,
-      @Suspended AsyncResponse asyncResponse) {
+      @QueryParam("query") String queryFromUrl) {
 
     GraphQL graphql = getGraphql(keyspaceName);
-    postJson(jsonBody, queryFromUrl, graphql, newContext(), asyncResponse);
+    return postJson(jsonBody, queryFromUrl, graphql, newContext());
   }
 
   @POST
   @Consumes(APPLICATION_GRAPHQL)
-  public void postGraphql(
-      String query,
-      @HeaderParam("X-Cassandra-Token") String token,
-      @Suspended AsyncResponse asyncResponse) {
+  public Uni<RestResponse<?>> postGraphql(
+      String query, @HeaderParam("X-Cassandra-Token") String token) {
 
     GraphQL graphql = getDefaultGraphql();
-    postGraphql(query, graphql, newContext(), asyncResponse);
+    return postGraphql(query, graphql, newContext());
   }
 
   @POST
   @Path("/{keyspaceName}")
   @Consumes(APPLICATION_GRAPHQL)
-  public void postGraphql(
+  public Uni<RestResponse<?>> postGraphql(
       @PathParam("keyspaceName") String keyspaceName,
       String query,
-      @HeaderParam("X-Cassandra-Token") String token,
-      @Suspended AsyncResponse asyncResponse) {
+      @HeaderParam("X-Cassandra-Token") String token) {
 
     GraphQL graphql = getGraphql(keyspaceName);
-    postGraphql(query, graphql, newContext(), asyncResponse);
+    return postGraphql(query, graphql, newContext());
   }
 
   private GraphQL getGraphql(String keyspaceName) {

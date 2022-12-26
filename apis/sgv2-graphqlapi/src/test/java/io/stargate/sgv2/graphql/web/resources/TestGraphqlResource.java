@@ -28,6 +28,7 @@ import graphql.GraphQLContext;
 import graphql.Scalars;
 import graphql.schema.DataFetcher;
 import graphql.schema.FieldCoordinates;
+import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.graphql.schema.FileSupport;
 import io.stargate.sgv2.graphql.web.models.GraphqlFormData;
 import io.stargate.sgv2.graphql.web.models.GraphqlJsonBody;
@@ -41,9 +42,8 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
+import org.jboss.resteasy.reactive.RestResponse;
 
 /**
  * A test-only resource without any Stargate-specific logic, just to cover the generic functionality
@@ -93,33 +93,29 @@ public class TestGraphqlResource extends GraphqlResourceBase {
   private static final GraphQLContext CONTEXT = GraphQLContext.newContext().build();
 
   @GET
-  public void get(
+  public Uni<RestResponse<?>> get(
       @QueryParam("query") String query,
       @QueryParam("operationName") String operationName,
-      @QueryParam("variables") String variables,
-      @Suspended AsyncResponse asyncResponse) {
-    super.get(query, operationName, variables, GRAPHQL, CONTEXT, asyncResponse);
+      @QueryParam("variables") String variables) {
+    return super.get(query, operationName, variables, GRAPHQL, CONTEXT);
   }
 
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
-  public void postJson(
-      GraphqlJsonBody jsonBody,
-      @QueryParam("query") String queryFromUrl,
-      @Suspended AsyncResponse asyncResponse) {
-    super.postJson(jsonBody, queryFromUrl, GRAPHQL, CONTEXT, asyncResponse);
+  public Uni<RestResponse<?>> postJson(
+      GraphqlJsonBody jsonBody, @QueryParam("query") String queryFromUrl) {
+    return super.postJson(jsonBody, queryFromUrl, GRAPHQL, CONTEXT);
   }
 
   @POST
   @Consumes(APPLICATION_GRAPHQL)
-  public void postGraphql(String query, @Suspended AsyncResponse asyncResponse) {
-    super.postGraphql(query, GRAPHQL, CONTEXT, asyncResponse);
+  public Uni<RestResponse<?>> postGraphql(String query) {
+    return super.postGraphql(query, GRAPHQL, CONTEXT);
   }
 
   @POST
   @Consumes(MediaType.MULTIPART_FORM_DATA)
-  public void postMultipartJson(
-      @BeanParam GraphqlFormData formData, @Suspended AsyncResponse asyncResponse) {
-    super.postMultipartJson(formData, GRAPHQL, CONTEXT, asyncResponse);
+  public Uni<RestResponse<?>> postMultipartJson(@BeanParam GraphqlFormData formData) {
+    return super.postMultipartJson(formData, GRAPHQL, CONTEXT);
   }
 }
