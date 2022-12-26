@@ -15,8 +15,10 @@
  */
 package io.stargate.sgv2.graphql.web.resources;
 
+import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.api.common.grpc.proto.SchemaReads;
+import java.util.concurrent.CompletionStage;
 import javax.inject.Inject;
 
 public class StargateGraphqlResourceBase extends GraphqlResourceBase {
@@ -28,7 +30,9 @@ public class StargateGraphqlResourceBase extends GraphqlResourceBase {
     return new StargateGraphqlContext(bridge, graphqlCache);
   }
 
-  protected boolean isAuthorized(String keyspaceName) {
-    return bridge.authorizeSchemaRead(SchemaReads.keyspace(keyspaceName));
+  protected Uni<Boolean> isAuthorized(String keyspaceName) {
+    Schema.SchemaRead schemaRead = SchemaReads.keyspace(keyspaceName);
+    CompletionStage<Boolean> result = bridge.authorizeSchemaReadAsync(schemaRead);
+    return Uni.createFrom().future(result.toCompletableFuture());
   }
 }
