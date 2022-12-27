@@ -15,13 +15,16 @@
  */
 package io.stargate.sgv2.graphql.web.resources;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.GraphQL;
 import graphql.GraphqlErrorException;
 import io.smallrye.mutiny.Uni;
+import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.graphql.web.models.GraphqlJsonBody;
 import java.util.Optional;
 import java.util.concurrent.CompletionStage;
 import java.util.regex.Pattern;
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -52,6 +55,12 @@ public class DmlResource extends StargateGraphqlResourceBase {
 
   private static final Logger LOG = LoggerFactory.getLogger(DmlResource.class);
   static final Pattern KEYSPACE_NAME_PATTERN = Pattern.compile("\\w+");
+
+  @Inject
+  public DmlResource(
+      ObjectMapper objectMapper, StargateBridgeClient bridge, GraphqlCache graphqlCache) {
+    super(objectMapper, bridge, graphqlCache);
+  }
 
   @GET
   public Uni<RestResponse<?>> get(

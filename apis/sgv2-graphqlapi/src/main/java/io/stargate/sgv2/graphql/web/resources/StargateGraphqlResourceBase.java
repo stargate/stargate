@@ -15,16 +15,23 @@
  */
 package io.stargate.sgv2.graphql.web.resources;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.smallrye.mutiny.Uni;
 import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.api.common.grpc.proto.SchemaReads;
 import java.util.concurrent.CompletionStage;
-import javax.inject.Inject;
 
 public class StargateGraphqlResourceBase extends GraphqlResourceBase {
 
-  @Inject protected StargateBridgeClient bridge;
-  @Inject protected GraphqlCache graphqlCache;
+  protected final StargateBridgeClient bridge;
+  protected final GraphqlCache graphqlCache;
+
+  public StargateGraphqlResourceBase(
+      ObjectMapper objectMapper, StargateBridgeClient bridge, GraphqlCache graphqlCache) {
+    super(objectMapper);
+    this.bridge = bridge;
+    this.graphqlCache = graphqlCache;
+  }
 
   protected StargateGraphqlContext newContext() {
     return new StargateGraphqlContext(bridge, graphqlCache);

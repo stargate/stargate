@@ -22,6 +22,7 @@ import static graphql.schema.GraphQLFieldDefinition.newFieldDefinition;
 import static graphql.schema.GraphQLObjectType.newObject;
 import static graphql.schema.GraphQLSchema.newSchema;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.CharStreams;
 import graphql.GraphQL;
 import graphql.GraphQLContext;
@@ -35,6 +36,7 @@ import io.stargate.sgv2.graphql.web.models.GraphqlJsonBody;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
+import javax.inject.Inject;
 import javax.ws.rs.BeanParam;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -91,6 +93,11 @@ public class TestGraphqlResource extends GraphqlResourceBase {
 
   // Don't need anything specific in the context
   private static final GraphQLContext CONTEXT = GraphQLContext.newContext().build();
+
+  @Inject
+  public TestGraphqlResource(ObjectMapper objectMapper) {
+    super(objectMapper);
+  }
 
   @GET
   public Uni<RestResponse<?>> get(

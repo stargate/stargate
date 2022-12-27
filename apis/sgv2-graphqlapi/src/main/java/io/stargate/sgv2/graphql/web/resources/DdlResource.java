@@ -15,8 +15,10 @@
  */
 package io.stargate.sgv2.graphql.web.resources;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.GraphQL;
 import io.smallrye.mutiny.Uni;
+import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.graphql.web.models.GraphqlJsonBody;
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -39,7 +41,9 @@ public class DdlResource extends StargateGraphqlResourceBase {
   private final GraphQL graphql;
 
   @Inject
-  public DdlResource(GraphqlCache graphqlCache) {
+  public DdlResource(
+      ObjectMapper objectMapper, StargateBridgeClient bridge, GraphqlCache graphqlCache) {
+    super(objectMapper, bridge, graphqlCache);
     this.graphql = graphqlCache.getDdl();
   }
 

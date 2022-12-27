@@ -46,11 +46,17 @@ import org.slf4j.LoggerFactory;
 @Produces(MediaType.APPLICATION_JSON)
 public abstract class GraphqlResourceBase {
 
+  private static final Logger LOG = LoggerFactory.getLogger(GraphqlResourceBase.class);
+
   public static final String APPLICATION_GRAPHQL = "application/graphql";
 
-  private static final Logger LOG = LoggerFactory.getLogger(GraphqlResourceBase.class);
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final Splitter PATH_SPLITTER = Splitter.on(".");
+
+  private final ObjectMapper objectMapper;
+
+  protected GraphqlResourceBase(ObjectMapper objectMapper) {
+    this.objectMapper = objectMapper;
+  }
 
   /**
    * Handles a GraphQL GET request.
@@ -78,7 +84,7 @@ public abstract class GraphqlResourceBase {
                 if (!Strings.isNullOrEmpty(variables)) {
                   @SuppressWarnings("unchecked")
                   Map<String, Object> parsedVariables =
-                      OBJECT_MAPPER.readValue(variables, Map.class);
+                      objectMapper.readValue(variables, Map.class);
                   input = input.context(context).variables(parsedVariables);
                 }
 
