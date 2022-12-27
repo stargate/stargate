@@ -18,7 +18,6 @@ package io.stargate.sgv2.graphql.web.resources;
 import graphql.schema.idl.SchemaPrinter;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import io.stargate.bridge.proto.Schema.SchemaRead.SourceApi;
 import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.api.common.grpc.proto.SchemaReads;
 import io.stargate.sgv2.graphql.persistence.graphqlfirst.SchemaSource;
@@ -93,8 +92,7 @@ public class FilesResource {
     try {
 
       if (!bridge.authorizeSchemaRead(
-          SchemaReads.table(
-              SchemaSourceDao.KEYSPACE_NAME, SchemaSourceDao.TABLE_NAME, SourceApi.GRAPHQL))) {
+          SchemaReads.table(SchemaSourceDao.KEYSPACE_NAME, SchemaSourceDao.TABLE_NAME))) {
         throw new WebApplicationException(Response.Status.UNAUTHORIZED);
       }
 
