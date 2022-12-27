@@ -62,6 +62,7 @@ quarkus:
       bridge:
         host: localhost
         port: 8091
+        deadline: PT10S
         retry: true
         max-hedged-attempts: 0
 
