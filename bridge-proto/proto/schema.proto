@@ -133,7 +133,7 @@ message SchemaRead {
   // The type of element
   ElementType element_type = 3;
   // The Stargate API that initiated the request
-  SourceApi source_api = 4;
+  SourceApi source_api = 4 [deprecated=true];
 }
 
 // The response to an AuthorizeSchemaReadsRequest.

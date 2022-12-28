@@ -179,7 +179,12 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
   public void authorizeSchemaReads(
       Schema.AuthorizeSchemaReadsRequest request,
       StreamObserver<Schema.AuthorizeSchemaReadsResponse> responseObserver) {
-    new AuthorizationHandler(request, CONNECTION_KEY.get(), authorizationService, responseObserver)
+    new AuthorizationHandler(
+            request,
+            CONNECTION_KEY.get(),
+            SOURCE_API_KEY.get(),
+            authorizationService,
+            responseObserver)
         .handle();
   }
 

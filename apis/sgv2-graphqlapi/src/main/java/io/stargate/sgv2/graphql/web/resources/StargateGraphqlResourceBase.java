@@ -15,7 +15,6 @@
  */
 package io.stargate.sgv2.graphql.web.resources;
 
-import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.api.common.grpc.proto.SchemaReads;
 import javax.inject.Inject;
@@ -30,7 +29,6 @@ public class StargateGraphqlResourceBase extends GraphqlResourceBase {
   }
 
   protected boolean isAuthorized(String keyspaceName) {
-    return bridge.authorizeSchemaRead(
-        SchemaReads.keyspace(keyspaceName, Schema.SchemaRead.SourceApi.GRAPHQL));
+    return bridge.authorizeSchemaRead(SchemaReads.keyspace(keyspaceName));
   }
 }

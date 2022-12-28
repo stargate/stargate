@@ -53,7 +53,6 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import javax.inject.Inject;
-import javax.inject.Singleton;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.BeforeEach;
@@ -63,11 +62,6 @@ import org.mockito.ArgumentCaptor;
 
 @QuarkusTest
 class SchemaManagerTest extends BridgeTest {
-
-  @Singleton
-  Schema.SchemaRead.SourceApi sourceApi() {
-    return Schema.SchemaRead.SourceApi.REST;
-  }
 
   @Inject SchemaManager schemaManager;
 
