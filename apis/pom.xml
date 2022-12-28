@@ -32,7 +32,7 @@
       Please maintain default values for int-test in sync with io.stargate.sgv2.docsapi.testresource.StargateTestResource.Defaults
      -->
     <stargate.int-test.cassandra.image>cassandra</stargate.int-test.cassandra.image>
-    <stargate.int-test.cassandra.image-tag>4.0.4</stargate.int-test.cassandra.image-tag>
+    <stargate.int-test.cassandra.image-tag>4.0.7</stargate.int-test.cassandra.image-tag>
     <stargate.int-test.coordinator.image>stargateio/coordinator-4_0</stargate.int-test.coordinator.image>
     <stargate.int-test.coordinator.image-tag>v${project.version}</stargate.int-test.coordinator.image-tag>
     <stargate.int-test.cluster.name>cass-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>
