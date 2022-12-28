@@ -37,6 +37,31 @@ To enable access to these ports from outside the Docker network, you'll need to 
 ## Docker Images
 Stargate Docker images are publicly available on [Docker Hub](https://hub.docker.com/r/stargateio/). To learn how the images are built or to build your own local versions, see the [coordinator node developer guide](../DEV_GUIDE.md) or API Service developer guides (under the [apis](apis) directory).
 
+The fastest way to build your own local images involves the following steps:
+
+* Local build of coordinator images
+  * Make sure you are in the repository root directory and have `JAVA_HOME` set to point to a JDK 1.8 installation
+  * Do a local build of jar files for coordinator:
+    ```
+    ./mvnw clean install -DskipTests
+    ```
+  * Generate docker images (image tag will default to the Stargate version specified in the `pom.xml`):
+    ```
+    ./mvnw clean install -DskipTests
+    ./build_docker_images.sh 
+    ```
+* Local build of API images
+  * Make sure you are in the `apis` directory and have `JAVA_HOME` set to point to a JDK 17 installation
+  * Do a Quarkus build including the option to generate images:
+    ```
+    ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true
+    ```
+* Verify the images exist
+  ```
+  docker images | grep <stargate version>
+  ```    
+* Select one of the supported backends listed at the top of this page and follow the instructions for using one of the provided convenience script with the `-l` (local) option
+
 ## Docker Troubleshooting
 
 If you have problems running Stargate Docker images there are couple of things you can check that might be causing these problems.
