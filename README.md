@@ -72,7 +72,7 @@ but the short of it is below.
 
 ## Supported Versions and Branching Strategy
 
-The Stargate project maintains support for the current major version number and one major version number previous. We mark the previous major version number as deprecated in order to encourage usage of the latest version. When a new major number version number release N is created, the N-2 release is no longer supported. For example, when Stargate v3 is released, v1 will no longer be supported.
+The Stargate project maintains support for the current major version number and one major version number previous. We mark the previous major version number as deprecated in order to encourage usage of the latest version. We anticipate supporting a major version number release N for one year after the subsequent major version number release (N+1), or until the major version number release (N+2), whichever comes first. For example, v1 will be supported until when Stargate v3 is released, but no later than October 2023 (1 year after release date of Stargate v2). We anticipate producing a new major version number release every 6-12 months.
 
 Supporting a release entails making bug fixes, keeping dependencies up to date, and making sure Docker images are free from vulnerabilities.
 
