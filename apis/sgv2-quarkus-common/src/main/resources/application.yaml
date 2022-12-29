@@ -152,3 +152,15 @@ quarkus:
               datastore:
                 configuration:
                   DataStorePropertiesConfiguration/fetchSupportedFeatures/Retry/maxRetries: 0
+
+# shared production properties
+"%prod":
+
+  quarkus:
+
+    # OpenTelemetry configuration
+    opentelemetry:
+      tracer:
+        # in the prod env use the sampler that samples 1% of all requests
+        sampler:
+          ratio: 0.01
