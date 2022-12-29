@@ -13,13 +13,20 @@ services:
       - DC=dc1
       - RACK=rack1
       - DS_LICENSE=accept
+    healthcheck:
+      test: [ "CMD", "cqlsh", "-u cassandra", "-p cassandra" ,"-e describe keyspaces" ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
   dse-2:
     image: datastax/dse-server:${DSETAG}
     networks:
       - stargate
     mem_limit: 2G
     depends_on:
-      - dse-1
+      dse-1:
+        condition: service_healthy
     environment:
       - HEAP_NEWSIZE=128M
       - MAX_HEAP_SIZE=1024M
@@ -28,13 +35,20 @@ services:
       - DC=dc1
       - RACK=rack1
       - DS_LICENSE=accept
+    healthcheck:
+      test: [ "CMD", "cqlsh", "-u cassandra", "-p cassandra" ,"-e describe keyspaces" ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
   dse-3:
     image: datastax/dse-server:${DSETAG}
     networks:
       - stargate
     mem_limit: 2G
     depends_on:
-      - dse-2
+      dse-2:
+        condition: service_healthy
     environment:
       - HEAP_NEWSIZE=128M
       - MAX_HEAP_SIZE=1024M
@@ -42,10 +56,17 @@ services:
       - CLUSTER_NAME=dse-${DSETAG}-cluster
       - DC=dc1
       - DS_LICENSE=accept
+    healthcheck:
+      test: [ "CMD", "cqlsh", "-u cassandra", "-p cassandra" ,"-e describe keyspaces" ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
   coordinator:
     image: stargateio/coordinator-dse-68:${SGTAG}
     depends_on: 
-      - dse-1
+      dse-1:
+        condition: service_healthy
     networks:
       - stargate
     ports:
@@ -63,10 +84,17 @@ services:
       - RACK_NAME=rack1
       - DATACENTER_NAME=dc1
       - ENABLE_AUTH=true
+    healthcheck:
+      test: curl -f http://localhost:8084/checker/readiness || exit 1
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
   restapi:
     image: stargateio/restapi:${SGTAG}
     depends_on:
-      - coordinator
+      coordinator:
+        condition: service_healthy
     networks:
       - stargate
     ports:
@@ -77,10 +105,17 @@ services:
       - QUARKUS_GRPC_CLIENTS_BRIDGE_PORT=8091
       - QUARKUS_HTTP_ACCESS_LOG_ENABLED=${REQUESTLOG}
       - QUARKUS_LOG_LEVEL=${LOGLEVEL}
+    healthcheck:
+      test: curl -f http://localhost:8082/stargate/health || exit 1
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
   graphqlapi:
     image: stargateio/graphqlapi:${SGTAG}
     depends_on:
-      - coordinator
+      coordinator:
+        condition: service_healthy
     networks:
       - stargate
     ports:
@@ -91,10 +126,17 @@ services:
       - QUARKUS_GRPC_CLIENTS_BRIDGE_PORT=8091
       - QUARKUS_HTTP_ACCESS_LOG_ENABLED=${REQUESTLOG}
       - QUARKUS_LOG_LEVEL=${LOGLEVEL}
+    healthcheck:
+      test: curl -f http://localhost:8080/stargate/health || exit 1
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
   docsapi:
     image: stargateio/docsapi:${SGTAG}
     depends_on:
-      - coordinator
+      coordinator:
+        condition: service_healthy
     networks:
       - stargate
     ports:
@@ -105,5 +147,11 @@ services:
       - QUARKUS_GRPC_CLIENTS_BRIDGE_PORT=8091
       - QUARKUS_HTTP_ACCESS_LOG_ENABLED=${REQUESTLOG}
       - QUARKUS_LOG_LEVEL=${LOGLEVEL}
+    healthcheck:
+      test: curl -f http://localhost:8180/stargate/health || exit 1
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
 networks:
   stargate:
