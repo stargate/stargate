@@ -2,6 +2,8 @@
 
 This module represents the implementation of the [persistence-api](../persistence-api) for the Cassandra `3.11.x` version.
 
+**Warning:** Support for Cassandra 3.11 is considered deprecated and will be removed in the Stargate v3 release: [details](https://github.com/stargate/stargate/discussions/2242).
+
 ## Cassandra version update
 
 The current Cassandra version this module depends on is `3.11.13`.
