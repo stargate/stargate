@@ -28,6 +28,12 @@ This alternate configuration runs the Stargate coordinator node in developer mod
 docker compose -f docker-compose-dev-mode.yml up -d
 ``` 
 
+To stop the configuration, use the command:
+
+```
+docker compose -f docker-compose-dev-mode.yml down
+``` 
+
 This configuration is useful for development and testing since it initializes more quickly, but is not recommended for production deployments. This configuration also has a convenience script: `start_dse_68_dev_mode.sh`.
 
 ## Script options
