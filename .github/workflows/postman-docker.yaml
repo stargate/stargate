@@ -12,8 +12,6 @@ jobs:
   automated-api-tests:
     runs-on: ubuntu-latest
     strategy:
-      # temporary change for testing
-      max-parallel: 1
 
       # let all tests run, can find multiple failures in different apis
       fail-fast: false
