@@ -8,13 +8,6 @@ on:
 
 jobs:
 
-  diagnose-port-issue:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Check port 8084
-        run: |
-          ss -p | grep 8084
-
   # Runs Stargate Postman Collections against local Stargate instance using docker compose scripts
   automated-api-tests:
     runs-on: ubuntu-latest
