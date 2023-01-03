@@ -46,6 +46,8 @@ Stargate contains the following components:
     converts internal C* objects and ResultSets to Stargate Datastore objects.
     - persistence-cassandra-4.0: (same as above but for Cassandra 4.0)
 
+**Warning:** Support for Cassandra 3.11 is considered deprecated and will be removed in the Stargate v3 release: [details](https://github.com/stargate/stargate/discussions/2242).
+
 - **Authentication Services**: Responsible for authentication to Stargate
 
     - auth-api: REST service for generating auth tokens
