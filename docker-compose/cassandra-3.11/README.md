@@ -25,7 +25,13 @@ Whether you use the shell script or start `docker compose` directly, you can rem
 This alternate configuration runs the Stargate coordinator node in developer mode, so that no separate Cassandra cluster is required.  This can be run with the command:
 
 ```
-docker compose up -f docker-compose-dev-mode.yaml -d
+docker compose -f docker-compose-dev-mode.yml up -d
+``` 
+
+To stop the configuration, use the command:
+
+```
+docker compose -f docker-compose-dev-mode.yml down
 ``` 
 
 This configuration is useful for development and testing since it initializes more quickly, but is not recommended for production deployments. This configuration also has a convenience script: `start_cass_311_dev_mode.sh`.
