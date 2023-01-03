@@ -13,7 +13,7 @@ jobs:
     steps:
       - name: Check port 8084
         run: |
-          netstat -tnp | grep 8084
+          ss -p | grep 8084
 
   # Runs Stargate Postman Collections against local Stargate instance using docker compose scripts
   automated-api-tests:
