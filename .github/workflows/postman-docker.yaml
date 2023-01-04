@@ -60,17 +60,19 @@ jobs:
       #  run: |
       #    postman collection run ${{ matrix.collection-id }} -e ${{ matrix.environment-id }} --verbose --timeout-request 10000
 
-      - name: Run API Test with Newman
-        id: run-newman
-        uses: anthonyvscode/newman-action@v1
-        with:
-          apiKey: ${{ secrets.POSTMAN_API_KEY }}
-          collection: ${{ matrix.collection-id }}
-          environment: ${{ matrix.environment-id }}
-          reporters: cli
+      #- name: Run API Test with Newman
+      #  uses: anthonyvscode/newman-action@v1
+      #  with:
+      #    apiKey: ${{ secrets.POSTMAN_API_KEY }}
+      #    collection: ${{ matrix.collection-id }}
+      #    environment: ${{ matrix.environment-id }}
+      #    reporters: cli
 
-      - name: Output summary to console
-        run: echo ${{ steps.run-newman.outputs.summary }}
+      - name: API access with curl
+        run: |
+          export AUTH_TOKEN=$(curl -L -X POST 'http://localhost:8081/v1/auth' -H 'Content-Type: application/json' --data-raw '{"username": "cassandra","password": "cassandra"}' | jq -r '.authToken')
+          echo curl -L -X GET http://localhost:8180/v2/schemas/namespaces -H "X-Cassandra-Token: $AUTH_TOKEN" -H "Content-Type: application/json"
+          curl -L -X GET http://localhost:8082/v2/schemas/keyspaces -H "X-Cassandra-Token: $AUTH_TOKEN" -H "Content-Type: application/json" -H "Accept: application/json"
 
       - name: Stop Backend
         if: always()
