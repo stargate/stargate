@@ -10,7 +10,7 @@ jobs:
 
   # Runs Stargate Postman Collections against local Stargate instance using docker compose scripts
   automated-api-tests:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
     strategy:
       #max-parallel: 1
 
