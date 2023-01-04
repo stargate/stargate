@@ -39,21 +39,27 @@ jobs:
           - collection: restapi-users
             collection-id: 17930693-47ab5f0d-407e-48cf-aa11-c51d129f1eef
             environment-id: 12949543-2e78cf27-bd8c-43f2-909f-70a2b87d65fe
+
     steps:
       - uses: actions/checkout@v3
+
       - name: Install Postman CLI
         run: |
           curl -o- "https://dl-cli.pstmn.io/install/linux64.sh" | sh
+
       - name: Login to Postman CLI
         run: postman login --with-api-key ${{ secrets.POSTMAN_API_KEY }}
+
       - name: Start Backend
         # Run Stargate coordinator in developer mode to save time / resources
         run: |
           cd ${{ matrix.path }}
           docker compose -f docker-compose-dev-mode.yml up -d
+
       - name: Run API test
         run: |
-          postman collection run ${{ matrix.collection-id }} -e ${{ matrix.environment-id }} --verbose
+          postman collection run ${{ matrix.collection-id }} -e ${{ matrix.environment-id }} --verbose --timeout-request 1000
+
       - name: Stop Backend
         if: always()
         run: |
