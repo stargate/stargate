@@ -20,7 +20,8 @@ import org.junit.jupiter.api.Test;
 @QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
   public RestApiV2QSchemaUserTypeIT() {
-    super("udt_ks_", "udt_t_");
+    // Need per-method due to "udtGetAll()" verifying that no UDTs exist
+    super("udt_ks_", "udt_t_", KeyspaceCreation.PER_METHOD);
   }
 
   /*

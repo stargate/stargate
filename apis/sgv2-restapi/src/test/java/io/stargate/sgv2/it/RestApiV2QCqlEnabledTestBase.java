@@ -12,8 +12,9 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
 public class RestApiV2QCqlEnabledTestBase extends RestApiV2QIntegrationTestBase {
-  protected RestApiV2QCqlEnabledTestBase(String keyspacePrefix, String tablePrefix) {
-    super(keyspacePrefix, tablePrefix);
+  protected RestApiV2QCqlEnabledTestBase(
+      String keyspacePrefix, String tablePrefix, KeyspaceCreation keyspaceCreation) {
+    super(keyspacePrefix, tablePrefix, keyspaceCreation);
   }
 
   protected CqlSession session;
