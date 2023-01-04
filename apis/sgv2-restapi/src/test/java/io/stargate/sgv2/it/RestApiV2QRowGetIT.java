@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 @QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
   public RestApiV2QRowGetIT() {
-    super("rowget_ks_", "rowget_t_");
+    super("rowget_ks_", "rowget_t_", KeyspaceCreation.PER_CLASS);
   }
 
   @Test
@@ -418,7 +418,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
         testKeyspaceName(),
         tableName,
         "attributes",
-        "attributes_map_index",
+        "attributes_mapentry_index",
         false,
         CollectionIndexingType.ENTRIES);
 
@@ -458,7 +458,7 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
         testKeyspaceName(),
         tableName,
         "attributes",
-        "attributes_map_index",
+        "attributes_mapkey_index",
         false,
         CollectionIndexingType.KEYS);
     insertTypedRows(

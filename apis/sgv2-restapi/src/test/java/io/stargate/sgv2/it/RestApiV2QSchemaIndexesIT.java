@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 @QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
   public RestApiV2QSchemaIndexesIT() {
-    super("idx_ks_", "idx_t_");
+    super("idx_ks_", "idx_t_", KeyspaceCreation.PER_CLASS);
   }
 
   /*

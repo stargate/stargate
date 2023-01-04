@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
 @QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
   public RestApiV2QSchemaTablesIT() {
-    super("tbl_ks_", "tbl_t_");
+    super("tbl_ks_", "tbl_t_", KeyspaceCreation.PER_CLASS);
   }
 
   /*

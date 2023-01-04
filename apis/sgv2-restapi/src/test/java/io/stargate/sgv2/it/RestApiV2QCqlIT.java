@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 public class RestApiV2QCqlIT extends RestApiV2QIntegrationTestBase {
 
   public RestApiV2QCqlIT() {
-    super("cql_ks_", "cql_t_");
+    super("cql_ks_", "cql_t_", KeyspaceCreation.NONE);
   }
 
   @Test
