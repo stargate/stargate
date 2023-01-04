@@ -43,12 +43,12 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Install Postman CLI
-        run: |
-          curl -o- "https://dl-cli.pstmn.io/install/linux64.sh" | sh
+      #- name: Install Postman CLI
+      #  run: |
+      #    curl -o- "https://dl-cli.pstmn.io/install/linux64.sh" | sh
 
-      - name: Login to Postman CLI
-        run: postman login --with-api-key ${{ secrets.POSTMAN_API_KEY }}
+      #- name: Login to Postman CLI
+      #  run: postman login --with-api-key ${{ secrets.POSTMAN_API_KEY }}
 
       - name: Start Backend
         # Run Stargate coordinator in developer mode to save time / resources
@@ -71,7 +71,7 @@ jobs:
       - name: API access with curl
         run: |
           export AUTH_TOKEN=$(curl -L -X POST 'http://localhost:8081/v1/auth' -H 'Content-Type: application/json' --data-raw '{"username": "cassandra","password": "cassandra"}' | jq -r '.authToken')
-          echo curl -L -X GET http://localhost:8180/v2/schemas/namespaces -H "X-Cassandra-Token: $AUTH_TOKEN" -H "Content-Type: application/json"
+          curl -L -X GET http://localhost:8180/v2/schemas/namespaces -H "X-Cassandra-Token: $AUTH_TOKEN" -H "Content-Type: application/json"
           curl -L -X GET http://localhost:8082/v2/schemas/keyspaces -H "X-Cassandra-Token: $AUTH_TOKEN" -H "Content-Type: application/json" -H "Accept: application/json"
 
       - name: Stop Backend
