@@ -84,8 +84,6 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
             .asString();
   }
 
-  // 09-Aug-2022, tatu: Alas, Auth token seems not to be checked
-  // @Ignore("Auth token handling hard-coded, won't fail as expected")
   @Test
   public void keyspacesGetAllBadToken() {
     String response =
