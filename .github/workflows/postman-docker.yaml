@@ -54,7 +54,8 @@ jobs:
         run: |
           AUTH_TOKEN=$(docker run --rm --network cass40-stargate_stargate curlimages/curl -L -X POST 'http://coordinator:8081/v1/auth' -H 'Content-Type: application/json' --data-raw '{"username": "cassandra","password": "cassandra"}' | jq -r '.authToken')
           echo $AUTH_TOKEN
-          docker run --rm --network cass40-stargate_stargate curlimages/curl http://restapi:8082/v2/schemas/keyspaces -H "X-Cassandra-Token: $AUTH_TOKEN" -H "Content-Type: application/json"
+          docker run --rm --network cass40-stargate_stargate curlimages/curl -v -L 'http://restapi:8082/stargate/health'
+        #docker run --rm --network cass40-stargate_stargate curlimages/curl -v -L http://restapi:8082/v2/schemas/keyspaces -H "X-Cassandra-Token: $AUTH_TOKEN" -H "Content-Type: application/json"
 
       - name: Stop Backend
         if: always()
