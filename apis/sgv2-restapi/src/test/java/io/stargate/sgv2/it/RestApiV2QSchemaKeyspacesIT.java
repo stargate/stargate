@@ -165,6 +165,8 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
             .asString();
     final Sgv2Keyspace keyspace = readJsonAs(response, Sgv2Keyspace.class);
     assertThat(keyspace).usingRecursiveComparison().isEqualTo(new Sgv2Keyspace(keyspaceName));
+
+    deleteKeyspace(keyspaceName);
   }
 
   // For [stargate#1817]. Unfortunately our current CI set up only has single DC ("dc1")
@@ -212,6 +214,8 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
         dcs.orElse(Collections.emptyList()).stream()
             .collect(Collectors.toMap(Sgv2Keyspace.Datacenter::getName, Function.identity()));
     assertThat(actualDCs).usingRecursiveComparison().isEqualTo(expectedDCs);
+
+    deleteKeyspace(keyspaceName);
   }
 
   // Verify that attempts to use non-existing DC produce useful fail message
