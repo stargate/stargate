@@ -94,16 +94,7 @@ quarkus:
 
   # OpenTelemetry configuration
   opentelemetry:
-    tracer:
-      # in the dev env use the sampler that samples all requests
-      sampler:
-        ~: ratio
-        ratio: 1.0
-      # the OTPL should be enabled and endpoint should be specified in order to report traces
-      exporter:
-        otlp:
-          enabled: false
-          endpoint:
+    enabled: false
 
   # information for the generated Open API definitions
   smallrye-openapi:
@@ -134,33 +125,3 @@ quarkus:
           ui.preauthorizeApiKey('Token', token);
         }
       }
-
-# shared development properties
-"%dev":
-
-  # disable retries in the data store config and enable fall back
-  stargate:
-    data-store:
-      bridge-fallback-enabled: true
-
-  io:
-    stargate:
-      sgv2:
-        api:
-          common:
-            properties:
-              datastore:
-                configuration:
-                  DataStorePropertiesConfiguration/fetchSupportedFeatures/Retry/maxRetries: 0
-
-# shared production properties
-"%prod":
-
-  quarkus:
-
-    # OpenTelemetry configuration
-    opentelemetry:
-      tracer:
-        # in the prod env use the sampler that samples 1% of all requests
-        sampler:
-          ratio: 0.01

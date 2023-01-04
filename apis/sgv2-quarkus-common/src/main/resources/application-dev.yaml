@@ -1,0 +1,37 @@
+---
+# please keep properties in the alphabetical order
+# shared development properties
+
+
+stargate:
+
+  # enable data-store fall back
+  data-store:
+    bridge-fallback-enabled: true
+
+quarkus:
+
+  # enable OpenTelemetry
+  opentelemetry:
+    enabled: true
+    tracer:
+      # in the dev env use the sampler that samples all requests
+      sampler:
+        ~: ratio
+        ratio: 1.0
+      # the OTPL should be enabled and endpoint should be specified in order to report traces
+      exporter:
+        otlp:
+          enabled: false
+          endpoint:
+
+# disable retries in the data store config
+io:
+  stargate:
+    sgv2:
+      api:
+        common:
+          properties:
+            datastore:
+              configuration:
+                DataStorePropertiesConfiguration/fetchSupportedFeatures/Retry/maxRetries: 0
