@@ -14,6 +14,7 @@ import io.stargate.sgv2.restapi.service.models.Sgv2UDTUpdateRequest;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
@@ -21,7 +22,7 @@ import org.junit.jupiter.api.Test;
 public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
   public RestApiV2QSchemaUserTypeIT() {
     // Need per-method due to "udtGetAll()" verifying that no UDTs exist
-    super("udt_ks_", "udt_t_", KeyspaceCreation.PER_METHOD);
+    super("udt_ks_", "udt_t_", KeyspaceCreation.PER_CLASS);
   }
 
   /*
@@ -34,7 +35,7 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
   public void udtCreateBasic() {
     final String tableName = testTableName();
     createSimpleTestTable(testKeyspaceName(), tableName);
-    final String typeName = "udt1";
+    final String typeName = "udtbasic";
 
     String createUDT =
         "{\"name\": \""
@@ -51,25 +52,25 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
     ApiError apiError = readJsonAs(response, ApiError.class);
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     // Sample output:
-    //  Cassandra 4.0: “Bad request: A user type with name ‘udt1’ already exists”
+    //  Cassandra 4.0: “Bad request: A user type with name ‘udtbasic’ already exists”
     //  Cassandra 3.11, DSE 6.8: “Bad request: A user type of name
-    //     ks_udtCreateBasic_1643916413499.udt1 already exists”
+    //     ks_udtCreateBasic_1643916413499.udtbasic already exists”
     assertThat(apiError.description())
         .matches(String.format("Bad request: A user type .*%s.* already exists", typeName));
 
     // But ok if we do conditional insert:
     // don't create and don't throw exception because ifNotExists = true
     createUDT =
-        "{\"name\": \"udt1\", \"ifNotExists\": true,"
+        "{\"name\": \"udtbasic\", \"ifNotExists\": true,"
             + "\"fields\":[{\"name\":\"firstName\",\"typeDefinition\":\"text\"}]}";
-    response = tryCreateUDT(testKeyspaceName(), createUDT, HttpStatus.SC_CREATED);
+    tryCreateUDT(testKeyspaceName(), createUDT, HttpStatus.SC_CREATED);
   }
 
   @Test
   public void udtCreateInvalid() {
     final String typeName = "invalid_type";
     String createUDT =
-        "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstName\",\"typeDefinition\":\""
+        "{\"name\": \"udtX\", \"fields\":[{\"name\":\"firstName\",\"typeDefinition\":\""
             + typeName
             + "\"}}]}";
     String response = tryCreateUDT(testKeyspaceName(), createUDT, HttpStatus.SC_BAD_REQUEST);
@@ -77,20 +78,20 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(apiError.description()).contains("Invalid JSON payload: ");
 
-    createUDT = "{\"name\": \"udt1\", \"fields\":[]}";
+    createUDT = "{\"name\": \"udtX\", \"fields\":[]}";
     response = tryCreateUDT(testKeyspaceName(), createUDT, HttpStatus.SC_BAD_REQUEST);
     apiError = readJsonAs(response, ApiError.class);
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(apiError.description()).contains("There should be at least one field defined");
 
-    createUDT = "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstName\"}]}";
+    createUDT = "{\"name\": \"udtX\", \"fields\":[{\"name\":\"firstName\"}]}";
     response = tryCreateUDT(testKeyspaceName(), createUDT, HttpStatus.SC_BAD_REQUEST);
     apiError = readJsonAs(response, ApiError.class);
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(apiError.description())
         .contains("Field 'name' and 'typeDefinition' must be provided");
 
-    createUDT = "{\"name\": \"udt1\", \"fields\":[{\"typeDefinition\":\"text\"}]}";
+    createUDT = "{\"name\": \"udtX\", \"fields\":[{\"typeDefinition\":\"text\"}]}";
     response = tryCreateUDT(testKeyspaceName(), createUDT, HttpStatus.SC_BAD_REQUEST);
     apiError = readJsonAs(response, ApiError.class);
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
@@ -104,7 +105,10 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
   /////////////////////////////////////////////////////////////////////////
    */
 
+  // NOTE! Must be the first Test to run (after initialization) so no UDTs yet exist
+  // in the shared (per-class) keyspace
   @Test
+  @Order(Integer.MIN_VALUE + 1)
   public void udtGetAll() {
     // First: verify no UDTs exist before test (both wrapped and raw access)
     assertThat(findAllUDTs(testKeyspaceName(), false)).isEmpty();
