@@ -1,0 +1,286 @@
+[Stargate Postman Collections/automated-api-tests-4] 🚀  Start image=ghcr.io/catthehacker/ubuntu:act-latest
+[Stargate Postman Collections/automated-api-tests-2] 🚀  Start image=ghcr.io/catthehacker/ubuntu:act-latest
+[Stargate Postman Collections/automated-api-tests-3] 🚀  Start image=ghcr.io/catthehacker/ubuntu:act-latest
+[Stargate Postman Collections/automated-api-tests-1] 🚀  Start image=ghcr.io/catthehacker/ubuntu:act-latest
+[Stargate Postman Collections/automated-api-tests-4]   🐳  docker pull image=ghcr.io/catthehacker/ubuntu:act-latest platform= username= forcePull=false
+[Stargate Postman Collections/automated-api-tests-3]   🐳  docker pull image=ghcr.io/catthehacker/ubuntu:act-latest platform= username= forcePull=false
+[Stargate Postman Collections/automated-api-tests-1]   🐳  docker pull image=ghcr.io/catthehacker/ubuntu:act-latest platform= username= forcePull=false
+[Stargate Postman Collections/automated-api-tests-2]   🐳  docker pull image=ghcr.io/catthehacker/ubuntu:act-latest platform= username= forcePull=false
+[Stargate Postman Collections/automated-api-tests-4]   🐳  docker create image=ghcr.io/catthehacker/ubuntu:act-latest platform= entrypoint=["/usr/bin/tail" "-f" "/dev/null"] cmd=[]
+[Stargate Postman Collections/automated-api-tests-2]   🐳  docker create image=ghcr.io/catthehacker/ubuntu:act-latest platform= entrypoint=["/usr/bin/tail" "-f" "/dev/null"] cmd=[]
+[Stargate Postman Collections/automated-api-tests-1]   🐳  docker create image=ghcr.io/catthehacker/ubuntu:act-latest platform= entrypoint=["/usr/bin/tail" "-f" "/dev/null"] cmd=[]
+[Stargate Postman Collections/automated-api-tests-3]   🐳  docker create image=ghcr.io/catthehacker/ubuntu:act-latest platform= entrypoint=["/usr/bin/tail" "-f" "/dev/null"] cmd=[]
+[Stargate Postman Collections/automated-api-tests-4]   🐳  docker run image=ghcr.io/catthehacker/ubuntu:act-latest platform= entrypoint=["/usr/bin/tail" "-f" "/dev/null"] cmd=[]
+[Stargate Postman Collections/automated-api-tests-2]   🐳  docker run image=ghcr.io/catthehacker/ubuntu:act-latest platform= entrypoint=["/usr/bin/tail" "-f" "/dev/null"] cmd=[]
+[Stargate Postman Collections/automated-api-tests-1]   🐳  docker run image=ghcr.io/catthehacker/ubuntu:act-latest platform= entrypoint=["/usr/bin/tail" "-f" "/dev/null"] cmd=[]
+[Stargate Postman Collections/automated-api-tests-3]   🐳  docker run image=ghcr.io/catthehacker/ubuntu:act-latest platform= entrypoint=["/usr/bin/tail" "-f" "/dev/null"] cmd=[]
+[Stargate Postman Collections/automated-api-tests-4]   ☁  git clone 'https://github.com/anthonyvscode/newman-action' # ref=v1
+[Stargate Postman Collections/automated-api-tests-2]   ☁  git clone 'https://github.com/anthonyvscode/newman-action' # ref=v1
+[Stargate Postman Collections/automated-api-tests-1]   ☁  git clone 'https://github.com/anthonyvscode/newman-action' # ref=v1
+[Stargate Postman Collections/automated-api-tests-3]   ☁  git clone 'https://github.com/anthonyvscode/newman-action' # ref=v1
+[Stargate Postman Collections/automated-api-tests-4] 🧪  Matrix: map[backend:cassandra-311 collection:restapi-users collection-id:17930693-47ab5f0d-407e-48cf-aa11-c51d129f1eef environment-id:12949543-2e78cf27-bd8c-43f2-909f-70a2b87d65fe path:docker-compose/cassandra-3.11]
+[Stargate Postman Collections/automated-api-tests-4] ⭐ Run Main actions/checkout@v3
+[Stargate Postman Collections/automated-api-tests-4]   🐳  docker cp src=/Users/jeffreycarpenter/stargate/. dst=/Users/jeffreycarpenter/stargate
+[Stargate Postman Collections/automated-api-tests-2] 🧪  Matrix: map[backend:cassandra-40 collection:restapi-users collection-id:17930693-47ab5f0d-407e-48cf-aa11-c51d129f1eef environment-id:12949543-2e78cf27-bd8c-43f2-909f-70a2b87d65fe path:docker-compose/cassandra-4.0]
+[Stargate Postman Collections/automated-api-tests-2] ⭐ Run Main actions/checkout@v3
+[Stargate Postman Collections/automated-api-tests-2]   🐳  docker cp src=/Users/jeffreycarpenter/stargate/. dst=/Users/jeffreycarpenter/stargate
+[Stargate Postman Collections/automated-api-tests-1] 🧪  Matrix: map[backend:cassandra-40 collection:graphqlapi-library collection-id:17930693-65da5c64-561a-449b-a0e8-0318575f6871 environment-id:12949543-2e78cf27-bd8c-43f2-909f-70a2b87d65fe path:docker-compose/cassandra-4.0]
+[Stargate Postman Collections/automated-api-tests-1] ⭐ Run Main actions/checkout@v3
+[Stargate Postman Collections/automated-api-tests-1]   🐳  docker cp src=/Users/jeffreycarpenter/stargate/. dst=/Users/jeffreycarpenter/stargate
+[Stargate Postman Collections/automated-api-tests-3] 🧪  Matrix: map[backend:cassandra-311 collection:graphqlapi-library collection-id:17930693-65da5c64-561a-449b-a0e8-0318575f6871 environment-id:12949543-2e78cf27-bd8c-43f2-909f-70a2b87d65fe path:docker-compose/cassandra-3.11]
+[Stargate Postman Collections/automated-api-tests-3] ⭐ Run Main actions/checkout@v3
+[Stargate Postman Collections/automated-api-tests-3]   🐳  docker cp src=/Users/jeffreycarpenter/stargate/. dst=/Users/jeffreycarpenter/stargate
+[Stargate Postman Collections/automated-api-tests-2]   ✅  Success - Main actions/checkout@v3
+[Stargate Postman Collections/automated-api-tests-4]   ✅  Success - Main actions/checkout@v3
+[Stargate Postman Collections/automated-api-tests-2] ⭐ Run Main Install Postman CLI
+[Stargate Postman Collections/automated-api-tests-1]   ✅  Success - Main actions/checkout@v3
+[Stargate Postman Collections/automated-api-tests-4] ⭐ Run Main Install Postman CLI
+[Stargate Postman Collections/automated-api-tests-2]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/1] user= workdir=
+[Stargate Postman Collections/automated-api-tests-2]   |   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+[Stargate Postman Collections/automated-api-tests-2]   |                                  Dload  Upload   Total   Spent    Left  Speed
+[Stargate Postman Collections/automated-api-tests-2]   |   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  1298  100  1298    0     0   9076      0 --:--:-- --:--:-- --:--:--  9076
+[Stargate Postman Collections/automated-api-tests-2]   |   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+[Stargate Postman Collections/automated-api-tests-2]   |                                  Dload  Upload   Total   Spent    Left  Speed
+[Stargate Postman Collections/automated-api-tests-4]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/1] user= workdir=
+[Stargate Postman Collections/automated-api-tests-1] ⭐ Run Main Install Postman CLI
+[Stargate Postman Collections/automated-api-tests-4]   |   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+[Stargate Postman Collections/automated-api-tests-4]   |                                  Dload  Upload   Total   Spent    Left  Speed
+[Stargate Postman Collections/automated-api-tests-3]   ✅  Success - Main actions/checkout@v3
+[Stargate Postman Collections/automated-api-tests-4]   |   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  1298  100  1298    0     0   9759      0 --:--:-- --:--:-- --:--:--  9759
+[Stargate Postman Collections/automated-api-tests-4]   |   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+[Stargate Postman Collections/automated-api-tests-4]   |                                  Dload  Upload   Total   Spent    Left  Speed
+[Stargate Postman Collections/automated-api-tests-1]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/1] user= workdir=
+[Stargate Postman Collections/automated-api-tests-1]   |   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+[Stargate Postman Collections/automated-api-tests-1]   |                                  Dload  Upload   Total   Spent    Left  Speed
+[Stargate Postman Collections/automated-api-tests-2]   |   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0 45 21.4M   45  9.8M    0     0  25.3M      0 --:--:-- --:--:-- --:--:-- 25.2M100 21.4M  100 21.4M    0     0  29.6M      0 --:--:-- --:--:-- --:--:-- 29.5M
+[Stargate Postman Collections/automated-api-tests-1]   |   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  1298  100  1298    0     0  10384      0 --:--:-- --:--:-- --:--:-- 10467
+[Stargate Postman Collections/automated-api-tests-1]   |   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+[Stargate Postman Collections/automated-api-tests-1]   |                                  Dload  Upload   Total   Spent    Left  Speed
+[Stargate Postman Collections/automated-api-tests-3] ⭐ Run Main Install Postman CLI
+[Stargate Postman Collections/automated-api-tests-3]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/1] user= workdir=
+[Stargate Postman Collections/automated-api-tests-3]   |   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+[Stargate Postman Collections/automated-api-tests-3]   |                                  Dload  Upload   Total   Spent    Left  Speed
+[Stargate Postman Collections/automated-api-tests-3]   |   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  1298  100  1298    0     0   9686      0 --:--:-- --:--:-- --:--:--  9614
+[Stargate Postman Collections/automated-api-tests-3]   |   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+[Stargate Postman Collections/automated-api-tests-3]   |                                  Dload  Upload   Total   Spent    Left  Speed
+[Stargate Postman Collections/automated-api-tests-2]   | The Postman CLI has been installed
+[Stargate Postman Collections/automated-api-tests-2]   ✅  Success - Main Install Postman CLI
+[Stargate Postman Collections/automated-api-tests-4]   |   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0 69 21.4M   69 14.8M    0     0  14.3M      0  0:00:01  0:00:01 --:--:-- 14.2M100 21.4M  100 21.4M    0     0  14.6M      0  0:00:01  0:00:01 --:--:-- 14.6M
+[Stargate Postman Collections/automated-api-tests-2] ⭐ Run Main Login to Postman CLI
+[Stargate Postman Collections/automated-api-tests-1]   |   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  7 21.4M    7 1660k    0     0  3063k      0  0:00:07 --:--:--  0:00:07 3063k100 21.4M  100 21.4M    0     0  14.8M      0  0:00:01  0:00:01 --:--:-- 14.8M
+[Stargate Postman Collections/automated-api-tests-2]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/2] user= workdir=
+[Stargate Postman Collections/automated-api-tests-4]   | The Postman CLI has been installed
+[Stargate Postman Collections/automated-api-tests-4]   ✅  Success - Main Install Postman CLI
+[Stargate Postman Collections/automated-api-tests-1]   | The Postman CLI has been installed
+[Stargate Postman Collections/automated-api-tests-1]   ✅  Success - Main Install Postman CLI
+[Stargate Postman Collections/automated-api-tests-4] ⭐ Run Main Login to Postman CLI
+[Stargate Postman Collections/automated-api-tests-3]   |   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0 12 21.4M   12 2759k    0     0  2877k      0  0:00:07 --:--:--  0:00:07 2874k 56 21.4M   56 12.1M    0     0  6358k      0  0:00:03  0:00:01  0:00:02 6358k100 21.4M  100 21.4M    0     0  9197k      0  0:00:02  0:00:02 --:--:-- 9197k
+[Stargate Postman Collections/automated-api-tests-4]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/2] user= workdir=
+[Stargate Postman Collections/automated-api-tests-1] ⭐ Run Main Login to Postman CLI
+[Stargate Postman Collections/automated-api-tests-2]   | Logged in using api key of user: jeffreyscarpenter
+[Stargate Postman Collections/automated-api-tests-2]   | Logged in successfully.
+[Stargate Postman Collections/automated-api-tests-1]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/2] user= workdir=
+[Stargate Postman Collections/automated-api-tests-2]   ✅  Success - Main Login to Postman CLI
+[Stargate Postman Collections/automated-api-tests-3]   | The Postman CLI has been installed
+[Stargate Postman Collections/automated-api-tests-3]   ✅  Success - Main Install Postman CLI
+[Stargate Postman Collections/automated-api-tests-2] ⭐ Run Main Start Backend
+[Stargate Postman Collections/automated-api-tests-3] ⭐ Run Main Login to Postman CLI
+[Stargate Postman Collections/automated-api-tests-4]   | Logged in using api key of user: jeffreyscarpenter
+[Stargate Postman Collections/automated-api-tests-4]   | Logged in successfully.
+[Stargate Postman Collections/automated-api-tests-2]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/3] user= workdir=
+[Stargate Postman Collections/automated-api-tests-3]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/2] user= workdir=
+[Stargate Postman Collections/automated-api-tests-1]   | Logged in using api key of user: jeffreyscarpenter
+[Stargate Postman Collections/automated-api-tests-1]   | Logged in successfully.
+[Stargate Postman Collections/automated-api-tests-2]   | Network cass40-stargate_stargate  Creating
+[Stargate Postman Collections/automated-api-tests-4]   ✅  Success - Main Login to Postman CLI
+[Stargate Postman Collections/automated-api-tests-2]   | Network cass40-stargate_stargate  Created
+[Stargate Postman Collections/automated-api-tests-2]   | Container cass40-stargate-coordinator-1  Creating
+[Stargate Postman Collections/automated-api-tests-1]   ✅  Success - Main Login to Postman CLI
+[Stargate Postman Collections/automated-api-tests-4] ⭐ Run Main Start Backend
+[Stargate Postman Collections/automated-api-tests-1] ⭐ Run Main Start Backend
+[Stargate Postman Collections/automated-api-tests-4]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/3] user= workdir=
+[Stargate Postman Collections/automated-api-tests-2]   | Container cass40-stargate-coordinator-1  Created
+[Stargate Postman Collections/automated-api-tests-2]   | Container cass40-stargate-graphqlapi-1  Creating
+[Stargate Postman Collections/automated-api-tests-2]   | Container cass40-stargate-docsapi-1  Creating
+[Stargate Postman Collections/automated-api-tests-2]   | Container cass40-stargate-restapi-1  Creating
+[Stargate Postman Collections/automated-api-tests-1]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/3] user= workdir=
+[Stargate Postman Collections/automated-api-tests-3]   | Logged in using api key of user: jeffreyscarpenter
+[Stargate Postman Collections/automated-api-tests-2]   | Container cass40-stargate-restapi-1  Created
+[Stargate Postman Collections/automated-api-tests-3]   | Logged in successfully.
+[Stargate Postman Collections/automated-api-tests-2]   | Container cass40-stargate-docsapi-1  Created
+[Stargate Postman Collections/automated-api-tests-2]   | Container cass40-stargate-graphqlapi-1  Created
+[Stargate Postman Collections/automated-api-tests-2]   | Container cass40-stargate-coordinator-1  Starting
+[Stargate Postman Collections/automated-api-tests-4]   | Network cass311-stargate_stargate  Creating
+[Stargate Postman Collections/automated-api-tests-3]   ✅  Success - Main Login to Postman CLI
+[Stargate Postman Collections/automated-api-tests-4]   | Network cass311-stargate_stargate  Created
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-coordinator-1  Creating
+[Stargate Postman Collections/automated-api-tests-1]   | Container cass40-stargate-coordinator-1  Starting
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-coordinator-1  Created
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-docsapi-1  Creating
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-graphqlapi-1  Creating
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-restapi-1  Creating
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-restapi-1  Created
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-graphqlapi-1  Created
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-docsapi-1  Created
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-coordinator-1  Starting
+[Stargate Postman Collections/automated-api-tests-4]   | Error response from daemon: driver failed programming external connectivity on endpoint cass311-stargate-coordinator-1 (729e386b0d09e57c5ff5de1a0cace850ee8500ee4d791ba711855eb9c81e786c): Bind for 0.0.0.0:9042 failed: port is already allocated
+[Stargate Postman Collections/automated-api-tests-4]   ❌  Failure - Main Start Backend
+[Stargate Postman Collections/automated-api-tests-2]   | Container cass40-stargate-coordinator-1  Started
+[Stargate Postman Collections/automated-api-tests-2]   | Container cass40-stargate-coordinator-1  Waiting
+[Stargate Postman Collections/automated-api-tests-4] exitcode '1': failure
+[Stargate Postman Collections/automated-api-tests-2]   | Container cass40-stargate-coordinator-1  Waiting
+[Stargate Postman Collections/automated-api-tests-2]   | Container cass40-stargate-coordinator-1  Waiting
+[Stargate Postman Collections/automated-api-tests-1]   | Container cass40-stargate-coordinator-1  Started
+[Stargate Postman Collections/automated-api-tests-1]   | Container cass40-stargate-coordinator-1  Waiting
+[Stargate Postman Collections/automated-api-tests-1]   | Container cass40-stargate-coordinator-1  Waiting
+[Stargate Postman Collections/automated-api-tests-1]   | Container cass40-stargate-coordinator-1  Waiting
+[Stargate Postman Collections/automated-api-tests-3] ⭐ Run Main Start Backend
+[Stargate Postman Collections/automated-api-tests-3]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/3] user= workdir=
+[Stargate Postman Collections/automated-api-tests-4] ⭐ Run Main Stop Backend
+[Stargate Postman Collections/automated-api-tests-3]   | Container cass311-stargate-coordinator-1  Starting
+[Stargate Postman Collections/automated-api-tests-4]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/5] user= workdir=
+[Stargate Postman Collections/automated-api-tests-3]   | Error response from daemon: driver failed programming external connectivity on endpoint cass311-stargate-coordinator-1 (17224b72a1f9f304ecdcef72a2f07db751467bd6de8ba5fbbe12dce198f4b223): Bind for 0.0.0.0:9042 failed: port is already allocated
+[Stargate Postman Collections/automated-api-tests-3]   ❌  Failure - Main Start Backend
+[Stargate Postman Collections/automated-api-tests-3] exitcode '1': failure
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-docsapi-1  Stopping
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-docsapi-1  Stopping
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-restapi-1  Stopping
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-restapi-1  Stopping
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-graphqlapi-1  Stopping
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-graphqlapi-1  Stopping
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-docsapi-1  Stopped
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-docsapi-1  Removing
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-restapi-1  Stopped
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-restapi-1  Removing
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-graphqlapi-1  Stopped
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-graphqlapi-1  Removing
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-graphqlapi-1  Removed
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-restapi-1  Removed
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-docsapi-1  Removed
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-coordinator-1  Stopping
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-coordinator-1  Stopping
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-coordinator-1  Stopped
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-coordinator-1  Removing
+[Stargate Postman Collections/automated-api-tests-4]   | Container cass311-stargate-coordinator-1  Removed
+[Stargate Postman Collections/automated-api-tests-4]   | Network cass311-stargate_stargate  Removing
+[Stargate Postman Collections/automated-api-tests-4]   | Network cass311-stargate_stargate  Removed
+[Stargate Postman Collections/automated-api-tests-4]   ✅  Success - Main Stop Backend
+[Stargate Postman Collections/automated-api-tests-4] 🏁  Job failed
+[Stargate Postman Collections/automated-api-tests-5] 🚀  Start image=ghcr.io/catthehacker/ubuntu:act-latest
+[Stargate Postman Collections/automated-api-tests-5]   🐳  docker pull image=ghcr.io/catthehacker/ubuntu:act-latest platform= username= forcePull=false
+[Stargate Postman Collections/automated-api-tests-3] ⭐ Run Main Stop Backend
+[Stargate Postman Collections/automated-api-tests-5]   🐳  docker create image=ghcr.io/catthehacker/ubuntu:act-latest platform= entrypoint=["/usr/bin/tail" "-f" "/dev/null"] cmd=[]
+[Stargate Postman Collections/automated-api-tests-3]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/5] user= workdir=
+[Stargate Postman Collections/automated-api-tests-5]   🐳  docker run image=ghcr.io/catthehacker/ubuntu:act-latest platform= entrypoint=["/usr/bin/tail" "-f" "/dev/null"] cmd=[]
+[Stargate Postman Collections/automated-api-tests-3]   ✅  Success - Main Stop Backend
+[Stargate Postman Collections/automated-api-tests-3] 🏁  Job failed
+[Stargate Postman Collections/automated-api-tests-6] 🚀  Start image=ghcr.io/catthehacker/ubuntu:act-latest
+[Stargate Postman Collections/automated-api-tests-6]   🐳  docker pull image=ghcr.io/catthehacker/ubuntu:act-latest platform= username= forcePull=false
+[Stargate Postman Collections/automated-api-tests-5]   ☁  git clone 'https://github.com/anthonyvscode/newman-action' # ref=v1
+[Stargate Postman Collections/automated-api-tests-6]   🐳  docker create image=ghcr.io/catthehacker/ubuntu:act-latest platform= entrypoint=["/usr/bin/tail" "-f" "/dev/null"] cmd=[]
+[Stargate Postman Collections/automated-api-tests-6]   🐳  docker run image=ghcr.io/catthehacker/ubuntu:act-latest platform= entrypoint=["/usr/bin/tail" "-f" "/dev/null"] cmd=[]
+[Stargate Postman Collections/automated-api-tests-5] 🧪  Matrix: map[backend:dse-68 collection:graphqlapi-library collection-id:17930693-65da5c64-561a-449b-a0e8-0318575f6871 environment-id:12949543-2e78cf27-bd8c-43f2-909f-70a2b87d65fe path:docker-compose/dse-6.8]
+[Stargate Postman Collections/automated-api-tests-6]   ☁  git clone 'https://github.com/anthonyvscode/newman-action' # ref=v1
+[Stargate Postman Collections/automated-api-tests-5] ⭐ Run Main actions/checkout@v3
+[Stargate Postman Collections/automated-api-tests-5]   🐳  docker cp src=/Users/jeffreycarpenter/stargate/. dst=/Users/jeffreycarpenter/stargate
+[Stargate Postman Collections/automated-api-tests-6] 🧪  Matrix: map[backend:dse-68 collection:restapi-users collection-id:17930693-47ab5f0d-407e-48cf-aa11-c51d129f1eef environment-id:12949543-2e78cf27-bd8c-43f2-909f-70a2b87d65fe path:docker-compose/dse-6.8]
+[Stargate Postman Collections/automated-api-tests-6] ⭐ Run Main actions/checkout@v3
+[Stargate Postman Collections/automated-api-tests-6]   🐳  docker cp src=/Users/jeffreycarpenter/stargate/. dst=/Users/jeffreycarpenter/stargate
+[Stargate Postman Collections/automated-api-tests-6]   ✅  Success - Main actions/checkout@v3
+[Stargate Postman Collections/automated-api-tests-5]   ✅  Success - Main actions/checkout@v3
+[Stargate Postman Collections/automated-api-tests-6] ⭐ Run Main Install Postman CLI
+[Stargate Postman Collections/automated-api-tests-5] ⭐ Run Main Install Postman CLI
+[Stargate Postman Collections/automated-api-tests-6]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/1] user= workdir=
+[Stargate Postman Collections/automated-api-tests-5]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/1] user= workdir=
+[Stargate Postman Collections/automated-api-tests-6]   |   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+[Stargate Postman Collections/automated-api-tests-6]   |                                  Dload  Upload   Total   Spent    Left  Speed
+[Stargate Postman Collections/automated-api-tests-6]   |   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  1298  100  1298    0     0  17540      0 --:--:-- --:--:-- --:--:-- 17780
+[Stargate Postman Collections/automated-api-tests-6]   |   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+[Stargate Postman Collections/automated-api-tests-6]   |                                  Dload  Upload   Total   Spent    Left  Speed
+[Stargate Postman Collections/automated-api-tests-5]   |   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+[Stargate Postman Collections/automated-api-tests-5]   |                                  Dload  Upload   Total   Spent    Left  Speed
+[Stargate Postman Collections/automated-api-tests-5]   |   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100  1298  100  1298    0     0  20281      0 --:--:-- --:--:-- --:--:-- 20281
+[Stargate Postman Collections/automated-api-tests-5]   |   % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+[Stargate Postman Collections/automated-api-tests-5]   |                                  Dload  Upload   Total   Spent    Left  Speed
+[Stargate Postman Collections/automated-api-tests-6]   |   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0  0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0100 21.4M  100 21.4M    0     0  22.4M      0 --:--:-- --:--:-- --:--:-- 22.4M
+[Stargate Postman Collections/automated-api-tests-5]   |   0     0    0     0    0     0      0      0 --:--:-- --:--:-- --:--:--     0 49 21.4M   49 10.5M    0     0  11.7M      0  0:00:01 --:--:--  0:00:01 11.7M100 21.4M  100 21.4M    0     0  15.8M      0  0:00:01  0:00:01 --:--:-- 15.8M
+[Stargate Postman Collections/automated-api-tests-6]   | The Postman CLI has been installed
+[Stargate Postman Collections/automated-api-tests-6]   ✅  Success - Main Install Postman CLI
+[Stargate Postman Collections/automated-api-tests-6] ⭐ Run Main Login to Postman CLI
+[Stargate Postman Collections/automated-api-tests-5]   | The Postman CLI has been installed
+[Stargate Postman Collections/automated-api-tests-5]   ✅  Success - Main Install Postman CLI
+[Stargate Postman Collections/automated-api-tests-6]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/2] user= workdir=
+[Stargate Postman Collections/automated-api-tests-5] ⭐ Run Main Login to Postman CLI
+[Stargate Postman Collections/automated-api-tests-5]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/2] user= workdir=
+[Stargate Postman Collections/automated-api-tests-6]   | Logged in using api key of user: jeffreyscarpenter
+[Stargate Postman Collections/automated-api-tests-6]   | Logged in successfully.
+[Stargate Postman Collections/automated-api-tests-6]   ✅  Success - Main Login to Postman CLI
+[Stargate Postman Collections/automated-api-tests-5]   | Logged in using api key of user: jeffreyscarpenter
+[Stargate Postman Collections/automated-api-tests-5]   | Logged in successfully.
+[Stargate Postman Collections/automated-api-tests-5]   ✅  Success - Main Login to Postman CLI
+[Stargate Postman Collections/automated-api-tests-6] ⭐ Run Main Start Backend
+[Stargate Postman Collections/automated-api-tests-6]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/3] user= workdir=
+[Stargate Postman Collections/automated-api-tests-5] ⭐ Run Main Start Backend
+[Stargate Postman Collections/automated-api-tests-5]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/3] user= workdir=
+[Stargate Postman Collections/automated-api-tests-6]   | Network dse68-stargate_stargate  Creating
+[Stargate Postman Collections/automated-api-tests-6]   | Network dse68-stargate_stargate  Created
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-coordinator-1  Creating
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-coordinator-1  Created
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-graphqlapi-1  Creating
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-docsapi-1  Creating
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-restapi-1  Creating
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-graphqlapi-1  Created
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-docsapi-1  Created
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-restapi-1  Created
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-coordinator-1  Starting
+[Stargate Postman Collections/automated-api-tests-5]   | Container dse68-stargate-coordinator-1  Starting
+[Stargate Postman Collections/automated-api-tests-6]   | Error response from daemon: driver failed programming external connectivity on endpoint dse68-stargate-coordinator-1 (0b16e5c8c845dc5fafa9cf5d0ba3e7728c457a3b5b96d33cc36bfdee67054156): Bind for 0.0.0.0:9042 failed: port is already allocated
+[Stargate Postman Collections/automated-api-tests-6]   ❌  Failure - Main Start Backend
+[Stargate Postman Collections/automated-api-tests-5]   | Error response from daemon: driver failed programming external connectivity on endpoint dse68-stargate-coordinator-1 (c68b2a316aac6fe6805514c80599dece4e5b24977a370ec7c7ab64a3cce32662): Bind for 0.0.0.0:9042 failed: port is already allocated
+[Stargate Postman Collections/automated-api-tests-5]   ❌  Failure - Main Start Backend
+[Stargate Postman Collections/automated-api-tests-6] exitcode '1': failure
+[Stargate Postman Collections/automated-api-tests-5] exitcode '1': failure
+[Stargate Postman Collections/automated-api-tests-6] ⭐ Run Main Stop Backend
+[Stargate Postman Collections/automated-api-tests-5] ⭐ Run Main Stop Backend
+[Stargate Postman Collections/automated-api-tests-6]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/5] user= workdir=
+[Stargate Postman Collections/automated-api-tests-5]   🐳  docker exec cmd=[bash --noprofile --norc -e -o pipefail /var/run/act/workflow/5] user= workdir=
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-docsapi-1  Stopping
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-docsapi-1  Stopping
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-graphqlapi-1  Stopping
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-graphqlapi-1  Stopping
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-restapi-1  Stopping
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-restapi-1  Stopping
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-docsapi-1  Stopped
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-docsapi-1  Removing
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-restapi-1  Stopped
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-restapi-1  Removing
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-graphqlapi-1  Stopped
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-graphqlapi-1  Removing
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-docsapi-1  Removed
+[Stargate Postman Collections/automated-api-tests-5]   | Container dse68-stargate-docsapi-1  Stopping
+[Stargate Postman Collections/automated-api-tests-5]   | Container dse68-stargate-docsapi-1  Stopping
+[Stargate Postman Collections/automated-api-tests-5]   | Container dse68-stargate-restapi-1  Stopping
+[Stargate Postman Collections/automated-api-tests-5]   | Container dse68-stargate-restapi-1  Stopping
+[Stargate Postman Collections/automated-api-tests-5]   | Container dse68-stargate-graphqlapi-1  Stopping
+[Stargate Postman Collections/automated-api-tests-5]   | Container dse68-stargate-graphqlapi-1  Stopping
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-graphqlapi-1  Removed
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-restapi-1  Removed
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-coordinator-1  Stopping
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-coordinator-1  Stopping
+[Stargate Postman Collections/automated-api-tests-5]   | Container dse68-stargate-restapi-1  Error while Stopping
+[Stargate Postman Collections/automated-api-tests-5]   | Container dse68-stargate-restapi-1  Error while Stopping
+[Stargate Postman Collections/automated-api-tests-5]   | Container dse68-stargate-docsapi-1  Error while Stopping
+[Stargate Postman Collections/automated-api-tests-5]   | Container dse68-stargate-docsapi-1  Error while Stopping
+[Stargate Postman Collections/automated-api-tests-5]   | Container dse68-stargate-graphqlapi-1  Error while Stopping
+[Stargate Postman Collections/automated-api-tests-5]   | Container dse68-stargate-graphqlapi-1  Error while Stopping
+[Stargate Postman Collections/automated-api-tests-5]   | Error response from daemon: No such container: df6362b858b456ff429148a3331ef32f08345440d233a979fc63ba9eff9355b9
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-coordinator-1  Stopped
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-coordinator-1  Removing
+[Stargate Postman Collections/automated-api-tests-5]   ❌  Failure - Main Stop Backend
+[Stargate Postman Collections/automated-api-tests-6]   | Container dse68-stargate-coordinator-1  Removed
+[Stargate Postman Collections/automated-api-tests-6]   | Network dse68-stargate_stargate  Removing
+[Stargate Postman Collections/automated-api-tests-6]   | Network dse68-stargate_stargate  Removed
+[Stargate Postman Collections/automated-api-tests-6]   ✅  Success - Main Stop Backend
+[Stargate Postman Collections/automated-api-tests-5] exitcode '1': failure
+[Stargate Postman Collections/automated-api-tests-5] 🏁  Job failed
+[Stargate Postman Collections/automated-api-tests-6] 🏁  Job failed
