@@ -31,18 +31,18 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
   @Override
   public Uni<RestResponse<Sgv2NameResponse>> createColumn(
       String keyspaceName, String tableName, Sgv2ColumnDefinition columnDefinition) {
-    final String columnName = columnDefinition.getName();
+    final String columnName = columnDefinition.name();
     return queryWithTableAsync(
             keyspaceName,
             tableName,
             (tableDef) -> {
               Column.Kind kind =
-                  columnDefinition.getIsStatic() ? Column.Kind.STATIC : Column.Kind.REGULAR;
+                  columnDefinition.isStatic() ? Column.Kind.STATIC : Column.Kind.REGULAR;
               Column columnDef =
                   ImmutableColumn.builder()
                       .name(columnName)
                       .kind(kind)
-                      .type(columnDefinition.getTypeDefinition())
+                      .type(columnDefinition.typeDefinition())
                       .build();
               return new QueryBuilder()
                   .alter()
@@ -75,7 +75,7 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
   @Override
   public Uni<RestResponse<Sgv2NameResponse>> updateColumn(
       String keyspaceName, String tableName, String columnName, Sgv2ColumnDefinition columnUpdate) {
-    final String newName = columnUpdate.getName();
+    final String newName = columnUpdate.name();
     // Avoid call if there is no need to rename
     if (columnName.equals(newName)) {
       return Uni.createFrom().item(restResponseOkWithName(newName));

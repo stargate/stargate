@@ -50,6 +50,10 @@ public interface AuthConfig {
     @NotBlank
     @WithDefault(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME)
     String headerName();
+
+    /** @return If the customization of the challenge sending should be done. */
+    @WithDefault("${stargate.exception-mappers.enabled:true}")
+    boolean customChallengeEnabled();
   }
 
   /** @return Configuration for the cassandra token resolver. */

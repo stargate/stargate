@@ -18,22 +18,19 @@ package io.stargate.sgv2.api.common.grpc.proto;
 import com.google.protobuf.StringValue;
 import io.stargate.bridge.proto.Schema.SchemaRead;
 import io.stargate.bridge.proto.Schema.SchemaRead.ElementType;
-import io.stargate.bridge.proto.Schema.SchemaRead.SourceApi;
 
 /** Helper methods to construct {@link SchemaRead} instances. */
 public class SchemaReads {
 
-  public static SchemaRead keyspace(String keyspaceName, SourceApi sourceApi) {
+  public static SchemaRead keyspace(String keyspaceName) {
     return SchemaRead.newBuilder()
-        .setSourceApi(sourceApi)
         .setElementType(ElementType.KEYSPACE)
         .setKeyspaceName(keyspaceName)
         .build();
   }
 
-  public static SchemaRead table(String keyspaceName, String tableName, SourceApi sourceApi) {
+  public static SchemaRead table(String keyspaceName, String tableName) {
     return SchemaRead.newBuilder()
-        .setSourceApi(sourceApi)
         .setElementType(ElementType.TABLE)
         .setKeyspaceName(keyspaceName)
         .setElementName(StringValue.of(tableName))

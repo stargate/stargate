@@ -15,26 +15,20 @@
  */
 package io.stargate.sgv2.restapi.service.models;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import io.quarkus.runtime.annotations.RegisterForReflection;
 import java.util.List;
 import java.util.Map;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 @RegisterForReflection
-public class Sgv2RowsResponse extends Sgv2GetResponse<List<Map<String, Object>>> {
-  // Override to add better description
-  @Schema(description = "The rows returned by the request.")
-  public List<Map<String, Object>> getData() {
-    return data;
-  }
-
-  @JsonCreator
-  public Sgv2RowsResponse(
-      @JsonProperty("count") int count,
-      @JsonProperty("pageState") String pageState,
-      @JsonProperty("rows") List<Map<String, Object>> rows) {
-    super(count, pageState, rows);
-  }
-}
+@Schema(name = "RowsResponse")
+@JsonInclude(JsonInclude.Include.NON_NULL)
+public record Sgv2RowsResponse(
+    @Schema(description = "The count of records returned.") int count,
+    @Schema(
+            description =
+                "A string representing the paging state to be used on future paging requests.",
+            nullable = true)
+        String pageState,
+    @Schema(description = "The rows returned by the request.") List<Map<String, Object>> data) {}

@@ -74,7 +74,7 @@ public class StatusRuntimeExceptionMapperTest {
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
     assertThat(response.getEntity().grpcStatus())
         .isEqualTo(Status.Code.DEADLINE_EXCEEDED.toString());
-    assertThat(response.getEntity().code()).isEqualTo(500);
+    assertThat(response.getEntity().code()).isEqualTo(504);
   }
 
   @Test

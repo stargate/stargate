@@ -98,8 +98,28 @@ Response response =
                         QueryOuterClass.Query
                                     .newBuilder().setCql("INSERT INTO ks.test (k, v) VALUES ('a', 1)").build());
 ```
+
 This will build and execute a single query. 
 
+You can also use the `Values` helper class to build parameterized queries:
+
+```java
+import io.stargate.proto.QueryOuterClass.Response;
+import io.stargate.proto.QueryOuterClass;
+import io.stargate.grpc.Values;
+
+Response response =
+        blockingStub.executeQuery(
+                QueryOuterClass.Query.newBuilder()
+                        .setCql("INSERT INTO ks.test (k, v) VALUES (?, ?)")
+                        .setValues(QueryOuterClass.Values.newBuilder()
+                                .addValues(Values.of("a"))
+                                .addValues(Values.of(2))
+                                .build())
+                        .build());
+```
+
+This is equivalent to the previous query.
 
 Next, we can retrieve the inserted record(s):
 ```java

@@ -77,6 +77,9 @@ public class InvalidQueriesIntegrationTest extends CqlFirstIntegrationTest {
           "query { keyspace (name: 1) { name } }",
           "Validation error of type WrongType: argument 'name' with value 'IntValue{value=1}' is not a valid 'String'"),
       arguments(
+          "query { keyspace (name: \"json_wrong) { name } }",
+          "Invalid Syntax : token recognition error at: '\"json_wrong) { name } }' at line 1 column 25"),
+      arguments(
           "query { keyspaces { name, nameInvalid } }",
           "Validation error of type FieldUndefined: Field 'nameInvalid' in type 'Keyspace' is undefined"),
     };

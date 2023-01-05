@@ -5,82 +5,51 @@ import java.util.List;
 import javax.validation.constraints.NotBlank;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
-public class Sgv2TableAddRequest {
-  private String name;
-  private Sgv2Table.PrimaryKey primaryKey;
-
-  private List<Sgv2ColumnDefinition> columnDefinitions;
-
-  boolean ifNotExists;
-
-  Sgv2Table.TableOptions tableOptions = new Sgv2Table.TableOptions();
-
-  // For Deserializers
-  public Sgv2TableAddRequest() {}
-
-  public Sgv2TableAddRequest(String tableName) {
-    this.name = tableName;
-  }
-
-  @Schema(required = true, description = "The name of the table to add.")
-  @NotBlank(message = "TableAdd.name must be provided")
-  public String getName() {
-    return name;
-  }
-
-  public void setName(String name) {
+/**
+ * Request DTO used when Creating or Updating Table: fields required vary between cases (Update has
+ * fewer required fields)
+ */
+@Schema(name = "TableAdd", description = "Definition of a Table to add.")
+public record Sgv2TableAddRequest(
+    @Schema(
+            required = true,
+            description = "The name of the table to add.",
+            example = "cycling_events")
+        @NotBlank(message = "TableAdd.name must be provided")
+        String name,
+    // Primary key required for Table Create but not for Update
+    @Schema(
+            description =
+                "The primary key definition of the table, consisting of partition and clustering keys.")
+        Sgv2Table.PrimaryKey primaryKey,
+    // Column definitions required for Table Create but not for Update
+    @Schema(description = "Definition of columns that belong to the table to be added.")
+        List<Sgv2ColumnDefinition> columnDefinitions,
+    @Schema(
+            description =
+                "Determines whether to create a new table if a table with the same name exists. Attempting to create an existing table returns an error unless this option is true.")
+        boolean ifNotExists,
+    @Schema(description = "The set of table options to apply to the table when creating.")
+        Sgv2Table.TableOptions tableOptions) {
+  public Sgv2TableAddRequest(
+      String name,
+      Sgv2Table.PrimaryKey primaryKey,
+      List<Sgv2ColumnDefinition> columnDefinitions,
+      boolean ifNotExists,
+      Sgv2Table.TableOptions tableOptions) {
     this.name = name;
-  }
-
-  @Schema(
-      description =
-          "Determines whether to create a new table if a table with the same name exists. Attempting to create an existing table returns an error unless this option is true.")
-  public boolean getIfNotExists() {
-    return ifNotExists;
-  }
-
-  public void setIfNotExists(boolean ifNotExists) {
-    this.ifNotExists = ifNotExists;
-  }
-
-  @Schema(
-      required = true,
-      description =
-          "The primary key definition of the table, consisting of partition and clustering keys.")
-  public Sgv2Table.PrimaryKey getPrimaryKey() {
-    return primaryKey;
-  }
-
-  public void setPrimaryKey(Sgv2Table.PrimaryKey primaryKey) {
     this.primaryKey = primaryKey;
-  }
-
-  // Cannot enforce non-null/non-emptiness since optional for Update (but mandatory for Create)
-  @Schema(
-      required = true,
-      description = "Definition of columns that belong to the table to be added.")
-  public List<Sgv2ColumnDefinition> getColumnDefinitions() {
-    return columnDefinitions;
-  }
-
-  public void setColumnDefinitions(List<Sgv2ColumnDefinition> columnDefinitions) {
     this.columnDefinitions = columnDefinitions;
+    this.ifNotExists = ifNotExists;
+    this.tableOptions = (tableOptions == null) ? new Sgv2Table.TableOptions() : tableOptions;
   }
-
-  @Schema(description = "The set of table options to apply to the table when creating.")
-  public Sgv2Table.TableOptions getTableOptions() {
-    return tableOptions;
-  }
-
-  public void setTableOptions(Sgv2Table.TableOptions tableOptions) {
-    this.tableOptions = tableOptions;
-  }
+  //  Sgv2Table.TableOptions tableOptions = new Sgv2Table.TableOptions();
 
   // // // Convenience access
 
   public List<Sgv2Table.ClusteringExpression> findClusteringExpressions() {
     if (tableOptions != null) {
-      List<Sgv2Table.ClusteringExpression> clustering = tableOptions.getClusteringExpression();
+      List<Sgv2Table.ClusteringExpression> clustering = tableOptions.clusteringExpression();
       if (clustering != null) {
         return clustering;
       }

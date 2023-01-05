@@ -23,7 +23,6 @@ import java.util.TreeSet;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.apache.http.HttpStatus;
-import org.junit.Ignore;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +36,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(RestApiV2QSchemaKeyspacesIT.class);
 
   public RestApiV2QSchemaKeyspacesIT() {
-    super("ks_ks_", "ks_t_");
+    super("ks_ks_", "ks_t_", KeyspaceCreation.NONE);
   }
 
   /*
@@ -85,8 +84,7 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
             .asString();
   }
 
-  // 09-Aug-2022, tatu: Alas, Auth token seems not to be checked
-  @Ignore("Auth token handling hard-coded, won't fail as expected")
+  @Test
   public void keyspacesGetAllBadToken() {
     String response =
         givenWithAuthToken("NotAPassword")
@@ -165,6 +163,8 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
             .asString();
     final Sgv2Keyspace keyspace = readJsonAs(response, Sgv2Keyspace.class);
     assertThat(keyspace).usingRecursiveComparison().isEqualTo(new Sgv2Keyspace(keyspaceName));
+
+    deleteKeyspace(keyspaceName);
   }
 
   // For [stargate#1817]. Unfortunately our current CI set up only has single DC ("dc1")
@@ -212,6 +212,8 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
         dcs.orElse(Collections.emptyList()).stream()
             .collect(Collectors.toMap(Sgv2Keyspace.Datacenter::getName, Function.identity()));
     assertThat(actualDCs).usingRecursiveComparison().isEqualTo(expectedDCs);
+
+    deleteKeyspace(keyspaceName);
   }
 
   // Verify that attempts to use non-existing DC produce useful fail message

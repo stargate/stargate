@@ -1,5 +1,37 @@
 # Changelog
 
+## [v2.0.4](https://github.com/stargate/stargate/tree/v2.0.4) (2022-12-22)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.3...v2.0.4)
+
+**Closed issues:**
+
+- Move ExceptionMappers out of sgv2-quarkus-common [\#2248](https://github.com/stargate/stargate/issues/2248)
+- Add deadline for the client side gRPC in the V2 [\#2192](https://github.com/stargate/stargate/issues/2192)
+- The bridge gRPC status `DEADLINE\_EXCEEDED` in the V2 APIs should resolve to `HTTP 504` [\#2318](https://github.com/stargate/stargate/issues/2318)
+- Add new path to REST API for CQL entrypoint \(/v2/cql\) [\#2313](https://github.com/stargate/stargate/issues/2313)
+- Update to Quarkus `v2.15.0` fails due to the missing class `graphql.parser.antlr.GraphqlLexer` [\#2309](https://github.com/stargate/stargate/issues/2309)
+- Change SGv2/REST DTOs to be simple Record types where possible [\#2264](https://github.com/stargate/stargate/issues/2264)
+
+**Merged pull requests:**
+
+- closes \#2318: grpc deadline exceeded to be reported as HTTP 504 [\#2320](https://github.com/stargate/stargate/pull/2320) ([ivansenic](https://github.com/ivansenic))
+- closes \#2248: configurable exception handling and mapping [\#2317](https://github.com/stargate/stargate/pull/2317) ([ivansenic](https://github.com/ivansenic))
+- no default int test profile in the sgv2 apis [\#2315](https://github.com/stargate/stargate/pull/2315) ([ivansenic](https://github.com/ivansenic))
+- closes \#2309: update quarkus to v2.15.1 [\#2308](https://github.com/stargate/stargate/pull/2308) ([ivansenic](https://github.com/ivansenic))
+- Convert REST Schema/ DTOs to Records, improve Swagger descs [\#2305](https://github.com/stargate/stargate/pull/2305) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Ingress resource name fixed for docs and graphql API [\#2303](https://github.com/stargate/stargate/pull/2303) ([maheshrajamani](https://github.com/maheshrajamani))
+- Fix \#2231: map exception for keyspace creation failure to more meaningful [\#2302](https://github.com/stargate/stargate/pull/2302) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- updates quarkus to v2.14.3 [\#2301](https://github.com/stargate/stargate/pull/2301) ([ivansenic](https://github.com/ivansenic))
+- fixes  openapi example in docs v2 [\#2300](https://github.com/stargate/stargate/pull/2300) ([ivansenic](https://github.com/ivansenic))
+- Bump version to `2.0.4-SNAPSHOT` [\#2299](https://github.com/stargate/stargate/pull/2299) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Allow CORS to REST api for dev [\#2284](https://github.com/stargate/stargate/pull/2284) ([tjake](https://github.com/tjake))
+- Add CQL endpoint to restapi such that webapps can execute cql statements directly [\#2266](https://github.com/stargate/stargate/pull/2266) ([tjake](https://github.com/tjake))
+
+**Merged pull requests:**
+
+- Bump version to `1.0.71-SNAPSHOT` [\#2298](https://github.com/stargate/stargate/pull/2298) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.0.3](https://github.com/stargate/stargate/tree/v2.0.3) (2022-12-06)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.2...v2.0.3)
@@ -591,9 +623,13 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
 
+## [v1.0.71](https://github.com/stargate/stargate/tree/v1.0.71) (2022-12-06)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.70...v1.0.71)
+
 ## [v1.0.70](https://github.com/stargate/stargate/tree/v1.0.70) (2022-12-06)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.2...v1.0.70)
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.69...v1.0.70)
 
 **Closed issues:**
 

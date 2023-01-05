@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 @QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QRowUpdateIT extends RestApiV2QIntegrationTestBase {
   public RestApiV2QRowUpdateIT() {
-    super("rowupd_ks_", "rowupd_t_");
+    super("rowupd_ks_", "rowupd_t_", KeyspaceCreation.PER_CLASS);
   }
 
   @Test
@@ -91,14 +91,13 @@ public class RestApiV2QRowUpdateIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void updateRowWithCounter() {
     final String tableName = testTableName();
-    final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
-    tableAdd.setColumnDefinitions(
+    List<Sgv2ColumnDefinition> columnDefs =
         Arrays.asList(
             new Sgv2ColumnDefinition("id", "text", false),
-            new Sgv2ColumnDefinition("counter", "counter", false)));
-    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
-    primaryKey.setPartitionKey(Arrays.asList("id"));
-    tableAdd.setPrimaryKey(primaryKey);
+            new Sgv2ColumnDefinition("counter", "counter", false));
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey(Arrays.asList("id"), null);
+    final Sgv2TableAddRequest tableAdd =
+        new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);
     createTable(testKeyspaceName(), tableAdd);
 
     // Since create row cannot increase counter we have to use PUT
@@ -131,15 +130,14 @@ public class RestApiV2QRowUpdateIT extends RestApiV2QIntegrationTestBase {
   @Test
   public void updateRowWithMultipleCounters() {
     final String tableName = testTableName();
-    final Sgv2TableAddRequest tableAdd = new Sgv2TableAddRequest(tableName);
-    tableAdd.setColumnDefinitions(
+    List<Sgv2ColumnDefinition> columnDefs =
         Arrays.asList(
             new Sgv2ColumnDefinition("id", "text", false),
             new Sgv2ColumnDefinition("counter1", "counter", false),
-            new Sgv2ColumnDefinition("counter2", "counter", false)));
-    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey();
-    primaryKey.setPartitionKey(Arrays.asList("id"));
-    tableAdd.setPrimaryKey(primaryKey);
+            new Sgv2ColumnDefinition("counter2", "counter", false));
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey(Arrays.asList("id"), null);
+    final Sgv2TableAddRequest tableAdd =
+        new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);
     createTable(testKeyspaceName(), tableAdd);
 
     final String rowIdentifier = UUID.randomUUID().toString();

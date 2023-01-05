@@ -4,6 +4,7 @@ import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.stub.StreamObserver;
 import io.stargate.grpc.StargateBearerToken;
+import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
 import java.util.concurrent.CountDownLatch;
@@ -40,6 +41,7 @@ public class GrpcClientExecuteQuery {
     GrpcClientExecuteQuery grpcClientExecuteQuery = new GrpcClientExecuteQuery();
     grpcClientExecuteQuery.prepareSchema();
     grpcClientExecuteQuery.executeSingleQuery();
+    grpcClientExecuteQuery.executeSingleQueryParameterized();
     grpcClientExecuteQuery.executeBatchQueries();
     grpcClientExecuteQuery.executeAsyncQueries();
     grpcClientExecuteQuery.executeStreamingQuery();
@@ -212,6 +214,35 @@ public class GrpcClientExecuteQuery {
     response =
         blockingStub.executeQuery(
             QueryOuterClass.Query.newBuilder().setCql("SELECT k, v FROM ks.test").build());
+
+    QueryOuterClass.ResultSet rs = response.getResultSet();
+
+    System.out.println(
+        "k = " + rs.getRows(0).getValues(0).getString()); // it will return value for k = "a"
+    System.out.println(
+        "v = " + rs.getRows(0).getValues(1).getInt()); // it will return value for v = 1
+  }
+
+  public void executeSingleQueryParameterized() {
+    // insert
+    QueryOuterClass.Response response =
+        blockingStub.executeQuery(
+            QueryOuterClass.Query.newBuilder()
+                .setCql("INSERT INTO ks.test (k, v) VALUES (?, ?)")
+                .setValues(
+                    QueryOuterClass.Values.newBuilder()
+                        .addValues(Values.of("b"))
+                        .addValues(Values.of(2))
+                        .build())
+                .build());
+    System.out.println(response);
+    // retrieve
+    response =
+        blockingStub.executeQuery(
+            QueryOuterClass.Query.newBuilder()
+                .setCql("SELECT k, v FROM ks.test WHERE k = ?")
+                .setValues(QueryOuterClass.Values.newBuilder().addValues(Values.of("b")).build())
+                .build());
 
     QueryOuterClass.ResultSet rs = response.getResultSet();
 

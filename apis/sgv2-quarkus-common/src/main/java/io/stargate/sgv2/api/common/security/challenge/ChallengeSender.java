@@ -15,16 +15,17 @@
  *
  */
 
-package io.stargate.sgv2.restapi.service.schema.configuration;
+package io.stargate.sgv2.api.common.security.challenge;
 
-import io.stargate.bridge.proto.Schema;
-import javax.inject.Singleton;
+import io.quarkus.vertx.http.runtime.security.ChallengeData;
+import io.quarkus.vertx.http.runtime.security.HttpAuthenticationMechanism;
+import io.smallrye.mutiny.Uni;
+import io.vertx.ext.web.RoutingContext;
+import java.util.function.BiFunction;
 
-/** Defines all needed properties for schema access. */
-public class SchemaAccessConfiguration {
-
-  @Singleton
-  Schema.SchemaRead.SourceApi sourceApi() {
-    return Schema.SchemaRead.SourceApi.REST;
-  }
-}
+/**
+ * Enables definition of the custom challenge sender in the application.
+ *
+ * @see HttpAuthenticationMechanism#sendChallenge(RoutingContext)
+ */
+public interface ChallengeSender extends BiFunction<RoutingContext, ChallengeData, Uni<Boolean>> {}

@@ -14,13 +14,15 @@ import io.stargate.sgv2.restapi.service.models.Sgv2UDTUpdateRequest;
 import java.util.Arrays;
 import java.util.List;
 import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
 @QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
   public RestApiV2QSchemaUserTypeIT() {
-    super("udt_ks_", "udt_t_");
+    // Need per-method due to "udtGetAll()" verifying that no UDTs exist
+    super("udt_ks_", "udt_t_", KeyspaceCreation.PER_CLASS);
   }
 
   /*
@@ -33,7 +35,7 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
   public void udtCreateBasic() {
     final String tableName = testTableName();
     createSimpleTestTable(testKeyspaceName(), tableName);
-    final String typeName = "udt1";
+    final String typeName = "udtbasic";
 
     String createUDT =
         "{\"name\": \""
@@ -50,25 +52,25 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
     ApiError apiError = readJsonAs(response, ApiError.class);
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     // Sample output:
-    //  Cassandra 4.0: “Bad request: A user type with name ‘udt1’ already exists”
+    //  Cassandra 4.0: “Bad request: A user type with name ‘udtbasic’ already exists”
     //  Cassandra 3.11, DSE 6.8: “Bad request: A user type of name
-    //     ks_udtCreateBasic_1643916413499.udt1 already exists”
+    //     ks_udtCreateBasic_1643916413499.udtbasic already exists”
     assertThat(apiError.description())
         .matches(String.format("Bad request: A user type .*%s.* already exists", typeName));
 
     // But ok if we do conditional insert:
     // don't create and don't throw exception because ifNotExists = true
     createUDT =
-        "{\"name\": \"udt1\", \"ifNotExists\": true,"
+        "{\"name\": \"udtbasic\", \"ifNotExists\": true,"
             + "\"fields\":[{\"name\":\"firstName\",\"typeDefinition\":\"text\"}]}";
-    response = tryCreateUDT(testKeyspaceName(), createUDT, HttpStatus.SC_CREATED);
+    tryCreateUDT(testKeyspaceName(), createUDT, HttpStatus.SC_CREATED);
   }
 
   @Test
   public void udtCreateInvalid() {
     final String typeName = "invalid_type";
     String createUDT =
-        "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstName\",\"typeDefinition\":\""
+        "{\"name\": \"udtX\", \"fields\":[{\"name\":\"firstName\",\"typeDefinition\":\""
             + typeName
             + "\"}}]}";
     String response = tryCreateUDT(testKeyspaceName(), createUDT, HttpStatus.SC_BAD_REQUEST);
@@ -76,20 +78,20 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(apiError.description()).contains("Invalid JSON payload: ");
 
-    createUDT = "{\"name\": \"udt1\", \"fields\":[]}";
+    createUDT = "{\"name\": \"udtX\", \"fields\":[]}";
     response = tryCreateUDT(testKeyspaceName(), createUDT, HttpStatus.SC_BAD_REQUEST);
     apiError = readJsonAs(response, ApiError.class);
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(apiError.description()).contains("There should be at least one field defined");
 
-    createUDT = "{\"name\": \"udt1\", \"fields\":[{\"name\":\"firstName\"}]}";
+    createUDT = "{\"name\": \"udtX\", \"fields\":[{\"name\":\"firstName\"}]}";
     response = tryCreateUDT(testKeyspaceName(), createUDT, HttpStatus.SC_BAD_REQUEST);
     apiError = readJsonAs(response, ApiError.class);
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(apiError.description())
         .contains("Field 'name' and 'typeDefinition' must be provided");
 
-    createUDT = "{\"name\": \"udt1\", \"fields\":[{\"typeDefinition\":\"text\"}]}";
+    createUDT = "{\"name\": \"udtX\", \"fields\":[{\"typeDefinition\":\"text\"}]}";
     response = tryCreateUDT(testKeyspaceName(), createUDT, HttpStatus.SC_BAD_REQUEST);
     apiError = readJsonAs(response, ApiError.class);
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
@@ -103,7 +105,10 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
   /////////////////////////////////////////////////////////////////////////
    */
 
+  // NOTE! Must be the first Test to run (after initialization) so no UDTs yet exist
+  // in the shared (per-class) keyspace
   @Test
+  @Order(Integer.MIN_VALUE + 1)
   public void udtGetAll() {
     // First: verify no UDTs exist before test (both wrapped and raw access)
     assertThat(findAllUDTs(testKeyspaceName(), false)).isEmpty();
@@ -123,11 +128,11 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
 
     // Are they to be returned in insertion/alphabetic order? Assume so
     for (int i = 0; i < udts.length; ++i) {
-      assertThat(udts[i].getName()).isEqualTo("udt" + i);
-      List<Sgv2UDT.UDTField> fields = udts[i].getFields();
+      assertThat(udts[i].name()).isEqualTo("udt" + i);
+      List<Sgv2UDT.UDTField> fields = udts[i].fields();
       assertThat(fields).hasSize(1);
-      assertThat(fields.get(0).getName()).isEqualTo("firstName");
-      assertThat(fields.get(0).getTypeDefinition()).isEqualTo("text");
+      assertThat(fields.get(0).name()).isEqualTo("firstName");
+      assertThat(fields.get(0).typeDefinition()).isEqualTo("text");
     }
   }
 
@@ -152,13 +157,13 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
   }
 
   private void verifyGetOneType(String typeName, Sgv2UDT udt) {
-    assertThat(udt.getName()).isEqualTo(typeName);
-    List<Sgv2UDT.UDTField> fields = udt.getFields();
+    assertThat(udt.name()).isEqualTo(typeName);
+    List<Sgv2UDT.UDTField> fields = udt.fields();
     assertThat(fields).hasSize(2);
-    assertThat(fields.get(0).getName()).isEqualTo("arrival");
-    assertThat(fields.get(0).getTypeDefinition()).isEqualTo("timestamp");
-    assertThat(fields.get(1).getName()).isEqualTo("props");
-    assertThat(fields.get(1).getTypeDefinition()).isEqualTo("frozen<map<text, text>>");
+    assertThat(fields.get(0).name()).isEqualTo("arrival");
+    assertThat(fields.get(0).typeDefinition()).isEqualTo("timestamp");
+    assertThat(fields.get(1).name()).isEqualTo("props");
+    assertThat(fields.get(1).typeDefinition()).isEqualTo("frozen<map<text, text>>");
   }
 
   /*
@@ -195,11 +200,11 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
 
     // Fetch and verify UDT:
     Sgv2UDT udt = findOneUDT(testKeyspaceName(), typeName, true);
-    assertThat(udt.getName()).isEqualTo(typeName);
-    List<Sgv2UDT.UDTField> fields = udt.getFields();
+    assertThat(udt.name()).isEqualTo(typeName);
+    List<Sgv2UDT.UDTField> fields = udt.fields();
     assertThat(fields).hasSize(2);
 
-    List<String> fieldNames = Arrays.asList(fields.get(0).getName(), fields.get(1).getName());
+    List<String> fieldNames = Arrays.asList(fields.get(0).name(), fields.get(1).name());
     assertThat(fieldNames).isEqualTo(Arrays.asList("name1", "name2"));
   }
 
@@ -214,20 +219,21 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
             + "\", \"fields\":[{\"name\":\"age\",\"typeDefinition\":\"int\"}]}";
     tryCreateUDT(testKeyspaceName(), createUDT, HttpStatus.SC_CREATED);
 
-    Sgv2UDTUpdateRequest updateRequest = new Sgv2UDTUpdateRequest(typeName);
-    updateRequest.setAddFields(Arrays.asList(new Sgv2UDT.UDTField("name", "text")));
-    updateRequest.setRenameFields(
-        Arrays.asList(new Sgv2UDTUpdateRequest.FieldRename("name", "firstname")));
+    Sgv2UDTUpdateRequest updateRequest =
+        new Sgv2UDTUpdateRequest(
+            typeName,
+            Arrays.asList(new Sgv2UDT.UDTField("name", "text")),
+            Arrays.asList(new Sgv2UDTUpdateRequest.FieldRename("name", "firstname")));
 
     tryUpdateUDT(testKeyspaceName(), asJsonString(updateRequest), HttpStatus.SC_OK);
 
     // Verify changes
     Sgv2UDT udt = findOneUDT(testKeyspaceName(), typeName, true);
-    assertThat(udt.getName()).isEqualTo(typeName);
-    List<Sgv2UDT.UDTField> fields = udt.getFields();
+    assertThat(udt.name()).isEqualTo(typeName);
+    List<Sgv2UDT.UDTField> fields = udt.fields();
     assertThat(fields).hasSize(2);
 
-    List<String> fieldNames = Arrays.asList(fields.get(0).getName(), fields.get(1).getName());
+    List<String> fieldNames = Arrays.asList(fields.get(0).name(), fields.get(1).name());
     assertThat(fieldNames).isEqualTo(Arrays.asList("age", "firstname"));
   }
 
@@ -285,7 +291,7 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
     tryCreateUDT(testKeyspaceName(), createUDT, HttpStatus.SC_CREATED);
     // verify it's there
     Sgv2UDT udt = findOneUDT(testKeyspaceName(), typeName, true);
-    assertThat(udt.getName()).isEqualTo(typeName);
+    assertThat(udt.name()).isEqualTo(typeName);
 
     // before deleting:
     String deletePath = endpointPathForUDT(testKeyspaceName(), typeName);

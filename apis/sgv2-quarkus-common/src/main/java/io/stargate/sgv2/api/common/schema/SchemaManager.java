@@ -57,8 +57,6 @@ public class SchemaManager {
   @CacheName("keyspace-cache")
   Cache keyspaceCache;
 
-  @Inject Schema.SchemaRead.SourceApi sourceApi;
-
   @Inject StargateRequestInfo requestInfo;
 
   /**
@@ -204,7 +202,7 @@ public class SchemaManager {
               // create schema reads for all keyspaces
               List<Schema.SchemaRead> reads =
                   keyspaceNames.stream()
-                      .map(n -> SchemaReads.keyspace(n, sourceApi))
+                      .map(n -> SchemaReads.keyspace(n))
                       .collect(Collectors.toList());
 
               Schema.AuthorizeSchemaReadsRequest request =
@@ -323,7 +321,7 @@ public class SchemaManager {
 
               List<Schema.SchemaRead> reads =
                   tables.stream()
-                      .map(t -> SchemaReads.table(keyspace, t.getName(), sourceApi))
+                      .map(t -> SchemaReads.table(keyspace, t.getName()))
                       .collect(Collectors.toList());
 
               Schema.AuthorizeSchemaReadsRequest request =
@@ -354,14 +352,14 @@ public class SchemaManager {
 
   // authorizes a keyspace by provided name
   public Uni<Boolean> authorizeKeyspaceInternal(StargateBridge bridge, String keyspaceName) {
-    Schema.SchemaRead schemaRead = SchemaReads.keyspace(keyspaceName, sourceApi);
+    Schema.SchemaRead schemaRead = SchemaReads.keyspace(keyspaceName);
     return authorizeInternal(bridge, schemaRead);
   }
 
   // authorizes a table by provided name and keyspace
   public Uni<Boolean> authorizeTableInternal(
       StargateBridge bridge, String keyspaceName, String tableName) {
-    Schema.SchemaRead schemaRead = SchemaReads.table(keyspaceName, tableName, sourceApi);
+    Schema.SchemaRead schemaRead = SchemaReads.table(keyspaceName, tableName);
     return authorizeInternal(bridge, schemaRead);
   }
 

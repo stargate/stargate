@@ -141,7 +141,7 @@ public class QueryBuilderValuesTest {
   public void shouldBindValuesInQueryOrder() {
     // This is a bit contrived, client code should not explicitly depend on generated classes like
     // this:
-    QueryBuilder.QueryBuilder__21 select = new QueryBuilder().select().from("ks", "tbl");
+    QueryBuilder.QueryBuilder__23 select = new QueryBuilder().select().from("ks", "tbl");
     select.limit(INT_VALUE2);
     select.where(BuiltCondition.of("c1", Predicate.EQ, INT_VALUE1));
     Query query = select.build();
@@ -160,5 +160,11 @@ public class QueryBuilderValuesTest {
                     .where("a", Predicate.EQ, INT_VALUE1)
                     .where("b", Predicate.EQ, Term.marker()))
         .isInstanceOf(IllegalStateException.class);
+  }
+
+  @Test
+  public void shouldAllowCQLStatement() {
+    Query query = new QueryBuilder().cql("SELECT * from system.local").build();
+    assertThat(query.getCql()).isEqualTo("SELECT * from system.local");
   }
 }

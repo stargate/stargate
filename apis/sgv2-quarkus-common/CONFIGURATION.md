@@ -5,13 +5,14 @@
 ### Authentication & security configuration
 *Configuration for header-based authentication, defined by [AuthConfig.java](src/main/java/io/stargate/sgv2/api/common/config/AuthConfig.java).*
 
-| Property                                          | Type      | Default             | Description                                                                                                                |
-|---------------------------------------------------|-----------|---------------------|----------------------------------------------------------------------------------------------------------------------------|
-| `stargate.auth.header-based.enabled`              | `boolean` | `true`              | If the header based auth is enabled.                                                                                       |
-| `stargate.auth.header-based.header-name`          | `String`  | `X-Cassandra-Token` | Name of the authentication header.                                                                                         |
-| `stargate.auth.token-resolver.type`               | `String`  | `principal`         | Token resolver type. If unset, empty token is used. Possible options are `header`, `principal` `fixed`, `custom` or unset. |
-| `stargate.auth.token-resolver.header.header-name` | `String`  | `X-Cassandra-Token` | Header to get the token from, if the `header` type is used.                                                                |
-| `stargate.auth.token-resolver.fixed.token`        | `String`  | unset               | Tenant identifier value, if the `fixed` type is used.                                                                      |
+| Property                                              | Type      | Default                                      | Description                                                                                                                |
+|-------------------------------------------------------|-----------|----------------------------------------------|----------------------------------------------------------------------------------------------------------------------------|
+| `stargate.auth.header-based.enabled`                  | `boolean` | `true`                                       | If the header based auth is enabled.                                                                                       |
+| `stargate.auth.header-based.header-name`              | `String`  | `X-Cassandra-Token`                          | Name of the authentication header.                                                                                         |
+| `stargate.auth.header-based.custom-challenge-enabled` | `String`  | `${stargate.exception-mappers.enabled:true}` | Provides possibility to disable the customized auth challenge defined.                                                     |
+| `stargate.auth.token-resolver.type`                   | `String`  | `principal`                                  | Token resolver type. If unset, empty token is used. Possible options are `header`, `principal` `fixed`, `custom` or unset. |
+| `stargate.auth.token-resolver.header.header-name`     | `String`  | `X-Cassandra-Token`                          | Header to get the token from, if the `header` type is used.                                                                |
+| `stargate.auth.token-resolver.fixed.token`            | `String`  | unset                                        | Tenant identifier value, if the `fixed` type is used.                                                                      |
 
 ### Data store configuration
 *Configuration of the data-store properties, defined by [DataStoreConfig.java](src/main/java/io/stargate/sgv2/api/common/config/DataStoreConfig.java).*
@@ -62,3 +63,13 @@
 | `stargate.queries.consistency.schema-changes` | `String` | `LOCAL_QUORUM` | Consistency level to use for C* queries that are performing the schema changes.  |
 | `stargate.queries.consistency.writes`         | `String` | `LOCAL_QUORUM` | Consistency level to use for C* queries that are inserting or updating the data. |
 | `stargate.queries.consistency.reads`          | `String` | `LOCAL_QUORUM` | Consistency level to use for C* queries that are reading the data.               |
+
+## Stargate Development Configuration
+
+> NOTE: This properties cre usually helpful when you are using `sgv2-quarkus-common` to develop custom APIs.
+
+### Exception mappers
+
+| Property                             | Type      | Default | Description                                                                                                                       |
+|--------------------------------------|-----------|---------|-----------------------------------------------------------------------------------------------------------------------------------|
+| `stargate.exception-mappers.enabled` | `boolean` | `unset` | If set to `false` it disables all common exception mappers defined. You would need to define your own exception mapping strategy. |

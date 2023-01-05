@@ -31,16 +31,19 @@ class AuthorizationHandler {
 
   private final AuthorizeSchemaReadsRequest request;
   private final Connection connection;
+  private final SourceAPI sourceAPI;
   private final AuthorizationService authorizationService;
   private final StreamObserver<AuthorizeSchemaReadsResponse> responseObserver;
 
   AuthorizationHandler(
       AuthorizeSchemaReadsRequest request,
       Connection connection,
+      SourceAPI sourceAPI,
       AuthorizationService authorizationService,
       StreamObserver<AuthorizeSchemaReadsResponse> responseObserver) {
     this.request = request;
     this.connection = connection;
+    this.sourceAPI = sourceAPI;
     this.authorizationService = authorizationService;
     this.responseObserver = responseObserver;
   }
@@ -63,7 +66,7 @@ class AuthorizationHandler {
           read.hasElementName()
               ? Collections.singletonList(read.getElementName().getValue())
               : Collections.emptyList(),
-          convertApi(read.getSourceApi()),
+          sourceAPI,
           convertType(read.getElementType()));
       return true;
     } catch (UnauthorizedException e) {
@@ -99,18 +102,6 @@ class AuthorizationHandler {
       case UNRECOGNIZED:
       default:
         throw new IllegalArgumentException("Unsupported element type " + elementType);
-    }
-  }
-
-  private SourceAPI convertApi(SchemaRead.SourceApi sourceApi) {
-    switch (sourceApi) {
-      case GRAPHQL:
-        return SourceAPI.GRAPHQL;
-      case REST:
-        return SourceAPI.REST;
-      case UNRECOGNIZED:
-      default:
-        throw new IllegalArgumentException("Unsupported source API " + sourceApi);
     }
   }
 }
