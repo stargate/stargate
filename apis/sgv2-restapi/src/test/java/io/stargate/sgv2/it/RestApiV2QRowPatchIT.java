@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Test;
 @QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QRowPatchIT extends RestApiV2QIntegrationTestBase {
   public RestApiV2QRowPatchIT() {
-    super("rowptc_ks_", "rowptc_t_");
+    super("rowptc_ks_", "rowptc_t_", KeyspaceCreation.PER_CLASS);
   }
 
   @Test

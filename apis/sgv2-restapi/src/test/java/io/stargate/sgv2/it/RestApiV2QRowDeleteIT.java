@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 @QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QRowDeleteIT extends RestApiV2QIntegrationTestBase {
   public RestApiV2QRowDeleteIT() {
-    super("rowdel_ks_", "rowdel_t_");
+    super("rowdel_ks_", "rowdel_t_", KeyspaceCreation.PER_CLASS);
   }
 
   @Test

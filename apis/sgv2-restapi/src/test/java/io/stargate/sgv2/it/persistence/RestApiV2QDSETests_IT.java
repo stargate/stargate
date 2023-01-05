@@ -25,7 +25,7 @@ import org.junit.jupiter.api.Test;
 @QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QDSETests_IT extends RestApiV2QCqlEnabledTestBase {
   public RestApiV2QDSETests_IT() {
-    super("dse_ks_", "dse_t_");
+    super("dse_ks_", "dse_t_", KeyspaceCreation.PER_CLASS);
   }
 
   /*

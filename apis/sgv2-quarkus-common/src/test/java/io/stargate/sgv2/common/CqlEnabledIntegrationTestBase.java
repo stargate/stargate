@@ -77,7 +77,9 @@ public abstract class CqlEnabledIntegrationTestBase {
   }
 
   @AfterAll
-  public final void closeSession() {
+  public final void cleanUp() {
+    session.execute("DROP KEYSPACE IF EXISTS %s".formatted(keyspaceId.asCql(false)));
+
     if (session != null) {
       session.close();
     }

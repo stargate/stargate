@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.protobuf.StringValue;
 import io.grpc.StatusRuntimeException;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
@@ -164,6 +165,24 @@ public class BridgeAuthorizationTest extends BridgeIntegrationTest {
     // No need to check every field (the values vary across persistence backends). The main object
     // of the test is that the call doesn't throw an authentication exception.
     assertThat(supportedFeatures.getLoggedBatches()).isTrue();
+  }
+
+  @Test
+  public void schemaReads() throws IOException {
+    final String keyspace = "ks_bridgeAuthnzTest_CreateKS";
+    Schema.SchemaRead schemaRead =
+        Schema.SchemaRead.newBuilder()
+            .setElementName(StringValue.newBuilder().setValue(keyspace).build())
+            .setElementType(Schema.SchemaRead.ElementType.KEYSPACE)
+            .build();
+    Schema.AuthorizeSchemaReadsRequest request =
+        Schema.AuthorizeSchemaReadsRequest.newBuilder().addSchemaReads(schemaRead).build();
+
+    // But succeed for Admin user
+    final String adminToken = generateAdminToken();
+    Schema.AuthorizeSchemaReadsResponse response =
+        stubWithCallCredentials(adminToken).authorizeSchemaReads(request);
+    assertThat(response.getAuthorizedList()).containsOnly(Boolean.TRUE);
   }
 
   private String generateNoAccessToken() throws IOException {

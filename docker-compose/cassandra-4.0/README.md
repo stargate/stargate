@@ -1,27 +1,44 @@
-This directory provides two ways to start Stargate with Cassandra 4.0 using docker-compose.
+# Docker Compose scripts for Stargate with Cassandra 4.0
 
-# Stargate with 3-node Cassandra 4.0 cluster
+This directory provides two ways to start Stargate with Cassandra 4.0 using `docker compose`.
 
-Use the shell script `start_cass_40.sh`, which performs an orderly startup of containers 
-specified in `docker-compose.yml`:
+## Stargate with 3-node Cassandra 4.0 cluster
 
-`./start_cass_40.sh`
+You can start a simple Stargate configuration with the following command:
 
-This script exits when all containers have started or a failure is detected. You can remove
-the stack of containers created by executing `docker compose down`.
+```
+docker compose up -d
+``` 
 
-# Stargate with embedded Cassandra 4.0 (developer mode) 
+This brings up the configuration described in the `docker-compose.yml` file. The configuration includes health criteria for each container that is used to ensure the containers come up in the correct order.
 
-This alternate configuration that runs the Stargate coordinator node in developer mode, so that no
-separate Cassandra cluster is required. This can be run with the command:
+Using the `-d` option tracks the startup progress, so that the compose command exits when all containers have started or a failure is detected. Omitting the `-d` option causes the command to track the progress of all containers, including all log output, and a `Ctrl-C` will cause all the containers to exit.
 
-`./start_cass_40_dev_mode.sh`
+The default environment settings in the `.env` file include variables that describe which image tags to use, typically Stargate `v2` and Cassandra `4.0`. We recommend doing a `docker compose pull` periodically to ensure you always have the latest patch versions of these tags.
 
-You can stop execution of this script with `Ctrl-C` and the stack will be torn down.
+You can override the default environment settings in your local shell, or use the convenient shell script `start_cass_40.sh`.
 
-# Script options
+Whether you use the shell script or start `docker compose` directly, you can remove the stack of containers created by executing `docker compose down`.
 
-Both scripts support the following options:
+## Stargate with embedded Cassandra 4.0 (developer mode) 
+
+This alternate configuration runs the Stargate coordinator node in developer mode, so that no separate Cassandra cluster is required. This can be run with the command:
+
+```
+docker compose -f docker-compose-dev-mode.yml up -d
+``` 
+
+To stop the configuration, use the command:
+
+```
+docker compose -f docker-compose-dev-mode.yml down
+``` 
+
+This configuration is useful for development and testing since it initializes more quickly, but is not recommended for production deployments. This configuration also has a convenience script: `start_cass_311_dev_mode.sh`.
+
+## Script options
+
+Both convenience scripts support the following options:
 
 * You can specify a released image tag (version) using `-t [VERSION]`. Consult [Docker Hub](https://hub.docker.com/r/stargateio/coordinator-4_0/tags) for a list of available tags.
 
@@ -31,25 +48,22 @@ Both scripts support the following options:
 
 * You can enable reguest logging using `-q`: if so, each request is logged under category `io.quarkus.http.access-log`
 
-# Notes
+## Notes
 
-* The `.env` file defines variables for the docker compose project name (`COMPOSE_PROJECT_NAME`),
-  and the Cassandra Docker image tag to use (`CASSTAG`).
+* The `.env` file defines variables for the docker compose project name (`COMPOSE_PROJECT_NAME`), the Cassandra Docker image tag to use (`CASSTAG`), and the Stargate Docker image tag to use (`SGTAG`).
 
-* The Stargate Docker image tag to use (`SGTAG`) defaults to the current version as defined in the
-  top level project `pom.xml` file. It can be overridden with the `-t` option on either script:
+* When using the convenience scripts, the Stargate Docker image (`SGTAG`) used for the `-l` option is the current (snapshot) version as defined in the top level project `pom.xml` file. It can be overridden with the `-t` option on either script:
 
   `./start_cass_40.sh -t v2.0.0-BETA-2`
 
-* Running more than one of these multi-container environments on one host may require
-changing the port mapping to be changed to avoid conflicts on the host machine.
+* Running more than one of these multi-container environments on one host may require changing the port mapping to be changed to avoid conflicts on the host machine.
 
-# Troubleshooting
+## Troubleshooting
 
 If you see an error like:
 ```
-Pulling coordinator (stargateio/coordinator-4_0:2.0.0-BETA-4-SNAPSHOT)...
-ERROR: manifest for stargateio/coordinator-4_0:2.0.0-BETA-4-SNAPSHOT not found: manifest unknown: manifest unknown
+Pulling coordinator (stargateio/coordinator-4_0:2.0.1-SNAPSHOT)...
+ERROR: manifest for stargateio/coordinator-4_0:2.0.1-SNAPSHOT not found: manifest unknown: manifest unknown
 ```
 
 you are trying to deploy a version that is neither publicly available (official release) nor built locally.

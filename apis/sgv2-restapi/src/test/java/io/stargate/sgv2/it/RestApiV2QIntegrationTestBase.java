@@ -30,20 +30,43 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.ClassOrderer;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestClassOrder;
 import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.TestMethodOrder;
 
+/**
+ * Serves as the base class for integration tests that need to create namespace prior to running the
+ * tests and also provides shared convenience methods
+ *
+ * <p>Note that due to the way how RestAssured is configured in Quarkus tests, we are doing the
+ * initialization as first tests to be run. The {@link BeforeAll} annotation can not be used, as
+ * rest assured is not configured yet. See https://github.com/quarkusio/quarkus/issues/7690 for more
+ * info.
+ */
 @TestClassOrder(ClassOrderer.DisplayName.class)
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class RestApiV2QIntegrationTestBase {
+  public enum KeyspaceCreation {
+    PER_METHOD,
+    PER_CLASS,
+    NONE
+  }
+
   protected static final ObjectMapper objectMapper = JsonMapper.builder().build();
 
   protected static final TypeReference LIST_OF_MAPS_TYPE =
       new TypeReference<List<Map<String, Object>>>() {};
+
+  private final KeyspaceCreation keyspaceCreation;
 
   private final String testKeyspacePrefix;
 
@@ -59,9 +82,11 @@ public abstract class RestApiV2QIntegrationTestBase {
   /////////////////////////////////////////////////////////////////////////
    */
 
-  protected RestApiV2QIntegrationTestBase(String keyspacePrefix, String tablePrefix) {
+  protected RestApiV2QIntegrationTestBase(
+      String keyspacePrefix, String tablePrefix, KeyspaceCreation keyspaceCreation) {
     this.testKeyspacePrefix = keyspacePrefix;
     this.testTablePrefix = tablePrefix;
+    this.keyspaceCreation = keyspaceCreation;
   }
 
   @BeforeAll
@@ -83,12 +108,40 @@ public abstract class RestApiV2QIntegrationTestBase {
       // need to truncate testName, NOT timestamp, so:
       testName = testName.substring(0, testName.length() - (len - 48));
     }
-    testKeyspaceName = testKeyspacePrefix + testName + timestamp;
     testTableName = testTablePrefix + testName + timestamp;
 
-    // Create keyspace automatically (same as before)
-    createKeyspace(testKeyspaceName);
-    // But not table (won't have definition anyway)
+    // May need automatic keyspace creation on per-class or per-method  basis
+    if (keyspaceCreation == KeyspaceCreation.PER_METHOD) {
+      testKeyspaceName = testKeyspacePrefix + testName + timestamp;
+      createKeyspace(testKeyspaceName);
+    }
+  }
+
+  // Per-class initialization needs to run "as a test method" before real tests
+  @Test
+  @Order(Integer.MIN_VALUE)
+  public void initPerClass() {
+    if (keyspaceCreation == KeyspaceCreation.PER_CLASS) {
+      // If shared for test methods create first time it is actually needed
+      testKeyspaceName = testKeyspacePrefix + "shared";
+      createKeyspace(testKeyspaceName);
+    }
+  }
+
+  @AfterEach
+  public void cleanupPerTest() {
+    if (keyspaceCreation == KeyspaceCreation.PER_METHOD) {
+      deleteKeyspace(testKeyspaceName);
+    }
+  }
+
+  // Per-class cleanup needs to run "as a test method" after all real tests
+  @Test
+  @Order(Integer.MAX_VALUE)
+  public void cleanupPerClass() {
+    if (keyspaceCreation == KeyspaceCreation.PER_CLASS) {
+      deleteKeyspace(testKeyspaceName);
+    }
   }
 
   /*
@@ -261,7 +314,7 @@ public abstract class RestApiV2QIntegrationTestBase {
 
   /*
   /////////////////////////////////////////////////////////////////////////
-  // Helper methods for Keyspace creation
+  // Helper methods for Keyspace creation/deletion
   /////////////////////////////////////////////////////////////////////////
    */
 
@@ -282,6 +335,14 @@ public abstract class RestApiV2QIntegrationTestBase {
         .post(endpointPathForAllKeyspaces())
         .then()
         .statusCode(HttpStatus.SC_CREATED);
+  }
+
+  protected void deleteKeyspace(String keyspaceName) {
+    givenWithAuth()
+        .when()
+        .delete(endpointPathForAllKeyspaces() + "/{keyspace-id}", keyspaceName)
+        .then()
+        .statusCode(HttpStatus.SC_NO_CONTENT);
   }
 
   /*

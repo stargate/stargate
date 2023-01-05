@@ -29,7 +29,7 @@ public class RestApiV2QMaterializedViewIT extends RestApiV2QCqlEnabledTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(RestApiV2QMaterializedViewIT.class);
 
   public RestApiV2QMaterializedViewIT() {
-    super("mv_ks_", "mv_t_");
+    super("mv_ks_", "mv_t_", KeyspaceCreation.PER_CLASS);
   }
 
   /*

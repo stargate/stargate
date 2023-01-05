@@ -27,7 +27,7 @@ public class RestApiV2QIndexSASI_IT extends RestApiV2QIntegrationTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(RestApiV2QIndexSASI_IT.class);
 
   public RestApiV2QIndexSASI_IT() {
-    super("sasi_ks_", "sasi_t_");
+    super("sasi_ks_", "sasi_t_", KeyspaceCreation.PER_CLASS);
   }
 
   /*

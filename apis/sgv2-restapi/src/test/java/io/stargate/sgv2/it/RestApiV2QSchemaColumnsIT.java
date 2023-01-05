@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
 @QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
   public RestApiV2QSchemaColumnsIT() {
-    super("col_ks_", "col_t_");
+    super("col_ks_", "col_t_", KeyspaceCreation.PER_CLASS);
   }
 
   /*
