@@ -6,8 +6,8 @@ on:
 jobs:
   integration-test:
     name: Integration Test
-    # 05-Jan-2023, tatu: CCM install tested with this version, current ubuntu-latest:
-    runs-on: ubuntu-22.04
+    # 05-Jan-2023, tatu: CCM installation easier on 20.04 than later; Python 2.x dep etc problematic
+    runs-on: ubuntu-20.04
     strategy:
       # Defaults to "true" but let's let all runs finish
       # (see https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs)
@@ -45,7 +45,7 @@ jobs:
           </settings>
           EOF
       - name: Clone CCM
-        # 05-Jan-2023, tatu: CCM install copied from C2 repo's ".github/workflows/ci.yml":
+        # 24-Jun-2022, tatu: CCM install copied from C2 repo's ".github/workflows/ci.yml":
         uses: actions/checkout@v3
         with:
           repository: riptano/ccm
@@ -55,15 +55,13 @@ jobs:
       - name: Install CCM
         run: |
           sudo apt-get install python2.7
-          sudo apt-get install python2-dev
+          sudo apt-get install python-dev
           sudo apt-get install python-setuptools
-          sudo apt-get install python-six
-          curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py
-          sudo python2 get-pip.py
-          sudo pip install --upgrade pip
-          sudo pip install psutil pyyaml
+          sudo apt-get install python-yaml
+          python -m pip install --upgrade pip
+          python -m pip install psutil
           cd ccm
-          sudo python2 setup.py install
+          sudo ./setup.py install
           ccm list
       - name: Run Unit and Integration Tests
         run: |
