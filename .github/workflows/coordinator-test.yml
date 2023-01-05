@@ -58,9 +58,10 @@ jobs:
           sudo apt-get install python-dev
           sudo apt-get install python-setuptools
           sudo apt-get install python-yaml
-          sudo apt-get install python-pip
-          python -m pip install --upgrade pip
-          python -m pip install psutil
+          curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py
+	  python2 get-pip.py
+          python2 -m pip install --upgrade pip
+          python2 -m pip install psutil
           cd ccm
           sudo ./setup.py install
           ccm list
