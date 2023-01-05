@@ -15,13 +15,12 @@
  */
 package io.stargate.sgv2.graphql.web.resources;
 
-import java.util.concurrent.CompletionStage;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.Schema.SchemaRead;
 import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.api.common.grpc.proto.SchemaReads;
+import java.util.concurrent.CompletionStage;
 
 public class StargateGraphqlResourceBase extends GraphqlResourceBase {
 
