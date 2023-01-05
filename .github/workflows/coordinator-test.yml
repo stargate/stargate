@@ -3,7 +3,7 @@ name: Coordinator Tests
 on:
   workflow_dispatch:
   pull_request:
-    branches: [ "v1", "main" ]
+    branches: [ "v1" ]
 
 jobs:
   integration-test:
