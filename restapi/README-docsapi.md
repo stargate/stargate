@@ -1,6 +1,14 @@
-# Stargate Documents API
+# Stargate V1 Documents API
 
-The Documents API is built into the REST API module, an OSGi bundle that exposes various CRUD services over HTTP.
+**NOTE ON DEPRECATION**
+
+Stargate V1 API implementations, including Documents API  are deprecated as of Stargate 2.x and will be removed from Stargate 3.x.
+
+Note that this does not mean removal of Documents API itself but only re-architecting so that APIs are not deployed as part of the Coordinator but as separate stand-alone Services.
+
+## General
+
+In Stargate V1, the Documents API is built into the REST API module, an OSGi bundle that exposes various CRUD services over HTTP.
 Specifically, the Documents API allows for storage of documents in the JSON format using C* tables (called "collections" in this context).
 
 Here is a brief overview of the service (for more details, refer to the [Stargate
