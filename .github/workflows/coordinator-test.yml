@@ -62,11 +62,11 @@ jobs:
           sudo apt-get install python-six
           sudo apt-get install python-yaml
           curl https://bootstrap.pypa.io/pip/2.7/get-pip.py --output get-pip.py
-          python2 get-pip.py
-          python2 -m pip install --upgrade pip
-          python2 -m pip install psutil
+          sudo python2 get-pip.py
+          sudo pip install --upgrade pip
+          sudo pip install psutil pyyaml
           cd ccm
-          sudo ./setup.py install
+          sudo python2 setup.py install
           ccm list
       - name: Run Unit and Integration Tests
         run: |
