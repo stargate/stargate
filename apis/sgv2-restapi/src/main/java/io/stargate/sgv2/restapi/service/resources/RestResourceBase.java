@@ -56,8 +56,8 @@ public abstract class RestResourceBase {
   // // // Helper methods for Schema access
 
   protected Uni<Schema.CqlKeyspaceDescribe> getKeyspaceAsync(
-      String keyspaceName, boolean checkIfAuthorized) {
-    return checkIfAuthorized
+      String keyspaceName, boolean checkAuthzForKeyspaceMetadata) {
+    return checkAuthzForKeyspaceMetadata
         ? schemaManager.getKeyspaceAuthorized(keyspaceName)
         : schemaManager.getKeyspace(keyspaceName);
   }
@@ -132,11 +132,11 @@ public abstract class RestResourceBase {
   protected Uni<QueryOuterClass.Response> executeQueryAsync(
       String keyspaceName,
       String tableName,
-      boolean checkIfTableAuthorized,
+      boolean checkAuthzForTableMetadata,
       Function<Optional<Schema.CqlTable>, QueryOuterClass.Query> queryProducer) {
 
     // TODO implement optimistic queries (probably requires changes directly in SchemaManager)
-    Uni<Optional<Schema.CqlTable>> maybeTable = findTableAsync(keyspaceName, tableName, checkIfTableAuthorized);
+    Uni<Optional<Schema.CqlTable>> maybeTable = findTableAsync(keyspaceName, tableName, checkAuthzForTableMetadata);
     return maybeTable
         .onItem()
         .transformToUni(table -> executeQueryAsync(queryProducer.apply(table)));
