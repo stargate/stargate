@@ -71,15 +71,15 @@ public abstract class RestResourceBase {
   }
 
   protected Uni<Schema.CqlTable> getTableAsync(
-      String keyspaceName, String tableName, boolean checkIfAuthorized) {
-    return checkIfAuthorized
+      String keyspaceName, String tableName, boolean checkAuthzForTableMetadata) {
+    return checkAuthzForTableMetadata
         ? schemaManager.getTableAuthorized(keyspaceName, tableName, MISSING_KEYSPACE)
         : schemaManager.getTable(keyspaceName, tableName, MISSING_KEYSPACE);
   }
 
   protected Uni<Schema.CqlTable> getTableAsyncCheckExistence(
-      String keyspaceName, String tableName, boolean checkIfAuthorized, Response.Status failCode) {
-    return getTableAsync(keyspaceName, tableName, checkIfAuthorized)
+      String keyspaceName, String tableName, boolean checkAuthzForTableMetadata, Response.Status failCode) {
+    return getTableAsync(keyspaceName, tableName, checkAuthzForTableMetadata)
         .onItem()
         .ifNull()
         .switchTo(
@@ -93,24 +93,26 @@ public abstract class RestResourceBase {
   }
 
   protected Uni<Optional<Schema.CqlTable>> findTableAsync(
-      String keyspaceName, String tableName, boolean checkIfAuthorized) {
-    return getTableAsync(keyspaceName, tableName, checkIfAuthorized)
+      String keyspaceName, String tableName, boolean checkAuthzForTableMetadata) {
+    return getTableAsync(keyspaceName, tableName, checkAuthzForTableMetadata)
         .map(t -> Optional.ofNullable(t));
   }
 
   // // // Helper methods for Query execution
 
   /**
-   * Gets the metadata of a table (verifying that the call is authorized), then uses it to build
-   * another CQL query and executes it.
+   * Gets the metadata of a table (optionally verifying that the access to table metadata is authorized),
+   * then uses it to build another CQL query and executes it.
    */
   protected Uni<QueryOuterClass.Response> queryWithTableAsync(
       String keyspaceName,
       String tableName,
+      boolean checkAuthzForTableMetadata,
       Function<Schema.CqlTable, QueryOuterClass.Query> queryProducer) {
     return executeQueryAsync(
         keyspaceName,
         tableName,
+            checkAuthzForTableMetadata,
         maybeTable -> {
           Schema.CqlTable table =
               maybeTable.orElseThrow(
@@ -130,10 +132,11 @@ public abstract class RestResourceBase {
   protected Uni<QueryOuterClass.Response> executeQueryAsync(
       String keyspaceName,
       String tableName,
+      boolean checkIfTableAuthorized,
       Function<Optional<Schema.CqlTable>, QueryOuterClass.Query> queryProducer) {
 
     // TODO implement optimistic queries (probably requires changes directly in SchemaManager)
-    Uni<Optional<Schema.CqlTable>> maybeTable = findTableAsync(keyspaceName, tableName, true);
+    Uni<Optional<Schema.CqlTable>> maybeTable = findTableAsync(keyspaceName, tableName, checkIfTableAuthorized);
     return maybeTable
         .onItem()
         .transformToUni(table -> executeQueryAsync(queryProducer.apply(table)));
