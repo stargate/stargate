@@ -78,7 +78,7 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
   private static final String ARGS_PROVIDER_CLASS_NAME =
       System.getProperty("stargate.test.args.provider.class", ArgumentProviderImpl.class.getName());
   public static final File LIB_DIR = initLibDir();
-  private static final int MAX_NODES = 20;
+  private static final int MAX_NODES = 30;
 
   /**
    * Preallocate JMX ports to guarantee Stargate nodes receive a unique port. This includes cases
