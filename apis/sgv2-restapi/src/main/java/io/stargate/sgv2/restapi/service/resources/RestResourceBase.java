@@ -78,7 +78,10 @@ public abstract class RestResourceBase {
   }
 
   protected Uni<Schema.CqlTable> getTableAsyncCheckExistence(
-      String keyspaceName, String tableName, boolean checkAuthzForTableMetadata, Response.Status failCode) {
+      String keyspaceName,
+      String tableName,
+      boolean checkAuthzForTableMetadata,
+      Response.Status failCode) {
     return getTableAsync(keyspaceName, tableName, checkAuthzForTableMetadata)
         .onItem()
         .ifNull()
@@ -101,8 +104,8 @@ public abstract class RestResourceBase {
   // // // Helper methods for Query execution
 
   /**
-   * Gets the metadata of a table (optionally verifying that the access to table metadata is authorized),
-   * then uses it to build another CQL query and executes it.
+   * Gets the metadata of a table (optionally verifying that the access to table metadata is
+   * authorized), then uses it to build another CQL query and executes it.
    */
   protected Uni<QueryOuterClass.Response> queryWithTableAsync(
       String keyspaceName,
@@ -112,7 +115,7 @@ public abstract class RestResourceBase {
     return executeQueryAsync(
         keyspaceName,
         tableName,
-            checkAuthzForTableMetadata,
+        checkAuthzForTableMetadata,
         maybeTable -> {
           Schema.CqlTable table =
               maybeTable.orElseThrow(
@@ -136,7 +139,8 @@ public abstract class RestResourceBase {
       Function<Optional<Schema.CqlTable>, QueryOuterClass.Query> queryProducer) {
 
     // TODO implement optimistic queries (probably requires changes directly in SchemaManager)
-    Uni<Optional<Schema.CqlTable>> maybeTable = findTableAsync(keyspaceName, tableName, checkAuthzForTableMetadata);
+    Uni<Optional<Schema.CqlTable>> maybeTable =
+        findTableAsync(keyspaceName, tableName, checkAuthzForTableMetadata);
     return maybeTable
         .onItem()
         .transformToUni(table -> executeQueryAsync(queryProducer.apply(table)));
