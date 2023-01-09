@@ -60,7 +60,8 @@ public class SchemaManager {
   @Inject StargateRequestInfo requestInfo;
 
   /**
-   * Get the keyspace from the bridge. Note that this method is not doing any authorization.
+   * Get the keyspace from the bridge. Note that this method is not doing any authorization. The
+   * check that the keyspace has correct hash on the bridge will be done.
    *
    * @param keyspace Keyspace name
    * @return Uni containing Schema.CqlKeyspaceDescribe or <code>null</code> item in case keyspace
@@ -68,12 +69,27 @@ public class SchemaManager {
    */
   @WithSpan
   public Uni<Schema.CqlKeyspaceDescribe> getKeyspace(String keyspace) {
-    StargateBridge bridge = requestInfo.getStargateBridge();
-    return getKeyspaceInternal(bridge, keyspace);
+    return getKeyspace(keyspace, true);
   }
 
   /**
-   * Get all keyspace from the bridge. Note that this method is not doing any authorization.
+   * Get the keyspace from the bridge. Note that this method is not doing any authorization.
+   *
+   * @param keyspace Keyspace name
+   * @param validateHash If hash validation should be done for the keyspace. If <code>false</code>
+   *     and the keyspace is already cached, then no calls to the bridge are executed.
+   * @return Uni containing Schema.CqlKeyspaceDescribe or <code>null</code> item in case keyspace
+   *     does not exist.
+   */
+  @WithSpan
+  public Uni<Schema.CqlKeyspaceDescribe> getKeyspace(String keyspace, boolean validateHash) {
+    StargateBridge bridge = requestInfo.getStargateBridge();
+    return getKeyspaceInternal(bridge, keyspace, validateHash);
+  }
+
+  /**
+   * Get all keyspace from the bridge. Note that this method is not doing any authorization. The
+   * check that each keyspace has correct hash on the bridge will be done.
    *
    * @return Multi containing Schema.CqlKeyspaceDescribe
    */
@@ -86,11 +102,12 @@ public class SchemaManager {
 
         // then fetch each keyspace
         .onItem()
-        .transformToUniAndMerge(keyspace -> getKeyspaceInternal(bridge, keyspace));
+        .transformToUniAndMerge(keyspace -> getKeyspaceInternal(bridge, keyspace, true));
   }
 
   /**
-   * Get the table from the bridge. Note that this method is not doing any authorization.
+   * Get the table from the bridge. Note that this method is not doing any authorization. The check
+   * that the keyspace has correct hash on the bridge will be done.
    *
    * @param keyspace Keyspace name
    * @param table Table name
@@ -109,7 +126,8 @@ public class SchemaManager {
   }
 
   /**
-   * Get all tables of a keyspace from the bridge.
+   * Get all tables of a keyspace from the bridge. The check that the keyspace has correct hash on
+   * the bridge will be done.
    *
    * @param keyspace Keyspace name
    * @param missingKeyspace Function of the keyspace in case it's not existing. Usually there to
@@ -123,7 +141,7 @@ public class SchemaManager {
     StargateBridge bridge = requestInfo.getStargateBridge();
 
     // get keyspace
-    return getKeyspaceInternal(bridge, keyspace)
+    return getKeyspaceInternal(bridge, keyspace, true)
 
         // if not there, switch to function
         .onItem()
@@ -138,7 +156,7 @@ public class SchemaManager {
 
   /**
    * Get the keyspace from the bridge. Prior to getting the keyspace it will execute the schema
-   * authorization request.
+   * authorization request. The check that the keyspace has correct hash on the bridge will be done.
    *
    * <p>Emits a failure in case:
    *
@@ -152,6 +170,28 @@ public class SchemaManager {
    */
   @WithSpan
   public Uni<Schema.CqlKeyspaceDescribe> getKeyspaceAuthorized(String keyspace) {
+    return getKeyspaceAuthorized(keyspace, true);
+  }
+
+  /**
+   * Get the keyspace from the bridge. Prior to getting the keyspace it will execute the schema
+   * authorization request.
+   *
+   * <p>Emits a failure in case:
+   *
+   * <ol>
+   *   <li>Not authorized, with {@link UnauthorizedKeyspaceException}
+   * </ol>
+   *
+   * @param keyspace Keyspace name
+   * @param validateHash If hash validation should be done for the keyspace. If <code>false</code>
+   *     and the keyspace is already cached, then no calls to the bridge are executed.
+   * @return Uni containing Schema.CqlKeyspaceDescribe or <code>null</code> item in case keyspace
+   *     does not exist.
+   */
+  @WithSpan
+  public Uni<Schema.CqlKeyspaceDescribe> getKeyspaceAuthorized(
+      String keyspace, boolean validateHash) {
     StargateBridge bridge = requestInfo.getStargateBridge();
 
     // first authorize read, then fetch
@@ -165,7 +205,7 @@ public class SchemaManager {
               // if authorized, go fetch keyspace
               // otherwise throw correct exception
               if (authorized) {
-                return getKeyspaceInternal(bridge, keyspace);
+                return getKeyspaceInternal(bridge, keyspace, validateHash);
               } else {
                 RuntimeException unauthorized = new UnauthorizedKeyspaceException(keyspace);
                 return Uni.createFrom().failure(unauthorized);
@@ -175,7 +215,8 @@ public class SchemaManager {
 
   /**
    * Get all keyspace from the bridge. Prior to getting each keyspace it will execute the schema
-   * authorization request (single request for all available keyspace).
+   * authorization request (single request for all available keyspace). The check that each keyspace
+   * has correct hash on the bridge will be done.
    *
    * @return Multi containing Schema.CqlKeyspaceDescribe
    */
@@ -231,12 +272,12 @@ public class SchemaManager {
 
         // then fetch each authorized keyspace
         .onItem()
-        .transformToUniAndMerge(keyspace -> getKeyspaceInternal(bridge, keyspace));
+        .transformToUniAndMerge(keyspace -> getKeyspaceInternal(bridge, keyspace, true));
   }
 
   /**
    * Get the table from the bridge. Prior to getting the keyspace it will execute the schema
-   * authorization request.
+   * authorization request. The check that the keyspace has correct hash on the bridge will be done.
    *
    * <p>Emits a failure in case:
    *
@@ -278,7 +319,8 @@ public class SchemaManager {
   }
 
   /**
-   * Get all authorized tables from the bridge.
+   * Get all authorized tables from the bridge. The check that the keyspace has correct hash on the
+   * bridge will be done.
    *
    * <p>Emits a failure in case:
    *
@@ -298,7 +340,7 @@ public class SchemaManager {
     StargateBridge bridge = requestInfo.getStargateBridge();
 
     // get keyspace
-    return getKeyspaceInternal(bridge, keyspace)
+    return getKeyspaceInternal(bridge, keyspace, true)
 
         // if keyspace not found switch to function
         .onItem()
@@ -381,8 +423,9 @@ public class SchemaManager {
   }
 
   // gets a keyspace by provided name
+  // if validate hash is false, cached keyspaces are not validated to have correct hash
   private Uni<Schema.CqlKeyspaceDescribe> getKeyspaceInternal(
-      StargateBridge bridge, String keyspaceName) {
+      StargateBridge bridge, String keyspaceName, boolean validateHash) {
     Optional<String> tenantId = requestInfo.getTenantId();
 
     // check if cached, if so we need to revalidate hash
@@ -410,8 +453,8 @@ public class SchemaManager {
                     .flatMap(
                         keyspace -> {
                           // if it was not cached before, we can simply return
-                          // no need to check
-                          if (!cached) {
+                          // same if we don't want to validate hash
+                          if (!cached || !validateHash) {
                             return Uni.createFrom().item(keyspace);
                           }
 
@@ -465,7 +508,7 @@ public class SchemaManager {
       String tableName,
       Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>> missingKeyspace) {
     // get keyspace
-    return getKeyspaceInternal(bridge, keyspaceName)
+    return getKeyspaceInternal(bridge, keyspaceName, true)
 
         // if keyspace not found fail always
         .onItem()
