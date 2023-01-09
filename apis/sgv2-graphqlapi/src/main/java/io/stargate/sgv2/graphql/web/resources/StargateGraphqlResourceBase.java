@@ -19,24 +19,24 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.Schema.SchemaRead;
-import io.stargate.bridge.proto.StargateBridge;
+import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.api.common.grpc.proto.SchemaReads;
 import java.util.List;
 
 public class StargateGraphqlResourceBase extends GraphqlResourceBase {
 
-  protected final StargateBridge stargateBridge;
+  protected final StargateRequestInfo requestInfo;
   protected final StargateBridgeClient bridgeClient;
   protected final GraphqlCache graphqlCache;
 
   public StargateGraphqlResourceBase(
-      StargateBridge stargateBridge,
+      StargateRequestInfo requestInfo,
       ObjectMapper objectMapper,
       StargateBridgeClient bridgeClient,
       GraphqlCache graphqlCache) {
     super(objectMapper);
-    this.stargateBridge = stargateBridge;
+    this.requestInfo = requestInfo;
     this.bridgeClient = bridgeClient;
     this.graphqlCache = graphqlCache;
   }
@@ -50,7 +50,8 @@ public class StargateGraphqlResourceBase extends GraphqlResourceBase {
     Schema.AuthorizeSchemaReadsRequest request =
         Schema.AuthorizeSchemaReadsRequest.newBuilder().addSchemaReads(schemaRead).build();
 
-    return stargateBridge
+    return requestInfo
+        .getStargateBridge()
         .authorizeSchemaReads(request)
         .map(
             response -> {

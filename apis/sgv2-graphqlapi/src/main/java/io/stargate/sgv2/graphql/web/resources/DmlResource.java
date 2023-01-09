@@ -18,10 +18,9 @@ package io.stargate.sgv2.graphql.web.resources;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.GraphQL;
 import graphql.GraphqlErrorException;
-import io.quarkus.grpc.GrpcClient;
 import io.smallrye.mutiny.Uni;
 import io.smallrye.mutiny.infrastructure.Infrastructure;
-import io.stargate.bridge.proto.StargateBridge;
+import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.graphql.web.models.GraphqlJsonBody;
 import java.util.Optional;
@@ -61,11 +60,11 @@ public class DmlResource extends StargateGraphqlResourceBase {
 
   @Inject
   public DmlResource(
-      @GrpcClient("bridge") StargateBridge stargateBridge,
+      StargateRequestInfo requestInfo,
       ObjectMapper objectMapper,
       StargateBridgeClient bridgeClient,
       GraphqlCache graphqlCache) {
-    super(stargateBridge, objectMapper, bridgeClient, graphqlCache);
+    super(requestInfo, objectMapper, bridgeClient, graphqlCache);
   }
 
   @GET
