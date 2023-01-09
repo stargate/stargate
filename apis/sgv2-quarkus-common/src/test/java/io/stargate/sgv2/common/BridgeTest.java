@@ -15,7 +15,7 @@
  *
  */
 
-package io.stargate.sgv2.api.common;
+package io.stargate.sgv2.common;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
@@ -39,7 +39,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
 /** Provides a basic support for mocking the Bridge implementation. */
-public class BridgeTest {
+public abstract class BridgeTest {
 
   protected StargateBridgeGrpc.StargateBridgeImplBase bridgeService;
 
