@@ -44,7 +44,7 @@ public class OptimisticQueryService {
    * @param keyspace Keyspace name.
    * @param table Table name.
    * @param missingKeyspace Function in case the keyspace in case it's not existing. Usually there
-   *     to * provide a failure.
+   *     to provide a failure.
    * @param queryFunction Function that creates the query from the {@link Schema.CqlTable}. Note
    *     that the table can be <code>null</code>.
    * @return Response when optimistic query is executed correctly.
