@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.GraphQL;
 import graphql.GraphqlErrorException;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.graphql.web.models.GraphqlJsonBody;
@@ -150,37 +151,49 @@ public class DmlResource extends StargateGraphqlResourceBase {
                               .failure(graphqlError(Status.UNAUTHORIZED, "Not authorized"));
                         }
 
-                        try {
-                          bridgeClient.decorateKeyspaceName(keyspaceName);
-                          Optional<GraphQL> graphql =
-                              graphqlCache.getDml(bridgeClient, keyspaceName);
+                        return getDml(keyspaceName)
 
-                          return Uni.createFrom()
-                              .optional(graphql)
+                            // if we have no graphql fail
+                            .onItem()
+                            .ifNull()
+                            .failWith(
+                                graphqlError(
+                                    Status.NOT_FOUND,
+                                    String.format("Unknown keyspace '%s'", keyspaceName)))
 
-                              // if we have no graphql fail
-                              .onItem()
-                              .ifNull()
-                              .failWith(
-                                  graphqlError(
-                                      Status.NOT_FOUND,
-                                      String.format("Unknown keyspace '%s'", keyspaceName)));
-
-                        } catch (GraphqlErrorException e) {
-                          return Uni.createFrom()
-                              .failure(graphqlError(Status.INTERNAL_SERVER_ERROR, e));
-                        } catch (Exception e) {
-                          LOG.error(
-                              "Unexpected error while accessing keyspace {}", keyspaceName, e);
-                          return Uni.createFrom()
-                              .failure(
-                                  graphqlError(
-                                      Status.INTERNAL_SERVER_ERROR,
-                                      "Unexpected error while accessing keyspace: "
-                                          + e.getMessage()));
-                        }
+                            // on failure map to response
+                            .onFailure()
+                            .recoverWithUni(
+                                e -> {
+                                  // in case of the GraphqlErrorException use graphqlError mapper
+                                  // otherwise generic exception
+                                  if (e instanceof GraphqlErrorException gee) {
+                                    return Uni.createFrom()
+                                        .failure(graphqlError(Status.INTERNAL_SERVER_ERROR, gee));
+                                  } else {
+                                    LOG.error(
+                                        "Unexpected error while accessing keyspace {}",
+                                        keyspaceName,
+                                        e);
+                                    return Uni.createFrom()
+                                        .failure(
+                                            graphqlError(
+                                                Status.INTERNAL_SERVER_ERROR,
+                                                "Unexpected error while accessing keyspace: "
+                                                    + e.getMessage()));
+                                  }
+                                });
                       });
             });
+  }
+
+  private Uni<GraphQL> getDml(String keyspaceName) {
+    return Uni.createFrom()
+        .optional(() -> graphqlCache.getDml(bridgeClient, keyspaceName))
+
+        // always run subscription on workers thread
+        // we are blocking inside of the graphqlCache
+        .runSubscriptionOn(Infrastructure.getDefaultWorkerPool());
   }
 
   private Uni<GraphQL> getDefaultGraphql() {
