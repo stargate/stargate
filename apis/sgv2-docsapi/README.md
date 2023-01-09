@@ -120,7 +120,7 @@ Running integration tests from an IDE is supported out of the box.
 The tests will use the Cassandra 4.0 as the data store by default.
 Running a test with a different version of the data store or the Stargate coordinator requires changing the run configuration and specifying the following system properties:
 
-* `testing.containers.cassandra-image` - version of the Cassandra docker image to use, for example: `cassandra:4.0.4`
+* `testing.containers.cassandra-image` - version of the Cassandra docker image to use, for example: `cassandra:4.0.7`
 * `testing.containers.stargate-image` - version of the Stargate coordinator docker image to use, for example: `stargateio/coordinator-4_0:v2.0.0-ALPHA-10-SNAPSHOT` (must be V2 coordinator for the target data store)
 * `testing.containers.cluster-version` - version of the cluster, for example: `4.0` (should be one of `3.11`, `4.0` or `6.8`)
 * `testing.containers.cluster-dse` - optional and only needed if DSE is used

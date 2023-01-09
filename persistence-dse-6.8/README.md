@@ -3,9 +3,9 @@
 This module represents the implementation of the [persistence-api](../persistence-api) for
 the DSE (DataStax Enterprise cassandra) `6.8.x` version.
 
-## Cassandra version update
+## DSE version update
 
-The current Cassandra version this module depends on is `6.8.29`.
+The current DSE version this module depends on is [`6.8.31`](https://github.com/datastax/release-notes/blob/master/DSE_6.8_Release_Notes.md#release-notes-for-6831).
 In order to update to a newer patch version, please follow the guidelines below:
 
 * Update the `dse.version` property in the [pom.xml](pom.xml).

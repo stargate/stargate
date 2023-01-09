@@ -4,7 +4,7 @@ This module represents the implementation of the [persistence-api](../persistenc
 
 ## Cassandra version update
 
-The current Cassandra version this module depends on is `4.0.4`.
+The current Cassandra version this module depends on is `4.0.7`.
 In order to update to a newer patch version, please follow the guidelines below:
 
 * Update the `cassandra.version` property in the [pom.xml](pom.xml).
