@@ -18,6 +18,7 @@ package io.stargate.sgv2.graphql.web.resources;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.GraphQL;
 import io.smallrye.mutiny.Uni;
+import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.graphql.web.models.GraphqlFormData;
 import io.stargate.sgv2.graphql.web.models.GraphqlJsonBody;
@@ -46,8 +47,11 @@ public class AdminResource extends StargateGraphqlResourceBase {
 
   @Inject
   public AdminResource(
-      ObjectMapper objectMapper, StargateBridgeClient bridge, GraphqlCache graphqlCache) {
-    super(objectMapper, bridge, graphqlCache);
+      ObjectMapper objectMapper,
+      StargateBridge stargateBridge,
+      StargateBridgeClient bridgeClient,
+      GraphqlCache graphqlCache) {
+    super(objectMapper, stargateBridge, bridgeClient, graphqlCache);
     this.graphql = graphqlCache.getSchemaFirstAdminGraphql();
   }
 

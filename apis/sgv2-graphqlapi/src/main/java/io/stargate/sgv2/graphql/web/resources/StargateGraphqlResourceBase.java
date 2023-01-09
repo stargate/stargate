@@ -17,30 +17,45 @@ package io.stargate.sgv2.graphql.web.resources;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.smallrye.mutiny.Uni;
+import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.Schema.SchemaRead;
+import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.api.common.grpc.proto.SchemaReads;
-import java.util.concurrent.CompletionStage;
+import java.util.List;
 
 public class StargateGraphqlResourceBase extends GraphqlResourceBase {
 
-  protected final StargateBridgeClient bridge;
+  protected final StargateBridge stargateBridge;
+  protected final StargateBridgeClient bridgeClient;
   protected final GraphqlCache graphqlCache;
 
   public StargateGraphqlResourceBase(
-      ObjectMapper objectMapper, StargateBridgeClient bridge, GraphqlCache graphqlCache) {
+      ObjectMapper objectMapper,
+      StargateBridge stargateBridge,
+      StargateBridgeClient bridgeClient,
+      GraphqlCache graphqlCache) {
     super(objectMapper);
-    this.bridge = bridge;
+    this.stargateBridge = stargateBridge;
+    this.bridgeClient = bridgeClient;
     this.graphqlCache = graphqlCache;
   }
 
   protected StargateGraphqlContext newContext() {
-    return new StargateGraphqlContext(bridge, graphqlCache);
+    return new StargateGraphqlContext(bridgeClient, graphqlCache);
   }
 
   protected Uni<Boolean> isAuthorized(String keyspaceName) {
     SchemaRead schemaRead = SchemaReads.keyspace(keyspaceName);
-    CompletionStage<Boolean> result = bridge.authorizeSchemaReadAsync(schemaRead);
-    return Uni.createFrom().future(result.toCompletableFuture());
+    Schema.AuthorizeSchemaReadsRequest request =
+        Schema.AuthorizeSchemaReadsRequest.newBuilder().addSchemaReads(schemaRead).build();
+
+    return stargateBridge
+        .authorizeSchemaReads(request)
+        .map(
+            response -> {
+              List<Boolean> authorizedList = response.getAuthorizedList();
+              return authorizedList.get(0);
+            });
   }
 }

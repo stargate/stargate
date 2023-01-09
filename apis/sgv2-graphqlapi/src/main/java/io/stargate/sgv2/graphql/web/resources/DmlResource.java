@@ -19,6 +19,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.GraphQL;
 import graphql.GraphqlErrorException;
 import io.smallrye.mutiny.Uni;
+import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.graphql.web.models.GraphqlJsonBody;
 import java.util.Optional;
@@ -58,8 +59,11 @@ public class DmlResource extends StargateGraphqlResourceBase {
 
   @Inject
   public DmlResource(
-      ObjectMapper objectMapper, StargateBridgeClient bridge, GraphqlCache graphqlCache) {
-    super(objectMapper, bridge, graphqlCache);
+      ObjectMapper objectMapper,
+      StargateBridge stargateBridge,
+      StargateBridgeClient bridgeClient,
+      GraphqlCache graphqlCache) {
+    super(objectMapper, stargateBridge, bridgeClient, graphqlCache);
   }
 
   @GET
@@ -147,8 +151,9 @@ public class DmlResource extends StargateGraphqlResourceBase {
                         }
 
                         try {
-                          bridge.decorateKeyspaceName(keyspaceName);
-                          Optional<GraphQL> graphql = graphqlCache.getDml(bridge, keyspaceName);
+                          bridgeClient.decorateKeyspaceName(keyspaceName);
+                          Optional<GraphQL> graphql =
+                              graphqlCache.getDml(bridgeClient, keyspaceName);
 
                           return Uni.createFrom()
                               .optional(graphql)
@@ -179,7 +184,8 @@ public class DmlResource extends StargateGraphqlResourceBase {
   }
 
   private Uni<GraphQL> getDefaultGraphql() {
-    CompletionStage<Optional<String>> result = graphqlCache.getDefaultKeyspaceNameAsync(bridge);
+    CompletionStage<Optional<String>> result =
+        graphqlCache.getDefaultKeyspaceNameAsync(bridgeClient);
 
     // create from future
     return Uni.createFrom()
