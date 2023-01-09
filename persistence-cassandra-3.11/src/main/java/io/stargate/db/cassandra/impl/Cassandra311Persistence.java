@@ -190,6 +190,9 @@ public class Cassandra311Persistence
 
   @Override
   protected void initializePersistence(Config config) {
+    logger.warn(
+        "Support for Cassandra 3.11 is considered deprecated and will be removed in the Stargate v3 release.");
+
     // C* picks this property during the static loading of the ClientState class. So we set it
     // early, to make sure that class is not loaded before we've set it.
     System.setProperty(
