@@ -37,6 +37,7 @@ public class DataStorePropertiesConfiguration {
   /** Logger for the class. */
   private static final Logger LOG = LoggerFactory.getLogger(DataStorePropertiesConfiguration.class);
 
+  // note that here we explicitly want the blocking, non-retriable bridge
   @Produces
   @ApplicationScoped
   @Startup
