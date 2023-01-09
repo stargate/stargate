@@ -46,7 +46,7 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
 
     // This call will authorize lookup on "table" so no separate access checks
     // should be needed
-    return queryWithTableAsync(keyspaceName, tableName, table -> query)
+    return queryWithTableAsync(keyspaceName, tableName, true, table -> query)
         .map(response -> convertRowsToResponse(response, true));
   }
 
@@ -57,6 +57,7 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
     return queryWithTableAsync(
             keyspaceName,
             tableName,
+            true,
             table -> {
               if (!hasColumn(table, columnName)) {
                 throw new WebApplicationException(
@@ -82,6 +83,7 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
     return queryWithTableAsync(
             keyspaceName,
             tableName,
+            true,
             table -> {
               if (!ifExists
                   && table.getIndexesList().stream()

@@ -126,6 +126,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
     return queryWithTableAsync(
             keyspaceName,
             tableName,
+            true,
             (tableDef) -> {
               Sgv2Table.TableOptions options = tableUpdate.tableOptions();
               List<?> clusteringExpressions = options.clusteringExpression();
