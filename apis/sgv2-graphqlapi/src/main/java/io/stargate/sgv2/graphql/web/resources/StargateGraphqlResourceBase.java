@@ -31,8 +31,8 @@ public class StargateGraphqlResourceBase extends GraphqlResourceBase {
   protected final GraphqlCache graphqlCache;
 
   public StargateGraphqlResourceBase(
-      ObjectMapper objectMapper,
       StargateBridge stargateBridge,
+      ObjectMapper objectMapper,
       StargateBridgeClient bridgeClient,
       GraphqlCache graphqlCache) {
     super(objectMapper);
