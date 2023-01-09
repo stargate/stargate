@@ -183,7 +183,7 @@ public class RestApiServer extends Application<RestApiServerConfiguration> {
           SYSPROP_ENABLE_SGV1_REST,
           enableSgv1RestStr);
       logger.warn(
-          "NOTE: in-Coordinator Documents API and RESTv2 APIs are DEPRECATED in Stargate V2 and scheduled for removal in V3");
+          "NOTE: in-Coordinator Documents API and RESTv2 APIs endpoints are DEPRECATED and WILL BE SOON REMOVED from Stargate V2");
 
       // Rest API V2 endpoints
       environment.jersey().register(ColumnsResource.class);

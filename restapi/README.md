@@ -2,7 +2,7 @@
 
 ## Differences from Stargate V1
 
-Stargate V1 used to provide three in-Coordination API implementations via this module: Documents API (v2), REST API v1 and REST API v2).
+Stargate V1 used to provide three in-Coordination API implementations via this module: Documents API (v2), REST API v1 and REST API v2.
 In Stargate V2 two of these -- Documents API v2, REST API v2 -- have been refactored into separate [API modules](https://github.com/stargate/stargate/tree/main/apis).
 API endpoints for these APIs do not change but due split to separate services, separate deployment, host to use will change (they are no longer accessed via Coordinator host(s)).
 These endpoints are not accessible when using default StargateV2 deployment setup.
