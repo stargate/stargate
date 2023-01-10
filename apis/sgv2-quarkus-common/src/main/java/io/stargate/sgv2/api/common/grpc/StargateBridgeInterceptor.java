@@ -4,6 +4,7 @@ import io.grpc.CallOptions;
 import io.grpc.Channel;
 import io.grpc.ClientCall;
 import io.grpc.ClientInterceptor;
+import io.grpc.Deadline;
 import io.grpc.ForwardingClientCall;
 import io.grpc.Metadata;
 import io.grpc.MethodDescriptor;
@@ -12,8 +13,11 @@ import io.quarkus.arc.InjectableBean;
 import io.quarkus.arc.InjectableContext;
 import io.quarkus.grpc.GlobalInterceptor;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
+import io.stargate.sgv2.api.common.config.GrpcConfig;
+import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
@@ -24,6 +28,9 @@ import javax.inject.Inject;
 @GlobalInterceptor
 @ApplicationScoped
 public class StargateBridgeInterceptor implements ClientInterceptor {
+
+  /** Our {@link GrpcConfig}. */
+  @Inject GrpcConfig grpcConfig;
 
   /** Metadata resolver. */
   @Inject GrpcMetadataResolver metadataResolver;
@@ -39,7 +46,7 @@ public class StargateBridgeInterceptor implements ClientInterceptor {
     Metadata metadata = metadataResolver.getDefaultMetadata();
 
     // StargateRequestInfo is request scoped bean
-    // there is no better way to know if if's available
+    // there is no better way to know if it's available
     // as we can intercept outside request
     // thus ensure context is active and has instances
     InjectableContext.ContextState contextState =
@@ -52,8 +59,21 @@ public class StargateBridgeInterceptor implements ClientInterceptor {
       metadata = metadataResolver.getMetadata(requestInfo);
     }
 
-    // call with extra metadata
-    return new HeaderAttachingClientCall<>(next.newCall(method, callOptions), metadata);
+    // handle deadlines
+    CallOptions callOptionsFinal = callOptionsWithDeadline(callOptions);
+
+    // call with extra metadata and final options
+    return new HeaderAttachingClientCall<>(next.newCall(method, callOptionsFinal), metadata);
+  }
+
+  // deals with the call timeout if one is defined
+  private CallOptions callOptionsWithDeadline(CallOptions callOptions) {
+    if (grpcConfig.callDeadline().isPresent()) {
+      Duration deadline = grpcConfig.callDeadline().get();
+      return callOptions.withDeadline(Deadline.after(deadline.toMillis(), TimeUnit.MILLISECONDS));
+    } else {
+      return callOptions;
+    }
   }
 
   // ensures contextual instance list contains StargateRequestInfo

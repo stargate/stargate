@@ -24,6 +24,13 @@
 | `stargate.data-store.sai-enabled`               | `boolean` | `false`                             | If the data store supports SAI (storage-attached indexes).                                                                                             |
 | `stargate.data-store.logged-batches-enabled`    | `boolean` | `true`                              | If the data store supports logged batches.                                                                                                             |
 
+### gRPC configuration
+*Configuration for the gRPC calls to the Bridge, defined by [GrpcConfig.java](src/main/java/io/stargate/sgv2/api/common/config/GrpcConfig.java).*
+
+| Property                      | Type       | Default | Description                                                  |
+|-------------------------------|------------|---------|--------------------------------------------------------------|
+| `stargate.grpc.call-deadline` | `Duration` | `PT30S` | Defines the client deadline for each RPC call to the bridge. |
+
 ### gRPC metadata configuration
 *Configuration for the gRPC metadata passed to the Bridge, defined by [GrpcMetadataConfig.java](src/main/java/io/stargate/sgv2/api/common/config/GrpcMetadataConfig.java).*
 
