@@ -30,8 +30,6 @@
 
 **Merged pull requests:**
 
-- Bump version to `1.0.71-SNAPSHOT` [\#2298](https://github.com/stargate/stargate/pull/2298) ([github-actions[bot]](https://github.com/apps/github-actions))
-
 ## [v2.0.3](https://github.com/stargate/stargate/tree/v2.0.3) (2022-12-06)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.2...v2.0.3)
@@ -133,7 +131,7 @@
 
 ## [v1.0.71](https://github.com/stargate/stargate/tree/v1.0.71) (2022-12-06)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.3...v1.0.71)
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.70...v1.0.71)
 
 **Merged pull requests:**
 
@@ -173,6 +171,8 @@
 - dse version upgraded to 6.8.29 [\#2251](https://github.com/stargate/stargate/pull/2251) ([versaurabh](https://github.com/versaurabh))
 - Update grpc.version from 1.45.1 to 1.49.2 [\#2240](https://github.com/stargate/stargate/pull/2240) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Upgrade dse version to 6.8.28 [\#2204](https://github.com/stargate/stargate/pull/2204) ([maheshrajamani](https://github.com/maheshrajamani))
+
+## [v1.0.68](https://github.com/stargate/stargate/tree/v1.0.68) (2022-11-14)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.67...v1.0.68)
 
