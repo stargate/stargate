@@ -56,8 +56,10 @@ public class OptimisticQueryService {
       Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction) {
 
     // get table from the schema manager authorized without the hash validation
-    Uni<Schema.CqlKeyspaceDescribe> cqlUni = schemaManager.getKeyspaceAuthorized(keyspace, false);
-    return executeOptimistic(cqlUni, table, () -> missingKeyspace.apply(keyspace), queryFunction);
+    Uni<Schema.CqlKeyspaceDescribe> keyspaceUni =
+        schemaManager.getKeyspaceAuthorized(keyspace, false);
+    return executeOptimistic(
+        keyspaceUni, table, () -> missingKeyspace.apply(keyspace), queryFunction);
   }
 
   /**
@@ -79,14 +81,15 @@ public class OptimisticQueryService {
       Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction) {
 
     // get table from the schema manager without the hash validation
-    Uni<Schema.CqlKeyspaceDescribe> cqlUni = schemaManager.getKeyspace(keyspace, false);
-    return executeOptimistic(cqlUni, table, () -> missingKeyspace.apply(keyspace), queryFunction);
+    Uni<Schema.CqlKeyspaceDescribe> keyspaceUni = schemaManager.getKeyspace(keyspace, false);
+    return executeOptimistic(
+        keyspaceUni, table, () -> missingKeyspace.apply(keyspace), queryFunction);
   }
 
   /**
    * Executes the optimistic query against the keyspace provided in the given uni.
    *
-   * @param cqlUni Uni providing the keyspace.
+   * @param keyspaceUni Uni providing the keyspace.
    * @param table Table name.
    * @param missingKeyspace Supplier in case the keyspace in case it's not existing. Usually there
    *     to provide a failure.
@@ -95,13 +98,13 @@ public class OptimisticQueryService {
    * @return Response when optimistic query is executed correctly.
    */
   public Uni<QueryOuterClass.Response> executeOptimistic(
-      Uni<Schema.CqlKeyspaceDescribe> cqlUni,
+      Uni<Schema.CqlKeyspaceDescribe> keyspaceUni,
       String table,
       Supplier<Uni<? extends QueryOuterClass.Response>> missingKeyspace,
       Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction) {
 
     // get from cql keyspace
-    return cqlUni
+    return keyspaceUni
 
         // if keyspace is found, execute optimistic query with that keyspace
         .onItem()
