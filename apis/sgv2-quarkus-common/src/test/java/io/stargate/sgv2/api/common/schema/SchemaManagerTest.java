@@ -165,9 +165,8 @@ class SchemaManagerTest extends BridgeTest {
               .withSubscriber(UniAssertSubscriber.create());
       updatedResult.awaitItem().assertItem(response).assertCompleted();
 
-      // why 3 times, first it was an error
-      // but errors are also cached, so we assume it's cached, for second get we need to validate
-      verify(bridgeService, times(3)).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      // 2 calls, first error so ignore, second fetched no need to revalidate as fresh
+      verify(bridgeService, times(2)).describeKeyspace(describeKeyspaceCaptor.capture(), any());
       assertThat(describeKeyspaceCaptor.getAllValues())
           .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
 
