@@ -160,8 +160,10 @@ public class RestApiServer extends Application<RestApiServerConfiguration> {
     final String enableSgv1RestStr = System.getProperty(SYSPROP_ENABLE_SGV1_REST);
     final boolean enableSgv1 = Boolean.parseBoolean(enableSgv1RestStr);
 
-    // Always enable RESTv1 endpoints
-    logger.info("Registering StargateV1 RESTv1 endpoint for StargateV2");
+    // Always enable RESTv1 endpoints.
+    logger.info("Registering in-Coordinator RESTv1 endpoints (/v1/keyspaces/) for Stargate V2");
+    logger.warn(
+        "NOTE: in-Coordinator RESTv1 API is DEPRECATED in Stargate V2 and scheduled for removal in V3");
 
     environment.jersey().register(ColumnResource.class);
     environment.jersey().register(KeyspaceResource.class);
@@ -170,16 +172,18 @@ public class RestApiServer extends Application<RestApiServerConfiguration> {
 
     if (!enableSgv1) {
       logger.info(
-          "Will not register StargateV1 Documents API or RESTv2 endpoints for StargateV2 (System property '{}' {}, enable with 'true')",
+          "Will not register in-Coordinator Documents API or RESTv2 endpoints for Stargate V2 (System property '{}' {}, enable with 'true')",
           SYSPROP_ENABLE_SGV1_REST,
           (enableSgv1RestStr == null)
               ? "UNDEFINED"
               : String.format("set to '%s'", enableSgv1RestStr));
     } else {
-      logger.info(
-          "Registering StargateV1 Documents API and RESTv2 endpoints for StargateV2 (System property '{}' set to '{}')",
+      logger.warn(
+          "Registering in-Coordinator Documents API and RESTv2 API endpoints (System property '{}' set to '{}')",
           SYSPROP_ENABLE_SGV1_REST,
           enableSgv1RestStr);
+      logger.warn(
+          "NOTE: in-Coordinator Documents API and RESTv2 APIs endpoints are DEPRECATED and WILL BE SOON REMOVED from Stargate V2");
 
       // Rest API V2 endpoints
       environment.jersey().register(ColumnsResource.class);
