@@ -17,6 +17,7 @@ package io.stargate.sgv2.graphql.web.resources;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.ExecutionInput;
+import graphql.ExecutionResult;
 import graphql.GraphQL;
 import graphql.GraphqlErrorException;
 import graphql.com.google.common.base.MoreObjects;
@@ -24,6 +25,8 @@ import graphql.com.google.common.base.Splitter;
 import graphql.com.google.common.base.Strings;
 import graphql.com.google.common.collect.ImmutableList;
 import graphql.com.google.common.collect.ImmutableMap;
+import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
 import io.stargate.sgv2.graphql.web.models.GraphqlFormData;
 import io.stargate.sgv2.graphql.web.models.GraphqlJsonBody;
 import java.io.IOException;
@@ -33,10 +36,9 @@ import java.util.List;
 import java.util.Map;
 import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.multipart.FileUpload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -44,86 +46,111 @@ import org.slf4j.LoggerFactory;
 @Produces(MediaType.APPLICATION_JSON)
 public abstract class GraphqlResourceBase {
 
+  private static final Logger LOG = LoggerFactory.getLogger(GraphqlResourceBase.class);
+
   public static final String APPLICATION_GRAPHQL = "application/graphql";
 
-  private static final Logger LOG = LoggerFactory.getLogger(GraphqlResourceBase.class);
-  private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
   private static final Splitter PATH_SPLITTER = Splitter.on(".");
+
+  private final ObjectMapper objectMapper;
+
+  protected GraphqlResourceBase(ObjectMapper objectMapper) {
+    this.objectMapper = objectMapper;
+  }
 
   /**
    * Handles a GraphQL GET request.
    *
    * <p>The payload is provided via URL parameters.
    */
-  protected void get(
-      String query,
-      String operationName,
-      String variables,
-      GraphQL graphql,
-      Object context,
-      AsyncResponse asyncResponse) {
+  protected Uni<RestResponse<?>> get(
+      String query, String operationName, String variables, GraphQL graphql, Object context) {
 
-    if (Strings.isNullOrEmpty(query)) {
-      throw graphqlError(
-          Response.Status.BAD_REQUEST, "You must provide a GraphQL query as a URL parameter");
-    }
+    return Uni.createFrom()
+        .deferred(
+            () -> {
+              if (Strings.isNullOrEmpty(query)) {
+                return Uni.createFrom()
+                    .failure(
+                        graphqlError(
+                            Response.Status.BAD_REQUEST,
+                            "You must provide a GraphQL query as a URL parameter"));
+              }
 
-    try {
-      ExecutionInput.Builder input =
-          ExecutionInput.newExecutionInput(query).operationName(operationName);
+              try {
+                ExecutionInput.Builder input =
+                    ExecutionInput.newExecutionInput(query).operationName(operationName);
 
-      if (!Strings.isNullOrEmpty(variables)) {
-        @SuppressWarnings("unchecked")
-        Map<String, Object> parsedVariables = OBJECT_MAPPER.readValue(variables, Map.class);
-        input = input.context(context).variables(parsedVariables);
-      }
+                if (!Strings.isNullOrEmpty(variables)) {
+                  @SuppressWarnings("unchecked")
+                  Map<String, Object> parsedVariables =
+                      objectMapper.readValue(variables, Map.class);
+                  input = input.context(context).variables(parsedVariables);
+                }
 
-      executeAsync(input.build(), graphql, asyncResponse);
-    } catch (IOException e) {
-      throw graphqlError(
-          Response.Status.BAD_REQUEST, "Could not parse variables: " + e.getMessage());
-    }
+                return execute(input.build(), graphql);
+              } catch (IOException e) {
+                return Uni.createFrom()
+                    .failure(
+                        graphqlError(
+                            Response.Status.BAD_REQUEST,
+                            "Could not parse variables: " + e.getMessage()));
+              }
+            })
+        // map to rest response
+        .map(RestResponse::ok);
   }
+
   /**
    * Handles a GraphQL POST request that uses the {@link MediaType#APPLICATION_JSON} content type.
    *
    * <p>Such a request normally comprises a JSON-encoded body, but the spec also allows the query to
    * be passed as a URL parameter.
    */
-  protected void postJson(
-      GraphqlJsonBody jsonBody,
-      String queryFromUrl,
-      GraphQL graphql,
-      Object context,
-      AsyncResponse asyncResponse) {
+  protected Uni<RestResponse<?>> postJson(
+      GraphqlJsonBody jsonBody, String queryFromUrl, GraphQL graphql, Object context) {
 
-    queryFromUrl = Strings.emptyToNull(queryFromUrl);
-    String queryFromBody = (jsonBody == null) ? null : Strings.emptyToNull(jsonBody.getQuery());
-    String operationName =
-        (jsonBody == null) ? null : Strings.emptyToNull(jsonBody.getOperationName());
-    Map<String, Object> variables = (jsonBody == null) ? null : jsonBody.getVariables();
+    return Uni.createFrom()
+        .deferred(
+            () -> {
+              String queryFromUrlSafe = Strings.emptyToNull(queryFromUrl);
+              String queryFromBody =
+                  (jsonBody == null) ? null : Strings.emptyToNull(jsonBody.getQuery());
+              String operationName =
+                  (jsonBody == null) ? null : Strings.emptyToNull(jsonBody.getOperationName());
+              Map<String, Object> variables = (jsonBody == null) ? null : jsonBody.getVariables();
 
-    if (queryFromBody == null && queryFromUrl == null) {
-      throw graphqlError(
-          Response.Status.BAD_REQUEST,
-          "You must provide a GraphQL query, either as a query parameter or in the request body");
-    }
+              if (queryFromBody == null && queryFromUrlSafe == null) {
+                return Uni.createFrom()
+                    .failure(
+                        graphqlError(
+                            Response.Status.BAD_REQUEST,
+                            "You must provide a GraphQL query, either as a query parameter or in the request body"));
+              }
 
-    if (queryFromBody != null && queryFromUrl != null) {
-      // The GraphQL spec doesn't specify what to do in this case, but it's probably better to error
-      // out rather than pick one arbitrarily.
-      throw graphqlError(
-          Response.Status.BAD_REQUEST,
-          "You can't provide a GraphQL query both as a query parameter and in the request body");
-    }
+              if (queryFromBody != null && queryFromUrlSafe != null) {
+                // The GraphQL spec doesn't specify what to do in this case, but it's probably
+                // better to error
+                // out rather than pick one arbitrarily.
+                return Uni.createFrom()
+                    .failure(
+                        graphqlError(
+                            Response.Status.BAD_REQUEST,
+                            "You can't provide a GraphQL query both as a query parameter and in the request body"));
+              }
 
-    String query = MoreObjects.firstNonNull(queryFromBody, queryFromUrl);
-    ExecutionInput.Builder input =
-        ExecutionInput.newExecutionInput(query).operationName(operationName).context(context);
-    if (variables != null) {
-      input = input.variables(variables);
-    }
-    executeAsync(input.build(), graphql, asyncResponse);
+              String query = MoreObjects.firstNonNull(queryFromBody, queryFromUrlSafe);
+              ExecutionInput.Builder input =
+                  ExecutionInput.newExecutionInput(query)
+                      .operationName(operationName)
+                      .context(context);
+              if (variables != null) {
+                input = input.variables(variables);
+              }
+              return execute(input.build(), graphql);
+            })
+        // map to rest response
+        .map(RestResponse::ok);
   }
 
   /**
@@ -132,27 +159,33 @@ public abstract class GraphqlResourceBase {
    *
    * @see GraphqlFormData
    */
-  protected void postMultipartJson(
-      GraphqlFormData formData, GraphQL graphql, Object context, AsyncResponse asyncResponse) {
+  protected Uni<RestResponse<?>> postMultipartJson(
+      GraphqlFormData formData, GraphQL graphql, Object context) {
 
-    if (formData.operations == null) {
-      throw graphqlError(
-          Response.Status.BAD_REQUEST,
-          "Could not find GraphQL operations object. "
-              + "Make sure your multipart request includes an 'operations' part with MIME type "
-              + MediaType.APPLICATION_JSON);
-    }
+    return Uni.createFrom()
+        .deferred(
+            () -> {
+              if (formData.operations == null) {
+                return Uni.createFrom()
+                    .failure(
+                        graphqlError(
+                            Response.Status.BAD_REQUEST,
+                            "Could not find GraphQL operations object. "
+                                + "Make sure your multipart request includes an 'operations' part with MIME type "
+                                + MediaType.APPLICATION_JSON));
+              }
 
-    bindFilesToVariables(formData);
+              bindFilesToVariables(formData);
 
-    postJson(
-        formData.operations,
-        // We don't allow passing the query as a URL param for this variant. The spec does not
-        // preclude it explicitly, but it's unlikely that someone would try to do that.
-        null,
-        graphql,
-        context,
-        asyncResponse);
+              return postJson(
+                  formData.operations,
+                  // We don't allow passing the query as a URL param for this variant. The spec does
+                  // not
+                  // preclude it explicitly, but it's unlikely that someone would try to do that.
+                  null,
+                  graphql,
+                  context);
+            });
   }
 
   /**
@@ -232,37 +265,66 @@ public abstract class GraphqlResourceBase {
    *
    * <p>The request body is the GraphQL query directly.
    */
-  protected void postGraphql(
-      String query, GraphQL graphql, Object context, AsyncResponse asyncResponse) {
+  protected Uni<RestResponse<?>> postGraphql(String query, GraphQL graphql, Object context) {
 
-    if (Strings.isNullOrEmpty(query)) {
-      throw graphqlError(
-          Response.Status.BAD_REQUEST, "You must provide a GraphQL query in the request body");
-    }
+    return Uni.createFrom()
+        .deferred(
+            () -> {
+              if (Strings.isNullOrEmpty(query)) {
+                return Uni.createFrom()
+                    .failure(
+                        graphqlError(
+                            Response.Status.BAD_REQUEST,
+                            "You must provide a GraphQL query in the request body"));
+              }
 
-    ExecutionInput input = ExecutionInput.newExecutionInput(query).context(context).build();
-    executeAsync(input, graphql, asyncResponse);
+              ExecutionInput input =
+                  ExecutionInput.newExecutionInput(query).context(context).build();
+              return execute(input, graphql);
+            })
+        // map to rest response
+        .map(RestResponse::ok);
   }
 
-  protected static void executeAsync(
-      ExecutionInput input, GraphQL graphql, @Suspended AsyncResponse asyncResponse) {
-    graphql
-        .executeAsync(input)
-        .whenComplete(
-            (result, error) -> {
-              if (error != null) {
-                LOG.error("Unexpected error while processing GraphQL request", error);
-                throw graphqlError(Response.Status.INTERNAL_SERVER_ERROR, "Internal server error");
+  protected static Uni<Map<String, Object>> execute(ExecutionInput input, GraphQL graphql) {
+    // execute graphql call
+    return executeGraphql(input, graphql)
+
+        // on item check if we are not maybe overloaded
+        .onItem()
+        .transformToUni(
+            result -> {
+              Object context = input.getContext();
+              if (context instanceof StargateGraphqlContext
+                  && ((StargateGraphqlContext) context).isOverloaded()) {
+                return Uni.createFrom()
+                    .failure(
+                        graphqlError(Response.Status.TOO_MANY_REQUESTS, "Database is overloaded"));
               } else {
-                Object context = input.getContext();
-                if (context instanceof StargateGraphqlContext
-                    && ((StargateGraphqlContext) context).isOverloaded()) {
-                  throw graphqlError(Response.Status.TOO_MANY_REQUESTS, "Database is overloaded");
-                } else {
-                  asyncResponse.resume(result.toSpecification());
-                }
+                return Uni.createFrom().item(result.toSpecification());
               }
+            })
+
+        // on failure map to web app exception
+        .onFailure()
+        .recoverWithUni(
+            error -> {
+              LOG.error("Unexpected error while processing GraphQL request", error);
+              return Uni.createFrom()
+                  .failure(
+                      graphqlError(Response.Status.INTERNAL_SERVER_ERROR, "Internal server error"));
             });
+  }
+
+  private static Uni<ExecutionResult> executeGraphql(ExecutionInput input, GraphQL graphql) {
+    // create uni from future
+    return Uni.createFrom()
+        .future(() -> graphql.executeAsync(input))
+
+        // always run subscription on workers thread
+        // b/c although return type is completable future
+        // we are blocking inside of the graphql
+        .runSubscriptionOn(Infrastructure.getDefaultWorkerPool());
   }
 
   protected static WebApplicationException graphqlError(Response.Status status, String message) {

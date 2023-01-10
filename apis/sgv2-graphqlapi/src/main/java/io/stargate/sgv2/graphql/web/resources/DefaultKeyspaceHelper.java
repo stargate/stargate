@@ -24,6 +24,7 @@ import io.stargate.bridge.proto.QueryOuterClass.Row;
 import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
+import io.stargate.sgv2.graphql.web.models.GraphqlJsonBody;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -37,12 +38,9 @@ import org.slf4j.LoggerFactory;
  * Finds the oldest, non-system keyspace in the database. It is used as a default when no keyspace
  * name is provided in the URL path.
  *
- * @see DmlResource#get(String, String, String, javax.ws.rs.container.AsyncResponse,
- *     StargateBridgeClient)
- * @see DmlResource#postJson(io.stargate.sgv2.graphql.web.models.GraphqlJsonBody, String,
- *     javax.ws.rs.container.AsyncResponse, StargateBridgeClient)
- * @see DmlResource#postGraphql(String, String, javax.ws.rs.container.AsyncResponse,
- *     StargateBridgeClient)
+ * @see DmlResource#get(String, String, String)
+ * @see DmlResource#postJson(GraphqlJsonBody, String)
+ * @see DmlResource#postGraphql(String, String)
  */
 class DefaultKeyspaceHelper {
   private static final Logger LOG = LoggerFactory.getLogger(DefaultKeyspaceHelper.class);
