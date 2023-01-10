@@ -45,8 +45,6 @@ Each API Service contains its own integration test suite that tests it against t
 
 **Warning:** Support for Cassandra 3.11 is considered deprecated and will be removed in the Stargate v3 release: [details](https://github.com/stargate/stargate/discussions/2242).
 
-**Warning:** Support for Cassandra 3.11 is considered deprecated and will be removed in the Stargate v3 release: [details](https://github.com/stargate/stargate/discussions/2242).
-
 - **Authentication Services**: Responsible for authentication to Stargate
 
 ### Coordinator Node
