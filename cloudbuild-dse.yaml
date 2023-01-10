@@ -1,6 +1,6 @@
 steps:
   - id: 'pull image'
-    name: 'gcr.io/stargateio/stargate-builder:v1.0.13'
+    name: 'gcr.io/stargateio/stargate-builder:v1.0.15'
     entrypoint: 'bash'
     args: [ '-c', 'echo pulled builder' ]
   - id: 'fetch_secret'
@@ -30,7 +30,7 @@ steps:
         name: 'm2_cache'
   - id: 'dse-6.8'
     waitFor: [ 'fetch_secret', 'init_cache' ]
-    name: 'gcr.io/stargateio/stargate-builder:v1.0.13'
+    name: 'gcr.io/stargateio/stargate-builder:v1.0.15'
     entrypoint: 'bash'
     args: [ 'ci/test.sh' ]
     volumes:
