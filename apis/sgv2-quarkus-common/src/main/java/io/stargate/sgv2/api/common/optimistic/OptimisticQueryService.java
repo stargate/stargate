@@ -33,9 +33,9 @@ import javax.inject.Inject;
 @ApplicationScoped
 public class OptimisticQueryService {
 
-  @Inject private SchemaManager schemaManager;
+  @Inject SchemaManager schemaManager;
 
-  @Inject private StargateRequestInfo requestInfo;
+  @Inject StargateRequestInfo requestInfo;
 
   /**
    * Executes the optimistic query, by fetching the keyspace with authorization from the @{@link
