@@ -33,7 +33,11 @@ public interface RestOpenApiConstants {
   /** Parameters reference names. */
   interface Parameters {
     String FIELDS = "fields";
+    /** Keyspace as required Path Parameter */
     String KEYSPACE_NAME = "keyspaceName";
+    /** Keyspace as optional Query Parameter */
+    String KEYSPACE_AS_QUERY_PARAM = "keyspaceQP";
+
     String PAGE_SIZE = "page-size";
     String PAGE_STATE = "page-state";
     String PRIMARY_KEY = "primaryKey";

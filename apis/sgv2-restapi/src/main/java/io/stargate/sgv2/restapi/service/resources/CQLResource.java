@@ -57,7 +57,7 @@ public class CQLResource {
         @APIResponse(ref = RestOpenApiConstants.Responses.GENERAL_500),
       })
   public Uni<RestResponse<Object>> cqlQuery(
-      @Parameter(name = "keyspace", ref = RestOpenApiConstants.Parameters.KEYSPACE_NAME)
+      @Parameter(name = "keyspace", ref = RestOpenApiConstants.Parameters.KEYSPACE_AS_QUERY_PARAM)
           @QueryParam("keyspace")
           final String keyspace,
       @Parameter(name = "page-size", ref = RestOpenApiConstants.Parameters.PAGE_SIZE)
