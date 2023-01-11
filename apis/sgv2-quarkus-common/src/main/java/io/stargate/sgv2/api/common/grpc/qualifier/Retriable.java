@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-package io.stargate.sgv2.api.common.grpc;
+package io.stargate.sgv2.api.common.grpc.qualifier;
 
 import static java.lang.annotation.ElementType.FIELD;
 import static java.lang.annotation.ElementType.METHOD;

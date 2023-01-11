@@ -18,8 +18,8 @@
 package io.stargate.sgv2.api.common;
 
 import io.stargate.bridge.proto.StargateBridge;
-import io.stargate.sgv2.api.common.grpc.Retriable;
 import io.stargate.sgv2.api.common.grpc.RetriableStargateBridge;
+import io.stargate.sgv2.api.common.grpc.qualifier.Retriable;
 import io.stargate.sgv2.api.common.tenant.TenantResolver;
 import io.stargate.sgv2.api.common.token.CassandraTokenResolver;
 import io.vertx.ext.web.RoutingContext;

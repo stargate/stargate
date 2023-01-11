@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Optional;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Positive;
 
 /** Configuration for the gRPC calls to the Bridge. */
 @ConfigMapping(prefix = "stargate.grpc")
@@ -46,13 +47,17 @@ public interface GrpcConfig {
     @WithDefault("true")
     boolean enabled();
 
-    /** @return List of status codes to execute retries for. */
+    /**
+     * @return List of status codes to execute retries for. Defaults to <code>UNAVAILABLE</code>, as
+     *     this code means that the request never reached the bridge and it should be safe to retry.
+     */
     @WithDefault("UNAVAILABLE")
     @NotNull
     List<Status.Code> statusCodes();
 
     /** @return Maximum amount of retry attempts. */
     @WithDefault("1")
+    @Positive
     int maxAttempts();
   }
 }

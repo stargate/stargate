@@ -25,6 +25,7 @@ import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.config.GrpcConfig;
+import io.stargate.sgv2.api.common.grpc.qualifier.Retriable;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
