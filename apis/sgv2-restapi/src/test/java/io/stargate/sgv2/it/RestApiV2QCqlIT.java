@@ -6,6 +6,8 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
+import java.util.Arrays;
+import org.apache.groovy.util.Maps;
 import org.apache.http.HttpStatus;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
@@ -33,6 +35,35 @@ public class RestApiV2QCqlIT extends RestApiV2QIntegrationTestBase {
             .asString();
 
     assertThat(r).isEqualTo("{\"count\":1,\"data\":[{\"key\":\"local\"}]}");
+  }
+
+  @Test
+  public void testCqlQueryRaw() {
+    givenWithAuth()
+        .contentType(ContentType.TEXT)
+        .queryParam("raw", "true")
+        .body("SELECT key FROM system.local")
+        .when()
+        .post(endpointPathForCQL())
+        .then()
+        .statusCode(200)
+        .body("$", Matchers.is(Arrays.asList(Maps.of("key", "local"))));
+  }
+
+  @Test
+  public void testCqlQueryWithKeyspace() {
+    givenWithAuth()
+        .contentType(ContentType.TEXT)
+        .queryParam("keyspace", "system")
+        .queryParam("raw", "false")
+        .body("SELECT key FROM local")
+        .when()
+        .post(endpointPathForCQL())
+        .then()
+        .statusCode(200)
+        .body("count", Matchers.is(1))
+        .body("data", Matchers.hasSize(1))
+        .body("data[0].key", Matchers.is("local"));
   }
 
   @Test
@@ -85,6 +116,6 @@ public class RestApiV2QCqlIT extends RestApiV2QIntegrationTestBase {
         .body("code", Matchers.is(HttpStatus.SC_BAD_REQUEST))
         .body(
             "description",
-            Matchers.contains("INVALID_ARGUMENT: Keyspace 'no-such-keyspace' does not exist"));
+            Matchers.endsWith("INVALID_ARGUMENT: Keyspace 'no-such-keyspace' does not exist"));
   }
 }
