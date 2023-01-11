@@ -47,6 +47,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -393,21 +394,194 @@ public class SchemaManager {
             });
   }
 
+  /**
+   * Executes the optimistic query, by fetching the keyspace without authorization from the @{@link
+   * SchemaManager}.
+   *
+   * @param keyspace Keyspace name.
+   * @param table Table name.
+   * @param missingKeyspace Function in case the keyspace in case it's not existing. Usually there
+   *     to * provide a failure.
+   * @param queryFunction Function that creates the query from the {@link Schema.CqlTable}. Note
+   *     that the table can be <code>null</code>.
+   * @return Response when optimistic query is executed correctly.
+   */
+  public Uni<QueryOuterClass.Response> queryWithSchema(
+      String keyspace,
+      String table,
+      Function<String, Uni<? extends QueryOuterClass.Response>> missingKeyspace,
+      Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction) {
+
+    // get table from the schema manager without the hash validation
+    Uni<Schema.CqlKeyspaceDescribe> keyspaceUni = getKeyspace(keyspace, false);
+    Optional<String> tenantId = requestInfo.getTenantId();
+
+    return queryWithSchema(
+        keyspaceUni,
+        keyspace,
+        table,
+        tenantId,
+        () -> missingKeyspace.apply(keyspace),
+        queryFunction);
+  }
+
+  /**
+   * Executes the optimistic query, by fetching the keyspace with authorization from the @{@link
+   * SchemaManager}.
+   *
+   * @param keyspace Keyspace name.
+   * @param table Table name.
+   * @param missingKeyspace Function in case the keyspace in case it's not existing. Usually there
+   *     to provide a failure.
+   * @param queryFunction Function that creates the query from the {@link Schema.CqlTable}. Note
+   *     that the table can be <code>null</code>.
+   * @return Response when optimistic query is executed correctly.
+   */
+  public Uni<QueryOuterClass.Response> queryWithSchemaAuthorized(
+      String keyspace,
+      String table,
+      Function<String, Uni<? extends QueryOuterClass.Response>> missingKeyspace,
+      Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction) {
+
+    // get table from the schema manager authorized without the hash validation
+    Uni<Schema.CqlKeyspaceDescribe> keyspaceUni = getKeyspaceAuthorized(keyspace, false);
+    Optional<String> tenantId = requestInfo.getTenantId();
+
+    return queryWithSchema(
+        keyspaceUni,
+        keyspace,
+        table,
+        tenantId,
+        () -> missingKeyspace.apply(keyspace),
+        queryFunction);
+  }
+
+  /**
+   * Executes the optimistic query against the keyspace provided in the given uni.
+   *
+   * @param keyspaceUni Uni providing the keyspace.
+   * @param table Table name.
+   * @param missingKeyspace Supplier in case the keyspace in case it's not existing. Usually there
+   *     to provide a failure.
+   * @param queryFunction Function that creates the query from the {@link Schema.CqlTable}. Note
+   *     that the table can be <code>null</code>.
+   * @return Response when optimistic query is executed correctly.
+   */
+  private Uni<QueryOuterClass.Response> queryWithSchema(
+      Uni<Schema.CqlKeyspaceDescribe> keyspaceUni,
+      String keyspace,
+      String table,
+      Optional<String> tenantId,
+      Supplier<Uni<? extends QueryOuterClass.Response>> missingKeyspace,
+      Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction) {
+
+    // get from cql keyspace
+    return keyspaceUni
+
+        // if keyspace is found, execute optimistic query with that keyspace
+        .onItem()
+        .ifNotNull()
+        .transformToUni(
+            cqlKeyspace ->
+                queryWithSchemaOnKeyspace(cqlKeyspace, table, queryFunction)
+
+                    // once we have a result pipe to our handler
+                    .onItem()
+                    .transformToUni(
+                        queryWithSchemaHandler(
+                            keyspace, table, tenantId, missingKeyspace, queryFunction)))
+
+        // if keyspace not found at first place, use mapper
+        .onItem()
+        .ifNull()
+        .switchTo(missingKeyspace.get());
+  }
+
+  // handles the QueryWithSchemaResponse
+  private Function<Schema.QueryWithSchemaResponse, Uni<? extends QueryOuterClass.Response>>
+      queryWithSchemaHandler(
+          String keyspace,
+          String table,
+          Optional<String> tenantId,
+          Supplier<Uni<? extends QueryOuterClass.Response>> missingKeyspace,
+          Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction) {
+    return response -> {
+
+      // * if no keyspace, calls the missing key space function
+      // * if there is new keyspace, execute again with that keyspace, use same handler
+      // * if everything is fine, map to result
+      if (response.hasNoKeyspace()) {
+        return missingKeyspace.get();
+      } else if (response.hasNewKeyspace()) {
+        // first invalidate existing keyspace
+        return invalidateKeyspace(keyspace, tenantId)
+
+            // then cache the update
+            .flatMap(v -> cacheKeyspace(keyspace, tenantId, response.getNewKeyspace()))
+
+            // then query again and handler with same handler
+            // note that this is endlessly trying to execute the query in case there is always a
+            // changes
+            // keyspace
+            .flatMap(
+                updatedKeyspace -> queryWithSchemaOnKeyspace(updatedKeyspace, table, queryFunction))
+            .onItem()
+            .transformToUni(
+                queryWithSchemaHandler(keyspace, table, tenantId, missingKeyspace, queryFunction));
+      } else {
+        return Uni.createFrom().item(response.getResponse());
+      }
+    };
+  }
+
+  // executes the optimistic query against the keyspace
+  private Uni<Schema.QueryWithSchemaResponse> queryWithSchemaOnKeyspace(
+      Schema.CqlKeyspaceDescribe cqlKeyspace,
+      String table,
+      Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction) {
+
+    // try to find the wanted table
+    List<Schema.CqlTable> cqlTables = cqlKeyspace.getTablesList();
+    Optional<Schema.CqlTable> cqlTable =
+        cqlTables.stream().filter(t -> Objects.equals(t.getName(), table)).findFirst();
+
+    // start sequence from table
+    return Uni.createFrom()
+        .optional(cqlTable)
+
+        // query function should handle not found table,
+        // so just hit
+        .flatMap(queryFunction::apply)
+        .flatMap(
+            query -> {
+              // construct request
+              Schema.QueryWithSchema request =
+                  Schema.QueryWithSchema.newBuilder()
+                      .setQuery(query)
+                      .setKeyspaceName(cqlKeyspace.getCqlKeyspace().getName())
+                      .setKeyspaceHash(cqlKeyspace.getHash().getValue())
+                      .build();
+
+              // fire call
+              return requestInfo.getStargateBridge().executeQueryWithSchema(request);
+            });
+  }
+
   // authorizes a keyspace by provided name
-  public Uni<Boolean> authorizeKeyspaceInternal(StargateBridge bridge, String keyspaceName) {
+  private Uni<Boolean> authorizeKeyspaceInternal(StargateBridge bridge, String keyspaceName) {
     Schema.SchemaRead schemaRead = SchemaReads.keyspace(keyspaceName);
     return authorizeInternal(bridge, schemaRead);
   }
 
   // authorizes a table by provided name and keyspace
-  public Uni<Boolean> authorizeTableInternal(
+  private Uni<Boolean> authorizeTableInternal(
       StargateBridge bridge, String keyspaceName, String tableName) {
     Schema.SchemaRead schemaRead = SchemaReads.table(keyspaceName, tableName);
     return authorizeInternal(bridge, schemaRead);
   }
 
   // authorizes a single schema read
-  public Uni<Boolean> authorizeInternal(StargateBridge bridge, Schema.SchemaRead schemaRead) {
+  private Uni<Boolean> authorizeInternal(StargateBridge bridge, Schema.SchemaRead schemaRead) {
     Schema.AuthorizeSchemaReadsRequest request =
         Schema.AuthorizeSchemaReadsRequest.newBuilder().addSchemaReads(schemaRead).build();
 
