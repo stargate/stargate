@@ -6,6 +6,8 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
+import org.apache.http.HttpStatus;
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
@@ -68,5 +70,21 @@ public class RestApiV2QCqlIT extends RestApiV2QIntegrationTestBase {
     assertThat(r)
         .isEqualTo(
             "{\"description\":\"Request invalid: CQL query body required.\",\"code\":400,\"grpcStatus\":null,\"internalTxId\":null}");
+  }
+
+  @Test
+  public void testBadKeyspaceQuery() {
+    givenWithAuth()
+        .contentType(ContentType.TEXT)
+        .body("SELECT key FROM local")
+        .when()
+        .queryParam("keyspace", "no-such-keyspace")
+        .post(endpointPathForCQL())
+        .then()
+        .statusCode(400)
+        .body("code", Matchers.is(HttpStatus.SC_BAD_REQUEST))
+        .body(
+            "description",
+            Matchers.contains("INVALID_ARGUMENT: Keyspace 'no-such-keyspace' does not exist"));
   }
 }
