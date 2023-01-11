@@ -20,13 +20,13 @@ package io.stargate.sgv2.docsapi.service.write;
 import com.google.common.base.Splitter;
 import io.grpc.Metadata;
 import io.opentelemetry.extension.annotations.WithSpan;
-import io.quarkus.grpc.GrpcClient;
 import io.quarkus.grpc.GrpcClientUtils;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.Batch;
 import io.stargate.bridge.proto.QueryOuterClass.ResultSet;
 import io.stargate.bridge.proto.StargateBridge;
+import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.config.QueriesConfig;
 import io.stargate.sgv2.api.common.properties.datastore.DataStoreProperties;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
@@ -59,7 +59,7 @@ public class WriteBridgeService {
   // path splitter on dot
   private static final Splitter PATH_SPLITTER = Splitter.on(".");
 
-  private final StargateBridge bridge;
+  private final StargateRequestInfo requestInfo;
   private final TimeSource timeSource;
   private final InsertQueryBuilder insertQueryBuilder;
   private final boolean useLoggedBatches;
@@ -69,12 +69,12 @@ public class WriteBridgeService {
 
   @Inject
   public WriteBridgeService(
-      @GrpcClient("bridge") StargateBridge bridge,
+      StargateRequestInfo requestInfo,
       TimeSource timeSource,
       DataStoreProperties dataStoreProperties,
       DocumentProperties documentProperties,
       QueriesConfig queriesConfig) {
-    this.bridge = bridge;
+    this.requestInfo = requestInfo;
     this.insertQueryBuilder = new InsertQueryBuilder(documentProperties);
     this.timeSource = timeSource;
     this.useLoggedBatches = dataStoreProperties.loggedBatchesEnabled();
@@ -103,6 +103,8 @@ public class WriteBridgeService {
       List<JsonShreddedRow> rows,
       Integer ttl,
       ExecutionContext context) {
+
+    StargateBridge bridge = requestInfo.getStargateBridge();
 
     return Uni.createFrom()
         .item(
@@ -184,6 +186,8 @@ public class WriteBridgeService {
       List<JsonShreddedRow> rows,
       Integer ttl,
       ExecutionContext context) {
+
+    StargateBridge bridge = requestInfo.getStargateBridge();
 
     return Uni.createFrom()
         .item(
@@ -296,6 +300,8 @@ public class WriteBridgeService {
       Integer ttl,
       ExecutionContext context) {
 
+    StargateBridge bridge = requestInfo.getStargateBridge();
+
     return Uni.createFrom()
         .item(
             () -> {
@@ -372,6 +378,9 @@ public class WriteBridgeService {
       List<JsonShreddedRow> rows,
       Integer ttl,
       ExecutionContext context) {
+
+    StargateBridge bridge = requestInfo.getStargateBridge();
+
     return Uni.createFrom()
         .item(
             () -> {
@@ -446,6 +455,8 @@ public class WriteBridgeService {
       List<String> subDocumentPath,
       ExecutionContext context) {
 
+    StargateBridge bridge = requestInfo.getStargateBridge();
+
     return Uni.createFrom()
         .item(
             () -> {
@@ -483,6 +494,9 @@ public class WriteBridgeService {
       Map<String, Set<DeadLeaf>> deadLeaves,
       ExecutionContext context,
       Metadata metadata) {
+
+    StargateBridge bridge = requestInfo.getStargateBridge();
+
     return Uni.createFrom()
         .item(
             () -> {
