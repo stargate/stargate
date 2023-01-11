@@ -377,6 +377,10 @@
                   <goal>verify</goal>
                 </goals>
                 <configuration>
+                  <systemPropertyVariables>
+                    <ccm.version>3.11.14</ccm.version>
+                    <stargate.test.nodes>1</stargate.test.nodes>
+                  </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>
                   <reportsDirectory>target/failsafe-reports/cassandra-3.11</reportsDirectory>
                   <summaryFile>target/failsafe-reports/summary-cassandra-3.11.xml</summaryFile>
