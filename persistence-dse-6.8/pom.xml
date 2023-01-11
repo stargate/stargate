@@ -10,7 +10,7 @@
   <groupId>io.stargate.db.dse</groupId>
   <artifactId>persistence-dse-6.8</artifactId>
   <properties>
-    <dse.version>6.8.31</dse.version>
+    <dse.version>6.8.29</dse.version>
   </properties>
   <repositories>
     <repository>

@@ -68,7 +68,7 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
       System.getProperty("stargate.test.backend.cluster.impl.class", CcmCluster.class.getName());
 
   static {
-    String version = System.getProperty(CCM_VERSION, "3.11.14");
+    String version = System.getProperty(CCM_VERSION, "3.11.8");
     System.setProperty(CCM_VERSION, version);
   }
 
