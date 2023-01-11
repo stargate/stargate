@@ -1,5 +1,48 @@
 # Changelog
 
+## [v2.0.5](https://github.com/stargate/stargate/tree/v2.0.5) (2023-01-10)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.4...v2.0.5)
+
+**Fixed bugs:**
+
+- GraphQL V2 not handling `JsonParseException` [\#2314](https://github.com/stargate/stargate/issues/2314)
+- Keyspace Creation with DC information KO in V2 [\#2231](https://github.com/stargate/stargate/issues/2231)
+
+**Closed issues:**
+
+- SGv2 REST API should NOT do `authorizeSchemaRead` for regular DML CRUD operations [\#2349](https://github.com/stargate/stargate/issues/2349)
+- Update Jackson dependency from 2.13.4 to 2.14.1 to solve CVEs [\#2345](https://github.com/stargate/stargate/issues/2345)
+- REST tests should not create a keyspace for each test method [\#2326](https://github.com/stargate/stargate/issues/2326)
+- Mark REST v1 endpoints as Deprecated [\#2339](https://github.com/stargate/stargate/issues/2339)
+- Delete keyspaces after each integration test [\#2321](https://github.com/stargate/stargate/issues/2321)
+- Update Cassandra-4.0 backend to 4.0.7 \(from 4.0.4\) [\#2261](https://github.com/stargate/stargate/issues/2261)
+- Mark Cassandra 3.11 Persistence as Deprecated [\#2254](https://github.com/stargate/stargate/issues/2254)
+- Move ExceptionMappers out of sgv2-quarkus-common [\#2248](https://github.com/stargate/stargate/issues/2248)
+- Remove source api from schema reads [\#2195](https://github.com/stargate/stargate/issues/2195)
+- Add deadline for the client side gRPC in the V2 [\#2192](https://github.com/stargate/stargate/issues/2192)
+- Separate CI images [\#1768](https://github.com/stargate/stargate/issues/1768)
+- Configure Stargate v2 Docker images to run as non-root [\#1707](https://github.com/stargate/stargate/issues/1707)
+
+**Merged pull requests:**
+
+- add client deadlines to the bridge interceptor [\#2352](https://github.com/stargate/stargate/pull/2352) ([ivansenic](https://github.com/ivansenic))
+- Avoid SchemaReadCheck optional for Row CRUD \(leave for Schema access\) [\#2351](https://github.com/stargate/stargate/pull/2351) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#2345: Upgrade Jackson dep to 2.14.1 \(from 2.13.4\) [\#2350](https://github.com/stargate/stargate/pull/2350) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#2339: mark RESTv1 API as deprecated \(as well as in-coordinator APIs\) [\#2347](https://github.com/stargate/stargate/pull/2347) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#2326: reduce amount of keyspaces created by ITs, add clean up [\#2341](https://github.com/stargate/stargate/pull/2341) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- update v2 coordinator docker images to run as non-root user [\#2340](https://github.com/stargate/stargate/pull/2340) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- add parameterized query to gRPC Java example [\#2338](https://github.com/stargate/stargate/pull/2338) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- add workflow to test postman collections against docker compose scripts [\#2337](https://github.com/stargate/stargate/pull/2337) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- organize shared production and dev props [\#2335](https://github.com/stargate/stargate/pull/2335) ([ivansenic](https://github.com/ivansenic))
+- document version support and branching strategy on v2 [\#2334](https://github.com/stargate/stargate/pull/2334) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- ux improvements to docker compose configs [\#2333](https://github.com/stargate/stargate/pull/2333) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- relates to \#2195: remove api source from schema read [\#2330](https://github.com/stargate/stargate/pull/2330) ([ivansenic](https://github.com/ivansenic))
+- remove async reponse from graphql [\#2328](https://github.com/stargate/stargate/pull/2328) ([ivansenic](https://github.com/ivansenic))
+- closes \#2314: added test to test gql invalid json response [\#2327](https://github.com/stargate/stargate/pull/2327) ([ivansenic](https://github.com/ivansenic))
+- fix typo in config prop name [\#2325](https://github.com/stargate/stargate/pull/2325) ([ivansenic](https://github.com/ivansenic))
+- closes \#2321: delete keyspaces on the integration test end [\#2324](https://github.com/stargate/stargate/pull/2324) ([ivansenic](https://github.com/ivansenic))
+
 ## [v2.0.4](https://github.com/stargate/stargate/tree/v2.0.4) (2022-12-22)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.3...v2.0.4)
