@@ -31,6 +31,7 @@ import io.quarkus.cache.CaffeineCache;
 import io.quarkus.cache.CompositeCacheKey;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.tuples.Tuple2;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridge;
@@ -46,6 +47,7 @@ import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -60,7 +62,8 @@ public class SchemaManager {
   @Inject StargateRequestInfo requestInfo;
 
   /**
-   * Get the keyspace from the bridge. Note that this method is not doing any authorization.
+   * Get the keyspace from the bridge. Note that this method is not doing any authorization. The
+   * check that the keyspace has correct hash on the bridge will be done.
    *
    * @param keyspace Keyspace name
    * @return Uni containing Schema.CqlKeyspaceDescribe or <code>null</code> item in case keyspace
@@ -68,12 +71,27 @@ public class SchemaManager {
    */
   @WithSpan
   public Uni<Schema.CqlKeyspaceDescribe> getKeyspace(String keyspace) {
-    StargateBridge bridge = requestInfo.getStargateBridge();
-    return getKeyspaceInternal(bridge, keyspace);
+    return getKeyspace(keyspace, true);
   }
 
   /**
-   * Get all keyspace from the bridge. Note that this method is not doing any authorization.
+   * Get the keyspace from the bridge. Note that this method is not doing any authorization.
+   *
+   * @param keyspace Keyspace name
+   * @param validateHash If hash validation should be done for the keyspace. If <code>false</code>
+   *     and the keyspace is already cached, then no calls to the bridge are executed.
+   * @return Uni containing Schema.CqlKeyspaceDescribe or <code>null</code> item in case keyspace
+   *     does not exist.
+   */
+  @WithSpan
+  public Uni<Schema.CqlKeyspaceDescribe> getKeyspace(String keyspace, boolean validateHash) {
+    StargateBridge bridge = requestInfo.getStargateBridge();
+    return getKeyspaceInternal(bridge, keyspace, validateHash);
+  }
+
+  /**
+   * Get all keyspace from the bridge. Note that this method is not doing any authorization. The
+   * check that each keyspace has correct hash on the bridge will be done.
    *
    * @return Multi containing Schema.CqlKeyspaceDescribe
    */
@@ -86,11 +104,12 @@ public class SchemaManager {
 
         // then fetch each keyspace
         .onItem()
-        .transformToUniAndMerge(keyspace -> getKeyspaceInternal(bridge, keyspace));
+        .transformToUniAndMerge(keyspace -> getKeyspaceInternal(bridge, keyspace, true));
   }
 
   /**
-   * Get the table from the bridge. Note that this method is not doing any authorization.
+   * Get the table from the bridge. Note that this method is not doing any authorization. The check
+   * that the keyspace has correct hash on the bridge will be done.
    *
    * @param keyspace Keyspace name
    * @param table Table name
@@ -109,7 +128,8 @@ public class SchemaManager {
   }
 
   /**
-   * Get all tables of a keyspace from the bridge.
+   * Get all tables of a keyspace from the bridge. The check that the keyspace has correct hash on
+   * the bridge will be done.
    *
    * @param keyspace Keyspace name
    * @param missingKeyspace Function of the keyspace in case it's not existing. Usually there to
@@ -123,7 +143,7 @@ public class SchemaManager {
     StargateBridge bridge = requestInfo.getStargateBridge();
 
     // get keyspace
-    return getKeyspaceInternal(bridge, keyspace)
+    return getKeyspaceInternal(bridge, keyspace, true)
 
         // if not there, switch to function
         .onItem()
@@ -138,7 +158,7 @@ public class SchemaManager {
 
   /**
    * Get the keyspace from the bridge. Prior to getting the keyspace it will execute the schema
-   * authorization request.
+   * authorization request. The check that the keyspace has correct hash on the bridge will be done.
    *
    * <p>Emits a failure in case:
    *
@@ -152,6 +172,28 @@ public class SchemaManager {
    */
   @WithSpan
   public Uni<Schema.CqlKeyspaceDescribe> getKeyspaceAuthorized(String keyspace) {
+    return getKeyspaceAuthorized(keyspace, true);
+  }
+
+  /**
+   * Get the keyspace from the bridge. Prior to getting the keyspace it will execute the schema
+   * authorization request.
+   *
+   * <p>Emits a failure in case:
+   *
+   * <ol>
+   *   <li>Not authorized, with {@link UnauthorizedKeyspaceException}
+   * </ol>
+   *
+   * @param keyspace Keyspace name
+   * @param validateHash If hash validation should be done for the keyspace. If <code>false</code>
+   *     and the keyspace is already cached, then no calls to the bridge are executed.
+   * @return Uni containing Schema.CqlKeyspaceDescribe or <code>null</code> item in case keyspace
+   *     does not exist.
+   */
+  @WithSpan
+  public Uni<Schema.CqlKeyspaceDescribe> getKeyspaceAuthorized(
+      String keyspace, boolean validateHash) {
     StargateBridge bridge = requestInfo.getStargateBridge();
 
     // first authorize read, then fetch
@@ -165,7 +207,7 @@ public class SchemaManager {
               // if authorized, go fetch keyspace
               // otherwise throw correct exception
               if (authorized) {
-                return getKeyspaceInternal(bridge, keyspace);
+                return getKeyspaceInternal(bridge, keyspace, validateHash);
               } else {
                 RuntimeException unauthorized = new UnauthorizedKeyspaceException(keyspace);
                 return Uni.createFrom().failure(unauthorized);
@@ -175,7 +217,8 @@ public class SchemaManager {
 
   /**
    * Get all keyspace from the bridge. Prior to getting each keyspace it will execute the schema
-   * authorization request (single request for all available keyspace).
+   * authorization request (single request for all available keyspace). The check that each keyspace
+   * has correct hash on the bridge will be done.
    *
    * @return Multi containing Schema.CqlKeyspaceDescribe
    */
@@ -231,12 +274,12 @@ public class SchemaManager {
 
         // then fetch each authorized keyspace
         .onItem()
-        .transformToUniAndMerge(keyspace -> getKeyspaceInternal(bridge, keyspace));
+        .transformToUniAndMerge(keyspace -> getKeyspaceInternal(bridge, keyspace, true));
   }
 
   /**
    * Get the table from the bridge. Prior to getting the keyspace it will execute the schema
-   * authorization request.
+   * authorization request. The check that the keyspace has correct hash on the bridge will be done.
    *
    * <p>Emits a failure in case:
    *
@@ -278,7 +321,8 @@ public class SchemaManager {
   }
 
   /**
-   * Get all authorized tables from the bridge.
+   * Get all authorized tables from the bridge. The check that the keyspace has correct hash on the
+   * bridge will be done.
    *
    * <p>Emits a failure in case:
    *
@@ -298,7 +342,7 @@ public class SchemaManager {
     StargateBridge bridge = requestInfo.getStargateBridge();
 
     // get keyspace
-    return getKeyspaceInternal(bridge, keyspace)
+    return getKeyspaceInternal(bridge, keyspace, true)
 
         // if keyspace not found switch to function
         .onItem()
@@ -350,21 +394,194 @@ public class SchemaManager {
             });
   }
 
+  /**
+   * Executes the optimistic query, by fetching the keyspace without authorization from the @{@link
+   * SchemaManager}.
+   *
+   * @param keyspace Keyspace name.
+   * @param table Table name.
+   * @param missingKeyspace Function in case the keyspace in case it's not existing. Usually there
+   *     to * provide a failure.
+   * @param queryFunction Function that creates the query from the {@link Schema.CqlTable}. Note
+   *     that the table can be <code>null</code>.
+   * @return Response when optimistic query is executed correctly.
+   */
+  public Uni<QueryOuterClass.Response> queryWithSchema(
+      String keyspace,
+      String table,
+      Function<String, Uni<? extends QueryOuterClass.Response>> missingKeyspace,
+      Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction) {
+
+    // get table from the schema manager without the hash validation
+    Uni<Schema.CqlKeyspaceDescribe> keyspaceUni = getKeyspace(keyspace, false);
+    Optional<String> tenantId = requestInfo.getTenantId();
+
+    return queryWithSchema(
+        keyspaceUni,
+        keyspace,
+        table,
+        tenantId,
+        () -> missingKeyspace.apply(keyspace),
+        queryFunction);
+  }
+
+  /**
+   * Executes the optimistic query, by fetching the keyspace with authorization from the @{@link
+   * SchemaManager}.
+   *
+   * @param keyspace Keyspace name.
+   * @param table Table name.
+   * @param missingKeyspace Function in case the keyspace in case it's not existing. Usually there
+   *     to provide a failure.
+   * @param queryFunction Function that creates the query from the {@link Schema.CqlTable}. Note
+   *     that the table can be <code>null</code>.
+   * @return Response when optimistic query is executed correctly.
+   */
+  public Uni<QueryOuterClass.Response> queryWithSchemaAuthorized(
+      String keyspace,
+      String table,
+      Function<String, Uni<? extends QueryOuterClass.Response>> missingKeyspace,
+      Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction) {
+
+    // get table from the schema manager authorized without the hash validation
+    Uni<Schema.CqlKeyspaceDescribe> keyspaceUni = getKeyspaceAuthorized(keyspace, false);
+    Optional<String> tenantId = requestInfo.getTenantId();
+
+    return queryWithSchema(
+        keyspaceUni,
+        keyspace,
+        table,
+        tenantId,
+        () -> missingKeyspace.apply(keyspace),
+        queryFunction);
+  }
+
+  /**
+   * Executes the optimistic query against the keyspace provided in the given uni.
+   *
+   * @param keyspaceUni Uni providing the keyspace.
+   * @param table Table name.
+   * @param missingKeyspace Supplier in case the keyspace in case it's not existing. Usually there
+   *     to provide a failure.
+   * @param queryFunction Function that creates the query from the {@link Schema.CqlTable}. Note
+   *     that the table can be <code>null</code>.
+   * @return Response when optimistic query is executed correctly.
+   */
+  private Uni<QueryOuterClass.Response> queryWithSchema(
+      Uni<Schema.CqlKeyspaceDescribe> keyspaceUni,
+      String keyspace,
+      String table,
+      Optional<String> tenantId,
+      Supplier<Uni<? extends QueryOuterClass.Response>> missingKeyspace,
+      Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction) {
+
+    // get from cql keyspace
+    return keyspaceUni
+
+        // if keyspace is found, execute optimistic query with that keyspace
+        .onItem()
+        .ifNotNull()
+        .transformToUni(
+            cqlKeyspace ->
+                queryWithSchemaOnKeyspace(cqlKeyspace, table, queryFunction)
+
+                    // once we have a result pipe to our handler
+                    .onItem()
+                    .transformToUni(
+                        queryWithSchemaHandler(
+                            keyspace, table, tenantId, missingKeyspace, queryFunction)))
+
+        // if keyspace not found at first place, use mapper
+        .onItem()
+        .ifNull()
+        .switchTo(missingKeyspace.get());
+  }
+
+  // handles the QueryWithSchemaResponse
+  private Function<Schema.QueryWithSchemaResponse, Uni<? extends QueryOuterClass.Response>>
+      queryWithSchemaHandler(
+          String keyspace,
+          String table,
+          Optional<String> tenantId,
+          Supplier<Uni<? extends QueryOuterClass.Response>> missingKeyspace,
+          Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction) {
+    return response -> {
+
+      // * if no keyspace, calls the missing key space function
+      // * if there is new keyspace, execute again with that keyspace, use same handler
+      // * if everything is fine, map to result
+      if (response.hasNoKeyspace()) {
+        return missingKeyspace.get();
+      } else if (response.hasNewKeyspace()) {
+        // first invalidate existing keyspace
+        return invalidateKeyspace(keyspace, tenantId)
+
+            // then cache the update
+            .flatMap(v -> cacheKeyspace(keyspace, tenantId, response.getNewKeyspace()))
+
+            // then query again and handler with same handler
+            // note that this is endlessly trying to execute the query in case there is always a
+            // changes
+            // keyspace
+            .flatMap(
+                updatedKeyspace -> queryWithSchemaOnKeyspace(updatedKeyspace, table, queryFunction))
+            .onItem()
+            .transformToUni(
+                queryWithSchemaHandler(keyspace, table, tenantId, missingKeyspace, queryFunction));
+      } else {
+        return Uni.createFrom().item(response.getResponse());
+      }
+    };
+  }
+
+  // executes the optimistic query against the keyspace
+  private Uni<Schema.QueryWithSchemaResponse> queryWithSchemaOnKeyspace(
+      Schema.CqlKeyspaceDescribe cqlKeyspace,
+      String table,
+      Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction) {
+
+    // try to find the wanted table
+    List<Schema.CqlTable> cqlTables = cqlKeyspace.getTablesList();
+    Optional<Schema.CqlTable> cqlTable =
+        cqlTables.stream().filter(t -> Objects.equals(t.getName(), table)).findFirst();
+
+    // start sequence from table
+    return Uni.createFrom()
+        .optional(cqlTable)
+
+        // query function should handle not found table,
+        // so just hit
+        .flatMap(queryFunction::apply)
+        .flatMap(
+            query -> {
+              // construct request
+              Schema.QueryWithSchema request =
+                  Schema.QueryWithSchema.newBuilder()
+                      .setQuery(query)
+                      .setKeyspaceName(cqlKeyspace.getCqlKeyspace().getName())
+                      .setKeyspaceHash(cqlKeyspace.getHash().getValue())
+                      .build();
+
+              // fire call
+              return requestInfo.getStargateBridge().executeQueryWithSchema(request);
+            });
+  }
+
   // authorizes a keyspace by provided name
-  public Uni<Boolean> authorizeKeyspaceInternal(StargateBridge bridge, String keyspaceName) {
+  private Uni<Boolean> authorizeKeyspaceInternal(StargateBridge bridge, String keyspaceName) {
     Schema.SchemaRead schemaRead = SchemaReads.keyspace(keyspaceName);
     return authorizeInternal(bridge, schemaRead);
   }
 
   // authorizes a table by provided name and keyspace
-  public Uni<Boolean> authorizeTableInternal(
+  private Uni<Boolean> authorizeTableInternal(
       StargateBridge bridge, String keyspaceName, String tableName) {
     Schema.SchemaRead schemaRead = SchemaReads.table(keyspaceName, tableName);
     return authorizeInternal(bridge, schemaRead);
   }
 
   // authorizes a single schema read
-  public Uni<Boolean> authorizeInternal(StargateBridge bridge, Schema.SchemaRead schemaRead) {
+  private Uni<Boolean> authorizeInternal(StargateBridge bridge, Schema.SchemaRead schemaRead) {
     Schema.AuthorizeSchemaReadsRequest request =
         Schema.AuthorizeSchemaReadsRequest.newBuilder().addSchemaReads(schemaRead).build();
 
@@ -381,81 +598,95 @@ public class SchemaManager {
   }
 
   // gets a keyspace by provided name
+  // if validate hash is false, cached keyspaces are not validated to have correct hash
   private Uni<Schema.CqlKeyspaceDescribe> getKeyspaceInternal(
-      StargateBridge bridge, String keyspaceName) {
+      StargateBridge bridge, String keyspaceName, boolean validateHash) {
     Optional<String> tenantId = requestInfo.getTenantId();
 
-    // check if cached, if so we need to revalidate hash
+    // check if cached
     return Uni.createFrom()
         .deferred(
             () -> {
               CompositeCacheKey cacheKey = new CompositeCacheKey(keyspaceName, tenantId);
-              CompletableFuture<Object> keyspace =
+              CompletableFuture<Object> keyspaceFuture =
                   keyspaceCache.as(CaffeineCache.class).getIfPresent(cacheKey);
 
-              // if exists ensure it's not null
-              if (null != keyspace) {
-                return Uni.createFrom().future(keyspace).map(Objects::nonNull);
+              // keyspace might be null
+              if (null != keyspaceFuture) {
+                // if it's not null, we map to keyspace with cached flag true
+                return Uni.createFrom()
+                    .future(keyspaceFuture)
+                    .map(
+                        k -> {
+                          // we don't know what's the cached object
+                          // errors are also cached, so we need to add explicit check
+                          if (k instanceof Schema.CqlKeyspaceDescribe cqlKeyspace) {
+                            return Tuple2.of(cqlKeyspace, true);
+                          }
+                          return null;
+                        });
               } else {
-                return Uni.createFrom().item(false);
+                // otherwise push null uni down
+                return Uni.createFrom().nullItem();
               }
             })
+
+        // if it was not cached in first place, fetch from the keyspace from bridge
+        // and return with cached false
+        .onItem()
+        .ifNull()
+        .switchTo(() -> fetchKeyspace(keyspaceName, tenantId, bridge).map(k -> Tuple2.of(k, false)))
+
+        // then see if we need to validate hash
         .flatMap(
-            cached ->
+            tuple -> {
+              Schema.CqlKeyspaceDescribe keyspace = tuple.getItem1();
+              Boolean cached = tuple.getItem2();
 
-                // get keyspace from cache
-                fetchKeyspace(keyspaceName, tenantId, bridge)
+              // if it was not cached before, we can simply return
+              // same if we don't want to validate hash
+              if (!cached || !validateHash) {
+                return Uni.createFrom().item(keyspace);
+              }
 
-                    // check hash still matches
-                    .flatMap(
-                        keyspace -> {
-                          // if it was not cached before, we can simply return
-                          // no need to check
-                          if (!cached) {
-                            return Uni.createFrom().item(keyspace);
-                          }
+              // check hash still matches
+              Schema.DescribeKeyspaceQuery request =
+                  Schema.DescribeKeyspaceQuery.newBuilder()
+                      .setKeyspaceName(keyspaceName)
+                      .setHash(keyspace.getHash())
+                      .build();
 
-                          Schema.DescribeKeyspaceQuery request =
-                              Schema.DescribeKeyspaceQuery.newBuilder()
-                                  .setKeyspaceName(keyspaceName)
-                                  .setHash(keyspace.getHash())
-                                  .build();
+              // call bridge
+              return bridge
+                  .describeKeyspace(request)
+                  .onItem()
+                  .transformToUni(
+                      updatedKeyspace -> {
+                        // if we have updated keyspace cache and return
+                        // otherwise return what we had in the cache already
+                        if (null != updatedKeyspace && updatedKeyspace.hasCqlKeyspace()) {
+                          return invalidateKeyspace(keyspaceName, tenantId)
+                              .flatMap(v -> cacheKeyspace(keyspaceName, tenantId, updatedKeyspace));
+                        } else {
+                          return Uni.createFrom().item(keyspace);
+                        }
+                      });
+            })
 
-                          // call bridge
-                          return bridge
-                              .describeKeyspace(request)
-                              .onItem()
-                              .transformToUni(
-                                  updatedKeyspace -> {
-                                    // if we have updated keyspace cache and return
-                                    // otherwise return what we had in the cache already
-                                    if (null != updatedKeyspace
-                                        && updatedKeyspace.hasCqlKeyspace()) {
-                                      return invalidateKeyspace(keyspaceName, tenantId)
-                                          .flatMap(
-                                              v ->
-                                                  cacheKeyspace(
-                                                      keyspaceName, tenantId, updatedKeyspace));
-                                    } else {
-                                      return Uni.createFrom().item(keyspace);
-                                    }
-                                  });
-                        })
+        // in case of failure, check if status is not found
+        // and invalidate the cache
+        .onFailure()
+        .recoverWithUni(
+            t -> {
+              if (t instanceof StatusRuntimeException sre) {
+                if (Objects.equals(sre.getStatus().getCode(), Status.Code.NOT_FOUND)) {
+                  return invalidateKeyspace(keyspaceName, tenantId)
+                      .flatMap(v -> Uni.createFrom().nullItem());
+                }
+              }
 
-                    // in case of failure, check if status is not found
-                    // and invalidate the cache
-                    .onFailure()
-                    .recoverWithUni(
-                        t -> {
-                          if (t instanceof StatusRuntimeException sre) {
-                            if (Objects.equals(sre.getStatus().getCode(), Status.Code.NOT_FOUND)) {
-                              return invalidateKeyspace(keyspaceName, tenantId)
-                                  .flatMap(v -> Uni.createFrom().nullItem());
-                            }
-                          }
-
-                          return Uni.createFrom().failure(t);
-                        }));
+              return Uni.createFrom().failure(t);
+            });
   }
 
   // gets a table by provided name in the given keyspace
@@ -465,7 +696,7 @@ public class SchemaManager {
       String tableName,
       Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>> missingKeyspace) {
     // get keyspace
-    return getKeyspaceInternal(bridge, keyspaceName)
+    return getKeyspaceInternal(bridge, keyspaceName, true)
 
         // if keyspace not found fail always
         .onItem()
