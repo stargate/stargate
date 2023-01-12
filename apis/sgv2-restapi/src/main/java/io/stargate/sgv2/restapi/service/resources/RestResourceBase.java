@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
+import java.util.Objects;
 import java.util.function.Function;
 import javax.inject.Inject;
 import javax.ws.rs.WebApplicationException;
@@ -43,6 +43,13 @@ public abstract class RestResourceBase {
 
   private static final Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>>
       MISSING_KEYSPACE = ks -> Uni.createFrom().nullItem();
+
+  private static final Function<String, Uni<? extends QueryOuterClass.Response>>
+      MISSING_KEYSPACE_RESPONSE =
+          ks -> {
+            throw new WebApplicationException(
+                String.format("Missing keyspace '%s'", ks), Response.Status.BAD_REQUEST);
+          };
 
   protected static final BridgeProtoValueConverters PROTO_CONVERTERS =
       BridgeProtoValueConverters.instance();
@@ -95,13 +102,11 @@ public abstract class RestResourceBase {
                             failCode)));
   }
 
-  protected Uni<Optional<Schema.CqlTable>> findTableAsync(
-      String keyspaceName, String tableName, boolean checkAuthzForTableMetadata) {
-    return getTableAsync(keyspaceName, tableName, checkAuthzForTableMetadata)
-        .map(t -> Optional.ofNullable(t));
-  }
-
   // // // Helper methods for Query execution
+
+  protected Uni<QueryOuterClass.Response> executeQueryAsync(QueryOuterClass.Query query) {
+    return requestInfo.getStargateBridge().executeQuery(query);
+  }
 
   /**
    * Gets the metadata of a table (optionally verifying that the access to table metadata is
@@ -112,38 +117,24 @@ public abstract class RestResourceBase {
       String tableName,
       boolean checkAuthzForTableMetadata,
       Function<Schema.CqlTable, QueryOuterClass.Query> queryProducer) {
-    return executeQueryAsync(
-        keyspaceName,
-        tableName,
-        checkAuthzForTableMetadata,
-        maybeTable -> {
-          Schema.CqlTable table =
-              maybeTable.orElseThrow(
-                  () ->
-                      new WebApplicationException(
-                          String.format(
-                              "Table '%s' not found (in keyspace '%s')", tableName, keyspaceName),
-                          Response.Status.BAD_REQUEST));
-          return queryProducer.apply(table);
-        });
-  }
 
-  protected Uni<QueryOuterClass.Response> executeQueryAsync(QueryOuterClass.Query query) {
-    return requestInfo.getStargateBridge().executeQuery(query);
-  }
+    Objects.nonNull(keyspaceName);
+    Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryProducerUni =
+        table -> {
+          if (table == null) {
+            throw new WebApplicationException(
+                String.format("Table '%s' not found (in keyspace '%s')", tableName, keyspaceName),
+                Response.Status.BAD_REQUEST);
+          }
+          return Uni.createFrom().item(queryProducer.apply(table));
+        };
 
-  protected Uni<QueryOuterClass.Response> executeQueryAsync(
-      String keyspaceName,
-      String tableName,
-      boolean checkAuthzForTableMetadata,
-      Function<Optional<Schema.CqlTable>, QueryOuterClass.Query> queryProducer) {
-
-    // TODO implement optimistic queries (probably requires changes directly in SchemaManager)
-    Uni<Optional<Schema.CqlTable>> maybeTable =
-        findTableAsync(keyspaceName, tableName, checkAuthzForTableMetadata);
-    return maybeTable
-        .onItem()
-        .transformToUni(table -> executeQueryAsync(queryProducer.apply(table)));
+    if (checkAuthzForTableMetadata) {
+      return schemaManager.queryWithSchemaAuthorized(
+          keyspaceName, tableName, MISSING_KEYSPACE_RESPONSE, queryProducerUni);
+    }
+    return schemaManager.queryWithSchema(
+        keyspaceName, tableName, MISSING_KEYSPACE_RESPONSE, queryProducerUni);
   }
 
   protected Uni<RestResponse<Object>> fetchRowsAsync(QueryOuterClass.Query query, boolean raw) {
