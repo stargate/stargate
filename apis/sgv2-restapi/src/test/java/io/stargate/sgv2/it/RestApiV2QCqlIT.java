@@ -7,7 +7,7 @@ import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
 import java.util.Arrays;
-import org.apache.groovy.util.Maps;
+import java.util.Collections;
 import org.apache.http.HttpStatus;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
@@ -47,7 +47,7 @@ public class RestApiV2QCqlIT extends RestApiV2QIntegrationTestBase {
         .post(endpointPathForCQL())
         .then()
         .statusCode(200)
-        .body("$", Matchers.is(Arrays.asList(Maps.of("key", "local"))));
+        .body("$", Matchers.is(Arrays.asList(Collections.singletonMap("key", "local"))));
   }
 
   @Test
