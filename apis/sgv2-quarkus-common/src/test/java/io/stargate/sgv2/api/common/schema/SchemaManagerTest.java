@@ -1515,6 +1515,81 @@ class SchemaManagerTest extends BridgeTest {
     }
 
     @Test
+    public void happyPathWithoutPreCaching() {
+      // first invoke schema manager to be cached
+      String keyspace = RandomStringUtils.randomAlphanumeric(16);
+      String table = RandomStringUtils.randomAlphanumeric(16);
+      int hash = RandomUtils.nextInt();
+      Schema.CqlKeyspace cqlKeyspace = Schema.CqlKeyspace.newBuilder().setName(keyspace).build();
+      Schema.CqlTable cqlTable = Schema.CqlTable.newBuilder().setName(table).build();
+      Schema.CqlKeyspaceDescribe keyspaceResponse =
+          Schema.CqlKeyspaceDescribe.newBuilder()
+              .setCqlKeyspace(cqlKeyspace)
+              .setHash(Int32Value.of(hash))
+              .addTables(cqlTable)
+              .build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.CqlKeyspaceDescribe> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(keyspaceResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .describeKeyspace(any(), any());
+
+      // then call the optimistic query service
+      QueryOuterClass.Response queryResponse =
+          QueryOuterClass.Response.newBuilder().addWarnings("whatever").build();
+      Schema.QueryWithSchemaResponse queryWithSchemaResponse =
+          Schema.QueryWithSchemaResponse.newBuilder().setResponse(queryResponse).build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.QueryWithSchemaResponse> observer =
+                    invocationOnMock.getArgument(1);
+
+                observer.onNext(queryWithSchemaResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .executeQueryWithSchema(any(), any());
+
+      // mapping function
+      Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction =
+          t -> {
+            String cql = "SELECT FROM %s".formatted(t.getName());
+            QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
+            return Uni.createFrom().item(query);
+          };
+
+      UniAssertSubscriber<QueryOuterClass.Response> result =
+          schemaManager
+              .queryWithSchema(keyspace, table, k -> Uni.createFrom().nothing(), queryFunction)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+
+      result.awaitItem().assertItem(queryResponse).assertCompleted();
+
+      // verify bridge calls
+      verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verify(bridgeService).executeQueryWithSchema(queryWithSchemaCaptor.capture(), any());
+      assertThat(describeKeyspaceCaptor.getAllValues())
+          .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
+      assertThat(queryWithSchemaCaptor.getAllValues())
+          .allSatisfy(
+              queryWithSchema -> {
+                assertThat(queryWithSchema.getKeyspaceName()).isEqualTo(keyspace);
+                assertThat(queryWithSchema.getKeyspaceHash()).isEqualTo(hash);
+                assertThat(queryWithSchema.getQuery().getCql())
+                    .isEqualTo("SELECT FROM %s".formatted(table));
+              });
+    }
+
+    @Test
     public void keyspaceRemoved() {
       // first invoke schema manager to be cached
       String keyspace = RandomStringUtils.randomAlphanumeric(16);

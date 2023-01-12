@@ -494,7 +494,7 @@ public class SchemaManager {
         // if keyspace not found at first place, use mapper
         .onItem()
         .ifNull()
-        .switchTo(missingKeyspace.get());
+        .switchTo(missingKeyspace);
   }
 
   // handles the QueryWithSchemaResponse
