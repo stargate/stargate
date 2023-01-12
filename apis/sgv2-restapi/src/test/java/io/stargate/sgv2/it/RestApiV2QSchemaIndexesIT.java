@@ -177,10 +177,19 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
     // And back to "no indexes"
     indexes = findAllIndexesFromSystemSchema(testKeyspaceName(), tableName);
     assertThat(indexes).isEmpty();
+  }
 
-    // And now an invalid case (could extract into separate test method in future
-    indexName = "no_such_index";
-    deletePath = endpointPathForIndexDelete(testKeyspaceName(), tableName, indexName);
+  @Test
+  public void indexDropNoSuchIndex() {
+    final String tableName = testTableName();
+    String indexName = "no_such_index";
+    createTestTable(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList("id text", "firstName text", "lastName text", "email list<text>"),
+        Arrays.asList("id"),
+        Arrays.asList());
+    String deletePath = endpointPathForIndexDelete(testKeyspaceName(), tableName, indexName);
     String response =
         givenWithAuth()
             .when()
