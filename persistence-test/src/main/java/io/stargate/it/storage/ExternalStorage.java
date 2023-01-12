@@ -50,7 +50,7 @@ import org.opentest4j.TestAbortedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/** JUnit 5 extension for tests that need a backend database cluster managed by {@code ccm}. */
+/** JUnit 5 extension for tests that need a backend database cluster. */
 public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStorage.Cluster>
     implements ParameterResolver, BeforeTestExecutionCallback, TestExecutionExceptionHandler {
 
@@ -58,7 +58,6 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
 
   public static final String STORE_KEY = "stargate-storage";
 
-  private static final String CCM_VERSION = "ccm.version";
   private static final boolean EXTERNAL_BACKEND =
       Boolean.getBoolean("stargate.test.backend.use.external");
   private static final String DATACENTER = System.getProperty("stargate.test.backend.dc", "dc1");
@@ -66,11 +65,6 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
       System.getProperty("stargate.test.backend.cluster_name", "Test_Cluster");
   private static final String CLUSTER_IMPL_CLASS_NAME =
       System.getProperty("stargate.test.backend.cluster.impl.class", CcmCluster.class.getName());
-
-  static {
-    String version = System.getProperty(CCM_VERSION, "3.11.14");
-    System.setProperty(CCM_VERSION, version);
-  }
 
   public ExternalStorage() {
     super(ClusterSpec.class, STORE_KEY, Namespace.GLOBAL);
@@ -195,6 +189,12 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
   }
 
   public static class CcmCluster extends Cluster {
+    private static final String CCM_VERSION = "ccm.version";
+
+    static {
+      String version = System.getProperty(CCM_VERSION, "3.11.14");
+      System.setProperty(CCM_VERSION, version);
+    }
 
     private final String initSite;
     private final CcmBridge ccm;
@@ -497,4 +497,58 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
       start(cmd, env.build());
     }
   }
+
+  public static class DockerCluster extends Cluster {
+
+    @Override
+    public String seedAddress() {
+      return null;
+    }
+
+    @Override
+    public int storagePort() {
+      return 0;
+    }
+
+    @Override
+    public int cqlPort() {
+      return 0;
+    }
+
+    @Override
+    public String clusterVersion() {
+      return null;
+    }
+
+    @Override
+    public boolean isDse() {
+      return false;
+    }
+
+    @Override
+    public String clusterName() {
+      return null;
+    }
+
+    @Override
+    public String datacenter() {
+      return null;
+    }
+
+    @Override
+    public String rack() {
+      return null;
+    }
+
+    @Override
+    public void start() {
+
+    }
+
+    @Override
+    public String infoForTestLog() {
+      return null;
+    }
+  }
+
 }
