@@ -378,7 +378,8 @@
                 </goals>
                 <configuration>
                   <systemPropertyVariables>
-                    <ccm.version>3.11.14</ccm.version>
+                    <cassandra.version>3.11.14</cassandra.version>
+                    <ccm.version>${cassandra.version}</ccm.version>
                     <stargate.test.nodes>1</stargate.test.nodes>
                   </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>
@@ -409,7 +410,8 @@
                 </goals>
                 <configuration>
                   <systemPropertyVariables>
-                    <ccm.version>4.0.7</ccm.version>
+                    <cassandra.version>4.0.7</cassandra.version>
+                    <ccm.version>${cassandra.version}</ccm.version>
                     <stargate.test.nodes>1</stargate.test.nodes>
                   </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>
@@ -441,7 +443,8 @@
                 <configuration>
                   <systemPropertyVariables>
                     <ccm.dse>true</ccm.dse>
-                    <ccm.version>6.8.31</ccm.version>
+                    <dse.version>6.8.31</dse.version>
+                    <ccm.version>${dse.version}</ccm.version>
                     <stargate.test.nodes>1</stargate.test.nodes>
                   </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>
