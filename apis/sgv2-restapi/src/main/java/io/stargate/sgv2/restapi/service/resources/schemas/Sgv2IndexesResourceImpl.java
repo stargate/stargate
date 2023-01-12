@@ -80,22 +80,34 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
   @Override
   public Uni<RestResponse<Void>> deleteIndex(
       String keyspaceName, String tableName, String indexName, boolean ifExists) {
-    return queryWithTableAsync(
-            keyspaceName,
-            tableName,
-            true,
-            table -> {
-              if (!ifExists
-                  && table.getIndexesList().stream()
-                      .noneMatch(i -> indexName.equals(i.getName()))) {
-                throw new WebApplicationException(
-                    String.format("Index '%s' not found.", indexName), Status.NOT_FOUND);
+    final Query dropQuery =
+        new QueryBuilder().drop().index(keyspaceName, indexName).ifExists(ifExists).build();
+    if (ifExists) {
+      return executeQueryAsync(dropQuery).map(any -> RestResponse.noContent());
+    }
+
+    // Use direct query for checking existence
+    final Query existenceQuery =
+        new QueryBuilder()
+            .select()
+            .column("kind")
+            .from("system_schema", "indexes")
+            .where("keyspace_name", Predicate.EQ, Values.of(keyspaceName))
+            .where("table_name", Predicate.EQ, Values.of(tableName))
+            .where("index_name", Predicate.EQ, Values.of(indexName))
+            .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
+            .build();
+    return executeQueryAsync(existenceQuery)
+        .onItem()
+        .transformToUni(
+            response -> {
+              if (convertRows(response.getResultSet()).isEmpty()) {
+                return Uni.createFrom()
+                    .failure(
+                        new WebApplicationException(
+                            String.format("Index '%s' not found.", indexName), Status.NOT_FOUND));
               }
-              return new QueryBuilder()
-                  .drop()
-                  .index(keyspaceName, indexName)
-                  .ifExists(ifExists)
-                  .build();
+              return executeQueryAsync(dropQuery);
             })
         .map(any -> RestResponse.noContent());
   }

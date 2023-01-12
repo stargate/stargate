@@ -229,7 +229,7 @@ public abstract class RestResourceBase {
     return RestResponse.ok(response);
   }
 
-  static List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
+  protected static List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
     FromProtoConverter converter =
         BridgeProtoValueConverters.instance().fromProtoConverter(rs.getColumnsList());
     List<Map<String, Object>> resultRows = new ArrayList<>();
