@@ -45,10 +45,11 @@ public abstract class RestResourceBase {
 
   private static final Function<String, Uni<? extends QueryOuterClass.Response>>
       MISSING_KEYSPACE_RESPONSE =
-          ks -> {
-            throw new WebApplicationException(
-                String.format("Missing keyspace '%s'", ks), Response.Status.BAD_REQUEST);
-          };
+          ks ->
+              Uni.createFrom()
+                  .failure(
+                      new WebApplicationException(
+                          String.format("Missing keyspace '%s'", ks), Response.Status.BAD_REQUEST));
 
   protected static final BridgeProtoValueConverters PROTO_CONVERTERS =
       BridgeProtoValueConverters.instance();
@@ -116,9 +117,12 @@ public abstract class RestResourceBase {
     Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryProducerUni =
         table -> {
           if (table == null) {
-            throw new WebApplicationException(
-                String.format("Table '%s' not found (in keyspace '%s')", tableName, keyspaceName),
-                Response.Status.BAD_REQUEST);
+            return Uni.createFrom()
+                .failure(
+                    new WebApplicationException(
+                        String.format(
+                            "Table '%s' not found (in keyspace '%s')", tableName, keyspaceName),
+                        Response.Status.BAD_REQUEST));
           }
           return Uni.createFrom().item(queryProducer.apply(table));
         };
