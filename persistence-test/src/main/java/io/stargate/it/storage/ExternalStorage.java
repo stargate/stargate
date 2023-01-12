@@ -167,9 +167,26 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
       return id.toString();
     }
 
+    @Override
+    public String clusterName() {
+      return CLUSTER_NAME;
+    }
+
+    @Override
+    public String datacenter() {
+      return DATACENTER;
+    }
+
+    @Override
+    public String rack() {
+      return "rack1";
+    }
+
     public abstract void start();
 
-    public abstract String infoForTestLog();
+    public String infoForTestLog() {
+      return "" + (isDse() ? "DSE " : "Cassandra ") + clusterVersion();
+    }
 
     private void markSkippedTest() {
       skippedTests.incrementAndGet();
@@ -320,11 +337,6 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
       }
     }
 
-    @Override
-    public String infoForTestLog() {
-      return "" + (isDse() ? "DSE " : "Cassandra ") + clusterVersion();
-    }
-
     private void dumpLogs() {
       final int errors = errorsDetected();
       if (errors == 0) {
@@ -396,11 +408,6 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
     }
 
     @Override
-    public String clusterName() {
-      return CLUSTER_NAME;
-    }
-
-    @Override
     public String clusterVersion() {
       Version version = ccm.getDseVersion().orElse(ccm.getCassandraVersion());
       return String.format("%d.%d", version.getMajor(), version.getMinor());
@@ -409,16 +416,6 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
     @Override
     public boolean isDse() {
       return ccm.getDseVersion().isPresent();
-    }
-
-    @Override
-    public String datacenter() {
-      return DATACENTER;
-    }
-
-    @Override
-    public String rack() {
-      return "rack1";
     }
   }
 
@@ -500,55 +497,55 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
 
   public static class DockerCluster extends Cluster {
 
+    private static final String DSE_VERSION = System.getProperty("dse.version", "UNDEFINED");
+
+    private static final String CASSANDRA_VERSION =
+        System.getProperty("cassandra.version", "UNDEFINED");
+
+    public DockerCluster(ClusterSpec spec, ExtensionContext context) {
+      super(spec);
+
+      // TODO
+    }
+
     @Override
     public String seedAddress() {
-      return null;
+      return "127.0.0.1";
     }
 
     @Override
     public int storagePort() {
-      return 0;
+      return 7000;
     }
 
     @Override
     public int cqlPort() {
-      return 0;
+      return 9042;
     }
 
     @Override
     public String clusterVersion() {
+      // TODO
       return null;
     }
 
     @Override
     public boolean isDse() {
+      // TODO
       return false;
     }
 
     @Override
-    public String clusterName() {
-      return null;
-    }
-
-    @Override
-    public String datacenter() {
-      return null;
-    }
-
-    @Override
-    public String rack() {
-      return null;
-    }
-
-    @Override
     public void start() {
+      // TODO
 
     }
 
-    @Override
-    public String infoForTestLog() {
-      return null;
+    public void close() {
+      super.close();
+      stop();
     }
+
+    public void stop() {}
   }
-
 }
