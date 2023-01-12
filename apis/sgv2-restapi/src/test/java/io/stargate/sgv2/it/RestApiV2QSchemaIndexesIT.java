@@ -248,7 +248,7 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
         .then()
         .statusCode(HttpStatus.SC_BAD_REQUEST)
         .body("code", Matchers.is(HttpStatus.SC_BAD_REQUEST))
-        .body("description", Matchers.startsWith("Table 'no-such-table' not found"));
+        .body("description", Matchers.startsWith("Keyspace 'no-such-keyspace' not found"));
 
     // Then try with non-existing table
     givenWithAuth()
