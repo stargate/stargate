@@ -120,6 +120,7 @@ class SchemaManagerTest extends BridgeTest {
 
       result.awaitItem().assertItem(null).assertCompleted();
       verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
 
       // assert keyspace not in cache
       assertThat(keyspaceCache.as(CaffeineCache.class).keySet())
@@ -173,6 +174,7 @@ class SchemaManagerTest extends BridgeTest {
 
       // 2 calls, first error so ignore, second fetched no need to revalidate as fresh
       verify(bridgeService, times(2)).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
       assertThat(describeKeyspaceCaptor.getAllValues())
           .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
 
@@ -207,6 +209,7 @@ class SchemaManagerTest extends BridgeTest {
 
       result.awaitItem().assertItem(response).assertCompleted();
       verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
 
       // assert keyspace in cache
       assertThat(keyspaceCache.as(CaffeineCache.class).keySet())
@@ -266,6 +269,7 @@ class SchemaManagerTest extends BridgeTest {
       // tenants)
       result2.awaitItem().assertItem(response).assertCompleted();
       verify(bridgeService, times(2)).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
 
       // assert keyspace in cache
       assertThat(keyspaceCache.as(CaffeineCache.class).keySet())
@@ -328,6 +332,7 @@ class SchemaManagerTest extends BridgeTest {
       updatedResult.awaitItem().assertItem(updatedResponse).assertCompleted();
 
       verify(bridgeService, times(2)).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
       assertThat(describeKeyspaceCaptor.getAllValues())
           .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
 
@@ -449,6 +454,7 @@ class SchemaManagerTest extends BridgeTest {
       updatedResult.awaitItem().assertItem(null).assertCompleted();
 
       verify(bridgeService, times(2)).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
       assertThat(describeKeyspaceCaptor.getAllValues())
           .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
 
@@ -494,6 +500,7 @@ class SchemaManagerTest extends BridgeTest {
       cachedResult.awaitItem().assertItem(response).assertCompleted();
 
       verify(bridgeService, times(1)).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
       assertThat(describeKeyspaceCaptor.getAllValues())
           .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
 
@@ -739,6 +746,7 @@ class SchemaManagerTest extends BridgeTest {
 
       verify(bridgeService, times(2)).describeKeyspace(describeKeyspaceCaptor.capture(), any());
       verify(bridgeService).executeQuery(queryCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
 
       // assert both keyspaces in cache
       Set<Object> cacheState = keyspaceCache.as(CaffeineCache.class).keySet();
@@ -855,6 +863,7 @@ class SchemaManagerTest extends BridgeTest {
 
       verify(bridgeService, times(2)).describeKeyspace(describeKeyspaceCaptor.capture(), any());
       verify(bridgeService).executeQuery(queryCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
 
       // assert only fetched keyspaces in cache
       Set<Object> cacheState = keyspaceCache.as(CaffeineCache.class).keySet();
@@ -950,6 +959,7 @@ class SchemaManagerTest extends BridgeTest {
       verify(bridgeService).authorizeSchemaReads(schemaReadsCaptor.capture(), any());
       verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
       verify(bridgeService).executeQuery(queryCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
 
       // only authorized keyspace in cache
       Set<Object> cacheState = keyspaceCache.as(CaffeineCache.class).keySet();
@@ -1520,6 +1530,7 @@ class SchemaManagerTest extends BridgeTest {
       // verify bridge calls
       verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
       verify(bridgeService).executeQueryWithSchema(queryWithSchemaCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
       assertThat(describeKeyspaceCaptor.getAllValues())
           .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
       assertThat(queryWithSchemaCaptor.getAllValues())
@@ -1601,6 +1612,7 @@ class SchemaManagerTest extends BridgeTest {
       // verify bridge calls
       verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
       verify(bridgeService).executeQueryWithSchema(queryWithSchemaCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
       assertThat(describeKeyspaceCaptor.getAllValues())
           .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
       assertThat(queryWithSchemaCaptor.getAllValues())
@@ -1688,6 +1700,7 @@ class SchemaManagerTest extends BridgeTest {
       // verify bridge calls
       verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
       verify(bridgeService).executeQueryWithSchema(queryWithSchemaCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
       assertThat(describeKeyspaceCaptor.getAllValues())
           .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
       assertThat(queryWithSchemaCaptor.getAllValues())
@@ -1803,6 +1816,7 @@ class SchemaManagerTest extends BridgeTest {
       verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
       verify(bridgeService, times(2))
           .executeQueryWithSchema(queryWithSchemaCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
       assertThat(describeKeyspaceCaptor.getAllValues())
           .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
       assertThat(queryWithSchemaCaptor.getAllValues())
@@ -1917,6 +1931,7 @@ class SchemaManagerTest extends BridgeTest {
       // verify bridge calls
       verify(bridgeService, times(2)).describeKeyspace(describeKeyspaceCaptor.capture(), any());
       verify(bridgeService).executeQueryWithSchema(queryWithSchemaCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
       assertThat(describeKeyspaceCaptor.getAllValues())
           .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
       assertThat(queryWithSchemaCaptor.getAllValues())
@@ -2009,9 +2024,9 @@ class SchemaManagerTest extends BridgeTest {
 
       // verify bridge calls
       verify(bridgeService, times(2)).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
       assertThat(describeKeyspaceCaptor.getAllValues())
           .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
-      verifyNoMoreInteractions(bridge);
     }
 
     @Test
@@ -2045,6 +2060,7 @@ class SchemaManagerTest extends BridgeTest {
 
       // verify no changes in the keyspace name
       verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
       assertThat(describeKeyspaceCaptor.getAllValues())
           .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
     }
@@ -2140,6 +2156,7 @@ class SchemaManagerTest extends BridgeTest {
       verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
       verify(bridgeService).authorizeSchemaReads(schemaReadsCaptor.capture(), any());
       verify(bridgeService).executeQueryWithSchema(queryWithSchemaCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
       assertThat(describeKeyspaceCaptor.getAllValues())
           .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
       assertThat(schemaReadsCaptor.getAllValues())
