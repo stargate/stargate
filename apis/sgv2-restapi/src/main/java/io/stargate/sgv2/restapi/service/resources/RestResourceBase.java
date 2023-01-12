@@ -49,7 +49,8 @@ public abstract class RestResourceBase {
               Uni.createFrom()
                   .failure(
                       new WebApplicationException(
-                          String.format("Missing keyspace '%s'", ks), Response.Status.BAD_REQUEST));
+                          String.format("Keyspace '%s' not found", ks),
+                          Response.Status.BAD_REQUEST));
 
   protected static final BridgeProtoValueConverters PROTO_CONVERTERS =
       BridgeProtoValueConverters.instance();
