@@ -1025,7 +1025,12 @@ class SchemaManagerTest extends BridgeTest {
 
       UniAssertSubscriber<Schema.CqlTable> result =
           schemaManager
-              .getTable(keyspace, table, (k) -> Uni.createFrom().nothing())
+              .getTable(
+                  keyspace,
+                  table,
+                  (k) -> {
+                    throw new RuntimeException("Must not throw!");
+                  })
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
 
@@ -1140,7 +1145,11 @@ class SchemaManagerTest extends BridgeTest {
           .describeKeyspace(any(), any());
 
       schemaManager
-          .getTables(keyspace, (k) -> Uni.createFrom().nothing())
+          .getTables(
+              keyspace,
+              (k) -> {
+                throw new RuntimeException("Must not throw!");
+              })
           .subscribe()
           .withSubscriber(AssertSubscriber.create())
           .awaitNextItems(2)
@@ -1388,7 +1397,11 @@ class SchemaManagerTest extends BridgeTest {
           .describeKeyspace(any(), any());
 
       schemaManager
-          .getTablesAuthorized(keyspace, (k) -> Uni.createFrom().nothing())
+          .getTablesAuthorized(
+              keyspace,
+              (k) -> {
+                throw new RuntimeException("Must not throw!");
+              })
           .subscribe()
           .withSubscriber(AssertSubscriber.create())
           .awaitNextItem()

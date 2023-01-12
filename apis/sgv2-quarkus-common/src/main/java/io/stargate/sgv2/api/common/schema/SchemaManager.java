@@ -148,7 +148,7 @@ public class SchemaManager {
         // if not there, switch to function
         .onItem()
         .ifNull()
-        .switchTo(missingKeyspace.apply(keyspace))
+        .switchTo(() -> missingKeyspace.apply(keyspace))
 
         // otherwise get all tables
         .onItem()
@@ -347,7 +347,7 @@ public class SchemaManager {
         // if keyspace not found switch to function
         .onItem()
         .ifNull()
-        .switchTo(missingKeyspace.apply(keyspace))
+        .switchTo(() -> missingKeyspace.apply(keyspace))
 
         // if it exists go forward
         .onItem()
@@ -701,7 +701,8 @@ public class SchemaManager {
         // if keyspace not found fail always
         .onItem()
         .ifNull()
-        .switchTo(missingKeyspace.apply(keyspaceName))
+        .switchTo(() -> missingKeyspace.apply(keyspaceName))
+
         // otherwise try to find the wanted table
         .onItem()
         .ifNotNull()
