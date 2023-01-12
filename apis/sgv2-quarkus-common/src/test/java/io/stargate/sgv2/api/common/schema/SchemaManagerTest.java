@@ -1506,7 +1506,13 @@ class SchemaManagerTest extends BridgeTest {
 
       UniAssertSubscriber<QueryOuterClass.Response> result =
           schemaManager
-              .queryWithSchema(keyspace, table, k -> Uni.createFrom().nothing(), queryFunction)
+              .queryWithSchema(
+                  keyspace,
+                  table,
+                  (k) -> {
+                    throw new RuntimeException("Must not throw!");
+                  },
+                  queryFunction)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
 
@@ -1581,7 +1587,13 @@ class SchemaManagerTest extends BridgeTest {
 
       UniAssertSubscriber<QueryOuterClass.Response> result =
           schemaManager
-              .queryWithSchema(keyspace, table, k -> Uni.createFrom().nothing(), queryFunction)
+              .queryWithSchema(
+                  keyspace,
+                  table,
+                  (k) -> {
+                    throw new RuntimeException("Must not throw!");
+                  },
+                  queryFunction)
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
 
