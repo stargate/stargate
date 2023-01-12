@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.Function;
 import javax.inject.Inject;
 import javax.ws.rs.WebApplicationException;
@@ -104,10 +103,6 @@ public abstract class RestResourceBase {
 
   // // // Helper methods for Query execution
 
-  protected Uni<QueryOuterClass.Response> executeQueryAsync(QueryOuterClass.Query query) {
-    return requestInfo.getStargateBridge().executeQuery(query);
-  }
-
   /**
    * Gets the metadata of a table (optionally verifying that the access to table metadata is
    * authorized), then uses it to build another CQL query and executes it.
@@ -118,7 +113,6 @@ public abstract class RestResourceBase {
       boolean checkAuthzForTableMetadata,
       Function<Schema.CqlTable, QueryOuterClass.Query> queryProducer) {
 
-    Objects.nonNull(keyspaceName);
     Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryProducerUni =
         table -> {
           if (table == null) {
@@ -137,8 +131,8 @@ public abstract class RestResourceBase {
         keyspaceName, tableName, MISSING_KEYSPACE_RESPONSE, queryProducerUni);
   }
 
-  protected Uni<RestResponse<Object>> fetchRowsAsync(QueryOuterClass.Query query, boolean raw) {
-    return executeQueryAsync(query).map(response -> convertRowsToResponse(response, raw));
+  protected Uni<QueryOuterClass.Response> executeQueryAsync(QueryOuterClass.Query query) {
+    return requestInfo.getStargateBridge().executeQuery(query);
   }
 
   // // // Helper methods for JSON decoding
