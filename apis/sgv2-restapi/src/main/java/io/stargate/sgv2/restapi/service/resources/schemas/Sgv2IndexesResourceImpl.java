@@ -101,7 +101,7 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
         .onItem()
         .transformToUni(
             response -> {
-              if (convertRows(response.getResultSet()).isEmpty()) {
+              if (response.getResultSet().getRowsList().isEmpty()) {
                 return Uni.createFrom()
                     .failure(
                         new WebApplicationException(
