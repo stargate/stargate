@@ -40,7 +40,7 @@ import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.cql.builder.Replication;
 import io.stargate.sgv2.api.common.grpc.UnauthorizedKeyspaceException;
-import io.stargate.sgv2.common.BridgeTest;
+import io.stargate.sgv2.common.bridge.BridgeTest;
 import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;

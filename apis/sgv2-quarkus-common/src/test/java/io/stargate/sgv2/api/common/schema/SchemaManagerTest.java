@@ -46,7 +46,7 @@ import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.grpc.UnauthorizedKeyspaceException;
 import io.stargate.sgv2.api.common.grpc.UnauthorizedTableException;
-import io.stargate.sgv2.common.BridgeTest;
+import io.stargate.sgv2.common.bridge.BridgeTest;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;

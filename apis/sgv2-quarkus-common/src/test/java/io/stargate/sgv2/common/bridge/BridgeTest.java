@@ -15,7 +15,7 @@
  *
  */
 
-package io.stargate.sgv2.common;
+package io.stargate.sgv2.common.bridge;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;

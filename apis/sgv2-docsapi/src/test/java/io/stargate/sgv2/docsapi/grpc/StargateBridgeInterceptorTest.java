@@ -33,7 +33,7 @@ import io.stargate.bridge.proto.MutinyStargateBridgeGrpc;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.testprofiles.FixedTenantTestProfile;
-import io.stargate.sgv2.common.BridgeTest;
+import io.stargate.sgv2.common.bridge.BridgeTest;
 import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
 import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents.DocumentReadResource;
 import java.util.Map;
