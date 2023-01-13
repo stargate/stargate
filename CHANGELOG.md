@@ -1,5 +1,26 @@
 # Changelog
 
+## [v2.0.6](https://github.com/stargate/stargate/tree/v2.0.6) (2023-01-12)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.5...v2.0.6)
+
+**Fixed bugs:**
+
+- REST API tests fail with `Abrupt GOAWAY closed sent stream` [\#2209](https://github.com/stargate/stargate/issues/2209)
+
+**Closed issues:**
+
+- Mark REST v1 endpoints as Deprecated [\#2339](https://github.com/stargate/stargate/issues/2339)
+- Mark Cassandra 3.11 Persistence as Deprecated [\#2254](https://github.com/stargate/stargate/issues/2254)
+- Implement optimistic bridge queries in `sgv2-quarkus-common` [\#1977](https://github.com/stargate/stargate/issues/1977)
+
+**Merged pull requests:**
+
+- Fix \#2362: separate "keyspace" as query param vs older as path param [\#2372](https://github.com/stargate/stargate/pull/2372) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- update quarkus to 2.15.3 [\#2371](https://github.com/stargate/stargate/pull/2371) ([ivansenic](https://github.com/ivansenic))
+- Implement retriable bridge calls [\#2363](https://github.com/stargate/stargate/pull/2363) ([ivansenic](https://github.com/ivansenic))
+- Add support for optimistic queries in the common [\#2355](https://github.com/stargate/stargate/pull/2355) ([ivansenic](https://github.com/ivansenic))
+
 ## [v2.0.5](https://github.com/stargate/stargate/tree/v2.0.5) (2023-01-10)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.4...v2.0.5)
