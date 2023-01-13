@@ -195,12 +195,13 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
             .when()
             .delete(deletePath)
             .then()
-            .statusCode(HttpStatus.SC_NOT_FOUND)
+            .statusCode(HttpStatus.SC_BAD_REQUEST)
             .extract()
             .asString();
     ApiError apiError = readJsonAs(response, ApiError.class);
-    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_NOT_FOUND);
-    assertThat(apiError.description()).isEqualTo("Index '" + indexName + "' not found.");
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(apiError.description())
+        .contains("Index '" + testKeyspaceName() + "." + indexName + "' doesn't exist");
 
     // But ok if defining idempotent method
     givenWithAuth()

@@ -80,35 +80,15 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
   @Override
   public Uni<RestResponse<Void>> deleteIndex(
       String keyspaceName, String tableName, String indexName, boolean ifExists) {
-    final Query dropQuery =
-        new QueryBuilder().drop().index(keyspaceName, indexName).ifExists(ifExists).build();
-    if (ifExists) {
-      return executeQueryAsync(dropQuery).map(any -> RestResponse.noContent());
-    }
 
-    // Use direct query for checking existence
-    final Query existenceQuery =
-        new QueryBuilder()
-            .select()
-            .column("kind")
-            .from("system_schema", "indexes")
-            .where("keyspace_name", Predicate.EQ, Values.of(keyspaceName))
-            .where("table_name", Predicate.EQ, Values.of(tableName))
-            .where("index_name", Predicate.EQ, Values.of(indexName))
-            .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
-            .build();
-    return executeQueryAsync(existenceQuery)
-        .onItem()
-        .transformToUni(
-            response -> {
-              if (response.getResultSet().getRowsList().isEmpty()) {
-                return Uni.createFrom()
-                    .failure(
-                        new WebApplicationException(
-                            String.format("Index '%s' not found.", indexName), Status.NOT_FOUND));
-              }
-              return executeQueryAsync(dropQuery);
-            })
+    // Use 'queryWithTableAsync' to check existence of Keyspace and Table as well as access;
+    // existence and access to Index itself verified by persistence backend
+    return queryWithTableAsync(
+            keyspaceName,
+            tableName,
+            true,
+            table ->
+                new QueryBuilder().drop().index(keyspaceName, indexName).ifExists(ifExists).build())
         .map(any -> RestResponse.noContent());
   }
 
