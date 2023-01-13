@@ -200,8 +200,11 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
             .asString();
     ApiError apiError = readJsonAs(response, ApiError.class);
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    assertThat(apiError.description())
-        .contains("Index '" + testKeyspaceName() + "." + indexName + "' doesn't exist");
+
+    // Alas, since we get failure message from persistence backend, message varies a bit
+    // (Cassandra-3.11 differs from 4.0) -- "Index 'KS.INDEX' doesn't exist" vs "Index 'INDEX' could
+    // not found"
+    assertThat(apiError.description()).containsPattern(".*Index '.*" + indexName + ".*");
 
     // But ok if defining idempotent method
     givenWithAuth()
