@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -49,6 +50,10 @@ import org.junit.jupiter.api.extension.TestExecutionExceptionHandler;
 import org.opentest4j.TestAbortedException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.testcontainers.Testcontainers;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.output.Slf4jLogConsumer;
+import org.testcontainers.containers.wait.strategy.Wait;
 
 /** JUnit 5 extension for tests that need a backend database cluster. */
 public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStorage.Cluster>
@@ -64,7 +69,7 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
   private static final String CLUSTER_NAME =
       System.getProperty("stargate.test.backend.cluster_name", "Test_Cluster");
   private static final String CLUSTER_IMPL_CLASS_NAME =
-      System.getProperty("stargate.test.backend.cluster.impl.class", CcmCluster.class.getName());
+      System.getProperty("stargate.test.backend.cluster.impl.class", DockerCluster.class.getName());
 
   public ExternalStorage() {
     super(ClusterSpec.class, STORE_KEY, Namespace.GLOBAL);
@@ -497,48 +502,75 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
 
   public static class DockerCluster extends Cluster {
 
-    private static final String DSE_VERSION = System.getProperty("dse.version", "UNDEFINED");
+    private static final Duration STARTUP_TIMEOUT =
+        Duration.parse(System.getProperty("cassandra.timeout", "PT2M"));
+    private static final String DSE_VERSION = System.getProperty("dse.version");
+    private static final String DSE_REPOSITORY =
+        System.getProperty("dse.repository", "datastax/dse-server");
 
-    private static final String CASSANDRA_VERSION =
-        System.getProperty("cassandra.version", "UNDEFINED");
+    private static final String CASSANDRA_VERSION = System.getProperty("cassandra.version");
+    private static final String CASSANDRA_REPOSITORY =
+        System.getProperty("cassandra.repository", "cassandra");
+
+    private final List<GenericContainer> nodes;
+    private final String initSite;
+    private final AtomicBoolean removed = new AtomicBoolean();
+
+    private final String broadcastAddress = "host.testcontainers.internal";
 
     public DockerCluster(ClusterSpec spec, ExtensionContext context) {
       super(spec);
+      this.initSite = context.getUniqueId();
 
-      // TODO
+      ImmutableList.Builder<GenericContainer> nodes = ImmutableList.builder();
+      for (int i = 0; i < spec.nodes(); i++) {
+        nodes.add(createCassandraContainer(i));
+      }
+      this.nodes = nodes.build();
+
+      Testcontainers.exposeHostPorts(7000);
     }
 
     @Override
     public String seedAddress() {
-      return "127.0.0.1";
+      // return "127.0.0.1";
+      return nodes.get(0).getHost();
     }
 
     @Override
     public int storagePort() {
-      return 7000;
+      return nodes.get(0).getMappedPort(7000);
     }
 
     @Override
     public int cqlPort() {
-      return 9042;
+      return nodes.get(0).getMappedPort(9042);
     }
 
     @Override
     public String clusterVersion() {
-      // TODO
-      return null;
+      return isDse() ? DSE_VERSION : CASSANDRA_VERSION;
     }
 
     @Override
     public boolean isDse() {
-      // TODO
-      return false;
+      return DSE_VERSION != null;
     }
 
     @Override
     public void start() {
-      // TODO
+      if (!EXTERNAL_BACKEND) {
+        ShutdownHook.add(this);
 
+        for (GenericContainer node : nodes) {
+          node.start();
+        }
+
+        LOG.info(
+            "Storage cluster requested by {} has been started with version {}",
+            initSite,
+            clusterVersion());
+      }
     }
 
     public void close() {
@@ -546,6 +578,62 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
       stop();
     }
 
-    public void stop() {}
+    public void stop() {
+      if (!EXTERNAL_BACKEND) {
+        ShutdownHook.remove(this);
+
+        try {
+          if (removed.compareAndSet(false, true)) {
+
+            for (GenericContainer node : nodes) {
+              node.stop();
+            }
+
+            LOG.info(
+                "Storage cluster (version {}) that was requested by {} has been removed.",
+                clusterVersion(),
+                initSite);
+          }
+        } catch (Exception e) {
+          // This should not affect test result validity, hence logging as WARN
+          LOG.warn("Exception during Docker cluster shutdown: " + e.getMessage(), e);
+        }
+      }
+    }
+
+    private GenericContainer<?> createCassandraContainer(int num) {
+      String image =
+          isDse()
+              ? DSE_REPOSITORY + ":" + DSE_VERSION
+              : CASSANDRA_REPOSITORY + ":" + CASSANDRA_VERSION;
+
+      GenericContainer<?> container =
+          new GenericContainer<>(image)
+              .withEnv("HEAP_NEWSIZE", "512M")
+              .withEnv("MAX_HEAP_SIZE", "2048M")
+              .withEnv("CASSANDRA_CGROUP_MEMORY_LIMIT", "true")
+              .withEnv("CASSANDRA_BROADCAST_ADDRESS", broadcastAddress)
+              .withExposedPorts(7000, 9042)
+              .withAccessToHost(true)
+              .withLogConsumer(new Slf4jLogConsumer(LOG).withPrefix("storage-" + num))
+              .waitingFor(Wait.forLogMessage(".*Created default superuser role.*\\n", 1))
+              .withStartupTimeout(STARTUP_TIMEOUT);
+
+      // .withNetworkAliases("cassandra")
+
+      if (num == 0) {
+        container.withEnv(
+            "JVM_EXTRA_OPTS",
+            "-Dcassandra.skip_wait_for_gossip_to_settle=0 -Dcassandra.load_ring_state=false -Dcassandra.initial_token=1");
+      }
+
+      // note that cluster name props differ in case of DSE
+      if (isDse()) {
+        container.withEnv("CLUSTER_NAME", CLUSTER_NAME).withEnv("DS_LICENSE", "accept");
+      } else {
+        container.withEnv("CASSANDRA_CLUSTER_NAME", CLUSTER_NAME);
+      }
+      return container;
+    }
   }
 }
