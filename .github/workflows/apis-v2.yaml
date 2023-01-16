@@ -60,18 +60,6 @@ jobs:
           </settings>
           EOF
 
-      # ensure snapshots from this build are used in next jobs
-      - name: Cache Snapshots
-        uses: actions/cache@v3
-        id: cache-coordinator-snapshots
-        env:
-          cache-name: cache-coordinator-snapshots
-        with:
-          path: ~/.m2/repository
-          key: snapshots-${{ github.sha }}
-          restore-keys: |
-            snapshots-
-
       - name: Cache Libs
         if: steps.cache-coordinator-snapshots.outputs.cache-hit != 'true'
         uses: actions/cache@v3
@@ -179,15 +167,6 @@ jobs:
           </settings>
           EOF
 
-      - name: Restore Snapshots
-        uses: actions/cache@v3
-        id: restore-coordinator-snapshots
-        env:
-          cache-name: cache-coordinator-snapshots
-        with:
-          path: ~/.m2/repository
-          key: snapshots-${{ github.sha }}
-
       - name: Build & Test Stargate v2 Quarkus-based APIs
         run: |
           cd apis/
@@ -285,15 +264,6 @@ jobs:
       - name: Load image
         if: ${{ matrix.image-file }}
         run: docker load --input /tmp/${{ matrix.image-file }}
-
-      - name: Restore Snapshots
-        uses: actions/cache@v3
-        id: restore-coordinator-snapshots
-        env:
-          cache-name: cache-coordinator-snapshots
-        with:
-          path: ~/.m2/repository
-          key: snapshots-${{ github.sha }}
 
       # run finally the int tests
       # runs dedicated project with -pl, but also picks depending projects with -am
