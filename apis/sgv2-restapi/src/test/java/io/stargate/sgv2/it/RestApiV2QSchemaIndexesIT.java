@@ -1,6 +1,8 @@
 package io.stargate.sgv2.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
@@ -177,6 +179,21 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
     // And back to "no indexes"
     indexes = findAllIndexesFromSystemSchema(testKeyspaceName(), tableName);
     assertThat(indexes).isEmpty();
+  }
+
+  @Test
+  public void indexDropNoSuchTable() {
+    final String tableName = "no_such_table";
+    String indexName = "no_such_index";
+    String deletePath = endpointPathForIndexDelete(testKeyspaceName(), tableName, indexName);
+
+    givenWithAuth()
+        .when()
+        .delete(deletePath)
+        .then()
+        .statusCode(HttpStatus.SC_BAD_REQUEST)
+        .body("code", is(HttpStatus.SC_BAD_REQUEST))
+        .body("description", startsWith("Table 'no_such_table' not found"));
   }
 
   @Test
