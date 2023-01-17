@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
@@ -151,11 +152,11 @@ public abstract class RestApiV2QIntegrationTestBase {
    */
 
   public String testKeyspaceName() {
-    return testKeyspaceName;
+    return Objects.requireNonNull(testKeyspaceName, "'testKeyspaceName' not initialized");
   }
 
   public String testTableName() {
-    return testTableName;
+    return Objects.requireNonNull(testTableName, "'testTableName' not initialized");
   }
 
   protected RequestSpecification givenWithAuth() {

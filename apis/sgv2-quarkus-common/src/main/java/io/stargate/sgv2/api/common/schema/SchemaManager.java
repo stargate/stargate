@@ -148,7 +148,7 @@ public class SchemaManager {
         // if not there, switch to function
         .onItem()
         .ifNull()
-        .switchTo(missingKeyspace.apply(keyspace))
+        .switchTo(() -> missingKeyspace.apply(keyspace))
 
         // otherwise get all tables
         .onItem()
@@ -347,7 +347,7 @@ public class SchemaManager {
         // if keyspace not found switch to function
         .onItem()
         .ifNull()
-        .switchTo(missingKeyspace.apply(keyspace))
+        .switchTo(() -> missingKeyspace.apply(keyspace))
 
         // if it exists go forward
         .onItem()
@@ -422,7 +422,8 @@ public class SchemaManager {
         table,
         tenantId,
         () -> missingKeyspace.apply(keyspace),
-        queryFunction);
+        queryFunction,
+        true);
   }
 
   /**
@@ -453,27 +454,21 @@ public class SchemaManager {
         table,
         tenantId,
         () -> missingKeyspace.apply(keyspace),
-        queryFunction);
+        queryFunction,
+        true);
   }
 
-  /**
-   * Executes the optimistic query against the keyspace provided in the given uni.
-   *
-   * @param keyspaceUni Uni providing the keyspace.
-   * @param table Table name.
-   * @param missingKeyspace Supplier in case the keyspace in case it's not existing. Usually there
-   *     to provide a failure.
-   * @param queryFunction Function that creates the query from the {@link Schema.CqlTable}. Note
-   *     that the table can be <code>null</code>.
-   * @return Response when optimistic query is executed correctly.
-   */
+  // IMPORTANT this method must stay private
+  // it's internal query with schema implementation
+  // if authorization is needed, it must be done before this method is applied
   private Uni<QueryOuterClass.Response> queryWithSchema(
       Uni<Schema.CqlKeyspaceDescribe> keyspaceUni,
       String keyspace,
       String table,
       Optional<String> tenantId,
       Supplier<Uni<? extends QueryOuterClass.Response>> missingKeyspace,
-      Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction) {
+      Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction,
+      boolean revalidateOnTableMiss) {
 
     // get from cql keyspace
     return keyspaceUni
@@ -482,19 +477,42 @@ public class SchemaManager {
         .onItem()
         .ifNotNull()
         .transformToUni(
-            cqlKeyspace ->
-                queryWithSchemaOnKeyspace(cqlKeyspace, table, queryFunction)
+            cqlKeyspace -> {
+
+              // try to find the table
+              Schema.CqlTable cqlTable = findTable(cqlKeyspace, table);
+
+              // having the table or revalidate false, continue
+              if (null != cqlTable || !revalidateOnTableMiss) {
+                return queryWithSchemaOnKeyspaceTable(cqlKeyspace, cqlTable, queryFunction)
 
                     // once we have a result pipe to our handler
                     .onItem()
                     .transformToUni(
                         queryWithSchemaHandler(
-                            keyspace, table, tenantId, missingKeyspace, queryFunction)))
+                            keyspace, table, tenantId, missingKeyspace, queryFunction));
+              } else {
+                // IMPORTANT
+                // we need to revalidate the keyspace, cause table could be added
+                // and we call getKeyspace no matter if this sequence was used for authorized use or
+                // not
+                // because authorization must always come before
+                Uni<Schema.CqlKeyspaceDescribe> validatedKeyspace = getKeyspace(keyspace);
+                return queryWithSchema(
+                    validatedKeyspace,
+                    keyspace,
+                    table,
+                    tenantId,
+                    missingKeyspace,
+                    queryFunction,
+                    false);
+              }
+            })
 
         // if keyspace not found at first place, use mapper
         .onItem()
         .ifNull()
-        .switchTo(missingKeyspace.get());
+        .switchTo(missingKeyspace);
   }
 
   // handles the QueryWithSchemaResponse
@@ -524,7 +542,10 @@ public class SchemaManager {
             // changes
             // keyspace
             .flatMap(
-                updatedKeyspace -> queryWithSchemaOnKeyspace(updatedKeyspace, table, queryFunction))
+                updatedKeyspace -> {
+                  Schema.CqlTable cqlTable = findTable(updatedKeyspace, table);
+                  return queryWithSchemaOnKeyspaceTable(updatedKeyspace, cqlTable, queryFunction);
+                })
             .onItem()
             .transformToUni(
                 queryWithSchemaHandler(keyspace, table, tenantId, missingKeyspace, queryFunction));
@@ -535,19 +556,14 @@ public class SchemaManager {
   }
 
   // executes the optimistic query against the keyspace
-  private Uni<Schema.QueryWithSchemaResponse> queryWithSchemaOnKeyspace(
+  private Uni<Schema.QueryWithSchemaResponse> queryWithSchemaOnKeyspaceTable(
       Schema.CqlKeyspaceDescribe cqlKeyspace,
-      String table,
+      Schema.CqlTable cqlTable,
       Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction) {
-
-    // try to find the wanted table
-    List<Schema.CqlTable> cqlTables = cqlKeyspace.getTablesList();
-    Optional<Schema.CqlTable> cqlTable =
-        cqlTables.stream().filter(t -> Objects.equals(t.getName(), table)).findFirst();
 
     // start sequence from table
     return Uni.createFrom()
-        .optional(cqlTable)
+        .item(cqlTable)
 
         // query function should handle not found table,
         // so just hit
@@ -701,17 +717,19 @@ public class SchemaManager {
         // if keyspace not found fail always
         .onItem()
         .ifNull()
-        .switchTo(missingKeyspace.apply(keyspaceName))
+        .switchTo(() -> missingKeyspace.apply(keyspaceName))
+
         // otherwise try to find the wanted table
         .onItem()
         .ifNotNull()
-        .transformToUni(
-            keyspace -> {
-              List<Schema.CqlTable> tables = keyspace.getTablesList();
-              Optional<Schema.CqlTable> table =
-                  tables.stream().filter(t -> Objects.equals(t.getName(), tableName)).findFirst();
-              return Uni.createFrom().optional(table);
-            });
+        .transform(cqlKeyspace -> findTable(cqlKeyspace, tableName));
+  }
+
+  private Schema.CqlTable findTable(Schema.CqlKeyspaceDescribe keyspace, String tableName) {
+    List<Schema.CqlTable> tables = keyspace.getTablesList();
+    Optional<Schema.CqlTable> table =
+        tables.stream().filter(t -> Objects.equals(t.getName(), tableName)).findFirst();
+    return table.orElse(null);
   }
 
   // returns all keyspace names
