@@ -27,11 +27,14 @@
     </repository>
   </repositories>
   <dependencyManagement>
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>31.1-jre</version>
-    </dependency>
+    <!-- DSE from version 6.8.30 depends on guava 31.1 -->
+    <dependencies>
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>31.1-jre</version>
+      </dependency>
+    </dependencies>
   </dependencyManagement>
   <dependencies>
     <!-- Stargate component dependencies -->
