@@ -1,6 +1,6 @@
 steps:
   - id: 'pull image'
-    name: 'gcr.io/stargateio/stargate-builder:v1.0.15'
+    name: 'gcr.io/stargateio/stargate-builder:v1.0.16'
     entrypoint: 'bash'
     args: [ '-c', 'echo pulled builder' ]
   - id: 'fetch_secret'
