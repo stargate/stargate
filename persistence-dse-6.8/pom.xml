@@ -27,6 +27,7 @@
     </repository>
   </repositories>
   <dependencyManagement>
+    <!-- DSE version beginning 6.8.30 depends on guava 31.1 -->
     <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
