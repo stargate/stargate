@@ -56,6 +56,13 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                   schema = @Schema(type = SchemaType.STRING)),
               @Parameter(
                   in = ParameterIn.QUERY,
+                  name = RestOpenApiConstants.Parameters.KEYSPACE_AS_QUERY_PARAM,
+                  description = "Name of the keyspace to use for the request",
+                  example = "cycling",
+                  required = false,
+                  schema = @Schema(type = SchemaType.STRING)),
+              @Parameter(
+                  in = ParameterIn.QUERY,
                   name = RestOpenApiConstants.Parameters.PAGE_SIZE,
                   description = "Restrict the number of returned items",
                   example = "10",

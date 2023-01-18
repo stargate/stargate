@@ -72,7 +72,7 @@ Stargate coordinator nodes also support a pluggable authentication and authoriza
 - [authnz](authnz): Interface for working with auth providers
 - [auth-api](auth-api): REST service for generating auth tokens
 - [auth-table-based-service](auth-table-based-service): Service to store tokens in the database
-- [auth-jtw-based-service](auth-jwt-based-service): Service to authenticate using externally generated JSON Web Tokens (JWTs)
+- [auth-jtw-service](auth-jwt-service): Service to authenticate using externally generated JSON Web Tokens (JWTs)
 
 #### Coordinator Node Testing
 The following modules provide support for testing:

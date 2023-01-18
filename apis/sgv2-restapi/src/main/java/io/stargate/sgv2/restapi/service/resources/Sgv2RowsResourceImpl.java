@@ -165,7 +165,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
                 .orderBy(sortOrder)
                 .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
                 .build();
-    return fetchRowsAsync(query, raw);
+    return executeQueryAsync(query).map(response -> convertRowsToResponse(response, raw));
   }
 
   @Override

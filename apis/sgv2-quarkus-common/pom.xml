@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>sgv2-api-parent</artifactId>
-    <version>2.0.5-SNAPSHOT</version>
+    <version>2.0.7-SNAPSHOT</version>
   </parent>
   <artifactId>sgv2-quarkus-common</artifactId>
   <properties>
@@ -166,6 +166,11 @@
             <goals>
               <goal>test-jar</goal>
             </goals>
+            <configuration>
+              <excludes>
+                <exclude>**/io/stargate/sgv2/api/common/*</exclude>
+              </excludes>
+            </configuration>
           </execution>
         </executions>
       </plugin>
