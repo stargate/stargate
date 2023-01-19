@@ -193,7 +193,6 @@
 - closes \#2181: bridge context key not to be used in another thread [\#2184](https://github.com/stargate/stargate/pull/2184) ([ivansenic](https://github.com/ivansenic))
 - enforce JDK 8 [\#2183](https://github.com/stargate/stargate/pull/2183) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
 - Fix to skip printing the token received in the request header in the … [\#2178](https://github.com/stargate/stargate/pull/2178) ([kathirsvn](https://github.com/kathirsvn))
-- Bumping version for next v2 release [\#2174](https://github.com/stargate/stargate/pull/2174) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v2.0.0-RC-1](https://github.com/stargate/stargate/tree/v2.0.0-RC-1) (2022-10-18)
 
