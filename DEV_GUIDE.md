@@ -294,7 +294,7 @@ execution environment (`PATH`).
 When tests are started manually via an IDE or JUnit Console Launcher, you can specify the type and version
 of the storage backend using the following Java system properties:
 
-* `-Dccm.version=<version>` - the version of the storage cluster (e.g. `4.0.6`)
+* `-Dccm.version=<version>` - the version of the storage cluster (e.g. `4.0.7`)
 * `-Dccm.dse=<true|false>` - specifies whether the storage cluster is DSE or OSS Cassandra.
   If `false` this option can be omitted.
 
