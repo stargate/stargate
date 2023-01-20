@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import java.util.List;
@@ -23,9 +24,30 @@ public class DynamicCompositeTypeTest extends BaseIntegrationTest {
             .execute(
                 "CREATE TABLE dynamic_composite_table (\n"
                     + "       k int PRIMARY KEY,\n"
-                    + "       c1 'DynamicCompositeType(s => UTF8Type, i => Int32Type)',\n"
-                    + "       c2 Text)")
+                    + "       dct 'DynamicCompositeType(s => UTF8Type, i => Int32Type)',\n"
+                    + "       stuff Text)")
             .all();
     assertThat(rows).isEmpty();
+
+    // Ok let's see if we can actually insert rows (without trying to set DCT)
+    session.execute(
+        SimpleStatement.builder("INSERT into dynamic_composite_table (k, stuff) values (:k, :v)")
+            .addNamedValue("k", 123)
+            .addNamedValue("v", "text value")
+            .build());
+
+    // And then fetch row inserted as well, first without accessing DCT
+    rows = session.execute("select k,stuff from dynamic_composite_table where k=123").all();
+    assertThat(rows).isNotNull().hasSize(1);
+    Row row = rows.get(0);
+    assertThat(row.getInt("k")).isEqualTo(123);
+    assertThat(row.getString("stuff")).isEqualTo("text value");
+
+    // and then getting DCT too (missing/null)
+    /*
+    row = session.execute("select k,stuff,dct from dynamic_composite_table where k=123").one();
+    assertThat(row.getInt("k")).isEqualTo(123);
+    assertThat(row.getString("stuff")).isEqualTo("text value");
+     */
   }
 }
