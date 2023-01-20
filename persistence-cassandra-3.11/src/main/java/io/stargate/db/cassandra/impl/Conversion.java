@@ -175,12 +175,12 @@ public class Conversion {
     types.put(BytesType.instance.getClass(), Column.Type.Blob);
     types.put(ByteType.instance.getClass(), Column.Type.Tinyint);
     types.put(BooleanType.instance.getClass(), Column.Type.Boolean);
-    types.put(DynamicCompositeType.class, Column.Type.DynamicComposite);
     types.put(CounterColumnType.instance.getClass(), Column.Type.Counter);
     types.put(SimpleDateType.instance.getClass(), Column.Type.Date);
     types.put(DecimalType.instance.getClass(), Column.Type.Decimal);
     types.put(DoubleType.instance.getClass(), Column.Type.Double);
     types.put(DurationType.instance.getClass(), Column.Type.Duration);
+    types.put(DynamicCompositeType.class, Column.Type.DynamicComposite);
     types.put(FloatType.instance.getClass(), Column.Type.Float);
     types.put(InetAddressType.instance.getClass(), Column.Type.Inet);
     types.put(Int32Type.instance.getClass(), Column.Type.Int);
