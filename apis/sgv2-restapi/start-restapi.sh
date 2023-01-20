@@ -34,7 +34,7 @@ if [ ! -e $RESTAPI_JAR ]; then
   exit 3
 fi
 
-java -jar $RESTAPI_JAR "$@"
+java "$@" -jar $RESTAPI_JAR
 
 
 

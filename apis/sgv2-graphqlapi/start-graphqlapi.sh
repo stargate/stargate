@@ -34,7 +34,7 @@ if [ ! -e $GRAPHQLAPI_JAR ]; then
   exit 3
 fi
 
-java -jar $GRAPHQLAPI_JAR "$@"
+java "$@" -jar $GRAPHQLAPI_JAR
 
 
 
