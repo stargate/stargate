@@ -264,11 +264,12 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
      * Need a placeholder for DynamicCompositeType: while not usable via APIs can potentially be
      * created via CQL leading to problems (see {@href
      * https://github.com/stargate/stargate/issues/2144}).
+     *
+     * <p>Id of {@code 0} indicates "custom", Java type just needs to be unique.
      */
-    DynamicComposite(48, LinkedHashMap.class, false, "Legacy data type") {
-      // Indicate it's user-defined to make it not usable
+    DynamicComposite(0, LinkedHashMap.class, false, "Legacy data type") {
       @Override
-      public boolean isUserDefined() {
+      public boolean isParameterized() {
         return true;
       }
     },
