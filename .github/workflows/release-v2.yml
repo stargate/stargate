@@ -122,7 +122,7 @@ jobs:
           asset_content_type: application/zip
 
   # builds api uber-jars, zips and uploads the created release
-  build:
+  build-apis:
     name: Build APIs
     needs: create-release
     runs-on: ubuntu-latest
