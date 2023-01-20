@@ -16,6 +16,7 @@ Make sure that the version of the `com.datastax.cassandra:cassandra-driver-core`
 This dependency is set as optional in the `cassandra-all`, but we need it to correctly handle UDFs.
 Note that transitive dependencies can be seen on [mvnrepository.com](https://mvnrepository.com/artifact/org.apache.cassandra/cassandra-all) or by running `./mvnw dependency:tree -pl persistence-cassandra-3.11`.
 * Change the version in the [Cassandra311MetricsRegistryTest.java](src/test/java/org/apache/cassandra/metrics/Cassandra311MetricsRegistryTest.java) to the new one.
+* Change the version in the [ExternalStorage.java](../persistence-test/src/main/java/io/stargate/it/storage/ExternalStorage.java) to the new one.
 * Check if the new version has a transitive dependency to `org.apache.cassandra:cassandra-thrift`, and if it does remove that dependency from our [pom.xml](pom.xml).
 The `cassandra-thrift` was explicitly added when updating to `3.11.12` as it was not anymore in the `cassandra-all`.
 * Update the [CI Dockerfile](../ci/Dockerfile) and set the new version in the `ccm create` command related to 3.11.
