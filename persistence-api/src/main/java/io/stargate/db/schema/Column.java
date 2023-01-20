@@ -41,6 +41,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -259,6 +260,18 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
     Decimal(6, BigDecimal.class, false, "Variable-precision decimal, supports integers and floats"),
     Double(7, Double.class, false, "64-bit IEEE-754 floating point"),
     Duration(21, CqlDuration.class, false, "128 bit encoded duration with nanosecond precision"),
+    /**
+     * Need a placeholder for DynamicCompositeType: while not usable via APIs can potentially be
+     * created via CQL leading to problems (see {@href
+     * https://github.com/stargate/stargate/issues/2144}).
+     */
+    DynamicComposite(48, LinkedHashMap.class, false, "Legacy data type") {
+      // Indicate it's user-defined to make it not usable
+      @Override
+      public boolean isUserDefined() {
+        return true;
+      }
+    },
     Float(8, Float.class, false, "32-bit IEEE-754 floating point"),
     Inet(16, InetAddress.class, true, "IP address string in IPv4 or IPv6 format"),
     Int(9, Integer.class, false, "32-bit signed integer"),
