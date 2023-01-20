@@ -35,8 +35,3 @@ if [ ! -e $DOCSAPI_JAR ]; then
 fi
 
 java "$@" -jar $DOCSAPI_JAR
-
-
-
-
-

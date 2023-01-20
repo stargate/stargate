@@ -168,16 +168,16 @@ jobs:
 
       - name: Build bridge protos library
         if: ${{ !inputs.skipPublish }}
-        continue-on-error: true
         run: |
           JAVA_HOME=$JAVA_8 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
-          JAVA_HOME=$JAVA_8 ./mvnw -B -ntp clean install -DskipTests -pl bridge-proto
+          JAVA_HOME=$JAVA_8 ./mvnw -B -ntp clean install -DskipTests -pl bridge-proto -am
 
       - name: Build APIs with Maven
         run: |
           cd apis/
           JAVA_HOME=$JAVA_17 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
           JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -Dquarkus.package.type=uber-jar -DskipTests
+          cd ../
 
       - name: Zip-up APIs
         run: |
@@ -215,7 +215,7 @@ jobs:
           asset_name: stargate-graphqlapi.zip
           asset_content_type: application/zip
 
-  # publish coordinator JARs to the OSSRH
+  # publish coordinator and sgv2-quarkus-common JARs to the OSSRH
   publish-ossrh:
     name: Publish to OSSRH
     runs-on: ubuntu-latest

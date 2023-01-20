@@ -35,8 +35,3 @@ if [ ! -e $GRAPHQLAPI_JAR ]; then
 fi
 
 java "$@" -jar $GRAPHQLAPI_JAR
-
-
-
-
-

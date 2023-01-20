@@ -35,8 +35,3 @@ if [ ! -e $RESTAPI_JAR ]; then
 fi
 
 java "$@" -jar $RESTAPI_JAR
-
-
-
-
-
