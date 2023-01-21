@@ -3,7 +3,6 @@ package io.stargate.db.cassandra.impl;
 import static java.util.Arrays.asList;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import io.stargate.db.ImmutableParameters;
 import io.stargate.db.Parameters;
 import io.stargate.db.schema.Column;
@@ -21,6 +20,7 @@ import org.apache.cassandra.db.marshal.CounterColumnType;
 import org.apache.cassandra.db.marshal.DecimalType;
 import org.apache.cassandra.db.marshal.DoubleType;
 import org.apache.cassandra.db.marshal.DurationType;
+import org.apache.cassandra.db.marshal.DynamicCompositeType;
 import org.apache.cassandra.db.marshal.FloatType;
 import org.apache.cassandra.db.marshal.InetAddressType;
 import org.apache.cassandra.db.marshal.Int32Type;
@@ -133,7 +133,7 @@ class ConversionTest {
     private RequestFailureReason convert(
         org.apache.cassandra.exceptions.RequestFailureReason internal) {
       return Conversion.toExternal(
-              ImmutableMap.of(InetAddressAndPort.getLoopbackAddress(), internal))
+              Collections.singletonMap(InetAddressAndPort.getLoopbackAddress(), internal))
           .values()
           .iterator()
           .next();
@@ -251,6 +251,13 @@ class ConversionTest {
       Column.ColumnType result = Conversion.getTypeFromInternal(DurationType.instance);
 
       assertThat(result.rawType()).isEqualTo(Column.Type.Duration);
+    }
+
+    @Test
+    public void dynamicCompositeType() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(DynamicCompositeType.getInstance(Collections.emptyMap()));
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.DynamicComposite);
     }
 
     @Test

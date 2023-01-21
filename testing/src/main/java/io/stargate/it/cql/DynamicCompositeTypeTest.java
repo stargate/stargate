@@ -45,11 +45,9 @@ public class DynamicCompositeTypeTest extends BaseIntegrationTest {
 
     // and then getting DCT too (missing/null)
     // !!! Fails here at this point
-    /*
     row = session.execute("select k,stuff,dct from dynamic_composite_table where k=123").one();
     assertThat(row.getInt("k")).isEqualTo(123);
     assertThat(row.getString("stuff")).isEqualTo("text value");
     assertThat(row.isNull("dct")).isTrue();
-     */
   }
 }

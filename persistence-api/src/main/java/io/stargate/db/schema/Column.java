@@ -41,7 +41,6 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -264,15 +263,14 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
      * Need a placeholder for DynamicCompositeType: while not usable via APIs can potentially be
      * created via CQL leading to problems (see {@href
      * https://github.com/stargate/stargate/issues/2144}).
-     *
-     * <p>Id of {@code 0} indicates "custom", Java type just needs to be unique.
      */
-    DynamicComposite(0, LinkedHashMap.class, false, "Legacy data type") {
-      @Override
-      public boolean isParameterized() {
-        return true;
-      }
-    },
+    DynamicComposite(
+        0, // custom type
+        io.stargate.db.schema.DynamicCompositeValue.class,
+        "org.apache.cassandra.db.marshal.DynamicCompositeType",
+        true,
+        null,
+        "Legacy data type"),
     Float(8, Float.class, false, "32-bit IEEE-754 floating point"),
     Inet(16, InetAddress.class, true, "IP address string in IPv4 or IPv6 format"),
     Int(9, Integer.class, false, "32-bit signed integer"),

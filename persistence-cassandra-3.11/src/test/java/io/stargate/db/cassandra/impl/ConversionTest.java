@@ -22,6 +22,7 @@ import org.apache.cassandra.db.marshal.CounterColumnType;
 import org.apache.cassandra.db.marshal.DecimalType;
 import org.apache.cassandra.db.marshal.DoubleType;
 import org.apache.cassandra.db.marshal.DurationType;
+import org.apache.cassandra.db.marshal.DynamicCompositeType;
 import org.apache.cassandra.db.marshal.FloatType;
 import org.apache.cassandra.db.marshal.InetAddressType;
 import org.apache.cassandra.db.marshal.Int32Type;
@@ -229,6 +230,13 @@ class ConversionTest {
       Column.ColumnType result = Conversion.getTypeFromInternal(DurationType.instance);
 
       assertThat(result.rawType()).isEqualTo(Column.Type.Duration);
+    }
+
+    @Test
+    public void dynamicCompositeType() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(DynamicCompositeType.getInstance(Collections.emptyMap()));
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.DynamicComposite);
     }
 
     @Test
