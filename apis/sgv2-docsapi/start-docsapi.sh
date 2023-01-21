@@ -34,4 +34,10 @@ if [ ! -e $DOCSAPI_JAR ]; then
   exit 3
 fi
 
+# Settings for gRPC bridge can be overridden via Java properties passed via command line
+#   -Dquarkus.grpc.clients.bridge.host=myhost
+#   -Dquarkus.grpc.clients.bridge.host=myport
+export QUARKUS_GRPC_CLIENTS_BRIDGE_HOST=localhost
+export QUARKUS_GRPC_CLIENTS_BRIDGE_PORT=8091
+
 java "$@" -jar $DOCSAPI_JAR
