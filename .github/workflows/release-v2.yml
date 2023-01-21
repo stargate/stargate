@@ -181,9 +181,9 @@ jobs:
 
       - name: Zip-up APIs
         run: |
-          zip stargate-restapi.zip apis/sgv2-restapi/target/sgv2-restapi-*-runner.jar apis/sgv2-restapi/start-restapi.sh
-          zip stargate-docsapi.zip apis/sgv2-docsapi/target/sgv2-docsapi-*-runner.jar apis/sgv2-docsapi/start-docsapi.sh
-          zip stargate-graphqlapi.zip apis/sgv2-graphqlapi/target/sgv2-graphqlapi-*-runner.jar apis/sgv2-graphqlapi/start-graphqlapi.sh
+          zip -j stargate-restapi.zip apis/sgv2-restapi/target/sgv2-restapi-*-runner.jar apis/sgv2-restapi/start-restapi.sh
+          zip -j stargate-docsapi.zip apis/sgv2-docsapi/target/sgv2-docsapi-*-runner.jar apis/sgv2-docsapi/start-docsapi.sh
+          zip -j stargate-graphqlapi.zip apis/sgv2-graphqlapi/target/sgv2-graphqlapi-*-runner.jar apis/sgv2-graphqlapi/start-graphqlapi.sh
 
       - name: Upload REST API
         uses: actions/upload-release-asset@v1
