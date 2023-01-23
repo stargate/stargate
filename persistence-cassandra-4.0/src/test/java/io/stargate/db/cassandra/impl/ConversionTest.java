@@ -255,7 +255,8 @@ class ConversionTest {
 
     @Test
     public void dynamicCompositeType() {
-      Column.ColumnType result = Conversion.getTypeFromInternal(DynamicCompositeType.getInstance(Collections.emptyMap()));
+      Column.ColumnType result =
+          Conversion.getTypeFromInternal(DynamicCompositeType.getInstance(Collections.emptyMap()));
 
       assertThat(result.rawType()).isEqualTo(Column.Type.DynamicComposite);
     }
