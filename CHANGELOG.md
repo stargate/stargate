@@ -1,5 +1,23 @@
 # Changelog
 
+## [v2.0.7](https://github.com/stargate/stargate/tree/v2.0.7) (2023-01-23)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.6...v2.0.7)
+
+**Closed issues:**
+
+- Update DSE to 6.8.31 [\#2356](https://github.com/stargate/stargate/issues/2356)
+- Add Stargate homepage to the V2 services [\#2177](https://github.com/stargate/stargate/issues/2177)
+
+**Merged pull requests:**
+
+- Update APIs to use same C\*/DSE versions as coordinator [\#2395](https://github.com/stargate/stargate/pull/2395) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- GH action cache cleanup on PR close [\#2394](https://github.com/stargate/stargate/pull/2394) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Create release artifacts for Stargate v2 APIs [\#2388](https://github.com/stargate/stargate/pull/2388) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Fix typo in README [\#2383](https://github.com/stargate/stargate/pull/2383) ([shashankbrgowda](https://github.com/shashankbrgowda))
+- closes \#2376: reoarganize testing common utilities [\#2377](https://github.com/stargate/stargate/pull/2377) ([ivansenic](https://github.com/ivansenic))
+- Use Optimistic Queries for REST API [\#2373](https://github.com/stargate/stargate/pull/2373) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v2.0.6](https://github.com/stargate/stargate/tree/v2.0.6) (2023-01-12)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.5...v2.0.6)
@@ -685,6 +703,26 @@ _Note: this is a manually generated changelog for initial v2 Alpha release due t
 - Rest integration test - initial work (#1359)
 - Skeletal gRPC connection for "getAllRows()" (#1363)
 - First skeletal version of SGv2 rest-service (#1357)
+
+## [v1.0.72](https://github.com/stargate/stargate/tree/v1.0.72) (2023-01-19)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.71...v1.0.72)
+
+**Closed issues:**
+
+- Fix typo in README [\#2382](https://github.com/stargate/stargate/issues/2382)
+- `ValidatedStargateBridge` should be a common test utility [\#2376](https://github.com/stargate/stargate/issues/2376)
+- Use "Optimistic Query" functionality from common in SGv2/REST API [\#2265](https://github.com/stargate/stargate/issues/2265)
+
+**Merged pull requests:**
+
+- Bump OSS C\* & DSE versions [\#2370](https://github.com/stargate/stargate/pull/2370) ([msmygit](https://github.com/msmygit))
+- Get the version of cassandra bundled driver version correct [\#2360](https://github.com/stargate/stargate/pull/2360) ([msmygit](https://github.com/msmygit))
+- Bump DSE version to 6.8.31 and OSS C\* 3.x to 3.11.14 [\#2359](https://github.com/stargate/stargate/pull/2359) ([msmygit](https://github.com/msmygit))
+- Remove accidentally checked in maven artifact file [\#2346](https://github.com/stargate/stargate/pull/2346) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update Cassandra 3.11 Persistence with Deprecation notice [\#2336](https://github.com/stargate/stargate/pull/2336) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- closes \#2261: updated to Cassandra 4.0.7 [\#2329](https://github.com/stargate/stargate/pull/2329) ([ivansenic](https://github.com/ivansenic))
+- Document version support and branching strategy [\#2306](https://github.com/stargate/stargate/pull/2306) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
 
 ## [v1.0.71](https://github.com/stargate/stargate/tree/v1.0.71) (2022-12-06)
 
