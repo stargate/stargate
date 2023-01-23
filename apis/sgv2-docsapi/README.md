@@ -1,7 +1,6 @@
-# Stargate Docs API 
+# Stargate Docs API
 
-This project implements the stand-alone Docs API microservice for Stargate V2, extracted from monolithic Stargate V1 Coordinator.
-Docs API is an HTTP service that gives access to data stored in a Cassandra cluster using JSON Document based interface.
+This project provides the Stargate Docs API - an HTTP service that gives access to data stored in a Cassandra cluster using JSON Document based interface. (As part of Stargate V2, this service was extracted from the monolithic Stargate V1 Coordinator as a separate microservice.)
 
 The project depends on the [sgv2-quarkus-common](../sgv2-quarkus-common) module, which provides common functionality used by all Stargate V2 APIs.
 
@@ -10,15 +9,17 @@ All issues related to this project are marked with the `stargate-v2` and `docume
 
 ##### Table of Contents
 * [Concepts](#concepts)
-   * [Shared concepts](#shared-concepts) 
-   * [Partitioner limitations](#partitioner-limitations) 
-* [Configuration properties](#configuration-properties)  
+    * [Shared concepts](#shared-concepts) 
+    * [Partitioner limitations](#partitioner-limitations) 
+* [Deployment](#deployment)
+    * [Running the service](#running-the-service)
+    * [Configuration properties](#configuration-properties)
 * [Development guide](#development-guide)  
-   * [Running the application in dev mode](#running-the-application-in-dev-mode)
-   * [Running integration tests](#running-integration-tests)
-   * [Packaging and running the application](#packaging-and-running-the-application) 
-   * [Creating a native executable](#creating-a-native-executable) 
-   * [Creating a docker image](#creating-a-docker-image) 
+    * [Running the application in dev mode](#running-the-application-in-dev-mode)
+    * [Running integration tests](#running-integration-tests)
+    * [Packaging and running the application](#packaging-and-running-the-application) 
+    * [Creating a native executable](#creating-a-native-executable) 
+    * [Creating a docker image](#creating-a-docker-image) 
 * [Quarkus Extensions](#quarkus-extensions)  
 
 ## Concepts
@@ -34,7 +35,17 @@ Other partitioners have limited support, and if used, will result in inability t
 All other features are supported regardless of the partitioner used.
 This limitation will be removed with the release of Cassandra `4.2.0`.
 
-## Configuration properties
+## Deployment
+
+### Running the Service
+
+The Docs API service is packaged as a Docker image available on [Docker Hub](https://hub.docker.com/r/stargateio/docsapi). For examples of container-based deployments, see the [docker-compose](../../docker-compose) or [helm](../../helm) folders.
+
+The Docs API is also packaged as an uber-jar as part of Stargate v2 [releases](https://github.com/stargate/stargate/releases), along with the accompanying [start-docsapi.sh](./start-docsapi.sh) script.
+
+The startup script can also be used to start the uber-jar locally, along with other options documented in the [Development Guide](deployment-guide).
+
+### Configuration properties
 
 There are two main configuration property prefixes used, `stargate.` and `quarkus.`.
 
@@ -53,7 +64,8 @@ If you want to learn more about Quarkus, please visit its [website](https://quar
 It's recommended that you install Quarkus CLI in order to have a better development experience.
 See [CLI Tooling](https://quarkus.io/guides/cli-tooling) for more information.
 
-Note that this project uses Java 17, please ensure that you have the target JDK installed on your system.
+> **Warning**
+> This project uses Java 17, please ensure that you have the target JDK installed on your system.
 
 ### Running the application in dev mode
 
@@ -70,7 +82,8 @@ To run your application in dev mode with live coding enabled, use the command:
 
 By default, the application is served on port `8180`.
 
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at http://localhost:8180/stargate/dev/.
+> **Note**  
+> Quarkus now ships with a Dev UI, which is available in dev mode only at http://localhost:8180/stargate/dev/.
 
 #### Debugging
 
@@ -83,7 +96,8 @@ See [Debugging](https://quarkus.io/guides/maven-tooling#debugging) for more info
 
 ### Running integration tests
 
-> **_PREREQUISITES:_**  You need to build the coordinator docker image(s) first. In the Stargate repo directory `/apis` run:
+> **Warning**  
+> You need to build the coordinator docker image(s) first. In the Stargate repo directory `/apis` run:
 > ```
 > ../mvnw clean install -P dse -DskipTests && ./build_docker_images.sh
 > ```
@@ -111,7 +125,8 @@ The required profile can be activated using the `-P` option:
 
 #### Running from IDE
 
-> **_PREREQUISITES:_**  You need to build the coordinator docker image(s) first. In the Stargate repo directory `/apis` run:
+> **Warning**  
+> You need to build the coordinator docker image(s) first. In the Stargate repo directory `/apis` run:
 > ```
 > ../mvnw clean install -P dse -DskipTests && ./build_docker_images.sh
 > ```
@@ -223,7 +238,8 @@ If you want to learn more about building container images, please consult [Conta
 This project uses various Quarkus extensions, modules that run on top of a Quarkus application.
 You can list, add and remove the extensions using the `quarkus ext` command.
 
-> *NOTE: Please check the shared extensions introduced by the [sgv2-quarkus-common](../sgv2-quarkus-common/README.md#shared-quarkus-extensions) project.
+> **Note** 
+> Please check the shared extensions introduced by the [sgv2-quarkus-common](../sgv2-quarkus-common/README.md#shared-quarkus-extensions) project.
 
 ### `quarkus-arc`
 [Related guide](https://quarkus.io/guides/cdi-reference)

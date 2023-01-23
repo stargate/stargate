@@ -121,7 +121,101 @@ jobs:
           asset_name: stargate-jars.zip
           asset_content_type: application/zip
 
-  # publish coordinator JARs to the OSSRH
+  # builds api uber-jars, zips and uploads the created release
+  build-apis:
+    name: Build APIs
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # install both Java 8 & Java 17, keep paths in vars
+      - name: Set up JDK 8
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '8'
+          cache: maven
+      - run: echo "JAVA_8=$JAVA_HOME" >> $GITHUB_ENV
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: maven
+      - run: echo "JAVA_17=$JAVA_HOME" >> $GITHUB_ENV
+
+      - name: Setup Maven
+        run: |
+          mkdir -p ~/.m2
+          cat <<EOF > ~/.m2/settings.xml
+          <settings>
+            <servers>
+              <server>
+                <id>artifactory-snapshots</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+              <server>
+                <id>artifactory-releases</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+             </server>
+           </servers>
+          </settings>
+          EOF
+
+      - name: Build bridge protos library
+        if: ${{ !inputs.skipPublish }}
+        run: |
+          JAVA_HOME=$JAVA_8 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          JAVA_HOME=$JAVA_8 ./mvnw -B -ntp clean install -DskipTests -pl bridge-proto -am
+
+      - name: Build APIs with Maven
+        run: |
+          cd apis/
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -Dquarkus.package.type=uber-jar -DskipTests
+          cd ../
+
+      - name: Zip-up APIs
+        run: |
+          zip -j stargate-restapi.zip apis/sgv2-restapi/target/sgv2-restapi-*-runner.jar apis/sgv2-restapi/start-restapi.sh
+          zip -j stargate-docsapi.zip apis/sgv2-docsapi/target/sgv2-docsapi-*-runner.jar apis/sgv2-docsapi/start-docsapi.sh
+          zip -j stargate-graphqlapi.zip apis/sgv2-graphqlapi/target/sgv2-graphqlapi-*-runner.jar apis/sgv2-graphqlapi/start-graphqlapi.sh
+
+      - name: Upload REST API
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{needs.create-release.outputs.release-upload-url}}
+          asset_path: stargate-restapi.zip
+          asset_name: stargate-restapi.zip
+          asset_content_type: application/zip
+
+      - name: Upload Docs API
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{needs.create-release.outputs.release-upload-url}}
+          asset_path: stargate-docsapi.zip
+          asset_name: stargate-docsapi.zip
+          asset_content_type: application/zip
+
+      - name: Upload GraphQL API
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{needs.create-release.outputs.release-upload-url}}
+          asset_path: stargate-graphqlapi.zip
+          asset_name: stargate-graphqlapi.zip
+          asset_content_type: application/zip
+
+  # publish coordinator and sgv2-quarkus-common JARs to the OSSRH
   publish-ossrh:
     name: Publish to OSSRH
     runs-on: ubuntu-latest

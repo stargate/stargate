@@ -1,13 +1,38 @@
 # Stargate GraphQL API
 
-This project implements the stand-alone GraphQL API microservice for Stargate V2, extracted from monolithic Stargate V1 Coordinator.
-GraphQL API is an HTTP service that gives access to data stored in a Cassandra cluster using auto-generated GraphQL interface.
+This project provides the Stargate GraphQL API - an HTTP service that gives access to data stored in a Cassandra cluster using auto-generated GraphQL interface. (As part of Stargate V2, this service was extracted from the monolithic Stargate V1 Coordinator as a separate microservice.)
 
 The project depends on the [sgv2-quarkus-common](../sgv2-quarkus-common) module, which provides common functionality used by all Stargate V2 APIs.
 
 All issues related to this project are marked with the `stargate-v2` and either `GraphQL CQL-first` or `GraphQL schema-first`.
 
-Here is a brief functional overview of those services:
+##### Table of Contents
+* [Concepts](#concepts)
+  * [Shared concepts](#shared-concepts)
+  * [GraphQL concepts](#graphql-concepts)
+* [Deployment](#deployment)
+  * [Running the service](#running-the-service)
+  * [Configuration properties](#configuration-properties)
+* [Development guide](#development-guide)
+  * [Running the application in dev mode](#running-the-application-in-dev-mode)
+  * [Running integration tests](#running-integration-tests)
+  * [Packaging and running the application](#packaging-and-running-the-application)
+  * [Creating a native executable](#creating-a-native-executable)
+  * [Creating a docker image](#creating-a-docker-image)
+  * [Testing](#testing)
+* [Quarkus Extensions](#quarkus-extensions)
+
+## Concepts
+
+### Shared concepts
+
+Please read the [Stargate V2 Shared Concepts](../sgv2-quarkus-common/README.md#shared-concepts) in order to get basic concepts shared between all V2 API implementations.
+
+### GraphQL concepts
+
+#### GraphQL paths
+
+Here is a brief functional overview of the paths supported by the GraphQL service:
 
 * `/graphql-schema` exposes DDL operations (describe, create table, etc). It can be used for any
   keyspace (most operations take a `keyspace` argument).
@@ -20,102 +45,7 @@ Here is a brief functional overview of those services:
   one: `/graphql/<keyspace>` now uses the custom schema, and the generated schema is not available
   anymore.
 
-## Development guide
-
-This project uses Quarkus, the Supersonic Subatomic Java Framework.
-If you want to learn more about Quarkus, please visit its [website](https://quarkus.io/).
-
-It's recommended that you install Quarkus CLI in order to have a better development experience.
-See [CLI Tooling](https://quarkus.io/guides/cli-tooling) for more information.
-
-Note that this project uses Java 17, please ensure that you have the target JDK installed on your system.
-
-### Running the application in dev mode
-
-Before being able to run the application, make sure you install the root [../apis/pom.xml](../pom.xml):
-```shell script
-cd ../
-./mvnw install -DskipTests
-```
-
-To run your application in dev mode with live coding enabled, use the command:
-```shell script
-../mvnw quarkus:dev
-```
-
-> **_NOTE:_**  Quarkus now ships with a Dev UI, which is available in dev mode only at http://localhost:8080/star\
-gate/dev/.
-
-## Quarkus Extensions
-
-This project uses various Quarkus extensions, modules that run on top of a Quarkus application.
-You can list, add and remove the extensions using the `quarkus ext` command.
-
-> *NOTE: Please check the shared extensions introduced by the [sgv2-quarkus-common](../sgv2-quarkus-common/README.md#shared-quarkus-extensions) project.
-
-### `quarkus-arc`
-[Related guide](https://quarkus.io/guides/cdi-reference)
-
-The Quarkus DI solution.
-
-### `quarkus-container-image-docker`
-[Related guide](https://quarkus.io/guides/container-image)
-
-The project uses Docker for building the Container images.
-Properties for Docker image building are defined in the [pom.xml](pom.xml) file.
-Note that under the hood, the generated Dockerfiles under [src/main/docker](src/main/docker) are used when building the images.
-When updating the Quarkus version, the Dockerfiles must be re-generated.
-
-### `quarkus-smallrye-health`
-[Related guide](https://quarkus.io/guides/smallrye-health)
-
-The extension setups the health endpoints under `/stargate/health`.
-
-### `quarkus-smallrye-openapi`
-[Related guide](https://quarkus.io/guides/openapi-swaggerui)
-
-This project disables the OpenAPI and SwaggerUI, due to the availability of the GraphQL Playground.
-
-## Testing
-
-### Manually
-
-The easiest way is to use the built-in GraphQL playground at http://localhost:8080/playground.
-
-You can then interact with the various GraphQL schemas by entering their URL in the playground's
-address bar, for example http://localhost:8080/graphql/{keyspace}.
-
-<!-- TODO integration tests -->
-
-[StargateRequestInfo]: ../sgv2-quarkus-common/src/main/java/io/stargate/sgv2/api/common/StargateRequestInfo.java
-[StargateBridgeClient]: ../sgv2-quarkus-common/src/main/java/io/stargate/sgv2/api/common/grpc/StargateBridgeClient.java
-[GraphqlResourceBase]: src/main/java/io/stargate/sgv2/graphql/web/resources/GraphqlResourceBase.java
-[StargateGraphqlContext]: src/main/java/io/stargate/sgv2/graphql/web/resources/StargateGraphqlContext.java
-[CassandraFetcher]: src/main/java/io/stargate/sgv2/graphql/schema/CassandraFetcher.java
-[PlaygroundResource]: src/main/java/io/stargate/sgv2/graphql/web/resources/PlaygroundResource.java
-[FilesResource]: src/main/java/io/stargate/sgv2/graphql/web/resources/FilesResource.java
-[GraphqlCache]: src/main/java/io/stargate/sgv2/graphql/web/resources/GraphqlCache.java
-[DdlSchemaBuilder]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/ddl/DdlSchemaBuilder.java
-[cqlfirst.ddl.fetchers]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/ddl/fetchers
-[KeyspaceDto]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/ddl/fetchers/KeyspaceDto.java
-[DmlSchemaBuilder]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/dml/DmlSchemaBuilder.java
-[FieldTypeCache]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/dml/FieldTypeCache.java
-[NameMapping]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/dml/NameMapping.java
-[CqlScalar]: src/main/java/io/stargate/sgv2/graphql/schema/scalars/CqlScalar.java
-[cqlfirst.dml.fetchers]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/dml/fetchers
-[AdminSchemaBuilder]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/AdminSchemaBuilder.java
-[graphqlfirst.fetchers.admin]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/fetchers/admin
-[DeploySchemaFetcherBase]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/fetchers/admin/DeploySchemaFetcherBase.java
-[SchemaSourceDao]: src/main/java/io/stargate/sgv2/graphql/persistence/graphqlfirst/SchemaSourceDao.java
-[SchemaProcessor]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/processor/SchemaProcessor.java
-[MappingModel]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/processor/MappingModel.java
-[CassandraMigrator]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/migration/CassandraMigrator.java
-[CqlDirectives]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/processor/CqlDirectives.java
-[graphqlfirst.fetchers.deployed]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/fetchers/deployed
-
-[Stargate online docs]: https://stargate.io/docs/stargate/1.0/quickstart/quick_start-graphql.html
-
-## GraphQL Java primer
+#### GraphQL Java primer
 
 We rely extensively on [GraphQL Java](https://www.graphql-java.com/). Before delving further into
 the Stargate code, it can be helpful to have a basic understanding of that library:
@@ -159,10 +89,9 @@ System.out.println(result.getData().toString()); // prints {random=1384094011}
    fetchers. Each fetcher handles a field, identified by its coordinates in the schema.
 3. Finally, we turn the `GraphQLSchema` into an executable `GraphQL`.
 
+#### HTTP layer
 
-## HTTP layer
-
-### Bridge connectivity
+##### Bridge connectivity
 
 The service accesses the Stargate persistence via the [gRPC bridge](../../bridge). The bridge client
 is obtained via [StargateRequestInfo] (imported from `sgv2-quarkus-common`), which creates it
@@ -174,9 +103,9 @@ convenience to simplify the migration of existing code. In the future, it might 
 all the fetcher code asynchronous and use the Quarkus client (but there will still be some wrapping
 required because graphql-java only knows of to deal with futures).
 
-### Resources
+##### Resources
 
-#### GraphQL services
+###### GraphQL services
 
 They are implemented as REST resources. They all extend [GraphqlResourceBase], which handles the
 various ways to query GraphQL over HTTP: POST vs GET, arguments in the query string vs the body,
@@ -189,20 +118,20 @@ The only thing that changes across subclasses is how we obtain the `GraphQL` obj
 (see [CassandraFetcher]). In particular, this is how we pass the reference to the bridge client. The
 context also handles [batching](#batching), which will be described below.
 
-#### Other resources
+###### Other resources
 
 [PlaygroundResource] exposes the GraphQL playground (an in-browser client, served from a static HTML
 file). [FilesResource] provides downloadable versions of users' custom schemas, and CQL directive
 definitions.
 
-## GraphQL layer
+#### GraphQL layer
 
 [GraphqlCache] provides the `GraphQL` instances used by the HTTP layer. The lifecycle of those
 objects varies depending on the service:
 
-### CQL-first
+##### CQL-first
 
-#### DDL (`/graphql-schema`)
+###### DDL (`/graphql-schema`)
 
 The DDL service never changes, we only need to cache one instance. The schema is built by
 [DdlSchemaBuilder].
@@ -228,7 +157,7 @@ map keys are the actual field types, not their aliases. The solution is to use a
 such as [KeyspaceDto]. (In hindsight, it would be better to use the strongly-typed approach whenever
 possible, that can be done as a housekeeping task in the future but is not high priority.)
 
-#### DML (`/graphql/<keyspace>`)
+###### DML (`/graphql/<keyspace>`)
 
 We cache one `GraphQL` per keyspace.
 
@@ -262,9 +191,9 @@ It's also worth noting that both versions of the API share the same cache entry:
 schema was deployed for this keyspace, we use it, otherwise we generate a CQL-first schema. Again,
 see `GraphqlHolder`.
 
-### GraphQL-first
+##### GraphQL-first
 
-#### Admin (`/graphql-admin`)
+###### Admin (`/graphql-admin`)
 
 The admin service never changes, we only need to cache one instance. The schema is built by
 [AdminSchemaBuilder].
@@ -295,7 +224,7 @@ example, use a different table name than the inferred default). They are defined
 and referenced throughout the model-building code. You can also download a text version from a
 running Stargate instance at `graphql-files/cql_directives.graphql`.
 
-#### Deployed (`/graphql/<keyspace>`)
+###### Deployed (`/graphql/<keyspace>`)
 
 Once a user has deployed their own GraphQL schema, it replaces the CQL-first schema for that
 keyspace. As already mentioned, [GraphqlCache] contains logic to determine which variant to load.
@@ -323,7 +252,7 @@ model that defines the target table, which parameters of the GraphQL operation w
 flexible: there are many different ways to define operations and map the results. The best way to
 get familiar with a fetcher is to look at the integration tests and trace their execution.
 
-### Batching
+##### Batching
 
 Batching is a cross-cutting concern, both CQL-first and GraphQL-first support the `@atomic`
 directive to indicate that a set of mutations must be executed as a single CQL batch:
@@ -337,4 +266,255 @@ mutation @atomic {
 [StargateGraphqlContext] (via its inner class `BatchContext`) provides coordination services that
 allows independent fetchers to accumulate queries, and track which is the last one that must execute
 the batch.
+
+## Deployment
+
+### Running the Service
+
+The GraphQL API service is packaged as a Docker image available on [Docker Hub](https://hub.docker.com/r/stargateio/graphqlapi). For examples of container-based deployments, see the [docker-compose](../../docker-compose) or [helm](../../helm) folders.
+
+The GraphQL API is also packaged as an uber-jar as part of Stargate v2 [releases](https://github.com/stargate/stargate/releases), along with the accompanying [start-graphqlapi.sh](./start-graphqlapi.sh) script.
+
+The startup script can also be used to start the uber-jar locally, along with other options documented in the [Development Guide](deployment-guide).
+
+### Configuration properties
+
+There are two main configuration property prefixes used, `stargate.` and `quarkus.`.
+
+The `quarkus.` properties are defined by the Quarkus framework, and the complete list of available properties can be found on the [All configuration options](https://quarkus.io/guides/all-config) page.
+In addition, the related guide of each [Quarkus extension](#quarkus-extensions) used in the project provides an overview of the available config options.
+
+The `stargate.` properties are defined by this project itself and by the [sgv2-quarkus-common configuration](../sgv2-quarkus-common/CONFIGURATION.md).
+The properties are defined by dedicated config classes annotated with the `@ConfigMapping`.
+The list of currently available properties is documented in the [Configuration Guide](CONFIGURATION.md).
+
+## Development guide
+
+This project uses Quarkus, the Supersonic Subatomic Java Framework.
+If you want to learn more about Quarkus, please visit its [website](https://quarkus.io/).
+
+It's recommended that you install Quarkus CLI in order to have a better development experience.
+See [CLI Tooling](https://quarkus.io/guides/cli-tooling) for more information.
+
+> **Warning**
+> This project uses Java 17, please ensure that you have the target JDK installed on your system.
+
+### Running the application in dev mode
+
+Before being able to run the application, make sure you install the root [../apis/pom.xml](../pom.xml):
+```shell script
+cd ../
+./mvnw install -DskipTests
+```
+
+To run your application in dev mode with live coding enabled, use the command:
+```shell script
+../mvnw quarkus:dev
+```
+
+> **Note**  
+> Quarkus now ships with a Dev UI, which is available in dev mode only at http://localhost:8080/star\
+gate/dev/.
+
+#### Debugging
+
+In development mode, Quarkus starts by default with debug mode enabled, listening to port `5005` without suspending the JVM.
+You can attach the debugger at any point, the simplest option would be from IntelliJ using `Run -> Attach to Process`.
+
+If you wish to debug from the start of the application, start with `-Ddebug=client` and create a debug configuration in a *Listen to remote JVM* mode.
+
+See [Debugging](https://quarkus.io/guides/maven-tooling#debugging) for more information.
+
+### Running integration tests
+
+> **Warning**  
+> You need to build the coordinator docker image(s) first. In the Stargate repo directory `/apis` run:
+> ```
+> ../mvnw clean install -P dse -DskipTests && ./build_docker_images.sh
+> ```
+
+Integration tests are using the [Testcontainers](https://www.testcontainers.org/) library in order to set up all needed dependencies, a Stargate coordinator and a Cassandra data store.
+They are separated from the unit tests and are running as part of the `integration-test` and `verify` Maven phases:
+```shell script
+../mvnw integration-test
+```
+
+#### Data store selection
+
+Depending on the active profile, integration tests will target different Cassandra version as the data store.
+The available profiles are:
+
+* `cassandra-40` (enabled by default) - runs integration tests with [Cassandra 4.0](https://cassandra.apache.org/doc/4.0/index.html) as the data store
+* `cassandra-311` - runs integration tests with [Cassandra 3.11](https://cassandra.apache.org/doc/3.11/index.html) as the data store
+* `dse-68` - runs integration tests with [DataStax Enterprise (DSE) 6.8](https://docs.datastax.com/en/dse/6.8/dse-dev/index.html) as the data store
+
+The required profile can be activated using the `-P` option:
+
+```shell script
+../mvnw integration-test -P cassandra-311
+```
+
+#### Running from IDE
+
+> **Warning**  
+> You need to build the coordinator docker image(s) first. In the Stargate repo directory `/apis` run:
+> ```
+> ../mvnw clean install -P dse -DskipTests && ./build_docker_images.sh
+> ```
+
+Running integration tests from an IDE is supported out of the box.
+The tests will use the Cassandra 4.0 as the data store by default.
+Running a test with a different version of the data store or the Stargate coordinator requires changing the run configuration and specifying the following system properties:
+
+* `testing.containers.cassandra-image` - version of the Cassandra docker image to use, for example: `cassandra:4.0.4`
+* `testing.containers.stargate-image` - version of the Stargate coordinator docker image to use, for example: `stargateio/coordinator-4_0:v2.0.0-ALPHA-10-SNAPSHOT` (must be V2 coordinator for the target data store)
+* `testing.containers.cluster-version` - version of the cluster, for example: `4.0` (should be one of `3.11`, `4.0` or `6.8`)
+* `testing.containers.cluster-dse` - optional and only needed if DSE is used
+
+#### Executing against a running application
+
+The integration tests can also be executed against an already running instance of the application.
+This can be achieved by setting the `quarkus.http.test-host` system property when running the tests.
+You'll most likely need to specify the authentication token to use in the tests, by setting the `stargate.int-test.auth-token` system property.
+
+```shell
+./mvnw verify -DskipUnitTests -Dquarkus.http.test-host=1.2.3.4 -Dquarkus.http.test-port=4321 -Dstargate.int-test.auth-token=[AUTH_TOKEN]
+
+```
+
+#### Skipping integration tests
+
+You can skip the integration tests during the maven build by disabling the `int-tests` profile using the `-DskipITs` property:
+
+```shell script
+../mvnw verify -DskipITs
+```
+
+#### Skipping unit tests
+
+Alternatively you may want to run only integration tests but not unit tests (especially when changing integration tests).
+This can be achieved using the command:
+
+```
+../mvnw verify -DskipUnitTests
+```
+
+#### Troubleshooting failure to run ITs
+
+If your Integration Test run fails with some generic, non-descriptive error like:
+
+```
+[ERROR]   CollectionsResourceIntegrationTest » Runtime java.lang.reflect.InvocationTargetException
+```
+
+here are some things you should try:
+
+* Make sure your Docker Engine has enough resources. For example following have been observed:
+  * Docker Desktop defaults of 2 gigabytes of memory on Mac are not enough: try at least 4
+
+### Packaging and running the application
+
+The application can be packaged using:
+```shell script
+../mvnw package
+```
+This command produces the `quarkus-run.jar` file in the `target/quarkus-app/` directory.
+Be aware that it’s not an _über-jar_ as the dependencies are copied into the `target/quarkus-app/lib/` directory.
+
+The application is now runnable using `java -jar target/quarkus-app/quarkus-run.jar`.
+
+If you want to build an _über-jar_, execute the following command:
+```shell script
+../mvnw package -Dquarkus.package.type=uber-jar
+```
+
+The application, packaged as an _über-jar_, is now runnable using `java -jar target/*-runner.jar`.
+
+### Creating a native executable
+
+[Coming soon](https://github.com/stargate/stargate/issues/2156).
+
+### Creating a Docker image
+
+You can create a Docker image named `io.stargate/docsapi` using:
+```shell script
+../mvnw clean package -Dquarkus.container-image.build=true
+```
+
+Or, if you want to create a native-runnable Docker image named `io.stargate/docsapi-native` using:
+```shell script
+../mvnw clean package -Pnative -Dquarkus.native.container-build=true -Dquarkus.container-image.build=true
+```
+
+If you want to learn more about building container images, please consult [Container images](https://quarkus.io/guides/container-image).
+
+### Testing
+
+#### Manually
+
+The easiest way is to use the built-in GraphQL playground at http://localhost:8080/playground.
+
+You can then interact with the various GraphQL schemas by entering their URL in the playground's
+address bar, for example http://localhost:8080/graphql/{keyspace}.
+
+<!-- TODO integration tests -->
+
+[StargateRequestInfo]: ../sgv2-quarkus-common/src/main/java/io/stargate/sgv2/api/common/StargateRequestInfo.java
+[StargateBridgeClient]: ../sgv2-quarkus-common/src/main/java/io/stargate/sgv2/api/common/grpc/StargateBridgeClient.java
+[GraphqlResourceBase]: src/main/java/io/stargate/sgv2/graphql/web/resources/GraphqlResourceBase.java
+[StargateGraphqlContext]: src/main/java/io/stargate/sgv2/graphql/web/resources/StargateGraphqlContext.java
+[CassandraFetcher]: src/main/java/io/stargate/sgv2/graphql/schema/CassandraFetcher.java
+[PlaygroundResource]: src/main/java/io/stargate/sgv2/graphql/web/resources/PlaygroundResource.java
+[FilesResource]: src/main/java/io/stargate/sgv2/graphql/web/resources/FilesResource.java
+[GraphqlCache]: src/main/java/io/stargate/sgv2/graphql/web/resources/GraphqlCache.java
+[DdlSchemaBuilder]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/ddl/DdlSchemaBuilder.java
+[cqlfirst.ddl.fetchers]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/ddl/fetchers
+[KeyspaceDto]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/ddl/fetchers/KeyspaceDto.java
+[DmlSchemaBuilder]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/dml/DmlSchemaBuilder.java
+[FieldTypeCache]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/dml/FieldTypeCache.java
+[NameMapping]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/dml/NameMapping.java
+[CqlScalar]: src/main/java/io/stargate/sgv2/graphql/schema/scalars/CqlScalar.java
+[cqlfirst.dml.fetchers]: src/main/java/io/stargate/sgv2/graphql/schema/cqlfirst/dml/fetchers
+[AdminSchemaBuilder]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/AdminSchemaBuilder.java
+[graphqlfirst.fetchers.admin]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/fetchers/admin
+[DeploySchemaFetcherBase]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/fetchers/admin/DeploySchemaFetcherBase.java
+[SchemaSourceDao]: src/main/java/io/stargate/sgv2/graphql/persistence/graphqlfirst/SchemaSourceDao.java
+[SchemaProcessor]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/processor/SchemaProcessor.java
+[MappingModel]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/processor/MappingModel.java
+[CassandraMigrator]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/migration/CassandraMigrator.java
+[CqlDirectives]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/processor/CqlDirectives.java
+[graphqlfirst.fetchers.deployed]: src/main/java/io/stargate/sgv2/graphql/schema/graphqlfirst/fetchers/deployed
+
+[Stargate online docs]: https://stargate.io/docs/stargate/1.0/quickstart/quick_start-graphql.html
+
+## Quarkus Extensions
+
+This project uses various Quarkus extensions, modules that run on top of a Quarkus application.
+You can list, add and remove the extensions using the `quarkus ext` command.
+
+> **Note**
+> Please check the shared extensions introduced by the [sgv2-quarkus-common](../sgv2-quarkus-common/README.md#shared-quarkus-extensions) project.
+
+### `quarkus-arc`
+[Related guide](https://quarkus.io/guides/cdi-reference)
+
+The Quarkus DI solution.
+
+### `quarkus-container-image-docker`
+[Related guide](https://quarkus.io/guides/container-image)
+
+The project uses Docker for building the Container images.
+Properties for Docker image building are defined in the [pom.xml](pom.xml) file.
+Note that under the hood, the generated Dockerfiles under [src/main/docker](src/main/docker) are used when building the images.
+When updating the Quarkus version, the Dockerfiles must be re-generated.
+
+### `quarkus-smallrye-health`
+[Related guide](https://quarkus.io/guides/smallrye-health)
+
+The extension setups the health endpoints under `/stargate/health`.
+
+### `quarkus-smallrye-openapi`
+[Related guide](https://quarkus.io/guides/openapi-swaggerui)
+
+This project disables the OpenAPI and SwaggerUI, due to the availability of the GraphQL Playground.
 
