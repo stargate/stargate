@@ -116,6 +116,7 @@ public class RestApiV2QCqlIT extends RestApiV2QIntegrationTestBase {
         .body("code", Matchers.is(HttpStatus.SC_BAD_REQUEST))
         .body(
             "description",
-            Matchers.matchesPattern(".*INVALID_ARGUMENT: Keyspace .*no-such-keyspace.*does not exist.*"));
+            Matchers.matchesPattern(
+                ".*INVALID_ARGUMENT: Keyspace .*no-such-keyspace.*does not exist.*"));
   }
 }

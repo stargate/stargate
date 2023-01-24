@@ -86,11 +86,11 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
 
   @Test
   public void keyspacesGetAllBadToken() {
-        givenWithAuthToken("NotAPassword")
-            .when()
-            .get(BASE_PATH)
-            .then()
-            .statusCode(HttpStatus.SC_UNAUTHORIZED);
+    givenWithAuthToken("NotAPassword")
+        .when()
+        .get(BASE_PATH)
+        .then()
+        .statusCode(HttpStatus.SC_UNAUTHORIZED);
   }
 
   @Test
