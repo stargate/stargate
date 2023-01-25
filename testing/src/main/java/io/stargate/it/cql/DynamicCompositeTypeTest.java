@@ -9,9 +9,9 @@ import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import java.util.List;
-import org.junit.Ignore;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
@@ -65,7 +65,7 @@ public class DynamicCompositeTypeTest extends BaseIntegrationTest {
 
   @Test
   @Order(2)
-  @Ignore("Currently failing due to Stargate CQL codec not handling this correctly")
+  @Disabled("Currently failing due to Stargate CQL codec not handling this correctly")
   @DisplayName("Insert a row (no DCT), read all columns including DCT")
   public void insertSimpleRowReadWithDCT(CqlSession session) {
     // As with first test, insert without DCT value
