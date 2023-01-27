@@ -76,6 +76,7 @@ public class ScalarsDmlTest extends DmlTestBase {
                         && t != Column.Type.Point
                         && t != Column.Type.LineString
                         && t != Column.Type.Polygon
+                        && t != Column.Type.Composite
                         && t != Column.Type.DynamicComposite)
             .map(ScalarsDmlTest::getColumn)
             .toArray(ImmutableColumn[]::new));

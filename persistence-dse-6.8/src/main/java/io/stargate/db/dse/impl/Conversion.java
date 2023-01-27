@@ -35,6 +35,7 @@ import org.apache.cassandra.db.marshal.AsciiType;
 import org.apache.cassandra.db.marshal.BooleanType;
 import org.apache.cassandra.db.marshal.ByteType;
 import org.apache.cassandra.db.marshal.BytesType;
+import org.apache.cassandra.db.marshal.CompositeType;
 import org.apache.cassandra.db.marshal.CounterColumnType;
 import org.apache.cassandra.db.marshal.DecimalType;
 import org.apache.cassandra.db.marshal.DoubleType;
@@ -167,6 +168,7 @@ public class Conversion {
     types.put(BytesType.instance.getClass(), Column.Type.Blob);
     types.put(ByteType.instance.getClass(), Column.Type.Tinyint);
     types.put(BooleanType.instance.getClass(), Column.Type.Boolean);
+    types.put(CompositeType.class, Column.Type.Composite);
     types.put(CounterColumnType.instance.getClass(), Column.Type.Counter);
     types.put(SimpleDateType.instance.getClass(), Column.Type.Date);
     types.put(DecimalType.instance.getClass(), Column.Type.Decimal);

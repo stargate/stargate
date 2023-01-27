@@ -17,6 +17,7 @@ import org.apache.cassandra.db.marshal.AsciiType;
 import org.apache.cassandra.db.marshal.BooleanType;
 import org.apache.cassandra.db.marshal.ByteType;
 import org.apache.cassandra.db.marshal.BytesType;
+import org.apache.cassandra.db.marshal.CompositeType;
 import org.apache.cassandra.db.marshal.CounterColumnType;
 import org.apache.cassandra.db.marshal.DecimalType;
 import org.apache.cassandra.db.marshal.DoubleType;
@@ -205,6 +206,13 @@ class ConversionTest extends BaseDseTest {
       Column.ColumnType result = Conversion.getTypeFromInternal(BooleanType.instance);
 
       assertThat(result.rawType()).isEqualTo(Column.Type.Boolean);
+    }
+
+    @Test
+    public void compositeType() {
+      Column.ColumnType result = Conversion.getTypeFromInternal(CompositeType.getInstance(ByteType.instance));
+
+      assertThat(result.rawType()).isEqualTo(Column.Type.Composite);
     }
 
     @Test
