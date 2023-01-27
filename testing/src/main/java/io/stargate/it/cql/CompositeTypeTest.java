@@ -44,7 +44,7 @@ public class CompositeTypeTest extends BaseIntegrationTest {
   @DisplayName("Insert a row (no CT), read other columns")
   @Order(1)
   public void insertSimpleRowReadWithoutCT(CqlSession session) {
-    // Ok let's see if we can actually insert rows (without trying to set DCT)
+    // Ok let's see if we can actually insert rows (without trying to set CT)
     session.execute(
         SimpleStatement.builder(
                 "INSERT into composite_type_ks.composite_type_table (k, stuff) values (:k, :v)")
@@ -52,7 +52,7 @@ public class CompositeTypeTest extends BaseIntegrationTest {
             .addNamedValue("v", "text value")
             .build());
 
-    // And then fetch row inserted as well, first without accessing DCT
+    // And then fetch row inserted as well, first without accessing CT
     List<Row> rows =
         session
             .execute("select k,stuff from composite_type_ks.composite_type_table where k=123")
@@ -67,7 +67,7 @@ public class CompositeTypeTest extends BaseIntegrationTest {
   @Order(2)
   @Disabled("Currently failing due to Stargate CQL codec not handling this correctly")
   @DisplayName("Insert a row (no CT), read all columns including CT")
-  public void insertSimpleRowReadWithDCT(CqlSession session) {
+  public void insertSimpleRowReadWithCT(CqlSession session) {
     // As with first test, insert without CT value
     session.execute(
         SimpleStatement.builder(
