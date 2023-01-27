@@ -210,7 +210,8 @@ class ConversionTest extends BaseDseTest {
 
     @Test
     public void compositeType() {
-      Column.ColumnType result = Conversion.getTypeFromInternal(CompositeType.getInstance(ByteType.instance));
+      Column.ColumnType result =
+          Conversion.getTypeFromInternal(CompositeType.getInstance(ByteType.instance));
 
       assertThat(result.rawType()).isEqualTo(Column.Type.Composite);
     }
