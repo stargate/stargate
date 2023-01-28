@@ -112,8 +112,6 @@
 
 **Merged pull requests:**
 
-- Bump version to `1.0.71-SNAPSHOT` [\#2298](https://github.com/stargate/stargate/pull/2298) ([github-actions[bot]](https://github.com/apps/github-actions))
-
 ## [v2.0.3](https://github.com/stargate/stargate/tree/v2.0.3) (2022-12-06)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.2...v2.0.3)
