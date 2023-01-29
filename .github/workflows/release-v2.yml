@@ -522,9 +522,8 @@ jobs:
       - name: Rev Version
         if: success()
         uses: peter-evans/create-pull-request@v4
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "Bumping version for next v2 release"
           title: "Bumping version for next v2 release"
           branch-suffix: "short-commit-hash"
