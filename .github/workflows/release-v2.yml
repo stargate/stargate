@@ -184,9 +184,9 @@ jobs:
       - name: Upload API Zips
         uses: shogo82148/actions-upload-release-asset@v1
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{needs.create-release.outputs.release-upload-url}}
           asset_path: stargate-*api.zip
-          github_token: ${{ secrets.GITHUB_TOKEN }}
 
   # publish coordinator and sgv2-quarkus-common JARs to the OSSRH
   publish-ossrh:
@@ -523,7 +523,7 @@ jobs:
         if: success()
         uses: peter-evans/create-pull-request@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "Bumping version for next v2 release"
           title: "Bumping version for next v2 release"
           branch-suffix: "short-commit-hash"

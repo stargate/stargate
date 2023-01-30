@@ -171,7 +171,7 @@ jobs:
         if: success()
         uses: peter-evans/create-pull-request@v4
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "Bumping version for next release"
           title: "Bumping version for next release"
           branch-suffix: "short-commit-hash"
