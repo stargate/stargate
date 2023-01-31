@@ -18,33 +18,23 @@
 package io.stargate.sgv2.api.common.grpc;
 
 import io.grpc.StatusRuntimeException;
-import io.quarkus.grpc.GrpcClient;
-import io.quarkus.grpc.GrpcService;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.config.GrpcConfig;
-import io.stargate.sgv2.api.common.grpc.qualifier.Retriable;
-import javax.inject.Inject;
-import javax.inject.Singleton;
 
 /**
  * An implementation of the {@link StargateBridge} that executes retries based on the
  * GrpcConfig.Retries configuration.
  */
-@Singleton
-@GrpcService
-@Retriable
 public class RetriableStargateBridge implements StargateBridge {
 
   private final StargateBridge delegate;
 
   private final GrpcConfig.Retries retriesConfig;
 
-  @Inject
-  public RetriableStargateBridge(
-      @GrpcClient("bridge") StargateBridge delegate, GrpcConfig grpcConfig) {
+  public RetriableStargateBridge(StargateBridge delegate, GrpcConfig grpcConfig) {
     this.delegate = delegate;
     retriesConfig = grpcConfig.retries();
   }
