@@ -17,6 +17,7 @@
 
 package io.stargate.testing.metrics;
 
+import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.micrometer.core.instrument.Tags;
 import io.stargate.grpc.metrics.api.GrpcMetricsTagProvider;
@@ -28,7 +29,7 @@ public class AuthorityGrpcMetricsTagProvider implements GrpcMetricsTagProvider {
   public static final String AUTHORITY_KEY = "authority";
 
   @Override
-  public Tags getCallTags(ServerCall<?, ?> call) {
+  public Tags getCallTags(ServerCall<?, ?> call, Metadata requestHeaders) {
     return Optional.ofNullable(call.getAuthority())
         .map(a -> Tags.of(AUTHORITY_KEY, a))
         .orElseGet(() -> Tags.of(AUTHORITY_KEY, "UNKNOWN"));

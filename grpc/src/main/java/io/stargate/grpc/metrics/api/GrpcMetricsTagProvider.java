@@ -17,6 +17,7 @@
 
 package io.stargate.grpc.metrics.api;
 
+import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.micrometer.core.instrument.Tags;
 
@@ -29,7 +30,8 @@ public interface GrpcMetricsTagProvider {
    * Prometheus does not allow different tags from the single process.
    *
    * @param call Server-side gRPC call
+   * @param requestHeaders Call metadata
    * @return Tags
    */
-  Tags getCallTags(ServerCall<?, ?> call);
+  Tags getCallTags(ServerCall<?, ?> call, Metadata requestHeaders);
 }

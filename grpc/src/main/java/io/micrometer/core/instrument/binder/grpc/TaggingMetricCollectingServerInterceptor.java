@@ -80,7 +80,7 @@ public class TaggingMetricCollectingServerInterceptor extends MetricCollectingSe
   public <Q, A> ServerCall.Listener<Q> interceptCall(
       ServerCall<Q, A> call, Metadata requestHeaders, ServerCallHandler<Q, A> next) {
     // only first line changed from the super impl
-    final MetricSet metrics = metricsFor(call);
+    final MetricSet metrics = metricsFor(call, requestHeaders);
     final Consumer<Status.Code> responseStatusTiming =
         metrics.newProcessingDurationTiming(this.registry);
 
@@ -94,9 +94,9 @@ public class TaggingMetricCollectingServerInterceptor extends MetricCollectingSe
         responseStatusTiming);
   }
 
-  private MetricSet metricsFor(ServerCall<?, ?> call) {
+  private MetricSet metricsFor(ServerCall<?, ?> call, Metadata requestHeaders) {
     MethodDescriptor<?, ?> method = call.getMethodDescriptor();
-    Tags callTags = tagProvider.getCallTags(call);
+    Tags callTags = tagProvider.getCallTags(call, requestHeaders);
 
     // check if there is any extension, if not return super
     // otherwise use our implementation

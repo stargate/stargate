@@ -17,6 +17,7 @@
 
 package io.stargate.grpc.metrics.api;
 
+import io.grpc.Metadata;
 import io.grpc.ServerCall;
 import io.micrometer.core.instrument.Tags;
 
@@ -25,7 +26,7 @@ public class NoopGrpcMetricsTagProvider implements GrpcMetricsTagProvider {
 
   /** {@inheritDoc} */
   @Override
-  public Tags getCallTags(ServerCall<?, ?> call) {
+  public Tags getCallTags(ServerCall<?, ?> call, Metadata requestHeaders) {
     return Tags.empty();
   }
 }
