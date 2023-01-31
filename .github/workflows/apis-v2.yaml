@@ -313,7 +313,7 @@ jobs:
     needs: int-tests
 
     steps:
-      - uses: geekyeggo/delete-artifact@v1
+      - uses: geekyeggo/delete-artifact@v2
         with:
           name: |
             img-coordinator-4_0-${{ github.sha }}
