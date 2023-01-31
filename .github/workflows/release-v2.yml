@@ -57,12 +57,11 @@ jobs:
     steps:
       - name: Create release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{needs.resolve-tag.outputs.release-tag}}
-          release_name: Release ${{needs.resolve-tag.outputs.release-tag}}
+          name: Release ${{needs.resolve-tag.outputs.release-tag}}
           draft: false
           prerelease: false
 
@@ -112,14 +111,11 @@ jobs:
 
       # uploads the jars by referencing the release-upload-url from create-release job
       - name: Upload jars
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: shogo82148/actions-upload-release-asset@v1
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{needs.create-release.outputs.release-upload-url}}
           asset_path: stargate-jars.zip
-          asset_name: stargate-jars.zip
-          asset_content_type: application/zip
 
   # builds api uber-jars, zips and uploads the created release
   build-apis:
@@ -185,35 +181,12 @@ jobs:
           zip -j stargate-docsapi.zip apis/sgv2-docsapi/target/sgv2-docsapi-*-runner.jar apis/sgv2-docsapi/start-docsapi.sh
           zip -j stargate-graphqlapi.zip apis/sgv2-graphqlapi/target/sgv2-graphqlapi-*-runner.jar apis/sgv2-graphqlapi/start-graphqlapi.sh
 
-      - name: Upload REST API
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Upload API Zips
+        uses: shogo82148/actions-upload-release-asset@v1
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{needs.create-release.outputs.release-upload-url}}
-          asset_path: stargate-restapi.zip
-          asset_name: stargate-restapi.zip
-          asset_content_type: application/zip
-
-      - name: Upload Docs API
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{needs.create-release.outputs.release-upload-url}}
-          asset_path: stargate-docsapi.zip
-          asset_name: stargate-docsapi.zip
-          asset_content_type: application/zip
-
-      - name: Upload GraphQL API
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{needs.create-release.outputs.release-upload-url}}
-          asset_path: stargate-graphqlapi.zip
-          asset_name: stargate-graphqlapi.zip
-          asset_content_type: application/zip
+          asset_path: stargate-*api.zip
 
   # publish coordinator and sgv2-quarkus-common JARs to the OSSRH
   publish-ossrh:
@@ -387,7 +360,7 @@ jobs:
 
       # repeat the same for the AWS ECR
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           aws-access-key-id: ${{ secrets.ECR_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.ECR_SECRET_KEY }}
@@ -473,7 +446,7 @@ jobs:
           cosign-release: ${COSIGN_VERSION}
 
       - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v1
+        uses: aws-actions/configure-aws-credentials@v1-node16
         with:
           aws-access-key-id: ${{ secrets.ECR_ACCESS_KEY }}
           aws-secret-access-key: ${{ secrets.ECR_SECRET_KEY }}
@@ -548,10 +521,9 @@ jobs:
 
       - name: Rev Version
         if: success()
-        uses: peter-evans/create-pull-request@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: peter-evans/create-pull-request@v4
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "Bumping version for next v2 release"
           title: "Bumping version for next v2 release"
           branch-suffix: "short-commit-hash"
