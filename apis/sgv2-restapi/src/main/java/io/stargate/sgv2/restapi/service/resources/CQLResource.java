@@ -3,7 +3,7 @@ package io.stargate.sgv2.restapi.service.resources;
 import static io.stargate.sgv2.restapi.service.resources.RestResourceBase.convertRowsToResponse;
 import static io.stargate.sgv2.restapi.service.resources.RestResourceBase.parametersForPageSizeStateAndKeyspace;
 
-import io.quarkus.arc.lookup.LookupIfProperty;
+import io.quarkus.resteasy.reactive.server.EndpointDisabled;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
@@ -37,7 +37,10 @@ import org.jboss.resteasy.reactive.RestResponse;
 @Consumes(MediaType.TEXT_PLAIN)
 @SecurityRequirement(name = RestOpenApiConstants.SecuritySchemes.TOKEN)
 @Tag(ref = RestOpenApiConstants.Tags.DATA)
-@LookupIfProperty(name = "stargate.rest.cql.enabled", stringValue = "true", lookupIfMissing = false)
+@EndpointDisabled(
+    name = "stargate.rest.cql.disabled",
+    stringValue = "true",
+    disableIfMissing = true)
 public class CQLResource {
   @Inject protected StargateRequestInfo requestInfo;
 

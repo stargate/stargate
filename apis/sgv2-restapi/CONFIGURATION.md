@@ -8,9 +8,9 @@
 
 *Configuration for distinct endpoints*
 
-| Property                              | Type      | Default | Description                                        |
-|---------------------------------------|-----------|---------|----------------------------------------------------|
-| `stargate.rest.cql.enabled` | `boolean` | `false` | Whether /v2/cql endpoint should be enabled or not. |
+| Property                     | Type      | Default | Description                                         |
+|------------------------------|-----------|---------|-----------------------------------------------------|
+| `stargate.rest.cql.disabled` | `boolean` | `true`  | Whether /v2/cql endpoint should be disabled or not. |
 
 ## Quarkus Configuration
 
