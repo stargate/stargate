@@ -46,7 +46,7 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
 
     // This call will authorize lookup on "table" so no separate access checks
     // should be needed
-    return queryWithTableAsync(keyspaceName, tableName, table -> query)
+    return queryWithTableAsync(keyspaceName, tableName, true, table -> query)
         .map(response -> convertRowsToResponse(response, true));
   }
 
@@ -57,6 +57,7 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
     return queryWithTableAsync(
             keyspaceName,
             tableName,
+            true,
             table -> {
               if (!hasColumn(table, columnName)) {
                 throw new WebApplicationException(
@@ -79,22 +80,15 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
   @Override
   public Uni<RestResponse<Void>> deleteIndex(
       String keyspaceName, String tableName, String indexName, boolean ifExists) {
+
+    // Use 'queryWithTableAsync' to check existence of Keyspace and Table as well as access;
+    // existence and access to Index itself verified by persistence backend
     return queryWithTableAsync(
             keyspaceName,
             tableName,
-            table -> {
-              if (!ifExists
-                  && table.getIndexesList().stream()
-                      .noneMatch(i -> indexName.equals(i.getName()))) {
-                throw new WebApplicationException(
-                    String.format("Index '%s' not found.", indexName), Status.NOT_FOUND);
-              }
-              return new QueryBuilder()
-                  .drop()
-                  .index(keyspaceName, indexName)
-                  .ifExists(ifExists)
-                  .build();
-            })
+            true,
+            table ->
+                new QueryBuilder().drop().index(keyspaceName, indexName).ifExists(ifExists).build())
         .map(any -> RestResponse.noContent());
   }
 

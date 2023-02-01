@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.function.Function;
 import javax.inject.Inject;
 import javax.ws.rs.WebApplicationException;
@@ -44,6 +43,15 @@ public abstract class RestResourceBase {
   private static final Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>>
       MISSING_KEYSPACE = ks -> Uni.createFrom().nullItem();
 
+  private static final Function<String, Uni<? extends QueryOuterClass.Response>>
+      MISSING_KEYSPACE_RESPONSE =
+          ks ->
+              Uni.createFrom()
+                  .failure(
+                      new WebApplicationException(
+                          String.format("Keyspace '%s' not found", ks),
+                          Response.Status.BAD_REQUEST));
+
   protected static final BridgeProtoValueConverters PROTO_CONVERTERS =
       BridgeProtoValueConverters.instance();
   protected static final QueryOuterClass.QueryParameters PARAMETERS_FOR_LOCAL_QUORUM =
@@ -56,8 +64,8 @@ public abstract class RestResourceBase {
   // // // Helper methods for Schema access
 
   protected Uni<Schema.CqlKeyspaceDescribe> getKeyspaceAsync(
-      String keyspaceName, boolean checkIfAuthorized) {
-    return checkIfAuthorized
+      String keyspaceName, boolean checkAuthzForKeyspaceMetadata) {
+    return checkAuthzForKeyspaceMetadata
         ? schemaManager.getKeyspaceAuthorized(keyspaceName)
         : schemaManager.getKeyspace(keyspaceName);
   }
@@ -71,15 +79,18 @@ public abstract class RestResourceBase {
   }
 
   protected Uni<Schema.CqlTable> getTableAsync(
-      String keyspaceName, String tableName, boolean checkIfAuthorized) {
-    return checkIfAuthorized
+      String keyspaceName, String tableName, boolean checkAuthzForTableMetadata) {
+    return checkAuthzForTableMetadata
         ? schemaManager.getTableAuthorized(keyspaceName, tableName, MISSING_KEYSPACE)
         : schemaManager.getTable(keyspaceName, tableName, MISSING_KEYSPACE);
   }
 
   protected Uni<Schema.CqlTable> getTableAsyncCheckExistence(
-      String keyspaceName, String tableName, boolean checkIfAuthorized, Response.Status failCode) {
-    return getTableAsync(keyspaceName, tableName, checkIfAuthorized)
+      String keyspaceName,
+      String tableName,
+      boolean checkAuthzForTableMetadata,
+      Response.Status failCode) {
+    return getTableAsync(keyspaceName, tableName, checkAuthzForTableMetadata)
         .onItem()
         .ifNull()
         .switchTo(
@@ -92,55 +103,41 @@ public abstract class RestResourceBase {
                             failCode)));
   }
 
-  protected Uni<Optional<Schema.CqlTable>> findTableAsync(
-      String keyspaceName, String tableName, boolean checkIfAuthorized) {
-    return getTableAsync(keyspaceName, tableName, checkIfAuthorized)
-        .map(t -> Optional.ofNullable(t));
-  }
-
   // // // Helper methods for Query execution
 
   /**
-   * Gets the metadata of a table (verifying that the call is authorized), then uses it to build
-   * another CQL query and executes it.
+   * Gets the metadata of a table (optionally verifying that the access to table metadata is
+   * authorized), then uses it to build another CQL query and executes it.
    */
   protected Uni<QueryOuterClass.Response> queryWithTableAsync(
       String keyspaceName,
       String tableName,
+      boolean checkAuthzForTableMetadata,
       Function<Schema.CqlTable, QueryOuterClass.Query> queryProducer) {
-    return executeQueryAsync(
-        keyspaceName,
-        tableName,
-        maybeTable -> {
-          Schema.CqlTable table =
-              maybeTable.orElseThrow(
-                  () ->
-                      new WebApplicationException(
-                          String.format(
-                              "Table '%s' not found (in keyspace '%s')", tableName, keyspaceName),
-                          Response.Status.BAD_REQUEST));
-          return queryProducer.apply(table);
-        });
+
+    Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryProducerUni =
+        table -> {
+          if (table == null) {
+            return Uni.createFrom()
+                .failure(
+                    new WebApplicationException(
+                        String.format(
+                            "Table '%s' not found (in keyspace '%s')", tableName, keyspaceName),
+                        Response.Status.BAD_REQUEST));
+          }
+          return Uni.createFrom().item(queryProducer.apply(table));
+        };
+
+    if (checkAuthzForTableMetadata) {
+      return schemaManager.queryWithSchemaAuthorized(
+          keyspaceName, tableName, MISSING_KEYSPACE_RESPONSE, queryProducerUni);
+    }
+    return schemaManager.queryWithSchema(
+        keyspaceName, tableName, MISSING_KEYSPACE_RESPONSE, queryProducerUni);
   }
 
   protected Uni<QueryOuterClass.Response> executeQueryAsync(QueryOuterClass.Query query) {
     return requestInfo.getStargateBridge().executeQuery(query);
-  }
-
-  protected Uni<QueryOuterClass.Response> executeQueryAsync(
-      String keyspaceName,
-      String tableName,
-      Function<Optional<Schema.CqlTable>, QueryOuterClass.Query> queryProducer) {
-
-    // TODO implement optimistic queries (probably requires changes directly in SchemaManager)
-    Uni<Optional<Schema.CqlTable>> maybeTable = findTableAsync(keyspaceName, tableName, true);
-    return maybeTable
-        .onItem()
-        .transformToUni(table -> executeQueryAsync(queryProducer.apply(table)));
-  }
-
-  protected Uni<RestResponse<Object>> fetchRowsAsync(QueryOuterClass.Query query, boolean raw) {
-    return executeQueryAsync(query).map(response -> convertRowsToResponse(response, raw));
   }
 
   // // // Helper methods for JSON decoding
@@ -232,7 +229,7 @@ public abstract class RestResourceBase {
     return RestResponse.ok(response);
   }
 
-  static List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
+  protected static List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
     FromProtoConverter converter =
         BridgeProtoValueConverters.instance().fromProtoConverter(rs.getColumnsList());
     List<Map<String, Object>> resultRows = new ArrayList<>();

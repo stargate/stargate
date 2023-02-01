@@ -35,6 +35,7 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
     return queryWithTableAsync(
             keyspaceName,
             tableName,
+            true,
             (tableDef) -> {
               Column.Kind kind =
                   columnDefinition.isStatic() ? Column.Kind.STATIC : Column.Kind.REGULAR;
@@ -83,6 +84,7 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
     return queryWithTableAsync(
             keyspaceName,
             tableName,
+            true,
             (tableDef) -> {
               // Optional, could let backend verify but this gives us better error reporting
               if (findColumn(tableDef, columnName) == null) {
@@ -106,6 +108,7 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
     return queryWithTableAsync(
             keyspaceName,
             tableName,
+            true,
             (tableDef) -> {
               // Optional, could let backend verify but this gives us better error reporting
               if (findColumn(tableDef, columnName) == null) {

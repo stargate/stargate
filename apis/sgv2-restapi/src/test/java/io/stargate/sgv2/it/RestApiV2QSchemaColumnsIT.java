@@ -253,9 +253,7 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
             HttpStatus.SC_BAD_REQUEST);
     ApiError apiError = readJsonAs(response, ApiError.class);
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    // 02-Sep-2022, tatu: Error message is bit misleading but it is what it is; verify:
-    assertThat(apiError.description())
-        .matches("Table 'table' not found.*keyspace.*" + badKeyspace + ".*");
+    assertThat(apiError.description()).matches("Keyspace '" + badKeyspace + "' not found.*");
   }
 
   @Test
@@ -323,9 +321,7 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
     String response = tryDeleteColumn(badKeyspace, "table", "id", HttpStatus.SC_BAD_REQUEST);
     ApiError apiError = readJsonAs(response, ApiError.class);
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    // 02-Sep-2022, tatu: Error message is bit misleading but it is what it is; verify:
-    assertThat(apiError.description())
-        .matches("Table 'table' not found.*keyspace.*" + badKeyspace + ".*");
+    assertThat(apiError.description()).matches("Keyspace '" + badKeyspace + "' not found.*");
   }
 
   @Test

@@ -43,6 +43,12 @@ These are independently scalable microservices which various APIs, typically HTT
 
 Each API Service contains its own integration test suite that tests it against the coordinator node and supported Cassandra backends. There is also a [sgv2-quarkus-common](apis/sgv2-quarkus-common) module containing utilities that may be used by all Java/Quarkus based API services.
 
+**Warning:** Support for Cassandra 3.11 is considered deprecated and will be removed in the Stargate v3 release: [details](https://github.com/stargate/stargate/discussions/2242).
+
+**Warning:** Support for Cassandra 3.11 is considered deprecated and will be removed in the Stargate v3 release: [details](https://github.com/stargate/stargate/discussions/2242).
+
+- **Authentication Services**: Responsible for authentication to Stargate
+
 ### Coordinator Node
 Coordinator nodes participate as non-data storing nodes in the backing Cassandra cluster, which enables them to read and write data more efficiently. Stargate Coordinator nodes can also be scaled independently. Coordinator nodes expose gRPC and CQL interfaces for fast access by client applications. The following are the key modules comprising the coordinator and its exposed interfaces:
 
@@ -72,7 +78,7 @@ Stargate coordinator nodes also support a pluggable authentication and authoriza
 - [authnz](authnz): Interface for working with auth providers
 - [auth-api](auth-api): REST service for generating auth tokens
 - [auth-table-based-service](auth-table-based-service): Service to store tokens in the database
-- [auth-jtw-based-service](auth-jwt-based-service): Service to authenticate using externally generated JSON Web Tokens (JWTs)
+- [auth-jtw-service](auth-jwt-service): Service to authenticate using externally generated JSON Web Tokens (JWTs)
 
 #### Coordinator Node Testing
 The following modules provide support for testing:

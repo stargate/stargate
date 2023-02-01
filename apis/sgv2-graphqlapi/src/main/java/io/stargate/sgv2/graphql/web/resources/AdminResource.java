@@ -15,7 +15,11 @@
  */
 package io.stargate.sgv2.graphql.web.resources;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.GraphQL;
+import io.smallrye.mutiny.Uni;
+import io.stargate.sgv2.api.common.StargateRequestInfo;
+import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.graphql.web.models.GraphqlFormData;
 import io.stargate.sgv2.graphql.web.models.GraphqlJsonBody;
 import javax.inject.Inject;
@@ -27,9 +31,8 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
+import org.jboss.resteasy.reactive.RestResponse;
 
 /**
  * A GraphQL service that allows users to deploy and manage custom GraphQL schemas for their
@@ -43,41 +46,41 @@ public class AdminResource extends StargateGraphqlResourceBase {
   private final GraphQL graphql;
 
   @Inject
-  public AdminResource(GraphqlCache graphqlCache) {
+  public AdminResource(
+      StargateRequestInfo requestInfo,
+      ObjectMapper objectMapper,
+      StargateBridgeClient bridgeClient,
+      GraphqlCache graphqlCache) {
+    super(requestInfo, objectMapper, bridgeClient, graphqlCache);
     this.graphql = graphqlCache.getSchemaFirstAdminGraphql();
   }
 
   @GET
-  public void get(
+  public Uni<RestResponse<?>> get(
       @QueryParam("query") String query,
       @QueryParam("operationName") String operationName,
-      @QueryParam("variables") String variables,
-      @Suspended AsyncResponse asyncResponse) {
+      @QueryParam("variables") String variables) {
 
-    get(query, operationName, variables, graphql, newContext(), asyncResponse);
+    return get(query, operationName, variables, graphql, newContext());
   }
 
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
-  public void postJson(
-      GraphqlJsonBody jsonBody,
-      @QueryParam("query") String queryFromUrl,
-      @Suspended AsyncResponse asyncResponse) {
+  public Uni<RestResponse<?>> postJson(
+      GraphqlJsonBody jsonBody, @QueryParam("query") String queryFromUrl) {
 
-    postJson(jsonBody, queryFromUrl, graphql, newContext(), asyncResponse);
+    return postJson(jsonBody, queryFromUrl, graphql, newContext());
   }
 
   @POST
   @Consumes(MediaType.MULTIPART_FORM_DATA)
-  public void postMultipartJson(
-      @BeanParam GraphqlFormData formData, @Suspended AsyncResponse asyncResponse) {
-    postMultipartJson(formData, graphql, newContext(), asyncResponse);
+  public Uni<RestResponse<?>> postMultipartJson(@BeanParam GraphqlFormData formData) {
+    return postMultipartJson(formData, graphql, newContext());
   }
 
   @POST
   @Consumes(APPLICATION_GRAPHQL)
-  public void postGraphql(String query, @Suspended AsyncResponse asyncResponse) {
-
-    postGraphql(query, graphql, newContext(), asyncResponse);
+  public Uni<RestResponse<?>> postGraphql(String query) {
+    return postGraphql(query, graphql, newContext());
   }
 }

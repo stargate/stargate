@@ -1,6 +1,8 @@
 package io.stargate.sgv2.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
 
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
@@ -177,21 +179,49 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
     // And back to "no indexes"
     indexes = findAllIndexesFromSystemSchema(testKeyspaceName(), tableName);
     assertThat(indexes).isEmpty();
+  }
 
-    // And now an invalid case (could extract into separate test method in future
-    indexName = "no_such_index";
-    deletePath = endpointPathForIndexDelete(testKeyspaceName(), tableName, indexName);
+  @Test
+  public void indexDropNoSuchTable() {
+    final String tableName = "no_such_table";
+    String indexName = "no_such_index";
+    String deletePath = endpointPathForIndexDelete(testKeyspaceName(), tableName, indexName);
+
+    givenWithAuth()
+        .when()
+        .delete(deletePath)
+        .then()
+        .statusCode(HttpStatus.SC_BAD_REQUEST)
+        .body("code", is(HttpStatus.SC_BAD_REQUEST))
+        .body("description", startsWith("Table 'no_such_table' not found"));
+  }
+
+  @Test
+  public void indexDropNoSuchIndex() {
+    final String tableName = testTableName();
+    String indexName = "no_such_index";
+    createTestTable(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList("id text", "firstName text", "lastName text", "email list<text>"),
+        Arrays.asList("id"),
+        Arrays.asList());
+    String deletePath = endpointPathForIndexDelete(testKeyspaceName(), tableName, indexName);
     String response =
         givenWithAuth()
             .when()
             .delete(deletePath)
             .then()
-            .statusCode(HttpStatus.SC_NOT_FOUND)
+            .statusCode(HttpStatus.SC_BAD_REQUEST)
             .extract()
             .asString();
     ApiError apiError = readJsonAs(response, ApiError.class);
-    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_NOT_FOUND);
-    assertThat(apiError.description()).isEqualTo("Index '" + indexName + "' not found.");
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+
+    // Alas, since we get failure message from persistence backend, message varies a bit
+    // (Cassandra-3.11 differs from 4.0) -- "Index 'KS.INDEX' doesn't exist" vs "Index 'INDEX' could
+    // not found"
+    assertThat(apiError.description()).containsPattern(".*Index '.*" + indexName + ".*");
 
     // But ok if defining idempotent method
     givenWithAuth()
@@ -248,7 +278,7 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
         .then()
         .statusCode(HttpStatus.SC_BAD_REQUEST)
         .body("code", Matchers.is(HttpStatus.SC_BAD_REQUEST))
-        .body("description", Matchers.startsWith("Table 'no-such-table' not found"));
+        .body("description", Matchers.startsWith("Keyspace 'no-such-keyspace' not found"));
 
     // Then try with non-existing table
     givenWithAuth()

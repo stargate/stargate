@@ -15,11 +15,18 @@
  */
 package io.stargate.sgv2.graphql.web.resources;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import graphql.GraphQL;
 import graphql.GraphqlErrorException;
+import io.smallrye.mutiny.Uni;
+import io.smallrye.mutiny.infrastructure.Infrastructure;
+import io.stargate.sgv2.api.common.StargateRequestInfo;
+import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.graphql.web.models.GraphqlJsonBody;
 import java.util.Optional;
+import java.util.concurrent.CompletionStage;
 import java.util.regex.Pattern;
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -28,10 +35,9 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.container.AsyncResponse;
-import javax.ws.rs.container.Suspended;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response.Status;
+import org.jboss.resteasy.reactive.RestResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,109 +58,163 @@ public class DmlResource extends StargateGraphqlResourceBase {
   private static final Logger LOG = LoggerFactory.getLogger(DmlResource.class);
   static final Pattern KEYSPACE_NAME_PATTERN = Pattern.compile("\\w+");
 
+  @Inject
+  public DmlResource(
+      StargateRequestInfo requestInfo,
+      ObjectMapper objectMapper,
+      StargateBridgeClient bridgeClient,
+      GraphqlCache graphqlCache) {
+    super(requestInfo, objectMapper, bridgeClient, graphqlCache);
+  }
+
   @GET
-  public void get(
+  public Uni<RestResponse<?>> get(
       @QueryParam("query") String query,
       @QueryParam("operationName") String operationName,
-      @QueryParam("variables") String variables,
-      @Suspended AsyncResponse asyncResponse) {
+      @QueryParam("variables") String variables) {
 
-    GraphQL graphql = getDefaultGraphql();
-    get(query, operationName, variables, graphql, newContext(), asyncResponse);
+    return getDefaultGraphql()
+        .flatMap(graphql -> get(query, operationName, variables, graphql, newContext()));
   }
 
   @GET
   @Path("/{keyspaceName}")
-  public void get(
+  public Uni<RestResponse<?>> get(
       @PathParam("keyspaceName") String keyspaceName,
       @QueryParam("query") String query,
       @QueryParam("operationName") String operationName,
-      @QueryParam("variables") String variables,
-      @Suspended AsyncResponse asyncResponse) {
+      @QueryParam("variables") String variables) {
 
-    GraphQL graphql = getGraphql(keyspaceName);
-    get(query, operationName, variables, graphql, newContext(), asyncResponse);
+    return getGraphql(keyspaceName)
+        .flatMap(graphql -> get(query, operationName, variables, graphql, newContext()));
   }
 
   @POST
   @Consumes(MediaType.APPLICATION_JSON)
-  public void postJson(
-      GraphqlJsonBody jsonBody,
-      @QueryParam("query") String queryFromUrl,
-      @Suspended AsyncResponse asyncResponse) {
+  public Uni<RestResponse<?>> postJson(
+      GraphqlJsonBody jsonBody, @QueryParam("query") String queryFromUrl) {
 
-    GraphQL graphql = getDefaultGraphql();
-    postJson(jsonBody, queryFromUrl, graphql, newContext(), asyncResponse);
+    return getDefaultGraphql()
+        .flatMap(graphql -> postJson(jsonBody, queryFromUrl, graphql, newContext()));
   }
 
   @POST
   @Path("/{keyspaceName}")
   @Consumes(MediaType.APPLICATION_JSON)
-  public void postJson(
+  public Uni<RestResponse<?>> postJson(
       @PathParam("keyspaceName") String keyspaceName,
       GraphqlJsonBody jsonBody,
-      @QueryParam("query") String queryFromUrl,
-      @Suspended AsyncResponse asyncResponse) {
+      @QueryParam("query") String queryFromUrl) {
 
-    GraphQL graphql = getGraphql(keyspaceName);
-    postJson(jsonBody, queryFromUrl, graphql, newContext(), asyncResponse);
+    return getGraphql(keyspaceName)
+        .flatMap(graphql -> postJson(jsonBody, queryFromUrl, graphql, newContext()));
   }
 
   @POST
   @Consumes(APPLICATION_GRAPHQL)
-  public void postGraphql(
-      String query,
-      @HeaderParam("X-Cassandra-Token") String token,
-      @Suspended AsyncResponse asyncResponse) {
+  public Uni<RestResponse<?>> postGraphql(
+      String query, @HeaderParam("X-Cassandra-Token") String token) {
 
-    GraphQL graphql = getDefaultGraphql();
-    postGraphql(query, graphql, newContext(), asyncResponse);
+    return getDefaultGraphql().flatMap(graphql -> postGraphql(query, graphql, newContext()));
   }
 
   @POST
   @Path("/{keyspaceName}")
   @Consumes(APPLICATION_GRAPHQL)
-  public void postGraphql(
+  public Uni<RestResponse<?>> postGraphql(
       @PathParam("keyspaceName") String keyspaceName,
       String query,
-      @HeaderParam("X-Cassandra-Token") String token,
-      @Suspended AsyncResponse asyncResponse) {
+      @HeaderParam("X-Cassandra-Token") String token) {
 
-    GraphQL graphql = getGraphql(keyspaceName);
-    postGraphql(query, graphql, newContext(), asyncResponse);
+    return getGraphql(keyspaceName).flatMap(graphql -> postGraphql(query, graphql, newContext()));
   }
 
-  private GraphQL getGraphql(String keyspaceName) {
-    if (!KEYSPACE_NAME_PATTERN.matcher(keyspaceName).matches()) {
-      LOG.warn("Invalid keyspace in URI, this could be an XSS attack: {}", keyspaceName);
-      // Do not reflect back the value
-      throw graphqlError(Status.BAD_REQUEST, "Invalid keyspace name");
-    }
+  private Uni<GraphQL> getGraphql(String keyspaceName) {
+    return Uni.createFrom()
+        .deferred(
+            () -> {
+              if (!KEYSPACE_NAME_PATTERN.matcher(keyspaceName).matches()) {
+                LOG.warn("Invalid keyspace in URI, this could be an XSS attack: {}", keyspaceName);
+                // Do not reflect back the value
+                return Uni.createFrom()
+                    .failure(graphqlError(Status.BAD_REQUEST, "Invalid keyspace name"));
+              }
 
-    if (!isAuthorized(keyspaceName)) {
-      throw graphqlError(Status.UNAUTHORIZED, "Not authorized");
-    }
+              // call is authorized
+              return isAuthorized(keyspaceName)
+                  .flatMap(
+                      authorized -> {
 
-    try {
-      String decoratedKeyspaceName = bridge.decorateKeyspaceName(keyspaceName);
-      Optional<GraphQL> graphql = graphqlCache.getDml(bridge, keyspaceName);
-      return graphql.orElseThrow(
-          () ->
-              graphqlError(Status.NOT_FOUND, String.format("Unknown keyspace '%s'", keyspaceName)));
-    } catch (GraphqlErrorException e) {
-      throw graphqlError(Status.INTERNAL_SERVER_ERROR, e);
-    } catch (Exception e) {
-      LOG.error("Unexpected error while accessing keyspace {}", keyspaceName, e);
-      throw graphqlError(
-          Status.INTERNAL_SERVER_ERROR,
-          "Unexpected error while accessing keyspace: " + e.getMessage());
-    }
+                        // fail if not
+                        if (!authorized) {
+                          return Uni.createFrom()
+                              .failure(graphqlError(Status.UNAUTHORIZED, "Not authorized"));
+                        }
+
+                        return getDml(keyspaceName)
+
+                            // if we have no graphql fail
+                            .onItem()
+                            .ifNull()
+                            .failWith(
+                                graphqlError(
+                                    Status.NOT_FOUND,
+                                    String.format("Unknown keyspace '%s'", keyspaceName)))
+
+                            // on failure map to response
+                            .onFailure()
+                            .recoverWithUni(
+                                e -> {
+                                  // in case of the GraphqlErrorException use graphqlError mapper
+                                  // otherwise generic exception
+                                  if (e instanceof GraphqlErrorException gee) {
+                                    return Uni.createFrom()
+                                        .failure(graphqlError(Status.INTERNAL_SERVER_ERROR, gee));
+                                  } else {
+                                    LOG.error(
+                                        "Unexpected error while accessing keyspace {}",
+                                        keyspaceName,
+                                        e);
+                                    return Uni.createFrom()
+                                        .failure(
+                                            graphqlError(
+                                                Status.INTERNAL_SERVER_ERROR,
+                                                "Unexpected error while accessing keyspace: "
+                                                    + e.getMessage()));
+                                  }
+                                });
+                      });
+            });
   }
 
-  private GraphQL getDefaultGraphql() {
-    return graphqlCache
-        .getDefaultKeyspaceName(bridge)
-        .map(this::getGraphql)
-        .orElseThrow(() -> graphqlError(Status.NOT_FOUND, "No default keyspace defined"));
+  private Uni<GraphQL> getDml(String keyspaceName) {
+    return Uni.createFrom()
+        .optional(() -> graphqlCache.getDml(bridgeClient, keyspaceName))
+
+        // always run subscription on workers thread
+        // we are blocking inside of the graphqlCache
+        .runSubscriptionOn(Infrastructure.getDefaultWorkerPool());
+  }
+
+  private Uni<GraphQL> getDefaultGraphql() {
+    CompletionStage<Optional<String>> result =
+        graphqlCache.getDefaultKeyspaceNameAsync(bridgeClient);
+
+    // create from future
+    return Uni.createFrom()
+        .future(result.toCompletableFuture())
+
+        // map optional to uni
+        .flatMap(optional -> Uni.createFrom().optional(optional))
+
+        // if we have keyspace, map to graphql
+        .onItem()
+        .ifNotNull()
+        .transformToUni(this::getGraphql)
+
+        // if we end up empty throw exception
+        .onItem()
+        .ifNull()
+        .failWith(graphqlError(Status.NOT_FOUND, "No default keyspace defined"));
   }
 }

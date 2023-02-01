@@ -43,15 +43,18 @@ import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridge;
-import io.stargate.sgv2.api.common.BridgeTest;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.grpc.UnauthorizedKeyspaceException;
 import io.stargate.sgv2.api.common.grpc.UnauthorizedTableException;
+import io.stargate.sgv2.common.bridge.BridgeTest;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Function;
 import javax.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
@@ -80,11 +83,14 @@ class SchemaManagerTest extends BridgeTest {
 
   ArgumentCaptor<QueryOuterClass.Query> queryCaptor;
 
+  ArgumentCaptor<Schema.QueryWithSchema> queryWithSchemaCaptor;
+
   @BeforeEach
   public void init() {
     describeKeyspaceCaptor = ArgumentCaptor.forClass(Schema.DescribeKeyspaceQuery.class);
     schemaReadsCaptor = ArgumentCaptor.forClass(Schema.AuthorizeSchemaReadsRequest.class);
     queryCaptor = ArgumentCaptor.forClass(QueryOuterClass.Query.class);
+    queryWithSchemaCaptor = ArgumentCaptor.forClass(Schema.QueryWithSchema.class);
     doAnswer(invocation -> bridge).when(requestInfo).getStargateBridge();
   }
 
@@ -114,6 +120,7 @@ class SchemaManagerTest extends BridgeTest {
 
       result.awaitItem().assertItem(null).assertCompleted();
       verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
 
       // assert keyspace not in cache
       assertThat(keyspaceCache.as(CaffeineCache.class).keySet())
@@ -165,9 +172,9 @@ class SchemaManagerTest extends BridgeTest {
               .withSubscriber(UniAssertSubscriber.create());
       updatedResult.awaitItem().assertItem(response).assertCompleted();
 
-      // why 3 times, first it was an error
-      // but errors are also cached, so we assume it's cached, for second get we need to validate
-      verify(bridgeService, times(3)).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      // 2 calls, first error so ignore, second fetched no need to revalidate as fresh
+      verify(bridgeService, times(2)).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
       assertThat(describeKeyspaceCaptor.getAllValues())
           .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
 
@@ -202,6 +209,7 @@ class SchemaManagerTest extends BridgeTest {
 
       result.awaitItem().assertItem(response).assertCompleted();
       verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
 
       // assert keyspace in cache
       assertThat(keyspaceCache.as(CaffeineCache.class).keySet())
@@ -261,6 +269,7 @@ class SchemaManagerTest extends BridgeTest {
       // tenants)
       result2.awaitItem().assertItem(response).assertCompleted();
       verify(bridgeService, times(2)).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
 
       // assert keyspace in cache
       assertThat(keyspaceCache.as(CaffeineCache.class).keySet())
@@ -269,7 +278,7 @@ class SchemaManagerTest extends BridgeTest {
     }
 
     @Test
-    public void cachedUpdated() {
+    public void cachedUpdated() throws Exception {
       int hash = RandomUtils.nextInt();
       String keyspace = RandomStringUtils.randomAlphanumeric(16);
       Schema.CqlKeyspace value = Schema.CqlKeyspace.newBuilder().setName(keyspace).build();
@@ -323,12 +332,17 @@ class SchemaManagerTest extends BridgeTest {
       updatedResult.awaitItem().assertItem(updatedResponse).assertCompleted();
 
       verify(bridgeService, times(2)).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
       assertThat(describeKeyspaceCaptor.getAllValues())
           .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
 
       // assert keyspace in cache
-      assertThat(keyspaceCache.as(CaffeineCache.class).keySet())
-          .contains(new CompositeCacheKey(keyspace, Optional.empty()));
+      CompletableFuture<Object> cachedKeyspace =
+          keyspaceCache
+              .as(CaffeineCache.class)
+              .getIfPresent(new CompositeCacheKey(keyspace, Optional.empty()));
+      assertThat(cachedKeyspace).isNotNull();
+      assertThat(cachedKeyspace.get()).isEqualTo(updatedResponse);
     }
 
     @Test
@@ -440,12 +454,59 @@ class SchemaManagerTest extends BridgeTest {
       updatedResult.awaitItem().assertItem(null).assertCompleted();
 
       verify(bridgeService, times(2)).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
       assertThat(describeKeyspaceCaptor.getAllValues())
           .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
 
       // assert keyspace not in cache
       assertThat(keyspaceCache.as(CaffeineCache.class).keySet())
           .doesNotContain(new CompositeCacheKey(keyspace, Optional.empty()));
+    }
+
+    @Test
+    public void cachedHashNotValidated() {
+      int hash = RandomUtils.nextInt();
+      String keyspace = RandomStringUtils.randomAlphanumeric(16);
+      Schema.CqlKeyspace value = Schema.CqlKeyspace.newBuilder().setName(keyspace).build();
+      Schema.CqlKeyspaceDescribe response =
+          Schema.CqlKeyspaceDescribe.newBuilder()
+              .setCqlKeyspace(value)
+              .setHash(Int32Value.newBuilder().setValue(hash))
+              .build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.CqlKeyspaceDescribe> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(response);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .describeKeyspace(any(), any());
+
+      UniAssertSubscriber<Schema.CqlKeyspaceDescribe> result =
+          schemaManager
+              .getKeyspace(keyspace, false)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+      result.awaitItem().assertItem(response).assertCompleted();
+
+      UniAssertSubscriber<Schema.CqlKeyspaceDescribe> cachedResult =
+          schemaManager
+              .getKeyspace(keyspace, false)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+      cachedResult.awaitItem().assertItem(response).assertCompleted();
+
+      verify(bridgeService, times(1)).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
+      assertThat(describeKeyspaceCaptor.getAllValues())
+          .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
+
+      // assert keyspace in cache
+      assertThat(keyspaceCache.as(CaffeineCache.class).keySet())
+          .contains(new CompositeCacheKey(keyspace, Optional.empty()));
     }
   }
 
@@ -512,6 +573,78 @@ class SchemaManagerTest extends BridgeTest {
                             assertThat(read.getElementType())
                                 .isEqualTo(Schema.SchemaRead.ElementType.KEYSPACE);
                           }));
+    }
+
+    @Test
+    public void cachedHashNotValidated() {
+      String keyspace = RandomStringUtils.randomAlphanumeric(16);
+      Schema.CqlKeyspace value = Schema.CqlKeyspace.newBuilder().setName(keyspace).build();
+      Schema.AuthorizeSchemaReadsResponse authResponse =
+          Schema.AuthorizeSchemaReadsResponse.newBuilder().addAuthorized(true).build();
+      Schema.CqlKeyspaceDescribe response =
+          Schema.CqlKeyspaceDescribe.newBuilder().setCqlKeyspace(value).build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.AuthorizeSchemaReadsResponse> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(authResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .authorizeSchemaReads(any(), any());
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.CqlKeyspaceDescribe> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(response);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .describeKeyspace(any(), any());
+
+      UniAssertSubscriber<Schema.CqlKeyspaceDescribe> result =
+          schemaManager
+              .getKeyspaceAuthorized(keyspace, false)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+      result.awaitItem().assertItem(response).assertCompleted();
+
+      UniAssertSubscriber<Schema.CqlKeyspaceDescribe> cachedResult =
+          schemaManager
+              .getKeyspaceAuthorized(keyspace, false)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+      cachedResult.awaitItem().assertItem(response).assertCompleted();
+
+      verify(bridgeService, times(2)).authorizeSchemaReads(schemaReadsCaptor.capture(), any());
+      verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
+
+      // assert keyspace in cache
+      assertThat(keyspaceCache.as(CaffeineCache.class).keySet())
+          .contains(new CompositeCacheKey(keyspace, Optional.empty()));
+
+      // asert auth request
+      assertThat(schemaReadsCaptor.getAllValues())
+          .hasSize(2)
+          .allSatisfy(
+              captured ->
+                  assertThat(captured)
+                      .extracting(Schema.AuthorizeSchemaReadsRequest::getSchemaReadsList)
+                      .satisfies(
+                          reads ->
+                              assertThat(reads)
+                                  .singleElement()
+                                  .satisfies(
+                                      read -> {
+                                        assertThat(read.getKeyspaceName()).isEqualTo(keyspace);
+                                        assertThat(read.getElementType())
+                                            .isEqualTo(Schema.SchemaRead.ElementType.KEYSPACE);
+                                      })));
     }
 
     @Test
@@ -613,6 +746,7 @@ class SchemaManagerTest extends BridgeTest {
 
       verify(bridgeService, times(2)).describeKeyspace(describeKeyspaceCaptor.capture(), any());
       verify(bridgeService).executeQuery(queryCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
 
       // assert both keyspaces in cache
       Set<Object> cacheState = keyspaceCache.as(CaffeineCache.class).keySet();
@@ -729,6 +863,7 @@ class SchemaManagerTest extends BridgeTest {
 
       verify(bridgeService, times(2)).describeKeyspace(describeKeyspaceCaptor.capture(), any());
       verify(bridgeService).executeQuery(queryCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
 
       // assert only fetched keyspaces in cache
       Set<Object> cacheState = keyspaceCache.as(CaffeineCache.class).keySet();
@@ -824,6 +959,7 @@ class SchemaManagerTest extends BridgeTest {
       verify(bridgeService).authorizeSchemaReads(schemaReadsCaptor.capture(), any());
       verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
       verify(bridgeService).executeQuery(queryCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
 
       // only authorized keyspace in cache
       Set<Object> cacheState = keyspaceCache.as(CaffeineCache.class).keySet();
@@ -898,7 +1034,12 @@ class SchemaManagerTest extends BridgeTest {
 
       UniAssertSubscriber<Schema.CqlTable> result =
           schemaManager
-              .getTable(keyspace, table, (k) -> Uni.createFrom().nothing())
+              .getTable(
+                  keyspace,
+                  table,
+                  (k) -> {
+                    throw new RuntimeException("Must not throw!");
+                  })
               .subscribe()
               .withSubscriber(UniAssertSubscriber.create());
 
@@ -1013,7 +1154,11 @@ class SchemaManagerTest extends BridgeTest {
           .describeKeyspace(any(), any());
 
       schemaManager
-          .getTables(keyspace, (k) -> Uni.createFrom().nothing())
+          .getTables(
+              keyspace,
+              (k) -> {
+                throw new RuntimeException("Must not throw!");
+              })
           .subscribe()
           .withSubscriber(AssertSubscriber.create())
           .awaitNextItems(2)
@@ -1261,7 +1406,11 @@ class SchemaManagerTest extends BridgeTest {
           .describeKeyspace(any(), any());
 
       schemaManager
-          .getTablesAuthorized(keyspace, (k) -> Uni.createFrom().nothing())
+          .getTablesAuthorized(
+              keyspace,
+              (k) -> {
+                throw new RuntimeException("Must not throw!");
+              })
           .subscribe()
           .withSubscriber(AssertSubscriber.create())
           .awaitNextItem()
@@ -1299,6 +1448,738 @@ class SchemaManagerTest extends BridgeTest {
                             assertThat(read.getElementType())
                                 .isEqualTo(Schema.SchemaRead.ElementType.TABLE);
                           }));
+    }
+  }
+
+  @Nested
+  class QueryWithSchema {
+
+    @Test
+    public void happyPath() {
+      // first invoke schema manager to be cached
+      String keyspace = RandomStringUtils.randomAlphanumeric(16);
+      String table = RandomStringUtils.randomAlphanumeric(16);
+      int hash = RandomUtils.nextInt();
+      Schema.CqlKeyspace cqlKeyspace = Schema.CqlKeyspace.newBuilder().setName(keyspace).build();
+      Schema.CqlTable cqlTable = Schema.CqlTable.newBuilder().setName(table).build();
+      Schema.CqlKeyspaceDescribe keyspaceResponse =
+          Schema.CqlKeyspaceDescribe.newBuilder()
+              .setCqlKeyspace(cqlKeyspace)
+              .setHash(Int32Value.of(hash))
+              .addTables(cqlTable)
+              .build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.CqlKeyspaceDescribe> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(keyspaceResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .describeKeyspace(any(), any());
+
+      UniAssertSubscriber<Schema.CqlKeyspaceDescribe> cache =
+          schemaManager
+              .getKeyspace(keyspace)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+      cache.awaitItem().assertCompleted();
+
+      // then call the optimistic query service
+      QueryOuterClass.Response queryResponse =
+          QueryOuterClass.Response.newBuilder().addWarnings("whatever").build();
+      Schema.QueryWithSchemaResponse queryWithSchemaResponse =
+          Schema.QueryWithSchemaResponse.newBuilder().setResponse(queryResponse).build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.QueryWithSchemaResponse> observer =
+                    invocationOnMock.getArgument(1);
+
+                observer.onNext(queryWithSchemaResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .executeQueryWithSchema(any(), any());
+
+      // mapping function
+      Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction =
+          t -> {
+            String cql = "SELECT FROM %s".formatted(t.getName());
+            QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
+            return Uni.createFrom().item(query);
+          };
+
+      UniAssertSubscriber<QueryOuterClass.Response> result =
+          schemaManager
+              .queryWithSchema(
+                  keyspace,
+                  table,
+                  (k) -> {
+                    throw new RuntimeException("Must not throw!");
+                  },
+                  queryFunction)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+
+      result.awaitItem().assertItem(queryResponse).assertCompleted();
+
+      // verify bridge calls
+      verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verify(bridgeService).executeQueryWithSchema(queryWithSchemaCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
+      assertThat(describeKeyspaceCaptor.getAllValues())
+          .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
+      assertThat(queryWithSchemaCaptor.getAllValues())
+          .allSatisfy(
+              queryWithSchema -> {
+                assertThat(queryWithSchema.getKeyspaceName()).isEqualTo(keyspace);
+                assertThat(queryWithSchema.getKeyspaceHash()).isEqualTo(hash);
+                assertThat(queryWithSchema.getQuery().getCql())
+                    .isEqualTo("SELECT FROM %s".formatted(table));
+              });
+    }
+
+    @Test
+    public void happyPathWithoutPreCaching() {
+      // first invoke schema manager to be cached
+      String keyspace = RandomStringUtils.randomAlphanumeric(16);
+      String table = RandomStringUtils.randomAlphanumeric(16);
+      int hash = RandomUtils.nextInt();
+      Schema.CqlKeyspace cqlKeyspace = Schema.CqlKeyspace.newBuilder().setName(keyspace).build();
+      Schema.CqlTable cqlTable = Schema.CqlTable.newBuilder().setName(table).build();
+      Schema.CqlKeyspaceDescribe keyspaceResponse =
+          Schema.CqlKeyspaceDescribe.newBuilder()
+              .setCqlKeyspace(cqlKeyspace)
+              .setHash(Int32Value.of(hash))
+              .addTables(cqlTable)
+              .build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.CqlKeyspaceDescribe> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(keyspaceResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .describeKeyspace(any(), any());
+
+      // then call the optimistic query service
+      QueryOuterClass.Response queryResponse =
+          QueryOuterClass.Response.newBuilder().addWarnings("whatever").build();
+      Schema.QueryWithSchemaResponse queryWithSchemaResponse =
+          Schema.QueryWithSchemaResponse.newBuilder().setResponse(queryResponse).build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.QueryWithSchemaResponse> observer =
+                    invocationOnMock.getArgument(1);
+
+                observer.onNext(queryWithSchemaResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .executeQueryWithSchema(any(), any());
+
+      // mapping function
+      Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction =
+          t -> {
+            String cql = "SELECT FROM %s".formatted(t.getName());
+            QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
+            return Uni.createFrom().item(query);
+          };
+
+      UniAssertSubscriber<QueryOuterClass.Response> result =
+          schemaManager
+              .queryWithSchema(
+                  keyspace,
+                  table,
+                  (k) -> {
+                    throw new RuntimeException("Must not throw!");
+                  },
+                  queryFunction)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+
+      result.awaitItem().assertItem(queryResponse).assertCompleted();
+
+      // verify bridge calls
+      verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verify(bridgeService).executeQueryWithSchema(queryWithSchemaCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
+      assertThat(describeKeyspaceCaptor.getAllValues())
+          .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
+      assertThat(queryWithSchemaCaptor.getAllValues())
+          .allSatisfy(
+              queryWithSchema -> {
+                assertThat(queryWithSchema.getKeyspaceName()).isEqualTo(keyspace);
+                assertThat(queryWithSchema.getKeyspaceHash()).isEqualTo(hash);
+                assertThat(queryWithSchema.getQuery().getCql())
+                    .isEqualTo("SELECT FROM %s".formatted(table));
+              });
+    }
+
+    @Test
+    public void keyspaceRemoved() {
+      // first invoke schema manager to be cached
+      String keyspace = RandomStringUtils.randomAlphanumeric(16);
+      String table = RandomStringUtils.randomAlphanumeric(16);
+      int hash = RandomUtils.nextInt();
+      Schema.CqlKeyspace cqlKeyspace = Schema.CqlKeyspace.newBuilder().setName(keyspace).build();
+      Schema.CqlTable cqlTable = Schema.CqlTable.newBuilder().setName(table).build();
+      Schema.CqlKeyspaceDescribe keyspaceResponse =
+          Schema.CqlKeyspaceDescribe.newBuilder()
+              .setCqlKeyspace(cqlKeyspace)
+              .setHash(Int32Value.of(hash))
+              .addTables(cqlTable)
+              .build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.CqlKeyspaceDescribe> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(keyspaceResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .describeKeyspace(any(), any());
+
+      UniAssertSubscriber<Schema.CqlKeyspaceDescribe> cache =
+          schemaManager
+              .getKeyspace(keyspace)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+      cache.awaitItem().assertCompleted();
+
+      // then call the optimistic query service
+      // set no keyspace as response
+      Schema.QueryWithSchemaResponse queryWithSchemaResponse =
+          Schema.QueryWithSchemaResponse.newBuilder()
+              .setNoKeyspace(Schema.QueryWithSchemaResponse.NoKeyspace.newBuilder().build())
+              .build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.QueryWithSchemaResponse> observer =
+                    invocationOnMock.getArgument(1);
+
+                observer.onNext(queryWithSchemaResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .executeQueryWithSchema(any(), any());
+
+      // mapping function
+      Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction =
+          t -> {
+            String cql = "SELECT FROM %s".formatted(t.getName());
+            QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
+            return Uni.createFrom().item(query);
+          };
+      RuntimeException exception = new RuntimeException("my-exception");
+      Function<String, Uni<? extends QueryOuterClass.Response>> missingKeyspace =
+          k -> Uni.createFrom().failure(exception);
+
+      UniAssertSubscriber<QueryOuterClass.Response> result =
+          schemaManager
+              .queryWithSchema(keyspace, table, missingKeyspace, queryFunction)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+
+      Throwable failure = result.awaitFailure().getFailure();
+      assertThat(failure).isEqualTo(exception);
+
+      // verify bridge calls
+      verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verify(bridgeService).executeQueryWithSchema(queryWithSchemaCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
+      assertThat(describeKeyspaceCaptor.getAllValues())
+          .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
+      assertThat(queryWithSchemaCaptor.getAllValues())
+          .allSatisfy(
+              queryWithSchema -> {
+                assertThat(queryWithSchema.getKeyspaceName()).isEqualTo(keyspace);
+                assertThat(queryWithSchema.getKeyspaceHash()).isEqualTo(hash);
+                assertThat(queryWithSchema.getQuery().getCql())
+                    .isEqualTo("SELECT FROM %s".formatted(table));
+              });
+    }
+
+    @Test
+    public void keyspaceUpdated() throws Exception {
+      // first invoke schema manager to be cached
+      String keyspace = RandomStringUtils.randomAlphanumeric(16);
+      String table = RandomStringUtils.randomAlphanumeric(16);
+      int hash = RandomUtils.nextInt();
+      Schema.CqlKeyspace cqlKeyspace = Schema.CqlKeyspace.newBuilder().setName(keyspace).build();
+      Schema.CqlTable cqlTable = Schema.CqlTable.newBuilder().setName(table).build();
+      Schema.CqlKeyspaceDescribe keyspaceResponse =
+          Schema.CqlKeyspaceDescribe.newBuilder()
+              .setCqlKeyspace(cqlKeyspace)
+              .setHash(Int32Value.of(hash))
+              .addTables(cqlTable)
+              .build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.CqlKeyspaceDescribe> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(keyspaceResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .describeKeyspace(any(), any());
+
+      UniAssertSubscriber<Schema.CqlKeyspaceDescribe> cache =
+          schemaManager
+              .getKeyspace(keyspace)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+      cache.awaitItem().assertCompleted();
+
+      // then call the optimistic query service
+      // note that we will execute two calls in fact
+      // first with updated keyspace as response
+      // second as query executed
+      int updatedHash = RandomUtils.nextInt();
+      Schema.CqlKeyspace updatedCqlKeyspace =
+          Schema.CqlKeyspace.newBuilder().setName(keyspace).build();
+      Schema.CqlTable updatedCqlTable =
+          Schema.CqlTable.newBuilder()
+              .setName(table)
+              .addColumns(QueryOuterClass.ColumnSpec.newBuilder().setName("column").build())
+              .build();
+      Schema.CqlKeyspaceDescribe updatedKeyspace =
+          Schema.CqlKeyspaceDescribe.newBuilder()
+              .setCqlKeyspace(updatedCqlKeyspace)
+              .setHash(Int32Value.of(updatedHash))
+              .addTables(updatedCqlTable)
+              .build();
+      Schema.QueryWithSchemaResponse updatedKeyspaceResponse =
+          Schema.QueryWithSchemaResponse.newBuilder().setNewKeyspace(updatedKeyspace).build();
+
+      QueryOuterClass.Response queryResponse =
+          QueryOuterClass.Response.newBuilder().addWarnings("whatever").build();
+      Schema.QueryWithSchemaResponse queryExecutedResponse =
+          Schema.QueryWithSchemaResponse.newBuilder().setResponse(queryResponse).build();
+
+      AtomicInteger callCount = new AtomicInteger(0);
+      doAnswer(
+              invocationOnMock -> {
+                int call = callCount.getAndIncrement();
+                StreamObserver<Schema.QueryWithSchemaResponse> observer =
+                    invocationOnMock.getArgument(1);
+
+                observer.onNext(call == 0 ? updatedKeyspaceResponse : queryExecutedResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .executeQueryWithSchema(any(), any());
+
+      // mapping function, we will add colum check to distinguish between first and second table
+      Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction =
+          t -> {
+            String col = t.getColumnsList().isEmpty() ? "*" : t.getColumnsList().get(0).getName();
+            String cql = "SELECT %s FROM %s".formatted(col, t.getName());
+            QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
+            return Uni.createFrom().item(query);
+          };
+
+      UniAssertSubscriber<QueryOuterClass.Response> result =
+          schemaManager
+              .queryWithSchema(keyspace, table, k -> Uni.createFrom().nothing(), queryFunction)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+
+      result.awaitItem().assertItem(queryResponse).assertCompleted();
+
+      // assert updated keyspace in hash
+      // assert keyspace in cache
+      CompletableFuture<Object> cachedKeyspace =
+          keyspaceCache
+              .as(CaffeineCache.class)
+              .getIfPresent(new CompositeCacheKey(keyspace, Optional.empty()));
+      assertThat(cachedKeyspace).isNotNull();
+      assertThat(cachedKeyspace.get()).isEqualTo(updatedKeyspace);
+
+      // verify bridge calls
+      verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verify(bridgeService, times(2))
+          .executeQueryWithSchema(queryWithSchemaCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
+      assertThat(describeKeyspaceCaptor.getAllValues())
+          .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
+      assertThat(queryWithSchemaCaptor.getAllValues())
+          .hasSize(2)
+          .anySatisfy(
+              queryWithSchema -> {
+                assertThat(queryWithSchema.getKeyspaceName()).isEqualTo(keyspace);
+                assertThat(queryWithSchema.getKeyspaceHash()).isEqualTo(hash);
+                assertThat(queryWithSchema.getQuery().getCql())
+                    .isEqualTo("SELECT * FROM %s".formatted(table));
+              })
+          .anySatisfy(
+              queryWithSchema -> {
+                assertThat(queryWithSchema.getKeyspaceName()).isEqualTo(keyspace);
+                assertThat(queryWithSchema.getKeyspaceHash()).isEqualTo(updatedHash);
+                assertThat(queryWithSchema.getQuery().getCql())
+                    .isEqualTo("SELECT column FROM %s".formatted(table));
+              });
+    }
+
+    @Test
+    public void tableDoesNotExistRevalidate() throws Exception {
+      // first invoke schema manager to be cached
+      // but ensure cached version has no table
+      String keyspace = RandomStringUtils.randomAlphanumeric(16);
+      String table = RandomStringUtils.randomAlphanumeric(16);
+      int withTableHash = RandomUtils.nextInt();
+      int withoutTableHash = RandomUtils.nextInt();
+      Schema.CqlKeyspace cqlKeyspace = Schema.CqlKeyspace.newBuilder().setName(keyspace).build();
+      Schema.CqlTable cqlTable = Schema.CqlTable.newBuilder().setName(table).build();
+      Schema.CqlKeyspaceDescribe keyspaceResponse =
+          Schema.CqlKeyspaceDescribe.newBuilder()
+              .setCqlKeyspace(cqlKeyspace)
+              .setHash(Int32Value.of(withTableHash))
+              .addTables(cqlTable)
+              .build();
+      Schema.CqlKeyspaceDescribe keyspaceWithoutTableResponse =
+          Schema.CqlKeyspaceDescribe.newBuilder()
+              .setCqlKeyspace(cqlKeyspace)
+              .setHash(Int32Value.of(withoutTableHash))
+              .build();
+
+      AtomicInteger describeCalls = new AtomicInteger(0);
+      doAnswer(
+              invocationOnMock -> {
+                int call = describeCalls.getAndIncrement();
+                StreamObserver<Schema.CqlKeyspaceDescribe> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(call == 0 ? keyspaceWithoutTableResponse : keyspaceResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .describeKeyspace(any(), any());
+
+      UniAssertSubscriber<Schema.CqlKeyspaceDescribe> cache =
+          schemaManager
+              .getKeyspace(keyspace)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+      cache.awaitItem().assertCompleted();
+
+      // then call the optimistic query service
+      QueryOuterClass.Response queryResponse =
+          QueryOuterClass.Response.newBuilder().addWarnings("whatever").build();
+      Schema.QueryWithSchemaResponse queryWithSchemaResponse =
+          Schema.QueryWithSchemaResponse.newBuilder().setResponse(queryResponse).build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.QueryWithSchemaResponse> observer =
+                    invocationOnMock.getArgument(1);
+
+                observer.onNext(queryWithSchemaResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .executeQueryWithSchema(any(), any());
+
+      // mapping function
+      Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction =
+          t -> {
+            String cql = "SELECT FROM %s".formatted(t.getName());
+            QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
+            return Uni.createFrom().item(query);
+          };
+
+      UniAssertSubscriber<QueryOuterClass.Response> result =
+          schemaManager
+              .queryWithSchema(
+                  keyspace,
+                  table,
+                  (k) -> {
+                    throw new RuntimeException("Must not throw!");
+                  },
+                  queryFunction)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+
+      result.awaitItem().assertItem(queryResponse).assertCompleted();
+
+      // assert updated keyspace in hash
+      // assert keyspace in cache
+      CompletableFuture<Object> cachedKeyspace =
+          keyspaceCache
+              .as(CaffeineCache.class)
+              .getIfPresent(new CompositeCacheKey(keyspace, Optional.empty()));
+      assertThat(cachedKeyspace).isNotNull();
+      assertThat(cachedKeyspace.get()).isEqualTo(keyspaceResponse);
+
+      // verify bridge calls
+      verify(bridgeService, times(2)).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verify(bridgeService).executeQueryWithSchema(queryWithSchemaCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
+      assertThat(describeKeyspaceCaptor.getAllValues())
+          .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
+      assertThat(queryWithSchemaCaptor.getAllValues())
+          .allSatisfy(
+              queryWithSchema -> {
+                assertThat(queryWithSchema.getKeyspaceName()).isEqualTo(keyspace);
+                assertThat(queryWithSchema.getKeyspaceHash()).isEqualTo(withTableHash);
+                assertThat(queryWithSchema.getQuery().getCql())
+                    .isEqualTo("SELECT FROM %s".formatted(table));
+              });
+    }
+
+    @Test
+    public void tableDoesNotExist() {
+      // first invoke schema manager to be cached
+      // but ensure cached version has no table
+      String keyspace = RandomStringUtils.randomAlphanumeric(16);
+      String table = RandomStringUtils.randomAlphanumeric(16);
+      int withoutTableHash = RandomUtils.nextInt();
+      Schema.CqlKeyspace cqlKeyspace = Schema.CqlKeyspace.newBuilder().setName(keyspace).build();
+      Schema.CqlKeyspaceDescribe keyspaceWithoutTableResponse =
+          Schema.CqlKeyspaceDescribe.newBuilder()
+              .setCqlKeyspace(cqlKeyspace)
+              .setHash(Int32Value.of(withoutTableHash))
+              .build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.CqlKeyspaceDescribe> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(keyspaceWithoutTableResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .describeKeyspace(any(), any());
+
+      UniAssertSubscriber<Schema.CqlKeyspaceDescribe> cache =
+          schemaManager
+              .getKeyspace(keyspace)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+      cache.awaitItem().assertCompleted();
+
+      // then call the optimistic query service
+      QueryOuterClass.Response queryResponse =
+          QueryOuterClass.Response.newBuilder().addWarnings("whatever").build();
+      Schema.QueryWithSchemaResponse queryWithSchemaResponse =
+          Schema.QueryWithSchemaResponse.newBuilder().setResponse(queryResponse).build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.QueryWithSchemaResponse> observer =
+                    invocationOnMock.getArgument(1);
+
+                observer.onNext(queryWithSchemaResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .executeQueryWithSchema(any(), any());
+
+      // mapping function
+      RuntimeException notExistingEx = new RuntimeException("Table not existing");
+      Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction =
+          t -> {
+            if (t == null) {
+              throw notExistingEx;
+            }
+            String cql = "SELECT FROM %s".formatted(t.getName());
+            QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
+            return Uni.createFrom().item(query);
+          };
+
+      Throwable failure =
+          schemaManager
+              .queryWithSchema(
+                  keyspace,
+                  table,
+                  (k) -> {
+                    throw new RuntimeException("Must not throw!");
+                  },
+                  queryFunction)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create())
+              .awaitFailure()
+              .getFailure();
+
+      assertThat(failure).isEqualTo(notExistingEx);
+
+      // verify bridge calls
+      verify(bridgeService, times(2)).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
+      assertThat(describeKeyspaceCaptor.getAllValues())
+          .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
+    }
+
+    @Test
+    public void keyspaceDoesNotExist() {
+      String keyspace = RandomStringUtils.randomAlphanumeric(16);
+      String table = RandomStringUtils.randomAlphanumeric(16);
+      RuntimeException exception = new RuntimeException("my-exception");
+      Function<String, Uni<? extends QueryOuterClass.Response>> missingKeyspace =
+          k -> Uni.createFrom().failure(exception);
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.CqlKeyspaceDescribe> observer =
+                    invocationOnMock.getArgument(1);
+                Status status = Status.NOT_FOUND;
+                observer.onError(new StatusRuntimeException(status));
+                return null;
+              })
+          .when(bridgeService)
+          .describeKeyspace(any(), any());
+
+      UniAssertSubscriber<QueryOuterClass.Response> result =
+          schemaManager
+              .queryWithSchema(keyspace, table, missingKeyspace, (t) -> null)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+
+      // assert
+      Throwable failure = result.awaitFailure().getFailure();
+      assertThat(failure).isEqualTo(exception);
+
+      // verify no changes in the keyspace name
+      verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
+      assertThat(describeKeyspaceCaptor.getAllValues())
+          .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
+    }
+  }
+
+  @Nested
+  class QueryWithSchemaAuthorized {
+
+    @Test
+    public void happyPath() {
+      // first invoke schema manager to be cached
+      String keyspace = RandomStringUtils.randomAlphanumeric(16);
+      String table = RandomStringUtils.randomAlphanumeric(16);
+      int hash = RandomUtils.nextInt();
+      Schema.CqlKeyspace cqlKeyspace = Schema.CqlKeyspace.newBuilder().setName(keyspace).build();
+      Schema.CqlTable cqlTable = Schema.CqlTable.newBuilder().setName(table).build();
+      Schema.CqlKeyspaceDescribe keyspaceResponse =
+          Schema.CqlKeyspaceDescribe.newBuilder()
+              .setCqlKeyspace(cqlKeyspace)
+              .setHash(Int32Value.of(hash))
+              .addTables(cqlTable)
+              .build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.CqlKeyspaceDescribe> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(keyspaceResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .describeKeyspace(any(), any());
+
+      UniAssertSubscriber<Schema.CqlKeyspaceDescribe> cache =
+          schemaManager
+              .getKeyspace(keyspace)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+      cache.awaitItem().assertCompleted();
+
+      // then call the optimistic query service
+      // this would first authorize the schema access
+      QueryOuterClass.Response queryResponse =
+          QueryOuterClass.Response.newBuilder().addWarnings("whatever").build();
+      Schema.QueryWithSchemaResponse queryWithSchemaResponse =
+          Schema.QueryWithSchemaResponse.newBuilder().setResponse(queryResponse).build();
+
+      Schema.AuthorizeSchemaReadsResponse authResponse =
+          Schema.AuthorizeSchemaReadsResponse.newBuilder().addAuthorized(true).build();
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.AuthorizeSchemaReadsResponse> observer =
+                    invocationOnMock.getArgument(1);
+                observer.onNext(authResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .authorizeSchemaReads(any(), any());
+
+      doAnswer(
+              invocationOnMock -> {
+                StreamObserver<Schema.QueryWithSchemaResponse> observer =
+                    invocationOnMock.getArgument(1);
+
+                observer.onNext(queryWithSchemaResponse);
+                observer.onCompleted();
+                return null;
+              })
+          .when(bridgeService)
+          .executeQueryWithSchema(any(), any());
+
+      // mapping function
+      Function<Schema.CqlTable, Uni<QueryOuterClass.Query>> queryFunction =
+          t -> {
+            String cql = "SELECT FROM %s".formatted(t.getName());
+            QueryOuterClass.Query query = QueryOuterClass.Query.newBuilder().setCql(cql).build();
+            return Uni.createFrom().item(query);
+          };
+
+      UniAssertSubscriber<QueryOuterClass.Response> result =
+          schemaManager
+              .queryWithSchemaAuthorized(
+                  keyspace, table, k -> Uni.createFrom().nothing(), queryFunction)
+              .subscribe()
+              .withSubscriber(UniAssertSubscriber.create());
+
+      result.awaitItem().assertItem(queryResponse).assertCompleted();
+
+      // verify bridge calls
+      verify(bridgeService).describeKeyspace(describeKeyspaceCaptor.capture(), any());
+      verify(bridgeService).authorizeSchemaReads(schemaReadsCaptor.capture(), any());
+      verify(bridgeService).executeQueryWithSchema(queryWithSchemaCaptor.capture(), any());
+      verifyNoMoreInteractions(bridgeService);
+      assertThat(describeKeyspaceCaptor.getAllValues())
+          .allSatisfy(r -> assertThat(r.getKeyspaceName()).isEqualTo(keyspace));
+      assertThat(schemaReadsCaptor.getAllValues())
+          .singleElement()
+          .extracting(Schema.AuthorizeSchemaReadsRequest::getSchemaReadsList)
+          .satisfies(
+              reads ->
+                  assertThat(reads)
+                      .singleElement()
+                      .satisfies(
+                          read -> {
+                            assertThat(read.getKeyspaceName()).isEqualTo(keyspace);
+                            assertThat(read.getElementType())
+                                .isEqualTo(Schema.SchemaRead.ElementType.KEYSPACE);
+                          }));
+      assertThat(queryWithSchemaCaptor.getAllValues())
+          .allSatisfy(
+              queryWithSchema -> {
+                assertThat(queryWithSchema.getKeyspaceName()).isEqualTo(keyspace);
+                assertThat(queryWithSchema.getKeyspaceHash()).isEqualTo(hash);
+                assertThat(queryWithSchema.getQuery().getCql())
+                    .isEqualTo("SELECT FROM %s".formatted(table));
+              });
     }
   }
 }
