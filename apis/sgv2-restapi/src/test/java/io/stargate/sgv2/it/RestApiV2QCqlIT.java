@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
+import io.quarkus.test.junit.QuarkusTestProfile;
+import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
 import java.util.Arrays;
@@ -12,10 +14,18 @@ import org.apache.http.HttpStatus;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
-/** Integration tests for CQL endpoint (at {@code /v2/cql}). */
+/** Integration tests for CQL endpoint (at {@code /v2/cql}) when explicitly enabled. */
 @QuarkusIntegrationTest
 @QuarkusTestResource(StargateTestResource.class)
+@TestProfile(RestApiV2QCqlIT.Profile.class)
 public class RestApiV2QCqlIT extends RestApiV2QIntegrationTestBase {
+  // Since /cql endpoint is disabled by default, need to override
+  public static class Profile implements QuarkusTestProfile {
+    @Override
+    public Map<String, String> getConfigOverrides() {
+      return Map.of("stargate.rest.cql.disabled", "false");
+    }
+  }
 
   public RestApiV2QCqlIT() {
     super("cql_ks_", "cql_t_", KeyspaceCreation.NONE);
