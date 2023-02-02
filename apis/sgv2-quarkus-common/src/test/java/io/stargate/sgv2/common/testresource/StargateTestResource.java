@@ -81,6 +81,10 @@ public class StargateTestResource
     String CLUSTER_VERSION = "4.0";
 
     String CLUSTER_DSE = null;
+
+    long CASSANDRA_STARTUP_TIMEOUT = 2;
+    long COORDINATOR_STARTUP_TIMEOUT = 3;
+
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(StargateTestResource.class);
@@ -302,14 +306,16 @@ public class StargateTestResource
 
   /** @return Time to wait for the Cassandra container to start up before failing */
   private Duration getCassandraStartupTimeout() {
-    return Duration.ofMinutes(2);
+    long cassandraStartupTimeout = Long.getLong("testing.containers.cassandra-startup-timeout", Defaults.CASSANDRA_STARTUP_TIMEOUT);
+    return Duration.ofMinutes(cassandraStartupTimeout);
   }
 
   /** @return Time to wait for the Coordinator container to start up before failing */
   private Duration getCoordinatorStartupTimeout() {
     // 13-Sep-2022, tatu: Earlier baseline of 2 minutes was somehow slightly too low for
     //    REST API on local system (Macbook): 3 minutes appears to work much more reliably
-    return Duration.ofMinutes(3);
+    long coordinatorStartupTimeout = Long.getLong("testing.containers.coordinator-startup-timeout", Defaults.COORDINATOR_STARTUP_TIMEOUT);
+    return Duration.ofMinutes(coordinatorStartupTimeout);
   }
 
   private String getAuthToken(String host, int authPort) {
