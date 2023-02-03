@@ -45,11 +45,11 @@ There are two main configuration property prefixes used, `stargate.` and `quarku
 The `quarkus.` properties are defined by the Quarkus framework, and the complete list of available properties can be found on the [All configuration options](https://quarkus.io/guides/all-config) page.
 In addition, the related guide of each [Quarkus extension](#quarkus-extensions) used in the project provides an overview of the available config options.
 
-The `stargate.` properties are defined by the [sgv2-quarkus-common configuration](../sgv2-quarkus-common/CONFIGURATION.md).
+Shared `stargate.` properties are defined by the [sgv2-quarkus-common configuration](../sgv2-quarkus-common/CONFIGURATION.md).
 
-The REST API currently does not define any additional properties beyond these common properties.
+REST API itself defines API-specific configuration properties: these are documented in the [Configuration Guide](CONFIGURATION.md).
 
-Configuration settings can be found from `application.yaml` files located in:
+Default configuration settings can be found from `application.yaml` files located in:
 
 * `src/main/resources/application.yaml`: Production settings, used as the baseline for other modes
 * `src/test/resources/application.yaml`: Overrides for "test" phase
