@@ -417,7 +417,7 @@ public class Starter {
         setStargateProperties();
       }
     } catch (Exception e) {
-      logerr(e.getMessage(), Level.WARNING);
+      logerr(e.getMessage(), Level.SEVERE);
       System.exit(2);
     }
 
@@ -425,7 +425,7 @@ public class Starter {
     framework = new Felix(felixConfig());
     framework.init();
 
-    logerr("JAR DIR: " + JAR_DIRECTORY, Level.WARNING);
+    log("JAR DIR: " + JAR_DIRECTORY, Level.INFO);
 
     // Install bundles
     context = framework.getBundleContext();
@@ -467,7 +467,7 @@ public class Starter {
     }
 
     if (startError.get()) {
-      log("Terminating due to previous service startup errors.", Level.INFO);
+      logerr("Terminating due to previous service startup errors.", Level.SEVERE);
       System.exit(1);
     }
 
@@ -659,7 +659,7 @@ public class Starter {
       } else {
 
         printHelp(parser);
-        logerr("", Level.WARNING);
+        System.err.println();
 
         // Parsing failed
         // Display errors and then the help information
@@ -670,7 +670,7 @@ public class Starter {
           i++;
         }
 
-        logerr("", Level.WARNING);
+        System.err.println();
       }
     } catch (ParseException p) {
       printHelp(parser);
@@ -682,13 +682,11 @@ public class Starter {
         // if
         // a user just uses -h/--help
       } else {
-        logerr("", Level.WARNING);
         logerr("Usage error: " + p.getMessage(), Level.WARNING);
-        logerr("", Level.WARNING);
       }
     } catch (Exception e) {
       // Errors should be being collected so if anything is thrown it is unexpected
-      logerr("Unexpected error: " + e.getMessage(), Level.WARNING);
+      logerr("Unexpected error: " + e.getMessage(), Level.SEVERE);
       e.printStackTrace(System.err);
 
       System.exit(1);
