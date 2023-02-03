@@ -20,17 +20,17 @@
     <xml-format.skip>true</xml-format.skip>
 
     <!-- First DropWizard version and things it directly depends on that make sense to sync -->
-    <dropwizard.version>2.0.34</dropwizard.version>
+    <dropwizard.version>2.0.35</dropwizard.version>
     <!--
       Note that this is currently aligned with the metrics version that DropWizard transitively depends on.
       It's probably a good idea to keep the two versions in sync.
     -->
-    <dropwizard.metrics.version>4.1.33</dropwizard.metrics.version>
+    <dropwizard.metrics.version>4.1.36</dropwizard.metrics.version>
     <!--
       Note that this is currently aligned with the Jetty version that DropWizard transitively depends on.
       It's probably a good idea to keep the two versions in sync.
     -->
-    <jetty.version>9.4.49.v20220914</jetty.version>
+    <jetty.version>9.4.50.v20221201</jetty.version>
     <!-- Logging framework likewise in sync -->
     <slf4j.version>1.7.36</slf4j.version>
     <logback.version>1.2.11</logback.version>
@@ -41,7 +41,7 @@
     <commons-io.version>2.7</commons-io.version>
     <grpc.version>1.49.2</grpc.version>
     <immutables.version>2.8.8</immutables.version>
-    <jackson.version>2.13.4</jackson.version>
+    <jackson.version>2.13.5</jackson.version>
     <javatuples.version>1.2</javatuples.version>
     <!-- Make sure micrometer and prometheus versions are in sync  -->
     <micrometer.version>1.7.3</micrometer.version>
