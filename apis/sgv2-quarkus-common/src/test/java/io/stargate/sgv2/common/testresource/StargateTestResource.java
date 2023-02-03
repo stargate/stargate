@@ -55,6 +55,8 @@ import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
  *   <li><code>testing.containers.stargate-image</code>
  *   <li><code>testing.containers.cluster-version</code>
  *   <li><code>testing.containers.cluster-dse</code>
+ *   <li><code>testing.containers.cassandra-startup-timeout</code>
+ *   <li><code>testing.containers.coordinator-startup-timeout</code>
  * </ol>
  *
  * <p>Note that this resource fetches the auth token and sets it via the properties, using the
@@ -82,7 +84,16 @@ public class StargateTestResource
 
     String CLUSTER_DSE = null;
 
+    /**
+     * Default cassandra start up timeout value in minutes, this can be override using System
+     * property testing.containers.cassandra-startup-timeout
+     */
     long CASSANDRA_STARTUP_TIMEOUT = 2;
+
+    /**
+     * Default coordinator start up timeout value in minutes, this can be override using System
+     * property testing.containers.coordinator-startup-timeout
+     */
     long COORDINATOR_STARTUP_TIMEOUT = 3;
   }
 
