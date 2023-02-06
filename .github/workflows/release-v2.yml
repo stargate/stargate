@@ -456,10 +456,13 @@ jobs:
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
 
+      # we need to sign also images created by additional tags
+      # in this case v2 tag
       - name: Sign a docker image
         shell: bash
         env:
           COSIGN_IMAGE: ${{ secrets.ECR_REPOSITORY }}/stargateio/${{ matrix.image }}:${{ needs.resolve-tag.outputs.release-tag }}
+          COSIGN_IMAGE_V2: ${{ secrets.ECR_REPOSITORY }}/stargateio/${{ matrix.image }}:v2
           COSIGN_PRIVATE_BASE64: ${{ secrets.COSIGN_PRIVATE_BASE64}}
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD}}
           COSIGN_KEY_FILE: _cosign_key_
@@ -469,6 +472,8 @@ jobs:
           echo $COSIGN_PRIVATE_BASE64 | base64 --decode > $COSIGN_KEY_FILE
           echo "=== signing image [$COSIGN_IMAGE] ..."
           cosign sign --key $COSIGN_KEY_FILE -a $AUX_KEY=$AUX_VALUE $COSIGN_IMAGE
+          echo "=== signing image [COSIGN_IMAGE_V2] ..."
+          cosign sign --key $COSIGN_KEY_FILE -a $AUX_KEY=$AUX_VALUE COSIGN_IMAGE_V2
 
   # creates a PR for bumping the versions to the next snapshot
   # only executed if we have created the new release
