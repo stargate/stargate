@@ -14,7 +14,7 @@
  * limitations under the License.
  *
  */
-package io.stargate.sgv2.docsapi.grpc;
+package io.stargate.sgv2.api.common.grpc;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -51,7 +51,7 @@ class StargateBridgeInterceptorDeadlineTest extends BridgeTest {
     public Map<String, String> getConfigOverrides() {
       return ImmutableMap.<String, String>builder()
           .putAll(super.getConfigOverrides())
-          .put("stargate.grpc.call-deadline", "PT0.1S")
+          .put("stargate.grpc.call-deadline", "PT1S")
           .build();
     }
   }
@@ -90,16 +90,18 @@ class StargateBridgeInterceptorDeadlineTest extends BridgeTest {
     UniAssertSubscriber<Schema.CqlKeyspaceDescribe> result =
         client.describeKeyspace(query).subscribe().withSubscriber(UniAssertSubscriber.create());
 
-    // verify result
-    Throwable failure = result.awaitFailure().getFailure();
-    assertThat(failure)
-        .isInstanceOfSatisfying(
-            StatusRuntimeException.class,
-            e -> {
-              assertThat(e.getStatus().getCode()).isEqualTo(Status.Code.DEADLINE_EXCEEDED);
-            });
-
-    // release the thread that blocks on semaphore
-    semaphore.release();
+    try {
+      // verify result
+      Throwable failure = result.awaitFailure().getFailure();
+      assertThat(failure)
+          .isInstanceOfSatisfying(
+              StatusRuntimeException.class,
+              e -> {
+                assertThat(e.getStatus().getCode()).isEqualTo(Status.Code.DEADLINE_EXCEEDED);
+              });
+    } finally {
+      // release the thread that blocks on semaphore
+      semaphore.release();
+    }
   }
 }
