@@ -10,6 +10,7 @@
   <artifactId>sgv2-restapi</artifactId>
   <properties>
     <failsafe.useModulePath>false</failsafe.useModulePath>
+    <!-- Please update github workflows that build docker images if changing image/additional tags -->
     <quarkus.container-image.group>stargateio</quarkus.container-image.group>
     <quarkus.container-image.name>restapi</quarkus.container-image.name>
     <quarkus.container-image.tag>v${project.version}</quarkus.container-image.tag>

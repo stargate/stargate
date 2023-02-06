@@ -8,6 +8,7 @@
   </parent>
   <artifactId>sgv2-graphqlapi</artifactId>
   <properties>
+    <!-- Please update github workflows that build docker images if changing image/additional tags -->
     <quarkus.container-image.group>stargateio</quarkus.container-image.group>
     <quarkus.container-image.name>graphqlapi</quarkus.container-image.name>
     <quarkus.container-image.tag>v${project.version}</quarkus.container-image.tag>
