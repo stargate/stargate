@@ -32,15 +32,15 @@ jobs:
             path: docker-compose/dse-6.8
           - collection: docsapi-library
             collection-id: 12949543-caba2a02-6559-486a-9e4a-d5c0791fd296
-            environment-id: 17930693-2f355f7b-123d-4bca-9a9c-7d82222ca49d
+            environment-id: 12949543-2e78cf27-bd8c-43f2-909f-70a2b87d65fe
             service: docsapi
           - collection: graphqlapi-library
             collection-id: 17930693-65da5c64-561a-449b-a0e8-0318575f6871
-            environment-id: 17930693-2f355f7b-123d-4bca-9a9c-7d82222ca49d
+            environment-id: 12949543-2e78cf27-bd8c-43f2-909f-70a2b87d65fe
             service: graphqlapi
           - collection: restapi-users
             collection-id: 17930693-47ab5f0d-407e-48cf-aa11-c51d129f1eef
-            environment-id: 17930693-2f355f7b-123d-4bca-9a9c-7d82222ca49d
+            environment-id: 12949543-2e78cf27-bd8c-43f2-909f-70a2b87d65fe
             service: restapi
     steps:
       - uses: actions/checkout@v3
