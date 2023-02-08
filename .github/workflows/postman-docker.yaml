@@ -61,5 +61,6 @@ jobs:
         if: always()
         run: |
           cd ${{ matrix.path }}
+          docker compose logs ${{ matrix.service }}
           docker compose -f docker-compose-dev-mode.yml down
 
