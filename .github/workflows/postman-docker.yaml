@@ -56,7 +56,7 @@ jobs:
           docker compose -f docker-compose-dev-mode.yml up -d --wait coordinator ${{ matrix.service }}
       - name: Run API test
         run: |
-          postman collection run ${{ matrix.collection-id }} -e ${{ matrix.environment-id }}
+          postman collection run ${{ matrix.collection-id }} -e ${{ matrix.environment-id }} --verbose
       - name: Stop Backend
         if: always()
         run: |
