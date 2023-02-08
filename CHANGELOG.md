@@ -1,8 +1,26 @@
 # Changelog
 
+## [v1.0.72](https://github.com/stargate/stargate/tree/v1.0.72) (2023-01-19)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.71...v1.0.72)
+
+**Fixed bugs:**
+
+- Parameter path warning in REST API [\#2362](https://github.com/stargate/stargate/issues/2362)
+
+**Closed issues:**
+
+- Update DSE to 6.8.31 [\#2356](https://github.com/stargate/stargate/issues/2356)
+
+**Merged pull requests:**
+
+- Bump OSS C\* & DSE versions [\#2370](https://github.com/stargate/stargate/pull/2370) ([msmygit](https://github.com/msmygit))
+- Bump DSE version to 6.8.31 and OSS C\* 3.x to 3.11.14 [\#2359](https://github.com/stargate/stargate/pull/2359) ([msmygit](https://github.com/msmygit))
+- Update Cassandra 3.11 Persistence with Deprecation notice [\#2336](https://github.com/stargate/stargate/pull/2336) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+
 ## [v1.0.71](https://github.com/stargate/stargate/tree/v1.0.71) (2022-12-06)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.3...v1.0.71)
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.70...v1.0.71)
 
 **Merged pull requests:**
 
