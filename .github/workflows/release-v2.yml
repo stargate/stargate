@@ -59,7 +59,7 @@ jobs:
         id: create_release
         uses: softprops/action-gh-release@v1
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{needs.resolve-tag.outputs.release-tag}}
           name: Release ${{needs.resolve-tag.outputs.release-tag}}
           draft: false
