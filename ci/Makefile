@@ -1,7 +1,7 @@
 HOSTNAME        := gcr.io
 PROJECT         := stargateio
 NAME            := stargate-builder
-VERSION         := v1.0.16
+VERSION         := v1.0.18
 TAG             := ${VERSION}
 IMG             := ${NAME}:${TAG}
 IMG_GCP         := ${HOSTNAME}/${PROJECT}/${IMG}
