@@ -4,6 +4,9 @@ name: Stargate Postman Collections
 # runs on
 # * manual trigger
 on:
+  schedule:
+    # * is a special character in YAML so you have to quote this string
+    - cron: '0 0 * * SUN'
   workflow_dispatch:
 
 jobs:
