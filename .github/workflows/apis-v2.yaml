@@ -305,11 +305,11 @@ jobs:
           cd apis/
           ./mvnw -B -ntp verify -DskipUnitTests -pl ${{ matrix.project }} -am -P ${{ matrix.profile }} -Dquarkus.container-image.build=$CONTAINER_TEST -Dtesting.containers.stargate-image=${{ matrix.image }}
 
-  # runs only on success, deletes built docker image artifacts
-  # keep docker images for 3 days so we can re-run the workflows
+  # always delete built docker image artifacts
   clean-up:
     name: Clean up
     runs-on: ubuntu-latest
+    if: always()
     needs: int-tests
 
     steps:
