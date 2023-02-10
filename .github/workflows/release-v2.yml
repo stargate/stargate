@@ -472,8 +472,8 @@ jobs:
           echo $COSIGN_PRIVATE_BASE64 | base64 --decode > $COSIGN_KEY_FILE
           echo "=== signing image [$COSIGN_IMAGE] ..."
           cosign sign --key $COSIGN_KEY_FILE -a $AUX_KEY=$AUX_VALUE $COSIGN_IMAGE
-          echo "=== signing image [COSIGN_IMAGE_V2] ..."
-          cosign sign --key $COSIGN_KEY_FILE -a $AUX_KEY=$AUX_VALUE COSIGN_IMAGE_V2
+          echo "=== signing image [$COSIGN_IMAGE_V2] ..."
+          cosign sign --key $COSIGN_KEY_FILE -a $AUX_KEY=$AUX_VALUE $COSIGN_IMAGE_V2
 
   # creates a PR for bumping the versions to the next snapshot
   # only executed if we have created the new release
