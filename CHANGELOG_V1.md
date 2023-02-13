@@ -1,5 +1,35 @@
 # Changelog
 
+## [v1.0.73](https://github.com/stargate/stargate/tree/v1.0.73) (2023-02-10)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.72...v1.0.73)
+
+**Fixed bugs:**
+
+- Release workflow contains wrong vars [\#2423](https://github.com/stargate/stargate/issues/2423)
+- Quarkus starts gRPC server in APIs `v2.0.6` [\#2389](https://github.com/stargate/stargate/issues/2389)
+
+**Closed issues:**
+
+- Update to DSE 6.8.32 [\#2428](https://github.com/stargate/stargate/issues/2428)
+- Update DropWizard dependency to latest compatible \(and matching Jetty version\) [\#2417](https://github.com/stargate/stargate/issues/2417)
+- Update GH Actions workflows to replace deprecated actions [\#2405](https://github.com/stargate/stargate/issues/2405)
+- Prevent Schema update failure on Stargate due to `CompositeType` / `DynamicCompositeType` inclusion in table definition [\#2144](https://github.com/stargate/stargate/issues/2144)
+- stargate in kubernetes Cassandra baremetal [\#595](https://github.com/stargate/stargate/issues/595)
+- Tracing is enabled client-side by default? [\#203](https://github.com/stargate/stargate/issues/203)
+- CI: Create tests using multiple stargate instances [\#56](https://github.com/stargate/stargate/issues/56)
+- Use 3-node cluster as test backend [\#51](https://github.com/stargate/stargate/issues/51)
+
+**Merged pull requests:**
+
+- Update DSE to 6.8.32 [\#2430](https://github.com/stargate/stargate/pull/2430) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix workflow typo to address \#2423 [\#2425](https://github.com/stargate/stargate/pull/2425) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Upgrade DropWizard to 2.0.35 for StargateV1 [\#2419](https://github.com/stargate/stargate/pull/2419) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add helper method for logging in Starter.java \(updated\)  [\#2418](https://github.com/stargate/stargate/pull/2418) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- update GH workflows to use supported actions [\#2408](https://github.com/stargate/stargate/pull/2408) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Add minimal support for DynamicCompositeType in persistence backends [\#2393](https://github.com/stargate/stargate/pull/2393) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update version to v1.0.73-SNAPSHOT [\#2392](https://github.com/stargate/stargate/pull/2392) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v1.0.72](https://github.com/stargate/stargate/tree/v1.0.72) (2023-01-19)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.71...v1.0.72)
