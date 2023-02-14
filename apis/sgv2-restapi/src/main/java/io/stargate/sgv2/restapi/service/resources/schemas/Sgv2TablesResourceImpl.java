@@ -123,31 +123,29 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
   @Override
   public Uni<RestResponse<Sgv2NameResponse>> updateTable(
       final String keyspaceName, final String tableName, final Sgv2TableAddRequest tableUpdate) {
-    return queryWithTableAsync(
-            keyspaceName,
-            tableName,
-            true,
-            (tableDef) -> {
-              Sgv2Table.TableOptions options = tableUpdate.tableOptions();
-              List<?> clusteringExpressions = options.clusteringExpression();
-              if (clusteringExpressions != null && !clusteringExpressions.isEmpty()) {
-                throw new WebApplicationException(
-                    "Cannot update the clustering order of a table", Status.BAD_REQUEST);
-              }
-              Integer defaultTTL = options.defaultTimeToLive();
-              // 09-Dec-2021, tatu: Seems bit odd but this is the way SGv1/RESTv2 checks it,
-              //    probably since this is the only thing that can actually be changed:
-              if (defaultTTL == null) {
-                throw new WebApplicationException(
-                    "No update provided for defaultTTL", Status.BAD_REQUEST);
-              }
-              return new QueryBuilder()
-                  .alter()
-                  .table(keyspaceName, tableName)
-                  .withDefaultTTL(options.defaultTimeToLive())
-                  .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
-                  .build();
-            })
+    Sgv2Table.TableOptions options = tableUpdate.tableOptions();
+    List<?> clusteringExpressions = options.clusteringExpression();
+    if (clusteringExpressions != null && !clusteringExpressions.isEmpty()) {
+      throw new WebApplicationException(
+          "Cannot update the clustering order of a table", Status.BAD_REQUEST);
+    }
+    final Integer defaultTTL = options.defaultTimeToLive();
+    // 09-Dec-2021, tatu: Seems bit odd but this is the way SGv1/RESTv2 checks it,
+    //    probably since this is the only thing that can actually be changed:
+    if (defaultTTL == null) {
+      throw new WebApplicationException("No update provided for defaultTTL", Status.BAD_REQUEST);
+    }
+    // We only want to validate keyspace, existence of table, before attempting update so:
+    return getTableAsyncCheckExistence(keyspaceName, tableName, true, Response.Status.BAD_REQUEST)
+        .flatMap(
+            tableDef ->
+                executeQueryAsync(
+                    new QueryBuilder()
+                        .alter()
+                        .table(keyspaceName, tableName)
+                        .withDefaultTTL(defaultTTL)
+                        .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
+                        .build()))
         .map(any -> restResponseOkWithName(tableName));
   }
 
