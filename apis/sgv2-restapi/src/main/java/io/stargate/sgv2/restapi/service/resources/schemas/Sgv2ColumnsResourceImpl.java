@@ -108,24 +108,27 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
   @Override
   public Uni<RestResponse<Void>> deleteColumn(
       String keyspaceName, String tableName, String columnName) {
-    return queryWithTableAsync(
-            keyspaceName,
-            tableName,
-            true,
-            (tableDef) -> {
+    return getTableAsyncCheckExistence(keyspaceName, tableName, true, Response.Status.BAD_REQUEST)
+        .map(
+            tableDef -> {
               // Optional, could let backend verify but this gives us better error reporting
-              if (findColumn(tableDef, columnName) == null) {
+              Sgv2ColumnDefinition column = findColumn(tableDef, columnName);
+              if (column == null) {
                 throw new WebApplicationException(
                     String.format("Column '%s' not found in table '%s'", columnName, tableName),
                     Response.Status.BAD_REQUEST);
               }
-              return new QueryBuilder()
-                  .alter()
-                  .table(keyspaceName, tableName)
-                  .dropColumn(columnName)
-                  .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
-                  .build();
+              return column;
             })
+        .flatMap(
+            column ->
+                executeQueryAsync(
+                    new QueryBuilder()
+                        .alter()
+                        .table(keyspaceName, tableName)
+                        .dropColumn(columnName)
+                        .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
+                        .build()))
         .map(any -> RestResponse.status(Response.Status.NO_CONTENT));
   }
 
