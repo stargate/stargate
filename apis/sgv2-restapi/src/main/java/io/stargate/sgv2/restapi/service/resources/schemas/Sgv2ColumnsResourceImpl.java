@@ -81,25 +81,28 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
     if (columnName.equals(newName)) {
       return Uni.createFrom().item(restResponseOkWithName(newName));
     }
-    return queryWithTableAsync(
-            keyspaceName,
-            tableName,
-            true,
-            (tableDef) -> {
-              // Optional, could let backend verify but this gives us better error reporting
-              if (findColumn(tableDef, columnName) == null) {
+
+    return getTableAsyncCheckExistence(keyspaceName, tableName, true, Response.Status.BAD_REQUEST)
+        .map(
+            tableDef -> {
+              Sgv2ColumnDefinition column = findColumn(tableDef, columnName);
+              if (column == null) {
                 throw new WebApplicationException(
                     String.format("Column '%s' not found in table '%s'", columnName, tableName),
                     Response.Status.BAD_REQUEST);
               }
-              return new QueryBuilder()
-                  .alter()
-                  .table(keyspaceName, tableName)
-                  .renameColumn(columnName, newName)
-                  .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
-                  .build();
+              return column;
             })
-        .map(any -> restResponseOkWithName(newName));
+        .map(
+            column ->
+                executeQueryAsync(
+                    new QueryBuilder()
+                        .alter()
+                        .table(keyspaceName, tableName)
+                        .renameColumn(columnName, newName)
+                        .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
+                        .build()))
+        .map(response -> restResponseOkWithName(newName));
   }
 
   @Override
@@ -174,6 +177,7 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
 
   private Sgv2ColumnDefinition findColumn(
       List<QueryOuterClass.ColumnSpec> columns, String columnName, boolean isStatic) {
+
     for (QueryOuterClass.ColumnSpec column : columns) {
       if (columnName.equals(column.getName())) {
         return column2column(column, isStatic);
