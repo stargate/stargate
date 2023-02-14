@@ -1,5 +1,32 @@
 # Changelog
 
+## [v2.0.8](https://github.com/stargate/stargate/tree/v2.0.8) (2023-02-10)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.7...v2.0.8)
+
+**Closed issues:**
+
+- Update to DSE 6.8.32 [\#2428](https://github.com/stargate/stargate/issues/2428)
+
+**Merged pull requests:**
+
+- Fix postman-docker workflow [\#2427](https://github.com/stargate/stargate/pull/2427) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- disabling flaky StargateBridgeInterceptorDeadlineTest [\#2432](https://github.com/stargate/stargate/pull/2432) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Merge DSE-6.8.32 changes from v1 to main [\#2431](https://github.com/stargate/stargate/pull/2431) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- merge v1 workflow fix [\#2426](https://github.com/stargate/stargate/pull/2426) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- sign images with additional tags during the release [\#2424](https://github.com/stargate/stargate/pull/2424) ([ivansenic](https://github.com/ivansenic))
+- trying to fix flaky deadline test [\#2422](https://github.com/stargate/stargate/pull/2422) ([ivansenic](https://github.com/ivansenic))
+- Merge \#2418 from v1 - Add helper method for logging in Starter.java \(updated\) [\#2421](https://github.com/stargate/stargate/pull/2421) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Fix \#2417 for SGv2 separately: upgrade DropWizard version, deps [\#2420](https://github.com/stargate/stargate/pull/2420) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Externalizing Cassandra and Coordinator timeout values for test container [\#2415](https://github.com/stargate/stargate/pull/2415) ([maheshrajamani](https://github.com/maheshrajamani))
+- Merge \#2405 fix from v1 to main [\#2411](https://github.com/stargate/stargate/pull/2411) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- closes \#2389: fix retriable stargate bridge being exposed as service [\#2410](https://github.com/stargate/stargate/pull/2410) ([ivansenic](https://github.com/ivansenic))
+- update to Quarkus 2.16.0 [\#2409](https://github.com/stargate/stargate/pull/2409) ([ivansenic](https://github.com/ivansenic))
+- Merge \#2144 fix from v1 to main [\#2407](https://github.com/stargate/stargate/pull/2407) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Try to fix some of 3 ITs in Stargate 2.0.6/2.0.7 that fail against CNDB backend [\#2403](https://github.com/stargate/stargate/pull/2403) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump version to v2.0.8-SNAPSHOT, update release notes for v2.0.7 [\#2398](https://github.com/stargate/stargate/pull/2398) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Make inclusion of /v2/cql optional for REST API, with sysprop `stargate.rest.cql.disabled` \(use Quarkus 2.16 `@EndpointDisabled`\) [\#2319](https://github.com/stargate/stargate/pull/2319) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v2.0.7](https://github.com/stargate/stargate/tree/v2.0.7) (2023-01-23)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.6...v2.0.7)
