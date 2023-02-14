@@ -93,7 +93,7 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
               }
               return column;
             })
-        .map(
+        .flatMap(
             column ->
                 executeQueryAsync(
                     new QueryBuilder()
