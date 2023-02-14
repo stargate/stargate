@@ -32,26 +32,23 @@ public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2Col
   public Uni<RestResponse<Sgv2NameResponse>> createColumn(
       String keyspaceName, String tableName, Sgv2ColumnDefinition columnDefinition) {
     final String columnName = columnDefinition.name();
-    return queryWithTableAsync(
-            keyspaceName,
-            tableName,
-            true,
-            (tableDef) -> {
-              Column.Kind kind =
-                  columnDefinition.isStatic() ? Column.Kind.STATIC : Column.Kind.REGULAR;
-              Column columnDef =
-                  ImmutableColumn.builder()
-                      .name(columnName)
-                      .kind(kind)
-                      .type(columnDefinition.typeDefinition())
-                      .build();
-              return new QueryBuilder()
-                  .alter()
-                  .table(keyspaceName, tableName)
-                  .addColumn(columnDef)
-                  .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
-                  .build();
-            })
+    final Column columnDef =
+        ImmutableColumn.builder()
+            .name(columnName)
+            .kind(columnDefinition.isStatic() ? Column.Kind.STATIC : Column.Kind.REGULAR)
+            .type(columnDefinition.typeDefinition())
+            .build();
+    return getTableAsyncCheckExistence(keyspaceName, tableName, true, Response.Status.BAD_REQUEST)
+        // We only want to validate keyspace, existence of table, before attempting insertion so:
+        .flatMap(
+            tableDef ->
+                executeQueryAsync(
+                    new QueryBuilder()
+                        .alter()
+                        .table(keyspaceName, tableName)
+                        .addColumn(columnDef)
+                        .parameters(PARAMETERS_FOR_LOCAL_QUORUM)
+                        .build()))
         .map(any -> restResponseCreatedWithName(columnName));
   }
 
