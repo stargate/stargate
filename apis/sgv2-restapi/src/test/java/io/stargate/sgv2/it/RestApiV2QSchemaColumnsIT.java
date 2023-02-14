@@ -266,7 +266,7 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
     assertThat(readJsonAs(response, NameResponse.class).name).isEqualTo(oldColumnName);
 
     Sgv2ColumnDefinition columnFound2 =
-        findOneColumn(testKeyspaceName(), tableName, newColumnName, true);
+        findOneColumn(testKeyspaceName(), tableName, oldColumnName, true);
     assertThat(columnFound2).isEqualTo(columnDef2);
   }
 
