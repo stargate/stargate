@@ -28,6 +28,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import org.jboss.resteasy.reactive.RestResponse;
 
@@ -46,33 +47,33 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
 
     // This call will authorize lookup on "table" so no separate access checks
     // should be needed
-    return queryWithTableAsync(keyspaceName, tableName, true, table -> query)
+    return getTableAsyncCheckExistence(keyspaceName, tableName, true, Response.Status.BAD_REQUEST)
+        .flatMap(table -> executeQueryAsync(query))
         .map(response -> convertRowsToResponse(response, true));
   }
 
   @Override
   public Uni<RestResponse<Map<String, Object>>> addIndex(
       final String keyspaceName, final String tableName, final Sgv2IndexAddRequest indexAdd) {
-    String columnName = indexAdd.getColumn();
-    return queryWithTableAsync(
-            keyspaceName,
-            tableName,
-            true,
+    final String columnName = indexAdd.getColumn();
+    return getTableAsyncCheckExistence(keyspaceName, tableName, true, Response.Status.BAD_REQUEST)
+        .flatMap(
             table -> {
               if (!hasColumn(table, columnName)) {
                 throw new WebApplicationException(
                     String.format("Column '%s' not found in table '%s'", columnName, tableName),
                     Status.NOT_FOUND);
               }
-              return new QueryBuilder()
-                  .create()
-                  .index(indexAdd.getName())
-                  .ifNotExists(indexAdd.getIfNotExists())
-                  .on(keyspaceName, tableName)
-                  .column(columnName)
-                  .indexingType(indexAdd.getKind())
-                  .custom(indexAdd.getType(), indexAdd.getOptions())
-                  .build();
+              return executeQueryAsync(
+                  new QueryBuilder()
+                      .create()
+                      .index(indexAdd.getName())
+                      .ifNotExists(indexAdd.getIfNotExists())
+                      .on(keyspaceName, tableName)
+                      .column(columnName)
+                      .indexingType(indexAdd.getKind())
+                      .custom(indexAdd.getType(), indexAdd.getOptions())
+                      .build());
             })
         .map(any -> RestResponse.status(Status.CREATED, Collections.singletonMap("success", true)));
   }
@@ -80,15 +81,17 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
   @Override
   public Uni<RestResponse<Void>> deleteIndex(
       String keyspaceName, String tableName, String indexName, boolean ifExists) {
-
-    // Use 'queryWithTableAsync' to check existence of Keyspace and Table as well as access;
+    // Use 'getTableAsyncCheckExistence' to check existence of Keyspace and Table as well as access;
     // existence and access to Index itself verified by persistence backend
-    return queryWithTableAsync(
-            keyspaceName,
-            tableName,
-            true,
+    return getTableAsyncCheckExistence(keyspaceName, tableName, true, Response.Status.BAD_REQUEST)
+        .flatMap(
             table ->
-                new QueryBuilder().drop().index(keyspaceName, indexName).ifExists(ifExists).build())
+                executeQueryAsync(
+                    new QueryBuilder()
+                        .drop()
+                        .index(keyspaceName, indexName)
+                        .ifExists(ifExists)
+                        .build()))
         .map(any -> RestResponse.noContent());
   }
 
