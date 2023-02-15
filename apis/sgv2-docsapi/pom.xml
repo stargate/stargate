@@ -4,11 +4,12 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>sgv2-api-parent</artifactId>
-    <version>2.0.5-SNAPSHOT</version>
+    <version>2.0.9-SNAPSHOT</version>
   </parent>
   <artifactId>sgv2-docsapi</artifactId>
   <properties>
     <failsafe.useModulePath>false</failsafe.useModulePath>
+    <!-- Please update github workflows that build docker images if changing image/additional tags -->
     <quarkus.container-image.group>stargateio</quarkus.container-image.group>
     <quarkus.container-image.name>docsapi</quarkus.container-image.name>
     <quarkus.container-image.tag>v${project.version}</quarkus.container-image.tag>

@@ -4,7 +4,7 @@
   <groupId>io.stargate</groupId>
   <artifactId>sgv2-api-parent</artifactId>
   <name>Stargate V2 API parent pom</name>
-  <version>2.0.5-SNAPSHOT</version>
+  <version>2.0.9-SNAPSHOT</version>
   <description>Parent POM for Stargate v2 APIs</description>
   <packaging>pom</packaging>
   <url>http://github.com/stargate/stargate</url>
@@ -15,7 +15,7 @@
     <module>sgv2-restapi</module>
   </modules>
   <properties>
-    <compiler-plugin.version>3.8.1</compiler-plugin.version>
+    <compiler-plugin.version>3.10.1</compiler-plugin.version>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
     <maven.compiler.release>17</maven.compiler.release>
@@ -23,7 +23,7 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-    <quarkus.platform.version>2.15.1.Final</quarkus.platform.version>
+    <quarkus.platform.version>2.16.0.Final</quarkus.platform.version>
     <skipTests>false</skipTests>
     <skipUnitTests>${skipTests}</skipUnitTests>
     <surefire-plugin.version>3.0.0-M7</surefire-plugin.version>
@@ -32,7 +32,7 @@
       Please maintain default values for int-test in sync with io.stargate.sgv2.docsapi.testresource.StargateTestResource.Defaults
      -->
     <stargate.int-test.cassandra.image>cassandra</stargate.int-test.cassandra.image>
-    <stargate.int-test.cassandra.image-tag>4.0.4</stargate.int-test.cassandra.image-tag>
+    <stargate.int-test.cassandra.image-tag>4.0.7</stargate.int-test.cassandra.image-tag>
     <stargate.int-test.coordinator.image>stargateio/coordinator-4_0</stargate.int-test.coordinator.image>
     <stargate.int-test.coordinator.image-tag>v${project.version}</stargate.int-test.coordinator.image-tag>
     <stargate.int-test.cluster.name>cass-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>
@@ -210,7 +210,7 @@
       <id>cassandra-311</id>
       <properties>
         <stargate.int-test.cassandra.image>cassandra</stargate.int-test.cassandra.image>
-        <stargate.int-test.cassandra.image-tag>3.11.13</stargate.int-test.cassandra.image-tag>
+        <stargate.int-test.cassandra.image-tag>3.11.14</stargate.int-test.cassandra.image-tag>
         <stargate.int-test.coordinator.image>stargateio/coordinator-3_11</stargate.int-test.coordinator.image>
         <stargate.int-test.coordinator.image-tag>v${project.version}</stargate.int-test.coordinator.image-tag>
         <stargate.int-test.cluster.name>cass-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>
@@ -222,7 +222,7 @@
       <id>dse-68</id>
       <properties>
         <stargate.int-test.cassandra.image>datastax/dse-server</stargate.int-test.cassandra.image>
-        <stargate.int-test.cassandra.image-tag>6.8.29</stargate.int-test.cassandra.image-tag>
+        <stargate.int-test.cassandra.image-tag>6.8.32</stargate.int-test.cassandra.image-tag>
         <stargate.int-test.coordinator.image>stargateio/coordinator-dse-68</stargate.int-test.coordinator.image>
         <stargate.int-test.coordinator.image-tag>v${project.version}</stargate.int-test.coordinator.image-tag>
         <stargate.int-test.cluster.name>dse-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>

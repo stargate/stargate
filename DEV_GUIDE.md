@@ -92,10 +92,10 @@ docker run --name local-cassandra \
 -d cassandra:4.0
 ```
 
-Cassandra Cluster Manager: Start a Cassandra 4.0 instance ([link to ccm](https://github.com/riptano/ccm). Note its typically preferable to specify a patch version number such as `4.0.6`)
+Cassandra Cluster Manager: Start a Cassandra 4.0 instance ([link to ccm](https://github.com/riptano/ccm). Note its typically preferable to specify a patch version number such as `4.0.7`)
 
 ```sh
-ccm create stargate -v 4.0.6 -n 1 -s -b
+ccm create stargate -v 4.0.7 -n 1 -s -b
 ```
 
 #### Starting the Stargate Coordinator
@@ -167,7 +167,7 @@ Connect to CQL as normal on port 9042:
 ```sh
 $ cqlsh 127.0.0.2 9042
 Connected to stargate at 127.0.0.2:9042.
-[cqlsh 6.0.0 | Cassandra 4.0.3 | CQL spec 3.4.5 | Native protocol v4]
+[cqlsh 6.0.0 | Cassandra 4.0.7 | CQL spec 3.4.5 | Native protocol v4]
 Use HELP for help.
 ```
 
@@ -294,7 +294,7 @@ execution environment (`PATH`).
 When tests are started manually via an IDE or JUnit Console Launcher, you can specify the type and version
 of the storage backend using the following Java system properties:
 
-* `-Dccm.version=<version>` - the version of the storage cluster (e.g. `4.0.6`)
+* `-Dccm.version=<version>` - the version of the storage cluster (e.g. `4.0.7`)
 * `-Dccm.dse=<true|false>` - specifies whether the storage cluster is DSE or OSS Cassandra.
   If `false` this option can be omitted.
 

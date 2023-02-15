@@ -55,6 +55,8 @@ import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
  *   <li><code>testing.containers.stargate-image</code>
  *   <li><code>testing.containers.cluster-version</code>
  *   <li><code>testing.containers.cluster-dse</code>
+ *   <li><code>testing.containers.cassandra-startup-timeout</code>
+ *   <li><code>testing.containers.coordinator-startup-timeout</code>
  * </ol>
  *
  * <p>Note that this resource fetches the auth token and sets it via the properties, using the
@@ -72,7 +74,7 @@ public class StargateTestResource
   interface Defaults {
 
     String CASSANDRA_IMAGE = "cassandra";
-    String CASSANDRA_IMAGE_TAG = "4.0.4";
+    String CASSANDRA_IMAGE_TAG = "4.0.7";
 
     String STARGATE_IMAGE = "stargateio/coordinator-4_0";
     String STARGATE_IMAGE_TAG = "latest";
@@ -81,6 +83,18 @@ public class StargateTestResource
     String CLUSTER_VERSION = "4.0";
 
     String CLUSTER_DSE = null;
+
+    /**
+     * Default cassandra start up timeout value in minutes, this can be override using System
+     * property testing.containers.cassandra-startup-timeout
+     */
+    long CASSANDRA_STARTUP_TIMEOUT = 2;
+
+    /**
+     * Default coordinator start up timeout value in minutes, this can be override using System
+     * property testing.containers.coordinator-startup-timeout
+     */
+    long COORDINATOR_STARTUP_TIMEOUT = 3;
   }
 
   private static final Logger LOG = LoggerFactory.getLogger(StargateTestResource.class);
@@ -302,14 +316,20 @@ public class StargateTestResource
 
   /** @return Time to wait for the Cassandra container to start up before failing */
   private Duration getCassandraStartupTimeout() {
-    return Duration.ofMinutes(2);
+    long cassandraStartupTimeout =
+        Long.getLong(
+            "testing.containers.cassandra-startup-timeout", Defaults.CASSANDRA_STARTUP_TIMEOUT);
+    return Duration.ofMinutes(cassandraStartupTimeout);
   }
 
   /** @return Time to wait for the Coordinator container to start up before failing */
   private Duration getCoordinatorStartupTimeout() {
     // 13-Sep-2022, tatu: Earlier baseline of 2 minutes was somehow slightly too low for
     //    REST API on local system (Macbook): 3 minutes appears to work much more reliably
-    return Duration.ofMinutes(3);
+    long coordinatorStartupTimeout =
+        Long.getLong(
+            "testing.containers.coordinator-startup-timeout", Defaults.COORDINATOR_STARTUP_TIMEOUT);
+    return Duration.ofMinutes(coordinatorStartupTimeout);
   }
 
   private String getAuthToken(String host, int authPort) {

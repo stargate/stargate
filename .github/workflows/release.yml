@@ -50,12 +50,11 @@ jobs:
 
       - name: Create release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ steps.resolve_tag.outputs.tag }}
-          release_name: Release ${{ steps.resolve_tag.outputs.tag }}
+          name: Release ${{ steps.resolve_tag.outputs.tag }}
           draft: false
           prerelease: false
 
@@ -105,14 +104,11 @@ jobs:
           
       # uploads the jars by referencing the release-upload-url from create-release job
       - name: Upload jars
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: shogo82148/actions-upload-release-asset@v1
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{needs.create-release.outputs.release-upload-url}}
           asset_path: stargate-jars.zip
-          asset_name: stargate-jars.zip
-          asset_content_type: text/html
 
   # publish coordinator JARs to the OSSRH
   publish:
@@ -173,10 +169,9 @@ jobs:
 
       - name: Rev Version
         if: success()
-        uses: peter-evans/create-pull-request@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: peter-evans/create-pull-request@v4
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "Bumping version for next release"
           title: "Bumping version for next release"
           branch-suffix: "short-commit-hash"

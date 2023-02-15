@@ -15,7 +15,7 @@
  *
  */
 
-package io.stargate.sgv2.api.common;
+package io.stargate.sgv2.common.bridge;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.lenient;
@@ -39,7 +39,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 
 /** Provides a basic support for mocking the Bridge implementation. */
-public class BridgeTest {
+public abstract class BridgeTest {
 
   protected StargateBridgeGrpc.StargateBridgeImplBase bridgeService;
 
@@ -96,13 +96,17 @@ public class BridgeTest {
   }
 
   @AfterEach
-  public void tearDownBridge() throws Exception {
+  public void tearDownBridge() {
     channel.shutdown();
     server.shutdown();
     try {
-      channel.awaitTermination(5, TimeUnit.SECONDS);
-      server.awaitTermination(5, TimeUnit.SECONDS);
-    } finally {
+      if (!channel.awaitTermination(5, TimeUnit.SECONDS)) {
+        channel.shutdownNow();
+      }
+      if (server.awaitTermination(5, TimeUnit.SECONDS)) {
+        server.shutdownNow();
+      }
+    } catch (Exception e) {
       channel.shutdownNow();
       server.shutdownNow();
     }

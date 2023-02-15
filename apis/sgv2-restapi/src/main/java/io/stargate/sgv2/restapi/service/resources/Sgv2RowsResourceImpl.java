@@ -51,6 +51,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     return queryWithTableAsync(
             keyspaceName,
             tableName,
+            false,
             tableDef -> {
               final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
 
@@ -106,6 +107,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     return queryWithTableAsync(
             keyspaceName,
             tableName,
+            false,
             tableDef -> {
               final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
               try {
@@ -163,7 +165,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
                 .orderBy(sortOrder)
                 .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
                 .build();
-    return fetchRowsAsync(query, raw);
+    return executeQueryAsync(query).map(response -> convertRowsToResponse(response, raw));
   }
 
   @Override
@@ -179,6 +181,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     return queryWithTableAsync(
             keyspaceName,
             tableName,
+            false,
             tableDef -> {
               final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
 
@@ -219,6 +222,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     return queryWithTableAsync(
             keyspaceName,
             tableName,
+            false,
             (tableDef) -> {
               final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
               try {
@@ -249,6 +253,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     return queryWithTableAsync(
             keyspaceName,
             tableName,
+            false,
             tableDef -> {
               final ToProtoConverter toProtoConverter = findProtoConverter(tableDef);
               try {

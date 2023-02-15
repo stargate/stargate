@@ -52,9 +52,9 @@ RUN git clone --branch master --single-branch https://github.com/riptano/ccm.git
     sudo python setup.py install
 
 # Create clusters to pre-download necessary artifacts
-RUN ccm create -v 4.0.4 stargate_40 && ccm remove stargate_40
-RUN ccm create -v 3.11.13 stargate_311 && ccm remove stargate_311
-RUN ccm create -v 6.8.29 --dse stargate_dse68 && ccm remove stargate_dse68
+RUN ccm create -v 4.0.7 stargate_40 && ccm remove stargate_40
+RUN ccm create -v 3.11.14 stargate_311 && ccm remove stargate_311
+RUN ccm create -v 6.8.32 --dse stargate_dse68 && ccm remove stargate_dse68
 
 # init the maven user home dir with correct permissions
 # needed for running maven wrapper

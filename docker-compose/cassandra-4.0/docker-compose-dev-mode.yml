@@ -8,7 +8,6 @@ services:
     ports:
       - "9042:9042"
       - "8081:8081"
-      - "8084:8084"
       - "8090:8090"
     mem_limit: 2G
     environment:

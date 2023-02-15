@@ -15,20 +15,48 @@
  */
 package io.stargate.sgv2.graphql.web.resources;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.smallrye.mutiny.Uni;
+import io.stargate.bridge.proto.Schema;
+import io.stargate.bridge.proto.Schema.SchemaRead;
+import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.grpc.StargateBridgeClient;
 import io.stargate.sgv2.api.common.grpc.proto.SchemaReads;
-import javax.inject.Inject;
+import java.util.List;
 
 public class StargateGraphqlResourceBase extends GraphqlResourceBase {
 
-  @Inject protected StargateBridgeClient bridge;
-  @Inject protected GraphqlCache graphqlCache;
+  protected final StargateRequestInfo requestInfo;
+  protected final StargateBridgeClient bridgeClient;
+  protected final GraphqlCache graphqlCache;
 
-  protected StargateGraphqlContext newContext() {
-    return new StargateGraphqlContext(bridge, graphqlCache);
+  public StargateGraphqlResourceBase(
+      StargateRequestInfo requestInfo,
+      ObjectMapper objectMapper,
+      StargateBridgeClient bridgeClient,
+      GraphqlCache graphqlCache) {
+    super(objectMapper);
+    this.requestInfo = requestInfo;
+    this.bridgeClient = bridgeClient;
+    this.graphqlCache = graphqlCache;
   }
 
-  protected boolean isAuthorized(String keyspaceName) {
-    return bridge.authorizeSchemaRead(SchemaReads.keyspace(keyspaceName));
+  protected StargateGraphqlContext newContext() {
+    return new StargateGraphqlContext(bridgeClient, graphqlCache);
+  }
+
+  protected Uni<Boolean> isAuthorized(String keyspaceName) {
+    SchemaRead schemaRead = SchemaReads.keyspace(keyspaceName);
+    Schema.AuthorizeSchemaReadsRequest request =
+        Schema.AuthorizeSchemaReadsRequest.newBuilder().addSchemaReads(schemaRead).build();
+
+    return requestInfo
+        .getStargateBridge()
+        .authorizeSchemaReads(request)
+        .map(
+            response -> {
+              List<Boolean> authorizedList = response.getAuthorizedList();
+              return authorizedList.get(0);
+            });
   }
 }

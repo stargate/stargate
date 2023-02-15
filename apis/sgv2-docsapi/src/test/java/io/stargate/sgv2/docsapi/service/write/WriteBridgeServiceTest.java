@@ -29,14 +29,13 @@ import io.smallrye.mutiny.helpers.test.UniAssertSubscriber;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.Batch;
-import io.stargate.sgv2.api.common.config.QueriesConfig;
 import io.stargate.sgv2.api.common.properties.datastore.DataStoreProperties;
+import io.stargate.sgv2.common.bridge.AbstractValidatingStargateBridgeTest;
+import io.stargate.sgv2.common.bridge.ValidatingStargateBridge;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
-import io.stargate.sgv2.docsapi.bridge.AbstractValidatingStargateBridgeTest;
-import io.stargate.sgv2.docsapi.bridge.ValidatingStargateBridge;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.ImmutableJsonShreddedRow;
 import io.stargate.sgv2.docsapi.service.JsonShreddedRow;
@@ -63,11 +62,10 @@ import org.junit.jupiter.api.Test;
 @TestProfile(MaxDepth4TestProfile.class)
 class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
 
-  WriteBridgeService service;
+  @Inject WriteBridgeService service;
   @Inject DocsApiTestSchemaProvider schemaProvider;
   @Inject DataStoreProperties dataStoreProperties;
   @Inject DocumentProperties documentProperties;
-  @Inject QueriesConfig queriesConfig;
   @InjectMock TimeSource timeSource;
 
   String keyspaceName;
@@ -79,9 +77,6 @@ class WriteBridgeServiceTest extends AbstractValidatingStargateBridgeTest {
 
   @BeforeEach
   public void init() {
-    service =
-        new WriteBridgeService(
-            bridge, timeSource, dataStoreProperties, documentProperties, queriesConfig);
     keyspaceName = schemaProvider.getKeyspace().getName();
     tableName = schemaProvider.getTable().getName();
     expectedBatchType =
