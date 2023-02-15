@@ -6,7 +6,7 @@
 
 **Closed issues:**
 
-- Update to DSE 6.8.32 [\#2428](https://github.com/stargate/stargate/issues/2428)
+- InboundHAProxyHandler is not @Sharable (Stargate v1) [\#2446] (https://github.com/stargate/stargate/issues/2446)
 
 **Merged pull requests:**
 
