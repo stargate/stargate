@@ -138,7 +138,7 @@ jobs:
         with:
           name: img-${{ matrix.image }}-${{ github.sha }}
           path: ${{ matrix.image }}-${{ github.sha }}.tar
-          retention-days: 3
+          retention-days: 1
 
   # runs unit tests for the sgv2-docsapi
   build:
