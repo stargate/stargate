@@ -26,9 +26,6 @@ EXPOSE 8080
 # Auth
 EXPOSE 8081
 
-# Document API (until extracted to separate service)
-EXPOSE 8083
-
 # Health
 EXPOSE 8084
 
