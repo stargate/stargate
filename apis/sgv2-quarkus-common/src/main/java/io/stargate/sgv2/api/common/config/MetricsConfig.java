@@ -62,7 +62,7 @@ public interface MetricsConfig {
 
     /** @return The tag key for user-agent flag, defaults to <code>error</code>. */
     @NotBlank
-    @WithDefault("agent")
+    @WithDefault("user_agent")
     String userAgentTag();
 
     /** @return If tenant counting metric should include the user agent information. */

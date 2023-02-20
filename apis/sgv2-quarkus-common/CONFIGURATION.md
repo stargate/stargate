@@ -53,7 +53,7 @@
 | `stargate.metrics.tenant-request-counter.metric-name`            | `String`             | `http.server.requests.counter`      | Name of the metric.                                                                                                                                          |
 | `stargate.metrics.tenant-request-counter.tenant-tag`             | `String`             | `tenant`                            | The tag key for tenant id.                                                                                                                                   |
 | `stargate.metrics.tenant-request-counter.error-tag`              | `String`             | `error`                             | The tag key for the request error flag (true/false).                                                                                                         |
-| `stargate.metrics.tenant-request-counter.user-agent-tag`         | `String`             | `agent`                             | The tag key for the user agent, if capturing is enabled.                                                                                                     |
+| `stargate.metrics.tenant-request-counter.user-agent-tag`         | `String`             | `user_agent`                        | The tag key for the user agent, if capturing is enabled.                                                                                                     |
 | `stargate.metrics.tenant-request-counter.user-agent-tag-enabled` | `boolean`            | `false`                             | If user agent information should be included as a tag. The user agent value will be trimmed to the first appearance of the whitespace or forward slash char. |
 
 ### Multi-tenancy configuration
