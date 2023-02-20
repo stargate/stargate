@@ -82,6 +82,7 @@ class TenantRequestMetricsFilterTest {
             metric ->
                 assertThat(metric)
                     .contains("tenantTag=\"" + FixedTenantTestProfile.TENANT_ID + "\"")
-                    .contains("errorTag=\"false\""));
+                    .contains("errorTag=\"false\"")
+                    .doesNotContain("agent="));
   }
 }

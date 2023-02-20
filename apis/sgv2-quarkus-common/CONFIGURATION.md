@@ -46,13 +46,15 @@
 ### Metrics configuration
 *Configuration mapping for the additional metrics properties, defined by [MetricsConfig.java](src/main/java/io/stargate/sgv2/api/common/config/MetricsConfig.java).*
 
-| Property                                              | Type                 | Default                             | Description                                                             |
-|-------------------------------------------------------|----------------------|-------------------------------------|-------------------------------------------------------------------------|
-| `stargate.metrics.global-tags`                        | `Map<String,String>` | `{"module": "docsapi"}`             | Map of global tags that will be applied to every meter.                 |
-| `stargate.metrics.tenant-request-counter.enabled`     | `boolean`            | `${stargate.multi-tenancy.enabled}` | If extra metric for counting the request per tenant should be recorded. |
-| `stargate.metrics.tenant-request-counter.metric-name` | `String`             | `http.server.requests.counter`      | Name of the metric.                                                     |
-| `stargate.metrics.tenant-request-counter.tenant-tag`  | `String`             | `tenant`                            | The tag key for tenant id.                                              |
-| `stargate.metrics.tenant-request-counter.error-tag`   | `String`             | `error`                             | The tag key for the request error flag (true/false).                    |
+| Property                                                         | Type                 | Default                             | Description                                                                                                                                                  |
+|------------------------------------------------------------------|----------------------|-------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `stargate.metrics.global-tags`                                   | `Map<String,String>` | `{"module": "docsapi"}`             | Map of global tags that will be applied to every meter.                                                                                                      |
+| `stargate.metrics.tenant-request-counter.enabled`                | `boolean`            | `${stargate.multi-tenancy.enabled}` | If extra metric for counting the request per tenant should be recorded.                                                                                      |
+| `stargate.metrics.tenant-request-counter.metric-name`            | `String`             | `http.server.requests.counter`      | Name of the metric.                                                                                                                                          |
+| `stargate.metrics.tenant-request-counter.tenant-tag`             | `String`             | `tenant`                            | The tag key for tenant id.                                                                                                                                   |
+| `stargate.metrics.tenant-request-counter.error-tag`              | `String`             | `error`                             | The tag key for the request error flag (true/false).                                                                                                         |
+| `stargate.metrics.tenant-request-counter.user-agent-tag`         | `String`             | `agent`                             | The tag key for the user agent, if capturing is enabled.                                                                                                     |
+| `stargate.metrics.tenant-request-counter.user-agent-tag-enabled` | `boolean`            | `false`                             | If user agent information should be included as a tag. The user agent value will be trimmed to the first appearance of the whitespace or forward slash char. |
 
 ### Multi-tenancy configuration
 *Configuration mapping for multi tenant operation mode, defined by [MultiTenancyConfig.java](src/main/java/io/stargate/sgv2/api/common/config/MultiTenancyConfig.java).*
