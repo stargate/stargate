@@ -90,7 +90,7 @@ public class UserAgentMetricsGrpcIntTest extends GrpcIntegrationTest {
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
-                              .contains("userAgent=\"stargate-int-tests/grpc-java\"")
+                              .contains("user_agent=\"stargate-int-tests\"")
                               .contains("method=\"ExecuteQuery\""));
 
               // metered grpc responses sent lines
@@ -103,7 +103,7 @@ public class UserAgentMetricsGrpcIntTest extends GrpcIntegrationTest {
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
-                              .contains("userAgent=\"stargate-int-tests/grpc-java\"")
+                              .contains("user_agent=\"stargate-int-tests\"")
                               .contains("method=\"ExecuteQuery\""));
 
               // metered grpc processing duration lines
@@ -116,7 +116,7 @@ public class UserAgentMetricsGrpcIntTest extends GrpcIntegrationTest {
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
-                              .contains("userAgent=\"stargate-int-tests/grpc-java\"")
+                              .contains("user_agent=\"stargate-int-tests\"")
                               .contains("method=\"ExecuteQuery\""));
             });
   }
@@ -154,7 +154,7 @@ public class UserAgentMetricsGrpcIntTest extends GrpcIntegrationTest {
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
-                              .contains("userAgent=\"stargate-int-tests/grpc-java\"")
+                              .contains("user_agent=\"stargate-int-tests\"")
                               .contains("method=\"ExecuteBatch\""));
 
               // metered grpc responses sent lines
@@ -167,7 +167,7 @@ public class UserAgentMetricsGrpcIntTest extends GrpcIntegrationTest {
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
-                              .contains("userAgent=\"stargate-int-tests/grpc-java\"")
+                              .contains("user_agent=\"stargate-int-tests\"")
                               .contains("method=\"ExecuteBatch\""));
 
               // metered grpc processing duration lines
@@ -180,7 +180,7 @@ public class UserAgentMetricsGrpcIntTest extends GrpcIntegrationTest {
                   .anySatisfy(
                       metric ->
                           assertThat(metric)
-                              .contains("userAgent=\"stargate-int-tests/grpc-java\"")
+                              .contains("user_agent=\"stargate-int-tests\"")
                               .contains("method=\"ExecuteBatch\""));
             });
   }

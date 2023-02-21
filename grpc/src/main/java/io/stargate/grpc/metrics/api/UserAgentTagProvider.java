@@ -22,8 +22,7 @@ import io.grpc.ServerCall;
 import io.grpc.internal.GrpcUtil;
 import io.micrometer.core.instrument.Tags;
 import io.stargate.core.metrics.StargateMetricConstants;
-import java.util.Arrays;
-import java.util.stream.Collectors;
+import java.util.regex.Pattern;
 
 /**
  * Extension of the {@link GrpcMetricsTagProvider} that can extract user agent information from the
@@ -33,60 +32,30 @@ import java.util.stream.Collectors;
  *
  * <ol>
  *   <li><code>grpc-java-netty/1.51.0</code> results in <code>grpc-java</code>
- *   <li><code>my-agent/1.0.0 grpc-java-netty/1.51.0</code> results in <code>my-agent/grpc-java
- *       </code>
+ *   <li><code>my-agent/1.0.0 grpc-java-netty/1.51.0</code> results in <code>my-agent</code>
  *   <li><code>arbitrary-agent-value</code> results in <code>arbitrary-agent-value</code>
  * </ol>
  */
 public interface UserAgentTagProvider extends GrpcMetricsTagProvider {
 
-  String USER_AGENT_TAG_KEY = "userAgent";
+  // split pattern for the user agent, extract only first part of the agent
+  Pattern USER_AGENT_SPLIT = Pattern.compile("[\\s/]");
+  // tag key
+  String USER_AGENT_TAG_KEY = "user_agent";
 
   /** {@inheritDoc} */
   @Override
   default Tags getCallTags(ServerCall<?, ?> call, Metadata requestHeaders) {
     String userAgent = requestHeaders.get(GrpcUtil.USER_AGENT_KEY);
-
-    // if not defined, return UNKNOWN
-    if (null == userAgent) {
+    if (null != userAgent && userAgent.length() > 0) {
+      String[] split = USER_AGENT_SPLIT.split(userAgent);
+      if (split.length > 0) {
+        return Tags.of(USER_AGENT_TAG_KEY, split[0]);
+      } else {
+        return Tags.of(USER_AGENT_TAG_KEY, userAgent);
+      }
+    } else {
       return Tags.of(USER_AGENT_TAG_KEY, StargateMetricConstants.UNKNOWN);
     }
-
-    // otherwise first try to split
-    // reason is that user setting the metadata would be
-    // my-agent/1.0.0 grpc-java-netty/1.51.0
-    String[] agentParts = userAgent.split(" ");
-    String tagValue =
-        Arrays.stream(agentParts)
-
-            // remove version from agent name
-            // input ex. grpc-java-netty/1.51.0, my-agent/1.0.0
-            .map(
-                agentAndVersion -> {
-                  int versionIndex = agentAndVersion.indexOf('/');
-                  if (versionIndex > 0) {
-                    return agentAndVersion.substring(0, versionIndex);
-                  } else {
-                    return agentAndVersion;
-                  }
-                })
-
-            // default grpc lib, remove the server
-            // input ex. grpc-java-netty, grpc-node-js, my-agent
-            .map(
-                agent -> {
-                  int last = agent.lastIndexOf('-');
-                  // ensure that we never cut to `grpc` only
-                  if (agent.startsWith("grpc-") && last > 4) {
-                    return agent.substring(0, last);
-                  } else {
-                    return agent;
-                  }
-                })
-
-            // join list
-            .collect(Collectors.joining("/"));
-
-    return Tags.of(USER_AGENT_TAG_KEY, tagValue);
   }
 }

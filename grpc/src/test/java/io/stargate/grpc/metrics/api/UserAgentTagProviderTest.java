@@ -40,7 +40,7 @@ class UserAgentTagProviderTest {
 
       Tags result = tagProvider.getCallTags(null, metadata);
 
-      assertThat(result).containsOnlyOnce(Tag.of("userAgent", "grpc-java"));
+      assertThat(result).containsOnlyOnce(Tag.of("user_agent", "grpc-java-netty"));
     }
 
     @Test
@@ -50,7 +50,7 @@ class UserAgentTagProviderTest {
 
       Tags result = tagProvider.getCallTags(null, metadata);
 
-      assertThat(result).containsOnlyOnce(Tag.of("userAgent", "grpc-java"));
+      assertThat(result).containsOnlyOnce(Tag.of("user_agent", "grpc-java"));
     }
 
     @Test
@@ -60,7 +60,7 @@ class UserAgentTagProviderTest {
 
       Tags result = tagProvider.getCallTags(null, metadata);
 
-      assertThat(result).containsOnlyOnce(Tag.of("userAgent", "user-agent/grpc-java"));
+      assertThat(result).containsOnlyOnce(Tag.of("user_agent", "user-agent"));
     }
 
     @Test
@@ -70,7 +70,7 @@ class UserAgentTagProviderTest {
 
       Tags result = tagProvider.getCallTags(null, metadata);
 
-      assertThat(result).containsOnlyOnce(Tag.of("userAgent", "user-agent/grpc-java"));
+      assertThat(result).containsOnlyOnce(Tag.of("user_agent", "user-agent"));
     }
 
     @Test
@@ -80,7 +80,7 @@ class UserAgentTagProviderTest {
 
       Tags result = tagProvider.getCallTags(null, metadata);
 
-      assertThat(result).containsOnlyOnce(Tag.of("userAgent", "some-arbitrary-value"));
+      assertThat(result).containsOnlyOnce(Tag.of("user_agent", "some-arbitrary-value"));
     }
 
     @Test
@@ -89,7 +89,7 @@ class UserAgentTagProviderTest {
 
       Tags result = tagProvider.getCallTags(null, metadata);
 
-      assertThat(result).containsOnlyOnce(Tag.of("userAgent", "unknown"));
+      assertThat(result).containsOnlyOnce(Tag.of("user_agent", "unknown"));
     }
   }
 }
