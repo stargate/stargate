@@ -13,13 +13,6 @@ jobs:
       fail-fast: false
       matrix:
         backend: [ cassandra-40, cassandra-311, dse-68 ]
-        include:
-          - name: cassandra-40
-            ccm-version: -v 4.0.7
-          - name: cassandra-311
-            ccm-version: -v 3.11.14
-          - name: dse-68
-            ccm-version: -v 6.8.31 --dse
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -56,8 +49,7 @@ jobs:
       - name: Install CCM
         run: |
           python -m pip install --upgrade pip ccm
-          ccm create ${{ matrix.ccm-version }} stargate
-          ccm remove stargate
+          ccm list
       - name: Run Unit and Integration Tests
         run: |
           ./mvnw clean verify -B -ntp -P it-${{ matrix.backend }}
