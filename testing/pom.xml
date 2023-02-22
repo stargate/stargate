@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.72-SNAPSHOT</version>
+    <version>1.0.74-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.it</groupId>
   <artifactId>testing</artifactId>
@@ -441,7 +441,7 @@
                 <configuration>
                   <systemPropertyVariables>
                     <ccm.dse>true</ccm.dse>
-                    <ccm.version>6.8.31</ccm.version>
+                    <ccm.version>6.8.32</ccm.version>
                     <stargate.test.nodes>1</stargate.test.nodes>
                   </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>

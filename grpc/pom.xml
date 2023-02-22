@@ -4,7 +4,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>1.0.72-SNAPSHOT</version>
+    <version>1.0.74-SNAPSHOT</version>
   </parent>
   <groupId>io.stargate.grpc</groupId>
   <artifactId>grpc</artifactId>

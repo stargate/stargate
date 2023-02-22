@@ -259,6 +259,31 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
     Decimal(6, BigDecimal.class, false, "Variable-precision decimal, supports integers and floats"),
     Double(7, Double.class, false, "64-bit IEEE-754 floating point"),
     Duration(21, CqlDuration.class, false, "128 bit encoded duration with nanosecond precision"),
+
+    /**
+     * Need a placeholder for (non-dynamic) CompositeType: while not usable via APIs can potentially
+     * be created via CQL leading to problems (see {@href
+     * https://github.com/stargate/stargate/issues/2144}).
+     */
+    Composite(
+        0, // custom type
+        io.stargate.db.schema.CompositeValue.class,
+        "org.apache.cassandra.db.marshal.CompositeType",
+        true,
+        null,
+        "Legacy data type"),
+    /**
+     * Need a placeholder for DynamicCompositeType: while not usable via APIs can potentially be
+     * created via CQL leading to problems (see {@href
+     * https://github.com/stargate/stargate/issues/2144}).
+     */
+    DynamicComposite(
+        0, // custom type
+        io.stargate.db.schema.DynamicCompositeValue.class,
+        "org.apache.cassandra.db.marshal.DynamicCompositeType",
+        true,
+        null,
+        "Legacy data type"),
     Float(8, Float.class, false, "32-bit IEEE-754 floating point"),
     Inet(16, InetAddress.class, true, "IP address string in IPv4 or IPv6 format"),
     Int(9, Integer.class, false, "32-bit signed integer"),
