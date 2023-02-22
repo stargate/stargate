@@ -124,6 +124,6 @@ class TenantRequestMetricsFilterWithUserAgentTagTest {
                 assertThat(metric)
                     .contains("tenantTag=\"" + FixedTenantTestProfile.TENANT_ID + "\"")
                     .contains("errorTag=\"false\"")
-                    .contains("agentTag=\"UNKNOWN\""));
+                    .contains("agentTag=\"unknown\""));
   }
 }

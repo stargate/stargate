@@ -39,6 +39,9 @@ public class TenantRequestMetricsFilter {
   // split pattern for the user agent, extract only first part of the agent
   private static final Pattern USER_AGENT_SPLIT = Pattern.compile("[\\s/]");
 
+  // same as V1 io.stargate.core.metrics.StargateMetricConstants#UNKNOWN
+  private static final String UNKNOWN_VALUE = "unknown";
+
   /** The {@link MeterRegistry} to report to. */
   private final MeterRegistry meterRegistry;
 
@@ -66,7 +69,7 @@ public class TenantRequestMetricsFilter {
     this.config = metricsConfig.tenantRequestCounter();
     errorTrue = Tag.of(config.errorTag(), "true");
     errorFalse = Tag.of(config.errorTag(), "false");
-    tenantUnknown = Tag.of(config.tenantTag(), "UNKNOWN");
+    tenantUnknown = Tag.of(config.tenantTag(), UNKNOWN_VALUE);
   }
 
   /**
@@ -112,7 +115,7 @@ public class TenantRequestMetricsFilter {
         return headerString;
       }
     } else {
-      return "UNKNOWN";
+      return UNKNOWN_VALUE;
     }
   }
 }
