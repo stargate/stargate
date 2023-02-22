@@ -62,7 +62,11 @@ public class GrpcIntegrationTest extends BaseIntegrationTest {
   public static void setup(StargateConnectionInfo cluster) throws IOException {
     String seedAddress = cluster.seedAddress();
 
-    managedChannel = ManagedChannelBuilder.forAddress(seedAddress, 8090).usePlaintext().build();
+    managedChannel =
+        ManagedChannelBuilder.forAddress(seedAddress, 8090)
+            .usePlaintext()
+            .userAgent("stargate-int-tests/v1")
+            .build();
     stub = StargateGrpc.newBlockingStub(managedChannel);
     asyncStub = StargateGrpc.newStub(managedChannel);
     reactorStub = ReactorStargateGrpc.newReactorStub(managedChannel);
