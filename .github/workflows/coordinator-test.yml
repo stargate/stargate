@@ -69,6 +69,7 @@ jobs:
         run: |
           sudo systemctl stop mono-xsp4.service || true
           sudo systemctl disable mono-xsp4.service || true
+          sudo lsof -iTCP -n -P | sort -k1
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
@@ -110,11 +111,3 @@ jobs:
           echo "NOOP"
         #./mvnw -B -ntp install -DskipTests
         #./mvnw -B -ntp -pl testing -P it-${{ matrix.backend }} verify -DskipUnitTests -Dit.test=SimpleStatementTest
-
-  check-port-user:
-    name: Who's using that port
-    runs-on: ubuntu-latest
-    steps:
-      - name: lsof
-        run: |
-          sudo lsof -iTCP -n -P | sort -k1
