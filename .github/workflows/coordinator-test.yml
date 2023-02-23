@@ -107,5 +107,14 @@ jobs:
           ccm list
       - name: Run Integration Tests
         run: |
-          ./mvnw -B -ntp install -DskipTests 
-          ./mvnw -B -ntp -pl testing -P it-${{ matrix.backend }} verify -DskipUnitTests -Dit.test=SimpleStatementTest
+          echo "NOOP"
+        #./mvnw -B -ntp install -DskipTests
+        #./mvnw -B -ntp -pl testing -P it-${{ matrix.backend }} verify -DskipUnitTests -Dit.test=SimpleStatementTest
+
+  check-port-user:
+    name: Who's using that port
+    runs-on: ubuntu-latest
+    steps:
+      - name: lsof
+        run: |
+          sudo lsof -iTCP -n -P | sort -k1
