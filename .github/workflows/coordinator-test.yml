@@ -63,6 +63,12 @@ jobs:
         #backend: [ cassandra-4.0, cassandra-3.11, dse-6.8 ]
         backend: [ cassandra-4.0 ]
     steps:
+      - name: disable and stop mono-xsp4.service
+        # Stop unused mono process that uses port 8084 starting on Ubuntu 20.04 GitHub runner
+        #   see: https://github.com/actions/runner-images/issues/2821
+        run: |
+          sudo systemctl stop mono-xsp4.service || true
+          sudo systemctl disable mono-xsp4.service || true
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
         with:
@@ -102,12 +108,4 @@ jobs:
       - name: Run Integration Tests
         run: |
           ./mvnw -B -ntp install -DskipTests 
-          ./mvnw -B -ntp -pl testing -P it-${{ matrix.backend }} verify -DskipUnitTests -Dit.test=SimpleStatementTest
-
-  check-port-user:
-    name: Who's using that port
-    runs-on: ubuntu-latest
-    steps:
-      - name: lsof
-        run: |
-          lsof -i :8084
+          ./mvnw -B -ntp -pl testing -P it-${{ matrix.backend }} verify -DskipUnitTests
