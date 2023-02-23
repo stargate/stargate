@@ -28,7 +28,7 @@ jobs:
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git merge --no-commit -s ours origin/v1
+          git merge -s ours origin/v1
 
       # commit and create pr
       - name: Create pull-request
