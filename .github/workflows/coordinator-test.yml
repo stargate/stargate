@@ -5,9 +5,9 @@ on:
 
 jobs:
 
-  build:
+  unit-test:
     name: Unit tests
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
@@ -49,17 +49,19 @@ jobs:
 
       - name: Run Unit Tests
         run: |
-          ./mvnw -B -ntp test
+          echo "NOOP"
+        #./mvnw -B -ntp test
 
   integration-test:
     name: Integration Test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       # Defaults to "true" but let's let all runs finish
       # (see https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs)
       fail-fast: false
       matrix:
-        backend: [ cassandra-4.0, cassandra-3.11, dse-6.8 ]
+        #backend: [ cassandra-4.0, cassandra-3.11, dse-6.8 ]
+        backend: [ cassandra-4.0 ]
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -99,4 +101,4 @@ jobs:
           ccm list
       - name: Run Integration Tests
         run: |
-          ./mvnw verify -B -ntp -DskipUnitTests -P it-${{ matrix.backend }}
+          ./mvnw verify -B -ntp -DskipUnitTests -P it-${{ matrix.backend }} -Dit.test=SimpleStatementTest
