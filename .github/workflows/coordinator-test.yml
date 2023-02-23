@@ -73,6 +73,7 @@ jobs:
         run: |
           sudo systemctl stop mono-xsp4.service
           sudo systemctl list-units --all --type=service --no-pager | grep mono
+          sudo killall mono
           sudo lsof -iTCP -n -P | sort -k1
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
