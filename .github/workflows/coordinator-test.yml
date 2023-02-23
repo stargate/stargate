@@ -99,4 +99,4 @@ jobs:
           ccm list
       - name: Run Integration Tests
         run: |
-          ./mvnw clean verify -B -ntp -DskipUnitTests -P it-${{ matrix.backend }}
+          ./mvnw verify -B -ntp -DskipUnitTests -P it-${{ matrix.backend }}
