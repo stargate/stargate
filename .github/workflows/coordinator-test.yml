@@ -101,7 +101,7 @@ jobs:
           ccm list
       - name: Run Integration Tests
         run: |
-          ./mvnw -B -ntp -P install -DskipTests 
+          ./mvnw -B -ntp install -DskipTests 
           ./mvnw -B -ntp -pl testing -P it-${{ matrix.backend }} verify -DskipUnitTests -Dit.test=SimpleStatementTest
 
   integration-test-18:
@@ -153,5 +153,5 @@ jobs:
           ccm list
       - name: Run Integration Tests
         run: |
-          ./mvnw -B -ntp -P install -DskipTests 
+          ./mvnw -B -ntp install -DskipTests 
           ./mvnw -B -ntp -pl testing -P it-${{ matrix.backend }} verify -DskipUnitTests -Dit.test=SimpleStatementTest
