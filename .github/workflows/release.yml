@@ -200,7 +200,7 @@ jobs:
             token: ${{ secrets.GITHUB_TOKEN }}
 
           - repo: stargate/docker-images
-            token: ${{ secrets.DOCKER_IMAGES_PAT }}
+            token: ${{ secrets.SG_EVENTS_PAT }}
 
           - repo: riptano/c2
             token: ${{ secrets.C2_PAT }}

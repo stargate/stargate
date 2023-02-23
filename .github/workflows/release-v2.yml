@@ -550,7 +550,7 @@ jobs:
         repo: [ 'stargate/jsonapi', 'riptano/c2']
         include:
           - repo: stargate/jsonapi
-            token: ${{ secrets.JSONAPI_PAT }}
+            token: ${{ secrets.SG_EVENTS_PAT }}
 
           - repo: riptano/c2
             token: ${{ secrets.C2_PAT}}
