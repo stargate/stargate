@@ -66,10 +66,10 @@ jobs:
       - name: disable and stop mono-xsp4.service
         # Stop unused mono process that uses port 8084 starting on Ubuntu 20.04 GitHub runner
         #   see: https://github.com/actions/runner-images/issues/2821
+        #sudo systemctl stop mono-xsp4.service || true
+        #sudo systemctl disable mono-xsp4.service || true
         run: |
-          sudo systemctl stop mono-xsp4.service || true
-          sudo systemctl disable mono-xsp4.service || true
-          apt list --installed
+          sudo apt remove --purge --auto-remove mono-runtime
           sudo lsof -iTCP -n -P | sort -k1
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
