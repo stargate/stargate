@@ -49,8 +49,7 @@ jobs:
 
       - name: Run Unit Tests
         run: |
-          echo "NOOP"
-        #./mvnw -B -ntp test
+          ./mvnw -B -ntp test
 
   integration-test:
     name: Integration Test
@@ -60,8 +59,7 @@ jobs:
       # (see https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs)
       fail-fast: false
       matrix:
-        #backend: [ cassandra-4.0, cassandra-3.11, dse-6.8 ]
-        backend: [ cassandra-4.0 ]
+        backend: [ cassandra-4.0, cassandra-3.11, dse-6.8 ]
     steps:
       - name: Disable Mono
         # Kill unused mono process that uses port 8084 starting on Ubuntu 20.04 GitHub runner
@@ -113,4 +111,4 @@ jobs:
       - name: Run Integration Tests
         run: |
           ./mvnw -B -ntp install -DskipTests
-          ./mvnw -B -ntp -pl testing -P it-${{ matrix.backend }} verify -DskipUnitTests -Dit.test=SimpleStatementTest
+          ./mvnw -B -ntp -pl testing -P it-${{ matrix.backend }} verify -DskipUnitTests
