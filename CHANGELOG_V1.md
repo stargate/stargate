@@ -1,5 +1,19 @@
 # Changelog
 
+## [v1.0.74](https://github.com/stargate/stargate/tree/v1.0.74) (2023-02-15)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.73...v1.0.74)
+
+**Closed issues:**
+
+- InboundHAProxyHandler is not @Sharable (Stargate v1) [\#2446] (https://github.com/stargate/stargate/issues/2446)
+
+**Merged pull requests:**
+
+- make InboundHAProxyHandler sharable \(v1\) [\#2447](https://github.com/stargate/stargate/pull/2447) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- updates the changelog generation for the v1 branch and releases [\#2441](https://github.com/stargate/stargate/pull/2441) ([ivansenic](https://github.com/ivansenic))
+- Bumping version for next `v1` release [\#2434](https://github.com/stargate/stargate/pull/2434) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v1.0.73](https://github.com/stargate/stargate/tree/v1.0.73) (2023-02-10)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.72...v1.0.73)
