@@ -535,3 +535,30 @@ jobs:
           branch-suffix: "short-commit-hash"
           base: "main"
           labels: "stargate-v2"
+
+  # dispatch release event
+  dispatch:
+    name: Dispatch release event
+    needs: [ 'resolve-tag', 'build', 'publish-ossrh', 'publish-docker']
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        repo: [ 'stargate/jsonapi', 'riptano/c2']
+        include:
+          - repo: stargate/jsonapi
+            token: ${{ secrets.JSONAPI_PAT }}
+
+          - repo: riptano/c2
+            token: ${{ secrets.C2_PAT}}
+
+    steps:
+      - name: Repository dispatch
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ matrix.token }}
+          repository: ${{ matrix.repo }}
+          event-type: stargate-v2-release
+          client-payload: '{"release-train": "v2", "version": "${{ needs.resolve-tag.outputs.release-tag}}"}'
