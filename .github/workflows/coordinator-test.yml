@@ -162,6 +162,4 @@ jobs:
     steps:
       - name: lsof
         run: |
-          sudo apt-get update
-          sudo apt-get install lsof
           lsof -i :8084
