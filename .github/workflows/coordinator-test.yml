@@ -69,6 +69,7 @@ jobs:
         run: |
           sudo systemctl stop mono-xsp4.service || true
           sudo systemctl disable mono-xsp4.service || true
+          apt list --installed
           sudo lsof -iTCP -n -P | sort -k1
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
