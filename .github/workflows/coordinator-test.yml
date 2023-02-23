@@ -69,7 +69,7 @@ jobs:
         #sudo systemctl stop mono-xsp4.service || true
         #sudo systemctl disable mono-xsp4.service || true
         run: |
-          sudo apt-get purge --auto-remove mono-runtime
+          sudo apt-get purge --auto-remove ubuntu-mono
           apt list --installed | grep mono
           sudo lsof -iTCP -n -P | sort -k1
       - uses: actions/checkout@v3
