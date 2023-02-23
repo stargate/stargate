@@ -188,15 +188,19 @@ jobs:
     name: Dispatch release event
     needs: [ 'create-release', 'build', 'publish']
     if: ${{ always() }}
+    continue-on-error: true
     runs-on: ubuntu-latest
 
     strategy:
       fail-fast: false
       matrix:
-        repo: [ 'stargate/stargate', 'riptano/c2']
+        repo: [ 'stargate/stargate', 'stargate/docker-images', 'riptano/c2']
         include:
           - repo: stargate/stargate
             token: ${{ secrets.GITHUB_TOKEN }}
+
+          - repo: stargate/docker-images
+            token: ${{ secrets.DOCKER_IMAGES_PAT }}
 
           - repo: riptano/c2
             token: ${{ secrets.C2_PAT }}
@@ -208,4 +212,4 @@ jobs:
           token: ${{ matrix.token }}
           repository: ${{ matrix.repo }}
           event-type: stargate-v1-release
-          client-payload: '{"release-train": "v1", "version": "${{ needs.create-release.outputs.release-tag }}"}'
+          client-payload: '{"version": "${{ needs.create-release.outputs.release-tag }}"}'

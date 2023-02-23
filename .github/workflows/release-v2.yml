@@ -541,6 +541,7 @@ jobs:
     name: Dispatch release event
     needs: [ 'resolve-tag', 'build', 'publish-ossrh', 'publish-docker']
     if: ${{ always() }}
+    continue-on-error: true
     runs-on: ubuntu-latest
 
     strategy:
@@ -561,4 +562,4 @@ jobs:
           token: ${{ matrix.token }}
           repository: ${{ matrix.repo }}
           event-type: stargate-v2-release
-          client-payload: '{"release-train": "v2", "version": "${{ needs.resolve-tag.outputs.release-tag}}"}'
+          client-payload: '{"version": "${{ needs.resolve-tag.outputs.release-tag}}"}'
