@@ -63,16 +63,15 @@ jobs:
         #backend: [ cassandra-4.0, cassandra-3.11, dse-6.8 ]
         backend: [ cassandra-4.0 ]
     steps:
-      - name: disable and stop mono-xsp4.service
-        # Stop unused mono process that uses port 8084 starting on Ubuntu 20.04 GitHub runner
+      - name: Disable Mono
+        # Kill unused mono process that uses port 8084 starting on Ubuntu 20.04 GitHub runner
+        # This is brute force but other attempts did not work
         #   see: https://github.com/actions/runner-images/issues/2821
-        #sudo systemctl stop mono-xsp4.service || true
-        #sudo systemctl disable mono-xsp4.service || true
-        #sudo apt-get purge --auto-remove ubuntu-mono
-        #apt list --installed | grep mono
+        #   this doesn't seem to stop the process:
+        #     sudo systemctl stop mono-xsp4.service || true
+        #   neither does uninstalling mono:
+        #     sudo apt-get purge --auto-remove ubuntu-mono mono-runtime
         run: |
-          sudo systemctl stop mono-xsp4.service
-          sudo systemctl list-units --all --type=service --no-pager | grep mono
           sudo killall mono
           sudo lsof -iTCP -n -P | sort -k1
       - uses: actions/checkout@v3
@@ -113,6 +112,5 @@ jobs:
           ccm list
       - name: Run Integration Tests
         run: |
-          echo "NOOP"
-        #./mvnw -B -ntp install -DskipTests
-        #./mvnw -B -ntp -pl testing -P it-${{ matrix.backend }} verify -DskipUnitTests -Dit.test=SimpleStatementTest
+          ./mvnw -B -ntp install -DskipTests
+          ./mvnw -B -ntp -pl testing -P it-${{ matrix.backend }} verify -DskipUnitTests -Dit.test=SimpleStatementTest
