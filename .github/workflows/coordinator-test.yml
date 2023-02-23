@@ -68,9 +68,10 @@ jobs:
         #   see: https://github.com/actions/runner-images/issues/2821
         #sudo systemctl stop mono-xsp4.service || true
         #sudo systemctl disable mono-xsp4.service || true
+        #sudo apt-get purge --auto-remove ubuntu-mono
+        #apt list --installed | grep mono
         run: |
-          sudo apt-get purge --auto-remove ubuntu-mono
-          apt list --installed | grep mono
+          sudo systemctl list-units --all --type=service --no-pager | grep mono
           sudo lsof -iTCP -n -P | sort -k1
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
