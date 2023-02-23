@@ -162,6 +162,12 @@ jobs:
           ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
           ./mvnw -B -ntp -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse
 
+      - name: Generate changelog
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./update_changelog.sh
+
       - name: Bump versions
         run: |
           ./mvnw -B -ntp release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse

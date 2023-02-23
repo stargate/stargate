@@ -507,6 +507,12 @@ jobs:
           </settings>
           EOF
 
+      - name: Generate changelog
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./update_changelog.sh
+
       - name: Update version numbers (coordinator)
         run: |
           ./mvnw -B -ntp release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse
