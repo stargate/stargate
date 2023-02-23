@@ -1,0 +1,16 @@
+name: Find port user
+
+on:
+  workflow_dispatch:
+
+jobs:
+
+  check-port-user:
+    name: Who's using that port
+    runs-on: ubuntu-latest
+    steps:
+      - name: lsof
+        run: |
+          sudo apt-get update
+          sudo apt-get install lsof
+          lsof -i :8084
