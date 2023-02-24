@@ -69,7 +69,7 @@ jobs:
             test-profile: -P it-cassandra-3.11
           - backend: dse-68
             build-profile: -P dse
-            test-profile: -P it-dse-6.8
+            test-profile: -P dse -P it-dse-6.8
     steps:
       - name: Disable Mono
         # Kill unused mono process that uses port 8084 starting on Ubuntu 20.04 GitHub runner
