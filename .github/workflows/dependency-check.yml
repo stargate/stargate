@@ -12,12 +12,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      
       - name: Setup Java JDK
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: 8.0.332
           cache: 'maven'
+      
       - name: Setup Maven
         env:
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
@@ -40,26 +42,31 @@ jobs:
            </servers>
           </settings>
           EOF
+
       - name: Check Maven Dependency Updates
         run: |
+          cd coordinator/
           mvn -B -ntp versions:display-dependency-updates -Dversions.outputFile=target/dependency-updates-report.txt
+
       - name: Archive dependency update results
         uses: actions/upload-artifact@v3
         with:
           name: dependency-update-report
-          path: target/dependency-updates-report.txt
+          path: coordinator/target/dependency-updates-report.txt
 
   check-vulnerabilities:
     name: Check Vulnerabilities
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+
       - name: Setup Java JDK
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
           java-version: 8.0.332
           cache: 'maven'
+
       - name: Setup Maven
         env:
           ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
@@ -82,11 +89,14 @@ jobs:
            </servers>
           </settings>
           EOF
+
       - name: Check Maven Dependencies
         run: |
+          cd coordinator/
           mvn -B -ntp dependency-check:aggregate
+
       - name: Archive vulnerability results
         uses: actions/upload-artifact@v3
         with:
           name: dependency-check-report
-          path: target/dependency-check-report.html
+          path: coordinator/target/dependency-check-report.html
