@@ -162,6 +162,12 @@ jobs:
           ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
           ./mvnw -B -ntp -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse
 
+      - name: Generate changelog
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./update_changelog.sh
+
       - name: Bump versions
         run: |
           ./mvnw -B -ntp release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse
@@ -176,3 +182,34 @@ jobs:
           title: "Bumping version for next release"
           branch-suffix: "short-commit-hash"
           base: "v1"
+
+  # dispatch release event
+  dispatch:
+    name: Dispatch release event
+    needs: [ 'create-release', 'build', 'publish']
+    if: ${{ always() }}
+    continue-on-error: true
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        repo: [ 'stargate/stargate', 'stargate/docker-images', 'riptano/c2']
+        include:
+          - repo: stargate/stargate
+            token: ${{ secrets.GITHUB_TOKEN }}
+
+          - repo: stargate/docker-images
+            token: ${{ secrets.SG_EVENTS_PAT }}
+
+          - repo: riptano/c2
+            token: ${{ secrets.C2_PAT }}
+
+    steps:
+      - name: Repository dispatch
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ matrix.token }}
+          repository: ${{ matrix.repo }}
+          event-type: stargate-v1-release
+          client-payload: '{"version": "${{ needs.create-release.outputs.release-tag }}"}'

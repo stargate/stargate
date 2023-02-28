@@ -507,6 +507,12 @@ jobs:
           </settings>
           EOF
 
+      - name: Generate changelog
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./update_changelog.sh
+
       - name: Update version numbers (coordinator)
         run: |
           ./mvnw -B -ntp release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse
@@ -529,3 +535,31 @@ jobs:
           branch-suffix: "short-commit-hash"
           base: "main"
           labels: "stargate-v2"
+
+  # dispatch release event
+  dispatch:
+    name: Dispatch release event
+    needs: [ 'resolve-tag', 'build', 'publish-ossrh', 'publish-docker']
+    if: ${{ always() }}
+    continue-on-error: true
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        repo: [ 'stargate/jsonapi', 'riptano/c2']
+        include:
+          - repo: stargate/jsonapi
+            token: ${{ secrets.SG_EVENTS_PAT }}
+
+          - repo: riptano/c2
+            token: ${{ secrets.C2_PAT}}
+
+    steps:
+      - name: Repository dispatch
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ matrix.token }}
+          repository: ${{ matrix.repo }}
+          event-type: stargate-v2-release
+          client-payload: '{"version": "${{ needs.resolve-tag.outputs.release-tag}}"}'
