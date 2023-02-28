@@ -80,12 +80,14 @@ jobs:
         env:
           cache-name: cache-coordinator-libs
         with:
-          path: ./stargate-lib
+          path: ./coordinator/stargate-lib
           key: stargate-lib-${{ github.sha }}
 
       - name: Build
         if: steps.cache-coordinator-snapshots.outputs.cache-hit != 'true'
-        run: MAVEN_OPTS="-Xmx4g" ./mvnw -B -ntp install -P dse -DskipTests
+        run: |
+          cd coordinator/
+          MAVEN_OPTS="-Xmx4g" ./mvnw -B -ntp install -P dse -DskipTests
 
   # Builds C*3, C*4 and DSE coordinator images using matrix
   # Exports image to a file and then uploads it using action artifacts
@@ -108,7 +110,7 @@ jobs:
         env:
           cache-name: cache-coordinator-libs
         with:
-          path: ./stargate-lib
+          path: ./coordinator/stargate-lib
           key: stargate-lib-${{ github.sha }}
 
       - name: Set up QEMU
@@ -121,6 +123,7 @@ jobs:
       # just builds a single image
       - name: Build Docker Image
         run: |
+          cd coordinator/
           LIBDIR=./tmp-${RANDOM}
           mkdir ${LIBDIR}
           cp ./stargate-lib/*.jar $LIBDIR
