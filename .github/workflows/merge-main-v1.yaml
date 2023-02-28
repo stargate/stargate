@@ -28,7 +28,8 @@ jobs:
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git merge -s ours origin/v1
+          git merge origin/v1
+          git diff --name-only --diff-filter=U | xargs -I@ bash -c "git checkout --ours @ && git add @"
 
       # commit and create pr
       - name: Create pull-request
@@ -42,6 +43,10 @@ jobs:
           labels: stargate-v2
           title: Merging branch v1 into main
           body: |
-            Automated changes that try to merge v1 into main.
+            Automated changes that try to merge v1 into main. Note that all non-resolved conflicts where resolved using the `ours` git strategy. Please review the changes carefully.
+
+            In order to start the CI workflows for this pull request, please:
+            * reopen and open the issue in order to trigger GitHub workflows
+            * comment `/gcbrun` in order to trigger GCB builds
             
             **IMPORTANT: When merging please use the fast-forward merge and avoid GitHub merge buttons.**
