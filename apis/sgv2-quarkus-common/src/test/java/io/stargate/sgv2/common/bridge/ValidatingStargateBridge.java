@@ -156,6 +156,7 @@ public class ValidatingStargateBridge implements StargateBridge {
     private List<List<QueryOuterClass.Value>> rows;
     private Iterable<? extends QueryOuterClass.ColumnSpec> columnSpec;
     private Function<List<QueryOuterClass.Value>, ByteBuffer> comparableKey;
+    private Throwable failure;
 
     private QueryExpectation(String cqlRegex, List<QueryOuterClass.Value> values) {
       this.cqlPattern = Pattern.compile(cqlRegex);
@@ -210,6 +211,11 @@ public class ValidatingStargateBridge implements StargateBridge {
 
     public QueryAssert returning(List<List<QueryOuterClass.Value>> rows) {
       this.rows = rows;
+      return this;
+    }
+
+    public QueryAssert returningFailure(Throwable failure) {
+      this.failure = failure;
       return this;
     }
 
@@ -326,6 +332,11 @@ public class ValidatingStargateBridge implements StargateBridge {
 
       // mark as executed
       executed();
+
+      // if we have a throwable throw
+      if (null != failure) {
+        return Uni.createFrom().failure(failure);
+      }
 
       QueryOuterClass.ResultSet.Builder resultSet = QueryOuterClass.ResultSet.newBuilder();
 
