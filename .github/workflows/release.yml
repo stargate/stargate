@@ -197,19 +197,19 @@ jobs:
         repo: [ 'stargate/stargate', 'stargate/docker-images', 'riptano/c2']
         include:
           - repo: stargate/stargate
-            token: ${{ secrets.GITHUB_TOKEN }}
+            secret: GITHUB_TOKEN
 
           - repo: stargate/docker-images
-            token: ${{ secrets.SG_EVENTS_PAT }}
+            secret: SG_EVENTS_PAT
 
           - repo: riptano/c2
-            token: ${{ secrets.C2_PAT }}
+            secret: C2_PAT
 
     steps:
       - name: Repository dispatch
         uses: peter-evans/repository-dispatch@v2
         with:
-          token: ${{ matrix.token }}
+          token: ${{ secrets[matrix.secret] }}
           repository: ${{ matrix.repo }}
           event-type: stargate-v1-release
           client-payload: '{"version": "${{ needs.create-release.outputs.release-tag }}"}'

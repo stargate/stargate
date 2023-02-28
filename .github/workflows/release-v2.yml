@@ -550,16 +550,16 @@ jobs:
         repo: [ 'stargate/jsonapi', 'riptano/c2']
         include:
           - repo: stargate/jsonapi
-            token: ${{ secrets.SG_EVENTS_PAT }}
+            secret: SG_EVENTS_PAT
 
           - repo: riptano/c2
-            token: ${{ secrets.C2_PAT}}
+            secret: C2_PAT
 
     steps:
       - name: Repository dispatch
         uses: peter-evans/repository-dispatch@v2
         with:
-          token: ${{ matrix.token }}
+          token: ${{ secrets[matrix.secret] }}
           repository: ${{ matrix.repo }}
           event-type: stargate-v2-release
           client-payload: '{"version": "${{ needs.resolve-tag.outputs.release-tag}}"}'
