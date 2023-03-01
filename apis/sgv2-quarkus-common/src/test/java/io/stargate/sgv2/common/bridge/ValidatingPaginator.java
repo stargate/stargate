@@ -85,6 +85,10 @@ public class ValidatingPaginator {
     return pagingState(nextOffset);
   }
 
+  public boolean limitExhausted(int limit) {
+    return limit > 0 && offset + pageSize >= limit;
+  }
+
   public ByteBuffer pagingStateForRow(int index) {
     // for the row just current offset
     // + index of the row
