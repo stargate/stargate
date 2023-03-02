@@ -328,6 +328,33 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
     }
 
     @ParameterizedTest
+    @CsvSource({"1", "2", "3", "4"})
+    public void fullScanPagedWithLimit(int pageSize) {
+      // limits to only 4 rows
+      QueryOuterClass.Query query =
+          new QueryBuilder()
+              .select()
+              .star()
+              .from(schemaProvider.getTable().getName())
+              .limit(4)
+              .build();
+
+      withFiveTestDocs(query, pageSize, QueryOuterClass.ResumeMode.NEXT_PARTITION);
+
+      List<RawDocument> result =
+          queryExecutor
+              .queryDocs(query, pageSize, false, null, true, context)
+              .subscribe()
+              .withSubscriber(AssertSubscriber.create(5))
+              .awaitCompletion()
+              .assertCompleted()
+              .getItems();
+
+      assertThat(result).extracting(RawDocument::id).containsExactly("1", "2", "3");
+      assertThat(result.subList(0, 2)).allSatisfy(doc -> assertThat(doc.hasPagingState()).isTrue());
+    }
+
+    @ParameterizedTest
     @CsvSource({"1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "100"})
     public void populate(int pageSize) {
       QueryOuterClass.Query selectAllQuery =

@@ -353,7 +353,7 @@ public class ValidatingStargateBridge implements StargateBridge {
 
       // filter rows in order to respect the page size
       // and get next paging state
-      List<List<QueryOuterClass.Value>> filterRows = paginator.filter(rows);
+      List<List<QueryOuterClass.Value>> filterRows = paginator.filter(rows, limit);
       boolean limitExhausted = paginator.limitExhausted(limit);
       if (!limitExhausted) {
         ByteBuffer nextPagingState = paginator.pagingState();
