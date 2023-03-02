@@ -37,6 +37,8 @@
 - Fix workflow typo to address \#2423 [\#2425](https://github.com/stargate/stargate/pull/2425) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
 - adds user agent grpc tag provider [\#2412](https://github.com/stargate/stargate/pull/2412) ([ivansenic](https://github.com/ivansenic))
 
+## [v2.0.8](https://github.com/stargate/stargate/tree/v2.0.8) (2023-02-10)
+
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.7...v2.0.8)
 
 **Closed issues:**
