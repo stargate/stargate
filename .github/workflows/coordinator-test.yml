@@ -65,4 +65,5 @@ jobs:
           ccm list
       - name: Run Unit and Integration Tests
         run: |
+          cd coordinator/
           ./mvnw clean verify -B -ntp -P it-${{ matrix.backend }}

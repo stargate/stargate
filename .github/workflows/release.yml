@@ -95,11 +95,13 @@ jobs:
 
       - name: Build with Maven
         run: |
+          cd coordinator/
           mvn -B -ntp versions:set -DremoveSnapshot versions:commit
           mvn -P dse -B -ntp -q -ff clean package -DskipTests
 
       - name: Zip-up `stargate-lib`
         run: |
+          cd coordinator/
           zip stargate-jars.zip starctl stargate-lib/logback.xml stargate-lib/*.jar
           
       # uploads the jars by referencing the release-upload-url from create-release job
@@ -108,7 +110,8 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{needs.create-release.outputs.release-upload-url}}
-          asset_path: stargate-jars.zip
+          asset_name: stargate-jars.zip
+          asset_path: coordinator/stargate-jars.zip
 
   # publish coordinator JARs to the OSSRH
   publish:
@@ -159,6 +162,7 @@ jobs:
       - name: Publish package
         if: ${{ !inputs.skipPublish }}
         run: |
+          cd coordinator/
           ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
           ./mvnw -B -ntp -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse
 
@@ -170,6 +174,7 @@ jobs:
 
       - name: Bump versions
         run: |
+          cd coordinator/
           ./mvnw -B -ntp release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse
           ./mvnw -B -ntp xml-format:xml-format fmt:format -Pdse
 

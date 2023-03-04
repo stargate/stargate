@@ -102,11 +102,13 @@ jobs:
 
       - name: Build with Maven
         run: |
+          cd coordinator/
           ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
           ./mvnw -B -ntp -q -ff -P dse clean package -DskipTests
 
       - name: Zip-up `stargate-lib`
         run: |
+          cd coordinator/
           zip -r stargate-jars.zip starctl* stargate-lib
 
       # uploads the jars by referencing the release-upload-url from create-release job
@@ -115,7 +117,8 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{needs.create-release.outputs.release-upload-url}}
-          asset_path: stargate-jars.zip
+          asset_name: stargate-jars.zip
+          asset_path: coordinator/stargate-jars.zip
 
   # builds api uber-jars, zips and uploads the created release
   build-apis:
@@ -165,6 +168,7 @@ jobs:
       - name: Build bridge protos library
         if: ${{ !inputs.skipPublish }}
         run: |
+          cd coordinator/
           JAVA_HOME=$JAVA_8 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
           JAVA_HOME=$JAVA_8 ./mvnw -B -ntp clean install -DskipTests -pl bridge-proto -am
 
@@ -173,7 +177,6 @@ jobs:
           cd apis/
           JAVA_HOME=$JAVA_17 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
           JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -Dquarkus.package.type=uber-jar -DskipTests
-          cd ../
 
       - name: Zip-up APIs
         run: |
@@ -251,6 +254,7 @@ jobs:
         if: ${{ !inputs.skipPublish }}
         continue-on-error: true
         run: |
+          cd coordinator/
           JAVA_HOME=$JAVA_8 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
           JAVA_HOME=$JAVA_8 ./mvnw -B -ntp -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse
 
@@ -309,6 +313,7 @@ jobs:
 
       - name: Install coordinator
         run: |
+          cd coordinator/
           JAVA_HOME=$JAVA_8 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
           JAVA_HOME=$JAVA_8 ./mvnw -B -ntp clean install -P dse -DskipTests 
 
@@ -337,11 +342,13 @@ jobs:
       - name: Build and push (coordinator, DockerHub)
         if: ${{ !inputs.skipPublish }}
         run: |
+          cd coordinator/
           ./build_docker_images.sh -p -t ${{needs.resolve-tag.outputs.release-tag}}
 
       - name: Build without push (coordinator, DockerHub)
         if: ${{ inputs.skipPublish }}
         run: |
+          cd coordinator/
           ./build_docker_images.sh -t ${{needs.resolve-tag.outputs.release-tag}}
 
       - name: Build and push (apis, DockerHub)
@@ -373,6 +380,7 @@ jobs:
       - name: Build and push (coordinator, Amazon ECR)
         if: ${{ !inputs.skipPublish }}
         run: |
+          cd coordinator/
           ./build_docker_images.sh -p -t ${{needs.resolve-tag.outputs.release-tag}} -r ${{ secrets.ECR_REPOSITORY }}
 
       # downloads and prepares datastax assets
@@ -391,7 +399,6 @@ jobs:
         run: |
           cd apis/
           JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-graphqlapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
-          cd ../
 
       - name: Build and push (docsapi, Amazon ECR)
         if: ${{ !inputs.skipPublish }}
@@ -406,7 +413,6 @@ jobs:
         run: |
           cd apis/
           JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-docsapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
-          cd ../
 
       - name: Build and push (restapi, Amazon ECR)
         if: ${{ !inputs.skipPublish }}
@@ -421,7 +427,6 @@ jobs:
         run: |
           cd apis/
           JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-restapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
-          cd ../
 
   # signs all docker images with cosign
   # skip whole job if we did not push images
@@ -520,6 +525,7 @@ jobs:
 
       - name: Update version numbers (coordinator)
         run: |
+          cd coordinator/
           ./mvnw -B -ntp release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse
           ./mvnw -B -ntp xml-format:xml-format fmt:format -Pdse
 
@@ -528,7 +534,6 @@ jobs:
           cd apis/
           ./mvnw -B -ntp release:update-versions -DautoVersionSubmodules=true versions:commit
           ./mvnw -B -ntp xml-format:xml-format fmt:format
-          cd ../
 
       - name: Rev Version
         if: success()

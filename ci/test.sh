@@ -43,6 +43,7 @@ esac
 echoinfo "Using backend $PERSISTENCE_BACKEND"
 
 export CCM_CLUSTER_START_TIMEOUT_OVERRIDE=600
+cd coordinator/
 ./mvnw -B install verify --file pom.xml \
 -P \${C3}it-cassandra-3.11 \
 -P \${C4}it-cassandra-4.0 \
