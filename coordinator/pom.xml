@@ -49,7 +49,7 @@
     <!-- SnakeYAML needs to be synced with jackson-dataformat-yaml
        most of the time, but occasionally higher for CVEs
       -->
-    <snakeyaml.version>1.33</snakeyaml.version>
+    <snakeyaml.version>2.0</snakeyaml.version>
     <swagger-ui.version>3.52.5</swagger-ui.version>
     <swagger-jersey2-jaxrs.version>1.6.3</swagger-jersey2-jaxrs.version>
     <!-- Netty version used by Cassandra 3.11/4.0 (DSE uses different version)
