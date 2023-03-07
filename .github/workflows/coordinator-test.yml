@@ -65,7 +65,8 @@ jobs:
 
   integration-test:
     name: Integration tests
-    runs-on: ubuntu-latest
+    runs-on:
+      labels: stargate-coord-runner
 
     strategy:
       # Defaults to "true" but let's let all runs finish
