@@ -2,11 +2,8 @@
 name: Merge main/v1
 
 # runs on
-# * stargate v1 release event
 # * manual trigger
 on:
-  repository_dispatch:
-    types: [ stargate-v1-release ]
   workflow_dispatch:
 
 jobs:
