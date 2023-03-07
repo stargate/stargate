@@ -65,8 +65,7 @@ jobs:
 
   integration-test:
     name: Integration tests
-    runs-on:
-      labels: ubuntu-latest-8-cores
+    runs-on: ubuntu-latest
 
     strategy:
       # Defaults to "true" but let's let all runs finish
