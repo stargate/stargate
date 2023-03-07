@@ -61,7 +61,7 @@ jobs:
 
       - name: Run unit tests
         run: |
-          ./mvnw -B -ntp test -P dse
+          ./mvnw -B -ntp clean test -P dse
 
   integration-test:
     name: Integration tests
@@ -141,5 +141,5 @@ jobs:
 
       - name: Run Integration Tests
         run: |
-          ./mvnw -B -ntp ${{ matrix.build-profile }} install -DskipTests
+          ./mvnw -B -ntp ${{ matrix.build-profile }} clean install -DskipTests
           ./mvnw -B -ntp -pl testing ${{ matrix.test-profile }} verify -DskipUnitTests
