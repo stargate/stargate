@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <!-- inherit common settings -->
+  <!-- Parent -->
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
     <version>1.0.75-SNAPSHOT</version>
   </parent>
+  <!-- Artifact properties -->
   <groupId>io.stargate.db.dse</groupId>
   <artifactId>persistence-dse-6.8</artifactId>
+  <name>Stargate - Coordinator - Persistence DSE 6.8</name>
   <properties>
     <dse.version>6.8.32</dse.version>
   </properties>

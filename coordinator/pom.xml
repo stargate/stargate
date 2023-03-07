@@ -1,19 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  <!-- Artifact props -->
   <groupId>io.stargate</groupId>
   <artifactId>stargate</artifactId>
+  <name>Stargate - Coordinator Parent pom</name>
   <version>1.0.75-SNAPSHOT</version>
   <packaging>pom</packaging>
-  <name>${project.groupId}:${project.artifactId}</name>
-  <description>Core modules for Stargate</description>
-  <url>http://github.com/stargate/stargate</url>
+  <!-- Description -->
+  <description>Stargate - An open source data API gateway</description>
+  <url>https://github.com/stargate/stargate</url>
+  <!-- Dev props -->
+  <developers>
+    <developer>
+      <id>stargate</id>
+      <name>The Stargate Authors</name>
+      <email>maintainers@stargate.io</email>
+      <organization>Stargate</organization>
+      <organizationUrl>https://stargate.io</organizationUrl>
+    </developer>
+  </developers>
+  <!-- License -->
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <!-- Source code control management -->
+  <scm child.scm.connection.inherit.append.path="false" child.scm.developerConnection.inherit.append.path="false" child.scm.url.inherit.append.path="false">
+    <url>https://github.com/stargate/stargate</url>
+    <connection>scm:git:git://github.com/stargate/stargate.git</connection>
+    <developerConnection>scm:git:git://github.com/stargate/stargate.git</developerConnection>
+    <tag>HEAD</tag>
+  </scm>
+  <!-- Issue management -->
+  <issueManagement>
+    <system>GitHub</system>
+    <url>https://github.com/stargate/stargate/issues/</url>
+  </issueManagement>
+  <!-- Shared properties -->
   <properties>
+    <!-- Compiler -->
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
-
-    <osgi.bundle.version>${project.version}</osgi.bundle.version>
+    <!-- Encoding -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <!-- OSGi -->
+    <osgi.bundle.version>${project.version}</osgi.bundle.version>
+    <!-- Release -->
     <project.scm.id>github</project.scm.id>
     <doclint>none</doclint>
     <driver.version>4.15.0</driver.version>
@@ -524,30 +561,6 @@
       </plugins>
     </pluginManagement>
   </build>
-  <licenses>
-    <license>
-      <name>The Apache Software License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-    </license>
-  </licenses>
-  <scm>
-    <connection>scm:git:git://github.com/stargate/stargate.git</connection>
-    <developerConnection>scm:git:git@github.com:stargate/stargate.git</developerConnection>
-    <url>http://github.com/stargate/stargate/tree/main</url>
-  </scm>
-  <developers>
-    <developer>
-      <name>The Stargate Authors</name>
-      <email>maintainers@stargate.io</email>
-      <organization>Stargate</organization>
-    </developer>
-  </developers>
-  <distributionManagement>
-    <repository>
-      <id>ossrh</id>
-      <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-    </repository>
-  </distributionManagement>
   <dependencyManagement>
     <dependencies>
       <!-- To get a consistent set of Jackson components, use BOM:
@@ -820,5 +833,4 @@
 
     </dependencies>
   </dependencyManagement>
- 
 </project>
