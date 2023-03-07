@@ -10,7 +10,6 @@ import java.security.SecureRandom;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
-
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.extension.ExtendWith;
 
