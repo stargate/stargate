@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -38,6 +39,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "INSERT INTO table_token_test.tbl_test (key, value) VALUES ('a', 'alpha')",
       "GRANT SELECT ON KEYSPACE table_token_test TO read_only_user",
     })
+@Order(Integer.MAX_VALUE)
 public class RestApiTableTokenAuthTest extends BaseIntegrationTest {
 
   private static final ObjectMapper objectMapper = new ObjectMapper();

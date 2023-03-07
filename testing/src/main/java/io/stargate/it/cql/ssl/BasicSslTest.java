@@ -11,6 +11,7 @@ import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import io.stargate.it.storage.SslForCqlParameters;
 import io.stargate.it.storage.StargateParameters;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 
 public class BasicSslTest extends SslTest {

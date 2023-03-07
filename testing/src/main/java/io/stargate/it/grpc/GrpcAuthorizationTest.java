@@ -13,6 +13,7 @@ import io.stargate.it.storage.StargateSpec;
 import io.stargate.proto.QueryOuterClass;
 import java.io.IOException;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "INSERT INTO grpc_table_token_test.tbl_test (key, value) VALUES ('a', 'alpha')",
       "GRANT SELECT ON KEYSPACE grpc_table_token_test TO read_only_user",
     })
+@Order(Integer.MAX_VALUE)
 public class GrpcAuthorizationTest extends GrpcIntegrationTest {
   private final String keyspaceName = "grpc_table_token_test";
   private final String tableName = "tbl_test";

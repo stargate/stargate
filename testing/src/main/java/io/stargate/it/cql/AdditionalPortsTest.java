@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -36,6 +37,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 @ExtendWith(CqlSessionExtension.class)
 @StargateSpec(nodes = 2, parametersCustomizer = "buildParameters")
 @CqlSessionSpec(contactPointResolver = EmptyContactPointResolver.class, createSession = false)
+@Order(Integer.MAX_VALUE)
 public class AdditionalPortsTest extends BaseIntegrationTest {
 
   public static final List<Integer> ADDITIONAL_PORTS = Arrays.asList(29042, 39042);

@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -46,6 +47,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k, v))",
     })
 @StargateSpec(parametersCustomizer = "buildParameters")
+@Order(Integer.MAX_VALUE)
 public class MetricsGrpcIntTest extends GrpcIntegrationTest {
 
   private static String host;

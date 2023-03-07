@@ -39,12 +39,14 @@ import org.apache.http.HttpStatus;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(initQueries = {"CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k))"})
 @StargateSpec(parametersCustomizer = "buildParameters")
+@Order(Integer.MAX_VALUE)
 public class ClientMetricsTest extends BaseIntegrationTest {
   private static final Pattern MEMORY_HEAP_USAGE_REGEXP =
       Pattern.compile("(jvm_memory_heap_used\\s*)(\\d+.\\d+)");

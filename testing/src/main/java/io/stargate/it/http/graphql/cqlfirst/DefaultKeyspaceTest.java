@@ -23,11 +23,13 @@ import io.stargate.it.storage.ClusterSpec;
 import io.stargate.it.storage.StargateConnectionInfo;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 
 // Redeclare ClusterSpec to get shared=false; this test must be isolated because it will fail if
 // other tests have created their own user keyspaces before it.
 @ClusterSpec
+@Order(Integer.MIN_VALUE)
 public class DefaultKeyspaceTest extends BaseIntegrationTest {
 
   @Test

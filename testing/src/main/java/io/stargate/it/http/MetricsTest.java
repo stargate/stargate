@@ -39,12 +39,14 @@ import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @NotThreadSafe
 @StargateSpec(parametersCustomizer = "buildParameters")
+@Order(Integer.MAX_VALUE)
 public class MetricsTest extends BaseIntegrationTest {
 
   private static String host;

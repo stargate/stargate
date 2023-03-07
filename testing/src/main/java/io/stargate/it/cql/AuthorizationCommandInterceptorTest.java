@@ -34,6 +34,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -48,6 +49,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE TABLE IF NOT EXISTS auth_keyspace2.table3 (userid text, PRIMARY KEY (userid))",
     })
 @ExtendWith(StargateLogExtension.class)
+@Order(Integer.MAX_VALUE)
 public class AuthorizationCommandInterceptorTest extends BaseIntegrationTest {
   private static CqlSession session;
   private LogCollector log;

@@ -36,9 +36,12 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import jnr.ffi.annotations.In;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
@@ -58,6 +61,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
       "GRANT SELECT ON TABLE store1.shopping_cart TO web_user",
     })
 @Testcontainers(disabledWithoutDocker = true)
+@Order(Integer.MAX_VALUE)
 public class RestApiJWTAuthTest extends BaseIntegrationTest {
 
   private static final Logger logger = LoggerFactory.getLogger(RestApiJWTAuthTest.class);

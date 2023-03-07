@@ -24,6 +24,7 @@ import java.time.Instant;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -41,6 +42,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
       "GRANT SELECT ON TABLE store2.shopping_cart TO web_user",
     })
 @Testcontainers(disabledWithoutDocker = true)
+@Order(Integer.MAX_VALUE)
 public class JwtAuthTest extends BaseIntegrationTest {
 
   private final String keyspaceName = "store2";

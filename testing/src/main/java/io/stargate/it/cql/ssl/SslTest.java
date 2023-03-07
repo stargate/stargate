@@ -10,12 +10,15 @@ import java.security.SecureRandom;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
+
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /** Base test class for SSL tests. */
 @StargateSpec(parametersCustomizer = "buildParameters")
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(createSession = false)
+@Order(Integer.MAX_VALUE)
 public class SslTest extends BaseIntegrationTest {
 
   protected static final String CLIENT_TRUSTSTORE_PATH = "/client.truststore";

@@ -12,11 +12,13 @@ import io.stargate.it.storage.StargateSpec;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @StargateSpec(nodes = 1, shared = false, parametersCustomizer = "buildParameters")
 @ExtendWith(CqlSessionExtension.class)
+@Order(Integer.MAX_VALUE)
 public class HostIdTest extends BaseIntegrationTest {
   private static final String hostId =
       UUID.nameUUIDFromBytes("test123".getBytes(StandardCharsets.UTF_8)).toString();

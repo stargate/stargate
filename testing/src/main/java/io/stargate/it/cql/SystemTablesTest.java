@@ -22,11 +22,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @StargateSpec(nodes = 2, shared = false)
 @ExtendWith(CqlSessionExtension.class)
+@Order(Integer.MAX_VALUE)
 class SystemTablesTest extends BaseIntegrationTest {
   @Test
   @DisplayName("Should expose Stargate addresses in system.local and system.peers")
