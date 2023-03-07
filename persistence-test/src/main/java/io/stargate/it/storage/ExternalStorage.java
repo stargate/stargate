@@ -217,9 +217,14 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
       CcmBridge.Builder builder =
           CcmBridge.builder()
               .withCassandraConfiguration("cluster_name", CLUSTER_NAME)
-              .withCassandraConfiguration(
-                  "metadata_directory", "$HOME/.stargate-test/cassandra/metadata")
               .withNodes(numNodes);
+
+      // if DSE override metadata dir, not working on GH actions
+      if (isDse()) {
+        builder =
+            builder.withCassandraConfiguration(
+                "metadata_directory", "$HOME/.stargate-test/cassandra/metadata");
+      }
 
       for (Entry<String, Object> e : cassandraConfig.entrySet()) {
         builder = builder.withCassandraConfiguration(e.getKey(), e.getValue());
