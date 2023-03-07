@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  <!-- Parent -->
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
     <version>2.0.10-SNAPSHOT</version>
   </parent>
+  <!-- Artifact properties -->
   <groupId>io.stargate.db.cassandra</groupId>
   <artifactId>persistence-cassandra-4.0</artifactId>
+  <name>Stargate - Coordinator - Persistence C* 4.0</name>
   <properties>
     <!-- If you update this, make sure to keep `cassandra.bundled-driver.version` in sync -->
     <!-- 4.0.7 depends on 3.11.0: https://mvnrepository.com/artifact/org.apache.cassandra/cassandra-all/4.0.7 -->

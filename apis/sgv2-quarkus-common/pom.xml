@@ -1,12 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  <!-- Parent -->
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>sgv2-api-parent</artifactId>
     <version>2.0.10-SNAPSHOT</version>
   </parent>
+  <!-- Artifact props -->
   <artifactId>sgv2-quarkus-common</artifactId>
+  <name>Stargate - V2 API - Quarkus commons</name>
   <properties>
     <quarkus.generate-code.grpc.scan-for-imports>com.google.protobuf:protobuf-java,com.google.api.grpc:proto-google-common-protos</quarkus.generate-code.grpc.scan-for-imports>
     <quarkus.generate-code.grpc.scan-for-proto>io.stargate.grpc:bridge-proto</quarkus.generate-code.grpc.scan-for-proto>
