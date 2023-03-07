@@ -220,7 +220,7 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
               .withNodes(numNodes);
 
       // if DSE override metadata dir, not working on GH actions
-      if (isDse()) {
+      if (CcmBridge.DSE_ENABLEMENT) {
         builder =
             builder.withCassandraConfiguration(
                 "metadata_directory", "$HOME/.stargate-test/cassandra/metadata");
