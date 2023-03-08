@@ -553,7 +553,7 @@ jobs:
             secret: SG_EVENTS_PAT
 
           - repo: riptano/c2
-            secret: C2_PAT
+            secret: STARGATE_GH_RELEASE
 
     steps:
       - name: Repository dispatch
