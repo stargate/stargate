@@ -1,9 +1,31 @@
 name: Coordinator Tests
 
-# TODO: add paths for pull requests and pushes
 # run on:
+# - push (only code paths)
+# - pull request (only code paths)
 # - manual trigger
+
+# paths filter:
+# - any pom change
+# - any change in the src/ in sub-modules
+# - any maven related change (executables/wrapper)
+# - the workflow itself
 on:
+
+  push:
+    paths:
+      - '**pom.xml'
+      - '**/src/**'
+      - '**mvn**'
+      - '.github/workflows/coordinator-test.yml'
+
+  pull_request:
+    paths:
+      - '**pom.xml'
+      - '**/src/**'
+      - '**mvn**'
+      - '.github/workflows/coordinator-test.yml'
+
   workflow_dispatch:
 
 # global env vars, available in all jobs and steps
@@ -65,8 +87,7 @@ jobs:
 
   integration-test:
     name: Integration tests
-    runs-on:
-      labels: stargate-coord-runner
+    runs-on: ubuntu-latest
 
     strategy:
       # Defaults to "true" but let's let all runs finish
