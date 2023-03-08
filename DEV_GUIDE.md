@@ -38,13 +38,14 @@ export PATH="$JAVA_HOME/bin:$PATH"
 ```
 
 ### API Services
-> NOTE: APIs related project is located in the [apis/](apis) directory.
+> NOTE: API related projects are located in the [apis/](apis) directory.
 
 The Stargate API services that run externally to the coordinator node are located under the `apis` directory. These services require a more modern JDK in order to take advantage of the latest tools and frameworks. See the [APIs README](apis/README.md) for information on compiling and running the API services including the required JDK. 
 
-(The remainder of these instructions focus on working with the Stargate coordinator node.)
 
-## Building with Maven
+## Building Stargate Coordinator with Maven
+
+> Scripts below assume you are located in the `coordinator/` directory.
 
 Stargate uses Maven for builds. You can download and install Maven from this [link](https://maven.apache.org/download.cgi) or use the included [maven wrapper](https://github.com/stargate/stargate/blob/main/mvnw) script as you would ordinarily use the `mvn` command.
 
