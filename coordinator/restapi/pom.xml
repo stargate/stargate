@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <!-- inherit common settings -->
+  <!-- Parent -->
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
     <version>2.0.10-SNAPSHOT</version>
   </parent>
+  <!-- Artifact properties -->
   <groupId>io.stargate.web</groupId>
   <artifactId>restapi</artifactId>
+  <name>Stargate - Coordinator - REST API (deprecated)</name>
   <properties>
     <osgi.bundle.version>${project.version}</osgi.bundle.version>
   </properties>
@@ -37,7 +39,6 @@
       <artifactId>metrics-jersey</artifactId>
       <version>${project.version}</version>
     </dependency>
-
     <!-- 3rd party dependencies -->
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
@@ -138,7 +139,6 @@
       <artifactId>rxjava3-extensions</artifactId>
       <version>3.0.1</version>
     </dependency>
-
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>

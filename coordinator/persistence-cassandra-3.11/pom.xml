@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  <!-- Parent -->
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
     <version>2.0.10-SNAPSHOT</version>
   </parent>
+  <!-- Artifact properties -->
   <groupId>io.stargate.db.cassandra</groupId>
   <artifactId>persistence-cassandra-3.11</artifactId>
+  <name>Stargate - Coordinator - Persistence C* 3.11</name>
   <properties>
     <!-- If you update this, make sure to keep `cassandra.bundled-driver.version` in sync -->
     <!-- 3.11.14 depends on 3.0.1: https://mvnrepository.com/artifact/org.apache.cassandra/cassandra-all/3.11.14 -->
@@ -57,7 +60,6 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
-
     <!-- Cassandra/DataStax -->
     <dependency>
       <groupId>org.apache.cassandra</groupId>
@@ -98,7 +100,6 @@
       <artifactId>java-driver-shaded-guava</artifactId>
       <scope>provided</scope>
     </dependency>
-
     <!-- 3rd party dependencies -->
     <dependency>
       <groupId>org.immutables</groupId>
@@ -130,7 +131,6 @@
       <artifactId>rxjava</artifactId>
       <version>2.2.15</version>
     </dependency>
-
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -218,12 +218,12 @@
               <tasks>
                 <!-- Remove root package classes -->
                 <delete>
-                  <fileset dir="${project.build.directory}/sjk-core/" includes="*.class" />
+                  <fileset dir="${project.build.directory}/sjk-core/" includes="*.class"/>
                 </delete>
                 <jar destfile="${project.build.directory}/classes/sjk-core-0.14.jar">
-                  <fileset dir="${project.build.directory}/sjk-core" />
+                  <fileset dir="${project.build.directory}/sjk-core"/>
                 </jar>
-                <delete dir="${project.build.directory}/sjk-core" />
+                <delete dir="${project.build.directory}/sjk-core"/>
               </tasks>
             </configuration>
           </execution>

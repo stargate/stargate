@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  <!-- Parent -->
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
     <version>2.0.10-SNAPSHOT</version>
   </parent>
+  <!-- Artifact props -->
   <groupId>io.stargate.auth</groupId>
   <artifactId>authnz</artifactId>
+  <name>Stargate - Coordinator - AuthN/Z</name>
   <dependencies>
     <!-- Stargate component dependencies -->
     <dependency>
@@ -16,7 +19,6 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
-
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -38,8 +40,7 @@
           <unpackBundle>true</unpackBundle>
           <instructions>
             <Bundle-Name>Authnz</Bundle-Name>
-            <Bundle-Description>Authentication and authorization component for project
-            </Bundle-Description>
+            <Bundle-Description>Authentication and authorization component for project</Bundle-Description>
             <Bundle-SymbolicName>io.stargate.auth</Bundle-SymbolicName>
             <Import-Package><![CDATA[
               org.slf4j,

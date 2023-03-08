@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <!-- inherit common settings -->
+  <!-- Parent -->
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
     <version>2.0.10-SNAPSHOT</version>
   </parent>
+  <!-- Artifact props -->
   <groupId>io.stargate.graphql</groupId>
   <artifactId>graphqlapi</artifactId>
+  <name>Stargate - Coordinator - Graphql API (deprecated)</name>
   <properties>
     <osgi.bundle.version>${project.version}</osgi.bundle.version>
   </properties>
@@ -37,7 +39,6 @@
       <artifactId>metrics-jersey</artifactId>
       <version>${project.version}</version>
     </dependency>
-
     <!-- 3rd party dependencies -->
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
@@ -72,7 +73,7 @@
       <artifactId>dropwizard-forms</artifactId>
     </dependency>
     <dependency>
-    <groupId>io.dropwizard.metrics</groupId>
+      <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-healthchecks</artifactId>
       <scope>provided</scope>
     </dependency>
@@ -123,7 +124,6 @@
       <artifactId>federation-graphql-java-support</artifactId>
       <version>2.0.3</version>
     </dependency>
-
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>

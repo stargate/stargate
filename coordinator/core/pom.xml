@@ -1,86 +1,88 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    <modelVersion>4.0.0</modelVersion>
-    <parent>
-        <artifactId>stargate</artifactId>
-        <groupId>io.stargate</groupId>
-        <version>2.0.10-SNAPSHOT</version>
-    </parent>
-    <groupId>io.stargate.core</groupId>
-    <artifactId>core</artifactId>
-    <dependencies>
-        <!-- 3rd party dependencies -->
-        <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.dropwizard.metrics</groupId>
-            <artifactId>metrics-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.dropwizard.metrics</groupId>
-            <artifactId>metrics-healthchecks</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.dropwizard.metrics</groupId>
-            <artifactId>metrics-jvm</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-classic</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>ch.qos.logback</groupId>
-            <artifactId>logback-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-core</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.micrometer</groupId>
-            <artifactId>micrometer-registry-prometheus</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>io.prometheus</groupId>
-            <artifactId>simpleclient_dropwizard</artifactId>
-        </dependency>
-
-        <!-- Test dependencies -->
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.assertj</groupId>
-            <artifactId>assertj-core</artifactId>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.mockito</groupId>
-            <artifactId>mockito-inline</artifactId>
-            <scope>test</scope>
-        </dependency>
-    </dependencies>
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.felix</groupId>
-                <artifactId>maven-bundle-plugin</artifactId>
-                <configuration>
-                    <unpackBundle>true</unpackBundle>
-                    <instructions>
-                        <Bundle-Name>Core</Bundle-Name>
-                        <Bundle-Description>Core API for Stargate project</Bundle-Description>
-                        <Bundle-SymbolicName>io.stargate.core</Bundle-SymbolicName>
-                        <Bundle-Activator>io.stargate.core.CoreActivator</Bundle-Activator>
-                        <Import-Package><![CDATA[
+  <modelVersion>4.0.0</modelVersion>
+  <!-- Parent -->
+  <parent>
+    <artifactId>stargate</artifactId>
+    <groupId>io.stargate</groupId>
+    <version>2.0.10-SNAPSHOT</version>
+  </parent>
+  <!-- Artifact props -->
+  <groupId>io.stargate.core</groupId>
+  <artifactId>core</artifactId>
+  <name>Stargate - Coordinator - Core</name>
+  <dependencies>
+    <!-- 3rd party dependencies -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-healthchecks</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.dropwizard.metrics</groupId>
+      <artifactId>metrics-jvm</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-core</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>io.prometheus</groupId>
+      <artifactId>simpleclient_dropwizard</artifactId>
+    </dependency>
+    <!-- Test dependencies -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-inline</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <configuration>
+          <unpackBundle>true</unpackBundle>
+          <instructions>
+            <Bundle-Name>Core</Bundle-Name>
+            <Bundle-Description>Core API for Stargate project</Bundle-Description>
+            <Bundle-SymbolicName>io.stargate.core</Bundle-SymbolicName>
+            <Bundle-Activator>io.stargate.core.CoreActivator</Bundle-Activator>
+            <Import-Package><![CDATA[
                           org.osgi.framework,
                           org.osgi.util.tracker,
                         ]]></Import-Package>
-                        <!--
+            <!--
                         This is exports `org.slf4j` APIs so that this is the only instance of slf4j
                         initialized. Otherwise, each bundle will re-initialize their own instance
                         in each bundle. This is fine when using stateless appenders, but this causes
@@ -97,7 +99,7 @@
                         If it can be helped, no other bundle should include any or use logback
                         dependencies. Instead they should stick to using slf4j APIs.
                         -->
-                        <Export-Package><![CDATA[
+            <Export-Package><![CDATA[
                           io.stargate.core.*,
                           com.codahale.metrics,
                           com.codahale.metrics.*,
@@ -113,22 +115,21 @@
                           ch.qos.logback.core.helpers,
                           ch.qos.logback.core.spi,
                         ]]></Export-Package>
-                        <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
-                        <Embed-Transitive>true</Embed-Transitive>
-                    </instructions>
-                    <buildDirectory>${project.basedir}/../stargate-lib</buildDirectory>
-                </configuration>
-            </plugin>
-            <plugin>
-                <artifactId>maven-jar-plugin</artifactId>
-                <configuration>
-                    <archive>
-                        <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
-                    </archive>
-                    <outputDirectory>${project.basedir}/../stargate-lib</outputDirectory>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-
+            <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
+            <Embed-Transitive>true</Embed-Transitive>
+          </instructions>
+          <buildDirectory>${project.basedir}/../stargate-lib</buildDirectory>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+          </archive>
+          <outputDirectory>${project.basedir}/../stargate-lib</outputDirectory>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
 </project>

@@ -1,14 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
-  <!-- inherit common settings -->
+  <!-- Parent -->
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
     <version>2.0.10-SNAPSHOT</version>
   </parent>
+  <!-- Artifact props -->
   <groupId>io.stargate.health</groupId>
   <artifactId>health-checker</artifactId>
+  <name>Stargate - Coordinator - Health checker</name>
   <dependencies>
     <!-- Stargate component dependencies -->
     <dependency>
@@ -28,7 +30,6 @@
       <artifactId>metrics-jersey</artifactId>
       <version>${project.version}</version>
     </dependency>
-
     <!-- 3rd party dependencies -->
     <dependency>
       <groupId>io.dropwizard</groupId>
@@ -87,7 +88,6 @@
       <artifactId>oshi-core-shaded</artifactId>
       <version>5.3.6</version>
     </dependency>
-
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>

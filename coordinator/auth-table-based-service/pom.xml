@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  <!-- Parent -->
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
     <version>2.0.10-SNAPSHOT</version>
   </parent>
+  <!-- Artifact props -->
   <groupId>io.stargate.auth.table</groupId>
   <artifactId>auth-table-based-service</artifactId>
+  <name>Stargate - Coordinator - Auth Table-based service</name>
   <dependencies>
     <!-- Stargate component dependencies -->
     <dependency>
@@ -28,7 +31,6 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
-
     <!-- 3rd party dependencies -->
     <dependency>
       <groupId>com.github.ben-manes.caffeine</groupId>
@@ -39,7 +41,6 @@
       <artifactId>jbcrypt</artifactId>
       <version>0.4</version>
     </dependency>
-
     <!-- Test dependencies -->
     <!-- 21-Sep-2021, tatu: If you need to use Guava for NON-test code (runtime),
              note that you need to BOTH change scope to "runtime" AND add

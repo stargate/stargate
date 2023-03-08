@@ -1,13 +1,16 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  <!-- Parent -->
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
     <version>2.0.10-SNAPSHOT</version>
   </parent>
+  <!-- Artifact props -->
   <groupId>io.stargate.grpc</groupId>
   <artifactId>grpc</artifactId>
+  <name>Stargate - Coordinator - gRPC</name>
   <dependencies>
     <!-- Stargate component dependencies -->
     <dependency>
@@ -28,7 +31,6 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
-
     <!-- gRPC -->
     <dependency>
       <groupId>io.stargate.grpc</groupId>
@@ -51,7 +53,6 @@
       <groupId>io.grpc</groupId>
       <artifactId>grpc-services</artifactId>
     </dependency>
-
     <!-- 3rd party dependencies -->
     <dependency>
       <groupId>com.datastax.oss</groupId>
@@ -84,7 +85,6 @@
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
     </dependency>
-
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
