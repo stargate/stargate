@@ -38,7 +38,7 @@ env:
 jobs:
 
   unit-test:
-    name: Unit tests
+    name: Coordinator unit tests
     runs-on: ubuntu-latest
 
     steps:
