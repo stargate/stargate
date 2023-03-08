@@ -197,13 +197,13 @@ jobs:
         repo: [ 'stargate/stargate', 'stargate/docker-images', 'riptano/c2']
         include:
           - repo: stargate/stargate
-            secret: GITHUB_TOKEN
+            secret: SG_EVENTS_PAT
 
           - repo: stargate/docker-images
             secret: SG_EVENTS_PAT
 
           - repo: riptano/c2
-            secret: C2_PAT
+            secret: STARGATE_GH_RELEASE
 
     steps:
       - name: Repository dispatch
