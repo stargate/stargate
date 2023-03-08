@@ -92,7 +92,7 @@ jobs:
     name: Resolve coordinator docker SHA
     runs-on: ubuntu-latest
     outputs:
-      release-tag: ${{ steps.resolve.outputs.sha }}
+      sha: ${{ steps.resolve.outputs.sha }}
 
     steps:
       - uses: actions/checkout@v3
