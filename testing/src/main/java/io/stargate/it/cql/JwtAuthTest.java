@@ -14,6 +14,7 @@ import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import com.datastax.oss.driver.api.core.servererrors.UnauthorizedException;
 import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.KeycloakContainer;
+import io.stargate.it.TestOrder;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
@@ -42,7 +43,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
       "GRANT SELECT ON TABLE store2.shopping_cart TO web_user",
     })
 @Testcontainers(disabledWithoutDocker = true)
-@Order(Integer.MAX_VALUE)
+@Order(TestOrder.LAST)
 public class JwtAuthTest extends BaseIntegrationTest {
 
   private final String keyspaceName = "store2";

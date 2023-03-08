@@ -18,6 +18,7 @@ package io.stargate.it.http.graphql.cqlfirst;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.stargate.it.BaseIntegrationTest;
+import io.stargate.it.TestOrder;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.ClusterSpec;
 import io.stargate.it.storage.StargateConnectionInfo;
@@ -29,7 +30,7 @@ import org.junit.jupiter.api.Test;
 // Redeclare ClusterSpec to get shared=false; this test must be isolated because it will fail if
 // other tests have created their own user keyspaces before it.
 @ClusterSpec
-@Order(Integer.MIN_VALUE)
+@Order(TestOrder.FIRST)
 public class DefaultKeyspaceTest extends BaseIntegrationTest {
 
   @Test

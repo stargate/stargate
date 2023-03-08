@@ -17,20 +17,10 @@ package io.stargate.it.http.graphql.graphqlfirst;
 
 import com.datastax.oss.driver.api.core.CqlSession;
 import io.stargate.it.BaseIntegrationTest;
-import io.stargate.it.storage.StargateParameters;
-import io.stargate.it.storage.StargateSpec;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.Order;
 
-@StargateSpec(parametersCustomizer = "enableGraphqlFirst")
-@Order(Integer.MAX_VALUE - 1)
 public abstract class GraphqlFirstTestBase extends BaseIntegrationTest {
-
-  @SuppressWarnings("ununsed") // invoked by StargateSpec
-  public static void enableGraphqlFirst(StargateParameters.Builder builder) {
-    builder.putSystemProperties("stargate.graphql_first.enabled", "true");
-  }
 
   protected static void deleteAllGraphqlSchemas(String keyspace, CqlSession session) {
     session

@@ -21,6 +21,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
+import io.stargate.it.TestOrder;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
@@ -47,7 +48,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k, v))",
     })
 @StargateSpec(parametersCustomizer = "buildParameters")
-@Order(Integer.MAX_VALUE)
+@Order(TestOrder.LAST)
 public class MetricsGrpcIntTest extends GrpcIntegrationTest {
 
   private static String host;

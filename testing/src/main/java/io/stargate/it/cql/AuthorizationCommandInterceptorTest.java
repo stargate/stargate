@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.CqlSessionBuilder;
 import io.stargate.it.BaseIntegrationTest;
+import io.stargate.it.TestOrder;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.storage.ClusterConnectionInfo;
@@ -49,7 +50,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE TABLE IF NOT EXISTS auth_keyspace2.table3 (userid text, PRIMARY KEY (userid))",
     })
 @ExtendWith(StargateLogExtension.class)
-@Order(Integer.MAX_VALUE)
+@Order(TestOrder.LAST)
 public class AuthorizationCommandInterceptorTest extends BaseIntegrationTest {
   private static CqlSession session;
   private LogCollector log;
