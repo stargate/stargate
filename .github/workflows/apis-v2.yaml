@@ -245,7 +245,7 @@ jobs:
             repository-login: false
             image-cache-key: docker-coordinator-4_0-${{ needs.resolve-coordinator-docker.outputs.sha }}
             image-file: coordinator-4_0-${{ needs.resolve-coordinator-docker.outputs.sha }}.tar
-            image: stargateio/coordinator-4_0:-${{ needs.resolve-coordinator-docker.outputs.sha }}
+            image: stargateio/coordinator-4_0:${{ needs.resolve-coordinator-docker.outputs.sha }}
 
           - name: cassandra-311
             profile: cassandra-311
@@ -253,14 +253,14 @@ jobs:
             image-artifact: img-coordinator-3_11-${{ github.sha }}
             image-cache-key: docker-coordinator-3_11-${{ needs.resolve-coordinator-docker.outputs.sha }}
             image-file: coordinator-3_11-${{ needs.resolve-coordinator-docker.outputs.sha }}.tar
-            image: stargateio/coordinator-3_11:-${{ needs.resolve-coordinator-docker.outputs.sha }}
+            image: stargateio/coordinator-3_11:${{ needs.resolve-coordinator-docker.outputs.sha }}
 
           - name: dse-68
             profile: dse-68
             repository-login: false
             image-cache-key: docker-coordinator-dse-68-${{ needs.resolve-coordinator-docker.outputs.sha }}
             image-file: coordinator-dse-68-${{ needs.resolve-coordinator-docker.outputs.sha }}.tar
-            image: stargateio/coordinator-dse-68:-${{ needs.resolve-coordinator-docker.outputs.sha }}
+            image: stargateio/coordinator-dse-68:${{ needs.resolve-coordinator-docker.outputs.sha }}
 
     steps:
       - uses: actions/checkout@v3
