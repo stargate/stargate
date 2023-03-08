@@ -20,6 +20,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.awaitility.Awaitility.await;
 
 import io.stargate.it.BaseIntegrationTest;
+import io.stargate.it.TestOrder;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateParameters;
 import io.stargate.it.storage.StargateSpec;
@@ -39,12 +40,14 @@ import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
 @NotThreadSafe
 @StargateSpec(parametersCustomizer = "buildParameters")
+@Order(TestOrder.LAST)
 public class MetricsTest extends BaseIntegrationTest {
 
   private static String host;

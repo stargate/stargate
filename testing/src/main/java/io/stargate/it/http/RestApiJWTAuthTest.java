@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.KeycloakContainer;
+import io.stargate.it.TestOrder;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.storage.StargateConnectionInfo;
@@ -39,6 +40,7 @@ import java.util.Map;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.slf4j.Logger;
@@ -58,6 +60,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
       "GRANT SELECT ON TABLE store1.shopping_cart TO web_user",
     })
 @Testcontainers(disabledWithoutDocker = true)
+@Order(TestOrder.LAST)
 public class RestApiJWTAuthTest extends BaseIntegrationTest {
 
   private static final Logger logger = LoggerFactory.getLogger(RestApiJWTAuthTest.class);

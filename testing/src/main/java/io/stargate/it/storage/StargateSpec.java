@@ -21,7 +21,13 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-/** Defines how the Stargate node(s) required by a test should be configured. */
+/**
+ * Defines how the Stargate node(s) required by a test should be configured.
+ *
+ * <p><b>IMPORTANT:</b> When defining custom Stargate spec, please set <code>@Order(TestOrder.LAST)
+ * </code> on the test class, to ensure test is invoked last. Otherwise, spinning up and down the
+ * context for that test class would slow down the CI.
+ */
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Inherited
 @Retention(RetentionPolicy.RUNTIME)

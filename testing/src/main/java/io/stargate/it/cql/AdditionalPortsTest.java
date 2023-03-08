@@ -11,6 +11,7 @@ import com.datastax.oss.driver.api.core.metadata.Node;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.Streams;
 import io.stargate.it.BaseIntegrationTest;
+import io.stargate.it.TestOrder;
 import io.stargate.it.cql.AdditionalPortsTest.EmptyContactPointResolver;
 import io.stargate.it.driver.ContactPointResolver;
 import io.stargate.it.driver.CqlSessionExtension;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.extension.ExtensionContext;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -36,6 +38,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 @ExtendWith(CqlSessionExtension.class)
 @StargateSpec(nodes = 2, parametersCustomizer = "buildParameters")
 @CqlSessionSpec(contactPointResolver = EmptyContactPointResolver.class, createSession = false)
+@Order(TestOrder.LAST)
 public class AdditionalPortsTest extends BaseIntegrationTest {
 
   public static final List<Integer> ADDITIONAL_PORTS = Arrays.asList(29042, 39042);

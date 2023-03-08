@@ -13,10 +13,10 @@ import javax.net.ssl.TrustManagerFactory;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /** Base test class for SSL tests. */
-@StargateSpec(parametersCustomizer = "buildParameters")
+@StargateSpec(parametersCustomizer = "buildParameters", shared = false)
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(createSession = false)
-public class SslTest extends BaseIntegrationTest {
+public abstract class SslTest extends BaseIntegrationTest {
 
   protected static final String CLIENT_TRUSTSTORE_PATH = "/client.truststore";
 

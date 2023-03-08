@@ -6,12 +6,14 @@ import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import io.stargate.db.DbActivator;
 import io.stargate.it.BaseIntegrationTest;
+import io.stargate.it.TestOrder;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.storage.StargateParameters;
 import io.stargate.it.storage.StargateSpec;
 import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -19,6 +21,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(
     initQueries = {"CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k, v))"})
+@Order(TestOrder.LAST)
 public class GlobalRateLimitingTest extends BaseIntegrationTest {
 
   @SuppressWarnings("unused") // referenced in @StargateSpec
