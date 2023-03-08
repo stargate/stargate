@@ -24,7 +24,6 @@
         </exclusion>
       </exclusions>
     </dependency>
-
     <!-- Stargate component dependencies -->
     <dependency>
       <groupId>io.stargate.core</groupId>
@@ -44,7 +43,6 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
-
     <!-- 3rd party dependencies -->
     <dependency>
       <groupId>io.netty</groupId>
@@ -97,7 +95,6 @@
       <groupId>com.fasterxml.jackson.dataformat</groupId>
       <artifactId>jackson-dataformat-yaml</artifactId>
     </dependency>
-    
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>

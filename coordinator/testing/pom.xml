@@ -71,7 +71,6 @@
       <artifactId>testing-services</artifactId>
       <version>${project.version}</version>
     </dependency>
-
     <!-- Cassandra/DataStax -->
     <dependency>
       <groupId>com.datastax.oss</groupId>
@@ -81,7 +80,6 @@
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-query-builder</artifactId>
     </dependency>
-
     <!-- 3rd party dependencies -->
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -97,7 +95,6 @@
       <artifactId>commons-lang3</artifactId>
       <version>3.11</version>
     </dependency>
-
     <!-- Other dependencies, note that these are not in the test scope -->
     <dependency>
       <groupId>io.grpc</groupId>
@@ -156,7 +153,6 @@
       <artifactId>okio-jvm</artifactId>
       <version>3.0.0</version>
     </dependency>
-
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-params</artifactId>
@@ -297,7 +293,7 @@
             </goals>
             <configuration>
               <includes>
-                <include />
+                <include/>
               </includes>
               <dataFile>${code.coverage.overall.data.folder}/aggregate.exec</dataFile>
               <outputDirectory>${code.coverage.overall.data.folder}/jacoco</outputDirectory>

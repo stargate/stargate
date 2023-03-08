@@ -39,7 +39,6 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
-
     <!-- 3rd party dependencies -->
     <dependency>
       <groupId>io.dropwizard</groupId>
@@ -58,7 +57,6 @@
       <artifactId>swagger-jersey2-jaxrs</artifactId>
       <version>${swagger-jersey2-jaxrs.version}</version>
     </dependency>
-
     <!-- Test dependencies -->
     <dependency>
       <groupId>io.dropwizard</groupId>
@@ -121,9 +119,7 @@
               <outputDirectory>${project.build.directory}/classes/swagger-ui</outputDirectory>
               <resources>
                 <resource>
-                  <directory>
-                    ${project.build.directory}/swagger-ui/META-INF/resources/webjars/swagger-ui/${swagger-ui.version}
-                  </directory>
+                  <directory>${project.build.directory}/swagger-ui/META-INF/resources/webjars/swagger-ui/${swagger-ui.version}</directory>
                   <filtering>true</filtering>
                 </resource>
               </resources>

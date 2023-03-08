@@ -19,7 +19,6 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
-
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -41,8 +40,7 @@
           <unpackBundle>true</unpackBundle>
           <instructions>
             <Bundle-Name>Authnz</Bundle-Name>
-            <Bundle-Description>Authentication and authorization component for project
-            </Bundle-Description>
+            <Bundle-Description>Authentication and authorization component for project</Bundle-Description>
             <Bundle-SymbolicName>io.stargate.auth</Bundle-SymbolicName>
             <Import-Package><![CDATA[
               org.slf4j,

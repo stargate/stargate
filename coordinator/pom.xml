@@ -54,8 +54,6 @@
     <project.scm.id>github</project.scm.id>
     <doclint>none</doclint>
     <driver.version>4.15.0</driver.version>
-    <xml-format.skip>true</xml-format.skip>
-
     <!-- First DropWizard version and things it directly depends on that make sense to sync -->
     <dropwizard.version>2.0.35</dropwizard.version>
     <!--
@@ -71,9 +69,7 @@
     <!-- Logging framework likewise in sync -->
     <slf4j.version>1.7.36</slf4j.version>
     <logback.version>1.2.11</logback.version>
-
     <!-- And then other 3rd party version dependencies, compile/runtime -->
-
     <caffeine.version>2.9.3</caffeine.version>
     <commons-io.version>2.7</commons-io.version>
     <grpc.version>1.51.0</grpc.version>
@@ -95,9 +91,7 @@
       -->
     <netty.version>4.1.75.Final</netty.version>
     <netty-boringssl.version>2.0.51.Final</netty-boringssl.version>
-
     <!-- And finally test/build deps -->
-
     <!-- 16-Dec-2021, tatu:  This is an old version (2.10.0 now latest)
         but build fails with newer versions so keeping at this level
       -->
@@ -337,7 +331,8 @@
           </excludes>
           <systemPropertyVariables>
             <jacoco-agent.destfile>${project.build.directory}/jacoco-ut.exec</jacoco-agent.destfile>
-            <projectRoot>${basedir}/..</projectRoot> <!-- Assumed to run from module -->
+            <projectRoot>${basedir}/..</projectRoot>
+            <!-- Assumed to run from module -->
           </systemPropertyVariables>
           <argLine>${surefire.jacoco.args}</argLine>
         </configuration>
@@ -439,7 +434,7 @@
                   <message>Project requires JDK 8</message>
                 </requireJavaVersion>
                 <requireUpperBoundDeps>
-		  <!-- If specifying includes ONLY those are checked
+                  <!-- If specifying includes ONLY those are checked
 		       (default: all)
 		      -->
                   <includes>
@@ -586,7 +581,6 @@
         <artifactId>snakeyaml</artifactId>
         <version>${snakeyaml.version}</version>
       </dependency>
-
       <!-- BOM/dependencies for dropwizard too: -->
       <dependency>
         <groupId>io.dropwizard</groupId>
@@ -634,7 +628,6 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-
       <!-- BOM for gRPC as well -->
       <dependency>
         <groupId>io.grpc</groupId>
@@ -650,7 +643,6 @@
         <artifactId>jna</artifactId>
         <version>5.12.1</version>
       </dependency>
-
       <dependency>
         <groupId>org.eclipse.jetty</groupId>
         <artifactId>jetty-server</artifactId>

@@ -31,7 +31,6 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
-
     <!-- gRPC -->
     <dependency>
       <groupId>io.stargate.grpc</groupId>
@@ -82,7 +81,6 @@
       <groupId>ch.qos.logback</groupId>
       <artifactId>logback-classic</artifactId>
     </dependency>
-
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
