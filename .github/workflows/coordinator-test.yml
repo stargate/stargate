@@ -1,7 +1,7 @@
 name: Coordinator Tests
 
 # run on:
-# - push (only code paths)
+# - push on our branches (only code paths)
 # - pull request (only code paths)
 # - manual trigger
 
@@ -13,6 +13,7 @@ name: Coordinator Tests
 on:
 
   push:
+    branches: [ "main", "v1" ]
     paths:
       - '**pom.xml'
       - '**/src/**'
