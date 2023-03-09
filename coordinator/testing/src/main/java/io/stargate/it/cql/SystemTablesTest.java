@@ -10,6 +10,7 @@ import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import com.datastax.oss.driver.api.core.metadata.Node;
 import com.datastax.oss.driver.shaded.guava.common.collect.Streams;
 import io.stargate.it.BaseIntegrationTest;
+import io.stargate.it.TestOrder;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateEnvironmentInfo;
@@ -22,11 +23,13 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @StargateSpec(nodes = 2, shared = false)
 @ExtendWith(CqlSessionExtension.class)
+@Order(TestOrder.LAST)
 class SystemTablesTest extends BaseIntegrationTest {
   @Test
   @DisplayName("Should expose Stargate addresses in system.local and system.peers")

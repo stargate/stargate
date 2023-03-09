@@ -9,6 +9,7 @@ import com.datastax.oss.driver.api.core.metadata.Node;
 import com.datastax.oss.driver.api.core.metadata.TokenMap;
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import io.stargate.it.BaseIntegrationTest;
+import io.stargate.it.TestOrder;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.storage.StargateEnvironmentInfo;
@@ -18,11 +19,13 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @StargateSpec(nodes = 3)
 @ExtendWith(CqlSessionExtension.class)
+@Order(TestOrder.LAST)
 public class TokenAwareTest extends BaseIntegrationTest {
   @Test
   @DisplayName("Should use all Stargate addresses when using token-aware load balancing")
