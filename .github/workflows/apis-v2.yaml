@@ -88,11 +88,29 @@ jobs:
           cd coordinator/
           MAVEN_OPTS="-Xmx4g" ./mvnw -B -ntp install -P dse -DskipTests
 
+  resolve-coordinator-docker:
+    name: Resolve coordinator docker SHA
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.resolve.outputs.sha }}
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - id: resolve
+        name: Resolve SHA
+        run: |
+          SHA=$(git log -n 1 --pretty=format:"%h" -- coordinator/)
+          echo "Resolved commit SHA for coordinator docker image to $SHA"
+          echo "sha=${SHA}" >> $GITHUB_OUTPUT
+
   # Builds C*3, C*4 and DSE coordinator images using matrix
   # Exports image to a file and then uploads it using action artifacts
   build-coordinator-docker:
     name: Docker image
-    needs: build-coordinator
+    needs: [build-coordinator, resolve-coordinator-docker]
     runs-on: ubuntu-latest
 
     # image name needed only
@@ -103,7 +121,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
+      - name: Cache docker image
+        id: cache-docker-image
+        uses: actions/cache@v3
+        with:
+          path: ${{ matrix.image }}-${{ needs.resolve-coordinator-docker.outputs.sha }}.tar
+          key: docker-${{ matrix.image }}-${{ needs.resolve-coordinator-docker.outputs.sha }}
+
       - name: Restore Libs
+        if: steps.cache-docker-image.outputs.cache-hit != 'true'
         uses: actions/cache@v3
         id: cache-coordinator-libs
         env:
@@ -113,14 +139,17 @@ jobs:
           key: stargate-lib-${{ github.sha }}
 
       - name: Set up QEMU
+        if: steps.cache-docker-image.outputs.cache-hit != 'true'
         uses: docker/setup-qemu-action@v2
 
       - name: Set up Docker Buildx
+        if: steps.cache-docker-image.outputs.cache-hit != 'true'
         uses: docker/setup-buildx-action@v2
 
       # same as in build_docker_images.sh
       # just builds a single image
       - name: Build Docker Image
+        if: steps.cache-docker-image.outputs.cache-hit != 'true'
         run: |
           cd coordinator/
           LIBDIR=./tmp-${RANDOM}
@@ -128,20 +157,13 @@ jobs:
           cp ./stargate-lib/*.jar $LIBDIR
           cp ./stargate-lib/logback.xml $LIBDIR
           rm ${LIBDIR}/persistence*.jar
-          docker buildx build --target ${{ matrix.image }} --build-arg LIBDIR="$LIBDIR" -t stargateio/${{ matrix.image }}:${{ github.sha }} --load .
+          docker buildx build --target ${{ matrix.image }} --build-arg LIBDIR="$LIBDIR" -t stargateio/${{ matrix.image }}:${{ needs.resolve-coordinator-docker.outputs.sha }} --load .
 
       # this will export a file in form image-commitsha.tar
       - name: Export Docker Image
+        if: steps.cache-docker-image.outputs.cache-hit != 'true'
         run: |
-          docker save --output ${{ matrix.image }}-${{ github.sha }}.tar stargateio/${{ matrix.image }}:${{ github.sha }}
-
-      # this will upload a file from previous step as an artifact named img-image-commitsha
-      - name: Upload Docker Images
-        uses: actions/upload-artifact@v3
-        with:
-          name: img-${{ matrix.image }}-${{ github.sha }}
-          path: ${{ matrix.image }}-${{ github.sha }}.tar
-          retention-days: 1
+          docker save --output ${{ matrix.image }}-${{ needs.resolve-coordinator-docker.outputs.sha }}.tar stargateio/${{ matrix.image }}:${{ needs.resolve-coordinator-docker.outputs.sha }}
 
   # runs unit tests for the sgv2-docsapi
   build:
@@ -200,7 +222,7 @@ jobs:
   # supports downloading and importing the built docker image
   int-tests:
     name: Integration tests
-    needs: [ build-coordinator-docker, build ]
+    needs: [ resolve-coordinator-docker, build-coordinator-docker, build ]
     runs-on: ubuntu-latest
 
     strategy:
@@ -221,23 +243,24 @@ jobs:
           - name: cassandra-40
             profile: cassandra-40
             repository-login: false
-            image-artifact: img-coordinator-4_0-${{ github.sha }}
-            image-file: coordinator-4_0-${{ github.sha }}.tar
-            image: stargateio/coordinator-4_0:${{ github.sha }}
+            image-cache-key: docker-coordinator-4_0-${{ needs.resolve-coordinator-docker.outputs.sha }}
+            image-file: coordinator-4_0-${{ needs.resolve-coordinator-docker.outputs.sha }}.tar
+            image: stargateio/coordinator-4_0:${{ needs.resolve-coordinator-docker.outputs.sha }}
 
           - name: cassandra-311
             profile: cassandra-311
             repository-login: false
             image-artifact: img-coordinator-3_11-${{ github.sha }}
-            image-file: coordinator-3_11-${{ github.sha }}.tar
-            image: stargateio/coordinator-3_11:${{ github.sha }}
+            image-cache-key: docker-coordinator-3_11-${{ needs.resolve-coordinator-docker.outputs.sha }}
+            image-file: coordinator-3_11-${{ needs.resolve-coordinator-docker.outputs.sha }}.tar
+            image: stargateio/coordinator-3_11:${{ needs.resolve-coordinator-docker.outputs.sha }}
 
           - name: dse-68
             profile: dse-68
             repository-login: false
-            image-artifact: img-coordinator-dse-68-${{ github.sha }}
-            image-file: coordinator-dse-68-${{ github.sha }}.tar
-            image: stargateio/coordinator-dse-68:${{ github.sha }}
+            image-cache-key: docker-coordinator-dse-68-${{ needs.resolve-coordinator-docker.outputs.sha }}
+            image-file: coordinator-dse-68-${{ needs.resolve-coordinator-docker.outputs.sha }}.tar
+            image: stargateio/coordinator-dse-68:${{ needs.resolve-coordinator-docker.outputs.sha }}
 
     steps:
       - uses: actions/checkout@v3
@@ -273,21 +296,17 @@ jobs:
           EOF
 
       - name: Set up Docker Buildx
-        if: ${{ matrix.image-file }}
         uses: docker/setup-buildx-action@v2
 
-      # downloads the artifact if one is defined
-      - name: Download Docker Image
-        if: ${{ matrix.image-artifact}}
-        uses: actions/download-artifact@v3
+      - name: Restore docker image
+        uses: actions/cache@v3
         with:
-          name: ${{ matrix.image-artifact }}
-          path: /tmp
+          path: ${{ matrix.image-file }}
+          key: ${{ matrix.image-cache-key }}
 
       # loads the image from the .tar
       - name: Load image
-        if: ${{ matrix.image-file }}
-        run: docker load --input /tmp/${{ matrix.image-file }}
+        run: docker load --input ${{ matrix.image-file }}
 
       - name: Restore Snapshots
         uses: actions/cache@v3
@@ -308,17 +327,3 @@ jobs:
           cd apis/
           ./mvnw -B -ntp verify -DskipUnitTests -pl ${{ matrix.project }} -am -P ${{ matrix.profile }} -Dquarkus.container-image.build=$CONTAINER_TEST -Dtesting.containers.stargate-image=${{ matrix.image }}
 
-  # runs only on success, deletes built docker image artifacts
-  # keep docker images for 3 days so we can re-run the workflows
-  clean-up:
-    name: Clean up
-    runs-on: ubuntu-latest
-    needs: int-tests
-
-    steps:
-      - uses: geekyeggo/delete-artifact@v2
-        with:
-          name: |
-            img-coordinator-4_0-${{ github.sha }}
-            img-coordinator-3_11-${{ github.sha }}
-            img-coordinator-dse-68-${{ github.sha }}
