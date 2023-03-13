@@ -355,14 +355,14 @@ jobs:
         if: ${{ !inputs.skipPublish }}
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
           cd ../
 
       - name: Build without push (apis, DockerHub)
         if: ${{ inputs.skipPublish }}
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
           cd ../
 
       # repeat the same for the AWS ECR
@@ -398,7 +398,7 @@ jobs:
           QUARKUS_APPLICATION_NAME: 'Astra DB GraphQL API'
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-graphqlapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-graphqlapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
 
       - name: Build and push (docsapi, Amazon ECR)
         if: ${{ !inputs.skipPublish }}
@@ -412,7 +412,7 @@ jobs:
           QUARKUS_SMALLRYE_OPENAPI_INFO_LICENSE_URL: ''
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-docsapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-docsapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
 
       - name: Build and push (restapi, Amazon ECR)
         if: ${{ !inputs.skipPublish }}
@@ -426,7 +426,7 @@ jobs:
           QUARKUS_SMALLRYE_OPENAPI_INFO_LICENSE_URL: ''
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-restapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-restapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
 
   # signs all docker images with cosign
   # skip whole job if we did not push images
