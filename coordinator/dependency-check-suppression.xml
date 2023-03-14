@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+  <suppress>
+    <notes><![CDATA[
+      False positives related to Stargate grpc-proto artifact with versions 1.0.x.
+      ]]></notes>
+    <packageUrl regex="true">^pkg:maven/io\.stargate\.grpc/grpc\-proto@.*$</packageUrl>
+    <cve>CVE-2017-7860</cve>
+    <cve>CVE-2017-7861</cve>
+    <cve>CVE-2017-8359</cve>
+    <cve>CVE-2017-9431</cve>
+    <cve>CVE-2020-7768</cve>
+  </suppress>
+  <suppress>
+    <notes><![CDATA[
+      False positives related to Stargate grpc artifact with versions 1.0.x.
+      ]]></notes>
+    <packageUrl regex="true">^pkg:maven/io\.stargate\.grpc/grpc@.*$</packageUrl>
+    <cve>CVE-2017-7860</cve>
+    <cve>CVE-2017-7861</cve>
+    <cve>CVE-2017-8359</cve>
+    <cve>CVE-2017-9431</cve>
+    <cve>CVE-2020-7768</cve>
+  </suppress>
+  <suppress>
+    <notes><![CDATA[
+      False positive, jackson-databind-2.12.6.1.jar specifically pulled in under https://github.com/stargate/stargate/pull/1741
+      ]]></notes>
+    <packageUrl regex="true">^pkg:maven/com\.fasterxml\.jackson\.core/jackson\-databind@.*$</packageUrl>
+    <cve>CVE-2020-36518</cve>
+  </suppress>
+  <suppress>
+    <notes><![CDATA[
+      False positives related to testing module - Kotlin
+      ]]></notes>
+    <packageUrl regex="true">^pkg:maven/org\.jetbrains\.kotlin/kotlin.*@.*$</packageUrl>
+    <cve>CVE-2020-29582</cve>
+    <cve>CVE-2022-24329</cve>
+  </suppress>
+</suppressions>
