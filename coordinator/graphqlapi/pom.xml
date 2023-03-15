@@ -39,7 +39,6 @@
       <artifactId>metrics-jersey</artifactId>
       <version>${project.version}</version>
     </dependency>
-
     <!-- 3rd party dependencies -->
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
@@ -74,7 +73,7 @@
       <artifactId>dropwizard-forms</artifactId>
     </dependency>
     <dependency>
-    <groupId>io.dropwizard.metrics</groupId>
+      <groupId>io.dropwizard.metrics</groupId>
       <artifactId>metrics-healthchecks</artifactId>
       <scope>provided</scope>
     </dependency>
@@ -125,7 +124,6 @@
       <artifactId>federation-graphql-java-support</artifactId>
       <version>2.0.3</version>
     </dependency>
-
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>

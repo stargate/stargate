@@ -39,7 +39,6 @@
       <artifactId>metrics-jersey</artifactId>
       <version>${project.version}</version>
     </dependency>
-
     <!-- 3rd party dependencies -->
     <dependency>
       <groupId>io.dropwizard.metrics</groupId>
@@ -140,7 +139,6 @@
       <artifactId>rxjava3-extensions</artifactId>
       <version>3.0.1</version>
     </dependency>
-
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>

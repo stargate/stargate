@@ -60,7 +60,6 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
-
     <!-- Cassandra/DataStax -->
     <dependency>
       <groupId>org.apache.cassandra</groupId>
@@ -101,7 +100,6 @@
       <artifactId>java-driver-shaded-guava</artifactId>
       <scope>provided</scope>
     </dependency>
-
     <!-- 3rd party dependencies -->
     <dependency>
       <groupId>org.immutables</groupId>
@@ -133,7 +131,6 @@
       <artifactId>rxjava</artifactId>
       <version>2.2.15</version>
     </dependency>
-
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -221,12 +218,12 @@
               <tasks>
                 <!-- Remove root package classes -->
                 <delete>
-                  <fileset dir="${project.build.directory}/sjk-core/" includes="*.class" />
+                  <fileset dir="${project.build.directory}/sjk-core/" includes="*.class"/>
                 </delete>
                 <jar destfile="${project.build.directory}/classes/sjk-core-0.14.jar">
-                  <fileset dir="${project.build.directory}/sjk-core" />
+                  <fileset dir="${project.build.directory}/sjk-core"/>
                 </jar>
-                <delete dir="${project.build.directory}/sjk-core" />
+                <delete dir="${project.build.directory}/sjk-core"/>
               </tasks>
             </configuration>
           </execution>

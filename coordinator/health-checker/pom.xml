@@ -30,7 +30,6 @@
       <artifactId>metrics-jersey</artifactId>
       <version>${project.version}</version>
     </dependency>
-
     <!-- 3rd party dependencies -->
     <dependency>
       <groupId>io.dropwizard</groupId>
@@ -89,7 +88,6 @@
       <artifactId>oshi-core-shaded</artifactId>
       <version>5.3.6</version>
     </dependency>
-
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>

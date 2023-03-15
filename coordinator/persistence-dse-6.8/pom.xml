@@ -75,7 +75,6 @@
       <version>${project.version}</version>
       <scope>provided</scope>
     </dependency>
-
     <!-- Cassandra/DataStax -->
     <dependency>
       <groupId>com.datastax.dse</groupId>
@@ -133,7 +132,6 @@
       <artifactId>java-driver-shaded-guava</artifactId>
       <scope>provided</scope>
     </dependency>
-
     <!-- 3rd party dependencies -->
     <dependency>
       <groupId>org.immutables</groupId>
@@ -166,7 +164,6 @@
       <artifactId>javatuples</artifactId>
       <scope>provided</scope>
     </dependency>
-
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
@@ -272,12 +269,12 @@
               <tasks>
                 <!-- Remove root package classes -->
                 <delete>
-                  <fileset dir="${project.build.directory}/sjk-core/" includes="*.class" />
+                  <fileset dir="${project.build.directory}/sjk-core/" includes="*.class"/>
                 </delete>
                 <jar destfile="${project.build.directory}/classes/sjk-core-0.14.jar">
-                  <fileset dir="${project.build.directory}/sjk-core" />
+                  <fileset dir="${project.build.directory}/sjk-core"/>
                 </jar>
-                <delete dir="${project.build.directory}/sjk-core" />
+                <delete dir="${project.build.directory}/sjk-core"/>
               </tasks>
             </configuration>
           </execution>
@@ -291,12 +288,12 @@
               <tasks>
                 <!-- Remove root package classes -->
                 <delete>
-                  <fileset dir="${project.build.directory}/dnsjava/" includes="*.class" />
+                  <fileset dir="${project.build.directory}/dnsjava/" includes="*.class"/>
                 </delete>
                 <jar destfile="${project.build.directory}/classes/dnsjava-2.1.8.jar">
-                  <fileset dir="${project.build.directory}/dnsjava" />
+                  <fileset dir="${project.build.directory}/dnsjava"/>
                 </jar>
-                <delete dir="${project.build.directory}/dnsjava" />
+                <delete dir="${project.build.directory}/dnsjava"/>
               </tasks>
             </configuration>
           </execution>

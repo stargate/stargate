@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration scan="true" scanPeriod="60 seconds">
   <jmxConfigurator/>
-
   <appender name="SYSTEMLOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
       <level>INFO</level>
@@ -19,9 +18,7 @@
       <pattern>%-5level [%thread] %date{ISO8601} %F:%L - %msg%n</pattern>
     </encoder>
   </appender>
-
   <!-- DEBUGLOG rolling file appender to debug.log (all levels) -->
-
   <appender name="DEBUGLOG" class="ch.qos.logback.core.rolling.RollingFileAppender">
     <file>log/debug.log</file>
     <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
@@ -36,26 +33,23 @@
       <pattern>%-5level [%thread] %date{ISO8601} %F:%L - %msg%n</pattern>
     </encoder>
   </appender>
-
   <appender name="ASYNCDEBUGLOG" class="ch.qos.logback.classic.AsyncAppender">
     <queueSize>1024</queueSize>
     <discardingThreshold>0</discardingThreshold>
     <includeCallerData>true</includeCallerData>
-    <appender-ref ref="DEBUGLOG" />
+    <appender-ref ref="DEBUGLOG"/>
   </appender>
-
   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
       <pattern>%-5level [%thread] %date{ISO8601} %F:%L - %msg%n</pattern>
     </encoder>
   </appender>
-
   <root level="${stargate.logging.level.root:-INFO}">
-    <appender-ref ref="SYSTEMLOG" />
-    <appender-ref ref="STDOUT" />
-    <appender-ref ref="ASYNCDEBUGLOG" /> <!-- Comment this line to disable debug.log -->
+    <appender-ref ref="SYSTEMLOG"/>
+    <appender-ref ref="STDOUT"/>
+    <appender-ref ref="ASYNCDEBUGLOG"/>
+    <!-- Comment this line to disable debug.log -->
   </root>
-
   <logger name="org.apache.cassandra" level="${stargate.logging.level.cassandra:-INFO}"/>
   <logger name="com.datastax.bdp.db" level="${stargate.logging.level.dse:-INFO}"/>
   <logger name="io.stargate.auth" level="${stargate.logging.level.auth:-INFO}"/>
