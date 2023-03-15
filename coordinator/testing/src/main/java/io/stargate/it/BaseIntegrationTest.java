@@ -30,6 +30,7 @@ import org.junit.jupiter.api.BeforeEach;
 @ClusterSpec(shared = true)
 @StargateSpec(shared = true)
 public class BaseIntegrationTest {
+
   protected ClusterConnectionInfo backend;
 
   static {
