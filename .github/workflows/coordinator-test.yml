@@ -46,6 +46,9 @@ jobs:
     name: Coordinator unit tests
     runs-on: ubuntu-latest
 
+    # max run time 30 minutes
+    timeout-minutes: 30
+
     steps:
       - uses: actions/checkout@v3
 
@@ -95,6 +98,9 @@ jobs:
   integration-test:
     name: Integration tests
     runs-on: ubuntu-latest
+
+    # max run time 120 minutes
+    timeout-minutes: 120
 
     strategy:
       # Defaults to "true" but let's let all runs finish
