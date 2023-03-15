@@ -16,7 +16,11 @@ fi
 # Remove the header so we can append the additions
 tail -n +3 "$CHANGELOG_FILE" > "$CHANGELOG_FILE.tmp" && mv "$CHANGELOG_FILE.tmp" "$CHANGELOG_FILE"
 
-docker run -it --rm -v "$(pwd)":/usr/local/src/your-app ferrarimarco/github-changelog-generator -u stargate -p stargate -t $GITHUB_TOKEN --since-tag $previous_version --base $CHANGELOG_FILE --output $CHANGELOG_FILE --release-branch 'main' --exclude-tags-regex 'v1.*' --exclude-labels 'stargate-v1,duplicate,question,invalid,wontfix'
+INTERACTIVE=""
+if [[ -t 1 ]]; then
+  INTERACTIVE="-it"
+fi
+docker run $INTERACTIVE --rm -v "$(pwd)":/usr/local/src/your-app ferrarimarco/github-changelog-generator -u stargate -p stargate -t $GITHUB_TOKEN --since-tag $previous_version --base $CHANGELOG_FILE --output $CHANGELOG_FILE --release-branch 'main' --exclude-tags-regex 'v1.*' --exclude-labels 'stargate-v1,duplicate,question,invalid,wontfix'
 
 # Remove the additional footer added
 head -n $(( $(wc -l < $CHANGELOG_FILE) - 3 )) $CHANGELOG_FILE > "$CHANGELOG_FILE.tmp" && mv "$CHANGELOG_FILE.tmp" "$CHANGELOG_FILE"

@@ -249,6 +249,7 @@
             <stargate.rest.libdir>${basedir}/../stargate-lib/rest</stargate.rest.libdir>
             <jacoco-agent.destfile>${project.build.directory}/jacoco-it.exec</jacoco-agent.destfile>
             <jacoco-agent.args>${failsafe.jacoco.args}</jacoco-agent.args>
+            <junit.jupiter.testclass.order.default>org.junit.jupiter.api.ClassOrderer$OrderAnnotation</junit.jupiter.testclass.order.default>
           </systemPropertyVariables>
           <argLine>${failsafe.jacoco.args}</argLine>
           <includes>
