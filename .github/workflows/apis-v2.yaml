@@ -11,6 +11,11 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+# cancel same workflows in progress for pull request branches
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 # Jobs structure:
 #
 # 1. Builds the coordinator without tests in order to get snapshot jar versions
