@@ -11,6 +11,11 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+# cancel same workflows in progress for pull request branches
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 # Jobs structure:
 #
 # 1. Builds the coordinator without tests in order to get snapshot jar versions
@@ -27,6 +32,9 @@ jobs:
   build-coordinator:
     name: Coordinator build
     runs-on: ubuntu-latest
+
+    # max run time 10 minutes
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v3
@@ -96,6 +104,9 @@ jobs:
     needs: build-coordinator
     runs-on: ubuntu-latest
 
+    # max run time 10 minutes
+    timeout-minutes: 10
+
     # image name needed only
     strategy:
       matrix:
@@ -148,6 +159,9 @@ jobs:
     name: Unit tests
     needs: build-coordinator
     runs-on: ubuntu-latest
+
+    # max run time 10 minutes
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v3
@@ -202,6 +216,9 @@ jobs:
     name: Integration tests
     needs: [ build-coordinator-docker, build ]
     runs-on: ubuntu-latest
+
+    # max run time 30 minutes
+    timeout-minutes: 30
 
     strategy:
 
