@@ -441,7 +441,7 @@
                 <configuration>
                   <systemPropertyVariables>
                     <ccm.dse>true</ccm.dse>
-                    <ccm.version>6.8.32</ccm.version>
+                    <ccm.version>6.8.33</ccm.version>
                     <stargate.test.nodes>1</stargate.test.nodes>
                   </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>
