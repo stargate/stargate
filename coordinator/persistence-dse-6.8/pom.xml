@@ -12,7 +12,7 @@
   <artifactId>persistence-dse-6.8</artifactId>
   <name>Stargate - Coordinator - Persistence DSE 6.8</name>
   <properties>
-    <dse.version>6.8.32</dse.version>
+    <dse.version>6.8.33</dse.version>
   </properties>
   <repositories>
     <repository>
