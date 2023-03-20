@@ -29,6 +29,11 @@ on:
 
   workflow_dispatch:
 
+# cancel same workflows in progress for pull request branches
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/v1' }}
+
 # global env vars, available in all jobs and steps
 env:
   ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
@@ -40,6 +45,9 @@ jobs:
   unit-test:
     name: Coordinator unit tests
     runs-on: ubuntu-latest
+
+    # max run time 30 minutes
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v3
@@ -90,6 +98,9 @@ jobs:
   integration-test:
     name: Integration tests
     runs-on: ubuntu-latest
+
+    # max run time 120 minutes
+    timeout-minutes: 120
 
     strategy:
       # Defaults to "true" but let's let all runs finish
