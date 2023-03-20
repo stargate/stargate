@@ -22,6 +22,10 @@ public class ColumnUtils {
 
   private static final Pattern PATTERN_DOUBLE_QUOTE = Pattern.compile("\"", Pattern.LITERAL);
   private static final String ESCAPED_DOUBLE_QUOTE = Matcher.quoteReplacement("\"\"");
+  /**
+   * Updated regex pattern to support selecting collection entry lime map_column['entry_key'],
+   * set_column['set_value']
+   */
   private static final Pattern UNQUOTED_IDENTIFIER =
       Pattern.compile("[a-z][a-z0-9_]*(\\['.*'\\])?");
 
