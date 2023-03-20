@@ -34,5 +34,10 @@ public class ColumnUtilsTest {
     assertThat(ColumnUtils.maybeQuote("table")).isEqualTo("\"table\"");
     // If we quote, existing quotes must be escaped:
     assertThat(ColumnUtils.maybeQuote("a\"a")).isEqualTo("\"a\"\"a\"");
+    // Collection column name
+    assertThat(ColumnUtils.maybeQuote("foo['bar']")).isEqualTo("foo['bar']");
+    // Invalid collection column name
+    assertThat(ColumnUtils.maybeQuote("foo[]")).isEqualTo("\"foo[]\"");
+    assertThat(ColumnUtils.maybeQuote("foo['bar'][]")).isEqualTo("\"foo['bar'][]\"");
   }
 }
