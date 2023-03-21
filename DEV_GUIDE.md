@@ -47,7 +47,7 @@ The Stargate API services that run externally to the coordinator node are locate
 
 > Scripts below assume you are located in the `coordinator/` directory.
 
-Stargate uses Maven for builds. You can download and install Maven from this [link](https://maven.apache.org/download.cgi) or use the included [maven wrapper](https://github.com/stargate/stargate/blob/main/mvnw) script as you would ordinarily use the `mvn` command.
+Stargate uses Maven for builds. You can download and install Maven from this [link](https://maven.apache.org/download.cgi) or use the included [maven wrapper](https://github.com/stargate/stargate/blob/main/coordinator/mvnw) script as you would ordinarily use the `mvn` command.
 
 To build locally run the following:
 
