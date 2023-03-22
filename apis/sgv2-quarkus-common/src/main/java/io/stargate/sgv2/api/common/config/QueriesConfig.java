@@ -21,7 +21,6 @@ import io.smallrye.config.WithDefault;
 import io.stargate.bridge.proto.QueryOuterClass;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
 
 /** Queries configuration. */
 @ConfigMapping(prefix = "stargate.queries")
