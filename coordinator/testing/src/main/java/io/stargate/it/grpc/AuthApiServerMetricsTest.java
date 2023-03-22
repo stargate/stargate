@@ -37,10 +37,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
     initQueries = {
       "CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k, v))",
     })
-@Order()
+@Order(AuthApiServerMetricsTest.ORDER)
 public class AuthApiServerMetricsTest extends GrpcIntegrationTest {
-  // run this at the begining when there are not a lot of metrics (faster)
-  private static final int ORDER = TestOrder.FIRST + 1;
+
+  // run this at the beginning when there are not a lot of metrics (faster)
+  static final int ORDER = TestOrder.FIRST + 1;
 
   private static String host;
 
