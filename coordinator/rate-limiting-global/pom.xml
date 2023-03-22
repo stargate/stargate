@@ -5,7 +5,7 @@
   <parent>
     <artifactId>stargate</artifactId>
     <groupId>io.stargate</groupId>
-    <version>1.0.75-SNAPSHOT</version>
+    <version>1.0.76-SNAPSHOT</version>
   </parent>
   <!-- Artifact properties -->
   <groupId>io.stargate.db.limiter.global</groupId>
