@@ -2,17 +2,14 @@
 
 ## [v1.0.75](https://github.com/stargate/stargate/tree/v1.0.75) (2023-03-22)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.9...v1.0.75)
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.74...v1.0.75)
 
 **Closed issues:**
 
-- Support collection type element read in stargate api commons [\#2499](https://github.com/stargate/stargate/issues/2499)
 - Use concurrency to cancel workflows on pull request updates [\#2493](https://github.com/stargate/stargate/issues/2493)
 - Update to DSE 6.8.33 [\#2490](https://github.com/stargate/stargate/issues/2490)
 - Update to DSE 6.8.33 [\#2487](https://github.com/stargate/stargate/issues/2487)
-- Push multi-architecture Docker images for API services [\#2486](https://github.com/stargate/stargate/issues/2486)
 - Update to DSE 6.8.33 [\#2477](https://github.com/stargate/stargate/issues/2477)
-- `ValidatedStargateBridge` does not respect limit when returning page state [\#2471](https://github.com/stargate/stargate/issues/2471)
 - Optimize CI workflows for coordinator changes [\#2456](https://github.com/stargate/stargate/issues/2456)
 - organize coordinator modules under coordinator directory [\#2455](https://github.com/stargate/stargate/issues/2455)
 
