@@ -1,5 +1,38 @@
 # Changelog
 
+## [v2.0.10](https://github.com/stargate/stargate/tree/v2.0.10) (2023-03-22)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.75...v2.0.10)
+
+**Merged pull requests:**
+
+- merge v1 with `v1.0.75` into main [\#2505](https://github.com/stargate/stargate/pull/2505) ([ivansenic](https://github.com/ivansenic))
+- Added serial consistency config to be used for json api [\#2504](https://github.com/stargate/stargate/pull/2504) ([maheshrajamani](https://github.com/maheshrajamani))
+- increase timeouts for tests [\#2503](https://github.com/stargate/stargate/pull/2503) ([ivansenic](https://github.com/ivansenic))
+- update quarkus to 2.16.4 [\#2502](https://github.com/stargate/stargate/pull/2502) ([ivansenic](https://github.com/ivansenic))
+- Fix coordinator mvnw link [\#2501](https://github.com/stargate/stargate/pull/2501) ([maheshrajamani](https://github.com/maheshrajamani))
+- Added the pattern to support reading a collection column entry [\#2500](https://github.com/stargate/stargate/pull/2500) ([maheshrajamani](https://github.com/maheshrajamani))
+- Merge v1 -\> main \(for DSE-6.8.33\) [\#2498](https://github.com/stargate/stargate/pull/2498) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#2477: update DSE dependency 6.8.32 -\> 6.8.33 [\#2497](https://github.com/stargate/stargate/pull/2497) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- merge v1 into main - manual double checked [\#2496](https://github.com/stargate/stargate/pull/2496) ([ivansenic](https://github.com/ivansenic))
+- closes \#2493: cancel existing ci workflows on pull request updates [\#2494](https://github.com/stargate/stargate/pull/2494) ([ivansenic](https://github.com/ivansenic))
+- Move coordinator to separate folder on `v1` [\#2492](https://github.com/stargate/stargate/pull/2492) ([ivansenic](https://github.com/ivansenic))
+- move files for dependency checking to coordinator directory [\#2491](https://github.com/stargate/stargate/pull/2491) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Update hpa version removed in K8s 1.25 [\#2489](https://github.com/stargate/stargate/pull/2489) ([maheshrajamani](https://github.com/maheshrajamani))
+- Push multi-architecture docker images to registry [\#2488](https://github.com/stargate/stargate/pull/2488) ([maheshrajamani](https://github.com/maheshrajamani))
+- cache coordinator docker images and reuse [\#2484](https://github.com/stargate/stargate/pull/2484) ([ivansenic](https://github.com/ivansenic))
+- delete google cloud build files [\#2483](https://github.com/stargate/stargate/pull/2483) ([ivansenic](https://github.com/ivansenic))
+- update secrets for release dispatch [\#2482](https://github.com/stargate/stargate/pull/2482) ([ivansenic](https://github.com/ivansenic))
+- speed up coord integration tests by ordering tests [\#2481](https://github.com/stargate/stargate/pull/2481) ([ivansenic](https://github.com/ivansenic))
+- disable auto-merge on the release [\#2480](https://github.com/stargate/stargate/pull/2480) ([ivansenic](https://github.com/ivansenic))
+- enable changelog update to run in actions [\#2479](https://github.com/stargate/stargate/pull/2479) ([ivansenic](https://github.com/ivansenic))
+- closes \#2455: coordinator folder refactoring final [\#2478](https://github.com/stargate/stargate/pull/2478) ([ivansenic](https://github.com/ivansenic))
+- Merging branch v1 into main [\#2476](https://github.com/stargate/stargate/pull/2476) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Fix an out-of-date "cassandra-all" dependency [\#2475](https://github.com/stargate/stargate/pull/2475) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2 release [\#2473](https://github.com/stargate/stargate/pull/2473) ([github-actions[bot]](https://github.com/apps/github-actions))
+- relates to \#2455: create dedicated coordinator folder [\#2463](https://github.com/stargate/stargate/pull/2463) ([ivansenic](https://github.com/ivansenic))
+- use setup-python action in coordinator-test CI [\#2378](https://github.com/stargate/stargate/pull/2378) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+
 ## [v2.0.9](https://github.com/stargate/stargate/tree/v2.0.9) (2023-03-02)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.8...v2.0.9)
