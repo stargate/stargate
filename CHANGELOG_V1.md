@@ -1,5 +1,37 @@
 # Changelog
 
+## [v1.0.75](https://github.com/stargate/stargate/tree/v1.0.75) (2023-03-22)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.9...v1.0.75)
+
+**Closed issues:**
+
+- Support collection type element read in stargate api commons [\#2499](https://github.com/stargate/stargate/issues/2499)
+- Use concurrency to cancel workflows on pull request updates [\#2493](https://github.com/stargate/stargate/issues/2493)
+- Update to DSE 6.8.33 [\#2490](https://github.com/stargate/stargate/issues/2490)
+- Update to DSE 6.8.33 [\#2487](https://github.com/stargate/stargate/issues/2487)
+- Push multi-architecture Docker images for API services [\#2486](https://github.com/stargate/stargate/issues/2486)
+- Update to DSE 6.8.33 [\#2477](https://github.com/stargate/stargate/issues/2477)
+- `ValidatedStargateBridge` does not respect limit when returning page state [\#2471](https://github.com/stargate/stargate/issues/2471)
+- Optimize CI workflows for coordinator changes [\#2456](https://github.com/stargate/stargate/issues/2456)
+- organize coordinator modules under coordinator directory [\#2455](https://github.com/stargate/stargate/issues/2455)
+
+**Merged pull requests:**
+
+- increase timeouts for tests [\#2503](https://github.com/stargate/stargate/pull/2503) ([ivansenic](https://github.com/ivansenic))
+- Fix \#2477: update DSE dependency 6.8.32 -\> 6.8.33 [\#2497](https://github.com/stargate/stargate/pull/2497) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- closes \#2493: cancel existing ci workflows on pull request updates [\#2494](https://github.com/stargate/stargate/pull/2494) ([ivansenic](https://github.com/ivansenic))
+- Move coordinator to separate folder on `v1` [\#2492](https://github.com/stargate/stargate/pull/2492) ([ivansenic](https://github.com/ivansenic))
+- delete google cloud build files [\#2483](https://github.com/stargate/stargate/pull/2483) ([ivansenic](https://github.com/ivansenic))
+- update secrets for release dispatch [\#2482](https://github.com/stargate/stargate/pull/2482) ([ivansenic](https://github.com/ivansenic))
+- speed up coord integration tests by ordering tests [\#2481](https://github.com/stargate/stargate/pull/2481) ([ivansenic](https://github.com/ivansenic))
+- enable changelog update to run in actions [\#2479](https://github.com/stargate/stargate/pull/2479) ([ivansenic](https://github.com/ivansenic))
+- Fix an out-of-date "cassandra-all" dependency [\#2475](https://github.com/stargate/stargate/pull/2475) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- fix usage of secrets in matrix [\#2469](https://github.com/stargate/stargate/pull/2469) ([ivansenic](https://github.com/ivansenic))
+- automated release support: changelog and event dispatching  [\#2457](https://github.com/stargate/stargate/pull/2457) ([ivansenic](https://github.com/ivansenic))
+- Bumping version for next release [\#2448](https://github.com/stargate/stargate/pull/2448) ([github-actions[bot]](https://github.com/apps/github-actions))
+- use setup-python action in coordinator-test CI [\#2378](https://github.com/stargate/stargate/pull/2378) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+
 ## [v1.0.74](https://github.com/stargate/stargate/tree/v1.0.74) (2023-02-15)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.73...v1.0.74)
