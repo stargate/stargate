@@ -30,6 +30,11 @@ public interface QueriesConfig {
   @Valid
   QueriesConfig.ConsistencyConfig consistency();
 
+  /** @return Serial Consistency for queries. */
+  @WithDefault("SERIAL")
+  @NotNull
+  QueryOuterClass.Consistency serialConsistency();
+
   interface ConsistencyConfig {
 
     /** @return Consistency for queries making schema changes. */
