@@ -8,6 +8,7 @@ import io.stargate.it.http.models.AuthProviderResponse;
 import io.stargate.it.http.models.KeycloakCredential;
 import io.stargate.it.http.models.KeycloakUser;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -42,7 +43,8 @@ public class KeycloakContainer {
             .withClasspathResourceMapping(
                 "stargate-realm.json", "/tmp/realm.json", BindMode.READ_ONLY)
             .withCommand("-Djboss.http.port=" + keycloakPort)
-            .waitingFor(Wait.forHttp("/auth/realms/master"));
+            .waitingFor(
+                Wait.forHttp("/auth/realms/master").withStartupTimeout(Duration.ofMinutes(2)));
 
     keycloakContainer.start();
 
