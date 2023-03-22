@@ -160,8 +160,8 @@ jobs:
     needs: build-coordinator
     runs-on: ubuntu-latest
 
-    # max run time 10 minutes
-    timeout-minutes: 10
+    # max run time 15 minutes
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v3

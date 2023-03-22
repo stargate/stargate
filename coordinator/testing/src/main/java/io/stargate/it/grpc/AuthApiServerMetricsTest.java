@@ -9,6 +9,7 @@ import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
 import io.grpc.StatusRuntimeException;
 import io.stargate.grpc.Values;
+import io.stargate.it.TestOrder;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
@@ -27,6 +28,7 @@ import java.util.stream.Collectors;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
@@ -35,7 +37,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
     initQueries = {
       "CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k, v))",
     })
+@Order(AuthApiServerMetricsTest.ORDER)
 public class AuthApiServerMetricsTest extends GrpcIntegrationTest {
+
+  // run this at the beginning when there are not a lot of metrics (faster)
+  static final int ORDER = TestOrder.FIRST + 1;
 
   private static String host;
 
@@ -62,7 +68,7 @@ public class AuthApiServerMetricsTest extends GrpcIntegrationTest {
     assertThat(response.hasResultSet()).isTrue();
 
     await()
-        .atMost(Duration.ofSeconds(5))
+        .atMost(Duration.ofSeconds(10))
         .untilAsserted(
             () -> {
               String result =
@@ -131,7 +137,7 @@ public class AuthApiServerMetricsTest extends GrpcIntegrationTest {
     assertThat(response).isNotNull();
 
     await()
-        .atMost(Duration.ofSeconds(5))
+        .atMost(Duration.ofSeconds(10))
         .untilAsserted(
             () -> {
               String result =
@@ -193,7 +199,7 @@ public class AuthApiServerMetricsTest extends GrpcIntegrationTest {
         .hasMessageContaining("Invalid token");
 
     await()
-        .atMost(Duration.ofSeconds(5))
+        .atMost(Duration.ofSeconds(10))
         .untilAsserted(
             () -> {
               String result =
