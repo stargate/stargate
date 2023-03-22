@@ -21,6 +21,7 @@ import io.smallrye.config.WithDefault;
 import io.stargate.bridge.proto.QueryOuterClass;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
 
 /** Queries configuration. */
 @ConfigMapping(prefix = "stargate.queries")
@@ -29,6 +30,12 @@ public interface QueriesConfig {
   /** @return Settings for the consistency level. */
   @Valid
   QueriesConfig.ConsistencyConfig consistency();
+
+  /** @return Serial Consistency for queries. */
+  @WithDefault("SERIAL")
+  @Pattern(regexp = "SERIAL|LOCAL_SERIAL")
+  @NotNull
+  QueryOuterClass.Consistency serialConsistency();
 
   interface ConsistencyConfig {
 
@@ -46,10 +53,5 @@ public interface QueriesConfig {
     @WithDefault("LOCAL_QUORUM")
     @NotNull
     QueryOuterClass.Consistency reads();
-
-    /** @return Serial Consistency for queries. */
-    @WithDefault("SERIAL")
-    @NotNull
-    QueryOuterClass.Consistency serialConsistency();
   }
 }

@@ -72,6 +72,7 @@
 
 | Property                                      | Type     | Default        | Description                                                                      |
 |-----------------------------------------------|----------|----------------|----------------------------------------------------------------------------------|
+| `stargate.queries.serial-consistency`         | `String` | `SERIAL`      | Serial consistency level to be used for C* queries.                              |
 | `stargate.queries.consistency.schema-changes` | `String` | `LOCAL_QUORUM` | Consistency level to use for C* queries that are performing the schema changes.  |
 | `stargate.queries.consistency.writes`         | `String` | `LOCAL_QUORUM` | Consistency level to use for C* queries that are inserting or updating the data. |
 | `stargate.queries.consistency.reads`          | `String` | `LOCAL_QUORUM` | Consistency level to use for C* queries that are reading the data.               |
