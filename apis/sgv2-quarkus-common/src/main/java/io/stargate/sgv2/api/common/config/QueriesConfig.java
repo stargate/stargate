@@ -46,5 +46,10 @@ public interface QueriesConfig {
     @WithDefault("LOCAL_QUORUM")
     @NotNull
     QueryOuterClass.Consistency reads();
+
+    /** @return Serial Consistency for queries. */
+    @WithDefault("SERIAL")
+    @NotNull
+    QueryOuterClass.Consistency serialConsistency();
   }
 }
