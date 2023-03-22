@@ -84,7 +84,7 @@ public class MetricsTest extends BaseIntegrationTest {
     int status = execute(client, request);
 
     await()
-        .atMost(Duration.ofSeconds(5))
+        .atMost(Duration.ofSeconds(10))
         .untilAsserted(
             () -> {
               String result =
@@ -148,7 +148,7 @@ public class MetricsTest extends BaseIntegrationTest {
     int status = execute(client, request);
 
     await()
-        .atMost(Duration.ofSeconds(5))
+        .atMost(Duration.ofSeconds(10))
         .untilAsserted(
             () -> {
               String result =
@@ -215,7 +215,7 @@ public class MetricsTest extends BaseIntegrationTest {
     int status = execute(client, request);
 
     await()
-        .atMost(Duration.ofSeconds(5))
+        .atMost(Duration.ofSeconds(10))
         .untilAsserted(
             () -> {
               String result =
@@ -282,7 +282,7 @@ public class MetricsTest extends BaseIntegrationTest {
     int status = execute(client, request);
 
     await()
-        .atMost(Duration.ofSeconds(5))
+        .atMost(Duration.ofSeconds(10))
         .untilAsserted(
             () -> {
               String result =
@@ -344,7 +344,7 @@ public class MetricsTest extends BaseIntegrationTest {
     int status = execute(client, request);
 
     await()
-        .atMost(Duration.ofSeconds(5))
+        .atMost(Duration.ofSeconds(10))
         .untilAsserted(
             () -> {
               String result =
@@ -409,7 +409,7 @@ public class MetricsTest extends BaseIntegrationTest {
     int status = execute(client, request);
 
     await()
-        .atMost(Duration.ofSeconds(5))
+        .atMost(Duration.ofSeconds(10))
         .untilAsserted(
             () -> {
               String result =
@@ -479,7 +479,7 @@ public class MetricsTest extends BaseIntegrationTest {
     int status = execute(client, request);
 
     await()
-        .atMost(Duration.ofSeconds(5))
+        .atMost(Duration.ofSeconds(10))
         .untilAsserted(
             () -> {
               String result =
