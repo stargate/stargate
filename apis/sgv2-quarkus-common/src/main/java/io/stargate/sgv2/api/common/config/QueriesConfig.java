@@ -33,7 +33,6 @@ public interface QueriesConfig {
 
   /** @return Serial Consistency for queries. */
   @WithDefault("SERIAL")
-  @Pattern(regexp = "SERIAL|LOCAL_SERIAL")
   @NotNull
   QueryOuterClass.Consistency serialConsistency();
 
