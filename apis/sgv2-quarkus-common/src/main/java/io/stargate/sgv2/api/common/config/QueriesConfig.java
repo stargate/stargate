@@ -32,7 +32,8 @@ public interface QueriesConfig {
 
   /** @return Serial Consistency for queries. */
   @WithDefault("SERIAL")
-  @NotNull
+  @SerialConsistencyValid(
+      anyOf = {QueryOuterClass.Consistency.SERIAL, QueryOuterClass.Consistency.LOCAL_SERIAL})
   QueryOuterClass.Consistency serialConsistency();
 
   interface ConsistencyConfig {
