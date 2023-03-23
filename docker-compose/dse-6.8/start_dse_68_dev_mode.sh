@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 # Default to INFO as root log level
 LOGLEVEL=INFO
@@ -36,4 +36,11 @@ export SGTAG
 
 echo "Running Stargate version $SGTAG with DSE 6.8 (developer mode)"
 
-docker-compose -f docker-compose-dev-mode.yml up -d
+COMPOSE_ARGS=("-d")
+
+# only use --wait flag if Docker Compose is v2
+if [[ $(docker-compose version) =~ "v2" ]]; then
+   COMPOSE_ARGS+=("--wait")
+fi
+
+docker-compose -f docker-compose-dev-mode.yml up "${COMPOSE_ARGS[@]}"
