@@ -5,17 +5,18 @@ import java.util.Arrays;
 import javax.validation.ConstraintValidator;
 import javax.validation.ConstraintValidatorContext;
 
+/** Validator to check if the consistency provided is valid serial consistency */
 public class SerialConsistencyValidator
-    implements ConstraintValidator<SerialConsistencyTypeAnnotation, QueryOuterClass.Consistency> {
-  private QueryOuterClass.Consistency[] subset;
+    implements ConstraintValidator<SerialConsistencyValid, QueryOuterClass.Consistency> {
+  private QueryOuterClass.Consistency[] validConsistencies;
 
   @Override
-  public void initialize(SerialConsistencyTypeAnnotation constraint) {
-    this.subset = constraint.anyOf();
+  public void initialize(SerialConsistencyValid constraint) {
+    this.validConsistencies = constraint.anyOf();
   }
 
   @Override
   public boolean isValid(QueryOuterClass.Consistency value, ConstraintValidatorContext context) {
-    return value == null || Arrays.asList(subset).contains(value);
+    return value != null && Arrays.binarySearch(validConsistencies, value) >= 0;
   }
 }

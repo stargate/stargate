@@ -9,14 +9,12 @@ import javax.validation.ConstraintViolation;
 import javax.validation.Validation;
 import javax.validation.Validator;
 import javax.validation.ValidatorFactory;
-import javax.validation.constraints.NotNull;
 import org.junit.jupiter.api.Test;
 
 public class SerialConsistencyValidatorTest {
 
   private record TestRecord(
-      @NotNull
-          @SerialConsistencyTypeAnnotation(
+      @SerialConsistencyValid(
               anyOf = {
                 QueryOuterClass.Consistency.SERIAL,
                 QueryOuterClass.Consistency.LOCAL_SERIAL
@@ -45,6 +43,14 @@ public class SerialConsistencyValidatorTest {
 
     Set<ConstraintViolation<TestRecord>> constraintViolations =
         validator.validate(new TestRecord(QueryOuterClass.Consistency.LOCAL_ONE));
+    assertThat(constraintViolations.size()).isEqualTo(1);
+
+    assertThat(constraintViolations)
+        .anyMatch(
+            forVariable("serialConsistency")
+                .and(havingMessage("must be any of [SERIAL, LOCAL_SERIAL]")));
+
+    constraintViolations = validator.validate(new TestRecord(null));
     assertThat(constraintViolations.size()).isEqualTo(1);
 
     assertThat(constraintViolations)
