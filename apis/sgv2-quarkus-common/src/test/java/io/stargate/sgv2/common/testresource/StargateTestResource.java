@@ -162,6 +162,11 @@ public class StargateTestResource
 
     // log props and return them
     ImmutableMap<String, String> props = propsBuilder.build();
+
+    // flush all props on the system as well
+    props.forEach(System::setProperty);
+
+    // log and return
     LOG.info("Using props map for the integration tests: %s".formatted(props));
     return props;
   }
