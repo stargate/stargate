@@ -59,7 +59,8 @@ public interface GrpcConfig {
      *
      * If unset, noop policy will be used (never retries).
      *
-     * @return The type of the {@link io.stargate.sgv2.api.common.grpc.retries.GrpcRetryPredicate} used.
+     * @return The type of the {@link io.stargate.sgv2.api.common.grpc.retries.GrpcRetryPredicate}
+     *     used.
      */
     @WithDefault("status-codes")
     Optional<@Pattern(regexp = "status-codes|custom") String> policy();
