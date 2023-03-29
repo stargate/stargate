@@ -37,191 +37,141 @@ import io.stargate.sgv2.common.bridge.BridgeTest;
 import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
 import java.util.Map;
 import javax.inject.Inject;
-import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest
+@TestProfile(RetriableStargateBridgeTest.Profile.class)
 class RetriableStargateBridgeTest extends BridgeTest {
 
-  @Retriable @Inject RetriableStargateBridge bridge;
+  public static class Profile implements NoGlobalResourcesTestProfile {
 
-  @Nested
-  @TestProfile(RetriableStargateBridgeTest.Enabled.Profile.class)
-  class Enabled {
-    public static class Profile implements NoGlobalResourcesTestProfile {
-
-      @Override
-      public Map<String, String> getConfigOverrides() {
-        return ImmutableMap.<String, String>builder()
-            .put("stargate.grpc.retries.status-codes", "UNAVAILABLE,NOT_FOUND")
-            .put("stargate.grpc.retries.max-attempts", "2")
-            .build();
-      }
-    }
-
-    @Test
-    public void notRetriedOnResponse() {
-      QueryOuterClass.Response response = QueryOuterClass.Response.newBuilder().build();
-
-      doAnswer(
-              invocationOnMock -> {
-                StreamObserver<QueryOuterClass.Response> observer = invocationOnMock.getArgument(1);
-                observer.onNext(response);
-                observer.onCompleted();
-                return null;
-              })
-          .when(bridgeService)
-          .executeQuery(any(), any());
-
-      QueryOuterClass.Query request = QueryOuterClass.Query.newBuilder().build();
-      bridge
-          .executeQuery(request)
-          .subscribe()
-          .withSubscriber(UniAssertSubscriber.create())
-          .awaitItem()
-          .assertItem(response)
-          .assertCompleted();
-
-      // verify one call only
-      verify(bridgeService).executeQuery(eq(request), any());
-    }
-
-    @Test
-    public void notRetriedWrongStatusCode() {
-      doAnswer(
-              invocationOnMock -> {
-                StreamObserver<QueryOuterClass.Response> observer = invocationOnMock.getArgument(1);
-                Status status = Status.UNIMPLEMENTED;
-                observer.onError(new StatusRuntimeException(status));
-                return null;
-              })
-          .when(bridgeService)
-          .executeQuery(any(), any());
-
-      QueryOuterClass.Query request = QueryOuterClass.Query.newBuilder().build();
-      Throwable result =
-          bridge
-              .executeQuery(request)
-              .subscribe()
-              .withSubscriber(UniAssertSubscriber.create())
-              .awaitFailure()
-              .getFailure();
-
-      assertThat(result)
-          .isInstanceOfSatisfying(
-              StatusRuntimeException.class,
-              e -> assertThat(e.getStatus()).isEqualTo(Status.UNIMPLEMENTED));
-
-      // verify one call only
-      verify(bridgeService).executeQuery(eq(request), any());
-    }
-
-    @Test
-    public void retried() {
-      doAnswer(
-              invocationOnMock -> {
-                StreamObserver<QueryOuterClass.Response> observer = invocationOnMock.getArgument(1);
-                Status status = Status.UNAVAILABLE;
-                observer.onError(new StatusRuntimeException(status));
-                return null;
-              })
-          .when(bridgeService)
-          .executeQuery(any(), any());
-
-      QueryOuterClass.Query request = QueryOuterClass.Query.newBuilder().build();
-      Throwable result =
-          bridge
-              .executeQuery(request)
-              .subscribe()
-              .withSubscriber(UniAssertSubscriber.create())
-              .awaitFailure()
-              .getFailure();
-
-      assertThat(result)
-          .isInstanceOfSatisfying(
-              StatusRuntimeException.class,
-              e -> assertThat(e.getStatus()).isEqualTo(Status.UNAVAILABLE));
-
-      // verify 3 bridge calls, original + 2 retries
-      // always same query
-      verify(bridgeService, times(3)).executeQuery(eq(request), any());
-    }
-
-    @Test
-    public void retriedAdditionalStatusCode() {
-      doAnswer(
-              invocationOnMock -> {
-                StreamObserver<QueryOuterClass.Response> observer = invocationOnMock.getArgument(1);
-                Status status = Status.NOT_FOUND;
-                observer.onError(new StatusRuntimeException(status));
-                return null;
-              })
-          .when(bridgeService)
-          .executeQuery(any(), any());
-
-      QueryOuterClass.Query request = QueryOuterClass.Query.newBuilder().build();
-      Throwable result =
-          bridge
-              .executeQuery(request)
-              .subscribe()
-              .withSubscriber(UniAssertSubscriber.create())
-              .awaitFailure()
-              .getFailure();
-
-      assertThat(result)
-          .isInstanceOfSatisfying(
-              StatusRuntimeException.class,
-              e -> assertThat(e.getStatus()).isEqualTo(Status.NOT_FOUND));
-
-      // verify 3 bridge calls, original + 2 retries
-      // always same query
-      verify(bridgeService, times(3)).executeQuery(eq(request), any());
+    @Override
+    public Map<String, String> getConfigOverrides() {
+      return ImmutableMap.<String, String>builder()
+          .put("stargate.grpc.retries.status-codes", "UNAVAILABLE,NOT_FOUND")
+          .put("stargate.grpc.retries.max-attempts", "2")
+          .build();
     }
   }
 
-  @Nested
-  @TestProfile(RetriableStargateBridgeTest.Disabled.Profile.class)
-  class Disabled {
+  @Retriable @Inject RetriableStargateBridge bridge;
 
-    public static class Profile implements NoGlobalResourcesTestProfile {
+  @Test
+  public void notRetriedOnResponse() {
+    QueryOuterClass.Response response = QueryOuterClass.Response.newBuilder().build();
 
-      @Override
-      public Map<String, String> getConfigOverrides() {
-        return ImmutableMap.<String, String>builder()
-            .put("stargate.grpc.retries.enabled", "false")
-            .put("stargate.grpc.retries.status-codes", "UNAVAILABLE,NOT_FOUND")
-            .build();
-      }
-    }
+    doAnswer(
+            invocationOnMock -> {
+              StreamObserver<QueryOuterClass.Response> observer = invocationOnMock.getArgument(1);
+              observer.onNext(response);
+              observer.onCompleted();
+              return null;
+            })
+        .when(bridgeService)
+        .executeQuery(any(), any());
 
-    @Test
-    public void disabledNoRetries() {
-      doAnswer(
-              invocationOnMock -> {
-                StreamObserver<QueryOuterClass.Response> observer = invocationOnMock.getArgument(1);
-                Status status = Status.UNAVAILABLE;
-                observer.onError(new StatusRuntimeException(status));
-                return null;
-              })
-          .when(bridgeService)
-          .executeQuery(any(), any());
+    QueryOuterClass.Query request = QueryOuterClass.Query.newBuilder().build();
+    bridge
+        .executeQuery(request)
+        .subscribe()
+        .withSubscriber(UniAssertSubscriber.create())
+        .awaitItem()
+        .assertItem(response)
+        .assertCompleted();
 
-      QueryOuterClass.Query request = QueryOuterClass.Query.newBuilder().build();
-      Throwable result =
-          bridge
-              .executeQuery(request)
-              .subscribe()
-              .withSubscriber(UniAssertSubscriber.create())
-              .awaitFailure()
-              .getFailure();
+    // verify one call only
+    verify(bridgeService).executeQuery(eq(request), any());
+  }
 
-      assertThat(result)
-          .isInstanceOfSatisfying(
-              StatusRuntimeException.class,
-              e -> assertThat(e.getStatus()).isEqualTo(Status.UNAVAILABLE));
+  @Test
+  public void notRetriedWrongStatusCode() {
+    doAnswer(
+            invocationOnMock -> {
+              StreamObserver<QueryOuterClass.Response> observer = invocationOnMock.getArgument(1);
+              Status status = Status.UNIMPLEMENTED;
+              observer.onError(new StatusRuntimeException(status));
+              return null;
+            })
+        .when(bridgeService)
+        .executeQuery(any(), any());
 
-      // verify one class only
-      verify(bridgeService).executeQuery(eq(request), any());
-    }
+    QueryOuterClass.Query request = QueryOuterClass.Query.newBuilder().build();
+    Throwable result =
+        bridge
+            .executeQuery(request)
+            .subscribe()
+            .withSubscriber(UniAssertSubscriber.create())
+            .awaitFailure()
+            .getFailure();
+
+    assertThat(result)
+        .isInstanceOfSatisfying(
+            StatusRuntimeException.class,
+            e -> assertThat(e.getStatus()).isEqualTo(Status.UNIMPLEMENTED));
+
+    // verify one call only
+    verify(bridgeService).executeQuery(eq(request), any());
+  }
+
+  @Test
+  public void retried() {
+    doAnswer(
+            invocationOnMock -> {
+              StreamObserver<QueryOuterClass.Response> observer = invocationOnMock.getArgument(1);
+              Status status = Status.UNAVAILABLE;
+              observer.onError(new StatusRuntimeException(status));
+              return null;
+            })
+        .when(bridgeService)
+        .executeQuery(any(), any());
+
+    QueryOuterClass.Query request = QueryOuterClass.Query.newBuilder().build();
+    Throwable result =
+        bridge
+            .executeQuery(request)
+            .subscribe()
+            .withSubscriber(UniAssertSubscriber.create())
+            .awaitFailure()
+            .getFailure();
+
+    assertThat(result)
+        .isInstanceOfSatisfying(
+            StatusRuntimeException.class,
+            e -> assertThat(e.getStatus()).isEqualTo(Status.UNAVAILABLE));
+
+    // verify 3 bridge calls, original + 2 retries
+    // always same query
+    verify(bridgeService, times(3)).executeQuery(eq(request), any());
+  }
+
+  @Test
+  public void retriedAdditionalStatusCode() {
+    doAnswer(
+            invocationOnMock -> {
+              StreamObserver<QueryOuterClass.Response> observer = invocationOnMock.getArgument(1);
+              Status status = Status.NOT_FOUND;
+              observer.onError(new StatusRuntimeException(status));
+              return null;
+            })
+        .when(bridgeService)
+        .executeQuery(any(), any());
+
+    QueryOuterClass.Query request = QueryOuterClass.Query.newBuilder().build();
+    Throwable result =
+        bridge
+            .executeQuery(request)
+            .subscribe()
+            .withSubscriber(UniAssertSubscriber.create())
+            .awaitFailure()
+            .getFailure();
+
+    assertThat(result)
+        .isInstanceOfSatisfying(
+            StatusRuntimeException.class,
+            e -> assertThat(e.getStatus()).isEqualTo(Status.NOT_FOUND));
+
+    // verify 3 bridge calls, original + 2 retries
+    // always same query
+    verify(bridgeService, times(3)).executeQuery(eq(request), any());
   }
 }

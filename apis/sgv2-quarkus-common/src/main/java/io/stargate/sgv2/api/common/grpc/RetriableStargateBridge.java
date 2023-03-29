@@ -23,6 +23,7 @@ import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.config.GrpcConfig;
+import io.stargate.sgv2.api.common.grpc.retries.GrpcRetryPredicate;
 
 /**
  * An implementation of the {@link StargateBridge} that executes retries based on the
@@ -32,11 +33,18 @@ public class RetriableStargateBridge implements StargateBridge {
 
   private final StargateBridge delegate;
 
-  private final GrpcConfig.Retries retriesConfig;
+  private final GrpcRetryPredicate predicate;
 
-  public RetriableStargateBridge(StargateBridge delegate, GrpcConfig grpcConfig) {
+  private final boolean enabled;
+
+  private final int maxAttempts;
+
+  public RetriableStargateBridge(
+      StargateBridge delegate, GrpcRetryPredicate predicate, GrpcConfig grpcConfig) {
     this.delegate = delegate;
-    retriesConfig = grpcConfig.retries();
+    this.predicate = predicate;
+    this.enabled = grpcConfig.retries().enabled();
+    this.maxAttempts = grpcConfig.retries().maxAttempts();
   }
 
   @Override
@@ -74,7 +82,7 @@ public class RetriableStargateBridge implements StargateBridge {
 
   private <T> Uni<T> withRetries(Uni<T> source) {
     // if disabled do nothing
-    if (!retriesConfig.enabled()) {
+    if (!enabled) {
       return source;
     }
 
@@ -83,11 +91,11 @@ public class RetriableStargateBridge implements StargateBridge {
         .onFailure(
             t -> {
               if (t instanceof StatusRuntimeException sre) {
-                return retriesConfig.statusCodes().contains(sre.getStatus().getCode());
+                return predicate.test(sre);
               }
               return false;
             })
         .retry()
-        .atMost(retriesConfig.maxAttempts());
+        .atMost(maxAttempts);
   }
 }

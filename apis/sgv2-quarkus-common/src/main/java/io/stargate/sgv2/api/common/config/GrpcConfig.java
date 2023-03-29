@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Optional;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Positive;
 
 /** Configuration for the gRPC calls to the Bridge. */
@@ -48,8 +49,25 @@ public interface GrpcConfig {
     boolean enabled();
 
     /**
+     * What type of retry policy to use.
+     *
+     * <ol>
+     *   <li><code>status-codes</code> - based on status codes (see {@link
+     *       io.stargate.sgv2.api.common.grpc.retries.impl.StatusCodesRetryPredicate}}
+     *   <li><code>custom</code> - allows configuring custom policy
+     * </ol>
+     *
+     * If unset, noop policy will be used (never retries).
+     *
+     * @return The type of the {@link io.stargate.sgv2.api.common.grpc.retries.GrpcRetryPredicate} used.
+     */
+    @WithDefault("status-codes")
+    Optional<@Pattern(regexp = "status-codes|custom") String> policy();
+
+    /**
      * @return List of status codes to execute retries for. Defaults to <code>UNAVAILABLE</code>, as
-     *     this code means that the request never reached the bridge and it should be safe to retry.
+     *     this code means that the request never reached the bridge or C* responded with
+     *     Unavailable exception, thus it should be safe to retry.
      */
     @WithDefault("UNAVAILABLE")
     @NotNull

@@ -22,6 +22,8 @@ import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.config.GrpcConfig;
 import io.stargate.sgv2.api.common.grpc.RetriableStargateBridge;
 import io.stargate.sgv2.api.common.grpc.qualifier.Retriable;
+import io.stargate.sgv2.api.common.grpc.retries.GrpcRetryPredicate;
+import javax.enterprise.inject.Instance;
 import javax.ws.rs.Produces;
 
 public class RetriableStargateBridgeConfiguration {
@@ -29,7 +31,9 @@ public class RetriableStargateBridgeConfiguration {
   @Produces
   @Retriable
   RetriableStargateBridge retriableStargateBridge(
-      @GrpcClient("bridge") StargateBridge stargateBridge, GrpcConfig grpcConfig) {
-    return new RetriableStargateBridge(stargateBridge, grpcConfig);
+      @GrpcClient("bridge") StargateBridge stargateBridge,
+      Instance<GrpcRetryPredicate> predicate,
+      GrpcConfig grpcConfig) {
+    return new RetriableStargateBridge(stargateBridge, predicate.get(), grpcConfig);
   }
 }
