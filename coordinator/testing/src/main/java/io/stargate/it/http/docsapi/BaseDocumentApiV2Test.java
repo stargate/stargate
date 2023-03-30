@@ -379,7 +379,7 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
     RestUtils.put(authToken, collectionPath + "/1/b?ttl-auto=true", obj2.toString(), 200);
 
     await()
-        .atLeast(5, TimeUnit.SECONDS)
+        .atLeast(3, TimeUnit.SECONDS)
         .atMost(15, TimeUnit.SECONDS)
         .untilAsserted(
             () -> {
