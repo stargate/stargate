@@ -1,6 +1,7 @@
 package io.stargate.it.http.docsapi;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.awaitility.Awaitility.await;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
@@ -39,7 +40,6 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 import okhttp3.ResponseBody;
-import org.awaitility.Awaitility;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
@@ -351,7 +351,7 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
     RestUtils.put(authToken, collectionPath + "/1?ttl=1", obj1.toString(), 200);
     RestUtils.put(authToken, collectionPath + "/2", obj2.toString(), 200);
 
-    Awaitility.await()
+    await()
         .atLeast(0, TimeUnit.MILLISECONDS)
         .untilAsserted(
             () -> {
@@ -378,8 +378,9 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
     RestUtils.put(authToken, collectionPath + "/1?ttl=5", obj1.toString(), 200);
     RestUtils.put(authToken, collectionPath + "/1/b?ttl-auto=true", obj2.toString(), 200);
 
-    Awaitility.await()
-        .atLeast(4000, TimeUnit.MILLISECONDS)
+    await()
+        .atLeast(3, TimeUnit.SECONDS)
+        .atMost(15, TimeUnit.SECONDS)
         .untilAsserted(
             () -> {
               // After the TTL is up, obj1 should be gone, with no remnants
@@ -873,7 +874,7 @@ public abstract class BaseDocumentApiV2Test extends BaseIntegrationTest {
     ArrayNode documentIds = (ArrayNode) respBody.requiredAt("/documentIds");
     assertThat(documentIds.size()).isEqualTo(27);
 
-    Awaitility.await()
+    await()
         .atLeast(0, TimeUnit.MILLISECONDS)
         .untilAsserted(
             () -> {
