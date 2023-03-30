@@ -63,7 +63,9 @@ public interface GrpcConfig {
      *     used.
      */
     @WithDefault("status-codes")
-    Optional<@Pattern(regexp = "status-codes|custom") String> policy();
+    @NotNull
+    @Pattern(regexp = "status-codes|custom")
+    String policy();
 
     /**
      * @return List of status codes to execute retries for. Defaults to <code>UNAVAILABLE</code>, as

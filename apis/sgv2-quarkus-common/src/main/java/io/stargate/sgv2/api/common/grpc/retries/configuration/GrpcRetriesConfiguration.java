@@ -18,14 +18,4 @@ public class GrpcRetriesConfiguration {
     List<Status.Code> statusCodes = config.retries().statusCodes();
     return new StatusCodesRetryPredicate(statusCodes);
   }
-
-  @Produces
-  @ApplicationScoped
-  @LookupIfProperty(
-      name = "stargate.grpc.retries.policy",
-      stringValue = "noop",
-      lookupIfMissing = true)
-  GrpcRetryPredicate noop() {
-    return e -> false;
-  }
 }

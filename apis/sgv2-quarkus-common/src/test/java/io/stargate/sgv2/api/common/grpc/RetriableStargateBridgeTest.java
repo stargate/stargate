@@ -43,6 +43,8 @@ import org.junit.jupiter.api.Test;
 @TestProfile(RetriableStargateBridgeTest.Profile.class)
 class RetriableStargateBridgeTest extends BridgeTest {
 
+  // tests the default retry policy status-codes
+
   public static class Profile implements NoGlobalResourcesTestProfile {
 
     @Override

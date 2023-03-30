@@ -31,7 +31,7 @@
 |--------------------------------------|------------|----------------|-------------------------------------------------------------------------------------------------------------------------------------|
 | `stargate.grpc.call-deadline`        | `Duration` | `PT30S`        | Defines the client deadline for each RPC call to the bridge.                                                                        |
 | `stargate.grpc.retries.enabled`      | `boolean`  | `true`         | If retries of bridge calls is enabled.                                                                                              |
-| `stargate.grpc.retries.policy`       | `String`   | `status-codes` | Retry policy type. Possible options are `status-codes`, `custom` or unset. If unset, noop policy is used (never retries).           |
+| `stargate.grpc.retries.policy`       | `String`   | `status-codes` | Retry policy type. Possible options are `status-codes` or `custom`.                                                                 |
 | `stargate.grpc.retries.status-codes` | `List`     | `UNAVAILABLE`  | In case of a `status-codes` policy, provides a list of gRPC `Status.Code`s that must be returned in order for a call to be retried. |
 | `stargate.grpc.retries.max-attempts` | `int`      | `1`            | Maximum amount of retry attempts for a single call.                                                                                 |
 
