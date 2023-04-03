@@ -1,5 +1,29 @@
 # Changelog
 
+## [v2.0.11](https://github.com/stargate/stargate/tree/v2.0.11) (2023-04-03)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.10...v2.0.11)
+
+**Closed issues:**
+
+- Increase timeouts in awaitability [\#2518](https://github.com/stargate/stargate/issues/2518)
+- Create validator to restrict consistency configuration [\#2507](https://github.com/stargate/stargate/issues/2507)
+
+**Merged pull requests:**
+
+- Release 2 0 11/merge branch v1 to main [\#2523](https://github.com/stargate/stargate/pull/2523) ([maheshrajamani](https://github.com/maheshrajamani))
+- retry grpc status codes config as set [\#2521](https://github.com/stargate/stargate/pull/2521) ([ivansenic](https://github.com/ivansenic))
+- closes \#2518: fixes await condition in the BaseDocumentApiV2Test [\#2519](https://github.com/stargate/stargate/pull/2519) ([ivansenic](https://github.com/ivansenic))
+- allow specification of custom grpc retry policy [\#2517](https://github.com/stargate/stargate/pull/2517) ([ivansenic](https://github.com/ivansenic))
+- fix running integration tests from IDE [\#2516](https://github.com/stargate/stargate/pull/2516) ([ivansenic](https://github.com/ivansenic))
+- notify additional libs on v1 release [\#2513](https://github.com/stargate/stargate/pull/2513) ([ivansenic](https://github.com/ivansenic))
+- use docker compose wait flag if available [\#2512](https://github.com/stargate/stargate/pull/2512) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- update GH action workflows to newer version of aws credentials action [\#2511](https://github.com/stargate/stargate/pull/2511) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Serial Consistency QueryConfig field validation [\#2510](https://github.com/stargate/stargate/pull/2510) ([maheshrajamani](https://github.com/maheshrajamani))
+- Bumping version for next v2 release [\#2508](https://github.com/stargate/stargate/pull/2508) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Bumping version for next release [\#2506](https://github.com/stargate/stargate/pull/2506) ([github-actions[bot]](https://github.com/apps/github-actions))
+- merge v1 with `v1.0.75` into main [\#2505](https://github.com/stargate/stargate/pull/2505) ([ivansenic](https://github.com/ivansenic))
+
 ## [v2.0.10](https://github.com/stargate/stargate/tree/v2.0.10) (2023-03-22)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.9...v2.0.10)
