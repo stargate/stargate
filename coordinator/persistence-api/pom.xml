@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <!-- Parent -->
+  <parent>
+    <groupId>io.stargate</groupId>
+    <artifactId>stargate</artifactId>
+    <version>1.0.76-SNAPSHOT</version>
+  </parent>
+  <!-- Artifact props -->
+  <groupId>io.stargate.db</groupId>
+  <artifactId>persistence-api</artifactId>
+  <name>Stargate - Coordinator - Persistence API</name>
+  <repositories>
+    <repository>
+      <id>central</id>
+      <url>https://repo.maven.apache.org/maven2</url>
+    </repository>
+  </repositories>
+  <dependencyManagement>
+    <dependencies>
+      <!-- 30-Mar-2022, tatu: Need to force Netty overrides here so
+	   they propagate to most modules but NOT to persistence where
+	   DSE at least requires different versions (3.11 may or may not)
+        -->
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-bom</artifactId>
+        <version>${netty.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+      <!-- To upgrade StringTemplate version Duzzt uses, easiest to force here
+        -->
+      <dependency>
+        <groupId>org.antlr</groupId>
+        <artifactId>ST4</artifactId>
+        <version>4.3.3</version>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
+  <dependencies>
+    <!-- Stargate component dependencies -->
+    <dependency>
+      <groupId>io.stargate.core</groupId>
+      <artifactId>core</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- Cassandra/DataStax -->
+    <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-core</artifactId>
+    </dependency>
+    <!-- 14-Jun-2022, tatu: with java-driver-core 4.14.1 this dependency is optional
+              and not brought as compile-time dependency, so needs to be explicitly added
+             (see [stargate#1889] for details)
+        -->
+    <dependency>
+      <groupId>com.esri.geometry</groupId>
+      <artifactId>esri-geometry-api</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-shaded-guava</artifactId>
+      <scope>provided</scope>
+    </dependency>
+    <!-- 3rd party dependencies -->
+    <dependency>
+      <groupId>org.immutables</groupId>
+      <artifactId>value</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>net.nicoulaj.compile-command-annotations</groupId>
+      <artifactId>compile-command-annotations</artifactId>
+      <version>1.2.3</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.misberner.duzzt</groupId>
+      <artifactId>duzzt-processor</artifactId>
+      <version>0.1.0</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.javatuples</groupId>
+      <artifactId>javatuples</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>com.google.errorprone</groupId>
+      <artifactId>error_prone_annotations</artifactId>
+    </dependency>
+    <!-- Test dependencies -->
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.cassandra</groupId>
+      <artifactId>cassandra-all</artifactId>
+      <version>4.0.7</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <configuration>
+          <unpackBundle>true</unpackBundle>
+          <instructions>
+            <Bundle-Name>Persistence</Bundle-Name>
+            <Bundle-Description>DB component for project</Bundle-Description>
+            <Bundle-SymbolicName>io.stargate.db</Bundle-SymbolicName>
+            <Bundle-Activator>io.stargate.db.DbActivator</Bundle-Activator>
+            <Import-Package><![CDATA[
+              org.slf4j,
+              org.slf4j.helpers,
+              org.slf4j.spi,
+              org.osgi.framework,
+              io.stargate.core.*,
+              io.micrometer.core.*
+            ]]></Import-Package>
+            <Export-Package><![CDATA[
+              io.stargate.db,
+              io.stargate.db.datastore,
+              io.stargate.db.metrics.*,
+              io.stargate.db.query,
+              io.stargate.db.query.builder,
+              io.stargate.db.schema,
+              io.stargate.db.limiter,
+              io.stargate.db.tracing,
+              org.javatuples,
+              org.apache.cassandra.stargate,
+              org.apache.cassandra.stargate.*,
+              com.datastax.oss.driver.api.*,
+              com.datastax.oss.driver.internal.*,
+              com.datastax.oss.driver.shaded.guava.common.*,
+            ]]></Export-Package>
+            <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
+            <Embed-Transitive>true</Embed-Transitive>
+          </instructions>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+          </archive>
+          <outputDirectory>${project.basedir}/../stargate-lib</outputDirectory>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

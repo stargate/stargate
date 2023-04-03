@@ -2,7 +2,7 @@
 
 Want to build Stargate locally or even start contributing to the project? This is the right place to get started. 
 
-If you're developing on MacOS, we've added notes throughout to highlight a few specific differences.
+If you're developing on macOS, we've added notes throughout to highlight a few specific differences.
  
 ## Code conventions
 
@@ -14,18 +14,21 @@ Both are integrated with Maven: the build will fail if some files are not format
 To fix formatting issues from the command line, run the following:
 
 ```sh
-mvn xml-format:xml-format fmt:format
+./mvnw xml-format:xml-format fmt:format
 ```
 
 ## Java Version 
 
 Stargate currently runs on Java 8 due to its backend dependencies. It's important to ensure that you have the correct JDK 8 installed before you can successfully compile the Stargate project. There are a number of versions of JDK 8 and a number of different ways to install them, but not all of them will work successfully with Stargate.
 
+> NOTE: Coordinator related project is located in the [coordinator/](coordinator) directory.
+
+The coordinator currently runs on Java 8 due to its backend dependencies. It's important to ensure that you have the correct JDK 8 installed before you can successfully compile the Stargate project. There are a number of versions of JDK 8 and a number of different ways to install them, but not all of them will work successfully with Stargate. For comparison, you can reference the JDK version used in our [CI workflow](.github/workflows/apis-v2.yaml).
 Download JDK 8 from this link: https://adoptopenjdk.net/?variant=openjdk8&jvmVariant=hotspot
 
 Install the JDK and add it to your path. 
 
-For example: if you are using a newer version of MacOS, then you are likely using Z-Shell (zsh) by default. So open your `~/.zshrc` file and add the path there:
+For example: if you are using a newer version of macOS, then you are likely using Z-Shell (zsh) by default. So open your `~/.zshrc` file and add the path there:
 
 ```sh
 export JAVA_HOME="/Library/Java/JavaVirtualMachines/adoptopenjdk-8.jdk/Contents/Home"
@@ -59,7 +62,7 @@ Before starting Stargate locally, you will need an instance of Apache Cassandra&
 The easiest way to do this is with a Docker image (see [Cassandra docker images](https://hub.docker.com/_/cassandra)).
 
 > **_NOTE:_** due to the way networking works with Docker for Mac, the Docker method only works on Linux. 
-> We recommend CCM (see below) for use with MacOS.
+> We recommend CCM (see below) for use with macOS.
 
 Docker: Start a Cassandra 3.11 instance:
 
@@ -67,18 +70,18 @@ Docker: Start a Cassandra 3.11 instance:
 docker run --name local-cassandra \
 --net=host \
 -e CASSANDRA_CLUSTER_NAME=stargate \
--d cassandra:3.11.13
+-d cassandra:3.11.14
 ```
 
 Cassandra Cluster Manager: Start a Cassandra 3.11 instance ([link to ccm](https://github.com/riptano/ccm))
 
 ```sh
-ccm create stargate -v 3.11.13 -n 1 -s -b
+ccm create stargate -v 3.11.14 -n 1 -s -b
 ```
 
 ### Start commands
 
-> **_NOTE:_**  Before starting Stargate on MacOS you'll need to add an additional loopback:
+> **_NOTE:_**  Before starting Stargate on macOS you'll need to add a loopback:
 
 ```sh
 sudo ifconfig lo0 alias 127.0.0.2
@@ -102,7 +105,7 @@ docker run --name stargate -d stargateio/stargate-3_11:v0.0.2 --cluster-name sta
 
 The `starctl` script respects the `JAVA_OPTS` environment variable.
 For example, to set a Java system property with spaces in its value, run `starctl` as shown below.
-Note the double quotes embedded in the environment var value - it is re-evalutated (once) as a `bash` 
+Note the double quotes embedded in the environment var value - it is re-evaluated (once) as a `bash` 
 token before being passed to the JVM. This is required to break the single value of `JAVA_OPTS` into 
 a sequence of tokens. This kind of processing is not required for ordinary command line arguments, 
 therefore they do not need any extra quoting.
@@ -142,7 +145,7 @@ Connect to CQL as normal on port 9042:
 ```sh
 $ cqlsh 127.0.0.2 9042
 Connected to stargate at 127.0.0.2:9042.
-[cqlsh 5.0.1 | Cassandra 3.11.13 | CQL spec 3.4.4 | Native protocol v4]
+[cqlsh 5.0.1 | Cassandra 3.11.14 | CQL spec 3.4.4 | Native protocol v4]
 Use HELP for help.
 ```
 
@@ -180,7 +183,7 @@ the end of the test run. However, if the test JVM is killed during execution, th
 node may continue running and may interfere with subsequent test executions. In this case, the
 transient storage process needs to be stopped manually (e.g. by using the `kill` command).
 
-> **_NOTE:_** to run integration tests on MacOS, you'll need to enable several different loopback addresses 
+> **_NOTE:_** to run integration tests on macOS, you'll need to enable several loopback addresses 
 > using the instructions [below](#loopback-addresses).
 
 ### Ordinary Execution
@@ -253,7 +256,7 @@ one Stargate node.
 
 The picture below shows the remote listening debug run configuration in IntelliJ.
 That configuration must be started before running the integration test in the debug mode.
-You wlll observe two or more JVMs in the debug model, one running the integration tests and at least one running Stargate. 
+You will observe two or more JVMs in the debug model, one running the integration tests and at least one running Stargate. 
 
 ![image](assets/remote-debug-listener.png#center)
 
@@ -269,7 +272,7 @@ execution environment (`PATH`).
 When tests are started manually via an IDE or JUnit Console Launcher, you can specify the type and version
 of the storage backend using the following Java system properties:
 
-* `-Dccm.version=<version>` - the version of the storage cluster (e.g. `3.11.13`)
+* `-Dccm.version=<version>` - the version of the storage cluster (e.g. `3.11.14`)
 * `-Dccm.dse=<true|false>` - specifies whether the storage cluster is DSE or OSS Cassandra.
   If `false` this option can be omitted.
 
@@ -315,9 +318,9 @@ Parameter injection works with any method where JUnit 5 supports parameter injec
 (e.g. constructors, `@Test` methods, `@Before*` methods) if the corresponding storage / Stargate
 nodes are available.
 
-### <a name="loopback-addresses"></a> Creating Loopback Addresses for Integration Tests on MacOS
+### <a name="loopback-addresses"></a> Creating Loopback Addresses for Integration Tests on macOS
 
-The integration tests use multiple loopback addresses which you will need to create individually on MacOS. 
+The integration tests use multiple loopback addresses which you will need to create individually on macOS. 
 We recommend persisting the network aliases using a RunAtLoad launch daemon which OSX automatically loads 
 on startup. For example:
 

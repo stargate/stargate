@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <!-- Parent -->
+  <parent>
+    <groupId>io.stargate</groupId>
+    <artifactId>stargate</artifactId>
+    <version>1.0.76-SNAPSHOT</version>
+  </parent>
+  <!-- Artifact props -->
+  <groupId>io.stargate.auth.table</groupId>
+  <artifactId>auth-table-based-service</artifactId>
+  <name>Stargate - Coordinator - Auth Table-based service</name>
+  <dependencies>
+    <!-- Stargate component dependencies -->
+    <dependency>
+      <groupId>io.stargate.auth</groupId>
+      <artifactId>authnz</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.stargate.core</groupId>
+      <artifactId>core</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.stargate.db</groupId>
+      <artifactId>persistence-api</artifactId>
+      <version>${project.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <!-- 3rd party dependencies -->
+    <dependency>
+      <groupId>com.github.ben-manes.caffeine</groupId>
+      <artifactId>caffeine</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.mindrot</groupId>
+      <artifactId>jbcrypt</artifactId>
+      <version>0.4</version>
+    </dependency>
+    <!-- Test dependencies -->
+    <!-- 21-Sep-2021, tatu: If you need to use Guava for NON-test code (runtime),
+             note that you need to BOTH change scope to "runtime" AND add
+             OSGi import: see f.ex "cql/pom.xml" for example of how to do it.
+             But make sure you really want Guava and there is no alternative as
+             we are trying to reduce Guava usage to avoid version conflicts
+      -->
+    <dependency>
+      <groupId>com.datastax.oss</groupId>
+      <artifactId>java-driver-shaded-guava</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.assertj</groupId>
+      <artifactId>assertj-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.mockito</groupId>
+      <artifactId>mockito-core</artifactId>
+      <scope>test</scope>
+    </dependency>
+  </dependencies>
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.felix</groupId>
+        <artifactId>maven-bundle-plugin</artifactId>
+        <configuration>
+          <unpackBundle>true</unpackBundle>
+          <instructions>
+            <Bundle-Name>AuthTableBasedService</Bundle-Name>
+            <Bundle-Description>AuthTableBasedService component for project</Bundle-Description>
+            <Bundle-SymbolicName>io.stargate.auth.table</Bundle-SymbolicName>
+            <Bundle-Activator>io.stargate.auth.table.AuthTableBasedServiceActivator</Bundle-Activator>
+            <Import-Package><![CDATA[
+              org.slf4j,
+              org.slf4j.helpers,
+              org.slf4j.spi,
+              org.osgi.framework,
+              io.stargate.core.*,
+              io.stargate.auth,
+              io.stargate.db.*,
+              org.apache.cassandra.stargate,
+              org.apache.cassandra.stargate.*,
+              org.javatuples,
+            ]]></Import-Package>
+            <Export-Package>!*</Export-Package>
+            <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
+          </instructions>
+        </configuration>
+      </plugin>
+      <plugin>
+        <artifactId>maven-jar-plugin</artifactId>
+        <configuration>
+          <archive>
+            <manifestFile>${project.build.outputDirectory}/META-INF/MANIFEST.MF</manifestFile>
+          </archive>
+          <outputDirectory>${project.basedir}/../stargate-lib</outputDirectory>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

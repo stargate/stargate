@@ -50,12 +50,11 @@ jobs:
 
       - name: Create release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ steps.resolve_tag.outputs.tag }}
-          release_name: Release ${{ steps.resolve_tag.outputs.tag }}
+          name: Release ${{ steps.resolve_tag.outputs.tag }}
           draft: false
           prerelease: false
 
@@ -96,23 +95,23 @@ jobs:
 
       - name: Build with Maven
         run: |
+          cd coordinator/
           mvn -B -ntp versions:set -DremoveSnapshot versions:commit
           mvn -P dse -B -ntp -q -ff clean package -DskipTests
 
       - name: Zip-up `stargate-lib`
         run: |
+          cd coordinator/
           zip stargate-jars.zip starctl stargate-lib/logback.xml stargate-lib/*.jar
           
       # uploads the jars by referencing the release-upload-url from create-release job
       - name: Upload jars
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: shogo82148/actions-upload-release-asset@v1
         with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           upload_url: ${{needs.create-release.outputs.release-upload-url}}
-          asset_path: stargate-jars.zip
           asset_name: stargate-jars.zip
-          asset_content_type: text/html
+          asset_path: coordinator/stargate-jars.zip
 
   # publish coordinator JARs to the OSSRH
   publish:
@@ -163,21 +162,62 @@ jobs:
       - name: Publish package
         if: ${{ !inputs.skipPublish }}
         run: |
+          cd coordinator/
           ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
           ./mvnw -B -ntp -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse
 
+      - name: Generate changelog
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./update_changelog.sh
+
       - name: Bump versions
         run: |
+          cd coordinator/
           ./mvnw -B -ntp release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse
           ./mvnw -B -ntp xml-format:xml-format fmt:format -Pdse
 
       - name: Rev Version
         if: success()
-        uses: peter-evans/create-pull-request@v3
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: peter-evans/create-pull-request@v4
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "Bumping version for next release"
           title: "Bumping version for next release"
           branch-suffix: "short-commit-hash"
           base: "v1"
+
+  # dispatch release event
+  dispatch:
+    name: Dispatch release event
+    needs: [ 'create-release', 'build', 'publish']
+    if: ${{ always() }}
+    continue-on-error: true
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        repo: [ 'stargate/stargate', 'stargate/docker-images', 'riptano/c2', 'riptano/dse-astra-auth-lib']
+        include:
+          - repo: stargate/stargate
+            secret: SG_EVENTS_PAT
+
+          - repo: stargate/docker-images
+            secret: SG_EVENTS_PAT
+
+          - repo: riptano/c2
+            secret: STARGATE_GH_RELEASE
+
+          - repo: riptano/dse-astra-auth-lib
+            secret: STARGATE_GH_RELEASE
+
+    steps:
+      - name: Repository dispatch
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets[matrix.secret] }}
+          repository: ${{ matrix.repo }}
+          event-type: stargate-v1-release
+          client-payload: '{"version": "${{ needs.create-release.outputs.release-tag }}"}'
