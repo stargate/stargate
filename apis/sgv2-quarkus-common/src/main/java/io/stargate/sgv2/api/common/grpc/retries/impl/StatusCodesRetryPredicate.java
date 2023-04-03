@@ -3,14 +3,14 @@ package io.stargate.sgv2.api.common.grpc.retries.impl;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.stargate.sgv2.api.common.grpc.retries.GrpcRetryPredicate;
-import java.util.List;
+import java.util.Set;
 
 /** {@link GrpcRetryPredicate} based on status code matching. */
 public class StatusCodesRetryPredicate implements GrpcRetryPredicate {
 
-  private final List<Status.Code> statusCodes;
+  private final Set<Status.Code> statusCodes;
 
-  public StatusCodesRetryPredicate(List<Status.Code> statusCodes) {
+  public StatusCodesRetryPredicate(Set<Status.Code> statusCodes) {
     this.statusCodes = statusCodes;
   }
 
