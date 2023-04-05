@@ -22,8 +22,10 @@ import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.config.MetricsConfig;
+import java.util.regex.Pattern;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerResponseContext;
 import org.jboss.resteasy.reactive.server.ServerResponseFilter;
 
@@ -33,6 +35,12 @@ import org.jboss.resteasy.reactive.server.ServerResponseFilter;
  */
 @ApplicationScoped
 public class TenantRequestMetricsFilter {
+
+  // split pattern for the user agent, extract only first part of the agent
+  private static final Pattern USER_AGENT_SPLIT = Pattern.compile("[\\s/]");
+
+  // same as V1 io.stargate.core.metrics.StargateMetricConstants#UNKNOWN
+  private static final String UNKNOWN_VALUE = "unknown";
 
   /** The {@link MeterRegistry} to report to. */
   private final MeterRegistry meterRegistry;
@@ -61,17 +69,19 @@ public class TenantRequestMetricsFilter {
     this.config = metricsConfig.tenantRequestCounter();
     errorTrue = Tag.of(config.errorTag(), "true");
     errorFalse = Tag.of(config.errorTag(), "false");
-    tenantUnknown = Tag.of(config.tenantTag(), "UNKNOWN");
+    tenantUnknown = Tag.of(config.tenantTag(), UNKNOWN_VALUE);
   }
 
   /**
    * Filter that this bean produces.
    *
-   * @param context ContainerResponseContext
+   * @param requestContext {@link ContainerRequestContext}
+   * @param responseContext {@link ContainerResponseContext}
    * @see https://quarkus.io/guides/resteasy-reactive#request-or-response-filters
    */
   @ServerResponseFilter
-  public void record(ContainerResponseContext context) {
+  public void record(
+      ContainerRequestContext requestContext, ContainerResponseContext responseContext) {
     // only if enabled
     if (config.enabled()) {
 
@@ -80,11 +90,32 @@ public class TenantRequestMetricsFilter {
           requestInfo.getTenantId().map(id -> Tag.of(config.tenantTag(), id)).orElse(tenantUnknown);
 
       // resolve error
-      boolean error = context.getStatus() >= 500;
+      boolean error = responseContext.getStatus() >= 500;
       Tag errorTag = error ? errorTrue : errorFalse;
 
+      // check if we need user agent as well
+      Tags tags = Tags.of(tenantTag, errorTag);
+      if (config.userAgentTagEnabled()) {
+        String userAgentValue = getUserAgentValue(requestContext);
+        tags = tags.and(Tag.of(config.userAgentTag(), userAgentValue));
+      }
+
       // record
-      meterRegistry.counter(config.metricName(), Tags.of(tenantTag, errorTag)).increment();
+      meterRegistry.counter(config.metricName(), tags).increment();
+    }
+  }
+
+  private String getUserAgentValue(ContainerRequestContext requestContext) {
+    String headerString = requestContext.getHeaderString("user-agent");
+    if (null != headerString && !headerString.isBlank()) {
+      String[] split = USER_AGENT_SPLIT.split(headerString);
+      if (split.length > 0) {
+        return split[0];
+      } else {
+        return headerString;
+      }
+    } else {
+      return UNKNOWN_VALUE;
     }
   }
 }

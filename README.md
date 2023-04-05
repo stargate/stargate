@@ -43,46 +43,43 @@ These are independently scalable microservices which various APIs, typically HTT
 
 Each API Service contains its own integration test suite that tests it against the coordinator node and supported Cassandra backends. There is also a [sgv2-quarkus-common](apis/sgv2-quarkus-common) module containing utilities that may be used by all Java/Quarkus based API services.
 
-**Warning:** Support for Cassandra 3.11 is considered deprecated and will be removed in the Stargate v3 release: [details](https://github.com/stargate/stargate/discussions/2242).
-
-- **Authentication Services**: Responsible for authentication to Stargate
-
 ### Coordinator Node
 Coordinator nodes participate as non-data storing nodes in the backing Cassandra cluster, which enables them to read and write data more efficiently. Stargate Coordinator nodes can also be scaled independently. Coordinator nodes expose gRPC and CQL interfaces for fast access by client applications. The following are the key modules comprising the coordinator and its exposed interfaces:
 
-- [core](core): Common classes used throughout the other coordinator modules
-- [cql](cql): API implementation for the Cassandra Query Language
-- [grpc](grpc): fast CQL over gRPC implementation (HTTP-based interface equivalent to CQL performance)
-- [bridge](bridge): gRPC-based interface used by API services
-- [health-checker](core): HTTP endpoints useful for health checking coordinator nodes
-- [metrics-jersey](core): metrics collection for the coordinator node and its exposed interfaces
-- [stargate-starter](stargate-starter): the main Java application used to start the coordinator via the `starctl` script
+- [core](coordinator/core): Common classes used throughout the other coordinator modules
+- [cql](coordinator/cql): API implementation for the Cassandra Query Language
+- [grpc](coordinator/grpc): fast CQL over gRPC implementation (HTTP-based interface equivalent to CQL performance)
+- [bridge](coordinator/bridge): gRPC-based interface used by API services
+- [health-checker](coordinator/health-checker): HTTP endpoints useful for health checking coordinator nodes
+- [metrics-jersey](coordinator/metrics-jersey): metrics collection for the coordinator node and its exposed interfaces
+- [stargate-starter](coordinator/stargate-starter): the main Java application used to start the coordinator via the `starctl` script
 
 #### Persistence Services
 Stargate coordinator nodes support a pluggable approach for implementing the coordination layer to execute requests passed by API services and other interfaces to underlying data storage instances. Persistence service implementations are responsible handling and converting requests to database queries, dispatching to a specific version of Cassandra, and returning and serving responses.
 
-- [persistence-api](persistence-api): Interface for working with persistence services 
-- [persistence-common](persistence-common): Utilities shared by the persistence services
-- [persistence-cassandra-3.11](persistence-cassandra-3.11): Joins C* 3.11 cluster as coordinator-only node (does not store data)
+- [persistence-api](coordinator/persistence-api): Interface for working with persistence services 
+- [persistence-common](coordinator/persistence-common): Utilities shared by the persistence services
+- [persistence-cassandra-3.11](coordinator/persistence-cassandra-3.11): Joins C* 3.11 cluster as coordinator-only node (does not store data)
 mocks C* system tables for native driver integration,
 executes requests with C* storage nodes using C* QueryHandler/QueryProcessor,
 converts internal C* objects and ResultSets to Stargate Datastore objects.
-- [persistence-cassandra-4.0](persistence-cassandra-4.0): (same as above but for Cassandra 4.0)
-- [persistence-dse-6.8](persistence-dse-6.8): (same as above but for DataStax Enterprise 6.8)
+- [persistence-cassandra-4.0](coordinator/persistence-cassandra-4.0): (same as above but for Cassandra 4.0)
+- [persistence-dse-6.8](coordinator/persistence-dse-6.8): (same as above but for DataStax Enterprise 6.8)
 
 #### Authentication and Authorization Services
 Stargate coordinator nodes also support a pluggable authentication and authorization approach.
 
-- [authnz](authnz): Interface for working with auth providers
-- [auth-api](auth-api): REST service for generating auth tokens
-- [auth-table-based-service](auth-table-based-service): Service to store tokens in the database
-- [auth-jtw-service](auth-jwt-service): Service to authenticate using externally generated JSON Web Tokens (JWTs)
+- [authnz](coordinator/authnz): Interface for working with auth providers
+- [auth-api](coordinator/auth-api): REST service for generating auth tokens
+- [auth-table-based-service](coordinator/auth-table-based-service): Service to store tokens in the database
+- [auth-jtw-service](coordinator/auth-jwt-service): Service to authenticate using externally generated JSON Web Tokens (JWTs)
 
 #### Coordinator Node Testing
 The following modules provide support for testing:
 
-- [testing](testing): Integration test suite for the coordinator node modules
-- [persistence-test](persistence-test): Common utilities for testing persistence services
+- [testing](coordinator/testing): Integration test suite for the coordinator node modules
+- [testing](coordinator/testing-services): Testing helpers
+- [persistence-test](coordinator/persistence-test): Common utilities for testing persistence services
 
 Instructions for running and extending the test suite can be found in the [developer guide](DEV_GUIDE.md).
 
@@ -115,7 +112,7 @@ The current major version is maintained on the default `main` branch. The prior 
 
 We make bug fixes in all supported releases. The recommended approach is to commit a fix first to the previous major version branch (if applicable) and merge it forward into the current major version branch.
 
-We use minor version numbers to indicate any changes to the coordinator that would cause compatibility changes for Stargate APIs. For example, a breaking change to the [bridge](bridge) API in v2.0.x would cause creation of a v2.1.0 release, and any API implementations would need to explicitly update in order to be compatible. You can use any version of the coordinator and API that have same the major and minor version number without issues.
+We use minor version numbers to indicate any changes to the coordinator that would cause compatibility changes for Stargate APIs. For example, a breaking change to the [bridge](coordinator/bridge) API in v2.0.x would cause creation of a v2.1.0 release, and any API implementations would need to explicitly update in order to be compatible. You can use any version of the coordinator and API that have same the major and minor version number without issues.
 
 We iterate forward rather than producing patch releases. For example, for a vulnerability found in `v2.0.3`, we'd make any required fixes and dependency updates and release `v2.0.4`. We maintain a regular release cadence of approximately twice a month but can iterate more quickly as the situation dictates. 
 

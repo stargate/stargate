@@ -146,8 +146,11 @@ public class ValidatingStargateBridge implements StargateBridge {
 
   public static class QueryExpectation extends QueryAssert {
 
+    private static final Pattern LIMIT_PATTERN = Pattern.compile(".*LIMIT\\s+([0-9]+).*");
+
     private final Pattern cqlPattern;
     private final List<QueryOuterClass.Value> values;
+    private final int limit;
     private int pageSize = Integer.MAX_VALUE;
     private QueryOuterClass.Batch.Type batchType;
     private boolean enriched;
@@ -156,10 +159,19 @@ public class ValidatingStargateBridge implements StargateBridge {
     private List<List<QueryOuterClass.Value>> rows;
     private Iterable<? extends QueryOuterClass.ColumnSpec> columnSpec;
     private Function<List<QueryOuterClass.Value>, ByteBuffer> comparableKey;
+    private Throwable failure;
 
     private QueryExpectation(String cqlRegex, List<QueryOuterClass.Value> values) {
       this.cqlPattern = Pattern.compile(cqlRegex);
       this.values = values;
+
+      Matcher matcher = LIMIT_PATTERN.matcher(cqlRegex);
+      if (matcher.find()) {
+        String group = matcher.group(1);
+        limit = Integer.parseInt(group);
+      } else {
+        limit = -1;
+      }
     }
 
     private QueryExpectation(String cqlRegex) {
@@ -210,6 +222,11 @@ public class ValidatingStargateBridge implements StargateBridge {
 
     public QueryAssert returning(List<List<QueryOuterClass.Value>> rows) {
       this.rows = rows;
+      return this;
+    }
+
+    public QueryAssert returningFailure(Throwable failure) {
+      this.failure = failure;
       return this;
     }
 
@@ -327,15 +344,23 @@ public class ValidatingStargateBridge implements StargateBridge {
       // mark as executed
       executed();
 
+      // if we have a throwable throw
+      if (null != failure) {
+        return Uni.createFrom().failure(failure);
+      }
+
       QueryOuterClass.ResultSet.Builder resultSet = QueryOuterClass.ResultSet.newBuilder();
 
       // filter rows in order to respect the page size
       // and get next paging state
-      List<List<QueryOuterClass.Value>> filterRows = paginator.filter(rows);
-      ByteBuffer nextPagingState = paginator.pagingState();
-      if (null != nextPagingState) {
-        resultSet.setPagingState(
-            BytesValue.newBuilder().setValue(ByteString.copyFrom(nextPagingState)).build());
+      List<List<QueryOuterClass.Value>> filterRows = paginator.filter(rows, limit);
+      boolean limitExhausted = paginator.limitExhausted(limit);
+      if (!limitExhausted) {
+        ByteBuffer nextPagingState = paginator.pagingState();
+        if (null != nextPagingState) {
+          resultSet.setPagingState(
+              BytesValue.newBuilder().setValue(ByteString.copyFrom(nextPagingState)).build());
+        }
       }
       // for each filtered row
       for (int i = 0; i < filterRows.size(); i++) {

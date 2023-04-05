@@ -27,12 +27,13 @@
 ### gRPC configuration
 *Configuration for the gRPC calls to the Bridge, defined by [GrpcConfig.java](src/main/java/io/stargate/sgv2/api/common/config/GrpcConfig.java).*
 
-| Property                             | Type       | Default       | Description                                                                          |
-|--------------------------------------|------------|---------------|--------------------------------------------------------------------------------------|
-| `stargate.grpc.call-deadline`        | `Duration` | `PT30S`       | Defines the client deadline for each RPC call to the bridge.                         |
-| `stargate.grpc.retries.enabled`      | `boolean`  | `true`        | If retries of bridge calls is enabled.                                               |
-| `stargate.grpc.retries.status-codes` | `List`     | `UNAVAILABLE` | List of gRPC `Status.Code`s that must be returned in order for a call to be retried. |
-| `stargate.grpc.retries.max-attempts` | `int`      | `1`           | Maximum amount of retry attempts for a single call.                                  |
+| Property                             | Type       | Default        | Description                                                                                                                         |
+|--------------------------------------|------------|----------------|-------------------------------------------------------------------------------------------------------------------------------------|
+| `stargate.grpc.call-deadline`        | `Duration` | `PT30S`        | Defines the client deadline for each RPC call to the bridge.                                                                        |
+| `stargate.grpc.retries.enabled`      | `boolean`  | `true`         | If retries of bridge calls is enabled.                                                                                              |
+| `stargate.grpc.retries.policy`       | `String`   | `status-codes` | Retry policy type. Possible options are `status-codes` or `custom`.                                                                 |
+| `stargate.grpc.retries.status-codes` | `List`     | `UNAVAILABLE`  | In case of a `status-codes` policy, provides a list of gRPC `Status.Code`s that must be returned in order for a call to be retried. |
+| `stargate.grpc.retries.max-attempts` | `int`      | `1`            | Maximum amount of retry attempts for a single call.                                                                                 |
 
 ### gRPC metadata configuration
 *Configuration for the gRPC metadata passed to the Bridge, defined by [GrpcMetadataConfig.java](src/main/java/io/stargate/sgv2/api/common/config/GrpcMetadataConfig.java).*
@@ -46,13 +47,15 @@
 ### Metrics configuration
 *Configuration mapping for the additional metrics properties, defined by [MetricsConfig.java](src/main/java/io/stargate/sgv2/api/common/config/MetricsConfig.java).*
 
-| Property                                              | Type                 | Default                             | Description                                                             |
-|-------------------------------------------------------|----------------------|-------------------------------------|-------------------------------------------------------------------------|
-| `stargate.metrics.global-tags`                        | `Map<String,String>` | `{"module": "docsapi"}`             | Map of global tags that will be applied to every meter.                 |
-| `stargate.metrics.tenant-request-counter.enabled`     | `boolean`            | `${stargate.multi-tenancy.enabled}` | If extra metric for counting the request per tenant should be recorded. |
-| `stargate.metrics.tenant-request-counter.metric-name` | `String`             | `http.server.requests.counter`      | Name of the metric.                                                     |
-| `stargate.metrics.tenant-request-counter.tenant-tag`  | `String`             | `tenant`                            | The tag key for tenant id.                                              |
-| `stargate.metrics.tenant-request-counter.error-tag`   | `String`             | `error`                             | The tag key for the request error flag (true/false).                    |
+| Property                                                         | Type                 | Default                             | Description                                                                                                                                                  |
+|------------------------------------------------------------------|----------------------|-------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `stargate.metrics.global-tags`                                   | `Map<String,String>` | `{"module": "docsapi"}`             | Map of global tags that will be applied to every meter.                                                                                                      |
+| `stargate.metrics.tenant-request-counter.enabled`                | `boolean`            | `${stargate.multi-tenancy.enabled}` | If extra metric for counting the request per tenant should be recorded.                                                                                      |
+| `stargate.metrics.tenant-request-counter.metric-name`            | `String`             | `http.server.requests.counter`      | Name of the metric.                                                                                                                                          |
+| `stargate.metrics.tenant-request-counter.tenant-tag`             | `String`             | `tenant`                            | The tag key for tenant id.                                                                                                                                   |
+| `stargate.metrics.tenant-request-counter.error-tag`              | `String`             | `error`                             | The tag key for the request error flag (true/false).                                                                                                         |
+| `stargate.metrics.tenant-request-counter.user-agent-tag`         | `String`             | `user_agent`                        | The tag key for the user agent, if capturing is enabled.                                                                                                     |
+| `stargate.metrics.tenant-request-counter.user-agent-tag-enabled` | `boolean`            | `false`                             | If user agent information should be included as a tag. The user agent value will be trimmed to the first appearance of the whitespace or forward slash char. |
 
 ### Multi-tenancy configuration
 *Configuration mapping for multi tenant operation mode, defined by [MultiTenancyConfig.java](src/main/java/io/stargate/sgv2/api/common/config/MultiTenancyConfig.java).*
@@ -73,6 +76,7 @@
 | `stargate.queries.consistency.schema-changes` | `String` | `LOCAL_QUORUM` | Consistency level to use for C* queries that are performing the schema changes.  |
 | `stargate.queries.consistency.writes`         | `String` | `LOCAL_QUORUM` | Consistency level to use for C* queries that are inserting or updating the data. |
 | `stargate.queries.consistency.reads`          | `String` | `LOCAL_QUORUM` | Consistency level to use for C* queries that are reading the data.               |
+| `stargate.queries.serial-consistency`         | `String` | `SERIAL`      | Serial consistency level to be used for C* queries.                              |
 
 ## Stargate Development Configuration
 

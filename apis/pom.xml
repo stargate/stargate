@@ -1,29 +1,67 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
+  <!-- Artifact props -->
   <groupId>io.stargate</groupId>
   <artifactId>sgv2-api-parent</artifactId>
-  <name>Stargate V2 API parent pom</name>
-  <version>2.0.8-SNAPSHOT</version>
-  <description>Parent POM for Stargate v2 APIs</description>
+  <name>Stargate - V2 API Parent pom</name>
+  <version>2.0.12-SNAPSHOT</version>
   <packaging>pom</packaging>
-  <url>http://github.com/stargate/stargate</url>
+  <!-- Description -->
+  <description>Stargate - An open source data API gateway</description>
+  <url>https://github.com/stargate/stargate</url>
+  <!-- Dev props -->
+  <developers>
+    <developer>
+      <id>stargate</id>
+      <name>The Stargate Authors</name>
+      <email>maintainers@stargate.io</email>
+      <organization>Stargate</organization>
+      <organizationUrl>https://stargate.io</organizationUrl>
+    </developer>
+  </developers>
+  <!-- License -->
+  <licenses>
+    <license>
+      <name>The Apache Software License, Version 2.0</name>
+      <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
+  <!-- Source code control management -->
+  <scm child.scm.connection.inherit.append.path="false" child.scm.developerConnection.inherit.append.path="false" child.scm.url.inherit.append.path="false">
+    <url>https://github.com/stargate/stargate</url>
+    <connection>scm:git:git://github.com/stargate/stargate.git</connection>
+    <developerConnection>scm:git:git://github.com/stargate/stargate.git</developerConnection>
+    <tag>HEAD</tag>
+  </scm>
+  <!-- Issue management -->
+  <issueManagement>
+    <system>GitHub</system>
+    <url>https://github.com/stargate/stargate/issues/</url>
+  </issueManagement>
+  <!-- Aggregated modules -->
   <modules>
     <module>sgv2-quarkus-common</module>
     <module>sgv2-docsapi</module>
     <module>sgv2-graphqlapi</module>
     <module>sgv2-restapi</module>
   </modules>
+  <!-- Shared properties -->
   <properties>
+    <!-- Compiler -->
     <compiler-plugin.version>3.10.1</compiler-plugin.version>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
     <maven.compiler.release>17</maven.compiler.release>
+    <!-- Encoding -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+    <!-- Quarkus -->
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-    <quarkus.platform.version>2.15.3.Final</quarkus.platform.version>
+    <quarkus.platform.version>2.16.4.Final</quarkus.platform.version>
+    <!-- Testing -->
     <skipTests>false</skipTests>
     <skipUnitTests>${skipTests}</skipUnitTests>
     <surefire-plugin.version>3.0.0-M7</surefire-plugin.version>
@@ -222,7 +260,7 @@
       <id>dse-68</id>
       <properties>
         <stargate.int-test.cassandra.image>datastax/dse-server</stargate.int-test.cassandra.image>
-        <stargate.int-test.cassandra.image-tag>6.8.31</stargate.int-test.cassandra.image-tag>
+        <stargate.int-test.cassandra.image-tag>6.8.33</stargate.int-test.cassandra.image-tag>
         <stargate.int-test.coordinator.image>stargateio/coordinator-dse-68</stargate.int-test.coordinator.image>
         <stargate.int-test.coordinator.image-tag>v${project.version}</stargate.int-test.coordinator.image-tag>
         <stargate.int-test.cluster.name>dse-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>
@@ -316,22 +354,4 @@
       </build>
     </profile>
   </profiles>
-  <licenses>
-    <license>
-      <name>The Apache Software License, Version 2.0</name>
-      <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
-    </license>
-  </licenses>
-  <scm>
-    <connection>scm:git:git://github.com/stargate/stargate.git</connection>
-    <developerConnection>scm:git:git@github.com:stargate/stargate.git</developerConnection>
-    <url>http://github.com/stargate/stargate/tree/v2.0.0</url>
-  </scm>
-  <developers>
-    <developer>
-      <name>The Stargate Authors</name>
-      <email>maintainers@stargate.io</email>
-      <organization>Stargate</organization>
-    </developer>
-  </developers>
 </project>

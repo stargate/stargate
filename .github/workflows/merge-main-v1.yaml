@@ -1,0 +1,49 @@
+# @author Ivan Senic
+name: Merge main/v1
+
+# runs on
+# * manual trigger
+on:
+  workflow_dispatch:
+
+jobs:
+
+  merge:
+    name: Merge branches
+    runs-on: ubuntu-latest
+
+    steps:
+
+      # always checkout main, but fetch complete history
+      - uses: actions/checkout@v3
+        with:
+          ref: main
+          fetch-depth: 0
+
+      # run merge without a commit (will be added in final step)
+      - name: Run git merge
+        run: |
+          git config user.name github-actions
+          git config user.email github-actions@github.com
+          git merge origin/v1
+          git diff --name-only --diff-filter=U | xargs -I@ bash -c "git checkout --ours @ && git add @"
+
+      # commit and create pr
+      - name: Create pull-request
+        uses: peter-evans/create-pull-request@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: Merging branch v1 into main
+          branch: create-pull-request/merge-main-v1
+          branch-suffix: short-commit-hash
+          base: main
+          labels: stargate-v2
+          title: Merging branch v1 into main
+          body: |
+            Automated changes that try to merge v1 into main. Note that all non-resolved conflicts where resolved using the `ours` git strategy. Please review the changes carefully.
+
+            In order to start the CI workflows for this pull request, please:
+            * reopen and open the issue in order to trigger GitHub workflows
+            * comment `/gcbrun` in order to trigger GCB builds
+            
+            **IMPORTANT: When merging please use the fast-forward merge and avoid GitHub merge buttons.**

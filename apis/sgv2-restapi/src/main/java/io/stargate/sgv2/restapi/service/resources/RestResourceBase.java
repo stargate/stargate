@@ -41,10 +41,16 @@ public abstract class RestResourceBase {
   protected static final int DEFAULT_PAGE_SIZE = 100;
 
   private static final Function<String, Uni<? extends Schema.CqlKeyspaceDescribe>>
-      MISSING_KEYSPACE = ks -> Uni.createFrom().nullItem();
+      MISSING_KEYSPACE =
+          ks ->
+              Uni.createFrom()
+                  .failure(
+                      new WebApplicationException(
+                          String.format("Keyspace '%s' not found", ks),
+                          Response.Status.BAD_REQUEST));
 
   private static final Function<String, Uni<? extends QueryOuterClass.Response>>
-      MISSING_KEYSPACE_RESPONSE =
+      MISSING_KEYSPACE_AS_RESPONSE =
           ks ->
               Uni.createFrom()
                   .failure(
@@ -130,10 +136,10 @@ public abstract class RestResourceBase {
 
     if (checkAuthzForTableMetadata) {
       return schemaManager.queryWithSchemaAuthorized(
-          keyspaceName, tableName, MISSING_KEYSPACE_RESPONSE, queryProducerUni);
+          keyspaceName, tableName, MISSING_KEYSPACE_AS_RESPONSE, queryProducerUni);
     }
     return schemaManager.queryWithSchema(
-        keyspaceName, tableName, MISSING_KEYSPACE_RESPONSE, queryProducerUni);
+        keyspaceName, tableName, MISSING_KEYSPACE_AS_RESPONSE, queryProducerUni);
   }
 
   protected Uni<QueryOuterClass.Response> executeQueryAsync(QueryOuterClass.Query query) {

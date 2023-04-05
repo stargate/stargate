@@ -102,9 +102,7 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
     ApiError apiError = readJsonAs(response, ApiError.class);
 
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    // 02-Sep-2022, tatu: Error message is bit misleading but it is what it is; verify:
-    assertThat(apiError.description())
-        .matches("Table 'table' not found.*keyspace.*" + badKeyspace + ".*");
+    assertThat(apiError.description()).matches("Keyspace '" + badKeyspace + "' not found.*");
   }
 
   @Test
@@ -169,9 +167,7 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
     String response = tryFindAllColumns(badKeyspace, "table", HttpStatus.SC_BAD_REQUEST);
     ApiError apiError = readJsonAs(response, ApiError.class);
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
-    // 02-Sep-2022, tatu: Error message is bit misleading but it is what it is; verify:
-    assertThat(apiError.description())
-        .matches("Table 'table' not found.*keyspace.*" + badKeyspace + ".*");
+    assertThat(apiError.description()).matches("Keyspace '" + badKeyspace + "' not found.*");
   }
 
   @Test
@@ -238,6 +234,36 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
     Sgv2ColumnDefinition columnFound =
         findOneColumn(testKeyspaceName(), tableName, newColumnName, true);
     assertThat(columnFound).isEqualTo(columnDef);
+  }
+
+  // [stargate#2438]: Problem renaming back and forth
+  @Test
+  public void columnUpdateRenameBackAndForth() {
+    final String tableName = testTableName();
+    createSimpleTestTable(testKeyspaceName(), tableName);
+
+    // First rename one of non-key columns to new name
+    final String oldColumnName = "id";
+    final String newColumnName = "id2";
+
+    final Sgv2ColumnDefinition columnDef1 = new Sgv2ColumnDefinition(newColumnName, "uuid", false);
+    String response =
+        tryUpdateColumn(testKeyspaceName(), tableName, oldColumnName, columnDef1, HttpStatus.SC_OK);
+    assertThat(readJsonAs(response, NameResponse.class).name).isEqualTo(newColumnName);
+
+    Sgv2ColumnDefinition columnFound1 =
+        findOneColumn(testKeyspaceName(), tableName, newColumnName, true);
+    assertThat(columnFound1).isEqualTo(columnDef1);
+
+    // and then back to old name
+    final Sgv2ColumnDefinition columnDef2 = new Sgv2ColumnDefinition(oldColumnName, "uuid", false);
+    response =
+        tryUpdateColumn(testKeyspaceName(), tableName, newColumnName, columnDef2, HttpStatus.SC_OK);
+    assertThat(readJsonAs(response, NameResponse.class).name).isEqualTo(oldColumnName);
+
+    Sgv2ColumnDefinition columnFound2 =
+        findOneColumn(testKeyspaceName(), tableName, oldColumnName, true);
+    assertThat(columnFound2).isEqualTo(columnDef2);
   }
 
   @Test

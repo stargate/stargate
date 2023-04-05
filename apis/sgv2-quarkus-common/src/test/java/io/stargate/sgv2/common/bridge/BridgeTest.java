@@ -96,13 +96,17 @@ public abstract class BridgeTest {
   }
 
   @AfterEach
-  public void tearDownBridge() throws Exception {
+  public void tearDownBridge() {
     channel.shutdown();
     server.shutdown();
     try {
-      channel.awaitTermination(5, TimeUnit.SECONDS);
-      server.awaitTermination(5, TimeUnit.SECONDS);
-    } finally {
+      if (!channel.awaitTermination(5, TimeUnit.SECONDS)) {
+        channel.shutdownNow();
+      }
+      if (server.awaitTermination(5, TimeUnit.SECONDS)) {
+        server.shutdownNow();
+      }
+    } catch (Exception e) {
       channel.shutdownNow();
       server.shutdownNow();
     }

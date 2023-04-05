@@ -58,12 +58,20 @@ public class ValidatingPaginator {
   }
 
   public <T> List<T> filter(List<T> data) {
+    return filter(data, -1);
+  }
+
+  public <T> List<T> filter(List<T> data, int limit) {
     int from = Math.max(offset, 0);
     if (from >= data.size()) {
       return Collections.emptyList();
     }
 
     int to = from + pageSize;
+    if (limit > 0) {
+      to = Math.min(to, limit);
+    }
+
     if (to > data.size()) {
       to = data.size();
     } else {
@@ -83,6 +91,10 @@ public class ValidatingPaginator {
     }
 
     return pagingState(nextOffset);
+  }
+
+  public boolean limitExhausted(int limit) {
+    return limit > 0 && offset + pageSize >= limit;
   }
 
   public ByteBuffer pagingStateForRow(int index) {
