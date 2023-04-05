@@ -11,6 +11,11 @@ on:
     branches: [ "main" ]
   workflow_dispatch:
 
+# cancel same workflows in progress for pull request branches
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
 # Jobs structure:
 #
 # 1. Builds the coordinator without tests in order to get snapshot jar versions
@@ -27,6 +32,9 @@ jobs:
   build-coordinator:
     name: Coordinator build
     runs-on: ubuntu-latest
+
+    # max run time 10 minutes
+    timeout-minutes: 10
 
     steps:
       - uses: actions/checkout@v3
@@ -80,12 +88,14 @@ jobs:
         env:
           cache-name: cache-coordinator-libs
         with:
-          path: ./stargate-lib
+          path: ./coordinator/stargate-lib
           key: stargate-lib-${{ github.sha }}
 
       - name: Build
         if: steps.cache-coordinator-snapshots.outputs.cache-hit != 'true'
-        run: MAVEN_OPTS="-Xmx4g" ./mvnw -B -ntp install -P dse -DskipTests
+        run: |
+          cd coordinator/
+          MAVEN_OPTS="-Xmx4g" ./mvnw -B -ntp install -P dse -DskipTests
 
   # Builds C*3, C*4 and DSE coordinator images using matrix
   # Exports image to a file and then uploads it using action artifacts
@@ -93,6 +103,9 @@ jobs:
     name: Docker image
     needs: build-coordinator
     runs-on: ubuntu-latest
+
+    # max run time 10 minutes
+    timeout-minutes: 10
 
     # image name needed only
     strategy:
@@ -108,7 +121,7 @@ jobs:
         env:
           cache-name: cache-coordinator-libs
         with:
-          path: ./stargate-lib
+          path: ./coordinator/stargate-lib
           key: stargate-lib-${{ github.sha }}
 
       - name: Set up QEMU
@@ -121,6 +134,7 @@ jobs:
       # just builds a single image
       - name: Build Docker Image
         run: |
+          cd coordinator/
           LIBDIR=./tmp-${RANDOM}
           mkdir ${LIBDIR}
           cp ./stargate-lib/*.jar $LIBDIR
@@ -145,6 +159,9 @@ jobs:
     name: Unit tests
     needs: build-coordinator
     runs-on: ubuntu-latest
+
+    # max run time 15 minutes
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v3
@@ -199,6 +216,9 @@ jobs:
     name: Integration tests
     needs: [ build-coordinator-docker, build ]
     runs-on: ubuntu-latest
+
+    # max run time 30 minutes
+    timeout-minutes: 30
 
     strategy:
 
@@ -307,7 +327,7 @@ jobs:
     if: ${{ always() }}
 
     steps:
-      - uses: geekyeggo/delete-artifact@v1
+      - uses: geekyeggo/delete-artifact@v2
         with:
           name: |
             img-coordinator-4_0-${{ github.sha }}
