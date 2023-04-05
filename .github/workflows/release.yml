@@ -199,7 +199,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        repo: [ 'stargate/stargate', 'stargate/docker-images', 'riptano/c2']
+        repo: [ 'stargate/stargate', 'stargate/docker-images', 'riptano/c2', 'riptano/dse-astra-auth-lib']
         include:
           - repo: stargate/stargate
             secret: SG_EVENTS_PAT
@@ -208,6 +208,9 @@ jobs:
             secret: SG_EVENTS_PAT
 
           - repo: riptano/c2
+            secret: STARGATE_GH_RELEASE
+
+          - repo: riptano/dse-astra-auth-lib
             secret: STARGATE_GH_RELEASE
 
     steps:
