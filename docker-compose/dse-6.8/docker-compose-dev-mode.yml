@@ -10,6 +10,10 @@ services:
       - "8081:8081"
       - "8090:8090"
     mem_limit: 2G
+    cap_add:
+      - IPC_LOCK
+    ulimits:
+      memlock: -1
     environment:
       - JAVA_OPTS="-Xmx2G"
       - CLUSTER_NAME=dse-${DSETAG}-cluster
