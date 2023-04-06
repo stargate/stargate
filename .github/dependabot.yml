@@ -1,0 +1,18 @@
+version: 2
+updates:
+- package-ecosystem: maven
+  # should pick up both apis and coordinators poms
+  directory: "/"
+  schedule:
+    interval: weekly
+  ignore:
+    # ignore Maven APIs/SPIs
+    - dependency-name: org.apache.maven:*
+- package-ecosystem: github-actions
+  directory: "/"
+  schedule:
+    interval: weekly
+- package-ecosystem: docker
+  directory: "/"
+  schedule:
+    interval: weekly
