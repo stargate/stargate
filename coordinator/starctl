@@ -47,6 +47,64 @@ if [ ! -e $STARGATE_STARTER ]; then
   exit 3
 fi
 
+#
+# Note: The following section borrowed from https://github.com/apache/cassandra/blob/trunk/bin/cassandra
+#
+
+# Cassandra uses an installed jemalloc via LD_PRELOAD / DYLD_INSERT_LIBRARIES by default to improve off-heap
+# memory allocation performance. The following code searches for an installed libjemalloc.dylib/.so/.1.so using
+# Linux and OS-X specific approaches.
+# To specify your own libjemalloc in a different path, configure the fully qualified path in CASSANDRA_LIBJEMALLOC.
+# To disable jemalloc preload at all, set CASSANDRA_LIBJEMALLOC=-
+#
+#CASSANDRA_LIBJEMALLOC=
+#
+find_library()
+{
+    pattern=$1
+    path=$(echo ${2} | tr ":" " ")
+
+    find $path -regex "$pattern" -print 2>/dev/null | sort -ru | head -n 1
+}
+case "`uname -s`" in
+    Linux)
+        if [ -z $CASSANDRA_LIBJEMALLOC ] ; then
+            dirs="/lib64 /lib /usr/lib64 /usr/lib "
+            which ldconfig > /dev/null 2>&1
+            if [ $? = 0 ] ; then
+                dirs="$dirs `ldconfig -v 2>/dev/null | grep -v '^\s' | sed 's/^\([^:]*\):.*$/\1/'`"
+            fi
+            if [ -f /etc/ld.so.conf ]; then
+                dirs="$dirs `cat /etc/ld.so.conf | { grep '^/' || true; }`"
+            fi
+            additional_configs=$(ls /etc/ld.so.conf.d/*.conf 2>&1)
+            if [ $? = 0 ]; then
+                for conf in $additional_configs; do
+                    dirs="$dirs `cat $conf | { grep '^/' || true; }`"
+                done
+            fi
+            dirs=`echo $dirs | tr " " ":"`
+            CASSANDRA_LIBJEMALLOC=$(find_library '.*/libjemalloc\.so.*' $dirs)
+        fi
+        if [ ! -z $CASSANDRA_LIBJEMALLOC ] ; then
+            export JAVA_OPTS="$JAVA_OPTS -Dcassandra.libjemalloc=$CASSANDRA_LIBJEMALLOC"
+            if [ "-" != "$CASSANDRA_LIBJEMALLOC" ] ; then
+                export LD_PRELOAD=$CASSANDRA_LIBJEMALLOC
+            fi
+        fi
+    ;;
+    Darwin)
+        if [ -z $CASSANDRA_LIBJEMALLOC ] ; then
+            CASSANDRA_LIBJEMALLOC=$(find_library '.*/libjemalloc\.dylib' $DYLD_LIBRARY_PATH:${DYLD_FALLBACK_LIBRARY_PATH-$HOME/lib:/usr/local/lib:/lib:/usr/lib})
+        fi
+        if [ ! -z $CASSANDRA_LIBJEMALLOC ] ; then
+            export JAVA_OPTS="$JAVA_OPTS -Dcassandra.libjemalloc=$CASSANDRA_LIBJEMALLOC"
+            if [ "-" != "$CASSANDRA_LIBJEMALLOC" ] ; then
+                export DYLD_INSERT_LIBRARIES=$CASSANDRA_LIBJEMALLOC
+            fi
+        fi
+    ;;
+esac
 
 _ip_address() {
     # scrape the first non-localhost IP address of the container
@@ -163,7 +221,6 @@ if [[ ${#STARGATE_ARGS[@]} -eq 0 ]]; then
     if [[ ! -z "$HOST_ID" ]]; then
         STARGATE_ARGS+=("--host-id" "$HOST_ID")
     fi
-
 fi
 
 declare -a CMD=(java -server)
