@@ -75,12 +75,12 @@ case "`uname -s`" in
                 dirs="$dirs `ldconfig -v 2>/dev/null | grep -v '^\s' | sed 's/^\([^:]*\):.*$/\1/'`"
             fi
             if [ -f /etc/ld.so.conf ]; then
-                dirs="$dirs `cat /etc/ld.so.conf | grep '^/'`"
+                dirs="$dirs `cat /etc/ld.so.conf | { grep '^/' || true; }`"
             fi
             additional_configs=$(ls /etc/ld.so.conf.d/*.conf 2>&1)
             if [ $? = 0 ]; then
                 for conf in $additional_configs; do
-                    dirs="$dirs `cat $conf | grep '^/'`"
+                    dirs="$dirs `cat $conf | { grep '^/' || true; }`"
                 done
             fi
             dirs=`echo $dirs | tr " " ":"`
@@ -221,7 +221,6 @@ if [[ ${#STARGATE_ARGS[@]} -eq 0 ]]; then
     if [[ ! -z "$HOST_ID" ]]; then
         STARGATE_ARGS+=("--host-id" "$HOST_ID")
     fi
-
 fi
 
 declare -a CMD=(java -server)
