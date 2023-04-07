@@ -8,7 +8,9 @@ SGTAG=v2
 while getopts "lqr:t:" opt; do
   case $opt in
     l)
-      SGTAG="v$(../../mvnw -f ../.. help:evaluate -Dexpression=project.version -q -DforceStdout)"
+      pushd ../../coordinator > /dev/null
+      SGTAG="v$(./mvnw help:evaluate -Dexpression=project.version -q -DforceStdout)"
+      popd > /dev/null
       ;;
     q)
       REQUESTLOG=true
