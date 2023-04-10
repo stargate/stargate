@@ -30,7 +30,7 @@ jobs:
 
       # commit and create pr
       - name: Create pull-request
-        uses: peter-evans/create-pull-request@v4
+        uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: Merging branch v1 into main
