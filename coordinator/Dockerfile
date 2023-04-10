@@ -5,7 +5,7 @@
 FROM adoptopenjdk/openjdk8:jre8u352-b08 as base
 
 RUN apt update -qq \
-    && apt install iproute2 libaio1 -y \
+    && apt install iproute2 libaio1 libjemalloc2 -y \
     && apt autoremove --yes \
     && apt clean all \
     && rm -rf /var/lib/apt/lists/*

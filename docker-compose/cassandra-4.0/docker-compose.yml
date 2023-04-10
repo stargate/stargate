@@ -6,6 +6,10 @@ services:
     networks:
       - stargate
     mem_limit: 2G
+    cap_add:
+      - IPC_LOCK
+    ulimits:
+      memlock: -1
     environment:
       - HEAP_NEWSIZE=128M
       - MAX_HEAP_SIZE=1024M
@@ -21,6 +25,10 @@ services:
     networks:
       - stargate
     mem_limit: 2G
+    cap_add:
+      - IPC_LOCK
+    ulimits:
+      memlock: -1
     depends_on:
       cassandra-1:
         condition: service_healthy
@@ -40,6 +48,10 @@ services:
     networks:
       - stargate
     mem_limit: 2G
+    cap_add:
+      - IPC_LOCK
+    ulimits:
+      memlock: -1
     depends_on:
       cassandra-2:
         condition: service_healthy
@@ -67,6 +79,10 @@ services:
       - "8084:8084"
       - "8090:8090"
     mem_limit: 2G
+    cap_add:
+      - IPC_LOCK
+    ulimits:
+      memlock: -1
     environment:
       - JAVA_OPTS="-Xmx2G"
       - CLUSTER_NAME=c4-${CASSTAG}-cluster
