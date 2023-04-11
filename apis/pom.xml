@@ -96,7 +96,6 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
-
       <dependency>
         <groupId>com.github.misberner.duzzt</groupId>
         <artifactId>duzzt-processor</artifactId>
