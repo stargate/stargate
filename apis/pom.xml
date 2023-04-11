@@ -86,6 +86,17 @@
         <type>pom</type>
         <scope>import</scope>
       </dependency>
+      <!-- Although Quarkus has its version of Jackson, we may want
+           to upgrade earlier in some cases: use of bom allows that
+        -->
+      <dependency>
+        <groupId>com.fasterxml.jackson</groupId>
+        <artifactId>jackson-bom</artifactId>
+        <version>2.15.0-rc2</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+
       <dependency>
         <groupId>com.github.misberner.duzzt</groupId>
         <artifactId>duzzt-processor</artifactId>
