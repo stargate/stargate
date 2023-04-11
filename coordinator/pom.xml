@@ -81,8 +81,11 @@
     <prometheus.version>0.12.0</prometheus.version>
     <!-- SnakeYAML needs to be synced with jackson-dataformat-yaml
        most of the time, but occasionally higher for CVEs
+    -->
+    <!-- 11-Apr-2023, tatu: Jackson 2.14.2/2.15 SHOULD allow use of 2.0
+	   but something else seems to need older version
       -->
-    <snakeyaml.version>2.0</snakeyaml.version>
+    <snakeyaml.version>1.33</snakeyaml.version>
     <swagger-ui.version>3.52.5</swagger-ui.version>
     <swagger-jersey2-jaxrs.version>1.6.3</swagger-jersey2-jaxrs.version>
     <!-- Netty version used by Cassandra 3.11/4.0 (DSE uses different version)
