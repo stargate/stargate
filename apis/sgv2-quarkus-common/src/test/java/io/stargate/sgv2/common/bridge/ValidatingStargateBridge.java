@@ -156,6 +156,7 @@ public class ValidatingStargateBridge implements StargateBridge {
     private boolean enriched;
     private QueryOuterClass.ResumeMode resumeMode;
     private QueryOuterClass.Consistency consistency = QueryOuterClass.Consistency.LOCAL_QUORUM;
+    private QueryOuterClass.Consistency serialConsistency = null;
     private List<List<QueryOuterClass.Value>> rows;
     private Iterable<? extends QueryOuterClass.ColumnSpec> columnSpec;
     private Function<List<QueryOuterClass.Value>, ByteBuffer> comparableKey;
@@ -203,6 +204,11 @@ public class ValidatingStargateBridge implements StargateBridge {
       return this;
     }
 
+    public QueryExpectation withSerialConsistency(QueryOuterClass.Consistency serialConsistency) {
+      this.serialConsistency = serialConsistency;
+      return this;
+    }
+
     public QueryExpectation withColumnSpec(
         Iterable<? extends QueryOuterClass.ColumnSpec> columnSpec) {
       this.columnSpec = columnSpec;
@@ -244,8 +250,14 @@ public class ValidatingStargateBridge implements StargateBridge {
               .filter(QueryOuterClass.BatchParameters::hasConsistency)
               .map(p -> p.getConsistency().getValue())
               .orElse(null);
+      QueryOuterClass.Consistency actualSerialConsistency =
+          Optional.ofNullable(parameters)
+              .filter(QueryOuterClass.BatchParameters::hasSerialConsistency)
+              .map(p -> p.getSerialConsistency().getValue())
+              .orElse(null);
 
-      return execute(actualBatchType, false, null, actualConsistency, null, null);
+      return execute(
+          actualBatchType, false, null, actualConsistency, actualSerialConsistency, null, null);
     }
 
     private Uni<QueryOuterClass.Response> execute(QueryOuterClass.QueryParameters parameters) {
@@ -266,6 +278,12 @@ public class ValidatingStargateBridge implements StargateBridge {
               .map(p -> p.getConsistency().getValue())
               .orElse(null);
 
+      QueryOuterClass.Consistency actualSerialConsistency =
+          Optional.ofNullable(parameters)
+              .filter(QueryOuterClass.QueryParameters::hasSerialConsistency)
+              .map(p -> p.getSerialConsistency().getValue())
+              .orElse(null);
+
       Integer actualPageSize =
           Optional.ofNullable(parameters)
               .filter(QueryOuterClass.QueryParameters::hasPageSize)
@@ -283,6 +301,7 @@ public class ValidatingStargateBridge implements StargateBridge {
           actualEnriched,
           actualResumeMode,
           actualConsistency,
+          actualSerialConsistency,
           actualPageSize,
           actualPagingState);
     }
@@ -292,6 +311,7 @@ public class ValidatingStargateBridge implements StargateBridge {
         Boolean actualEnriched,
         QueryOuterClass.ResumeMode actualResumeMode,
         QueryOuterClass.Consistency actualConsistency,
+        QueryOuterClass.Consistency actualSerialConsistency,
         Integer actualPageSize,
         BytesValue actualPagingState) {
 
@@ -316,6 +336,13 @@ public class ValidatingStargateBridge implements StargateBridge {
               "Consistency for the query %s not matching, actual %s, expected %s",
               cqlPattern, actualConsistency, this.consistency)
           .isEqualTo(this.consistency);
+
+      // assert consistency
+      assertThat(actualSerialConsistency)
+          .as(
+              "Consistency for the query %s not matching, actual %s, expected %s",
+              cqlPattern, actualSerialConsistency, this.serialConsistency)
+          .isEqualTo(this.serialConsistency);
 
       // resolve and assert page size
       int pageSizeUsed;
