@@ -135,7 +135,7 @@
     <dependency>
       <groupId>io.netty</groupId>
       <artifactId>netty-codec</artifactId>
-      <version>4.1.78.1.dse</version>
+      <version>4.1.86.1.dse</version>
     </dependency>
     <!-- 3rd party dependencies -->
     <dependency>
