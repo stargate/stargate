@@ -36,10 +36,10 @@ public interface SchemaHashable {
     // something to look out for.
     if (object instanceof Enum
         || object instanceof SchemaHashable
-        || object instanceof Collection) {
-      // Ideally wouldn't be called on Map either but there is one such usage... alas.
+        || object instanceof Collection
+        || object instanceof Map) {
       throw new IllegalArgumentException(
-          "Using `SchemaHash#hashCode(Object object)` on this object type (`Collection`, `Enum`, `SchemaHash`) may produce an non-deterministic hash code");
+          "Using `SchemaHash#hashCode(Object object)` on this object type (`Collection`, `Enum`, `Map`, `SchemaHash`) may produce an non-deterministic hash code");
     }
     return Objects.hashCode(object);
   }
