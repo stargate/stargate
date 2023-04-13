@@ -1,6 +1,7 @@
 package io.stargate.db.schema;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Objects;
 
 /** An interface for calculating deterministic hash codes for schema objects. */
@@ -24,17 +25,21 @@ public interface SchemaHashable {
 
   static int hashCode(SchemaHashable object) {
     if (object == null) {
-      return 0;
+      return -1;
     }
     return object.schemaHashCode();
   }
 
+  // 12-Apr-2023, tatu: This is still dangerous; should get rid of it. But reduce usage for now
   static int hashCode(Object object) {
     // It's still possible that something like `Optional<Enum>` would make it through. So that's
     // something to look out for.
-    if (object instanceof Enum || object instanceof SchemaHashable) {
+    if (object instanceof Enum
+        || object instanceof SchemaHashable
+        || object instanceof Collection) {
+      // Ideally wouldn't be called on Map either but there is one such usage... alas.
       throw new IllegalArgumentException(
-          "Using `SchemaHash#hashCode(Object object)` on this object type (`Enum`, `SchemaHash`) may produce an non-deterministic hash code");
+          "Using `SchemaHash#hashCode(Object object)` on this object type (`Collection`, `Enum`, `SchemaHash`) may produce an non-deterministic hash code");
     }
     return Objects.hashCode(object);
   }
@@ -49,9 +54,17 @@ public interface SchemaHashable {
 
   static int enumHashCode(Enum<?> object) {
     if (object == null) {
-      return 0;
+      return -1;
     }
     return object.name().hashCode();
+  }
+
+  static int hashCode(Map<String, String> map) {
+    return Objects.hashCode(map);
+  }
+
+  static int hashCode(String str) {
+    return (str == null) ? -1 : str.hashCode();
   }
 
   static int combine(int... hashCodes) {
