@@ -157,7 +157,7 @@ public abstract class ParameterizedType implements Column.ColumnType {
     @Value.Auxiliary
     public int schemaHashCode() {
       return SchemaHashable.combine(
-          SchemaHashable.hashCode(isFrozen()), SchemaHashable.hashCode(parameters()));
+          SchemaHashable.hashCode(isFrozen()), SchemaHashable.hash(parameters()));
     }
   }
 
@@ -231,7 +231,7 @@ public abstract class ParameterizedType implements Column.ColumnType {
     @Value.Auxiliary
     public int schemaHashCode() {
       return SchemaHashable.combine(
-          SchemaHashable.hashCode(isFrozen()), SchemaHashable.hashCode(parameters()));
+          SchemaHashable.hashCode(isFrozen()), SchemaHashable.hash(parameters()));
     }
   }
 
@@ -324,7 +324,7 @@ public abstract class ParameterizedType implements Column.ColumnType {
     @Value.Auxiliary
     public int schemaHashCode() {
       return SchemaHashable.combine(
-          SchemaHashable.hashCode(isFrozen()), SchemaHashable.hashCode(parameters()));
+          SchemaHashable.hashCode(isFrozen()), SchemaHashable.hash(parameters()));
     }
   }
 
