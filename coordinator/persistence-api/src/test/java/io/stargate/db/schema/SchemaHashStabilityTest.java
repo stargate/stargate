@@ -11,9 +11,10 @@ import org.junit.jupiter.api.Test;
  * Test(s) to verify that calculation of Schema hash codes is only based on content and does not
  * depend on system being run on -- that is, value does not change from run to run or system to
  * system. Test will break if hash calculation changes in any way; new "known" hash code values need
- * to be inserted. This is by design: expectation being that such changes. Test added after it was
- * found that Schema hash calculation produced different values on different Coordinator nodes; this
- * test would have caught that particular problem.
+ * to be inserted. This is by design: expectation being that such changes are rare.
+ *
+ * <p>Test was added after it was found that Schema hash calculation produced different values on
+ * different Coordinator nodes; this test would have caught that particular problem.
  */
 public class SchemaHashStabilityTest {
   private static final int COLUMNS_HASH = -128906035;
