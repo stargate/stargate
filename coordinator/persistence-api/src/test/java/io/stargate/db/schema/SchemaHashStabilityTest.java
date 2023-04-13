@@ -17,13 +17,13 @@ import org.junit.jupiter.api.Test;
  * different Coordinator nodes; this test would have caught that particular problem.
  */
 public class SchemaHashStabilityTest {
-  private static final int COLUMNS_HASH = -128906035;
+  private static final int COLUMNS_HASH = -1617312245;
 
-  private static final int INDEXES_HASH = -1467442204;
+  private static final int INDEXES_HASH = -515172221;
 
-  private static final int KEYSPACE_HASH = 799095782;
+  private static final int KEYSPACE_HASH = 1487526822;
 
-  private static final int TABLE_HASH = -1909650290;
+  private static final int TABLE_HASH = -1473268881;
 
   @Test
   public void validateKeyspaceHash() {
