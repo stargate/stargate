@@ -1,13 +1,5 @@
 # Changelog
 
-## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.12...HEAD)
-
-**Closed issues:**
-
-- Update to DSE 6.8.34 [\#2534](https://github.com/stargate/stargate/issues/2534)
-
 ## [v2.0.12](https://github.com/stargate/stargate/tree/v2.0.12) (2023-04-14)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.11...v2.0.12)
