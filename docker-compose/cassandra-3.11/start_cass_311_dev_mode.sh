@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# require Docker Compose v2
+if [[ ! $(docker compose version --short) =~ ^2. ]]; then
+  echo "Docker compose v2 required. Please upgrade Docker Desktop to the latest version."
+  exit 1
+fi
+
 # Default to INFO as root log level
 LOGLEVEL=INFO
 # Default to using images tagged "v2"
@@ -38,11 +44,4 @@ export SGTAG
 
 echo "Running Stargate version $SGTAG with Cassandra 3.11 (developer mode)"
 
-COMPOSE_ARGS=("-d")
-
-# only use --wait flag if Docker Compose is v2
-if [[ $(docker-compose version) =~ "v2" ]]; then
-   COMPOSE_ARGS+=("--wait")
-fi
-
-docker-compose -f docker-compose-dev-mode.yml up "${COMPOSE_ARGS[@]}"
+docker-compose -f docker-compose-dev-mode.yml up -d --wait
