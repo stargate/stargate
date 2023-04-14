@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # require Docker Compose v2
-if [[ ! $(docker compose version --short) =~ "^2." ]]; then
+if [[ ! $(docker compose version --short) =~ ^2. ]]; then
   echo "Docker compose v2 required. Please upgrade Docker Desktop to the latest version."
   exit 1
 fi
