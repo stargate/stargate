@@ -1,5 +1,36 @@
 # Changelog
 
+## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.12...HEAD)
+
+**Closed issues:**
+
+- Update to DSE 6.8.34 [\#2534](https://github.com/stargate/stargate/issues/2534)
+
+## [v2.0.12](https://github.com/stargate/stargate/tree/v2.0.12) (2023-04-14)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.11...v2.0.12)
+
+**Closed issues:**
+
+- SchemaHashable calculation unstable for List/Map/Set CQL Column types [\#2536](https://github.com/stargate/stargate/issues/2536)
+- Reject new control connections to a node that sent REMOVED\_NODE [\#2526](https://github.com/stargate/stargate/issues/2526)
+- Provide a way to get notified about closed user connection when shutting down a node [\#2525](https://github.com/stargate/stargate/issues/2525)
+- Add serial consistency validation to ValidatingStargateBridge [\#2514](https://github.com/stargate/stargate/issues/2514)
+
+**Merged pull requests:**
+
+- update to DSE 6.8.34 [\#2539](https://github.com/stargate/stargate/pull/2539) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Fix \#2536: problem with Schema Hash calculation for List/Map/Set columns [\#2537](https://github.com/stargate/stargate/pull/2537) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump peter-evans/create-pull-request from 4 to 5 [\#2531](https://github.com/stargate/stargate/pull/2531) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Create dependabot.yml [\#2530](https://github.com/stargate/stargate/pull/2530) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Merge changes for jemalloc usage from v1 [\#2528](https://github.com/stargate/stargate/pull/2528) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- cherry-pick merge leftovers: notify additional libs on v1 release [\#2527](https://github.com/stargate/stargate/pull/2527) ([ivansenic](https://github.com/ivansenic))
+- Bumping version for next v2 release [\#2524](https://github.com/stargate/stargate/pull/2524) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Serial Consistency validation in ValidatingStargateBridge [\#2515](https://github.com/stargate/stargate/pull/2515) ([maheshrajamani](https://github.com/maheshrajamani))
+- adding libjemalloc2 to coordinator docker images [\#2402](https://github.com/stargate/stargate/pull/2402) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+
 ## [v2.0.11](https://github.com/stargate/stargate/tree/v2.0.11) (2023-04-03)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.10...v2.0.11)
