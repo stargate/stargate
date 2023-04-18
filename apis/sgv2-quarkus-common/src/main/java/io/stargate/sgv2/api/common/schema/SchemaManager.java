@@ -632,7 +632,14 @@ public class SchemaManager {
                 // if it's not null, we map to keyspace with cached flag true
                 return Uni.createFrom()
                     .future(keyspaceFuture)
-                    .map(
+
+                    // if failure is cached, invalidate
+                    .onFailure()
+                    .recoverWithUni(() -> invalidateKeyspace(keyspaceName, tenantId))
+
+                    // on item proceed
+                    .onItem()
+                    .transform(
                         k -> {
                           // we don't know what's the cached object
                           // errors are also cached, so we need to add explicit check
