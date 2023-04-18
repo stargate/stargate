@@ -188,7 +188,6 @@ public abstract class ApolloIntegrationTestBase extends BetterBotzIntegrationTes
         .addCustomTypeAdapter(
             CustomType.TIMESTAMP,
             new CustomTypeAdapter<Instant>() {
-              @NotNull
               @Override
               public CustomTypeValue<?> encode(Instant instant) {
                 return new CustomTypeValue.GraphQLString(
