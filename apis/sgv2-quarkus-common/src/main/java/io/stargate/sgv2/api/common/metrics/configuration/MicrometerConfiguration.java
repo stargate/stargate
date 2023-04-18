@@ -24,8 +24,8 @@ import io.stargate.sgv2.api.common.config.MetricsConfig;
 import java.util.Collection;
 import java.util.Map;
 import java.util.stream.Collectors;
-import javax.enterprise.inject.Produces;
-import javax.inject.Singleton;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Singleton;
 
 /** Configuration of all {@link MeterFilter}s used. */
 public class MicrometerConfiguration {

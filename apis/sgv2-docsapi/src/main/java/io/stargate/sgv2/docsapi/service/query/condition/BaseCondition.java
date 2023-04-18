@@ -24,7 +24,7 @@ import io.stargate.sgv2.docsapi.service.query.filter.operation.FilterOperationCo
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
 import java.util.Optional;
 import java.util.function.Predicate;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import org.apache.commons.lang3.tuple.Pair;
 
 /** Interface for the base filtering condition. */

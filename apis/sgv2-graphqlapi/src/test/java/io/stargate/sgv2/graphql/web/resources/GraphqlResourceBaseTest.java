@@ -24,7 +24,7 @@ import io.restassured.RestAssured;
 import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
 import java.io.File;
 import java.nio.charset.StandardCharsets;
-import javax.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.MediaType;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 

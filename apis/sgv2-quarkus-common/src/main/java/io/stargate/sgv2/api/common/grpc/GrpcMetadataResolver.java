@@ -3,8 +3,8 @@ package io.stargate.sgv2.api.common.grpc;
 import io.grpc.Metadata;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.config.GrpcMetadataConfig;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 /**
  * Component responsible for resolving needed Metadata to be passed to the Bridge, based on the

@@ -44,7 +44,7 @@ import io.stargate.sgv2.docsapi.service.query.search.resolver.impl.InMemoryDocum
 import io.stargate.sgv2.docsapi.service.query.search.resolver.impl.OrExpressionDocumentsResolver;
 import io.stargate.sgv2.docsapi.service.query.search.resolver.impl.PersistenceDocumentsResolver;
 import java.util.Collections;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

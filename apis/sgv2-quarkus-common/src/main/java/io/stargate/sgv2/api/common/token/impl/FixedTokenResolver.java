@@ -21,7 +21,7 @@ import io.stargate.sgv2.api.common.config.AuthConfig;
 import io.stargate.sgv2.api.common.token.CassandraTokenResolver;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Optional;
-import javax.ws.rs.core.SecurityContext;
+import jakarta.ws.rs.core.SecurityContext;
 
 /** The {@link CassandraTokenResolver} that uses a fixed token supplied by the configuration. */
 public class FixedTokenResolver implements CassandraTokenResolver {

@@ -34,7 +34,7 @@ import io.stargate.sgv2.docsapi.testprofiles.MaxDepth4TestProfile;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Optional;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;

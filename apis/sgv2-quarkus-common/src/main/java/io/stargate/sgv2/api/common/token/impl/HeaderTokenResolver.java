@@ -21,7 +21,7 @@ import io.stargate.sgv2.api.common.token.CassandraTokenResolver;
 import io.vertx.core.http.HttpServerRequest;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Optional;
-import javax.ws.rs.core.SecurityContext;
+import jakarta.ws.rs.core.SecurityContext;
 
 /** The {@link CassandraTokenResolver} that resolves a token from the HTTP header. */
 public class HeaderTokenResolver implements CassandraTokenResolver {

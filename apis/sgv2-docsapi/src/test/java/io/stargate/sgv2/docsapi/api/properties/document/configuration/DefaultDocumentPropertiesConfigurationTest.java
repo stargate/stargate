@@ -26,7 +26,7 @@ import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.properties.document.DocumentTableColumns;
 import io.stargate.sgv2.docsapi.api.properties.document.DocumentTableProperties;
 import java.util.stream.IntStream;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

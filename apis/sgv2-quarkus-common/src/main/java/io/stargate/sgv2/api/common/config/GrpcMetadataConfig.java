@@ -20,7 +20,7 @@ package io.stargate.sgv2.api.common.config;
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
-import javax.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotBlank;
 
 /** Configuration for the gRPC metadata passed to the Bridge. */
 @ConfigMapping(prefix = "stargate.grpc-metadata")

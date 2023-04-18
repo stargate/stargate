@@ -41,7 +41,7 @@ import io.stargate.sgv2.docsapi.service.query.filter.operation.ValueFilterOperat
 import io.stargate.sgv2.docsapi.service.query.filter.operation.impl.GtFilterOperation;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.impl.LteFilterOperation;
 import java.util.Collections;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

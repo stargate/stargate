@@ -25,7 +25,7 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME;
 import io.stargate.bridge.proto.StargateBridge;
 import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
-import javax.inject.Qualifier;
+import jakarta.inject.Qualifier;
 
 /** Qualifier for retriable {@link StargateBridge}. */
 @Qualifier

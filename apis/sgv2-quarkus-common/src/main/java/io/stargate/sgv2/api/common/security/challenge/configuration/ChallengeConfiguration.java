@@ -22,8 +22,8 @@ import io.quarkus.arc.lookup.LookupIfProperty;
 import io.stargate.sgv2.api.common.config.AuthConfig;
 import io.stargate.sgv2.api.common.security.challenge.ChallengeSender;
 import io.stargate.sgv2.api.common.security.challenge.impl.ApiErrorChallengeSender;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
 
 /** The configuration for the challenge wrt header based security. */
 public class ChallengeConfiguration {

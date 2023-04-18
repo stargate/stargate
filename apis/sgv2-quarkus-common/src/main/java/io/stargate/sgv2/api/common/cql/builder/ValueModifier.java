@@ -16,7 +16,7 @@
 package io.stargate.sgv2.api.common.cql.builder;
 
 import io.stargate.bridge.proto.QueryOuterClass;
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 import org.immutables.value.Value.Immutable;
 import org.immutables.value.Value.Style;
 

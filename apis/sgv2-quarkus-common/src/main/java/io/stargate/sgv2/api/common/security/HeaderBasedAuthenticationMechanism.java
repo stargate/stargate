@@ -30,7 +30,7 @@ import io.vertx.ext.web.RoutingContext;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
-import javax.enterprise.inject.Instance;
+import jakarta.enterprise.inject.Instance;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

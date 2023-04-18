@@ -31,7 +31,7 @@ import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.docsapi.api.v2.DocsApiIntegrationTest;
 import java.util.Optional;
-import javax.ws.rs.core.HttpHeaders;
+import jakarta.ws.rs.core.HttpHeaders;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Nested;

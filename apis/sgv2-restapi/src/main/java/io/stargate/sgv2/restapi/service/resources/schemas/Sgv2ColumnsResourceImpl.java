@@ -13,8 +13,8 @@ import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
 import java.util.ArrayList;
 import java.util.List;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;
 
 public class Sgv2ColumnsResourceImpl extends RestResourceBase implements Sgv2ColumnsResourceApi {

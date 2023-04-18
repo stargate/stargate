@@ -30,7 +30,7 @@ import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.schema.SchemaManager;
 import java.util.Optional;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 

@@ -2,8 +2,8 @@ package io.stargate.sgv2.restapi.service.models;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import java.util.List;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 @Schema(name = "UserDefinedTypeUpdate")

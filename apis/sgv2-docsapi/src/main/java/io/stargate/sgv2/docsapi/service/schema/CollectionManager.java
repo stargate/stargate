@@ -34,8 +34,8 @@ import io.stargate.sgv2.docsapi.service.schema.query.CollectionQueryProvider;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 /** Collection manager provides basic operations on tables that are used for storing collections. */
 @ApplicationScoped

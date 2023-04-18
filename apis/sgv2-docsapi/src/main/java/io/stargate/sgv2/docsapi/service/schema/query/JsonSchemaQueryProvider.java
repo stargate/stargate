@@ -19,8 +19,8 @@ package io.stargate.sgv2.docsapi.service.schema.query;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.api.common.config.QueriesConfig;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 @ApplicationScoped
 public class JsonSchemaQueryProvider {

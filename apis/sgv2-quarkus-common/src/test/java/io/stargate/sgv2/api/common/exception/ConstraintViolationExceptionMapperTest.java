@@ -23,8 +23,8 @@ import static org.mockito.Mockito.when;
 
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import java.util.Collections;
-import javax.validation.ConstraintViolation;
-import javax.validation.ConstraintViolationException;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.junit.jupiter.api.Test;
 

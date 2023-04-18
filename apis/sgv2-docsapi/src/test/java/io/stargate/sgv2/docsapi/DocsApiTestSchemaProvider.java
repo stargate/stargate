@@ -31,8 +31,8 @@ import io.stargate.sgv2.docsapi.api.properties.document.DocumentTableProperties;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import java.util.List;
 import java.util.stream.Stream;
-import javax.inject.Inject;
-import javax.inject.Singleton;
+import jakarta.inject.Inject;
+import jakarta.inject.Singleton;
 import org.apache.commons.lang3.RandomStringUtils;
 
 // utility class that can construct the schema for the docs api tests

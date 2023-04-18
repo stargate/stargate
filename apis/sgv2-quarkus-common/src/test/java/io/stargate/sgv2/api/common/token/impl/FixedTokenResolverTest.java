@@ -24,8 +24,8 @@ import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.api.common.testprofiles.FixedTokenTestProfile;
 import io.stargate.sgv2.api.common.token.CassandraTokenResolver;
 import java.util.Optional;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

@@ -16,7 +16,7 @@
  */
 package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.model.dto;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 /**

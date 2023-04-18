@@ -24,9 +24,9 @@ import io.stargate.sgv2.api.common.token.impl.FixedTokenResolver;
 import io.stargate.sgv2.api.common.token.impl.HeaderTokenResolver;
 import io.stargate.sgv2.api.common.token.impl.PrincipalTokenResolver;
 import java.util.Optional;
-import javax.validation.Valid;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.Pattern;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Pattern;
 
 /** Authentication configuration. */
 @ConfigMapping(prefix = "stargate.auth")

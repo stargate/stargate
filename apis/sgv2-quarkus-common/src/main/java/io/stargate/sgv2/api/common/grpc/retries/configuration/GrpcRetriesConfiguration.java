@@ -6,8 +6,8 @@ import io.stargate.sgv2.api.common.config.GrpcConfig;
 import io.stargate.sgv2.api.common.grpc.retries.GrpcRetryPredicate;
 import io.stargate.sgv2.api.common.grpc.retries.impl.StatusCodesRetryPredicate;
 import java.util.Set;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
 
 public class GrpcRetriesConfiguration {
 

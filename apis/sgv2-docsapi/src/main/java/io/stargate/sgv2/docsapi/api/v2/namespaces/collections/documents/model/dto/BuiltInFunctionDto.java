@@ -19,9 +19,9 @@ package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.documents.model.d
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.JsonNode;
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Pattern;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 /** DTO for a namespace. */

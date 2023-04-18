@@ -21,7 +21,7 @@ import io.stargate.sgv2.api.common.token.CassandraTokenResolver;
 import io.vertx.ext.web.RoutingContext;
 import java.security.Principal;
 import java.util.Optional;
-import javax.ws.rs.core.SecurityContext;
+import jakarta.ws.rs.core.SecurityContext;
 
 /** {@link CassandraTokenResolver} that reads the token from the {@link Principal#getName()}. */
 public class PrincipalTokenResolver implements CassandraTokenResolver {

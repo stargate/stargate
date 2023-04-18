@@ -43,7 +43,7 @@ import io.stargate.sgv2.docsapi.service.query.filter.operation.impl.NotInFilterO
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Nested;

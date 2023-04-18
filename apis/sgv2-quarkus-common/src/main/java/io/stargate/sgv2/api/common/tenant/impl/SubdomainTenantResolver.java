@@ -22,7 +22,7 @@ import io.stargate.sgv2.api.common.tenant.TenantResolver;
 import io.vertx.ext.web.RoutingContext;
 import java.util.Optional;
 import java.util.regex.Pattern;
-import javax.ws.rs.core.SecurityContext;
+import jakarta.ws.rs.core.SecurityContext;
 
 /**
  * {@link TenantResolver} that finds the tenant ID in the left most domain part of the host name.

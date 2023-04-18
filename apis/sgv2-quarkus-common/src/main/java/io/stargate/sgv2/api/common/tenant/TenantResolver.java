@@ -19,7 +19,7 @@ package io.stargate.sgv2.api.common.tenant;
 
 import io.vertx.ext.web.RoutingContext;
 import java.util.Optional;
-import javax.ws.rs.core.SecurityContext;
+import jakarta.ws.rs.core.SecurityContext;
 
 /** Resolver of the tenant ID, in case multi-tenancy is used. */
 @FunctionalInterface

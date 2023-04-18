@@ -18,8 +18,8 @@
 package io.stargate.sgv2.graphql;
 
 import io.stargate.sgv2.api.common.grpc.SourceApiQualifier;
-import javax.enterprise.context.ApplicationScoped;
-import javax.ws.rs.Produces;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.ws.rs.Produces;
 
 @ApplicationScoped
 public class SourceApiConfiguration {
