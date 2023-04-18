@@ -21,13 +21,13 @@ import io.grpc.Status;
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
 import io.stargate.sgv2.api.common.grpc.RetriableStargateBridge;
-import java.time.Duration;
-import java.util.Optional;
-import java.util.Set;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
+import java.time.Duration;
+import java.util.Optional;
+import java.util.Set;
 
 /** Configuration for the gRPC calls to the Bridge. */
 @ConfigMapping(prefix = "stargate.grpc")

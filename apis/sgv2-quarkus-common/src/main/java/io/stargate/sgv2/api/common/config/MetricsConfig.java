@@ -19,10 +19,10 @@ package io.stargate.sgv2.api.common.config;
 
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
-import java.util.Map;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.Map;
 
 /** Extra, Stargate related configuration for the metrics. */
 @ConfigMapping(prefix = "stargate.metrics")

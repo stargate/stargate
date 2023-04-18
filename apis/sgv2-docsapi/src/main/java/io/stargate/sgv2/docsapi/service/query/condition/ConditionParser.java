@@ -23,14 +23,14 @@ import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.query.condition.provider.ConditionProvider;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.FilterHintCode;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.FilterOperationCode;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 
 /**
  * Simple service that wraps all available raw filter values and connects them to a {@link

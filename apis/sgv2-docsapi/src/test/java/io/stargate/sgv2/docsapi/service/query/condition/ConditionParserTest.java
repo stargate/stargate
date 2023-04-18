@@ -40,10 +40,10 @@ import io.stargate.sgv2.docsapi.service.query.filter.operation.impl.LtFilterOper
 import io.stargate.sgv2.docsapi.service.query.filter.operation.impl.LteFilterOperation;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.impl.NeFilterOperation;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.impl.NotInFilterOperation;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import jakarta.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Nested;

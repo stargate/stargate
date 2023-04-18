@@ -39,6 +39,7 @@ import io.stargate.sgv2.common.IntegrationTestUtils;
 import io.stargate.sgv2.graphql.integration.cqlfirst.ApolloIntegrationTest;
 import io.stargate.sgv2.graphql.integration.cqlfirst.InsertIntegrationTest;
 import io.stargate.sgv2.graphql.integration.cqlfirst.SelectIntegrationTest;
+import jakarta.validation.constraints.NotNull;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.Duration;

@@ -29,9 +29,9 @@ import io.stargate.sgv2.api.common.schema.SchemaManager;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.service.schema.query.NamespaceQueryProvider;
-import java.util.function.Function;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import java.util.function.Function;
 
 /**
  * Namespace manager provides basic operations on namespace (CQL keyspaces). Note that this manager

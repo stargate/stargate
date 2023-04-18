@@ -1,9 +1,9 @@
 package io.stargate.sgv2.api.common.config;
 
 import io.stargate.bridge.proto.QueryOuterClass;
-import java.util.Arrays;
 import jakarta.validation.ConstraintValidator;
 import jakarta.validation.ConstraintValidatorContext;
+import java.util.Arrays;
 
 /** Validator to check if the consistency provided is valid serial consistency */
 public class SerialConsistencyValidator

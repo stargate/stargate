@@ -22,9 +22,9 @@ import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.FilterOperationCode;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
+import jakarta.validation.constraints.NotNull;
 import java.util.Optional;
 import java.util.function.Predicate;
-import jakarta.validation.constraints.NotNull;
 import org.apache.commons.lang3.tuple.Pair;
 
 /** Interface for the base filtering condition. */

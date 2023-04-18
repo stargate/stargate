@@ -25,8 +25,6 @@ import io.stargate.sgv2.graphql.persistence.graphqlfirst.SchemaSourceDao;
 import io.stargate.sgv2.graphql.schema.graphqlfirst.AdminSchemaBuilder;
 import io.stargate.sgv2.graphql.schema.graphqlfirst.processor.CqlDirectives;
 import io.stargate.sgv2.graphql.schema.scalars.CqlScalar;
-import java.util.Optional;
-import java.util.UUID;
 import jakarta.inject.Inject;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
@@ -38,6 +36,8 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.Optional;
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

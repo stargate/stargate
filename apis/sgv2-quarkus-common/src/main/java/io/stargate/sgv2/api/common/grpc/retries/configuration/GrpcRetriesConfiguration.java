@@ -5,9 +5,9 @@ import io.quarkus.arc.lookup.LookupIfProperty;
 import io.stargate.sgv2.api.common.config.GrpcConfig;
 import io.stargate.sgv2.api.common.grpc.retries.GrpcRetryPredicate;
 import io.stargate.sgv2.api.common.grpc.retries.impl.StatusCodesRetryPredicate;
-import java.util.Set;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Produces;
+import java.util.Set;
 
 public class GrpcRetriesConfiguration {
 

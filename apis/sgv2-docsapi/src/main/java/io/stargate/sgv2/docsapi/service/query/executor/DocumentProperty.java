@@ -25,8 +25,8 @@ import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
 import io.stargate.sgv2.docsapi.service.query.model.paging.CombinedPagingState;
 import io.stargate.sgv2.docsapi.service.query.model.paging.PagingStateSupplier;
-import java.nio.ByteBuffer;
 import jakarta.annotation.Nullable;
+import java.nio.ByteBuffer;
 import org.immutables.value.Value;
 
 /**

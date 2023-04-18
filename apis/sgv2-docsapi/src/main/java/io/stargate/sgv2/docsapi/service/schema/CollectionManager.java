@@ -31,11 +31,11 @@ import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.properties.document.DocumentTableColumns;
 import io.stargate.sgv2.docsapi.api.properties.document.DocumentTableProperties;
 import io.stargate.sgv2.docsapi.service.schema.query.CollectionQueryProvider;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Function;
-import jakarta.enterprise.context.ApplicationScoped;
-import jakarta.inject.Inject;
 
 /** Collection manager provides basic operations on tables that are used for storing collections. */
 @ApplicationScoped

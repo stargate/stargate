@@ -17,9 +17,9 @@ package io.stargate.sgv2.restapi.service.models;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
-import java.util.Map;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.Map;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 @Schema(name = "IndexAddRequest")

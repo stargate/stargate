@@ -19,8 +19,8 @@ package io.stargate.sgv2.docsapi.service;
 
 import io.stargate.sgv2.docsapi.api.exception.ErrorCode;
 import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
-import java.util.List;
 import jakarta.annotation.Nullable;
+import java.util.List;
 import org.immutables.value.Value;
 
 @Value.Immutable

@@ -24,12 +24,12 @@ import io.stargate.sgv2.api.common.cql.builder.Predicate;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.restapi.service.models.Sgv2IndexAddRequest;
 import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
 import org.jboss.resteasy.reactive.RestResponse;
 
 public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2IndexesResourceApi {

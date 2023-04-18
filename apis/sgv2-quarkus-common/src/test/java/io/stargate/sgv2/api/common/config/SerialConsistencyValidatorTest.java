@@ -3,12 +3,12 @@ package io.stargate.sgv2.api.common.config;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import io.stargate.bridge.proto.QueryOuterClass;
-import java.util.Set;
-import java.util.function.Predicate;
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.Validation;
 import jakarta.validation.Validator;
 import jakarta.validation.ValidatorFactory;
+import java.util.Set;
+import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
 
 public class SerialConsistencyValidatorTest {

@@ -18,11 +18,11 @@
 package io.stargate.sgv2.docsapi.api.v2.schemas.namespaces.model.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import java.util.Collection;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import java.util.Collection;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 /** DTO for a namespace. */

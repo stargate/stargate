@@ -18,11 +18,6 @@ package io.stargate.sgv2.graphql.web.resources;
 import com.google.common.io.Resources;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.graphql.config.GraphQLConfig;
-import java.io.IOException;
-import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.util.Optional;
-import java.util.function.Function;
 import jakarta.inject.Singleton;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
@@ -31,6 +26,11 @@ import jakarta.ws.rs.core.Context;
 import jakarta.ws.rs.core.HttpHeaders;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.Optional;
+import java.util.function.Function;
 
 @Produces(MediaType.TEXT_HTML)
 @Path("/playground")

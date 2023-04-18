@@ -46,9 +46,9 @@ import io.stargate.sgv2.docsapi.service.query.search.resolver.impl.AllFiltersRes
 import io.stargate.sgv2.docsapi.service.query.search.resolver.impl.InMemoryDocumentsResolver;
 import io.stargate.sgv2.docsapi.service.query.search.resolver.impl.OrExpressionDocumentsResolver;
 import io.stargate.sgv2.docsapi.service.query.search.resolver.impl.PersistenceDocumentsResolver;
+import jakarta.inject.Inject;
 import java.util.Collection;
 import java.util.Collections;
-import jakarta.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

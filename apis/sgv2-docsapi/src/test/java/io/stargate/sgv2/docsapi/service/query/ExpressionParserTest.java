@@ -46,11 +46,11 @@ import io.stargate.sgv2.docsapi.service.query.filter.operation.impl.InFilterOper
 import io.stargate.sgv2.docsapi.service.query.filter.operation.impl.LtFilterOperation;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.impl.LteFilterOperation;
 import io.stargate.sgv2.docsapi.service.query.filter.operation.impl.NeFilterOperation;
+import jakarta.inject.Inject;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import jakarta.inject.Inject;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;

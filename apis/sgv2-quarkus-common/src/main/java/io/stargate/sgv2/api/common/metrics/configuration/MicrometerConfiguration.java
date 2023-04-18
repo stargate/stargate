@@ -21,11 +21,11 @@ import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.config.MeterFilter;
 import io.stargate.sgv2.api.common.config.MetricsConfig;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Singleton;
 import java.util.Collection;
 import java.util.Map;
 import java.util.stream.Collectors;
-import jakarta.enterprise.inject.Produces;
-import jakarta.inject.Singleton;
 
 /** Configuration of all {@link MeterFilter}s used. */
 public class MicrometerConfiguration {

@@ -25,8 +25,8 @@ import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
 import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.properties.document.DocumentTableColumns;
 import io.stargate.sgv2.docsapi.api.properties.document.DocumentTableProperties;
-import java.util.stream.IntStream;
 import jakarta.inject.Inject;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
