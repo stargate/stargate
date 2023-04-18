@@ -381,7 +381,7 @@ public class QueryExecutor {
         Flowables.orderedMerge(allDocuments, comparator, false, 1);
 
     // transform back to the multi
-    return Multi.createFrom().publisher(orderedPublisher);
+    return MultiRx3Converters.<DocumentProperty>fromFlowable().from(orderedPublisher);
   }
 
   // executes a single query and returns Multi of the ResultSet
