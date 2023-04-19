@@ -72,6 +72,12 @@ quarkus:
     console:
       format: "%-5p [%t] %d{yyyy-MM-dd HH:mm:ss,SSS} %F:%L - %m%n"
 
+    # silent caffeine cache warnings
+    category:
+      'com.github.benmanes.caffeine.cache':
+        level: ERROR
+
+
   #  HTTP settings
   http:
 
