@@ -101,7 +101,7 @@ quarkus:
         path: /metrics
 
   # OpenTelemetry configuration
-  opentelemetry:
+  otel:
     enabled: false
 
   # information for the generated Open API definitions
