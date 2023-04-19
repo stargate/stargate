@@ -1,9 +1,8 @@
 package io.stargate.sgv2.common;
 
-import org.eclipse.microprofile.config.ConfigProvider;
-
 import java.net.InetSocketAddress;
 import java.util.Objects;
+import org.eclipse.microprofile.config.ConfigProvider;
 
 /** Utilities for integration test. */
 public final class IntegrationTestUtils {
@@ -82,9 +81,7 @@ public final class IntegrationTestUtils {
     return "4.0".equals(getClusterVersion());
   }
 
-  /**
-   * @return Returns the port where the application to test runs.
-   */
+  /** @return Returns the port where the application to test runs. */
   public static int getTestPort() {
     try {
       return ConfigProvider.getConfig().getValue("quarkus.http.test-port", Integer.class);

@@ -25,12 +25,9 @@ import com.datastax.oss.driver.internal.core.auth.PlainTextAuthProvider;
 import com.datastax.oss.driver.internal.core.loadbalancing.DcInferringLoadBalancingPolicy;
 import java.time.Duration;
 import org.apache.commons.lang3.RandomStringUtils;
-import org.junit.Assume;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.TestInstance;
-
-import static org.junit.Assume.assumeNotNull;
 
 /**
  * Base test class that exposes a Java driver {@link CqlSession} connected to the Stargate
