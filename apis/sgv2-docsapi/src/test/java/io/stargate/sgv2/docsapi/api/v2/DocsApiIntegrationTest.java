@@ -62,6 +62,7 @@ public abstract class DocsApiIntegrationTest {
 
               // create
               given()
+                  .port(IntegrationTestUtils.getTestPort())
                   .contentType(ContentType.JSON)
                   .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
                   .body(json)
@@ -82,6 +83,7 @@ public abstract class DocsApiIntegrationTest {
 
                         // create
                         given()
+                            .port(IntegrationTestUtils.getTestPort())
                             .contentType(ContentType.JSON)
                             .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
                             .body(collectionJson)
