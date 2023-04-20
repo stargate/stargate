@@ -2,6 +2,7 @@ package io.stargate.sgv2.common;
 
 import java.net.InetSocketAddress;
 import java.util.Objects;
+import org.eclipse.microprofile.config.ConfigProvider;
 
 /** Utilities for integration test. */
 public final class IntegrationTestUtils {
@@ -78,5 +79,14 @@ public final class IntegrationTestUtils {
   /** @return True if the backend cluster is Cassandra 4.0; false otherwise (DSE, C-3.11) */
   public static boolean isCassandra40() {
     return "4.0".equals(getClusterVersion());
+  }
+
+  /** @return Returns the port where the application to test runs. */
+  public static int getTestPort() {
+    try {
+      return ConfigProvider.getConfig().getValue("quarkus.http.test-port", Integer.class);
+    } catch (Exception e) {
+      return Integer.parseInt(System.getProperty("quarkus.http.test-port"));
+    }
   }
 }
