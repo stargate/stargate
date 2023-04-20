@@ -12,6 +12,8 @@ import io.stargate.sgv2.docsapi.api.v2.schemas.namespaces.NamespacesResource;
 import java.util.Optional;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.ClassOrderer;
+import org.junit.jupiter.api.TestClassOrder;
 import org.junit.jupiter.api.TestInstance;
 
 /**
@@ -22,6 +24,7 @@ import org.junit.jupiter.api.TestInstance;
  * avoid issue that Quarkus is not setting-up the rest assured target port in the @BeforeAll
  * and @AfterAll methods (see https://github.com/quarkusio/quarkus/issues/7690).
  */
+@TestClassOrder(ClassOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public abstract class DocsApiIntegrationTest {
 
