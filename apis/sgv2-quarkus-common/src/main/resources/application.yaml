@@ -75,6 +75,10 @@ quarkus:
   #  HTTP settings
   http:
 
+    # disable basic auth completely
+    auth:
+      basic: false
+
     # access log format, must be explicitly enabled
     access-log:
       pattern: "%h %l %t \"%r\" %s %b"
