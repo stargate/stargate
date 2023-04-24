@@ -131,7 +131,8 @@ public class StargateQueryHandler implements QueryHandler {
         .map(
             p -> {
               // we need to protect against the case where the statement was dropped from the cache
-              CQLStatement statement = Optional.ofNullable(QueryProcessor.instance.getPrepared(p.statementId))
+              CQLStatement statement =
+                  Optional.ofNullable(QueryProcessor.instance.getPrepared(p.statementId))
                       .map(prepared -> prepared.statement)
                       .orElseGet(() -> QueryProcessor.getStatement(query, queryState));
               boolean idempotent = IdempotencyAnalyzer.isIdempotent(statement);
