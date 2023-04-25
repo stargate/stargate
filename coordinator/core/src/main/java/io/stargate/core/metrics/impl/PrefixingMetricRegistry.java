@@ -108,7 +108,7 @@ public class PrefixingMetricRegistry extends MetricRegistry {
 
   @Override
   @SuppressWarnings("rawtypes")
-  public Gauge gauge(String name, MetricSupplier<Gauge> supplier) {
+  public <T extends Gauge> T gauge(String name, MetricSupplier<T> supplier) {
     return backingRegistry.gauge(addPrefix(name), supplier);
   }
 
