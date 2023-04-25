@@ -166,6 +166,7 @@ public abstract class Keyspace implements SchemaEntity {
         SchemaHashable.hash(tables()),
         SchemaHashable.hash(userDefinedTypes()),
         SchemaHashable.hashCode(replication()),
-        SchemaHashable.hashCode(durableWrites()));
+        // This is safe: Optional<Boolean>.hashCode same as Boolean.hashCode()
+        SchemaHashable.hashCodeUsingJDKHashCodeMethod(durableWrites()));
   }
 }

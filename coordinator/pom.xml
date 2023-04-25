@@ -5,7 +5,7 @@
   <groupId>io.stargate</groupId>
   <artifactId>stargate</artifactId>
   <name>Stargate - Coordinator Parent pom</name>
-  <version>2.0.12-SNAPSHOT</version>
+  <version>2.0.13-SNAPSHOT</version>
   <packaging>pom</packaging>
   <!-- Description -->
   <description>Stargate - An open source data API gateway</description>
@@ -55,24 +55,24 @@
     <doclint>none</doclint>
     <driver.version>4.15.0</driver.version>
     <!-- First DropWizard version and things it directly depends on that make sense to sync -->
-    <dropwizard.version>2.0.35</dropwizard.version>
+    <dropwizard.version>2.1.6</dropwizard.version>
     <!--
       Note that this is currently aligned with the metrics version that DropWizard transitively depends on.
       It's probably a good idea to keep the two versions in sync.
     -->
-    <dropwizard.metrics.version>4.1.36</dropwizard.metrics.version>
+    <dropwizard.metrics.version>4.2.18</dropwizard.metrics.version>
     <!--
       Note that this is currently aligned with the Jetty version that DropWizard transitively depends on.
-      It's probably a good idea to keep the two versions in sync.
+      It's probably a good idea to keep the two versions in sync (or close)
     -->
-    <jetty.version>9.4.50.v20221201</jetty.version>
+    <jetty.version>9.4.51.v20230217</jetty.version>
     <!-- Logging framework likewise in sync -->
     <slf4j.version>1.7.36</slf4j.version>
-    <logback.version>1.2.11</logback.version>
+    <logback.version>1.2.12</logback.version>
     <!-- And then other 3rd party version dependencies, compile/runtime -->
     <caffeine.version>2.9.3</caffeine.version>
     <commons-io.version>2.7</commons-io.version>
-    <grpc.version>1.51.0</grpc.version>
+    <grpc.version>1.51.1</grpc.version>
     <immutables.version>2.8.8</immutables.version>
     <jackson.version>2.15.0</jackson.version>
     <javatuples.version>1.2</javatuples.version>
@@ -620,14 +620,11 @@
         <artifactId>metrics-graphite</artifactId>
         <version>${dropwizard.metrics.version}</version>
       </dependency>
-      <!-- 30-Mar-2022, tatu: temporarily force newer jersey-common
-	   (over what DW asks) to get vuln fixes; make sure we have enforcer rules to alert if this
-	   becomes less than latest
-	  -->
+      <!-- 24-Apr-2023, tatu: Sync with DropWizard 2.1.6 again -->
       <dependency>
         <groupId>org.glassfish.jersey</groupId>
         <artifactId>jersey-bom</artifactId>
-        <version>2.34</version>
+        <version>2.39.1</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -754,11 +751,14 @@
       <!-- 14-Jun-2022, tatu: with java-driver-core 4.14.1 this dependency is optional
             and not brought as compile-time dependency, so needs to be explicitly added
            (see [stargate#1889] for details). But we better use consistent version
-        -->
+      -->
+      <!-- 13-Apr-2023, tatu: And now DSE-6.8.34 upgraded version to 2.2.4 (from 1.2.1)
+	     let's hope things still work
+	-->
       <dependency>
         <groupId>com.esri.geometry</groupId>
         <artifactId>esri-geometry-api</artifactId>
-        <version>1.2.1</version>
+        <version>2.2.4</version>
       </dependency>
       <dependency>
         <groupId>com.datastax.oss</groupId>

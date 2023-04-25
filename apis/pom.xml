@@ -5,7 +5,7 @@
   <groupId>io.stargate</groupId>
   <artifactId>sgv2-api-parent</artifactId>
   <name>Stargate - V2 API Parent pom</name>
-  <version>2.0.12-SNAPSHOT</version>
+  <version>2.0.13-SNAPSHOT</version>
   <packaging>pom</packaging>
   <!-- Description -->
   <description>Stargate - An open source data API gateway</description>
@@ -60,7 +60,7 @@
     <!-- Quarkus -->
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-    <quarkus.platform.version>2.16.4.Final</quarkus.platform.version>
+    <quarkus.platform.version>2.16.6.Final</quarkus.platform.version>
     <!-- Testing -->
     <skipTests>false</skipTests>
     <skipUnitTests>${skipTests}</skipUnitTests>
@@ -270,7 +270,7 @@
       <id>dse-68</id>
       <properties>
         <stargate.int-test.cassandra.image>datastax/dse-server</stargate.int-test.cassandra.image>
-        <stargate.int-test.cassandra.image-tag>6.8.33</stargate.int-test.cassandra.image-tag>
+        <stargate.int-test.cassandra.image-tag>6.8.34</stargate.int-test.cassandra.image-tag>
         <stargate.int-test.coordinator.image>stargateio/coordinator-dse-68</stargate.int-test.coordinator.image>
         <stargate.int-test.coordinator.image-tag>v${project.version}</stargate.int-test.coordinator.image-tag>
         <stargate.int-test.cluster.name>dse-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>

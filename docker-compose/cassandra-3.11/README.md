@@ -2,39 +2,48 @@
 
 This directory provides two configurations to start Stargate with Cassandra 3.11 using `docker compose`.
 
+## Prerequisites
+
+### Docker / Docker Compose Versions
+
+Make sure that you have Docker engine 20.x installed, which should include Docker compose 2.x. Our compose files rely on features only available in the Docker compose v2 file format.
+
+### Building the local Docker image
+If you want to use locally built versions of the Docker images rather than pulling released versions from Docker Hub, build the snapshot version locally using instructions in the [developer guide](../../DEV_GUIDE.md).
+
+Follow instructions under the [Script options](#script-options) section to use the locally built image.
+
 ## Stargate with 3-node Cassandra 3.11 cluster
 
 You can start a simple Stargate configuration with the following command:
 
 ```
-docker compose up -d
+./start_cass_311.sh
 ``` 
 
-This brings up the configuration described in the `docker-compose.yml` file. The configuration includes health criteria for each container that is used to ensure the containers come up in the correct order. 
+This convenience script verifies your Docker installation meets minimum requirements and brings up the configuration described in the `docker-compose.yml` file. The configuration includes health criteria for each container that is used to ensure the containers come up in the correct order.
 
-Using the `-d` option tracks the startup progress, so that the compose command exits when all containers have started or a failure is detected. Omitting the `-d` option causes the command to track the progress of all containers, including all log output, and a `Ctrl-C` will cause all the containers to exit.
+The convenience script uses the `-d` and `--wait` options to track the startup progress, so that the compose command exits when all containers have started and reported healthy status within a specified timeout.
 
-The default environment settings in the `.env` file include variables that describe which image tags to use, typically Stargate `v2` and Cassandra `3.11`. We recommend doing a `docker compose pull` periodically to ensure you always have the latest patch versions of these tags.
+The default environment settings in the `.env` file include variables that describe which image tags to use, typically Stargate `v2` and Cassandra `3.11`. The `start_cass_311.sh` script supports [options](#script-options) for overriding which image tags are used, including using a locally generated image as described [above](#building-the-local-docker-image). We recommend doing a `docker compose pull` periodically to ensure you always have the latest patch versions of these tags.
 
-You can override the default environment settings in your local shell, or use the convenient shell script `start_cass_311.sh`.
-
-Whether you use the shell script or start `docker compose` directly, you can remove the stack of containers created by executing `docker compose down`.
+Once done using the containers, you can stop them using the command `docker compose down`.
 
 ## Stargate with embedded Cassandra 3.11 (developer mode)
 
-This alternate configuration runs the Stargate coordinator node in developer mode, so that no separate Cassandra cluster is required.  This can be run with the command:
+This alternate configuration runs the Stargate coordinator node in developer mode, so that no separate Cassandra cluster is required. This configuration is useful for development and testing since it initializes more quickly, but is not recommended for production deployments. This can be run with the command:
 
 ```
-docker compose -f docker-compose-dev-mode.yml up -d
+./start_cass_311_dev_mode.sh
 ``` 
+
+This script supports the same [options](#script-options) as the `start_cass_311.sh` script.
 
 To stop the configuration, use the command:
 
 ```
 docker compose -f docker-compose-dev-mode.yml down
 ``` 
-
-This configuration is useful for development and testing since it initializes more quickly, but is not recommended for production deployments. This configuration also has a convenience script: `start_cass_311_dev_mode.sh`.
 
 ## Script options
 
@@ -44,9 +53,10 @@ Both convenience scripts support the following options:
 
 * Alternatively, build the snapshot version locally using instructions in the [developer guide](../../DEV_GUIDE.md) and run the script using the `-l` option.
 
-* You can change the default root log level using `-r [LEVEL]` (default `INFO`). Valid values: `ERROR`, `WARN`, `INFO`, `DEBUG`
+* You can change the default root log level for the API services using `-r [LEVEL]` (default `INFO`). Valid values: `ERROR`, `WARN`, `INFO`, `DEBUG`
 
-* You can enable reguest logging using `-q`: if so, each request is logged under category `io.quarkus.http.access-log`
+* You can enable reguest logging for the API services using `-q`: if so, each request is logged under category `io.quarkus.http.access-log`
+
 
 ## Notes
 

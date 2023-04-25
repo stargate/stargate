@@ -6,27 +6,23 @@ import static io.stargate.sgv2.common.IntegrationTestUtils.getAuthToken;
 import io.restassured.RestAssured;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
+import io.stargate.sgv2.common.IntegrationTestUtils;
 import io.stargate.sgv2.docsapi.api.v2.namespaces.collections.CollectionsResource;
 import io.stargate.sgv2.docsapi.api.v2.schemas.namespaces.NamespacesResource;
 import java.util.Optional;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.ClassOrderer;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestClassOrder;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestMethodOrder;
 
 /**
  * Serves as the base class for integration tests that need to create namespace and/or collection
  * prior to running the tests.
  *
- * <p>Note that due to the way how RestAssured is configured in Quarkus tests, we are doing the
- * initialization as first tests to be run. The {@link BeforeAll} annotation can not be used, as
- * rest assured is not configured yet. See https://github.com/quarkusio/quarkus/issues/7690 for more
- * info.
+ * <p>Note that this test uses a small workaround in {@link IntegrationTestUtils#getTestPort()} to
+ * avoid issue that Quarkus is not setting-up the rest assured target port in the @BeforeAll
+ * and @AfterAll methods (see https://github.com/quarkusio/quarkus/issues/7690).
  */
 @TestClassOrder(ClassOrderer.OrderAnnotation.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
@@ -54,87 +50,66 @@ public abstract class DocsApiIntegrationTest {
     RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
   }
 
-  @Nested
-  @Order(Integer.MIN_VALUE)
-  @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-  class Init {
+  @BeforeAll
+  public void createNamespaceAndCollection() {
+    createNamespace()
+        .ifPresent(
+            namespace -> {
+              String json =
+                  """
+                  {
+                    "name": "%s"
+                  }
+                  """
+                      .formatted(namespace);
 
-    @Test
-    @Order(1)
-    public void initNamespace() {
-      createNamespace()
-          .ifPresent(
-              namespace -> {
-                String json =
-                    """
-                    {
-                        "name": "%s"
-                    }
-                    """
-                        .formatted(namespace);
+              // create
+              given()
+                  .port(IntegrationTestUtils.getTestPort())
+                  .contentType(ContentType.JSON)
+                  .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+                  .body(json)
+                  .post(NamespacesResource.BASE_PATH)
+                  .then()
+                  .statusCode(201);
 
-                // create
-                given()
-                    .contentType(ContentType.JSON)
-                    .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
-                    .body(json)
-                    .post(NamespacesResource.BASE_PATH)
-                    .then()
-                    .statusCode(201);
-              });
-    }
+              createCollection()
+                  .ifPresent(
+                      collection -> {
+                        String collectionJson =
+                            """
+                            {
+                              "name": "%s"
+                            }
+                            """
+                                .formatted(collection);
 
-    @Test
-    @Order(2)
-    public void initCollection() {
-      createCollection()
-          .ifPresent(
-              collection -> {
-                String namespace =
-                    createNamespace()
-                        .orElseThrow(
-                            () ->
-                                new IllegalStateException(
-                                    "A test collection %s can not be created without specifying the namespace."
-                                        .formatted(collection)));
-
-                String json =
-                    """
-                    {
-                        "name": "%s"
-                    }
-                    """
-                        .formatted(collection);
-
-                // create
-                given()
-                    .contentType(ContentType.JSON)
-                    .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
-                    .body(json)
-                    .post(CollectionsResource.BASE_PATH, namespace)
-                    .then()
-                    .statusCode(201);
-              });
-    }
+                        // create
+                        given()
+                            .port(IntegrationTestUtils.getTestPort())
+                            .contentType(ContentType.JSON)
+                            .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+                            .body(collectionJson)
+                            .post(CollectionsResource.BASE_PATH, namespace)
+                            .then()
+                            .statusCode(201);
+                      });
+            });
   }
 
-  @Nested
-  @Order(Integer.MAX_VALUE)
-  class CleanUp {
-
-    @Test
-    public void deleteNamespace() {
-      createNamespace()
-          .ifPresent(
-              namespace -> {
-                // delete
-                given()
-                    .contentType(ContentType.JSON)
-                    .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
-                    .delete(NamespacesResource.BASE_PATH + "/{namespace}", namespace)
-                    .then()
-                    .statusCode(204);
-              });
-    }
+  @AfterAll
+  public void deleteNamespace() {
+    createNamespace()
+        .ifPresent(
+            namespace -> {
+              // delete
+              given()
+                  .port(IntegrationTestUtils.getTestPort())
+                  .contentType(ContentType.JSON)
+                  .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
+                  .delete(NamespacesResource.BASE_PATH + "/{namespace}", namespace)
+                  .then()
+                  .statusCode(204);
+            });
   }
 }
