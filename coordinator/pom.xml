@@ -613,7 +613,7 @@
         <artifactId>metrics-graphite</artifactId>
         <version>${dropwizard.metrics.version}</version>
       </dependency>
-      <!-- 24-Apr-2023, tatu: Sync with DropWizard 2.0.6 again -->
+      <!-- 24-Apr-2023, tatu: Sync with DropWizard 2.1.6 again -->
       <dependency>
         <groupId>org.glassfish.jersey</groupId>
         <artifactId>jersey-bom</artifactId>
