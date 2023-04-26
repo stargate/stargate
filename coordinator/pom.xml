@@ -82,8 +82,12 @@
     <!-- SnakeYAML needs to be synced with jackson-dataformat-yaml
        most of the time, but occasionally higher for CVEs
     -->
-    <!-- 11-Apr-2023, tatu: Jackson 2.14.2/2.15 SHOULD allow use of 2.0
-	   but unfortunatele C*3.11/4.0 depend on 1.26 and only work with 1.x
+    <!-- 26-Apr-2023, tatu: Jackson 2.14.2/2.15 SHOULD allow use of 2.0
+	 but unfortunately support varies by persistence backend, so:
+
+         * C-3.11.15 (once released) MAY allow 2.0
+         * C-4.0.9 MAY allow 2.0 (will test soon)
+	 * DSE-6.8.34 DOES NOT yet allow 2.0
       -->
     <snakeyaml.version>1.33</snakeyaml.version>
     <swagger-ui.version>3.52.5</swagger-ui.version>
