@@ -13,6 +13,9 @@
   <name>Stargate - Coordinator - Persistence DSE 6.8</name>
   <properties>
     <dse.version>6.8.34</dse.version>
+    <!-- 26-Apr-2023, tatu: DSE depends on 1.33 but should work with 2.0
+      -->
+    <snakeyaml.version>2.0</snakeyaml.version>
   </properties>
   <repositories>
     <repository>
