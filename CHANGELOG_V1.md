@@ -1,5 +1,15 @@
 # Changelog
 
+## [v1.0.74.1](https://github.com/stargate/stargate/tree/v1.0.73.1) (2023-04-26)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.74...v1.0.74.1)
+
+* Merge [\#2552] as hot-fix with [\#2558](https://github.com/stargate/stargate/pull/2558)
+
+## [v1.0.74](https://github.com/stargate/stargate/tree/v1.0.74) (2023-02-15)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.73...v1.0.74)
+
 ## [v1.0.73](https://github.com/stargate/stargate/tree/v1.0.73) (2023-02-10)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.72...v1.0.73)
