@@ -393,7 +393,7 @@
                 </goals>
                 <configuration>
                   <systemPropertyVariables>
-                    <ccm.version>4.0.7</ccm.version>
+                    <ccm.version>4.0.9</ccm.version>
                     <stargate.test.nodes>1</stargate.test.nodes>
                   </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>

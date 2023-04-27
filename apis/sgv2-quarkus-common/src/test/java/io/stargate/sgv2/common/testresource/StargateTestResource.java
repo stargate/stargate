@@ -74,7 +74,7 @@ public class StargateTestResource
   interface Defaults {
 
     String CASSANDRA_IMAGE = "cassandra";
-    String CASSANDRA_IMAGE_TAG = "4.0.7";
+    String CASSANDRA_IMAGE_TAG = "4.0.9";
 
     String STARGATE_IMAGE = "stargateio/coordinator-4_0";
     String STARGATE_IMAGE_TAG = "latest";
