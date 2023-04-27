@@ -86,10 +86,10 @@
 	 but unfortunately support varies by persistence backend, so:
 
          * C-3.11.15 (once released) MAY allow 2.0
-         * C-4.0.9 MAY allow 2.0 (will test soon)
+         * C-4.0.9 SHOULD allow 2.0 (testing)
 	 * DSE-6.8.34 DOES NOT yet allow 2.0
       -->
-    <snakeyaml.version>1.33</snakeyaml.version>
+    <snakeyaml.version>2.0</snakeyaml.version>
     <swagger-ui.version>3.52.5</swagger-ui.version>
     <swagger-jersey2-jaxrs.version>1.6.3</swagger-jersey2-jaxrs.version>
     <!-- Netty version used by Cassandra 3.11/4.0 (DSE uses different version)
