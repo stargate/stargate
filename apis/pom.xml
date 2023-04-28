@@ -60,13 +60,11 @@
     <!-- Quarkus -->
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-    <quarkus.platform.version>3.0.0.CR2</quarkus.platform.version>
+    <quarkus.platform.version>3.0.1.Final</quarkus.platform.version>
     <!-- Testing -->
     <skipTests>false</skipTests>
     <skipUnitTests>${skipTests}</skipUnitTests>
     <surefire-plugin.version>3.0.0-M7</surefire-plugin.version>
-    <!-- Dependency version overrides -->
-    <snakeyaml.version>2.0</snakeyaml.version>
     <!--
       Integration test properties, defaults to cassandra-40
       Please maintain default values for int-test in sync with io.stargate.sgv2.docsapi.testresource.StargateTestResource.Defaults
@@ -97,11 +95,6 @@
         <groupId>org.immutables</groupId>
         <artifactId>value</artifactId>
         <version>2.9.0</version>
-      </dependency>
-      <dependency>
-        <groupId>org.yaml</groupId>
-        <artifactId>snakeyaml</artifactId>
-        <version>${snakeyaml.version}</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
