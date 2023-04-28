@@ -46,15 +46,15 @@ public interface ClientInfoMetricsTagProvider {
    * @return Tags
    */
   default Tags getClientInfoTags(ClientInfo clientInfo) {
-    final DriverInfo driverInfo = clientInfo.driverInfo().get();
     List<Tag> tags = new ArrayList<>(2);
-    if (driverInfo != null) {
+    if (clientInfo.driverInfo().isPresent()) {
+      DriverInfo driverInfo = clientInfo.driverInfo().get();
       tags.add(Tag.of("driverName", driverInfo.name()));
-      String driverVersion = driverInfo.version().get();
-      if (driverVersion == null) {
-        driverVersion = "unknown";
+      if (driverInfo.version().isPresent()) {
+        tags.add(Tag.of("driverVersion", driverInfo.version().get()));
+      } else {
+        tags.add(Tag.of("driverVersion", "unknown"));
       }
-      tags.add(Tag.of("driverVersion", driverVersion));
     } else {
       tags.add(Tag.of("driverName", "unknown"));
       tags.add(Tag.of("driverVersion", "unknown"));
