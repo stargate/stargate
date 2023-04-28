@@ -30,12 +30,14 @@ import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.search.MeterNotFoundException;
 import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.stargate.db.ClientInfo;
+import io.stargate.db.DriverInfo;
 import io.stargate.db.metrics.api.ClientInfoMetricsTagProvider;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import org.apache.cassandra.stargate.transport.internal.CqlServer;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Nested;
@@ -55,6 +57,8 @@ class ClientMetricsTest {
   CqlServer server2;
   ClientInfo clientInfo1;
   ClientInfo clientInfo2;
+  DriverInfo driverInfo1;
+  DriverInfo driverInfo2;
 
   @BeforeAll
   public void initMocks() {
@@ -63,9 +67,13 @@ class ClientMetricsTest {
     server2 = mock(CqlServer.class);
     clientInfo1 = mock(ClientInfo.class);
     clientInfo2 = mock(ClientInfo.class);
-
-    when(clientTagProvider.getClientInfoTags(clientInfo1)).thenReturn(Tags.of("client", "one"));
-    when(clientTagProvider.getClientInfoTags(clientInfo2)).thenReturn(Tags.of("client", "two"));
+    driverInfo1 = mock(DriverInfo.class);
+    driverInfo2 = mock(DriverInfo.class);
+    when(driverInfo1.name()).thenReturn("driver1");
+    when(driverInfo1.version()).thenReturn(Optional.of("4.15.0"));
+    when(driverInfo2.name()).thenReturn("driver2");
+    when(clientInfo1.driverInfo()).thenReturn(Optional.of(driverInfo1));
+    when(clientInfo2.driverInfo()).thenReturn(Optional.of(driverInfo2));
 
     List<CqlServer> servers = Arrays.asList(server1, server2);
     clientMetrics.init(servers, meterRegistry, clientTagProvider, 0d);
@@ -83,7 +91,8 @@ class ClientMetricsTest {
       Counter c1 =
           meterRegistry
               .get("cql.org.apache.cassandra.metrics.Client.RequestsProcessed")
-              .tag("client", "one")
+              .tag("driverName", "driver1")
+              .tag("driverVersion", "4.15.0")
               .counter();
 
       assertThat(c1.count()).isEqualTo(2d);
@@ -91,7 +100,7 @@ class ClientMetricsTest {
       Counter c2 =
           meterRegistry
               .get("cql.org.apache.cassandra.metrics.Client.RequestsProcessed")
-              .tag("client", "two")
+              .tag("driverName", "driver2")
               .counter();
 
       assertThat(c2.count()).isEqualTo(1d);
@@ -110,7 +119,8 @@ class ClientMetricsTest {
       Counter c1 =
           meterRegistry
               .get("cql.org.apache.cassandra.metrics.Client.RequestDiscarded")
-              .tag("client", "one")
+              .tag("driverName", "driver1")
+              .tag("driverVersion", "4.15.0")
               .counter();
 
       assertThat(c1.count()).isEqualTo(2d);
@@ -118,7 +128,7 @@ class ClientMetricsTest {
       Counter c2 =
           meterRegistry
               .get("cql.org.apache.cassandra.metrics.Client.RequestDiscarded")
-              .tag("client", "two")
+              .tag("driverName", "driver2")
               .counter();
 
       assertThat(c2.count()).isEqualTo(1d);
@@ -137,7 +147,8 @@ class ClientMetricsTest {
       Counter c1 =
           meterRegistry
               .get("cql.org.apache.cassandra.metrics.Client.AuthSuccess")
-              .tag("client", "one")
+              .tag("driverName", "driver1")
+              .tag("driverVersion", "4.15.0")
               .counter();
 
       assertThat(c1.count()).isEqualTo(2d);
@@ -145,7 +156,7 @@ class ClientMetricsTest {
       Counter c2 =
           meterRegistry
               .get("cql.org.apache.cassandra.metrics.Client.AuthSuccess")
-              .tag("client", "two")
+              .tag("driverName", "driver2")
               .counter();
 
       assertThat(c2.count()).isEqualTo(1d);
@@ -164,7 +175,8 @@ class ClientMetricsTest {
       Counter c1 =
           meterRegistry
               .get("cql.org.apache.cassandra.metrics.Client.AuthFailure")
-              .tag("client", "one")
+              .tag("driverName", "driver1")
+              .tag("driverVersion", "4.15.0")
               .counter();
 
       assertThat(c1.count()).isEqualTo(2d);
@@ -172,7 +184,7 @@ class ClientMetricsTest {
       Counter c2 =
           meterRegistry
               .get("cql.org.apache.cassandra.metrics.Client.AuthFailure")
-              .tag("client", "two")
+              .tag("driverName", "driver2")
               .counter();
 
       assertThat(c2.count()).isEqualTo(1d);
@@ -191,7 +203,8 @@ class ClientMetricsTest {
       Counter c1 =
           meterRegistry
               .get("cql.org.apache.cassandra.metrics.Client.AuthError")
-              .tag("client", "one")
+              .tag("driverName", "driver1")
+              .tag("driverVersion", "4.15.0")
               .counter();
 
       assertThat(c1.count()).isEqualTo(2d);
@@ -199,7 +212,7 @@ class ClientMetricsTest {
       Counter c2 =
           meterRegistry
               .get("cql.org.apache.cassandra.metrics.Client.AuthError")
-              .tag("client", "two")
+              .tag("driverName", "driver2")
               .counter();
 
       assertThat(c2.count()).isEqualTo(1d);
