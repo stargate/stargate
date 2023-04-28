@@ -13,7 +13,6 @@
   <name>Stargate - Coordinator - Persistence C* 4.0</name>
   <properties>
     <snakeyaml.version>2.0</snakeyaml.version>
-
     <!-- If you update this, make sure to keep `cassandra.bundled-driver.version` in sync -->
     <!-- 4.0.9 depends on 3.11.0: https://mvnrepository.com/artifact/org.apache.cassandra/cassandra-all/4.0.9 -->
     <cassandra.version>4.0.9</cassandra.version>
