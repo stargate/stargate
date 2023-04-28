@@ -12,6 +12,8 @@
   <artifactId>persistence-cassandra-4.0</artifactId>
   <name>Stargate - Coordinator - Persistence C* 4.0</name>
   <properties>
+    <snakeyaml.version>2.0</snakeyaml.version>
+
     <!-- If you update this, make sure to keep `cassandra.bundled-driver.version` in sync -->
     <!-- 4.0.7 depends on 3.11.0: https://mvnrepository.com/artifact/org.apache.cassandra/cassandra-all/4.0.7 -->
     <cassandra.version>4.0.7</cassandra.version>

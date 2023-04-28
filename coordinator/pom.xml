@@ -89,7 +89,7 @@
          * C-4.0.9 SHOULD allow 2.0 (testing)
 	 * DSE-6.8.34 DOES NOT yet allow 2.0
       -->
-    <snakeyaml.version>2.0</snakeyaml.version>
+    <snakeyaml.version>1.33</snakeyaml.version>
     <swagger-ui.version>3.52.5</swagger-ui.version>
     <swagger-jersey2-jaxrs.version>1.6.3</swagger-jersey2-jaxrs.version>
     <!-- Netty version used by Cassandra 3.11/4.0 (DSE uses different version)

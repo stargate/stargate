@@ -13,6 +13,7 @@
   <name>Stargate - Coordinator - Persistence DSE 6.8</name>
   <properties>
     <dse.version>6.8.34</dse.version>
+    <snakeyaml.version>2.0</snakeyaml.version>
   </properties>
   <repositories>
     <repository>
