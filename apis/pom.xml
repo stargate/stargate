@@ -65,12 +65,14 @@
     <skipTests>false</skipTests>
     <skipUnitTests>${skipTests}</skipUnitTests>
     <surefire-plugin.version>3.0.0-M7</surefire-plugin.version>
+    <!-- Dependency version overrides -->
+    <snakeyaml.version>2.0</snakeyaml.version>
     <!--
       Integration test properties, defaults to cassandra-40
       Please maintain default values for int-test in sync with io.stargate.sgv2.docsapi.testresource.StargateTestResource.Defaults
      -->
     <stargate.int-test.cassandra.image>cassandra</stargate.int-test.cassandra.image>
-    <stargate.int-test.cassandra.image-tag>4.0.7</stargate.int-test.cassandra.image-tag>
+    <stargate.int-test.cassandra.image-tag>4.0.9</stargate.int-test.cassandra.image-tag>
     <stargate.int-test.coordinator.image>stargateio/coordinator-4_0</stargate.int-test.coordinator.image>
     <stargate.int-test.coordinator.image-tag>v${project.version}</stargate.int-test.coordinator.image-tag>
     <stargate.int-test.cluster.name>cass-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>
@@ -105,6 +107,11 @@
         <groupId>org.immutables</groupId>
         <artifactId>value</artifactId>
         <version>2.9.0</version>
+      </dependency>
+      <dependency>
+        <groupId>org.yaml</groupId>
+        <artifactId>snakeyaml</artifactId>
+        <version>${snakeyaml.version}</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
