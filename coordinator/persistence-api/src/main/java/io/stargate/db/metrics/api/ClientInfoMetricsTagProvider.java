@@ -53,11 +53,7 @@ public interface ClientInfoMetricsTagProvider {
     if (clientInfo.driverInfo().isPresent()) {
       DriverInfo driverInfo = clientInfo.driverInfo().get();
       tags.add(Tag.of("driverName", driverInfo.name()));
-      if (driverInfo.version().isPresent()) {
-        tags.add(Tag.of("driverVersion", driverInfo.version().get()));
-      } else {
-        tags.add(Tag.of("driverVersion", "unknown"));
-      }
+      tags.add(Tag.of("driverVersion", driverInfo.version().orElse("unknown")));
     } else {
       tags.add(Tag.of("driverName", "unknown"));
       tags.add(Tag.of("driverVersion", "unknown"));
