@@ -24,9 +24,12 @@ public class ClientInfoMetricsTagProviderTest {
       when(driverInfo.name()).thenReturn("driver1");
       when(driverInfo.version()).thenReturn(Optional.of("4.15.0"));
       when(clientInfo.driverInfo()).thenReturn(Optional.of(driverInfo));
-      Tags result = ClientInfoMetricsTagProvider.DEFAULT.getClientInfoTags(clientInfo);
-      assertThat(result)
+      Tags tagsByDriver =
+          ClientInfoMetricsTagProvider.DEFAULT.getClientInfoTagsByDriver(clientInfo);
+      assertThat(tagsByDriver)
           .contains(Tag.of("driverName", "driver1"), Tag.of("driverVersion", "4.15.0"));
+      Tags tags = ClientInfoMetricsTagProvider.DEFAULT.getClientInfoTags(clientInfo);
+      assertThat(tags).isEqualTo(Tags.empty());
     }
 
     @Test
@@ -36,18 +39,24 @@ public class ClientInfoMetricsTagProviderTest {
       when(driverInfo.name()).thenReturn("driver1");
       when(driverInfo.version()).thenReturn(Optional.ofNullable(null));
       when(clientInfo.driverInfo()).thenReturn(Optional.of(driverInfo));
-      Tags result = ClientInfoMetricsTagProvider.DEFAULT.getClientInfoTags(clientInfo);
-      assertThat(result)
+      Tags tagsByDriver =
+          ClientInfoMetricsTagProvider.DEFAULT.getClientInfoTagsByDriver(clientInfo);
+      assertThat(tagsByDriver)
           .contains(Tag.of("driverName", "driver1"), Tag.of("driverVersion", "unknown"));
+      Tags tags = ClientInfoMetricsTagProvider.DEFAULT.getClientInfoTags(clientInfo);
+      assertThat(tags).isEqualTo(Tags.empty());
     }
 
     @Test
     public void missingDriverInfo() {
       ClientInfo clientInfo = mock(ClientInfo.class);
       when(clientInfo.driverInfo()).thenReturn(Optional.ofNullable(null));
-      Tags result = ClientInfoMetricsTagProvider.DEFAULT.getClientInfoTags(clientInfo);
-      assertThat(result)
+      Tags tagsByDriver =
+          ClientInfoMetricsTagProvider.DEFAULT.getClientInfoTagsByDriver(clientInfo);
+      assertThat(tagsByDriver)
           .contains(Tag.of("driverName", "unknown"), Tag.of("driverVersion", "unknown"));
+      Tags tags = ClientInfoMetricsTagProvider.DEFAULT.getClientInfoTags(clientInfo);
+      assertThat(tags).isEqualTo(Tags.empty());
     }
   }
 }

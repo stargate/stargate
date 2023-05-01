@@ -32,7 +32,10 @@ import java.util.List;
  */
 public interface ClientInfoMetricsTagProvider {
 
-  /** Returns default interface implementation, which returns empty tags for all methods. */
+  /**
+   * Returns default interface implementation, which returns empty tags or with driver info for all
+   * methods.
+   */
   ClientInfoMetricsTagProvider DEFAULT = new ClientInfoMetricsTagProvider() {};
 
   /**
@@ -45,7 +48,7 @@ public interface ClientInfoMetricsTagProvider {
    * @param clientInfo {@link ClientInfo}
    * @return Tags
    */
-  default Tags getClientInfoTags(ClientInfo clientInfo) {
+  default Tags getClientInfoTagsByDriver(ClientInfo clientInfo) {
     List<Tag> tags = new ArrayList<>(2);
     if (clientInfo.driverInfo().isPresent()) {
       DriverInfo driverInfo = clientInfo.driverInfo().get();
@@ -60,5 +63,17 @@ public interface ClientInfoMetricsTagProvider {
       tags.add(Tag.of("driverVersion", "unknown"));
     }
     return Tags.of(tags);
+  }
+
+  /**
+   * Returns tags for a {@link ClientInfo}.
+   *
+   * <p>Note that the implementation must return constant amount of tags for any input.
+   *
+   * @param clientInfo {@link ClientInfo}
+   * @return Tags
+   */
+  default Tags getClientInfoTags(ClientInfo clientInfo) {
+    return Tags.empty();
   }
 }
