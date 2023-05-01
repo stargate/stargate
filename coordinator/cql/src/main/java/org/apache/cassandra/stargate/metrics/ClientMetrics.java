@@ -290,7 +290,12 @@ public final class ClientMetrics {
               .map(clientInfoTagProvider::getClientInfoTags)
               .orElse(Tags.empty());
 
-      requestsProcessed = meterRegistry.counter(REQUESTS_PROCESSED_METRIC, tags);
+      Tags tagsByDriver =
+          Optional.ofNullable(clientInfo)
+              .map(clientInfoTagProvider::getClientInfoTagsByDriver)
+              .orElse(Tags.empty());
+
+      requestsProcessed = meterRegistry.counter(REQUESTS_PROCESSED_METRIC, tagsByDriver);
       requestsDiscarded = meterRegistry.counter(REQUESTS_DISCARDED_METRIC, tags);
       authSuccess = meterRegistry.counter(AUTH_SUCCESS_METRIC, tags);
       authFailure = meterRegistry.counter(AUTH_FAILURE_METRIC, tags);

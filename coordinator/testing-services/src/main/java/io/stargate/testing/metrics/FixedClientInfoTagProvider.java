@@ -16,9 +16,12 @@
 
 package io.stargate.testing.metrics;
 
+import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.metrics.api.ClientInfoMetricsTagProvider;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Simple {@link ClientInfoMetricsTagProvider} for testing that returns fixed tags for each client
@@ -28,9 +31,21 @@ public class FixedClientInfoTagProvider implements ClientInfoMetricsTagProvider 
 
   public static final String TAG_KEY = "clientInfo";
   public static final String TAG_VALUE = "fixed";
+  public static final String TAG_KEY_DRIVER_NAME = "driverName";
+  public static final String TAG_VALUE_DRIVER_NAME = "java-test-driver";
+  public static final String TAG_KEY_DRIVER_VERSION = "driverVersion";
+  public static final String TAG_VALUE_DRIVER_VERSION = "1.0.0";
 
   @Override
   public Tags getClientInfoTags(ClientInfo clientInfo) {
     return Tags.of(TAG_KEY, TAG_VALUE);
+  }
+
+  @Override
+  public Tags getClientInfoTagsByDriver(ClientInfo clientInfo) {
+    List<Tag> tags = new ArrayList<>(2);
+    tags.add(Tag.of(TAG_KEY_DRIVER_NAME, TAG_VALUE_DRIVER_NAME));
+    tags.add(Tag.of(TAG_KEY_DRIVER_VERSION, TAG_VALUE_DRIVER_VERSION));
+    return Tags.of(tags);
   }
 }

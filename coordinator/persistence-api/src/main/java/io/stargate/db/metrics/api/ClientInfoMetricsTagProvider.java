@@ -17,8 +17,12 @@
 
 package io.stargate.db.metrics.api;
 
+import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
 import io.stargate.db.ClientInfo;
+import io.stargate.db.DriverInfo;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Provides extra micrometer {@link Tags} based on the {@link ClientInfo}.
@@ -28,8 +32,34 @@ import io.stargate.db.ClientInfo;
  */
 public interface ClientInfoMetricsTagProvider {
 
-  /** Returns default interface implementation, which returns empty tags for all methods. */
+  /**
+   * Returns default interface implementation, which returns empty tags or with driver info for all
+   * methods.
+   */
   ClientInfoMetricsTagProvider DEFAULT = new ClientInfoMetricsTagProvider() {};
+
+  /**
+   * Returns tags for a {@link ClientInfo}.
+   *
+   * <p>Note that the implementation must return constant amount of tags for any input. IF the
+   * client info is populated with driver info, the tags should be populated with the driver name
+   * and version. Otherwise, the tags should be populated with "unknown" values.
+   *
+   * @param clientInfo {@link ClientInfo}
+   * @return Tags
+   */
+  default Tags getClientInfoTagsByDriver(ClientInfo clientInfo) {
+    List<Tag> tags = new ArrayList<>(2);
+    if (clientInfo.driverInfo().isPresent()) {
+      DriverInfo driverInfo = clientInfo.driverInfo().get();
+      tags.add(Tag.of("driverName", driverInfo.name()));
+      tags.add(Tag.of("driverVersion", driverInfo.version().orElse("unknown")));
+    } else {
+      tags.add(Tag.of("driverName", "unknown"));
+      tags.add(Tag.of("driverVersion", "unknown"));
+    }
+    return Tags.of(tags);
+  }
 
   /**
    * Returns tags for a {@link ClientInfo}.
