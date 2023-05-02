@@ -105,6 +105,7 @@ public class StartupMessage extends Message.Request {
     String driverName = options.get(DRIVER_NAME);
     if (null != driverName) {
       clientInfo().registerDriverInfo(DriverInfo.of(driverName, options.get(DRIVER_VERSION)));
+      connection.getConnectionMetrics().updateDriverInfo(clientInfo());
     }
 
     Authenticator authenticator = persistence().getAuthenticator();

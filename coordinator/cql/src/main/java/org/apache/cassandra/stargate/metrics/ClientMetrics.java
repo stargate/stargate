@@ -278,7 +278,7 @@ public final class ClientMetrics {
   private class ConnectionMetricsImpl implements ConnectionMetrics {
 
     private final Tags tags;
-    private final Counter requestsProcessed;
+    private Counter requestsProcessed;
     private final Counter requestsDiscarded;
     private final Counter authSuccess;
     private final Counter authFailure;
@@ -325,6 +325,12 @@ public final class ClientMetrics {
     @Override
     public void markAuthError() {
       authError.increment();
+    }
+
+    @Override
+    public void updateDriverInfo(ClientInfo clientInfo) {
+      Tags tagsByDriver = clientInfoTagProvider.getClientInfoTagsByDriver(clientInfo);
+      requestsProcessed = meterRegistry.counter(REQUESTS_PROCESSED_METRIC, tagsByDriver);
     }
 
     @Override
