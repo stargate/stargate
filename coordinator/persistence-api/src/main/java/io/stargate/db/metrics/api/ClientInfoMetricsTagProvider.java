@@ -19,10 +19,9 @@ package io.stargate.db.metrics.api;
 
 import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
+import io.stargate.core.metrics.StargateMetricConstants;
 import io.stargate.db.ClientInfo;
 import io.stargate.db.DriverInfo;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Provides extra micrometer {@link Tags} based on the {@link ClientInfo}.
@@ -40,7 +39,7 @@ public interface ClientInfoMetricsTagProvider {
 
   public static final String TAG_KEY_DRIVER_NAME = "driverName";
   public static final String TAG_KEY_DRIVER_VERSION = "driverVersion";
-  public static final String TAG_VALUE_UNKNOWN = "unknown";
+
   /**
    * Returns tags for a {@link ClientInfo}.
    *
@@ -52,18 +51,18 @@ public interface ClientInfoMetricsTagProvider {
    * @return Tags
    */
   default Tags getClientInfoTagsByDriver(ClientInfo clientInfo) {
-    Tags defaultTags = getClientInfoTags(clientInfo);
-    List<Tag> tags = new ArrayList<>(2);
+    Tags tags = getClientInfoTags(clientInfo);
     if (clientInfo.driverInfo().isPresent()) {
       DriverInfo driverInfo = clientInfo.driverInfo().get();
-      tags.add(Tag.of(TAG_KEY_DRIVER_NAME, driverInfo.name()));
-      tags.add(Tag.of(TAG_KEY_DRIVER_VERSION, driverInfo.version().orElse(TAG_VALUE_UNKNOWN)));
+      return tags.and(Tag.of(TAG_KEY_DRIVER_NAME, driverInfo.name()))
+          .and(
+              Tag.of(
+                  TAG_KEY_DRIVER_VERSION,
+                  driverInfo.version().orElse(StargateMetricConstants.UNKNOWN)));
     } else {
-      tags.add(Tag.of(TAG_KEY_DRIVER_NAME, TAG_VALUE_UNKNOWN));
-      tags.add(Tag.of(TAG_KEY_DRIVER_VERSION, TAG_VALUE_UNKNOWN));
+      return tags.and(Tag.of(TAG_KEY_DRIVER_NAME, StargateMetricConstants.UNKNOWN))
+          .and(Tag.of(TAG_KEY_DRIVER_VERSION, StargateMetricConstants.UNKNOWN));
     }
-    defaultTags.stream().forEach(tags::add);
-    return Tags.of(tags);
   }
 
   /**

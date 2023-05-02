@@ -124,7 +124,6 @@ eval declare -a JAVA_OPTS=("$JAVA_OPTS")
 
 JAVA_OPTS+=(-Dstargate.libdir="$STARGATE_HOME")
 JAVA_OPTS+=(-Djava.awt.headless=true)
-
 declare -a STARGATE_ARGS=("$@")
 
 # Use either command line args or environment variables, don't mix and match or
