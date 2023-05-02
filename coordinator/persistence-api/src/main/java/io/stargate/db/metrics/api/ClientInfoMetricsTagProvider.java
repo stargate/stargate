@@ -38,6 +38,9 @@ public interface ClientInfoMetricsTagProvider {
    */
   ClientInfoMetricsTagProvider DEFAULT = new ClientInfoMetricsTagProvider() {};
 
+  public static final String TAG_KEY_DRIVER_NAME = "driverName";
+  public static final String TAG_KEY_DRIVER_VERSION = "driverVersion";
+  public static final String TAG_VALUE_UNKNOWN = "unknown";
   /**
    * Returns tags for a {@link ClientInfo}.
    *
@@ -49,15 +52,17 @@ public interface ClientInfoMetricsTagProvider {
    * @return Tags
    */
   default Tags getClientInfoTagsByDriver(ClientInfo clientInfo) {
+    Tags defaultTags = getClientInfoTags(clientInfo);
     List<Tag> tags = new ArrayList<>(2);
     if (clientInfo.driverInfo().isPresent()) {
       DriverInfo driverInfo = clientInfo.driverInfo().get();
-      tags.add(Tag.of("driverName", driverInfo.name()));
-      tags.add(Tag.of("driverVersion", driverInfo.version().orElse("unknown")));
+      tags.add(Tag.of(TAG_KEY_DRIVER_NAME, driverInfo.name()));
+      tags.add(Tag.of(TAG_KEY_DRIVER_VERSION, driverInfo.version().orElse(TAG_VALUE_UNKNOWN)));
     } else {
-      tags.add(Tag.of("driverName", "unknown"));
-      tags.add(Tag.of("driverVersion", "unknown"));
+      tags.add(Tag.of(TAG_KEY_DRIVER_NAME, TAG_VALUE_UNKNOWN));
+      tags.add(Tag.of(TAG_KEY_DRIVER_VERSION, TAG_VALUE_UNKNOWN));
     }
+    defaultTags.stream().forEach(tags::add);
     return Tags.of(tags);
   }
 
