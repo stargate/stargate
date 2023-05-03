@@ -31,9 +31,7 @@ public class FixedClientInfoTagProvider implements ClientInfoMetricsTagProvider 
 
   public static final String TAG_KEY = "clientInfo";
   public static final String TAG_VALUE = "fixed";
-  public static final String TAG_KEY_DRIVER_NAME = "driverName";
   public static final String TAG_VALUE_DRIVER_NAME = "java-test-driver";
-  public static final String TAG_KEY_DRIVER_VERSION = "driverVersion";
   public static final String TAG_VALUE_DRIVER_VERSION = "1.0.0";
 
   @Override

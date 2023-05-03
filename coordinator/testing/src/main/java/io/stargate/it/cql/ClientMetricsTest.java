@@ -100,7 +100,6 @@ public class ClientMetricsTest extends BaseIntegrationTest {
     SimpleStatement statement = SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY);
     ResultSet resultSet = session.execute(statement);
     assertThat(resultSet).hasSize(1);
-
     // when
     String body = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
