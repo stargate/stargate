@@ -18,6 +18,7 @@
 package org.apache.cassandra.stargate.metrics;
 
 import io.micrometer.core.instrument.Tags;
+import io.stargate.db.ClientInfo;
 
 /** Interface that each connection can use to report metric or determine it Tags. */
 public interface ConnectionMetrics {
@@ -39,4 +40,7 @@ public interface ConnectionMetrics {
 
   /** Marks auth error (increases the count). */
   void markAuthError();
+
+  /** Update driver information. */
+  void updateDriverInfo(ClientInfo clientInfo);
 }

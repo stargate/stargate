@@ -100,15 +100,17 @@ public class ClientMetricsTest extends BaseIntegrationTest {
     SimpleStatement statement = SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY);
     ResultSet resultSet = session.execute(statement);
     assertThat(resultSet).hasSize(1);
-
     // when
     String body = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
     // then
     String requestProcessedTotal =
         String.format(
-            "cql_org_apache_cassandra_metrics_Client_RequestsProcessed_total{%s=\"%s\",}",
-            FixedClientInfoTagProvider.TAG_KEY, FixedClientInfoTagProvider.TAG_VALUE);
+            "cql_org_apache_cassandra_metrics_Client_RequestsProcessed_total{%s=\"%s\",%s=\"%s\",}",
+            FixedClientInfoTagProvider.TAG_KEY_DRIVER_NAME,
+            FixedClientInfoTagProvider.TAG_VALUE_DRIVER_NAME,
+            FixedClientInfoTagProvider.TAG_KEY_DRIVER_VERSION,
+            FixedClientInfoTagProvider.TAG_VALUE_DRIVER_VERSION);
     Optional<Double> requestsProcessed = getCqlMetric(body, requestProcessedTotal);
     assertThat(requestsProcessed).hasValueSatisfying(v -> assertThat(v).isGreaterThan(0d));
   }

@@ -17,8 +17,11 @@
 
 package io.stargate.db.metrics.api;
 
+import io.micrometer.core.instrument.Tag;
 import io.micrometer.core.instrument.Tags;
+import io.stargate.core.metrics.StargateMetricConstants;
 import io.stargate.db.ClientInfo;
+import io.stargate.db.DriverInfo;
 
 /**
  * Provides extra micrometer {@link Tags} based on the {@link ClientInfo}.
@@ -28,8 +31,39 @@ import io.stargate.db.ClientInfo;
  */
 public interface ClientInfoMetricsTagProvider {
 
-  /** Returns default interface implementation, which returns empty tags for all methods. */
+  /**
+   * Returns default interface implementation, which returns empty tags or with driver info for all
+   * methods.
+   */
   ClientInfoMetricsTagProvider DEFAULT = new ClientInfoMetricsTagProvider() {};
+
+  public static final String TAG_KEY_DRIVER_NAME = "driverName";
+  public static final String TAG_KEY_DRIVER_VERSION = "driverVersion";
+
+  /**
+   * Returns tags for a {@link ClientInfo}.
+   *
+   * <p>Note that the implementation must return constant amount of tags for any input. IF the
+   * client info is populated with driver info, the tags should be populated with the driver name
+   * and version. Otherwise, the tags should be populated with "unknown" values.
+   *
+   * @param clientInfo {@link ClientInfo}
+   * @return Tags
+   */
+  default Tags getClientInfoTagsByDriver(ClientInfo clientInfo) {
+    Tags tags = getClientInfoTags(clientInfo);
+    if (clientInfo.driverInfo().isPresent()) {
+      DriverInfo driverInfo = clientInfo.driverInfo().get();
+      return tags.and(Tag.of(TAG_KEY_DRIVER_NAME, driverInfo.name()))
+          .and(
+              Tag.of(
+                  TAG_KEY_DRIVER_VERSION,
+                  driverInfo.version().orElse(StargateMetricConstants.UNKNOWN)));
+    } else {
+      return tags.and(Tag.of(TAG_KEY_DRIVER_NAME, StargateMetricConstants.UNKNOWN))
+          .and(Tag.of(TAG_KEY_DRIVER_VERSION, StargateMetricConstants.UNKNOWN));
+    }
+  }
 
   /**
    * Returns tags for a {@link ClientInfo}.

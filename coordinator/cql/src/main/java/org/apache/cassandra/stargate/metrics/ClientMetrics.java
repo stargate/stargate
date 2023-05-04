@@ -278,7 +278,7 @@ public final class ClientMetrics {
   private class ConnectionMetricsImpl implements ConnectionMetrics {
 
     private final Tags tags;
-    private final Counter requestsProcessed;
+    private Counter requestsProcessed;
     private final Counter requestsDiscarded;
     private final Counter authSuccess;
     private final Counter authFailure;
@@ -290,7 +290,12 @@ public final class ClientMetrics {
               .map(clientInfoTagProvider::getClientInfoTags)
               .orElse(Tags.empty());
 
-      requestsProcessed = meterRegistry.counter(REQUESTS_PROCESSED_METRIC, tags);
+      Tags tagsByDriver =
+          Optional.ofNullable(clientInfo)
+              .map(clientInfoTagProvider::getClientInfoTagsByDriver)
+              .orElse(Tags.empty());
+
+      requestsProcessed = meterRegistry.counter(REQUESTS_PROCESSED_METRIC, tagsByDriver);
       requestsDiscarded = meterRegistry.counter(REQUESTS_DISCARDED_METRIC, tags);
       authSuccess = meterRegistry.counter(AUTH_SUCCESS_METRIC, tags);
       authFailure = meterRegistry.counter(AUTH_FAILURE_METRIC, tags);
@@ -320,6 +325,12 @@ public final class ClientMetrics {
     @Override
     public void markAuthError() {
       authError.increment();
+    }
+
+    @Override
+    public void updateDriverInfo(ClientInfo clientInfo) {
+      Tags tagsByDriver = clientInfoTagProvider.getClientInfoTagsByDriver(clientInfo);
+      requestsProcessed = meterRegistry.counter(REQUESTS_PROCESSED_METRIC, tagsByDriver);
     }
 
     @Override
