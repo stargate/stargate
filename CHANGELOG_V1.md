@@ -1,5 +1,15 @@
 # Changelog
 
+## [v1.0.76](https://github.com/stargate/stargate/tree/v1.0.76) (2023-04-26)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.74.1...v1.0.76)
+
+**Merged pull requests:**
+
+- Fix \#2556: upgrade graphql-java dep \(18.3 -\> 18.5\) [\#2557](https://github.com/stargate/stargate/pull/2557) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#2551: upgrade DropWizard \(2.0.35 -\> 2.1.6\) [\#2553](https://github.com/stargate/stargate/pull/2553) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- protect against prepared statement cache returning null [\#2552](https://github.com/stargate/stargate/pull/2552) ([ivansenic](https://github.com/ivansenic))
+
 ## [v1.0.75](https://github.com/stargate/stargate/tree/v1.0.75) (2023-03-22)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.74...v1.0.75)
@@ -8,9 +18,6 @@
 
 - Use concurrency to cancel workflows on pull request updates [\#2493](https://github.com/stargate/stargate/issues/2493)
 - Update to DSE 6.8.33 [\#2490](https://github.com/stargate/stargate/issues/2490)
-- Update to DSE 6.8.33 [\#2487](https://github.com/stargate/stargate/issues/2487)
-- Update to DSE 6.8.33 [\#2477](https://github.com/stargate/stargate/issues/2477)
-- Optimize CI workflows for coordinator changes [\#2456](https://github.com/stargate/stargate/issues/2456)
 - organize coordinator modules under coordinator directory [\#2455](https://github.com/stargate/stargate/issues/2455)
 
 **Merged pull requests:**
