@@ -1,5 +1,42 @@
 # Changelog
 
+## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.76...HEAD)
+
+**Closed issues:**
+
+- Update C\*4.0.7 -\> 4.0.9 to help with SnakeYAML upgrade [\#2562](https://github.com/stargate/stargate/issues/2562)
+- Update SnakeYAML dependency for Stargate V2 APIs wrt Vulns [\#2559](https://github.com/stargate/stargate/issues/2559)
+- Upgrade GraphQL-java from 18.3 to 18.5 \(latest 18.x\) [\#2556](https://github.com/stargate/stargate/issues/2556)
+
+## [v1.0.76](https://github.com/stargate/stargate/tree/v1.0.76) (2023-04-26)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.74.1...v1.0.76)
+
+**Merged pull requests:**
+
+- Fix \#2556: upgrade graphql-java dep \(18.3 -\> 18.5\) [\#2557](https://github.com/stargate/stargate/pull/2557) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#2551: upgrade DropWizard \(2.0.35 -\> 2.1.6\) [\#2553](https://github.com/stargate/stargate/pull/2553) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- protect against prepared statement cache returning null [\#2552](https://github.com/stargate/stargate/pull/2552) ([ivansenic](https://github.com/ivansenic))
+- Fix \#2536: problem with Schema Hash calculation for List/Map/Set columns [\#2537](https://github.com/stargate/stargate/pull/2537) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- fix the starctl exit too soon due to grep [\#2529](https://github.com/stargate/stargate/pull/2529) ([ivansenic](https://github.com/ivansenic))
+- closes \#2518: fixes await condition in the BaseDocumentApiV2Test [\#2519](https://github.com/stargate/stargate/pull/2519) ([ivansenic](https://github.com/ivansenic))
+- notify additional libs on v1 release [\#2513](https://github.com/stargate/stargate/pull/2513) ([ivansenic](https://github.com/ivansenic))
+- Bumping version for next release [\#2506](https://github.com/stargate/stargate/pull/2506) ([github-actions[bot]](https://github.com/apps/github-actions))
+- set location of jemalloc library [\#2404](https://github.com/stargate/stargate/pull/2404) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+
+## [v1.0.74.1](https://github.com/stargate/stargate/tree/v1.0.74.1) (2023-04-26)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.12...v1.0.74.1)
+
+**Closed issues:**
+
+- Update DropWizard from 2.0.x to 2.1.x [\#2551](https://github.com/stargate/stargate/issues/2551)
+- Update "org.json" dependency to latest \(`20230227`\) from `20190722` to resolve dependency CVE-2020-15250 [\#2543](https://github.com/stargate/stargate/issues/2543)
+- Postman workflow still has some failures [\#2538](https://github.com/stargate/stargate/issues/2538)
+- Update to DSE 6.8.34 [\#2534](https://github.com/stargate/stargate/issues/2534)
+
 ## [v1.0.75](https://github.com/stargate/stargate/tree/v1.0.75) (2023-03-22)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.74...v1.0.75)
