@@ -17,10 +17,10 @@ import io.stargate.sgv2.docsapi.api.properties.document.DocumentTableProperties;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.query.model.RawDocument;
 import io.stargate.sgv2.docsapi.testprofiles.MaxDepth4TestProfile;
+import jakarta.inject.Inject;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import javax.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
