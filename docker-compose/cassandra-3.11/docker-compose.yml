@@ -11,8 +11,7 @@ services:
     ulimits:
       memlock: -1
     environment:
-      - HEAP_NEWSIZE=128M
-      - MAX_HEAP_SIZE=1024M
+      - MAX_HEAP_SIZE=1536M
       - CASSANDRA_CLUSTER_NAME=c3-${CASSTAG}-cluster
     healthcheck:
       test: [ "CMD", "cqlsh", "-u cassandra", "-p cassandra" ,"-e describe keyspaces" ]
@@ -32,9 +31,7 @@ services:
     depends_on:
       cassandra-1:
         condition: service_healthy
-    environment:
-      - HEAP_NEWSIZE=128M
-      - MAX_HEAP_SIZE=1024M
+      - MAX_HEAP_SIZE=1536M
       - CASSANDRA_SEEDS=cassandra-1
       - CASSANDRA_CLUSTER_NAME=c3-${CASSTAG}-cluster
     healthcheck:
@@ -56,8 +53,7 @@ services:
       cassandra-2:
         condition: service_healthy
     environment:
-      - HEAP_NEWSIZE=128M
-      - MAX_HEAP_SIZE=1024M
+      - MAX_HEAP_SIZE=1536M
       - CASSANDRA_SEEDS=cassandra-1
       - CASSANDRA_CLUSTER_NAME=c3-${CASSTAG}-cluster
     healthcheck:
@@ -84,7 +80,7 @@ services:
     ulimits:
       memlock: -1
     environment:
-      - JAVA_OPTS="-Xmx2G"
+      - JAVA_OPTS="-Xmx1536M"
       - CLUSTER_NAME=c3-${CASSTAG}-cluster
       - CLUSTER_VERSION=3.11
       - SEED=cassandra-1
@@ -108,6 +104,9 @@ services:
       - "8082:8082"
     mem_limit: 2G
     environment:
+      - JAVA_MAX_MEM_RATIO=75
+      - JAVA_INITIAL_MEM_RATIO=50
+      - GC_CONTAINER_OPTIONS=-XX:+UseG1GC
       - QUARKUS_GRPC_CLIENTS_BRIDGE_HOST=coordinator
       - QUARKUS_GRPC_CLIENTS_BRIDGE_PORT=8091
       - QUARKUS_HTTP_ACCESS_LOG_ENABLED=${REQUESTLOG}
@@ -129,6 +128,9 @@ services:
       - "8080:8080"
     mem_limit: 2G
     environment:
+      - JAVA_MAX_MEM_RATIO=75
+      - JAVA_INITIAL_MEM_RATIO=50
+      - GC_CONTAINER_OPTIONS=-XX:+UseG1GC
       - QUARKUS_GRPC_CLIENTS_BRIDGE_HOST=coordinator
       - QUARKUS_GRPC_CLIENTS_BRIDGE_PORT=8091
       - QUARKUS_HTTP_ACCESS_LOG_ENABLED=${REQUESTLOG}
@@ -150,6 +152,9 @@ services:
       - "8180:8180"
     mem_limit: 2G
     environment:
+      - JAVA_MAX_MEM_RATIO=75
+      - JAVA_INITIAL_MEM_RATIO=50
+      - GC_CONTAINER_OPTIONS=-XX:+UseG1GC
       - QUARKUS_GRPC_CLIENTS_BRIDGE_HOST=coordinator
       - QUARKUS_GRPC_CLIENTS_BRIDGE_PORT=8091
       - QUARKUS_HTTP_ACCESS_LOG_ENABLED=${REQUESTLOG}
