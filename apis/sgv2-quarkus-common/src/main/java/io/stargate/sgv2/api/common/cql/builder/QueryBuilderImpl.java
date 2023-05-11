@@ -342,6 +342,10 @@ public class QueryBuilderImpl {
     count(columnName.name());
   }
 
+  public void count() {
+    count((String) null);
+  }
+
   public void max(String maxColumnName) {
     functionCalls.add(FunctionCall.max(maxColumnName));
   }
@@ -1466,16 +1470,24 @@ public class QueryBuilderImpl {
     return where;
   }
 
+  private static final String COUNT_FUNCTION_NAME = "COUNT";
+
   private static String formatFunctionCall(FunctionCall functionCall) {
     StringBuilder builder = new StringBuilder();
-    builder
-        .append(functionCall.getFunctionName())
-        .append('(')
-        .append(cqlName(functionCall.getColumnName()))
-        .append(')');
+    if (functionCall.getColumnName() == null
+        && functionCall.getFunctionName().equals(COUNT_FUNCTION_NAME)) {
+      builder.append(functionCall.getFunctionName()).append("(1)");
+    } else {
+      builder
+          .append(functionCall.getFunctionName())
+          .append('(')
+          .append(cqlName(functionCall.getColumnName()))
+          .append(')');
+    }
     if (functionCall.getAlias() != null) {
       builder.append(" AS ").append(cqlName(functionCall.getAlias()));
     }
+
     return builder.toString();
   }
 
@@ -1492,6 +1504,10 @@ public class QueryBuilderImpl {
 
     public static FunctionCall function(String name, String alias, String functionName) {
       return new FunctionCall(name, alias, functionName);
+    }
+
+    public static FunctionCall count() {
+      return count(null, null);
     }
 
     public static FunctionCall count(String columnName) {
