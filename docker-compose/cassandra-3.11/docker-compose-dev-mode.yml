@@ -15,7 +15,7 @@ services:
     ulimits:
       memlock: -1
     environment:
-      - JAVA_OPTS="-Xmx2G"
+      - JAVA_OPTS="-Xmx1536M"
       - CLUSTER_NAME=c4-${CASSTAG}-cluster
       - CLUSTER_VERSION=3.11
       - RACK_NAME=rack1
@@ -39,6 +39,9 @@ services:
       - "8082:8082"
     mem_limit: 2G
     environment:
+      - JAVA_MAX_MEM_RATIO=75
+      - JAVA_INITIAL_MEM_RATIO=50
+      - GC_CONTAINER_OPTIONS=-XX:+UseG1GC
       - QUARKUS_HTTP_CORS=true
       - QUARKUS_HTTP_CORS_ORIGINS=*
       - QUARKUS_HTTP_CORS_METHODS=POST,GET,PUT,OPTIONS,DELETE
@@ -63,6 +66,9 @@ services:
       - "8080:8080"
     mem_limit: 2G
     environment:
+      - JAVA_MAX_MEM_RATIO=75
+      - JAVA_INITIAL_MEM_RATIO=50
+      - GC_CONTAINER_OPTIONS=-XX:+UseG1GC
       - QUARKUS_HTTP_CORS=true
       - QUARKUS_HTTP_CORS_ORIGINS=*
       - QUARKUS_HTTP_CORS_METHODS=POST,GET,PUT,OPTIONS,DELETE
@@ -87,6 +93,9 @@ services:
       - "8180:8180"
     mem_limit: 2G
     environment:
+      - JAVA_MAX_MEM_RATIO=75
+      - JAVA_INITIAL_MEM_RATIO=50
+      - GC_CONTAINER_OPTIONS=-XX:+UseG1GC
       - QUARKUS_HTTP_CORS=true
       - QUARKUS_HTTP_CORS_ORIGINS=*
       - QUARKUS_HTTP_CORS_METHODS=POST,GET,PUT,OPTIONS,DELETE
