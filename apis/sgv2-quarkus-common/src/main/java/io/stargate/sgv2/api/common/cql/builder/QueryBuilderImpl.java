@@ -1475,7 +1475,7 @@ public class QueryBuilderImpl {
   private static String formatFunctionCall(FunctionCall functionCall) {
     StringBuilder builder = new StringBuilder();
     if (functionCall.getColumnName() == null
-        && functionCall.getFunctionName().equals(COUNT_FUNCTION_NAME)) {
+        && COUNT_FUNCTION_NAME.equals(functionCall.getFunctionName())) {
       builder.append(functionCall.getFunctionName()).append("(1)");
     } else {
       builder
