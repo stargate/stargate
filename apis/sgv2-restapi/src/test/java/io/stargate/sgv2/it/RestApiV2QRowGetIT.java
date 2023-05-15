@@ -442,6 +442,8 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     rows = findRowsWithWhereAsJsonNode(testKeyspaceName(), tableName, matchingClause);
     assertThat(rows).hasSize(1);
     assertThat(rows.at("/0/firstName").asText()).isEqualTo("Fred");
+    // Also verify how Map values serialized (see [stargate#2577])
+    assertThat(rows.at("/0/attributes")).isEqualTo(readJsonAsTree("{\"c\":\"3\"}"));
   }
 
   @Test
@@ -478,6 +480,8 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
     rows = findRowsWithWhereAsJsonNode(testKeyspaceName(), tableName, matchingClause);
     assertThat(rows).hasSize(1);
     assertThat(rows.at("/0/firstName").asText()).isEqualTo("Dave");
+    // Also verify how Map values serialized (see [stargate#2577])
+    assertThat(rows.at("/0/attributes")).isEqualTo(readJsonAsTree("{\"b\":\"2\"}"));
   }
 
   @Test
