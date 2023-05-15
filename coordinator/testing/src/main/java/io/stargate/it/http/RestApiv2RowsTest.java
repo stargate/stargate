@@ -516,6 +516,10 @@ public class RestApiv2RowsTest extends BaseIntegrationTest {
     assertThat(json.size()).isEqualTo(1);
     assertThat(json.at("/0/firstName").asText()).isEqualTo("Dave");
 
+    // [stargate#2577]: Maps are represented using wrapper style in SGv1/RESTv2
+    final JsonNode expAttrs = objectMapper.readTree("[{\"key\":\"b\",\"value\":\"2\"}]");
+    assertThat(json.at("/0/attributes")).isEqualTo(expAttrs);
+
     // 06-Jan-2022, tatu: API does allow specifying an ARRAY of things to contain, but,
     //    alas, resulting query will not work ("need to ALLOW FILTERING").
     //    So not testing that case.
@@ -565,6 +569,10 @@ public class RestApiv2RowsTest extends BaseIntegrationTest {
     json = objectMapper.readTree(body);
     assertThat(json.size()).isEqualTo(1);
     assertThat(json.at("/0/firstName").asText()).isEqualTo("Fred");
+
+    // [stargate#2577]: Maps are represented using wrapper style in SGv1/RESTv2
+    final JsonNode expAttrs = objectMapper.readTree("[{\"key\":\"c\",\"value\":\"3\"}]");
+    assertThat(json.at("/0/attributes")).isEqualTo(expAttrs);
   }
 
   @Test
