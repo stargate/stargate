@@ -28,10 +28,10 @@ import io.stargate.db.schema.ImmutableColumn;
 import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.db.schema.TableName;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.Field;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -461,53 +461,26 @@ public class Conversion {
   public static Result.ResultMetadata toResultMetadata(
       org.apache.cassandra.cql3.ResultSet.ResultMetadata metadata,
       org.apache.cassandra.transport.ProtocolVersion version) {
-    List<Column> columns = new ArrayList<>();
-    if (metadata.names != null) {
-      metadata.names.forEach(
-          c ->
-              columns.add(
-                  ImmutableColumn.builder()
-                      .keyspace(c.ksName)
-                      .table(c.cfName)
-                      .name(c.name.toString())
-                      .type(getTypeFromInternal(c.type))
-                      .build()));
-    }
+    List<Column> columns = toColumns(metadata.names);
 
     EnumSet<Result.Flag> flags = EnumSet.noneOf(Result.Flag.class);
+    ByteBuffer pagingState = null;
+    if (metadata.getPagingState() != null) {
+      flags.add(Flag.HAS_MORE_PAGES);
 
-    PagingState pagingState = null;
-    MD5Digest resultMetadataId = null;
-    try {
-      Field f = metadata.getClass().getDeclaredField("pagingState");
-      f.setAccessible(true);
-      pagingState = (PagingState) f.get(metadata);
-      if (pagingState != null) {
-        flags.add(Flag.HAS_MORE_PAGES);
+      // C* 4.0 has a version null check before serializing the paging state?
+      // added here as well to be safe
+      if (version != null) {
+        pagingState = metadata.getPagingState().serialize(version);
       }
-    } catch (Exception e) {
-      LOG.info("Unable to get paging state", e);
     }
 
-    return new Result.ResultMetadata(
-        flags,
-        columns,
-        resultMetadataId,
-        pagingState != null ? pagingState.serialize(version) : null);
+    return new Result.ResultMetadata(flags, columns, null, pagingState);
   }
 
   public static Result.PreparedMetadata toPreparedMetadata(
       List<ColumnSpecification> names, short[] indexes) {
-    List<Column> columns = new ArrayList<>();
-    names.forEach(
-        c ->
-            columns.add(
-                ImmutableColumn.builder()
-                    .keyspace(c.ksName)
-                    .table(c.cfName)
-                    .name(c.name.toString())
-                    .type(getTypeFromInternal(c.type))
-                    .build()));
+    List<Column> columns = toColumns(names);
 
     EnumSet<Result.Flag> flags = EnumSet.noneOf(Result.Flag.class);
     if (!names.isEmpty() && ColumnSpecification.allInSameTable(names))
@@ -650,5 +623,22 @@ public class Conversion {
               .build());
     }
     return columns;
+  }
+
+  private static List<Column> toColumns(List<ColumnSpecification> columnSpecifications) {
+    // if null or empty, return empty result
+    if (columnSpecifications == null || columnSpecifications.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    // otherwise, transform all
+    List<Column> result = new ArrayList<>(columnSpecifications.size());
+    for (ColumnSpecification c : columnSpecifications) {
+      Column column =
+          ImmutableColumn.of(
+              c.ksName, c.cfName, c.name.toString(), null, getTypeFromInternal(c.type));
+      result.add(column);
+    }
+    return result;
   }
 }

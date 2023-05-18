@@ -877,6 +877,7 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
           .build();
 
   @Nullable
+  @Value.Parameter(order = 5)
   public abstract ColumnType type();
 
   public boolean ofTypeText() {
@@ -928,35 +929,44 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
   }
 
   @Nullable
+  @Value.Parameter(order = 4)
   public abstract Kind kind();
 
   @Nullable
+  @Value.Parameter(order = 1)
   public abstract String keyspace();
 
   @Nullable
+  @Value.Parameter(order = 2)
   public abstract String table();
+
+  @Override
+  @Value.Parameter(order = 3)
+  public abstract String name();
 
   public Column reference() {
     return reference(name());
   }
 
   public static Column reference(String name) {
-    return ImmutableColumn.builder().name(name).build();
+    return ImmutableColumn.of(null, null, name, null, null);
   }
 
   public static Column create(String name, Kind kind) {
-    return ImmutableColumn.builder().name(name).kind(kind).build();
+    return ImmutableColumn.of(null, null, name, kind, null);
   }
 
   public static Column create(String name, Column.ColumnType type) {
-    return ImmutableColumn.builder().name(name).type(type).kind(Regular).build();
+    return create(name, Regular, type);
   }
 
   public static Column create(String name, Kind kind, Column.ColumnType type) {
-    return ImmutableColumn.builder().name(name).kind(kind).type(type).build();
+    return ImmutableColumn.of(null, null, name, kind, type);
   }
 
   public static Column create(String name, Kind kind, Column.ColumnType type, Order order) {
+    // keep using builder here, to set order
+    // order has calculated default, so can not be a parameter
     if (kind == Kind.Clustering && order == null) {
       order = Order.ASC;
     }

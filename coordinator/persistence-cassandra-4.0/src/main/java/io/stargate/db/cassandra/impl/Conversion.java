@@ -13,6 +13,7 @@ import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.db.schema.TableName;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -20,6 +21,7 @@ import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.cql3.ColumnSpecification;
 import org.apache.cassandra.cql3.QueryOptions;
+import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.db.Clustering;
 import org.apache.cassandra.db.LivenessInfo;
@@ -402,47 +404,23 @@ public class Conversion {
   public static Result.ResultMetadata toResultMetadata(
       org.apache.cassandra.cql3.ResultSet.ResultMetadata metadata,
       org.apache.cassandra.transport.ProtocolVersion version) {
-    List<Column> columns = new ArrayList<>();
-    if (metadata.names != null) {
-      metadata.names.forEach(
-          c ->
-              columns.add(
-                  ImmutableColumn.builder()
-                      .keyspace(c.ksName)
-                      .table(c.cfName)
-                      .name(c.name.toString())
-                      .type(getTypeFromInternal(c.type))
-                      .build()));
-    }
+    List<Column> columns = toColumns(metadata.names);
 
     EnumSet<Result.Flag> flags = EnumSet.noneOf(Result.Flag.class);
     metadata.getFlags().forEach(f -> flags.add(Result.Flag.fromId(f.ordinal() + 1)));
 
     ByteBuffer pagingState = null;
-    if (version != null) {
-      pagingState =
-          metadata.getPagingState() == null ? null : metadata.getPagingState().serialize(version);
+    if (version != null && metadata.getPagingState() != null) {
+      pagingState = metadata.getPagingState().serialize(version);
     }
 
-    MD5Digest resultMetadataId =
-        metadata.getResultMetadataId() == null
-            ? null
-            : Conversion.toExternal(metadata.getResultMetadataId());
+    MD5Digest resultMetadataId = getResultMetadataId(metadata);
     return new Result.ResultMetadata(flags, columns, resultMetadataId, pagingState);
   }
 
   public static Result.PreparedMetadata toPreparedMetadata(
       List<ColumnSpecification> names, short[] indexes) {
-    List<Column> columns = new ArrayList<>();
-    names.forEach(
-        c ->
-            columns.add(
-                ImmutableColumn.builder()
-                    .keyspace(c.ksName)
-                    .table(c.cfName)
-                    .name(c.name.toString())
-                    .type(getTypeFromInternal(c.type))
-                    .build()));
+    List<Column> columns = toColumns(names);
 
     EnumSet<Result.Flag> flags = EnumSet.noneOf(Result.Flag.class);
     if (!names.isEmpty() && ColumnSpecification.allInSameTable(names)) {
@@ -585,5 +563,29 @@ public class Conversion {
               .build());
     }
     return columns;
+  }
+
+  private static List<Column> toColumns(List<ColumnSpecification> columnSpecifications) {
+    // if null or empty, return empty result
+    if (columnSpecifications == null || columnSpecifications.isEmpty()) {
+      return Collections.emptyList();
+    }
+
+    // otherwise, transform all
+    List<Column> result = new ArrayList<>(columnSpecifications.size());
+    for (ColumnSpecification c : columnSpecifications) {
+      Column column =
+          ImmutableColumn.of(
+              c.ksName, c.cfName, c.name.toString(), null, getTypeFromInternal(c.type));
+      result.add(column);
+    }
+    return result;
+  }
+
+  private static MD5Digest getResultMetadataId(ResultSet.ResultMetadata metadata) {
+    if (metadata.getResultMetadataId() == null) {
+      return null;
+    }
+    return Conversion.toExternal(metadata.getResultMetadataId());
   }
 }
