@@ -85,8 +85,6 @@ public abstract class SecondaryIndex implements Index, QualifiedSchemaEntity {
   }
 
   @Override
-  @Value.Derived
-  @Value.Auxiliary
   public int schemaHashCode() {
     return SchemaHashable.combine(
         SchemaHashable.hashCode(keyspace()),

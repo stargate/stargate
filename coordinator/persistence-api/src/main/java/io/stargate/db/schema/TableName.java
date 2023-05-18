@@ -49,8 +49,6 @@ public interface TableName extends QualifiedSchemaEntity {
   }
 
   @Override
-  @Value.Derived
-  @Value.Auxiliary
   default int schemaHashCode() {
     return SchemaHashable.combine(
         SchemaHashable.hashCode(keyspace()), SchemaHashable.hashCode(name()));
