@@ -3,6 +3,23 @@
 Want to build Stargate locally or even start contributing to the project? This is the right place to get started. 
 
 If you're developing on macOS, we've added notes throughout to highlight a few specific differences.
+
+## Quickstart
+
+The fastest way to build your own copy of the Stargate coordinator code and Docker images involves the following steps:
+
+* Local build of coordinator images
+  * Make sure you are in the `coordinator` directory and have `JAVA_HOME` set to point to a JDK 1.8 installation
+  * Do a local build of jar files for coordinator (include the `-P dse` option if you want to build the DSE version, but note this requires access to Datastax's Maven repository)
+    ```
+    ./mvnw clean install -DskipTests -P dse
+    ```
+  * Generate docker images (image tag will default to the Stargate version specified in the `pom.xml`):
+    ```
+    ./build_docker_images.sh 
+    ```
+    
+You can then use the [docker-compose](../docker-compose) scripts to start Stargate locally. See also the [apis README](../apis/README.md) for information on compiling and building images for the API services.
  
 ## Code conventions
 

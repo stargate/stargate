@@ -13,7 +13,7 @@ For operators, Stargate introduces microservice architecture, allowing independe
 - If you wish to deploy in Kubernetes, there is also a [Helm chart](helm/README.md) you can use to install Stargate alongside an existing Cassandra cluster, or visit the [K8ssandra](https://k8ssandra.io) project for a distribution that packages Cassandra, Stargate, and additional tooling.
 - For more information about how to deploy and use Stargate, visit [stargate.io](https://stargate.io/)
 - To learn how to participate in our community, visit our [community page](https://stargate.io/community)
-- To set up and use a Stargate development environment, visit the [dev guide](DEV_GUIDE.md)
+- To set up and use a Stargate development environment, see the instructions for the [coordinator](coordinator/README.md) and [APIs](apis/README.md).
 
 ## Contents
 - [Introduction](#introduction)
