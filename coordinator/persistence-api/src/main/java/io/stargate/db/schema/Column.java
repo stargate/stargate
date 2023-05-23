@@ -876,10 +876,6 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
                   .collect(Collectors.toMap(r -> r.javaType, r -> r)))
           .build();
 
-  @Nullable
-  @Value.Parameter(order = 5)
-  public abstract ColumnType type();
-
   public boolean ofTypeText() {
     return ofTypeText(type());
   }
@@ -929,10 +925,6 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
   }
 
   @Nullable
-  @Value.Parameter(order = 4)
-  public abstract Kind kind();
-
-  @Nullable
   @Value.Parameter(order = 1)
   public abstract String keyspace();
 
@@ -943,6 +935,14 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
   @Override
   @Value.Parameter(order = 3)
   public abstract String name();
+
+  @Nullable
+  @Value.Parameter(order = 4)
+  public abstract Kind kind();
+
+  @Nullable
+  @Value.Parameter(order = 5)
+  public abstract ColumnType type();
 
   public Column reference() {
     return reference(name());
