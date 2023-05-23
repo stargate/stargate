@@ -8,8 +8,10 @@ This directory provides two ways to start Stargate with Cassandra 4.0 using `doc
 
 Make sure that you have Docker engine 20.x installed, which should include Docker compose 2.x. Our compose files rely on features only available in the Docker compose v2 file format.
 
-### Building the local Docker image
-If you want to use locally built versions of the Docker images rather than pulling released versions from Docker Hub, build the snapshot version locally using instructions in the [developer guide](../../DEV_GUIDE.md).
+### Building local Docker images
+If you want to use locally built versions of the Docker images rather than pulling released versions from Docker Hub, build the snapshot version locally using instructions for the [coordinator](../../coordinator/README.md) and [apis](../../apis/README.md).
+
+Follow instructions under the [Script options](#script-options) section to use the locally built image.
 
 ## Stargate with 3-node Cassandra 4.0 cluster
 
@@ -49,7 +51,7 @@ Both convenience scripts support the following options:
 
 * You can specify a released image tag (version) using `-t [VERSION]`. Consult [Docker Hub](https://hub.docker.com/r/stargateio/coordinator-4_0/tags) for a list of available tags.
 
-* Alternatively, build the snapshot version locally using instructions in the [developer guide](../../DEV_GUIDE.md) and run the script using the `-l` option.
+* Alternatively, build the snapshot images locally using the instructions referenced [above](#building-local-docker-images) and run the script using the `-l` option.
 
 * You can change the default root log level for the API services using `-r [LEVEL]` (default `INFO`). Valid values: `ERROR`, `WARN`, `INFO`, `DEBUG`
 
