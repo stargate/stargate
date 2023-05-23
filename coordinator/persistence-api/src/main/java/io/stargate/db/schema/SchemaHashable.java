@@ -19,6 +19,10 @@ public interface SchemaHashable {
    * or {@link System#identityHashCode(Object)}, etc. to avoid an error that produces a
    * non-deterministic hash code.
    *
+   * <p>Note that currently only {@link Keyspace} calculates the schema hash during the object
+   * initialization. If you call this method from the external component, double-check if
+   * pre-calculation is necessary for any other implementing type.
+   *
    * @return a deterministic hash code for the schema object.
    */
   int schemaHashCode();

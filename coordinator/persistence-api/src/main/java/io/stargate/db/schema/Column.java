@@ -986,8 +986,6 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
   }
 
   @Override
-  @Value.Derived
-  @Value.Auxiliary
   public int schemaHashCode() {
     return SchemaHashable.combine(
         SchemaHashable.hashCode(name()),

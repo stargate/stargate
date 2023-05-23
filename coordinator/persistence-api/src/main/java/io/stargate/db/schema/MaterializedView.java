@@ -69,8 +69,6 @@ public abstract class MaterializedView extends AbstractTable implements Index {
   }
 
   @Override
-  @Value.Derived
-  @Value.Auxiliary
   public int schemaHashCode() {
     return SchemaHashable.combine(
         SchemaHashable.hashCode(name()),
