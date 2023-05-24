@@ -19,7 +19,6 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Map.Entry;
 import javax.annotation.Nullable;
@@ -28,30 +27,25 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface AuthenticatedUser extends Serializable {
 
+  @Value.Parameter
   String name();
 
   @Nullable
+  @Value.Parameter
   String token();
 
+  @Value.Parameter
   boolean isFromExternalAuth();
 
-  Map<String, String> customProperties();
+  @Value.Parameter
+  ImmutableMap<String, String> customProperties();
 
   static AuthenticatedUser of(String userName) {
-    return ImmutableAuthenticatedUser.builder()
-        .name(userName)
-        .isFromExternalAuth(false)
-        .customProperties(Collections.emptyMap())
-        .build();
+    return ImmutableAuthenticatedUser.of(userName, null, false, ImmutableMap.of());
   }
 
   static AuthenticatedUser of(String userName, String token) {
-    return ImmutableAuthenticatedUser.builder()
-        .name(userName)
-        .token(token)
-        .isFromExternalAuth(false)
-        .customProperties(Collections.emptyMap())
-        .build();
+    return ImmutableAuthenticatedUser.of(userName, token, false, ImmutableMap.of());
   }
 
   static AuthenticatedUser of(
@@ -59,12 +53,8 @@ public interface AuthenticatedUser extends Serializable {
       String token,
       boolean useTransitionalAuth,
       Map<String, String> customProperties) {
-    return ImmutableAuthenticatedUser.builder()
-        .name(userName)
-        .token(token)
-        .isFromExternalAuth(useTransitionalAuth)
-        .customProperties(customProperties)
-        .build();
+    return ImmutableAuthenticatedUser.of(
+        userName, token, useTransitionalAuth, ImmutableMap.copyOf(customProperties));
   }
 
   class Serializer {
@@ -122,7 +112,7 @@ public interface AuthenticatedUser extends Serializable {
         }
       }
 
-      return AuthenticatedUser.of(
+      return ImmutableAuthenticatedUser.of(
           StandardCharsets.UTF_8.decode(roleName).toString(),
           StandardCharsets.UTF_8.decode(token).toString(),
           (isFromExternalAuth != null),
