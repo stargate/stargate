@@ -21,10 +21,10 @@ import io.stargate.sgv2.api.common.grpc.qualifier.Retriable;
 import io.stargate.sgv2.api.common.grpc.retries.GrpcRetryPredicate;
 import io.stargate.sgv2.common.bridge.BridgeTest;
 import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Inject;
 import java.util.Map;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
-import javax.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest

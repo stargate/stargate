@@ -6,8 +6,8 @@ import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.docsapi.service.function.BuiltInFunction;
 import io.stargate.sgv2.docsapi.service.write.WriteDocumentsService;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 /**
  * Set function implementation. Takes an object with paths in the document to set to a value, and

@@ -23,8 +23,8 @@ import io.stargate.sgv2.api.common.config.GrpcConfig;
 import io.stargate.sgv2.api.common.grpc.RetriableStargateBridge;
 import io.stargate.sgv2.api.common.grpc.qualifier.Retriable;
 import io.stargate.sgv2.api.common.grpc.retries.GrpcRetryPredicate;
-import javax.enterprise.inject.Instance;
-import javax.ws.rs.Produces;
+import jakarta.enterprise.inject.Instance;
+import jakarta.ws.rs.Produces;
 
 public class RetriableStargateBridgeConfiguration {
 

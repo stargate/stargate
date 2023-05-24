@@ -23,11 +23,11 @@ import io.stargate.sgv2.api.common.grpc.qualifier.Retriable;
 import io.stargate.sgv2.api.common.tenant.TenantResolver;
 import io.stargate.sgv2.api.common.token.CassandraTokenResolver;
 import io.vertx.ext.web.RoutingContext;
+import jakarta.enterprise.context.RequestScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.core.SecurityContext;
 import java.util.Optional;
-import javax.enterprise.context.RequestScoped;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
-import javax.ws.rs.core.SecurityContext;
 
 /**
  * The request information containing the tenant ID and the Cassandra key, and the eagerly created

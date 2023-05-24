@@ -19,8 +19,8 @@ package io.stargate.sgv2.api.common.config;
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
 import io.stargate.bridge.proto.QueryOuterClass;
-import javax.validation.Valid;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 
 /** Queries configuration. */
 @ConfigMapping(prefix = "stargate.queries")

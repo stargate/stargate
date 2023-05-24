@@ -15,9 +15,9 @@
  */
 package io.stargate.sgv2.graphql.web.models;
 
+import jakarta.ws.rs.core.MediaType;
 import java.util.List;
 import java.util.Map;
-import javax.ws.rs.core.MediaType;
 import org.jboss.resteasy.reactive.PartType;
 import org.jboss.resteasy.reactive.RestForm;
 import org.jboss.resteasy.reactive.multipart.FileUpload;

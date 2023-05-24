@@ -32,6 +32,7 @@ import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -40,7 +41,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest

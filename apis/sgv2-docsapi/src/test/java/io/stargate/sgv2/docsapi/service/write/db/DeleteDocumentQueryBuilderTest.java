@@ -26,7 +26,7 @@ import io.stargate.bridge.proto.QueryOuterClass.BatchQuery;
 import io.stargate.sgv2.docsapi.DocsApiTestSchemaProvider;
 import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.testprofiles.MaxDepth4TestProfile;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.apache.commons.lang3.RandomUtils;
 import org.junit.jupiter.api.Nested;

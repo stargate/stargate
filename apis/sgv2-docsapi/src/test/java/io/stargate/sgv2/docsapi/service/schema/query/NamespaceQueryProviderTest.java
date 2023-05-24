@@ -25,7 +25,7 @@ import io.quarkus.test.junit.TestProfile;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.api.common.cql.builder.Replication;
 import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
-import javax.inject.Inject;
+import jakarta.inject.Inject;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;

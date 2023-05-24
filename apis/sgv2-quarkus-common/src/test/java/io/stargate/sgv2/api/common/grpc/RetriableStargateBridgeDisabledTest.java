@@ -17,8 +17,8 @@ import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.api.common.grpc.qualifier.Retriable;
 import io.stargate.sgv2.common.bridge.BridgeTest;
 import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
+import jakarta.inject.Inject;
 import java.util.Map;
-import javax.inject.Inject;
 import org.junit.jupiter.api.Test;
 
 @QuarkusTest

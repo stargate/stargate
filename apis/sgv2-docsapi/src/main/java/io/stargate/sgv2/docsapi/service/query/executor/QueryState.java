@@ -18,7 +18,7 @@
 package io.stargate.sgv2.docsapi.service.query.executor;
 
 import com.google.protobuf.BytesValue;
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 import org.immutables.value.Value;
 
 /**

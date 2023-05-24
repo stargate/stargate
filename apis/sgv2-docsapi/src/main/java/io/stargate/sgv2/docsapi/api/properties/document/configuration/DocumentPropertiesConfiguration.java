@@ -21,8 +21,8 @@ import io.stargate.sgv2.api.common.properties.datastore.DataStoreProperties;
 import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.api.properties.document.impl.DocumentPropertiesImpl;
 import io.stargate.sgv2.docsapi.config.DocumentConfig;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
 
 /** Producer of the {@link DocumentProperties}. */
 public class DocumentPropertiesConfiguration {

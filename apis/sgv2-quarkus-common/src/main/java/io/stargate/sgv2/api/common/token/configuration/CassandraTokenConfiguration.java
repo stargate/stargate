@@ -23,9 +23,9 @@ import io.stargate.sgv2.api.common.token.CassandraTokenResolver;
 import io.stargate.sgv2.api.common.token.impl.FixedTokenResolver;
 import io.stargate.sgv2.api.common.token.impl.HeaderTokenResolver;
 import io.stargate.sgv2.api.common.token.impl.PrincipalTokenResolver;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
 import java.util.Optional;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
 
 /** Configuration for activating a correct {@link CassandraTokenResolver}. */
 public class CassandraTokenConfiguration {

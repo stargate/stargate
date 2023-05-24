@@ -36,10 +36,10 @@ import io.stargate.sgv2.docsapi.service.query.search.db.impl.SubDocumentSearchQu
 import io.stargate.sgv2.docsapi.service.query.search.resolver.BaseResolver;
 import io.stargate.sgv2.docsapi.service.query.search.resolver.DocumentsResolver;
 import io.stargate.sgv2.docsapi.service.query.search.resolver.impl.SubDocumentsResolver;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.util.List;
 import java.util.stream.Collectors;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 import org.apache.commons.lang3.tuple.Pair;
 
 @ApplicationScoped

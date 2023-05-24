@@ -19,7 +19,7 @@ package io.stargate.sgv2.api.common.exception;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
-import javax.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.RestResponse.ResponseBuilder;
 import org.jboss.resteasy.reactive.server.ServerExceptionMapper;

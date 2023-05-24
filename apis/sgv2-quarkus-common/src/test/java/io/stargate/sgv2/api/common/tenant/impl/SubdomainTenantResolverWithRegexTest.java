@@ -27,10 +27,10 @@ import io.quarkus.test.junit.TestProfile;
 import io.quarkus.test.junit.mockito.InjectMock;
 import io.stargate.sgv2.api.common.tenant.TenantResolver;
 import io.vertx.ext.web.RoutingContext;
+import jakarta.enterprise.inject.Instance;
+import jakarta.inject.Inject;
 import java.util.Map;
 import java.util.Optional;
-import javax.enterprise.inject.Instance;
-import javax.inject.Inject;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

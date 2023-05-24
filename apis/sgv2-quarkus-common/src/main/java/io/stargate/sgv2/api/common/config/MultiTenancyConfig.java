@@ -21,10 +21,10 @@ import io.smallrye.config.WithDefault;
 import io.stargate.sgv2.api.common.tenant.TenantResolver;
 import io.stargate.sgv2.api.common.tenant.impl.FixedTenantResolver;
 import io.stargate.sgv2.api.common.tenant.impl.SubdomainTenantResolver;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Pattern;
 import java.util.Optional;
 import java.util.OptionalInt;
-import javax.validation.Valid;
-import javax.validation.constraints.Pattern;
 
 /** Configuration mapping for the tenant resolver. */
 @ConfigMapping(prefix = "stargate.multi-tenancy")

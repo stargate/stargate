@@ -1,8 +1,8 @@
 package io.stargate.sgv2.restapi.service.models;
 
+import jakarta.validation.constraints.NotBlank;
 import java.util.Collections;
 import java.util.List;
-import javax.validation.constraints.NotBlank;
 import org.eclipse.microprofile.openapi.annotations.media.Schema;
 
 /**

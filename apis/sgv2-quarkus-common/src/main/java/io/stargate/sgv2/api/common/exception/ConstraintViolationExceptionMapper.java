@@ -19,11 +19,11 @@ package io.stargate.sgv2.api.common.exception;
 
 import io.quarkus.arc.lookup.LookupIfProperty;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
+import jakarta.validation.ConstraintViolation;
+import jakarta.validation.ConstraintViolationException;
+import jakarta.ws.rs.core.Response;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.validation.ConstraintViolation;
-import javax.validation.ConstraintViolationException;
-import javax.ws.rs.core.Response;
 import org.jboss.resteasy.reactive.RestResponse;
 import org.jboss.resteasy.reactive.RestResponse.ResponseBuilder;
 import org.jboss.resteasy.reactive.server.ServerExceptionMapper;

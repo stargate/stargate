@@ -38,6 +38,7 @@ import io.stargate.sgv2.docsapi.api.properties.document.DocumentTableProperties;
 import io.stargate.sgv2.docsapi.service.ExecutionContext;
 import io.stargate.sgv2.docsapi.service.query.model.RawDocument;
 import io.stargate.sgv2.docsapi.testprofiles.MaxDepth4TestProfile;
+import jakarta.inject.Inject;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
@@ -45,7 +46,6 @@ import java.util.Objects;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import javax.inject.Inject;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -273,15 +273,16 @@ class QueryExecutorTest extends AbstractValidatingStargateBridgeTest {
       assertThat(lastItem.id()).isEqualTo("0");
       queryAssert.assertExecuteCount().isEqualTo(1); // first page fetched
 
-      lastItem = assertSubscriber.awaitNextItems(pageSize - 3).getLastItem();
-      assertThat(lastItem.id()).isEqualTo(String.valueOf(pageSize - 3));
+      int next = pageSize - 2;
+      lastItem = assertSubscriber.awaitNextItems(next).getLastItem();
+      assertThat(lastItem.id()).isEqualTo(String.valueOf(next));
       queryAssert.assertExecuteCount().isEqualTo(1); // still on page 1
 
       // request one more, total requested here == pageSize - 1
       // One more row is requested from upstream to detect doc boundaries, which ends page 1
       // and causes page 2 to be executed
       lastItem = assertSubscriber.awaitNextItems(1).getLastItem();
-      assertThat(lastItem.id()).isEqualTo(String.valueOf(pageSize - 2));
+      assertThat(lastItem.id()).isEqualTo(String.valueOf(pageSize - 1));
       queryAssert.assertExecuteCount().isEqualTo(2);
     }
 

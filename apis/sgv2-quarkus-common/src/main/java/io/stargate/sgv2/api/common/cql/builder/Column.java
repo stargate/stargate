@@ -16,7 +16,7 @@
 package io.stargate.sgv2.api.common.cql.builder;
 
 import io.stargate.sgv2.api.common.cql.ColumnUtils;
-import javax.annotation.Nullable;
+import jakarta.annotation.Nullable;
 import org.immutables.value.Value;
 import org.immutables.value.Value.Immutable;
 

@@ -50,7 +50,7 @@
   <!-- Shared properties -->
   <properties>
     <!-- Compiler -->
-    <compiler-plugin.version>3.10.1</compiler-plugin.version>
+    <compiler-plugin.version>3.11.0</compiler-plugin.version>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
     <maven.compiler.release>17</maven.compiler.release>
@@ -60,13 +60,11 @@
     <!-- Quarkus -->
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-    <quarkus.platform.version>2.16.7.Final</quarkus.platform.version>
+    <quarkus.platform.version>3.0.3.Final</quarkus.platform.version>
     <!-- Testing -->
     <skipTests>false</skipTests>
     <skipUnitTests>${skipTests}</skipUnitTests>
-    <surefire-plugin.version>3.0.0-M7</surefire-plugin.version>
-    <!-- Dependency version overrides -->
-    <snakeyaml.version>2.0</snakeyaml.version>
+    <surefire-plugin.version>3.0.0</surefire-plugin.version>
     <!--
       Integration test properties, defaults to cassandra-40
       Please maintain default values for int-test in sync with io.stargate.sgv2.docsapi.testresource.StargateTestResource.Defaults
@@ -91,17 +89,12 @@
       <dependency>
         <groupId>com.github.misberner.duzzt</groupId>
         <artifactId>duzzt-processor</artifactId>
-        <version>0.0.2</version>
+        <version>0.1.0</version>
       </dependency>
       <dependency>
         <groupId>org.immutables</groupId>
         <artifactId>value</artifactId>
         <version>2.9.0</version>
-      </dependency>
-      <dependency>
-        <groupId>org.yaml</groupId>
-        <artifactId>snakeyaml</artifactId>
-        <version>${snakeyaml.version}</version>
       </dependency>
       <dependency>
         <groupId>commons-codec</groupId>
