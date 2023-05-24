@@ -1,13 +1,5 @@
 # Changelog
 
-## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.14...HEAD)
-
-**Closed issues:**
-
-- Update to Quarkus 3.x line [\#2520](https://github.com/stargate/stargate/issues/2520)
-
 ## [v2.0.14](https://github.com/stargate/stargate/tree/v2.0.14) (2023-05-24)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.13...v2.0.14)
@@ -20,6 +12,8 @@
 - Space removed from HTML document \(even in \<pre\>\) [\#2444](https://github.com/stargate/stargate/issues/2444)
 - Update licenses report  [\#2414](https://github.com/stargate/stargate/issues/2414)
 - Remove dependency on ccm for integration tests [\#2348](https://github.com/stargate/stargate/issues/2348)
+- Update to Quarkus 3.x line [\#2520](https://github.com/stargate/stargate/issues/2520)
+
 
 **Merged pull requests:**
 
