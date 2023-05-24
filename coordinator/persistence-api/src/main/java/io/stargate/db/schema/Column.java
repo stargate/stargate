@@ -474,7 +474,19 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
       public boolean isUserDefined() {
         return true;
       }
-    };
+    },
+
+    /**
+     * New experimental Vector type (see {@href https://github.com/stargate/stargate/issues/2393}).
+     */
+    Vector(
+        0, // custom type
+        io.stargate.db.schema.VectorValue.class,
+        "org.apache.cassandra.db.marshal.VectorType",
+        true,
+        null,
+        "Experimental vector value type"),
+    ;
 
     private final int id;
     private final String usage;
