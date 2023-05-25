@@ -54,6 +54,7 @@ import org.apache.cassandra.db.marshal.TupleType;
 import org.apache.cassandra.db.marshal.UTF8Type;
 import org.apache.cassandra.db.marshal.UUIDType;
 import org.apache.cassandra.db.marshal.UserType;
+import org.apache.cassandra.db.marshal.VectorType;
 import org.apache.cassandra.db.rows.BTreeRow;
 import org.apache.cassandra.exceptions.CassandraException;
 import org.apache.cassandra.locator.InetAddressAndPort;
@@ -131,6 +132,7 @@ public class Conversion {
     types.put(TimeType.instance.getClass(), Column.Type.Time);
     types.put(TimestampType.instance.getClass(), Column.Type.Timestamp);
     types.put(TimeUUIDType.instance.getClass(), Column.Type.Timeuuid);
+    types.put(VectorType.class, Column.Type.Vector);
 
     TYPE_MAPPINGS = ImmutableMap.copyOf(types);
   }
