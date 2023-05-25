@@ -19,12 +19,15 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import java.io.Serializable;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 @Value.Immutable
+@Value.Style(builtinContainerAttributes = false)
 public interface AuthenticatedUser extends Serializable {
 
   @Value.Parameter
@@ -38,14 +41,14 @@ public interface AuthenticatedUser extends Serializable {
   boolean isFromExternalAuth();
 
   @Value.Parameter
-  ImmutableMap<String, String> customProperties();
+  Map<String, String> customProperties();
 
   static AuthenticatedUser of(String userName) {
-    return ImmutableAuthenticatedUser.of(userName, null, false, ImmutableMap.of());
+    return ImmutableAuthenticatedUser.of(userName, null, false, Collections.emptyMap());
   }
 
   static AuthenticatedUser of(String userName, String token) {
-    return ImmutableAuthenticatedUser.of(userName, token, false, ImmutableMap.of());
+    return ImmutableAuthenticatedUser.of(userName, token, false, Collections.emptyMap());
   }
 
   static AuthenticatedUser of(
@@ -54,7 +57,7 @@ public interface AuthenticatedUser extends Serializable {
       boolean useTransitionalAuth,
       Map<String, String> customProperties) {
     return ImmutableAuthenticatedUser.of(
-        userName, token, useTransitionalAuth, ImmutableMap.copyOf(customProperties));
+        userName, token, useTransitionalAuth, Collections.unmodifiableMap(customProperties));
   }
 
   class Serializer {
@@ -96,13 +99,13 @@ public interface AuthenticatedUser extends Serializable {
     public static AuthenticatedUser load(Map<String, ByteBuffer> customPayload) {
       ByteBuffer token = customPayload.get(TOKEN);
       ByteBuffer roleName = customPayload.get(ROLE);
-      ByteBuffer isFromExternalAuth = customPayload.get(EXTERNAL);
+      boolean isFromExternalAuth = customPayload.containsKey(EXTERNAL);
 
       if (token == null || roleName == null) {
         throw new IllegalStateException("token and roleName must be provided");
       }
 
-      ImmutableMap.Builder<String, String> map = ImmutableMap.builder();
+      Map<String, String> map = new HashMap<>(customPayload.size() - 2, 1f);
       for (Entry<String, ByteBuffer> e : customPayload.entrySet()) {
         String key = e.getKey();
         if (key.startsWith(CUSTOM_PAYLOAD_NAME_PREFIX)) {
@@ -115,8 +118,8 @@ public interface AuthenticatedUser extends Serializable {
       return ImmutableAuthenticatedUser.of(
           StandardCharsets.UTF_8.decode(roleName).toString(),
           StandardCharsets.UTF_8.decode(token).toString(),
-          (isFromExternalAuth != null),
-          map.build());
+          isFromExternalAuth,
+          Collections.unmodifiableMap(map));
     }
   }
 }

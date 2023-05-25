@@ -15,14 +15,15 @@
  */
 package io.stargate.auth;
 
-import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import io.stargate.db.AuthenticatedUser;
 import io.stargate.db.ImmutableAuthenticatedUser;
+import java.util.Collections;
 import java.util.Map;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 @Value.Immutable
+@Value.Style(builtinContainerAttributes = false)
 public interface AuthenticationSubject {
 
   @Nullable
@@ -36,7 +37,7 @@ public interface AuthenticationSubject {
   boolean isFromExternalAuth();
 
   @Value.Parameter
-  ImmutableMap<String, String> customProperties();
+  Map<String, String> customProperties();
 
   default AuthenticatedUser asUser() {
     return ImmutableAuthenticatedUser.of(
@@ -46,15 +47,16 @@ public interface AuthenticationSubject {
   static AuthenticationSubject of(
       String token, String roleName, boolean fromExternalAuth, Map<String, String> properties) {
     return ImmutableAuthenticationSubject.of(
-        token, roleName, fromExternalAuth, ImmutableMap.copyOf(properties));
+        token, roleName, fromExternalAuth, Collections.unmodifiableMap(properties));
   }
 
   static AuthenticationSubject of(String token, String roleName, boolean fromExternalAuth) {
-    return ImmutableAuthenticationSubject.of(token, roleName, fromExternalAuth, ImmutableMap.of());
+    return ImmutableAuthenticationSubject.of(
+        token, roleName, fromExternalAuth, Collections.emptyMap());
   }
 
   static AuthenticationSubject of(String token, String roleName) {
-    return ImmutableAuthenticationSubject.of(token, roleName, false, ImmutableMap.of());
+    return ImmutableAuthenticationSubject.of(token, roleName, false, Collections.emptyMap());
   }
 
   static AuthenticationSubject of(AuthenticatedUser user) {

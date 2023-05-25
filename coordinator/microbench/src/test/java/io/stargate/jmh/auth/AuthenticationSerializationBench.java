@@ -24,18 +24,22 @@ import org.openjdk.jmh.infra.Blackhole;
 /**
  * Benchmarks for {@link AuthenticationSubject} serialization.
  *
- * <p>Run with: <code>../mvnw jmh:benchmark -Djmh.prof=gc</code>, gave these results: <code>
- * Benchmark                                                                       (propertyCount)   Mode  Cnt     Score    Error   Units
- * AuthenticationSerializationBench.loadAuthenticationSubject                                    2  thrpt    5     1.642 ±  0.044  ops/us
- * AuthenticationSerializationBench.loadAuthenticationSubject:·gc.alloc.rate                     2  thrpt    5  2630.386 ± 70.494  MB/sec
- * AuthenticationSerializationBench.loadAuthenticationSubject:·gc.alloc.rate.norm                2  thrpt    5  1680.000 ±  0.001    B/op
- * AuthenticationSerializationBench.loadAuthenticationSubject:·gc.count                          2  thrpt    5   333.000           counts
- * AuthenticationSerializationBench.loadAuthenticationSubject:·gc.time                           2  thrpt    5   223.000               ms
- * AuthenticationSerializationBench.loadAuthenticationSubject                                    4  thrpt    5     1.103 ±  0.045  ops/us
- * AuthenticationSerializationBench.loadAuthenticationSubject:·gc.alloc.rate                     4  thrpt    5  2440.713 ± 99.410  MB/sec
- * AuthenticationSerializationBench.loadAuthenticationSubject:·gc.alloc.rate.norm                4  thrpt    5  2320.000 ±  0.001    B/op
- * AuthenticationSerializationBench.loadAuthenticationSubject:·gc.count                          4  thrpt    5   338.000           counts
- * AuthenticationSerializationBench.loadAuthenticationSubject:·gc.time                           4  thrpt    5   228.000               ms
+ * <p>Run with: <code>
+ * ../mvnw jmh:benchmark -Djmh.benchmarks=AuthenticationSerializationBench -Djmh.prof=gc</code>,
+ * gave these results:
+ *
+ * <p><code>
+ * Benchmark                                                                       (propertyCount)   Mode  Cnt     Score     Error   Units
+ * AuthenticationSerializationBench.loadAuthenticationSubject                                    2  thrpt    5     3.384 ±   0.230  ops/us
+ * AuthenticationSerializationBench.loadAuthenticationSubject:·gc.alloc.rate                     2  thrpt    5  1807.395 ± 123.001  MB/sec
+ * AuthenticationSerializationBench.loadAuthenticationSubject:·gc.alloc.rate.norm                2  thrpt    5   560.000 ±   0.001    B/op
+ * AuthenticationSerializationBench.loadAuthenticationSubject:·gc.count                          2  thrpt    5   338.000            counts
+ * AuthenticationSerializationBench.loadAuthenticationSubject:·gc.time                           2  thrpt    5   228.000                ms
+ * AuthenticationSerializationBench.loadAuthenticationSubject                                    4  thrpt    5     2.137 ±   0.029  ops/us
+ * AuthenticationSerializationBench.loadAuthenticationSubject:·gc.alloc.rate                     4  thrpt    5  1728.442 ±  23.497  MB/sec
+ * AuthenticationSerializationBench.loadAuthenticationSubject:·gc.alloc.rate.norm                4  thrpt    5   848.000 ±   0.001    B/op
+ * AuthenticationSerializationBench.loadAuthenticationSubject:·gc.count                          4  thrpt    5   333.000            counts
+ * AuthenticationSerializationBench.loadAuthenticationSubject:·gc.time                           4  thrpt    5   227.000                ms
  * </code>
  */
 @BenchmarkMode(Mode.Throughput)
