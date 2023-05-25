@@ -1,11 +1,14 @@
 package io.stargate.it.cql;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.cql.Row;
 import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
+import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,10 +17,6 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.api.extension.ExtendWith;
-
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
 
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(
@@ -52,9 +51,7 @@ public class VectorTypeTest extends BaseIntegrationTest {
             .build());
 
     List<Row> rows =
-        session
-            .execute("select pk,str from vector_type_ks.vector_type_table where pk=123")
-            .all();
+        session.execute("select pk,str from vector_type_ks.vector_type_table where pk=123").all();
     assertThat(rows).isNotNull().hasSize(1);
     Row row = rows.get(0);
     assertThat(row.getInt("pk")).isEqualTo(123);
