@@ -1,5 +1,10 @@
 package io.stargate.db.schema;
 
+/**
+ * Actual type definition for {@code Column.Type.Vector}: needed because we need to pass
+ * "dimensions" parameter, and cannot quite use {@link ParameterizedType} since parameterization is
+ * not by type (yet at least?) but by fixed length.
+ */
 public class VectorType extends Column.DelegatingColumnType {
   private final int dimensions;
 
