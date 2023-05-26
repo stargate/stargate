@@ -132,7 +132,6 @@ public class Conversion {
     types.put(TimeType.instance.getClass(), Column.Type.Time);
     types.put(TimestampType.instance.getClass(), Column.Type.Timestamp);
     types.put(TimeUUIDType.instance.getClass(), Column.Type.Timeuuid);
-    types.put(VectorType.class, Column.Type.Vector);
 
     TYPE_MAPPINGS = ImmutableMap.copyOf(types);
   }
@@ -546,6 +545,9 @@ public class Conversion {
           .addAllColumns(getUDTColumns(udt))
           .build()
           .frozen(!udt.isMultiCell());
+    } else if (abstractType.getClass().equals(VectorType.class)) {
+      VectorType vt = (VectorType) abstractType;
+      return io.stargate.db.schema.VectorType.of(vt.getDimensions());
     }
 
     Column.Type type = TYPE_MAPPINGS.get(abstractType.getClass());
