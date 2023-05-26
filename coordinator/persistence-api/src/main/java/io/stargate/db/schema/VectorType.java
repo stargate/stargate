@@ -6,18 +6,23 @@ package io.stargate.db.schema;
  * not by type (yet at least?) but by fixed length.
  */
 public class VectorType extends Column.DelegatingColumnType {
+  private final Column.ColumnType elementType;
   private final int dimensions;
 
   private final String marshalTypeName;
 
-  protected VectorType(int dimensions) {
+  protected VectorType(Column.ColumnType elementType, int dimensions) {
     super(Column.Type.Vector);
+    this.elementType = elementType;
     this.dimensions = dimensions;
-    marshalTypeName = String.format("org.apache.cassandra.db.marshal.VectorType(%s)", dimensions);
+    marshalTypeName =
+        String.format(
+            "org.apache.cassandra.db.marshal.VectorType(%s, %s)",
+            elementType.marshalTypeName(), dimensions);
   }
 
-  public static VectorType of(int dimensions) {
-    return new VectorType(dimensions);
+  public static VectorType of(Column.ColumnType elementType, int dimensions) {
+    return new VectorType(elementType, dimensions);
   }
 
   @Override
@@ -27,6 +32,6 @@ public class VectorType extends Column.DelegatingColumnType {
 
   @Override
   public int schemaHashCode() {
-    return delegate.schemaHashCode() + dimensions;
+    return delegate.schemaHashCode() ^ elementType.schemaHashCode() + dimensions;
   }
 }
