@@ -1,93 +1,17 @@
 # Changelog
 
-## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.15...HEAD)
-
-**Closed issues:**
-
-- Add support for experimental "VectorType" in `persistence-api` [\#2593](https://github.com/stargate/stargate/issues/2593)
-
 ## [v2.0.15](https://github.com/stargate/stargate/tree/v2.0.15) (2023-05-26)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.14...v2.0.15)
 
-**Implemented enhancements:**
-
-- Add a Stargate-aware status command [\#672](https://github.com/stargate/stargate/issues/672)
-- Support inter-node SSL [\#642](https://github.com/stargate/stargate/issues/642)
-- stargate support aws dynamodb http api  [\#597](https://github.com/stargate/stargate/issues/597)
-- Allow Multi Doc Insert for Create Collection [\#586](https://github.com/stargate/stargate/issues/586)
-- Support JSON logging output format for simpler log management [\#575](https://github.com/stargate/stargate/issues/575)
-- support SOLR [\#570](https://github.com/stargate/stargate/issues/570)
-- Add support for setting the TTL for a column value on POST in REST API implementation [\#394](https://github.com/stargate/stargate/issues/394)
-- Pre-populate playground tabs with non-system keyspaces info [\#371](https://github.com/stargate/stargate/issues/371)
-
-**Fixed bugs:**
-
-- Schema disagreement can occur during network partition from storage nodes [\#618](https://github.com/stargate/stargate/issues/618)
-- Stargate is not able to join DSE cluster after a quick restart [\#587](https://github.com/stargate/stargate/issues/587)
-- Big decimal values returned by REST/v1 do not have  [\#185](https://github.com/stargate/stargate/issues/185)
-
 **Closed issues:**
 
+- Add support for experimental "VectorType" in `persistence-api` [\#2593](https://github.com/stargate/stargate/issues/2593)
 - Update to Quarkus 3.x line [\#2520](https://github.com/stargate/stargate/issues/2520)
-- Geospacial types cleanup [\#755](https://github.com/stargate/stargate/issues/755)
-- Automatically reload seeds from DNS when unable to connect to storage nodes [\#710](https://github.com/stargate/stargate/issues/710)
-- Expose metrics mbeans for C\* 4.0 and DSE [\#684](https://github.com/stargate/stargate/issues/684)
-- Remove validation in QueryBuilder \(or add a way to disable it\) [\#664](https://github.com/stargate/stargate/issues/664)
-- Enable lightweight transaction usage across APIs [\#663](https://github.com/stargate/stargate/issues/663)
-- Running nodetool resetlocalschema destroys system.local and system.peers [\#647](https://github.com/stargate/stargate/issues/647)
-- Disable creating a default role \(CasandraRoleManager\#setup\(\)\) unless using development mode [\#624](https://github.com/stargate/stargate/issues/624)
-- Latency spikes when new nodes are added [\#617](https://github.com/stargate/stargate/issues/617)
-- Fix non-deterministic `BatchStatementTest`  [\#561](https://github.com/stargate/stargate/issues/561)
-- Update logback.xml to use async loggers [\#550](https://github.com/stargate/stargate/issues/550)
-- Add stargate starter integration tests for IPv6 [\#547](https://github.com/stargate/stargate/issues/547)
-- Unify date/time handling in GraphQL API and REST [\#532](https://github.com/stargate/stargate/issues/532)
-- Nanosecond precision is lost in REST API round-trips to the server [\#521](https://github.com/stargate/stargate/issues/521)
-- Add TTL on the cell mutation level and the BoundDMLQuery [\#519](https://github.com/stargate/stargate/issues/519)
-- CQL: Expose useful client metrics [\#509](https://github.com/stargate/stargate/issues/509)
-- Expose new method in the Config Store to getConfigForModule without throwing an exception [\#505](https://github.com/stargate/stargate/issues/505)
-- Make authenticator and authorizer configurable [\#428](https://github.com/stargate/stargate/issues/428)
-- GraphQL: Make all data fetchers async [\#421](https://github.com/stargate/stargate/issues/421)
-- Update or remove graphql/README.md [\#396](https://github.com/stargate/stargate/issues/396)
-- Add support for nullish operations [\#393](https://github.com/stargate/stargate/issues/393)
-- Impove timeout handling in Persistence.waitForSchemaAgreement [\#318](https://github.com/stargate/stargate/issues/318)
-- Persistence API's query builder does not format conditions on map entries correctly [\#314](https://github.com/stargate/stargate/issues/314)
-- GraphQL: support conditions on UDT fields [\#308](https://github.com/stargate/stargate/issues/308)
-- CQL: Add integration test verifying the contents of `system.peers` after adding/removing nodes [\#253](https://github.com/stargate/stargate/issues/253)
-- NPE in NativeTransportService.destroy [\#224](https://github.com/stargate/stargate/issues/224)
-- Type check in ExternalStorage\#supportsParameter is too permissive [\#188](https://github.com/stargate/stargate/issues/188)
-- Prepared statement metadata is not refreshed when the table gets altered [\#184](https://github.com/stargate/stargate/issues/184)
-- Add JSON type to Graphql [\#143](https://github.com/stargate/stargate/issues/143)
-- Relay nested pagination [\#142](https://github.com/stargate/stargate/issues/142)
-- Surface frozen types [\#140](https://github.com/stargate/stargate/issues/140)
-- Add primary key directives to types [\#139](https://github.com/stargate/stargate/issues/139)
-- Query TTL Function [\#138](https://github.com/stargate/stargate/issues/138)
-- Query WriteTime function [\#137](https://github.com/stargate/stargate/issues/137)
-- Add custom clause handling to base query types [\#136](https://github.com/stargate/stargate/issues/136)
-- PageSize may return inaccurate number of rows [\#135](https://github.com/stargate/stargate/issues/135)
-- Add hasNextPage for exact paging [\#134](https://github.com/stargate/stargate/issues/134)
-- Support the TOKEN function [\#129](https://github.com/stargate/stargate/issues/129)
-- HTTP 2 support [\#127](https://github.com/stargate/stargate/issues/127)
-- Surface database field names [\#125](https://github.com/stargate/stargate/issues/125)
-- Support Nested Mutations [\#124](https://github.com/stargate/stargate/issues/124)
-- Support Computed Fields [\#121](https://github.com/stargate/stargate/issues/121)
-- Persisted Queries for graphql [\#120](https://github.com/stargate/stargate/issues/120)
-- Support schema changes for the graphql endpoint [\#119](https://github.com/stargate/stargate/issues/119)
-- Support union and interface types [\#81](https://github.com/stargate/stargate/issues/81)
-- Surface Indexes [\#80](https://github.com/stargate/stargate/issues/80)
-- C\* nodes added to the cluster seen as peers by Stargate [\#65](https://github.com/stargate/stargate/issues/65)
-- Accepting CQL connection prematurely  [\#64](https://github.com/stargate/stargate/issues/64)
-- add http/2 support to the rest API [\#63](https://github.com/stargate/stargate/issues/63)
-- Rest Api: Better Primary Key Validation [\#60](https://github.com/stargate/stargate/issues/60)
-- Rest Api: Find a way to shrink paging state [\#59](https://github.com/stargate/stargate/issues/59)
-- /schema/keyspaces/{ks} does not show replication information \(only name\) if SimpleStrategy is used [\#54](https://github.com/stargate/stargate/issues/54)
 
 **Merged pull requests:**
 
 - Persistence-api support for upcoming experimental Vector type [\#2597](https://github.com/stargate/stargate/pull/2597) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version for next v2 release [\#2592](https://github.com/stargate/stargate/pull/2592) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v2.0.14](https://github.com/stargate/stargate/tree/v2.0.14) (2023-05-24)
 
