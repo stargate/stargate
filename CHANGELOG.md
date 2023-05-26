@@ -1,5 +1,31 @@
 # Changelog
 
+## [v2.0.14](https://github.com/stargate/stargate/tree/v2.0.14) (2023-05-24)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.13...v2.0.14)
+
+**Closed issues:**
+
+- Possible Serialization incompatibility for `decimal` values between SGv2/SGv1 for REST API \(v2\) [\#2579](https://github.com/stargate/stargate/issues/2579)
+- Possible Serialization incompatibility for `Map`s between SGv2/SGv1 for REST API \(v2\) [\#2577](https://github.com/stargate/stargate/issues/2577)
+- Update to DSE 6.8.35 [\#2569](https://github.com/stargate/stargate/issues/2569)
+- Space removed from HTML document \(even in \<pre\>\) [\#2444](https://github.com/stargate/stargate/issues/2444)
+- Update licenses report  [\#2414](https://github.com/stargate/stargate/issues/2414)
+- Remove dependency on ccm for integration tests [\#2348](https://github.com/stargate/stargate/issues/2348)
+- Update to Quarkus 3.x line [\#2520](https://github.com/stargate/stargate/issues/2520)
+
+
+**Merged pull requests:**
+
+- Fix \#2569: update DSE dep 6.8.34 -\> 6.8.35 [\#2590](https://github.com/stargate/stargate/pull/2590) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- improve developer guides [\#2589](https://github.com/stargate/stargate/pull/2589) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- updated oss license report [\#2588](https://github.com/stargate/stargate/pull/2588) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- C2-2717: do not pre-calculate schema hash for non-keyspace objects [\#2585](https://github.com/stargate/stargate/pull/2585) ([ivansenic](https://github.com/ivansenic))
+- C2-2717: small optimizations for result conversion [\#2584](https://github.com/stargate/stargate/pull/2584) ([ivansenic](https://github.com/ivansenic))
+- Add SGv2 tests wrt \#2577 [\#2583](https://github.com/stargate/stargate/pull/2583) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2 release [\#2578](https://github.com/stargate/stargate/pull/2578) ([github-actions[bot]](https://github.com/apps/github-actions))
+- closes \#2520: upgrade to quarkus 3.x [\#2546](https://github.com/stargate/stargate/pull/2546) ([ivansenic](https://github.com/ivansenic))
+
 ## [v2.0.13](https://github.com/stargate/stargate/tree/v2.0.13) (2023-05-12)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.76...v2.0.13)
