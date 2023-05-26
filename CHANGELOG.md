@@ -1,5 +1,18 @@
 # Changelog
 
+## [v2.0.15](https://github.com/stargate/stargate/tree/v2.0.15) (2023-05-26)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.14...v2.0.15)
+
+**Closed issues:**
+
+- Add support for experimental "VectorType" in `persistence-api` [\#2593](https://github.com/stargate/stargate/issues/2593)
+- Update to Quarkus 3.x line [\#2520](https://github.com/stargate/stargate/issues/2520)
+
+**Merged pull requests:**
+
+- Persistence-api support for upcoming experimental Vector type [\#2597](https://github.com/stargate/stargate/pull/2597) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v2.0.14](https://github.com/stargate/stargate/tree/v2.0.14) (2023-05-24)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.13...v2.0.14)
