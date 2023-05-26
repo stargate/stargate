@@ -103,7 +103,7 @@ public class ColumnUtils {
       case LineString: // Fallthrough intended
       case Point: // Fallthrough intended
       case Polygon: // Fallthrough intended
-      case Vector: // NOTE: marshalTypeName includes length (dimensions)
+      case Vector: // NOTE: marshalTypeName includes element type, length (dimensions)
         // For custom types the class name of the type follows the type ID (which is zero)
         CBUtil.writeAsciiString(type.marshalTypeName(), dest);
         break;
@@ -145,7 +145,7 @@ public class ColumnUtils {
       case LineString: // Fallthrough intended
       case Point: // Fallthrough intended
       case Polygon: // Fallthrough intended
-      case Vector: // NOTE: marshalTypeName includes length (dimensions)
+      case Vector: // NOTE: marshalTypeName includes element type, length (dimensions)
         size += CBUtil.sizeOfAsciiString(type.marshalTypeName());
         break;
       default: // fall though (simple types)
