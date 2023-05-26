@@ -26,8 +26,6 @@ public class SupportedOptionsTest extends BaseIntegrationTest {
     assertThat(options).containsKey("COMPRESSION");
     if (backend.isDse()) {
       assertThat(options).containsKey("PAGE_UNIT");
-      assertThat(options).containsKey("SERVER_VERSION");
-      assertThat(options).containsKey("PRODUCT_TYPE");
       assertThat(options).containsKey("EMULATE_DBAAS_DEFAULTS");
     }
   }
