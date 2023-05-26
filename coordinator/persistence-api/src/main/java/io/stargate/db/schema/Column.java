@@ -245,6 +245,128 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
     ColumnType fieldType(String name);
   }
 
+  /**
+   * A {@link ColumnType} that delegates all calls to another {@link ColumnType}. This is useful for
+   * sub-classing purposes.
+   */
+  public static class DelegatingColumnType implements ColumnType {
+    protected final ColumnType delegate;
+
+    protected DelegatingColumnType(ColumnType delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public int id() {
+      return delegate.id();
+    }
+
+    @Override
+    public Type rawType() {
+      return delegate.rawType();
+    }
+
+    @Override
+    public Class<?> javaType() {
+      return delegate.javaType();
+    }
+
+    @Override
+    public String marshalTypeName() {
+      return delegate.marshalTypeName();
+    }
+
+    @Override
+    public boolean isParameterized() {
+      return delegate.isParameterized();
+    }
+
+    @Override
+    public boolean isFrozen() {
+      return delegate.isFrozen();
+    }
+
+    @Override
+    public Object validate(Object value, String location) throws ValidationException {
+      return delegate.validate(value, location);
+    }
+
+    @Override
+    public String cqlDefinition() {
+      return delegate.cqlDefinition();
+    }
+
+    @Override
+    public String name() {
+      return delegate.name();
+    }
+
+    @Override
+    public TypeCodec codec() {
+      return delegate.codec();
+    }
+
+    @Override
+    public String toCQLString(Object value) {
+      return delegate.toCQLString(value);
+    }
+
+    @Override
+    public String toString(Object value) {
+      return delegate.toString(value);
+    }
+
+    @Override
+    public Object fromString(String value) {
+      return delegate.fromString(value);
+    }
+
+    @Override
+    public boolean isCollection() {
+      return delegate.isCollection();
+    }
+
+    @Override
+    public boolean isUserDefined() {
+      return delegate.isUserDefined();
+    }
+
+    @Override
+    public boolean isTuple() {
+      return delegate.isTuple();
+    }
+
+    @Override
+    public boolean isList() {
+      return delegate.isList();
+    }
+
+    @Override
+    public boolean isMap() {
+      return delegate.isMap();
+    }
+
+    @Override
+    public boolean isSet() {
+      return delegate.isSet();
+    }
+
+    @Override
+    public boolean isComplexType() {
+      return delegate.isComplexType();
+    }
+
+    @Override
+    public ColumnType fieldType(String name) {
+      return delegate.fieldType(name);
+    }
+
+    @Override
+    public int schemaHashCode() {
+      return delegate.schemaHashCode();
+    }
+  }
+
   public enum Type implements ColumnType {
     Ascii(1, String.class, true, "US-ASCII characters"),
     Bigint(2, Long.class, false, "64-bit signed integer"),
@@ -474,7 +596,18 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
       public boolean isUserDefined() {
         return true;
       }
-    };
+    },
+
+    /**
+     * New experimental Vector type (see {@href https://github.com/stargate/stargate/issues/2393}).
+     */
+    Vector(
+        0, // custom type
+        io.stargate.db.schema.VectorValue.class,
+        "org.apache.cassandra.db.marshal.VectorType",
+        true,
+        null,
+        "Experimental vector value type");
 
     private final int id;
     private final String usage;
