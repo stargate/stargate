@@ -12,6 +12,10 @@ import io.stargate.sgv2.api.common.cql.builder.Term;
 import io.stargate.sgv2.api.common.cql.builder.ValueModifier;
 import io.stargate.sgv2.restapi.grpc.ToProtoConverter;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.PathSegment;
+import jakarta.ws.rs.core.Response;
+import jakarta.ws.rs.core.Response.Status;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -22,10 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.PathSegment;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 import org.jboss.resteasy.reactive.RestResponse;
 
 public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsResourceApi {

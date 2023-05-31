@@ -35,6 +35,18 @@ import java.util.UUID;
 import org.junit.jupiter.api.Test;
 
 public class ColumnTest {
+
+  @Test
+  public void orderDefaultRespected() {
+    // clustering
+    Column clustering = Column.create("test", Column.Kind.Clustering);
+    assertThat(clustering.order()).isEqualTo(Column.Order.ASC);
+
+    // non clustering column, no order
+    Column nonClustering = Column.create("test", Column.Kind.Regular);
+    assertThat(nonClustering.order()).isNull();
+  }
+
   @Test
   public void testFromString() throws UnknownHostException {
     assertThat(Type.Ascii.fromString("2")).isEqualTo("2");

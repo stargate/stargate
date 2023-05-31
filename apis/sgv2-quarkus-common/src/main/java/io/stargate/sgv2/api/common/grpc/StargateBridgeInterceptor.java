@@ -14,12 +14,12 @@ import io.quarkus.arc.InjectableContext;
 import io.quarkus.grpc.GlobalInterceptor;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.config.GrpcConfig;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 
 /**
  * ClientInterceptor that enriches request Metadata with tenant ID and cassandra token from

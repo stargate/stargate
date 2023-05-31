@@ -245,6 +245,128 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
     ColumnType fieldType(String name);
   }
 
+  /**
+   * A {@link ColumnType} that delegates all calls to another {@link ColumnType}. This is useful for
+   * sub-classing purposes.
+   */
+  public static class DelegatingColumnType implements ColumnType {
+    protected final ColumnType delegate;
+
+    protected DelegatingColumnType(ColumnType delegate) {
+      this.delegate = delegate;
+    }
+
+    @Override
+    public int id() {
+      return delegate.id();
+    }
+
+    @Override
+    public Type rawType() {
+      return delegate.rawType();
+    }
+
+    @Override
+    public Class<?> javaType() {
+      return delegate.javaType();
+    }
+
+    @Override
+    public String marshalTypeName() {
+      return delegate.marshalTypeName();
+    }
+
+    @Override
+    public boolean isParameterized() {
+      return delegate.isParameterized();
+    }
+
+    @Override
+    public boolean isFrozen() {
+      return delegate.isFrozen();
+    }
+
+    @Override
+    public Object validate(Object value, String location) throws ValidationException {
+      return delegate.validate(value, location);
+    }
+
+    @Override
+    public String cqlDefinition() {
+      return delegate.cqlDefinition();
+    }
+
+    @Override
+    public String name() {
+      return delegate.name();
+    }
+
+    @Override
+    public TypeCodec codec() {
+      return delegate.codec();
+    }
+
+    @Override
+    public String toCQLString(Object value) {
+      return delegate.toCQLString(value);
+    }
+
+    @Override
+    public String toString(Object value) {
+      return delegate.toString(value);
+    }
+
+    @Override
+    public Object fromString(String value) {
+      return delegate.fromString(value);
+    }
+
+    @Override
+    public boolean isCollection() {
+      return delegate.isCollection();
+    }
+
+    @Override
+    public boolean isUserDefined() {
+      return delegate.isUserDefined();
+    }
+
+    @Override
+    public boolean isTuple() {
+      return delegate.isTuple();
+    }
+
+    @Override
+    public boolean isList() {
+      return delegate.isList();
+    }
+
+    @Override
+    public boolean isMap() {
+      return delegate.isMap();
+    }
+
+    @Override
+    public boolean isSet() {
+      return delegate.isSet();
+    }
+
+    @Override
+    public boolean isComplexType() {
+      return delegate.isComplexType();
+    }
+
+    @Override
+    public ColumnType fieldType(String name) {
+      return delegate.fieldType(name);
+    }
+
+    @Override
+    public int schemaHashCode() {
+      return delegate.schemaHashCode();
+    }
+  }
+
   public enum Type implements ColumnType {
     Ascii(1, String.class, true, "US-ASCII characters"),
     Bigint(2, Long.class, false, "64-bit signed integer"),
@@ -474,7 +596,18 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
       public boolean isUserDefined() {
         return true;
       }
-    };
+    },
+
+    /**
+     * New experimental Vector type (see {@href https://github.com/stargate/stargate/issues/2393}).
+     */
+    Vector(
+        0, // custom type
+        io.stargate.db.schema.VectorValue.class,
+        "org.apache.cassandra.db.marshal.VectorType",
+        true,
+        null,
+        "Experimental vector value type");
 
     private final int id;
     private final String usage;
@@ -876,9 +1009,6 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
                   .collect(Collectors.toMap(r -> r.javaType, r -> r)))
           .build();
 
-  @Nullable
-  public abstract ColumnType type();
-
   public boolean ofTypeText() {
     return ofTypeText(type());
   }
@@ -928,35 +1058,48 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
   }
 
   @Nullable
-  public abstract Kind kind();
-
-  @Nullable
+  @Value.Parameter(order = 1)
   public abstract String keyspace();
 
   @Nullable
+  @Value.Parameter(order = 2)
   public abstract String table();
+
+  @Override
+  @Value.Parameter(order = 3)
+  public abstract String name();
+
+  @Nullable
+  @Value.Parameter(order = 4)
+  public abstract Kind kind();
+
+  @Nullable
+  @Value.Parameter(order = 5)
+  public abstract ColumnType type();
 
   public Column reference() {
     return reference(name());
   }
 
   public static Column reference(String name) {
-    return ImmutableColumn.builder().name(name).build();
+    return ImmutableColumn.of(null, null, name, null, null);
   }
 
   public static Column create(String name, Kind kind) {
-    return ImmutableColumn.builder().name(name).kind(kind).build();
+    return ImmutableColumn.of(null, null, name, kind, null);
   }
 
   public static Column create(String name, Column.ColumnType type) {
-    return ImmutableColumn.builder().name(name).type(type).kind(Regular).build();
+    return create(name, Regular, type);
   }
 
   public static Column create(String name, Kind kind, Column.ColumnType type) {
-    return ImmutableColumn.builder().name(name).kind(kind).type(type).build();
+    return ImmutableColumn.of(null, null, name, kind, type);
   }
 
   public static Column create(String name, Kind kind, Column.ColumnType type, Order order) {
+    // keep using builder here, to set order
+    // order has calculated default, so can not be a parameter
     if (kind == Kind.Clustering && order == null) {
       order = Order.ASC;
     }
@@ -986,8 +1129,6 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
   }
 
   @Override
-  @Value.Derived
-  @Value.Auxiliary
   public int schemaHashCode() {
     return SchemaHashable.combine(
         SchemaHashable.hashCode(name()),

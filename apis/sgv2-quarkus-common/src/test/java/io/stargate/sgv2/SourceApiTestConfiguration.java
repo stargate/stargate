@@ -18,8 +18,8 @@
 package io.stargate.sgv2;
 
 import io.stargate.sgv2.api.common.grpc.SourceApiQualifier;
-import javax.enterprise.context.ApplicationScoped;
-import javax.ws.rs.Produces;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.ws.rs.Produces;
 
 /** Test config for the source api, so common can boot itself. */
 @ApplicationScoped

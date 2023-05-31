@@ -17,10 +17,10 @@ package io.stargate.sgv2.graphql.integration.util;
 
 import com.jayway.jsonpath.JsonPath;
 import graphql.com.google.common.collect.ImmutableMap;
+import jakarta.ws.rs.core.Response;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import javax.ws.rs.core.Response;
 import org.apache.http.HttpStatus;
 
 public class GraphqlFirstClient extends GraphqlClient {

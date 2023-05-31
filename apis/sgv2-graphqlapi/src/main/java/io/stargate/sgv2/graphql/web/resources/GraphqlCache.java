@@ -34,14 +34,14 @@ import io.stargate.sgv2.graphql.schema.graphqlfirst.AdminSchemaBuilder;
 import io.stargate.sgv2.graphql.schema.graphqlfirst.migration.CassandraMigrator;
 import io.stargate.sgv2.graphql.schema.graphqlfirst.processor.ProcessedSchema;
 import io.stargate.sgv2.graphql.schema.graphqlfirst.processor.SchemaProcessor;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 
 /**
  * Manages the {@link GraphQL} instances used by our REST resources.

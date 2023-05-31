@@ -25,9 +25,9 @@ import io.stargate.sgv2.api.common.security.HeaderAuthenticationRequest;
 import io.stargate.sgv2.api.common.security.HeaderBasedAuthenticationMechanism;
 import io.stargate.sgv2.api.common.security.HeaderIdentityProvider;
 import io.stargate.sgv2.api.common.security.challenge.ChallengeSender;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Instance;
-import javax.enterprise.inject.Produces;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Instance;
+import jakarta.enterprise.inject.Produces;
 
 /** The configuration for the header based security. */
 public class HeaderBasedSecurityConfiguration {

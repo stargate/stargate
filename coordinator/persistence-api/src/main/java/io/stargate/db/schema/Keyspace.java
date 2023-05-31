@@ -157,6 +157,14 @@ public abstract class Keyspace implements SchemaEntity {
     return table;
   }
 
+  /**
+   * {@inheritDoc}
+   *
+   * <p>Note that here we are pre-calculating the schema hash, as it's immutable for the keyspace
+   * and we use it frequently in the {@link
+   * io.stargate.bridge.service.BridgeService#executeQueryWithSchema(io.stargate.bridge.proto.Schema.QueryWithSchema,
+   * io.grpc.stub.StreamObserver)}.
+   */
   @Override
   @Value.Derived
   @Value.Auxiliary

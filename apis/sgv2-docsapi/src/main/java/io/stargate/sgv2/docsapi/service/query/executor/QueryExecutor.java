@@ -38,6 +38,8 @@ import io.stargate.sgv2.docsapi.service.query.model.ImmutableRawDocument;
 import io.stargate.sgv2.docsapi.service.query.model.RawDocument;
 import io.stargate.sgv2.docsapi.service.query.model.paging.CombinedPagingState;
 import io.stargate.sgv2.docsapi.service.query.model.paging.PagingStateSupplier;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -47,8 +49,6 @@ import java.util.Objects;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 
 /**
  * Executes pre-built document queries, groups document rows and manages document pagination.
@@ -381,7 +381,7 @@ public class QueryExecutor {
         Flowables.orderedMerge(allDocuments, comparator, false, 1);
 
     // transform back to the multi
-    return Multi.createFrom().publisher(orderedPublisher);
+    return MultiRx3Converters.<DocumentProperty>fromFlowable().from(orderedPublisher);
   }
 
   // executes a single query and returns Multi of the ResultSet

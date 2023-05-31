@@ -39,6 +39,8 @@ import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.grpc.UnauthorizedKeyspaceException;
 import io.stargate.sgv2.api.common.grpc.UnauthorizedTableException;
 import io.stargate.sgv2.api.common.grpc.proto.SchemaReads;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -49,8 +51,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 
 @ApplicationScoped
 public class SchemaManager {
@@ -632,7 +632,14 @@ public class SchemaManager {
                 // if it's not null, we map to keyspace with cached flag true
                 return Uni.createFrom()
                     .future(keyspaceFuture)
-                    .map(
+
+                    // if failure is cached, invalidate
+                    .onFailure()
+                    .recoverWithUni(() -> invalidateKeyspace(keyspaceName, tenantId))
+
+                    // on item proceed
+                    .onItem()
+                    .transform(
                         k -> {
                           // we don't know what's the cached object
                           // errors are also cached, so we need to add explicit check

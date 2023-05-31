@@ -18,8 +18,8 @@
 package io.stargate.sgv2.api.common.token;
 
 import io.vertx.ext.web.RoutingContext;
+import jakarta.ws.rs.core.SecurityContext;
 import java.util.Optional;
-import javax.ws.rs.core.SecurityContext;
 
 /**
  * Resolver of the Cassandra token. This token will be passed to the Bridge.

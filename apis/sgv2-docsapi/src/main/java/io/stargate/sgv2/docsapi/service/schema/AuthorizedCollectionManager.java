@@ -21,8 +21,8 @@ import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.schema.SchemaManager;
 import io.stargate.sgv2.docsapi.service.schema.qualifier.Authorized;
+import jakarta.enterprise.context.ApplicationScoped;
 import java.util.function.Function;
-import javax.enterprise.context.ApplicationScoped;
 
 /**
  * A version of the {@link CollectionManager} that ensures authorized schema reads are performed on

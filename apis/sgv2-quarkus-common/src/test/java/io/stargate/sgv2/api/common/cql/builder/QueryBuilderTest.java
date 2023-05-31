@@ -336,6 +336,9 @@ public class QueryBuilderTest {
           new QueryBuilder().select().count("a").from("ks", "tbl").build().getCql(),
           "SELECT COUNT(a) FROM ks.tbl"),
       arguments(
+          new QueryBuilder().select().count().from("ks", "tbl").build().getCql(),
+          "SELECT COUNT(1) FROM ks.tbl"),
+      arguments(
           new QueryBuilder().select().count("a").from("ks", "tbl").limit(1).build().getCql(),
           "SELECT COUNT(a) FROM ks.tbl LIMIT 1"),
       arguments(

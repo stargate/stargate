@@ -26,8 +26,8 @@ import io.stargate.sgv2.docsapi.api.exception.ErrorCodeRuntimeException;
 import io.stargate.sgv2.docsapi.service.function.BuiltInFunction;
 import io.stargate.sgv2.docsapi.service.query.ReadDocumentsService;
 import io.stargate.sgv2.docsapi.service.write.WriteDocumentsService;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 /** Pop function implementation. Pops a value to the existing array. Returns the popped value. */
 @ApplicationScoped

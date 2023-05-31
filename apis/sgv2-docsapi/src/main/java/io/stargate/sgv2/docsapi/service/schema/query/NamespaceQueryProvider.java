@@ -20,8 +20,8 @@ import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.api.common.config.QueriesConfig;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.api.common.cql.builder.Replication;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 
 /** Provider of queries used to manage namespaces. */
 @ApplicationScoped

@@ -35,7 +35,7 @@ To enable access to these ports from outside the Docker network, you'll need to 
 ```
 
 ## Docker Images
-Stargate Docker images are publicly available on [Docker Hub](https://hub.docker.com/r/stargateio/). To learn how the images are built or to build your own local versions, see the [coordinator node developer guide](../DEV_GUIDE.md) or API Service developer guides (under the [apis](apis) directory).
+Stargate Docker images are publicly available on [Docker Hub](https://hub.docker.com/r/stargateio/). To learn how the images are built or to build your own local versions, see the [coordinator instructions](../coordinator/README.md#quickstart) or [API instructions](../apis/README.md).
 
 The fastest way to build your own local images involves the following steps:
 

@@ -22,9 +22,9 @@ import io.stargate.sgv2.api.common.config.MultiTenancyConfig;
 import io.stargate.sgv2.api.common.tenant.TenantResolver;
 import io.stargate.sgv2.api.common.tenant.impl.FixedTenantResolver;
 import io.stargate.sgv2.api.common.tenant.impl.SubdomainTenantResolver;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.inject.Produces;
 import java.util.Optional;
-import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Produces;
 
 /** Configuration for activating a correct {@link TenantResolver}. */
 public class TenantConfiguration {

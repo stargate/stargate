@@ -5,6 +5,22 @@ The project (including its submodules) is an independent project in this monorep
 
 The REST, GraphQL, and Docs API services were factored into independent services as part of the Stargate v2 effort.
 
+## Quickstart
+
+The fastest way to build your own copy of the Stargate API service Docker images involves the following steps:
+
+* Make sure you are in the `apis` directory and have `JAVA_HOME` set to point to a JDK 17 installation
+* Do a Quarkus build including the option to generate images:
+  ```
+  ./mvnw clean package -DskipTests -Dquarkus.container-image.build=true
+  ```
+* Verify the images exist
+  ```
+  docker images | grep <stargate version>
+  ```    
+
+You can then use the [docker-compose](../docker-compose) scripts to start Stargate locally. See also the [coordinator README](../coordinator/README.md#quickstart) for information on compiling and building images for the coordinator.
+
 ## Development guide
 
 The submodules in this project use Quarkus, the Supersonic Subatomic Java Framework.

@@ -20,8 +20,8 @@ package io.stargate.sgv2.api.common.tenant.impl;
 import io.stargate.sgv2.api.common.config.MultiTenancyConfig;
 import io.stargate.sgv2.api.common.tenant.TenantResolver;
 import io.vertx.ext.web.RoutingContext;
+import jakarta.ws.rs.core.SecurityContext;
 import java.util.Optional;
-import javax.ws.rs.core.SecurityContext;
 
 /** The {@link TenantResolver} that uses a fixed tenant ID supplied by the configuration. */
 public class FixedTenantResolver implements TenantResolver {

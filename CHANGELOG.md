@@ -1,5 +1,85 @@
 # Changelog
 
+## [v2.0.15](https://github.com/stargate/stargate/tree/v2.0.15) (2023-05-26)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.14...v2.0.15)
+
+**Closed issues:**
+
+- Add support for experimental "VectorType" in `persistence-api` [\#2593](https://github.com/stargate/stargate/issues/2593)
+- Update to Quarkus 3.x line [\#2520](https://github.com/stargate/stargate/issues/2520)
+
+**Merged pull requests:**
+
+- Persistence-api support for upcoming experimental Vector type [\#2597](https://github.com/stargate/stargate/pull/2597) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v2.0.14](https://github.com/stargate/stargate/tree/v2.0.14) (2023-05-24)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.13...v2.0.14)
+
+**Closed issues:**
+
+- Possible Serialization incompatibility for `decimal` values between SGv2/SGv1 for REST API \(v2\) [\#2579](https://github.com/stargate/stargate/issues/2579)
+- Possible Serialization incompatibility for `Map`s between SGv2/SGv1 for REST API \(v2\) [\#2577](https://github.com/stargate/stargate/issues/2577)
+- Update to DSE 6.8.35 [\#2569](https://github.com/stargate/stargate/issues/2569)
+- Space removed from HTML document \(even in \<pre\>\) [\#2444](https://github.com/stargate/stargate/issues/2444)
+- Update licenses report  [\#2414](https://github.com/stargate/stargate/issues/2414)
+- Remove dependency on ccm for integration tests [\#2348](https://github.com/stargate/stargate/issues/2348)
+- Update to Quarkus 3.x line [\#2520](https://github.com/stargate/stargate/issues/2520)
+
+
+**Merged pull requests:**
+
+- Fix \#2569: update DSE dep 6.8.34 -\> 6.8.35 [\#2590](https://github.com/stargate/stargate/pull/2590) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- improve developer guides [\#2589](https://github.com/stargate/stargate/pull/2589) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- updated oss license report [\#2588](https://github.com/stargate/stargate/pull/2588) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- C2-2717: do not pre-calculate schema hash for non-keyspace objects [\#2585](https://github.com/stargate/stargate/pull/2585) ([ivansenic](https://github.com/ivansenic))
+- C2-2717: small optimizations for result conversion [\#2584](https://github.com/stargate/stargate/pull/2584) ([ivansenic](https://github.com/ivansenic))
+- Add SGv2 tests wrt \#2577 [\#2583](https://github.com/stargate/stargate/pull/2583) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2 release [\#2578](https://github.com/stargate/stargate/pull/2578) ([github-actions[bot]](https://github.com/apps/github-actions))
+- closes \#2520: upgrade to quarkus 3.x [\#2546](https://github.com/stargate/stargate/pull/2546) ([ivansenic](https://github.com/ivansenic))
+
+## [v2.0.13](https://github.com/stargate/stargate/tree/v2.0.13) (2023-05-12)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.76...v2.0.13)
+
+**Fixed bugs:**
+
+- Adapt JVM memory settings for docker-compose scenarios [\#2570](https://github.com/stargate/stargate/issues/2570)
+
+**Closed issues:**
+
+- Support count\(\) function without field name in QueryBuilder [\#2571](https://github.com/stargate/stargate/issues/2571)
+- Update C\*4.0.7 -\> 4.0.9 to help with SnakeYAML upgrade [\#2562](https://github.com/stargate/stargate/issues/2562)
+- Update SnakeYAML dependency for Stargate V2 APIs wrt Vulns [\#2559](https://github.com/stargate/stargate/issues/2559)
+- Upgrade GraphQL-java from 18.3 to 18.5 \(latest 18.x\) [\#2556](https://github.com/stargate/stargate/issues/2556)
+
+**Merged pull requests:**
+
+- Merge v1 main 051223 [\#2576](https://github.com/stargate/stargate/pull/2576) ([maheshrajamani](https://github.com/maheshrajamani))
+- Support count function with no column name arg [\#2574](https://github.com/stargate/stargate/pull/2574) ([maheshrajamani](https://github.com/maheshrajamani))
+- closes \#2570: adapted jvm memory settings and env vars for the docker… [\#2573](https://github.com/stargate/stargate/pull/2573) ([ivansenic](https://github.com/ivansenic))
+- updates Quarkus to 2.16.7 [\#2572](https://github.com/stargate/stargate/pull/2572) ([ivansenic](https://github.com/ivansenic))
+- Backport org.json upgrade from SGv2 \(issue \#2543, PR \#2544\) into v1 b… [\#2567](https://github.com/stargate/stargate/pull/2567) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release \(1.0.77-SNAPSHOT\) [\#2566](https://github.com/stargate/stargate/pull/2566) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Add default tags [\#2565](https://github.com/stargate/stargate/pull/2565) ([maheshrajamani](https://github.com/maheshrajamani))
+- Cql metrics driver tag [\#2564](https://github.com/stargate/stargate/pull/2564) ([maheshrajamani](https://github.com/maheshrajamani))
+- Fix \#2562: update C\*4 to c-4.0.9 [\#2563](https://github.com/stargate/stargate/pull/2563) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#2559: Override SnakeYAML dependency for APIs to 2.0 to resolve CVE-2022-1471 [\#2561](https://github.com/stargate/stargate/pull/2561) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Merging branch v1 into main [\#2560](https://github.com/stargate/stargate/pull/2560) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Fix \#2556: upgrade graphql-java dep \(18.3 -\> 18.5\) [\#2557](https://github.com/stargate/stargate/pull/2557) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Merging branch v1 into main [\#2555](https://github.com/stargate/stargate/pull/2555) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Fix \#2551: upgrade DropWizard \(2.0.35 -\> 2.1.6\) [\#2553](https://github.com/stargate/stargate/pull/2553) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- protect against prepared statement cache returning null [\#2552](https://github.com/stargate/stargate/pull/2552) ([ivansenic](https://github.com/ivansenic))
+- small fixes in integration test base classes [\#2550](https://github.com/stargate/stargate/pull/2550) ([ivansenic](https://github.com/ivansenic))
+- post quarkus 2.16.6 upgrade fixes [\#2549](https://github.com/stargate/stargate/pull/2549) ([ivansenic](https://github.com/ivansenic))
+- Fix \#2547, upgrade Jetty test dep \(only relevant wrt SGv1 endpoints\) [\#2548](https://github.com/stargate/stargate/pull/2548) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- upgrade quarkus to 2.16.6 [\#2545](https://github.com/stargate/stargate/pull/2545) ([ivansenic](https://github.com/ivansenic))
+- Fix \#2543: update org.json dep to latest [\#2544](https://github.com/stargate/stargate/pull/2544) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2 release [\#2541](https://github.com/stargate/stargate/pull/2541) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Fix Postman workflow [\#2540](https://github.com/stargate/stargate/pull/2540) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- fix the starctl exit too soon due to grep [\#2529](https://github.com/stargate/stargate/pull/2529) ([ivansenic](https://github.com/ivansenic))
+
 ## [v2.0.12](https://github.com/stargate/stargate/tree/v2.0.12) (2023-04-14)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.11...v2.0.12)
