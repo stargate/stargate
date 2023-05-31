@@ -6,7 +6,7 @@ This module represents the implementation of the [persistence-api](../persistenc
 
 ## Cassandra version update
 
-The current Cassandra version this module depends on is `3.11.14`.
+The current Cassandra version this module depends on is `3.11.15`.
 In order to update to a newer patch version, please follow the guidelines below:
 
 * Update the `cassandra.version` property in the [pom.xml](pom.xml).
@@ -28,6 +28,7 @@ Note that this will have no effect until the docker image is rebuilt and pushed 
 
 It's always good to validate your work against the pull requests that bumped the version in the past:
 
+* `3.11.14 -> 3.11.15` [stargate/stargate#2602](https://github.com/stargate/stargate/pull/2602)
 * `3.11.11 -> 3.11.12` [stargate/stargate#1646](https://github.com/stargate/stargate/pull/1646)
 * `3.11.9 -> 3.11.11` [stargate/stargate#1507](https://github.com/stargate/stargate/pull/1507)
 * `3.11.8 -> 3.11.9` [stargate/stargate#1337](https://github.com/stargate/stargate/pull/1337) & [stargate/stargate#1346](https://github.com/stargate/stargate/pull/1346)
