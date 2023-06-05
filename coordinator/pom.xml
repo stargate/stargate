@@ -215,6 +215,7 @@
         <module>grpc-proto</module>
         <module>bridge-proto</module>
         <module>grpc</module>
+        <module>microbench</module>
         <module>metrics-jersey</module>
         <module>grpc-examples</module>
         <!-- testing last -->
@@ -250,6 +251,7 @@
         <module>grpc-proto</module>
         <module>bridge-proto</module>
         <module>grpc</module>
+        <module>microbench</module>
         <module>metrics-jersey</module>
         <module>grpc-examples</module>
         <!-- testing last -->

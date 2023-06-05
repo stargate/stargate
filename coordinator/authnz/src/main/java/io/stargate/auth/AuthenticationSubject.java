@@ -16,61 +16,51 @@
 package io.stargate.auth;
 
 import io.stargate.db.AuthenticatedUser;
+import io.stargate.db.ImmutableAuthenticatedUser;
 import java.util.Collections;
 import java.util.Map;
 import javax.annotation.Nullable;
 import org.immutables.value.Value;
 
 @Value.Immutable
+@Value.Style(builtinContainerAttributes = false)
 public interface AuthenticationSubject {
 
   @Nullable
+  @Value.Parameter
   String token();
 
+  @Value.Parameter
   String roleName();
 
+  @Value.Parameter
   boolean isFromExternalAuth();
 
+  @Value.Parameter
   Map<String, String> customProperties();
 
   default AuthenticatedUser asUser() {
-    return AuthenticatedUser.of(roleName(), token(), isFromExternalAuth(), customProperties());
+    return ImmutableAuthenticatedUser.of(
+        roleName(), token(), isFromExternalAuth(), customProperties());
   }
 
   static AuthenticationSubject of(
       String token, String roleName, boolean fromExternalAuth, Map<String, String> properties) {
-    return ImmutableAuthenticationSubject.builder()
-        .token(token)
-        .roleName(roleName)
-        .isFromExternalAuth(fromExternalAuth)
-        .customProperties(properties)
-        .build();
+    return ImmutableAuthenticationSubject.of(
+        token, roleName, fromExternalAuth, Collections.unmodifiableMap(properties));
   }
 
   static AuthenticationSubject of(String token, String roleName, boolean fromExternalAuth) {
-    return ImmutableAuthenticationSubject.builder()
-        .token(token)
-        .roleName(roleName)
-        .isFromExternalAuth(fromExternalAuth)
-        .customProperties(Collections.emptyMap())
-        .build();
+    return ImmutableAuthenticationSubject.of(
+        token, roleName, fromExternalAuth, Collections.emptyMap());
   }
 
   static AuthenticationSubject of(String token, String roleName) {
-    return ImmutableAuthenticationSubject.builder()
-        .token(token)
-        .roleName(roleName)
-        .isFromExternalAuth(false)
-        .customProperties(Collections.emptyMap())
-        .build();
+    return ImmutableAuthenticationSubject.of(token, roleName, false, Collections.emptyMap());
   }
 
   static AuthenticationSubject of(AuthenticatedUser user) {
-    return ImmutableAuthenticationSubject.builder()
-        .token(user.token())
-        .roleName(user.name())
-        .isFromExternalAuth(user.isFromExternalAuth())
-        .customProperties(user.customProperties())
-        .build();
+    return ImmutableAuthenticationSubject.of(
+        user.token(), user.name(), user.isFromExternalAuth(), user.customProperties());
   }
 }
