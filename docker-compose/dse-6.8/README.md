@@ -37,6 +37,9 @@ The default environment settings in the `.env` file include variables that descr
 
 Once done using the containers, you can stop them using the command `docker compose down`.
 
+> **Running on M1 Macs**
+> Currently DSE Docker images do not support the ARM64 architecture used by M1 Macs. For this reason, the `docker-compose.yml` file hardcodes DSE containers to run using the `linux/amd64` architecture. You will need to make sure that Rosetta 2 emulation is enabled in the Docker Desktop settings for this to work on your M1 Mac. 
+
 ## Stargate with embedded DSE 6.8 (developer mode)
 
 This alternate configuration runs the Stargate coordinator node in developer mode, so that no separate Cassandra cluster is required. This configuration is useful for development and testing since it initializes more quickly, but is not recommended for production deployments. This can be run with the command:
