@@ -3,9 +3,10 @@ version: '2'
 services:
   dse-1:
     image: datastax/dse-server:${DSETAG}
+    platform: linux/amd64
     networks:
       - stargate
-    mem_limit: 2G
+    mem_limit: 2560M
     cap_add:
       - IPC_LOCK
     ulimits:
@@ -24,9 +25,10 @@ services:
 
   dse-2:
     image: datastax/dse-server:${DSETAG}
+    platform: linux/amd64
     networks:
       - stargate
-    mem_limit: 2G
+    mem_limit: 2560M
     cap_add:
       - IPC_LOCK
     ulimits:
@@ -40,30 +42,6 @@ services:
       - CLUSTER_NAME=dse-${DSETAG}-cluster
       - DC=dc1
       - RACK=rack1
-      - DS_LICENSE=accept
-    healthcheck:
-      test: [ "CMD", "cqlsh", "-u cassandra", "-p cassandra" ,"-e describe keyspaces" ]
-      interval: 15s
-      timeout: 10s
-      retries: 10
-
-  dse-3:
-    image: datastax/dse-server:${DSETAG}
-    networks:
-      - stargate
-    mem_limit: 2G
-    cap_add:
-      - IPC_LOCK
-    ulimits:
-      memlock: -1
-    depends_on:
-      dse-2:
-        condition: service_healthy
-    environment:
-      - MAX_HEAP_SIZE=1536M
-      - SEEDS=dse-1
-      - CLUSTER_NAME=dse-${DSETAG}-cluster
-      - DC=dc1
       - DS_LICENSE=accept
     healthcheck:
       test: [ "CMD", "cqlsh", "-u cassandra", "-p cassandra" ,"-e describe keyspaces" ]
