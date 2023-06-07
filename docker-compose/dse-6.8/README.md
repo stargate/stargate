@@ -8,6 +8,14 @@ This directory provides two ways to start Stargate with DSE 6.8 using `docker co
 
 Make sure that you have Docker engine 20.x installed, which should include Docker compose 2.x. Our compose files rely on features only available in the Docker compose v2 file format.
 
+### Docker Resource Settings
+
+We recommend the following minimum settings for Docker resources:
+* 4 CPUs
+* 8 GB RAM
+* 1 GB swap
+* 8 GB disk space
+
 ### Building local Docker images
 If you want to use locally built versions of the Docker images rather than pulling released versions from Docker Hub, build the snapshot version locally using instructions for the [coordinator](../../coordinator/README.md) and [apis](../../apis/README.md).
 
