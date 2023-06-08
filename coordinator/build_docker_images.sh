@@ -55,6 +55,12 @@ echo "Building version $SGTAG"
 # Persistence images
 #
 
+# Verify existence of persistence jars
+if [ ! -f ./stargate-lib/persistence-dse*.jar ]; then
+  echo "No matching DSE Persistence jar found: ./stargate-lib/persistence-dse*.jar"
+  exit 1
+fi
+
 # Create a temp directory under current directory to use as a staging area for image creation
 # This is a workaround since Docker COPY command provides no way to exclude files.
 # We could build a base image and then remove files, but this is wasteful
