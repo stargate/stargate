@@ -8,6 +8,14 @@ This directory provides two ways to start Stargate with DSE 6.8 using `docker co
 
 Make sure that you have Docker engine 20.x installed, which should include Docker compose 2.x. Our compose files rely on features only available in the Docker compose v2 file format.
 
+### Docker Resource Settings
+
+We recommend the following minimum settings for Docker resources:
+* 4 CPUs
+* 8 GB RAM
+* 1 GB swap
+* 8 GB disk space
+
 ### Building local Docker images
 If you want to use locally built versions of the Docker images rather than pulling released versions from Docker Hub, build the snapshot version locally using instructions for the [coordinator](../../coordinator/README.md) and [apis](../../apis/README.md).
 
@@ -28,6 +36,9 @@ The convenience script uses the `-d` and `--wait` options to track the startup p
 The default environment settings in the `.env` file include variables that describe which image tags to use, typically Stargate `v2` and and DSE `6.8.X` (where `X` is the latest supported patch version). The `start_dse_68.sh` script supports [options](#script-options) for overriding which image tags are used, including using a locally generated image as described [above](#building-the-local-docker-image). We recommend doing a `docker compose pull` periodically to ensure you always have the latest patch versions of these tags.
 
 Once done using the containers, you can stop them using the command `docker compose down`.
+
+> **Running on M1 Macs**
+> Currently DSE Docker images do not support the ARM64 architecture used by M1 Macs. For this reason, the `docker-compose.yml` file hardcodes DSE containers to run using the `linux/amd64` architecture. You will need to make sure that Rosetta 2 emulation is enabled in the Docker Desktop settings for this to work on your M1 Mac. 
 
 ## Stargate with embedded DSE 6.8 (developer mode)
 
