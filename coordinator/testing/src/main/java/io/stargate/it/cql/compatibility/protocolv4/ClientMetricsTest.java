@@ -111,12 +111,12 @@ public class ClientMetricsTest extends BaseIntegrationTest {
 
     // then
     String requestProcessedTotal =
-            String.format(
-                    "cql_org_apache_cassandra_metrics_Client_RequestsProcessed_total{%s=\"%s\",%s=\"%s\",}",
-                    FixedClientInfoTagProvider.TAG_KEY_DRIVER_NAME,
-                    FixedClientInfoTagProvider.TAG_VALUE_DRIVER_NAME,
-                    FixedClientInfoTagProvider.TAG_KEY_DRIVER_VERSION,
-                    FixedClientInfoTagProvider.TAG_VALUE_DRIVER_VERSION);
+        String.format(
+            "cql_org_apache_cassandra_metrics_Client_RequestsProcessed_total{%s=\"%s\",%s=\"%s\",}",
+            FixedClientInfoTagProvider.TAG_KEY_DRIVER_NAME,
+            FixedClientInfoTagProvider.TAG_VALUE_DRIVER_NAME,
+            FixedClientInfoTagProvider.TAG_KEY_DRIVER_VERSION,
+            FixedClientInfoTagProvider.TAG_VALUE_DRIVER_VERSION);
     Optional<Double> requestsProcessed = getCqlMetric(body, requestProcessedTotal);
     assertThat(requestsProcessed).hasValueSatisfying(v -> assertThat(v).isGreaterThan(0d));
   }
