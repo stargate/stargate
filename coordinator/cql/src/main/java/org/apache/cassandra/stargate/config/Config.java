@@ -49,4 +49,8 @@ public class Config {
 
   @JsonSetter(nulls = Nulls.FAIL)
   public EncryptionOptions client_encryption_options = new EncryptionOptions();
+
+  public Integer networking_cache_size_in_mb;
+
+  public Integer file_cache_size_in_mb;
 }

@@ -62,6 +62,9 @@ public final class ClientMetrics {
   private static final String AUTH_SUCCESS_METRIC;
   private static final String AUTH_FAILURE_METRIC;
   private static final String AUTH_ERROR_METRIC;
+  // Cassandra {4.0.10}
+  private static final String PROTOCOL_EXCEPTION;
+  private static final String UNKNOWN_EXCEPTION;
 
   // init to avoid re-computing on each record
   static {
@@ -70,6 +73,8 @@ public final class ClientMetrics {
     AUTH_SUCCESS_METRIC = metric("AuthSuccess");
     AUTH_FAILURE_METRIC = metric("AuthFailure");
     AUTH_ERROR_METRIC = metric("AuthError");
+    PROTOCOL_EXCEPTION = metric("ProtocolException");
+    UNKNOWN_EXCEPTION = metric("UnknownException");
   }
 
   // initialized state
@@ -283,6 +288,9 @@ public final class ClientMetrics {
     private final Counter authSuccess;
     private final Counter authFailure;
     private final Counter authError;
+    // Cassandra {4.0.10}
+    private final Counter protocolException;
+    private final Counter unknownException;
 
     public ConnectionMetricsImpl(ClientInfo clientInfo) {
       tags =
@@ -300,6 +308,8 @@ public final class ClientMetrics {
       authSuccess = meterRegistry.counter(AUTH_SUCCESS_METRIC, tags);
       authFailure = meterRegistry.counter(AUTH_FAILURE_METRIC, tags);
       authError = meterRegistry.counter(AUTH_ERROR_METRIC, tags);
+      protocolException = meterRegistry.counter(PROTOCOL_EXCEPTION, tags);
+      unknownException = meterRegistry.counter(UNKNOWN_EXCEPTION, tags);
     }
 
     @Override
@@ -336,6 +346,16 @@ public final class ClientMetrics {
     @Override
     public Tags getTags() {
       return tags;
+    }
+
+    @Override
+    public void markProtocolException() {
+      protocolException.increment();
+    }
+
+    @Override
+    public void markUnknownException() {
+      unknownException.increment();
     }
   }
 }

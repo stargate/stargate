@@ -21,7 +21,6 @@ import io.netty.channel.Channel;
 import io.netty.util.AttributeKey;
 import org.apache.cassandra.stargate.metrics.ConnectionMetrics;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
-import org.apache.cassandra.stargate.transport.internal.frame.FrameBodyTransformer;
 
 public class Connection {
   static final AttributeKey<Connection> attributeKey = AttributeKey.valueOf("CONN");
@@ -30,8 +29,8 @@ public class Connection {
   private final ProtocolVersion version;
   private final Tracker tracker;
   private final ConnectionMetrics connectionMetrics;
-
-  private volatile FrameBodyTransformer transformer;
+  // Cassandra {4.0.10}
+  private volatile Compressor preV5MessageCompressor;
   private boolean throwOnOverload;
 
   public Connection(
@@ -47,12 +46,13 @@ public class Connection {
     tracker.addConnection(channel, this);
   }
 
-  public void setTransformer(FrameBodyTransformer transformer) {
-    this.transformer = transformer;
+  // Cassandra {4.0.10}
+  public void setCompressor(Compressor compressor) {
+    this.preV5MessageCompressor = compressor;
   }
 
-  public FrameBodyTransformer getTransformer() {
-    return transformer;
+  public Compressor getCompressor() {
+    return preV5MessageCompressor;
   }
 
   public void setThrowOnOverload(boolean throwOnOverload) {

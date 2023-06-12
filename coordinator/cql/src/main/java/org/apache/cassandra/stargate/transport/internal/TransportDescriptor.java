@@ -209,6 +209,23 @@ public class TransportDescriptor {
     return conf.native_transport_allow_older_protocols;
   }
 
+  // Cassandra {4.0.10} {DatabaseDescriptor}
+  public static int getFileCacheSizeInMiB() {
+    if (conf.file_cache_size_in_mb == null) {
+      return 0;
+    } else {
+      return conf.file_cache_size_in_mb;
+    }
+  }
+
+  public static int getNetworkingCacheSizeInMiB() {
+    if (conf.networking_cache_size_in_mb == null) {
+      return 0;
+    } else {
+      return conf.networking_cache_size_in_mb;
+    }
+  }
+
   private static InetAddress getNetworkInterfaceAddress(
       String intf, String configName, boolean preferIPv6) throws ConfigurationException {
     try {
