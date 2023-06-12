@@ -695,7 +695,9 @@ public class Conversion {
       EnumSet<Result.Flag> flags, ResultSet.ResultMetadata metadata, int flag) {
     if (Flags.contains(metadata.getFlags(), flag)) {
       try {
-        flags.add(globalTablesSpec.getOrDefault(flag, Result.Flag.fromId(flag)));
+        Result.Flag resultFlag = globalTablesSpec.get(flag);
+        if (resultFlag == null) resultFlag = Result.Flag.fromId(flag);
+        flags.add(resultFlag);
       } catch (Exception e) {
         logger.error("Unknown flag {} {}", flag, globalTablesSpec);
         throw e;
