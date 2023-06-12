@@ -41,6 +41,11 @@ public interface ConnectionMetrics {
   /** Marks auth error (increases the count). */
   void markAuthError();
 
+  // Cassandra {4.0.10}
+  void markProtocolException();
+
+  void markUnknownException();
+
   /** Update driver information. */
   void updateDriverInfo(ClientInfo clientInfo);
 }
