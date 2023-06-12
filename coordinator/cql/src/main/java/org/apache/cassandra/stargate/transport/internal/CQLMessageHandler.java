@@ -12,7 +12,6 @@ import io.netty.channel.Channel;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
-import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.exceptions.OverloadedException;
 import org.apache.cassandra.metrics.ClientMessageSizeMetrics;
 import org.apache.cassandra.metrics.ClientMetrics;
@@ -137,7 +136,7 @@ public class CQLMessageHandler<M extends Message> extends AbstractMessageHandler
       ProtocolException exception, ByteBuffer buf, int streamId, long expectedMessageLength) {
     if (expectedMessageLength >= 0L
         && ++this.consecutiveMessageErrors
-            <= DatabaseDescriptor.getConsecutiveMessageErrorsThreshold()) {
+            <= TransportDescriptor.getConsecutiveMessageErrorsThreshold()) {
       this.handleError(exception, streamId);
       buf.position(
           Math.min(buf.limit(), buf.position() + 9 + Ints.checkedCast(expectedMessageLength)));
@@ -186,7 +185,7 @@ public class CQLMessageHandler<M extends Message> extends AbstractMessageHandler
 
       boolean continueProcessing = true;
       if (++this.consecutiveMessageErrors
-          > DatabaseDescriptor.getConsecutiveMessageErrorsThreshold()) {
+          > TransportDescriptor.getConsecutiveMessageErrorsThreshold()) {
         if (!(var5 instanceof ProtocolException)) {
           logger.debug("Error decoding CQL message", var5);
           e = new ProtocolException("Error encountered decoding CQL message: " + var5.getMessage());
