@@ -682,14 +682,14 @@ public class Conversion {
   }
 
   // Dse and stargate enums are different
-  private static final Map<Integer, Result.Flag> globalTablesSpec = new HashMap<>();
-
-  static {
-    globalTablesSpec.put(
-        ResultSet.ResultSetFlag.GLOBAL_TABLES_SPEC, Result.Flag.GLOBAL_TABLES_SPEC);
-    globalTablesSpec.put(ResultSet.ResultSetFlag.HAS_MORE_PAGES, Result.Flag.HAS_MORE_PAGES);
-    globalTablesSpec.put(ResultSet.ResultSetFlag.METADATA_CHANGED, Result.Flag.METADATA_CHANGED);
-  }
+  private static final Map<Integer, Result.Flag> globalTablesSpec =
+      new HashMap<Integer, Result.Flag>() {
+        {
+          put(ResultSet.ResultSetFlag.GLOBAL_TABLES_SPEC, Result.Flag.GLOBAL_TABLES_SPEC);
+          put(ResultSet.ResultSetFlag.HAS_MORE_PAGES, Result.Flag.HAS_MORE_PAGES);
+          put(ResultSet.ResultSetFlag.METADATA_CHANGED, Result.Flag.METADATA_CHANGED);
+        }
+      };
 
   private static void addFlagIfContains(
       EnumSet<Result.Flag> flags, ResultSet.ResultMetadata metadata, int flag) {
