@@ -31,7 +31,6 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
-import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.net.AbstractMessageHandler;
 import org.apache.cassandra.net.BufferPoolAllocator;
 import org.apache.cassandra.net.FrameDecoder;
@@ -46,12 +45,12 @@ import org.apache.cassandra.stargate.security.SSLFactory;
 import org.apache.cassandra.stargate.security.SSLFactory.SocketType;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
-import org.apache.cassandra.transport.Envelope.Compressor;
-import org.apache.cassandra.transport.Envelope.Decompressor;
-import org.apache.cassandra.transport.Envelope.Encoder;
-import org.apache.cassandra.transport.PreV5Handlers.ExceptionHandler;
-import org.apache.cassandra.transport.PreV5Handlers.ProtocolDecoder;
-import org.apache.cassandra.transport.PreV5Handlers.ProtocolEncoder;
+import org.apache.cassandra.stargate.transport.internal.Envelope.Compressor;
+import org.apache.cassandra.stargate.transport.internal.Envelope.Decompressor;
+import org.apache.cassandra.stargate.transport.internal.Envelope.Encoder;
+import org.apache.cassandra.stargate.transport.internal.PreV5Handlers.ExceptionHandler;
+import org.apache.cassandra.stargate.transport.internal.PreV5Handlers.ProtocolDecoder;
+import org.apache.cassandra.stargate.transport.internal.PreV5Handlers.ProtocolEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -178,12 +177,12 @@ public class PipelineConfigurator {
   public void configureInitialPipeline(
       final Channel channel, Connection.Factory connectionFactory) {
     ChannelPipeline pipeline = channel.pipeline();
-    if (DatabaseDescriptor.getNativeTransportMaxConcurrentConnections() > 0L
-        || DatabaseDescriptor.getNativeTransportMaxConcurrentConnectionsPerIp() > 0L) {
+    if (TransportDescriptor.getNativeTransportMaxConcurrentConnections() > 0L
+        || TransportDescriptor.getNativeTransportMaxConcurrentConnectionsPerIp() > 0L) {
       pipeline.addFirst("connectionLimitHandler", connectionLimitHandler);
     }
 
-    final long idleTimeout = DatabaseDescriptor.nativeTransportIdleTimeout();
+    final long idleTimeout = TransportDescriptor.nativeTransportIdleTimeout();
     if (idleTimeout > 0L) {
       pipeline.addLast(
           "idleStateHandler",
@@ -228,7 +227,7 @@ public class PipelineConfigurator {
     ChannelPipeline pipeline = ctx.channel().pipeline();
     ChannelHandlerContext firstContext = pipeline.firstContext();
     CQLMessageHandler.ErrorHandler errorHandler = firstContext::fireExceptionCaught;
-    int queueCapacity = DatabaseDescriptor.getNativeTransportReceiveQueueCapacityInBytes();
+    int queueCapacity = TransportDescriptor.getNativeTransportReceiveQueueCapacityInBytes();
     ClientResourceLimits.ResourceProvider resourceProvider =
         this.resourceProvider(resourceAllocator);
     AbstractMessageHandler.OnHandlerClosed onClosed =

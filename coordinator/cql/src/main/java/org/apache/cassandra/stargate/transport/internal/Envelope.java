@@ -31,7 +31,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.EnumSet;
 import java.util.List;
-import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.exceptions.InvalidRequestException;
 import org.apache.cassandra.metrics.ClientMessageSizeMetrics;
 import org.apache.cassandra.stargate.transport.ProtocolException;
@@ -174,7 +173,8 @@ public class Envelope {
   }
 
   public static class Decoder extends ByteToMessageDecoder {
-    private static final int MAX_TOTAL_LENGTH = DatabaseDescriptor.getNativeTransportMaxFrameSize();
+    private static final int MAX_TOTAL_LENGTH =
+        TransportDescriptor.getNativeTransportMaxFrameSize();
 
     private boolean discardingTooLongMessage;
     private long tooLongTotalLength;
@@ -233,7 +233,7 @@ public class Envelope {
         // the opcode is unknown or invalid flags are set for the version
         version =
             ProtocolVersion.decode(
-                versionNum, DatabaseDescriptor.getNativeTransportAllowOlderProtocols());
+                versionNum, TransportDescriptor.getNativeTransportAllowOlderProtocols());
         decodedFlags = decodeFlags(version, flags);
         type = Message.Type.fromOpcode(opcode, direction);
         return new HeaderExtractionResult.Success(
@@ -338,7 +338,7 @@ public class Envelope {
       int versionNum = firstByte & PROTOCOL_VERSION_MASK;
       ProtocolVersion version =
           ProtocolVersion.decode(
-              versionNum, DatabaseDescriptor.getNativeTransportAllowOlderProtocols());
+              versionNum, TransportDescriptor.getNativeTransportAllowOlderProtocols());
 
       // Wait until we have the complete header
       if (readableBytes < Header.LENGTH) return null;
