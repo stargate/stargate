@@ -1,95 +1,58 @@
-//
-// Source code recreated from a .class file by IntelliJ IDEA
-// (powered by FernFlower decompiler)
-//
-
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
 package org.apache.cassandra.stargate.transport.internal;
 
 import io.netty.buffer.ByteBuf;
 import java.io.IOException;
-import net.jpountz.lz4.LZ4Decompressor;
+import java.net.ProtocolException;
 import net.jpountz.lz4.LZ4Factory;
-import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.xerial.snappy.Snappy;
 import org.xerial.snappy.SnappyError;
 
 public interface Compressor {
-  Envelope compress(Envelope var1) throws IOException;
+  public Envelope compress(Envelope uncompressed) throws IOException;
 
-  Envelope decompress(Envelope var1) throws IOException;
+  public Envelope decompress(Envelope compressed) throws IOException;
 
-  public static class LZ4Compressor implements Compressor {
-    public static final LZ4Compressor instance = new LZ4Compressor();
-    private static final int INTEGER_BYTES = 4;
-    private final net.jpountz.lz4.LZ4Compressor compressor;
-    private final LZ4Decompressor decompressor;
-
-    private LZ4Compressor() {
-      LZ4Factory lz4Factory = LZ4Factory.fastestInstance();
-      this.compressor = lz4Factory.fastCompressor();
-      this.decompressor = lz4Factory.decompressor();
-    }
-
-    public Envelope compress(Envelope uncompressed) {
-      byte[] input = CBUtil.readRawBytes(uncompressed.body);
-      int maxCompressedLength = this.compressor.maxCompressedLength(input.length);
-      ByteBuf outputBuf = CBUtil.allocator.heapBuffer(4 + maxCompressedLength);
-      byte[] output = outputBuf.array();
-      int outputOffset = outputBuf.arrayOffset();
-      output[outputOffset] = (byte) (input.length >>> 24);
-      output[outputOffset + 1] = (byte) (input.length >>> 16);
-      output[outputOffset + 2] = (byte) (input.length >>> 8);
-      output[outputOffset + 3] = (byte) input.length;
-
-      Envelope var8;
-      try {
-        int written =
-            this.compressor.compress(
-                input, 0, input.length, output, outputOffset + 4, maxCompressedLength);
-        outputBuf.writerIndex(4 + written);
-        var8 = uncompressed.with(outputBuf);
-      } catch (Throwable var12) {
-        outputBuf.release();
-        throw var12;
-      } finally {
-        uncompressed.release();
-      }
-
-      return var8;
-    }
-
-    public Envelope decompress(Envelope compressed) throws IOException {
-      byte[] input = CBUtil.readRawBytes(compressed.body);
-      int uncompressedLength =
-          (input[0] & 255) << 24 | (input[1] & 255) << 16 | (input[2] & 255) << 8 | input[3] & 255;
-      ByteBuf output = CBUtil.allocator.heapBuffer(uncompressedLength);
-
-      Envelope var6;
-      try {
-        int read =
-            this.decompressor.decompress(
-                input, 4, output.array(), output.arrayOffset(), uncompressedLength);
-        if (read != input.length - 4) {
-          throw new IOException("Compressed lengths mismatch");
-        }
-
-        output.writerIndex(uncompressedLength);
-        var6 = compressed.with(output);
-      } catch (Throwable var10) {
-        output.release();
-        throw var10;
-      } finally {
-        compressed.release();
-      }
-
-      return var6;
-    }
-  }
-
+  /*
+   * TODO: We can probably do more efficient, like by avoiding copy.
+   * Also, we don't reuse ICompressor because the API doesn't expose enough.
+   */
   public static class SnappyCompressor implements Compressor {
     public static final SnappyCompressor instance;
 
+    static {
+      SnappyCompressor i;
+      try {
+        i = new SnappyCompressor();
+      } catch (Exception e) {
+        // Cassandra {4.0.10} - Patched for stargate
+        // JVMStabilityInspector.inspectThrowable(e);
+        i = null;
+      } catch (NoClassDefFoundError | SnappyError | UnsatisfiedLinkError e) {
+        i = null;
+      }
+      instance = i;
+    }
+
     private SnappyCompressor() {
+      // this would throw java.lang.NoClassDefFoundError if Snappy class
+      // wasn't found at runtime which should be processed by the calling method
       Snappy.getNativeLibraryVersion();
     }
 
@@ -100,9 +63,9 @@ public interface Compressor {
       try {
         int written = Snappy.compress(input, 0, input.length, output.array(), output.arrayOffset());
         output.writerIndex(written);
-      } catch (Throwable var8) {
+      } catch (final Throwable e) {
         output.release();
-        throw var8;
+        throw e;
       } finally {
         uncompressed.release();
       }
@@ -112,39 +75,104 @@ public interface Compressor {
 
     public Envelope decompress(Envelope compressed) throws IOException {
       byte[] input = CBUtil.readRawBytes(compressed.body);
-      if (!Snappy.isValidCompressedBuffer(input, 0, input.length)) {
+
+      if (!Snappy.isValidCompressedBuffer(input, 0, input.length))
         throw new ProtocolException("Provided frame does not appear to be Snappy compressed");
-      } else {
-        ByteBuf output = CBUtil.allocator.heapBuffer(Snappy.uncompressedLength(input));
 
-        try {
-          int size =
-              Snappy.uncompress(input, 0, input.length, output.array(), output.arrayOffset());
-          output.writerIndex(size);
-        } catch (Throwable var8) {
-          output.release();
-          throw var8;
-        } finally {
-          compressed.release();
-        }
+      ByteBuf output = CBUtil.allocator.heapBuffer(Snappy.uncompressedLength(input));
 
-        return compressed.with(output);
+      try {
+        int size = Snappy.uncompress(input, 0, input.length, output.array(), output.arrayOffset());
+        output.writerIndex(size);
+      } catch (final Throwable e) {
+        output.release();
+        throw e;
+      } finally {
+        compressed.release();
+      }
+
+      return compressed.with(output);
+    }
+  }
+
+  /*
+   * This is very close to the ICompressor implementation, and in particular
+   * it also layout the uncompressed size at the beginning of the message to
+   * make uncompression faster, but contrarly to the ICompressor, that length
+   * is written in big-endian. The native protocol is entirely big-endian, so
+   * it feels like putting little-endian here would be a annoying trap for
+   * client writer.
+   */
+  public static class LZ4Compressor implements Compressor {
+    public static final LZ4Compressor instance = new LZ4Compressor();
+
+    private static final int INTEGER_BYTES = 4;
+    private final net.jpountz.lz4.LZ4Compressor compressor;
+    private final net.jpountz.lz4.LZ4Decompressor decompressor;
+
+    private LZ4Compressor() {
+      final LZ4Factory lz4Factory = LZ4Factory.fastestInstance();
+      compressor = lz4Factory.fastCompressor();
+      decompressor = lz4Factory.decompressor();
+    }
+
+    public Envelope compress(Envelope uncompressed) {
+      byte[] input = CBUtil.readRawBytes(uncompressed.body);
+
+      int maxCompressedLength = compressor.maxCompressedLength(input.length);
+      ByteBuf outputBuf = CBUtil.allocator.heapBuffer(INTEGER_BYTES + maxCompressedLength);
+
+      byte[] output = outputBuf.array();
+      int outputOffset = outputBuf.arrayOffset();
+
+      output[outputOffset] = (byte) (input.length >>> 24);
+      output[outputOffset + 1] = (byte) (input.length >>> 16);
+      output[outputOffset + 2] = (byte) (input.length >>> 8);
+      output[outputOffset + 3] = (byte) (input.length);
+
+      try {
+        int written =
+            compressor.compress(
+                input, 0, input.length, output, outputOffset + INTEGER_BYTES, maxCompressedLength);
+        outputBuf.writerIndex(INTEGER_BYTES + written);
+
+        return uncompressed.with(outputBuf);
+      } catch (final Throwable e) {
+        outputBuf.release();
+        throw e;
+      } finally {
+        uncompressed.release();
       }
     }
 
-    static {
-      SnappyCompressor i;
-      try {
-        i = new SnappyCompressor();
-      } catch (Exception var2) {
-        // Cassandra {4.0.10} Patched for stargate
-        // JVMStabilityInspector.inspectThrowable(var2);
-        i = null;
-      } catch (SnappyError | UnsatisfiedLinkError | NoClassDefFoundError var3) {
-        i = null;
-      }
+    public Envelope decompress(Envelope compressed) throws IOException {
+      byte[] input = CBUtil.readRawBytes(compressed.body);
 
-      instance = i;
+      int uncompressedLength =
+          ((input[0] & 0xFF) << 24)
+              | ((input[1] & 0xFF) << 16)
+              | ((input[2] & 0xFF) << 8)
+              | ((input[3] & 0xFF));
+
+      ByteBuf output = CBUtil.allocator.heapBuffer(uncompressedLength);
+
+      try {
+        int read =
+            decompressor.decompress(
+                input, INTEGER_BYTES, output.array(), output.arrayOffset(), uncompressedLength);
+        if (read != input.length - INTEGER_BYTES)
+          throw new IOException("Compressed lengths mismatch");
+
+        output.writerIndex(uncompressedLength);
+
+        return compressed.with(output);
+      } catch (final Throwable e) {
+        output.release();
+        throw e;
+      } finally {
+        // release the old message
+        compressed.release();
+      }
     }
   }
 }
