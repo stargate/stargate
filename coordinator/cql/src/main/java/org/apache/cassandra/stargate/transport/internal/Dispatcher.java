@@ -33,7 +33,6 @@ import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.Flusher.FlushItem;
 import org.apache.cassandra.stargate.transport.internal.messages.ErrorMessage;
 import org.apache.cassandra.stargate.transport.internal.messages.EventMessage;
-import org.apache.cassandra.utils.JVMStabilityInspector;
 
 public class Dispatcher {
   // Cassandra {4.0.10} Call processRequest directly
@@ -121,7 +120,7 @@ public class Dispatcher {
       Message.logger.trace("Responding: {}, v={}", response, connection.getVersion());
     } catch (Throwable t) {
       // Cassandra {4.0.10} Patched as per stargate
-      JVMStabilityInspector.inspectThrowable(t);
+      // JVMStabilityInspector.inspectThrowable(t);
     } finally {
       ClientWarn.instance.resetWarnings();
     }

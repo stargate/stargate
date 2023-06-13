@@ -10,7 +10,6 @@ import java.io.IOException;
 import net.jpountz.lz4.LZ4Decompressor;
 import net.jpountz.lz4.LZ4Factory;
 import org.apache.cassandra.stargate.transport.ProtocolException;
-import org.apache.cassandra.utils.JVMStabilityInspector;
 import org.xerial.snappy.Snappy;
 import org.xerial.snappy.SnappyError;
 
@@ -138,7 +137,8 @@ public interface Compressor {
       try {
         i = new SnappyCompressor();
       } catch (Exception var2) {
-        JVMStabilityInspector.inspectThrowable(var2);
+        // Cassandra {4.0.10} Patched for stargate
+        // JVMStabilityInspector.inspectThrowable(var2);
         i = null;
       } catch (SnappyError | UnsatisfiedLinkError | NoClassDefFoundError var3) {
         i = null;

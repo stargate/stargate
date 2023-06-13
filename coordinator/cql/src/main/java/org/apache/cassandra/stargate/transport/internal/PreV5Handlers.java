@@ -33,12 +33,11 @@ import io.netty.handler.codec.MessageToMessageEncoder;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.exceptions.OverloadedException;
-import org.apache.cassandra.metrics.ClientMetrics;
 import org.apache.cassandra.net.ResourceLimits;
+import org.apache.cassandra.stargate.metrics.ClientMetrics;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.messages.ErrorMessage;
-import org.apache.cassandra.utils.JVMStabilityInspector;
 import org.apache.cassandra.utils.NoSpamLogger;
 import org.apache.cassandra.utils.Throwables;
 import org.slf4j.Logger;
@@ -138,7 +137,7 @@ public class PreV5Handlers {
       if (endpointPayloadTracker.tryAllocate(requestSize) != ResourceLimits.Outcome.SUCCESS) {
         if (request.connection.isThrowOnOverload()) {
           // discard the request and throw an exception
-          ClientMetrics.instance.markRequestDiscarded();
+          request.connection.getConnectionMetrics().markRequestDiscarded();
           logger.trace(
               "Discarded request of size: {}. InflightChannelRequestPayload: {}, {}, Request: {}",
               requestSize,
@@ -259,7 +258,8 @@ public class PreV5Handlers {
         ClientMetrics.instance.markUnknownException();
         logger.warn("Unknown exception in client networking", cause);
       }
-      JVMStabilityInspector.inspectThrowable(cause);
+      // Cassandra {4.0.10} Patched for stargate
+      // JVMStabilityInspector.inspectThrowable(cause);
     }
 
     private static boolean isFatal(Throwable cause) {

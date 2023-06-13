@@ -89,6 +89,10 @@ public final class ClientMetrics {
 
   // internal initialized meters
   private AtomicInteger pausedConnections;
+
+  // Cassandra {4.0.10} - replaced with Micrometer
+  private Counter protocolException;
+  private Counter unknownException;
   private Counter totalBytesRead;
   private Counter totalBytesWritten;
   private DistributionSummary bytesReceivedPerFrame;
@@ -104,6 +108,15 @@ public final class ClientMetrics {
 
   public void unpauseConnection() {
     pausedConnections.decrementAndGet();
+  }
+
+  // Cassandra {4.0.10} - replaced with Micrometer
+  public void markProtocolException() {
+    protocolException.increment();
+  }
+
+  public void markUnknownException() {
+    unknownException.increment();
   }
 
   public void incrementTotalBytesRead(double value) {
@@ -165,6 +178,10 @@ public final class ClientMetrics {
 
     pausedConnections =
         meterRegistry.gauge(metric("PausedConnections"), Tags.empty(), new AtomicInteger(0));
+
+    this.protocolException = meterRegistry.counter(metric("ProtocolException"));
+
+    this.unknownException = meterRegistry.counter(metric("UnknownException"));
 
     totalBytesRead = meterRegistry.counter(metric("TotalBytesRead"));
     totalBytesWritten = meterRegistry.counter(metric("TotalBytesWritten"));
@@ -288,9 +305,6 @@ public final class ClientMetrics {
     private final Counter authSuccess;
     private final Counter authFailure;
     private final Counter authError;
-    // Cassandra {4.0.10}
-    private final Counter protocolException;
-    private final Counter unknownException;
 
     public ConnectionMetricsImpl(ClientInfo clientInfo) {
       tags =
@@ -308,8 +322,6 @@ public final class ClientMetrics {
       authSuccess = meterRegistry.counter(AUTH_SUCCESS_METRIC, tags);
       authFailure = meterRegistry.counter(AUTH_FAILURE_METRIC, tags);
       authError = meterRegistry.counter(AUTH_ERROR_METRIC, tags);
-      protocolException = meterRegistry.counter(PROTOCOL_EXCEPTION, tags);
-      unknownException = meterRegistry.counter(UNKNOWN_EXCEPTION, tags);
     }
 
     @Override
@@ -346,16 +358,6 @@ public final class ClientMetrics {
     @Override
     public Tags getTags() {
       return tags;
-    }
-
-    @Override
-    public void markProtocolException() {
-      protocolException.increment();
-    }
-
-    @Override
-    public void markUnknownException() {
-      unknownException.increment();
     }
   }
 }
