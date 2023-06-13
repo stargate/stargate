@@ -33,7 +33,6 @@ import org.apache.cassandra.net.FrameEncoder;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.messages.ErrorMessage;
-import org.apache.cassandra.utils.JVMStabilityInspector;
 import org.apache.cassandra.utils.NoSpamLogger;
 import org.apache.cassandra.utils.Throwables;
 import org.slf4j.Logger;
@@ -77,7 +76,8 @@ public class ExceptionHandlers {
           ctx.writeAndFlush(payload, promise);
         } finally {
           payload.release();
-          JVMStabilityInspector.inspectThrowable(cause);
+          // Cassandra {4.0.10} Patched for stargate
+          // JVMStabilityInspector.inspectThrowable(cause);
         }
       }
       if (Throwables.anyCauseMatches(cause, t -> t instanceof ProtocolException)) {
