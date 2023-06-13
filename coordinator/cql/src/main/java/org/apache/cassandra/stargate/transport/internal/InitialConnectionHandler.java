@@ -75,6 +75,9 @@ public class InitialConnectionHandler extends ByteToMessageDecoder {
             supportedOptions.put("CQL_VERSION", cqlVersions);
             supportedOptions.put("COMPRESSION", compressions);
             supportedOptions.put("PROTOCOL_VERSIONS", ProtocolVersion.supportedVersions());
+            // Cassandra {4.0.10) Patch to add options from persistence
+            final Map<String, List<String>> optionsFromBacked = persistence.cqlSupportedOptions();
+            supportedOptions.putAll(optionsFromBacked);
             SupportedMessage supported = new SupportedMessage(supportedOptions);
             supported.setStreamId(inbound.header.streamId);
             outbound = supported.encode(inbound.header.version);
