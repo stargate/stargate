@@ -43,8 +43,8 @@
   <!-- Shared properties -->
   <properties>
     <!-- Compiler -->
-    <maven.compiler.source>1.8</maven.compiler.source>
-    <maven.compiler.target>1.8</maven.compiler.target>
+    <maven.compiler.source>11</maven.compiler.source>
+    <maven.compiler.target>11</maven.compiler.target>
     <!-- Encoding -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -432,8 +432,8 @@
             <configuration>
               <rules>
                 <requireJavaVersion>
-                  <version>[1.8,1.9)</version>
-                  <message>Project requires JDK 8</message>
+                  <version>[11,12)</version>
+                  <message>Project requires JDK 11</message>
                 </requireJavaVersion>
                 <requireUpperBoundDeps>
                   <!-- If specifying includes ONLY those are checked
@@ -465,12 +465,21 @@
         </plugin>
         <plugin>
           <artifactId>maven-compiler-plugin</artifactId>
-          <version>3.10.1</version>
+          <version>3.11.0</version>
+          <configuration>
+            <source>11</source>
+            <target>11</target>
+          </configuration>
+        </plugin>
+        <!--
+        <plugin>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.11.0</version>
           <configuration>
             <compilerId>javac-with-errorprone</compilerId>
             <forceJavacCompilerUse>true</forceJavacCompilerUse>
-            <source>1.8</source>
-            <target>1.8</target>
+            <source>11</source>
+            <target>11</target>
             <compilerArgs combine.children="override">
               <compilerArg>-Xep:MixedMutabilityReturnType:OFF</compilerArg>
               <compilerArg>-Xep:ImmutableEnumChecker:OFF</compilerArg>
@@ -493,6 +502,7 @@
             </dependency>
           </dependencies>
         </plugin>
+	-->
         <plugin>
           <groupId>org.apache.felix</groupId>
           <artifactId>maven-bundle-plugin</artifactId>
