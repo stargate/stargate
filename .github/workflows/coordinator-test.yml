@@ -57,10 +57,10 @@ jobs:
           python-version: '3.x'
 
       - uses: actions/setup-java@v3
-        name: Setup Java JDK
+        name: Setup Java JDK 11
         with:
           distribution: 'temurin'
-          java-version: 8
+          java-version: 11
           cache: 'maven'
 
       - name: Setup Maven
@@ -142,10 +142,10 @@ jobs:
           python-version: '3.x'
 
       - uses: actions/setup-java@v3
-        name: Setup Java JDK
+        name: Setup Java JDK 11
         with:
           distribution: 'temurin'
-          java-version: 8
+          java-version: 11
           cache: 'maven'
 
       - name: Setup Maven
