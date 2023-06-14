@@ -63,20 +63,20 @@ public final class IntegrationTestUtils {
     return System.getProperty(CASSANDRA_PASSWORD_PROP, "cassandra");
   }
 
-  /** @return Returns the cluster version (3.11, 4.0, 6.8 (== DSE)) specified for the coordinator */
+  /** @return Returns the cluster version (4.0, 6.8 (== DSE)) specified for the coordinator */
   public static String getClusterVersion() {
     return System.getProperty(CLUSTER_VERSION_PROP, "");
   }
 
   /**
    * @return True if the backend cluster is DSE-based (including C2 and CNDB), false if OSS
-   *     Cassandra (3.11, 4.0)
+   *     Cassandra (4.0)
    */
   public static boolean isDSE() {
     return "6.8".equals(getClusterVersion());
   }
 
-  /** @return True if the backend cluster is Cassandra 4.0; false otherwise (DSE, C-3.11) */
+  /** @return True if the backend cluster is Cassandra 4.0; false otherwise (DSE) */
   public static boolean isCassandra40() {
     return "4.0".equals(getClusterVersion());
   }

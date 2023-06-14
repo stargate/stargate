@@ -343,38 +343,6 @@
       </plugin>
     </plugins>
   </build>
-  <profiles>
-    <profile>
-      <id>it-cassandra-3.11</id>
-      <activation>
-        <activeByDefault>true</activeByDefault>
-      </activation>
-      <build>
-        <plugins>
-          <plugin>
-            <artifactId>maven-failsafe-plugin</artifactId>
-            <executions>
-              <execution>
-                <id>cassandra-3.11</id>
-                <goals>
-                  <goal>integration-test</goal>
-                  <goal>verify</goal>
-                </goals>
-                <configuration>
-                  <systemPropertyVariables>
-                    <ccm.version>3.11.15</ccm.version>
-                    <stargate.test.nodes>1</stargate.test.nodes>
-                  </systemPropertyVariables>
-                  <failIfNoTests>true</failIfNoTests>
-                  <reportsDirectory>target/failsafe-reports/cassandra-3.11</reportsDirectory>
-                  <summaryFile>target/failsafe-reports/summary-cassandra-3.11.xml</summaryFile>
-                </configuration>
-              </execution>
-            </executions>
-          </plugin>
-        </plugins>
-      </build>
-    </profile>
     <profile>
       <id>it-cassandra-4.0</id>
       <activation>

@@ -511,7 +511,7 @@ public class DsePersistence
 
     private Single<QueryState> newQueryState() {
       if (clientState.getUser() == null) {
-        // This is here to maintain consistent behavior with C* 3.11 and C* 4.0 since DSE requires
+        // This is here to maintain consistent behavior with C* 4.0 since DSE requires
         // at least some user to be present but you cannot login with the "system" user.
         return Single.just(
             new QueryState(

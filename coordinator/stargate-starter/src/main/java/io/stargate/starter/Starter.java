@@ -106,7 +106,7 @@ public class Starter {
   @Option(
       name = {"--cluster-version"},
       title = "version",
-      description = "The major version number of the backend cluster (example: 3.11 or 4.0)")
+      description = "The major version number of the backend cluster (example: 4.0 or 6.8)")
   protected String version;
 
   @Order(value = 4)

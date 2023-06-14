@@ -112,13 +112,12 @@ Depending on the active profile, integration tests will target different Cassand
 The available profiles are:
 
 * `cassandra-40` (enabled by default) - runs integration tests with [Cassandra 4.0](https://cassandra.apache.org/doc/4.0/index.html) as the data store
-* `cassandra-311` - runs integration tests with [Cassandra 3.11](https://cassandra.apache.org/doc/3.11/index.html) as the data store
 * `dse-68` - runs integration tests with [DataStax Enterprise (DSE) 6.8](https://docs.datastax.com/en/dse/6.8/dse-dev/index.html) as the data store
 
 The required profile can be activated using the `-P` option:
 
 ```shell script
-../mvnw integration-test -P cassandra-311
+../mvnw integration-test -P cassandra-40
 ```
 
 #### Running from IDE
@@ -135,7 +134,7 @@ Running a test with a different version of the data store or the Stargate coordi
 
 * `testing.containers.cassandra-image` - version of the Cassandra docker image to use, for example: `cassandra:4.0.4`
 * `testing.containers.stargate-image` - version of the Stargate coordinator docker image to use, for example: `stargateio/coordinator-4_0:v2.0.1` (must be V2 coordinator for the target data store)
-* `testing.containers.cluster-version` - version of the cluster, for example: `4.0` (should be one of `3.11`, `4.0` or `6.8`)
+* `testing.containers.cluster-version` - version of the cluster, for example: `4.0` (should be one of `4.0` or `6.8`)
 * `testing.containers.cluster-dse` - optional and only needed if DSE is used
 
 #### Executing against a running application

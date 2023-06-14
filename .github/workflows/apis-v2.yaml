@@ -255,7 +255,7 @@ jobs:
       # image - final image name to use when running int tests (-Dtesting.containers.stargate-image)
       matrix:
         project: [ sgv2-docsapi, sgv2-graphqlapi, sgv2-restapi ]
-        name: [ cassandra-40, cassandra-311, dse-68 ]
+        name: [ cassandra-40, dse-68 ]
         include:
           - name: cassandra-40
             profile: cassandra-40
@@ -263,14 +263,6 @@ jobs:
             image-cache-key: docker-coordinator-4_0-${{ needs.resolve-coordinator-docker.outputs.sha }}
             image-file: coordinator-4_0-${{ needs.resolve-coordinator-docker.outputs.sha }}.tar
             image: stargateio/coordinator-4_0:${{ needs.resolve-coordinator-docker.outputs.sha }}
-
-          - name: cassandra-311
-            profile: cassandra-311
-            repository-login: false
-            image-artifact: img-coordinator-3_11-${{ github.sha }}
-            image-cache-key: docker-coordinator-3_11-${{ needs.resolve-coordinator-docker.outputs.sha }}
-            image-file: coordinator-3_11-${{ needs.resolve-coordinator-docker.outputs.sha }}.tar
-            image: stargateio/coordinator-3_11:${{ needs.resolve-coordinator-docker.outputs.sha }}
 
           - name: dse-68
             profile: dse-68

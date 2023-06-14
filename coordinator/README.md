@@ -239,7 +239,7 @@ To run integration tests in the default configuration, run:
 ./mvnw verify
 ```
 
-This will run integration tests for Cassandra 3.11 and 4.0. 
+This will run integration tests for Cassandra 4.0. 
 On a reasonably powerful laptop it takes about 40 minutes.
 
 Note: Support for DSE is disabled by default.
@@ -252,7 +252,7 @@ To build and test Stargate with the DSE 6.8 persistence module, specify the `dse
 To run integration tests with all Cassandra and DSE persistence modules, run:
 
 ```sh
-./mvnw verify -P it-cassandra-3.11 -P it-cassandra-4.0 -P dse -P it-dse-6.8
+./mvnw verify -P it-cassandra-4.0 -P dse -P it-dse-6.8
 ```
 
 Note: Enabling only one of the `it-*` Maven profiles will automatically disable the others.
