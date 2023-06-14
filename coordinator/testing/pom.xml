@@ -343,6 +343,7 @@
       </plugin>
     </plugins>
   </build>
+  <profiles>
     <profile>
       <id>it-cassandra-4.0</id>
       <activation>
