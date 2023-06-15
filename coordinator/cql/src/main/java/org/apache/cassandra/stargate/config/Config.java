@@ -46,7 +46,7 @@ public class Config {
   public volatile long native_transport_max_concurrent_requests_in_bytes = -1L;
 
   public int native_transport_receive_queue_capacity_in_bytes = 1048576;
-  public volatile int consecutive_message_errors_threshold = 20;
+  public volatile int consecutive_message_errors_threshold = 1;
 
   public long native_transport_idle_timeout_in_ms = 0L;
 
