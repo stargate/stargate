@@ -209,6 +209,7 @@
           </dependency>
         </dependencies>
         <configuration>
+          <argLine>--add-exports java.base/jdk.internal.ref=ALL-UNNAMED</argLine>
           <parallel>suites</parallel>
           <threadCountSuites>1</threadCountSuites>
           <reuseForks>false</reuseForks>
