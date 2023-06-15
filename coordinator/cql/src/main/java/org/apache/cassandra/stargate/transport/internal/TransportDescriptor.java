@@ -226,7 +226,7 @@ public class TransportDescriptor {
   }
 
   // Cassandra {4.0.10} {DatabaseDescriptor}
-  public static int getFileCacheSizeInMiB() {
+  public static int getFileCacheSizeInMB() {
     if (conf.file_cache_size_in_mb == null) {
       return 0;
     } else {
@@ -234,7 +234,7 @@ public class TransportDescriptor {
     }
   }
 
-  public static int getNetworkingCacheSizeInMiB() {
+  public static int getNetworkingCacheSizeInMB() {
     if (conf.networking_cache_size_in_mb == null) {
       return 0;
     } else {
