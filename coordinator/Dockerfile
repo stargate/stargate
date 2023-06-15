@@ -2,7 +2,7 @@
 # Dockerfile for building coordinator node images
 #
 
-FROM adoptopenjdk/openjdk8:jre8u352-b08 as base
+FROM adoptopenjdk/openjdk11:jre-11.0.19_7 as base
 
 RUN apt update -qq \
     && apt install iproute2 libaio1 libjemalloc2 -y \
