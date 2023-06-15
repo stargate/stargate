@@ -27,8 +27,6 @@ import com.github.misberner.apcommons.util.AFModifier;
 import com.github.misberner.duzzt.annotations.DSLAction;
 import com.github.misberner.duzzt.annotations.GenerateEmbeddedDSL;
 import com.github.misberner.duzzt.annotations.SubExpr;
-import com.google.errorprone.annotations.FormatMethod;
-import com.google.errorprone.annotations.FormatString;
 import io.stargate.db.query.AsyncQueryExecutor;
 import io.stargate.db.query.BindMarker;
 import io.stargate.db.query.Modification.Operation;
@@ -890,8 +888,7 @@ public class QueryBuilderImpl {
     throw new AssertionError("Unknown query type");
   }
 
-  @FormatMethod
-  private static IllegalArgumentException invalid(@FormatString String format, Object... args) {
+  private static IllegalArgumentException invalid(String format, Object... args) {
     return new IllegalArgumentException(format(format, args));
   }
 
