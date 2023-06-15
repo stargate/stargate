@@ -36,7 +36,7 @@ public class BufferPools {
    * arbitrary period.
    */
   private static final long FILE_MEMORY_USAGE_THRESHOLD =
-      TransportDescriptor.getFileCacheSizeInMiB() * 1024L * 1024L;
+      TransportDescriptor.getFileCacheSizeInMB() * 1024L * 1024L;
 
   private static final BufferPool CHUNK_CACHE_POOL =
       new BufferPool("chunk-cache", FILE_MEMORY_USAGE_THRESHOLD, true);
@@ -45,7 +45,7 @@ public class BufferPools {
    * Used by client-server or inter-node requests, buffers should be released immediately after use.
    */
   private static final long NETWORKING_MEMORY_USAGE_THRESHOLD =
-      TransportDescriptor.getNetworkingCacheSizeInMiB() * 1024L * 1024L;
+      TransportDescriptor.getNetworkingCacheSizeInMB() * 1024L * 1024L;
 
   private static final BufferPool NETWORKING_POOL =
       new BufferPool("networking", NETWORKING_MEMORY_USAGE_THRESHOLD, false);
