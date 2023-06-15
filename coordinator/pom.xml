@@ -91,11 +91,6 @@
       -->
     <netty.version>4.1.75.Final</netty.version>
     <netty-boringssl.version>2.0.51.Final</netty-boringssl.version>
-    <!-- And finally test/build deps -->
-    <!-- 16-Dec-2021, tatu:  This is an old version (2.10.0 now latest)
-        but build fails with newer versions so keeping at this level
-      -->
-    <errorprone.version>2.3.4</errorprone.version>
     <jacoco.version>0.8.8</jacoco.version>
     <junit.version>5.8.2</junit.version>
     <mockito.version>3.12.4</mockito.version>
@@ -473,6 +468,8 @@
           <configuration>
             <source>11</source>
             <target>11</target>
+            <showWarnings>true</showWarnings>
+            <failOnWarning>false</failOnWarning>
           </configuration>
         </plugin>
         <plugin>
@@ -745,11 +742,6 @@
         <groupId>com.datastax.oss</groupId>
         <artifactId>java-driver-query-builder</artifactId>
         <version>${driver.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>com.google.errorprone</groupId>
-        <artifactId>error_prone_annotations</artifactId>
-        <version>${errorprone.version}</version>
       </dependency>
       <dependency>
         <groupId>org.junit.jupiter</groupId>

@@ -3,8 +3,6 @@ package io.stargate.db.query;
 import static java.lang.String.format;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Preconditions;
-import com.google.errorprone.annotations.FormatMethod;
-import com.google.errorprone.annotations.FormatString;
 import io.stargate.db.Persistence;
 import io.stargate.db.schema.Column;
 import io.stargate.db.schema.Column.ColumnType;
@@ -178,8 +176,7 @@ public class TypedValue {
     }
   }
 
-  @FormatMethod
-  private static IllegalArgumentException invalid(@FormatString String format, Object... args) {
+  private static IllegalArgumentException invalid(String format, Object... args) {
     return new IllegalArgumentException(format(format, args));
   }
 
