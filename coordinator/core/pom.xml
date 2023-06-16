@@ -5,7 +5,7 @@
   <parent>
     <artifactId>stargate</artifactId>
     <groupId>io.stargate</groupId>
-    <version>2.0.16-SNAPSHOT</version>
+    <version>v2.1.0-ALPHA-1-SNAPSHOT</version>
   </parent>
   <!-- Artifact props -->
   <groupId>io.stargate.core</groupId>
