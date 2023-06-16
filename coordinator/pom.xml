@@ -85,7 +85,7 @@
     <snakeyaml.version>1.33</snakeyaml.version>
     <swagger-ui.version>3.52.5</swagger-ui.version>
     <swagger-jersey2-jaxrs.version>1.6.3</swagger-jersey2-jaxrs.version>
-    <!-- Netty version used by Cassandra 3.11/4.0 (DSE uses different version)
+    <!-- Netty version used by Cassandra 4.0 (DSE uses different version)
 	 NOTE: upgrading version often breaks persistence backend so make sure
 	 you know what you are doing if/when upgrading
       -->
@@ -192,7 +192,6 @@
         <module>persistence-api</module>
         <module>persistence-common</module>
         <module>persistence-test</module>
-        <module>persistence-cassandra-3.11</module>
         <module>persistence-cassandra-4.0</module>
         <module>persistence-dse-6.8</module>
         <module>bridge</module>
@@ -229,7 +228,6 @@
         <module>persistence-api</module>
         <module>persistence-common</module>
         <module>persistence-test</module>
-        <module>persistence-cassandra-3.11</module>
         <module>persistence-cassandra-4.0</module>
         <module>bridge</module>
         <module>cql</module>

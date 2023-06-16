@@ -24,12 +24,10 @@ spec:
             topologyKey: {{ .Values.topologyKey }} 
       containers:
       - name: coordinator
-        {{ if eq .Values.cassandra.clusterVersion "3.11" }}
-        image: "{{ .Values.image.registry }}/{{ .Values.image.repository311 }}:{{ .Values.image.tag }}" 
-        {{ else if eq .Values.cassandra.clusterVersion "6.8" }}
-        image: "{{ .Values.image.registry }}/{{ .Values.image.repositoryDse68 }}:{{ .Values.image.tag }}" 
+        {{ if eq .Values.cassandra.clusterVersion "4.0" }}
+        image: "{{ .Values.image.registry }}/{{ .Values.image.repository40 }}:{{ .Values.image.tag }}"
         {{ else }}
-        image: "{{ .Values.image.registry }}/{{ .Values.image.repository40 }}:{{ .Values.image.tag }}" 
+        image: "{{ .Values.image.registry }}/{{ .Values.image.repositoryDse68 }}:{{ .Values.image.tag }}"
         {{end}}
         ports:
         - containerPort: 8091

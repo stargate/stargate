@@ -72,7 +72,6 @@ cp ./stargate-lib/logback.xml $LIBDIR
 rm ${LIBDIR}/persistence*.jar
 
 docker buildx build --target coordinator-4_0 --build-arg LIBDIR="$LIBDIR" -t $REPO/coordinator-4_0:$SGTAG -t $REPO/coordinator-4_0:v2 $DOCKER_FLAGS .
-docker buildx build --target coordinator-3_11 --build-arg LIBDIR="$LIBDIR" -t $REPO/coordinator-3_11:$SGTAG -t $REPO/coordinator-3_11:v2 $DOCKER_FLAGS .
 docker buildx build --target coordinator-dse-68 --build-arg LIBDIR="$LIBDIR" -t $REPO/coordinator-dse-68:$SGTAG -t $REPO/coordinator-dse-68:v2 $DOCKER_FLAGS .
 
 rm -rf ${LIBDIR}

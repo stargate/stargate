@@ -53,7 +53,7 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     // Sample output:
     //  Cassandra 4.0: “Bad request: A user type with name ‘udtbasic’ already exists”
-    //  Cassandra 3.11, DSE 6.8: “Bad request: A user type of name
+    //  Cassandra DSE 6.8: “Bad request: A user type of name
     //     ks_udtCreateBasic_1643916413499.udtbasic already exists”
     assertThat(apiError.description())
         .matches(String.format("Bad request: A user type .*%s.* already exists", typeName));

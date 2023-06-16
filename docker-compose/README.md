@@ -1,7 +1,6 @@
 # Stargate Docker Compose Scripts
 This directory provides Docker compose scripts with sample configurations for the various supported Stargate backends. Pick a backend for more detailed instructions:
 
-- [Cassandra 3.11](cassandra-3.11)
 - [Cassandra 4.0](cassandra-4.0)
 - [DataStax Enterprise 6.8](dse-6.8)
 
