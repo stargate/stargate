@@ -381,7 +381,7 @@ public class RestApiV2QSchemaColumnsIT extends RestApiV2QIntegrationTestBase {
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     // Sub-optimal error message from gRPC/Bridge:
     assertThat(apiError.description())
-        // Message varies b/w C* 3.11, 4.0 so need to use very loose pattern
+        // Message varies b/w releases so need to use very loose pattern
         .matches("Invalid argument.*Cannot drop PRIMARY KEY.*id.*");
   }
 

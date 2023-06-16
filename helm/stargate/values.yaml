@@ -8,8 +8,7 @@ replicaCount: 1
 # Coordinator or bridge registry and image
 image:
   registry: "docker.io"
-  repository311: "stargateio/coordinator-3_11" 
-  repository40: "stargateio/coordinator-4_0" 
+  repository40: "stargateio/coordinator-4_0"
   repositoryDse68: "stargateio/coordinator-dse-68" 
   tag: "v2"
 

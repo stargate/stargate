@@ -56,7 +56,7 @@ Next start up Stargate, configuring the new JWT auth service
 ```sh
 ./mvnw clean package -DskipTests && \
 JAVA_OPTS='-XX:+CrashOnOutOfMemoryError -Xmx750M -Xms64M -Dstargate.auth_id=AuthJwtService -Dstargate.auth.jwt_provider_url=http://localhost:4444/auth/realms/stargate/protocol/openid-connect/certs' \
-./starctl --developer-mode --cluster-name test --cluster-version 3.11 --enable-auth
+./starctl --developer-mode --cluster-name test --cluster-version 4.0 --enable-auth
 ```
 
 

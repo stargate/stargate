@@ -35,7 +35,7 @@ class StarterTest {
     starter = new Starter();
     starter.simpleSnitch = true;
     starter.clusterName = "foo";
-    starter.version = "3.11";
+    starter.version = "4.0";
     starter.seedList = Arrays.asList("127.0.0.1", "127.0.0.2");
   }
 
