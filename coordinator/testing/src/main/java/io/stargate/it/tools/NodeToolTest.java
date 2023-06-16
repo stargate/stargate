@@ -55,6 +55,13 @@ public class NodeToolTest extends BaseIntegrationTest {
   protected CommandLine baseStarterCommand() throws IOException {
     CommandLine cmd = new CommandLine("java");
     cmd.addArgument("-Dstargate.libdir=" + starterJar.getParentFile().getCanonicalPath());
+
+    // Java 11+ requires these flags to allow reflection to work
+    cmd.addArgument("--add-exports");
+    cmd.addArgument("java.base/jdk.internal.ref=ALL-UNNAMED");
+    cmd.addArgument("--add-exports");
+    cmd.addArgument("java.base/jdk.internal.misc=ALL-UNNAMED");
+    
     cmd.addArgument("-jar");
     cmd.addArgument(starterJar.getCanonicalPath());
 
