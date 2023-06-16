@@ -161,7 +161,7 @@
           </dependency>
         </dependencies>
         <configuration>
-          <argLine>--add-exports java.base/jdk.internal.ref=ALL-UNNAMED</argLine>
+          <argLine>${jdk11.module-exports}</argLine>
           <parallel>suites</parallel>
           <threadCountSuites>1</threadCountSuites>
           <reuseForks>false</reuseForks>
@@ -174,7 +174,7 @@
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
         <configuration>
-          <argLine>--add-exports java.base/jdk.internal.ref=ALL-UNNAMED</argLine>
+          <argLine>${jdk11.module-exports}</argLine>
         </configuration>
       </plugin>
       <plugin>
