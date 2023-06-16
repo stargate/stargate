@@ -392,6 +392,11 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
       cmd.addArgument("-Dstargate.libdir=" + LIB_DIR.getAbsolutePath());
       cmd.addArgument("-Dstargate.bundle.cache.dir=" + cacheDir.getAbsolutePath());
 
+      cmd.addArgument("--add-exports");
+      cmd.addArgument("java.base/jdk.internal.ref=ALL-UNNAMED");
+      cmd.addArgument("--add-exports");
+      cmd.addArgument("java.base/jdk.internal.misc=ALL-UNNAMED");
+
       if (backend.isDse()) {
         cmd.addArgument("-Dstargate.request_timeout_in_ms=60000");
         cmd.addArgument("-Dstargate.write_request_timeout_in_ms=60000");
