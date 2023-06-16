@@ -61,7 +61,7 @@ public class NodeToolTest extends BaseIntegrationTest {
     cmd.addArgument("java.base/jdk.internal.ref=ALL-UNNAMED");
     cmd.addArgument("--add-exports");
     cmd.addArgument("java.base/jdk.internal.misc=ALL-UNNAMED");
-    
+
     cmd.addArgument("-jar");
     cmd.addArgument(starterJar.getCanonicalPath());
 
