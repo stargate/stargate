@@ -137,7 +137,8 @@ public class StargateQueryHandler implements QueryHandler {
                       .orElseGet(() -> QueryProcessor.getStatement(query, queryState));
               boolean idempotent = IdempotencyAnalyzer.isIdempotent(statement);
               boolean useKeyspace = statement instanceof UseStatement;
-              return new PreparedWithInfo(p, idempotent, useKeyspace);
+              return new PreparedWithInfo(
+                  p, idempotent, useKeyspace, statement.getPartitionKeyBindVariableIndexes());
             });
   }
 
