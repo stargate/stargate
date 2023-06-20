@@ -83,9 +83,6 @@
             <version>${junit.version}</version>
           </dependency>
         </dependencies>
-        <configuration>
-          <argLine>${jdk11.module-exports}</argLine>
-        </configuration>
       </plugin>
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
