@@ -250,7 +250,7 @@
             <jacoco-agent.args>${failsafe.jacoco.args}</jacoco-agent.args>
             <junit.jupiter.testclass.order.default>org.junit.jupiter.api.ClassOrderer$OrderAnnotation</junit.jupiter.testclass.order.default>
           </systemPropertyVariables>
-          <argLine>${failsafe.jacoco.args} ${jdk11.module-exports}</argLine>
+          <argLine>${failsafe.jacoco.args}</argLine>
           <includes>
             <include>io.stargate.it.**</include>
           </includes>
@@ -364,7 +364,6 @@
                     <ccm.version>4.0.10</ccm.version>
                     <stargate.test.nodes>1</stargate.test.nodes>
                   </systemPropertyVariables>
-                  <argLine>${jdk11.module-exports}</argLine>
                   <failIfNoTests>true</failIfNoTests>
                   <reportsDirectory>target/failsafe-reports/cassandra-4.0</reportsDirectory>
                   <summaryFile>target/failsafe-reports/summary-cassandra-4.0.xml</summaryFile>
@@ -397,7 +396,6 @@
                     <ccm.version>6.8.36</ccm.version>
                     <stargate.test.nodes>1</stargate.test.nodes>
                   </systemPropertyVariables>
-                  <argLine>${jdk11.module-exports}</argLine>
                   <failIfNoTests>true</failIfNoTests>
                   <reportsDirectory>target/failsafe-reports/dse-6.8</reportsDirectory>
                   <summaryFile>target/failsafe-reports/summary-dse-6.8.xml</summaryFile>
