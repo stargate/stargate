@@ -2,48 +2,16 @@
 
 ## [v1.0.77](https://github.com/stargate/stargate/tree/v1.0.77) (2023-06-20)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.15...v1.0.77)
-
-**Fixed bugs:**
-
-- Flaky integration test: SystemTablesTest.addAndRemovePeers [\#984](https://github.com/stargate/stargate/issues/984)
-
-**Closed issues:**
-
-- Update `snappy-java` dep to latest to resolve CVE\(s\) [\#2621](https://github.com/stargate/stargate/issues/2621)
-- Remove "error-prone" plug-in [\#2616](https://github.com/stargate/stargate/issues/2616)
-- Update to DSE 6.8.36 [\#2612](https://github.com/stargate/stargate/issues/2612)
-- DSE docker image fails with no persistence backend found error [\#2605](https://github.com/stargate/stargate/issues/2605)
-- Add support for experimental "VectorType" in `persistence-api` [\#2593](https://github.com/stargate/stargate/issues/2593)
-- Support CQL access to `CompositeType` / `DynamicCompositeType` values via Stargate [\#2406](https://github.com/stargate/stargate/issues/2406)
-- Document population and full search could be restricted to the field paths [\#1024](https://github.com/stargate/stargate/issues/1024)
-- Primary key field in Swagger for v2 REST GET operations does not appear [\#1011](https://github.com/stargate/stargate/issues/1011)
-- Upgrade swagger to v3 [\#963](https://github.com/stargate/stargate/issues/963)
-- Consolidate JSON processing in Documents API [\#948](https://github.com/stargate/stargate/issues/948)
-- Consider using spotless for the code format, imports & headers [\#910](https://github.com/stargate/stargate/issues/910)
-- Declare complete dependencies in the testing jar [\#897](https://github.com/stargate/stargate/issues/897)
-- Distribute gRPC IDL using maven repo instead of submodules [\#842](https://github.com/stargate/stargate/issues/842)
-- Provide support for blob column type with REST & GraphQL APIs [\#829](https://github.com/stargate/stargate/issues/829)
-- Document API query improvements [\#828](https://github.com/stargate/stargate/issues/828)
-- Batched up POST to create multiple rows with the REST API [\#821](https://github.com/stargate/stargate/issues/821)
-- Figure out how to deploy protobuf files for gRPC services [\#818](https://github.com/stargate/stargate/issues/818)
-- Enable SAI indexes on Cassandra 4 backends in test [\#815](https://github.com/stargate/stargate/issues/815)
-- DocumentResourceV2 should return 404 \(not found\) and not 204 \(no content\) in few cases [\#804](https://github.com/stargate/stargate/issues/804)
-- Starting multiple Stargate nodes with C\* 3.11 may experience schema disagreement [\#800](https://github.com/stargate/stargate/issues/800)
-- Make plugging custom persistence backends easier [\#768](https://github.com/stargate/stargate/issues/768)
-- HTTP code for PUT has to be 201 when document is created [\#741](https://github.com/stargate/stargate/issues/741)
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.76...v1.0.77)
 
 **Merged pull requests:**
 
 - closes \#2623: extend prepared with info with var indexes [\#2631](https://github.com/stargate/stargate/pull/2631) ([ivansenic](https://github.com/ivansenic))
-- Improve tests wrt \#2577 to verify Map serialization [\#2580](https://github.com/stargate/stargate/pull/2580) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Backport org.json upgrade from SGv2 \(issue \#2543, PR \#2544\) into v1 b… [\#2567](https://github.com/stargate/stargate/pull/2567) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version for next release \(1.0.77-SNAPSHOT\) [\#2566](https://github.com/stargate/stargate/pull/2566) ([github-actions[bot]](https://github.com/apps/github-actions))
-- Add default tags [\#2565](https://github.com/stargate/stargate/pull/2565) ([maheshrajamani](https://github.com/maheshrajamani))
 
 ## [v1.0.76](https://github.com/stargate/stargate/tree/v1.0.76) (2023-04-26)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.74.1...v1.0.76)
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.75...v1.0.76)
 
 **Merged pull requests:**
 
