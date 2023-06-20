@@ -297,7 +297,7 @@
               </includes>
               <dataFile>${code.coverage.overall.data.folder}/aggregate.exec</dataFile>
               <outputDirectory>${code.coverage.overall.data.folder}/jacoco</outputDirectory>
-           </configuration>
+            </configuration>
           </execution>
         </executions>
       </plugin>
