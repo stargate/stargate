@@ -393,9 +393,9 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
       cmd.addArgument("-Dstargate.bundle.cache.dir=" + cacheDir.getAbsolutePath());
 
       // Java 11+ requires these flags to allow reflection to work
-      cmd.addArgument("--add-exports");
+      cmd.addArgument("--add-opens");
       cmd.addArgument("java.base/jdk.internal.ref=ALL-UNNAMED");
-      cmd.addArgument("--add-exports");
+      cmd.addArgument("--add-opens");
       cmd.addArgument("java.base/jdk.internal.misc=ALL-UNNAMED");
 
       if (backend.isDse()) {

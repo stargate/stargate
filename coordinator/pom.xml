@@ -51,7 +51,7 @@
     <!-- OSGi -->
     <osgi.bundle.version>${project.version}</osgi.bundle.version>
     <!-- JDK 11 settings -->
-    <jdk11.module-exports>--add-exports java.base/jdk.internal.ref=ALL-UNNAMED --add-exports java.base/jdk.internal.misc=ALL-UNNAMED</jdk11.module-exports>
+    <jdk11.module-exports>--add-opens java.base/jdk.internal.ref=ALL-UNNAMED --add-opens java.base/jdk.internal.misc=ALL-UNNAMED</jdk11.module-exports>
     <!-- Release -->
     <project.scm.id>github</project.scm.id>
     <doclint>none</doclint>
