@@ -45,9 +45,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-/**
- * Tests against HTTP modules in the Coordinator.
- */
+/** Tests against HTTP modules in the Coordinator. */
 @NotThreadSafe
 @StargateSpec(parametersCustomizer = "buildParameters")
 @Order(TestOrder.LAST)
