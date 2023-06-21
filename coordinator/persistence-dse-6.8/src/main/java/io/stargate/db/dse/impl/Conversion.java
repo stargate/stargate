@@ -24,10 +24,8 @@ import javax.annotation.Nullable;
 import org.apache.cassandra.cql3.ColumnSpecification;
 import org.apache.cassandra.cql3.PageSize;
 import org.apache.cassandra.cql3.PagingResult;
-import org.apache.cassandra.cql3.QueryHandler;
 import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.cql3.QueryOptions.PagingOptions;
-import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.db.Clustering;
@@ -543,15 +541,12 @@ public class Conversion {
       case PREPARED:
         ResultMessage.Prepared prepared = (ResultMessage.Prepared) resultMessage;
         PreparedWithInfo preparedWithInfo = (PreparedWithInfo) prepared;
-        QueryHandler.Prepared preparedStatement =
-            QueryProcessor.instance.getPrepared(prepared.statementId);
         return new Result.Prepared(
             Conversion.toExternal(prepared.statementId),
             Conversion.toExternal(prepared.resultMetadataId),
             toResultMetadata(prepared.resultMetadata, null),
             toPreparedMetadata(
-                prepared.metadata.names,
-                preparedStatement.statement.getPartitionKeyBindVariableIndexes()),
+                prepared.metadata.names, preparedWithInfo.getPartitionKeyBindVariableIndexes()),
             preparedWithInfo.isIdempotent(),
             preparedWithInfo.isUseKeyspace());
     }

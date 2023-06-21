@@ -21,7 +21,13 @@ public class PreparedWithInfo extends ResultMessage.Prepared {
   private final boolean idempotent;
   private final boolean useKeyspace;
 
-  public PreparedWithInfo(Prepared prepared, boolean idempotent, boolean useKeyspace) {
+  private final short[] partitionKeyBindVariableIndexes;
+
+  public PreparedWithInfo(
+      Prepared prepared,
+      boolean idempotent,
+      boolean useKeyspace,
+      short[] partitionKeyBindVariableIndexes) {
     super(
         prepared.statementId,
         prepared.resultMetadataId,
@@ -29,6 +35,7 @@ public class PreparedWithInfo extends ResultMessage.Prepared {
         prepared.resultMetadata);
     this.idempotent = idempotent;
     this.useKeyspace = useKeyspace;
+    this.partitionKeyBindVariableIndexes = partitionKeyBindVariableIndexes;
   }
 
   public boolean isIdempotent() {
@@ -37,5 +44,9 @@ public class PreparedWithInfo extends ResultMessage.Prepared {
 
   public boolean isUseKeyspace() {
     return useKeyspace;
+  }
+
+  public short[] getPartitionKeyBindVariableIndexes() {
+    return partitionKeyBindVariableIndexes;
   }
 }
