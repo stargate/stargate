@@ -6,9 +6,9 @@ name: Stargate APIs V2
 # * manual trigger
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "v2.1" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "v2.1" ]
   workflow_dispatch:
 
 # cancel same workflows in progress for pull request branches

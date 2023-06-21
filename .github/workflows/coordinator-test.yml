@@ -13,7 +13,7 @@ name: Coordinator Tests
 on:
 
   push:
-    branches: [ "main", "v1" ]
+    branches: [ "main", "v1", "V2.1" ]
     paths:
       - 'coordinator/**pom.xml'
       - 'coordinator/**/src/**'
