@@ -126,7 +126,9 @@ JAVA_OPTS+=(-Dstargate.libdir="$STARGATE_HOME")
 JAVA_OPTS+=(-Djava.awt.headless=true)
 
 JAVA_OPTS+=(-Djdk.attach.allowAttachSelf=true)
-JAVA_OPTS+=(--add-exports)
+JAVA_OPTS+=(--add-opens)
+JAVA_OPTS+=(java.base/java.lang.reflect=ALL-UNNAMED)
+JAVA_OPTS+=(--add-opens)
 JAVA_OPTS+=(java.base/jdk.internal.misc=ALL-UNNAMED)
 JAVA_OPTS+=(--add-opens)
 JAVA_OPTS+=(java.base/jdk.internal.module=ALL-UNNAMED)
@@ -144,7 +146,10 @@ JAVA_OPTS+=(--add-exports)
 JAVA_OPTS+=(java.rmi/sun.rmi.server=ALL-UNNAMED)
 JAVA_OPTS+=(--add-opens)
 JAVA_OPTS+=(jdk.management/com.sun.management.internal=ALL-UNNAMED)
+
 JAVA_OPTS+=(-Dio.netty.tryReflectionSetAccessible=true)
+
+JAVA_OPTS+=(--illegal-access=deny)
 
 declare -a STARGATE_ARGS=("$@")
 
