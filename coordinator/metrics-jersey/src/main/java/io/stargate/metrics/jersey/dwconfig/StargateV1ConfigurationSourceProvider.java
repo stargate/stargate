@@ -16,13 +16,13 @@ import java.util.Objects;
  * <ol>
  *   <li>Explicit System Property of form "stargate.configurationFile.${MODULENAME}" specifying
  *       exact filename of the configuration file to use
- *   <li>File "${CONFIG_NAME} (like {@code restapi-config.yaml} -- same name as the default config
+ *   <li>File "${CONFIG_NAME} (like {@code authapi-config.yaml} -- same name as the default config
  *       resource -- in the Current Working Directory: if found, will be used
  *   <li>Classpath Resource with name "${CONFIG_NAME}"
  * </ol>
  *
  * (where "${MODULENAME}" and "${CONFIG_NAME} are passed as arguments; former typically being
- * something like {@code "restapi"} (former) and {@code "restapi-config.yaml"} (latter))
+ * something like {@code "authapi"} (former) and {@code "authapi-config.yaml"} (latter))
  */
 public class StargateV1ConfigurationSourceProvider implements ConfigurationSourceProvider {
   public static final String SYSPROP_CONFIG_FILE_PREFIX = "stargate.configurationFile.";
@@ -35,7 +35,7 @@ public class StargateV1ConfigurationSourceProvider implements ConfigurationSourc
 
   /**
    * @param configName Name of the config file or resource to look for: typically starts with module
-   *     name followed by {@code "-config.yaml"} (so for example {@code "restapi-config.yaml"})
+   *     name followed by {@code "-config.yaml"} (so for example {@code "authapi-config.yaml"})
    * @return InputStream for reading the configuration file/resource to use
    * @throws IOException In case opening of the resource failed
    */

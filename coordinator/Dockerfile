@@ -20,9 +20,6 @@ WORKDIR /stargate
 # CQL
 EXPOSE 9042
 
-# GraphQL
-EXPOSE 8080
-
 # Auth
 EXPOSE 8081
 
