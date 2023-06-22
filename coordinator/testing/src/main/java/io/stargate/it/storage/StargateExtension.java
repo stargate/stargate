@@ -393,7 +393,7 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
       cmd.addArgument("-Dstargate.bundle.cache.dir=" + cacheDir.getAbsolutePath());
 
       // Java 11+ requires these flags to allow reflection to work
-      if(backend.isDse()) {
+      if (backend.isDse()) {
         cmd.addArgument("-Djdk.attach.allowAttachSelf=true");
         cmd.addArgument("--add-exports");
         cmd.addArgument("java.base/jdk.internal.misc=ALL-UNNAMED");
@@ -414,14 +414,12 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
         cmd.addArgument("--add-opens");
         cmd.addArgument("jdk.management/com.sun.management.internal=ALL-UNNAMED");
         cmd.addArgument("-Dio.netty.tryReflectionSetAccessible=true");
-      }
-      else {
+      } else {
         cmd.addArgument("--add-exports");
         cmd.addArgument("java.base/jdk.internal.ref=ALL-UNNAMED");
         cmd.addArgument("--add-exports");
         cmd.addArgument("java.base/jdk.internal.misc=ALL-UNNAMED");
       }
-
 
       if (backend.isDse()) {
         cmd.addArgument("-Dstargate.request_timeout_in_ms=60000");
