@@ -57,10 +57,34 @@ public class NodeToolTest extends BaseIntegrationTest {
     cmd.addArgument("-Dstargate.libdir=" + starterJar.getParentFile().getCanonicalPath());
 
     // Java 11+ requires these flags to allow reflection to work
-    cmd.addArgument("--add-opens");
-    cmd.addArgument("java.base/jdk.internal.ref=ALL-UNNAMED");
-    cmd.addArgument("--add-opens");
-    cmd.addArgument("java.base/jdk.internal.misc=ALL-UNNAMED");
+    if(backend.isDse()) {
+      cmd.addArgument("-Djdk.attach.allowAttachSelf=true");
+      cmd.addArgument("--add-exports");
+      cmd.addArgument("java.base/jdk.internal.misc=ALL-UNNAMED");
+      cmd.addArgument("--add-opens");
+      cmd.addArgument("java.base/jdk.internal.module=ALL-UNNAMED");
+      cmd.addArgument("--add-exports");
+      cmd.addArgument("java.base/jdk.internal.ref=ALL-UNNAMED");
+      cmd.addArgument("--add-exports");
+      cmd.addArgument("java.base/jdk.internal.perf=ALL-UNNAMED");
+      cmd.addArgument("--add-exports");
+      cmd.addArgument("java.base/sun.nio.ch=ALL-UNNAMED");
+      cmd.addArgument("--add-exports");
+      cmd.addArgument("java.management.rmi/com.sun.jmx.remote.internal.rmi=ALL-UNNAMED");
+      cmd.addArgument("--add-exports");
+      cmd.addArgument("java.rmi/sun.rmi.registry=ALL-UNNAMED");
+      cmd.addArgument("--add-exports");
+      cmd.addArgument("java.rmi/sun.rmi.server=ALL-UNNAMED");
+      cmd.addArgument("--add-opens");
+      cmd.addArgument("jdk.management/com.sun.management.internal=ALL-UNNAMED");
+      cmd.addArgument("-Dio.netty.tryReflectionSetAccessible=true");
+    }
+    else {
+      cmd.addArgument("--add-exports");
+      cmd.addArgument("java.base/jdk.internal.ref=ALL-UNNAMED");
+      cmd.addArgument("--add-exports");
+      cmd.addArgument("java.base/jdk.internal.misc=ALL-UNNAMED");
+    }
 
     cmd.addArgument("-jar");
     cmd.addArgument(starterJar.getCanonicalPath());
