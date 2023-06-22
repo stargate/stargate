@@ -207,7 +207,6 @@
         <module>health-checker</module>
         <module>config-store-api</module>
         <module>config-store-yaml</module>
-        <module>rate-limiting-global</module>
         <module>grpc-proto</module>
         <module>bridge-proto</module>
         <module>grpc</module>
@@ -242,7 +241,6 @@
         <module>health-checker</module>
         <module>config-store-api</module>
         <module>config-store-yaml</module>
-        <module>rate-limiting-global</module>
         <module>grpc-proto</module>
         <module>bridge-proto</module>
         <module>grpc</module>
