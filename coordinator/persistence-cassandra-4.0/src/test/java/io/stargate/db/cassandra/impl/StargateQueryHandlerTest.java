@@ -1067,7 +1067,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
       new Object[] {null},
       new Object[] {SourceAPI.REST},
       new Object[] {SourceAPI.GRAPHQL},
-      new Object[] {SourceAPI.CQL}
+      new Object[] {SourceAPI.CQL},
+      new Object[] {SourceAPI.JSON}
     };
   }
 
