@@ -34,7 +34,10 @@ public enum SourceAPI {
   CQL("cql"),
 
   /** Used for REST and Docs API, as historically they were one. */
-  REST("rest");
+  REST("rest"),
+
+  /** Used for JSON API. */
+  JSON("json");
 
   public static final String CUSTOM_PAYLOAD_KEY = "stargate.sourceAPI";
   private final String name;

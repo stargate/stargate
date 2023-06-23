@@ -115,6 +115,7 @@ message SchemaRead {
   enum SourceApi {
     GRAPHQL = 0;
     REST = 1;
+    JSON = 2;
   }
   enum ElementType {
     KEYSPACE = 0;
