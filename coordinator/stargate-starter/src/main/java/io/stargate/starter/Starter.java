@@ -493,6 +493,7 @@ public class Starter {
         String.join(
             ",",
             "javax.*",
+            "jdk.*",
             "sun.*",
             "com.sun.*",
             "org.xml.sax",

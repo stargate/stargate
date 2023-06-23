@@ -45,16 +45,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-/**
- * Leftover test class from Stargate V1 which contains tests against modules that have not yet been
- * extracted out of the Coordinator monolith.
- *
- * <p>Tests moved as follows:
- *
- * <ul>
- *   <li>REST API: {@code RestApiMetricsTest}
- * </ul>
- */
+/** Tests against HTTP modules in the Coordinator. */
 @NotThreadSafe
 @StargateSpec(parametersCustomizer = "buildParameters")
 @Order(TestOrder.LAST)
