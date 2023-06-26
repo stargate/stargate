@@ -66,6 +66,14 @@
     <project.scm.id>github</project.scm.id>
     <doclint>none</doclint>
     <driver.version>4.15.0</driver.version>
+    <immutables.version>2.8.8</immutables.version>
+    <javatuples.version>1.2</javatuples.version>
+    <!-- Netty version used by Cassandra 4.0 (DSE uses different version)
+    NOTE: upgrading version often breaks persistence backend so make sure
+    you know what you are doing if/when upgrading
+    -->
+    <netty.version>4.1.75.Final</netty.version>
+    <assertj.version>3.21.0</assertj.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -75,6 +83,46 @@
         <version>${quarkus.platform.version}</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+      <dependency>
+        <groupId>org.immutables</groupId>
+        <artifactId>value</artifactId>
+        <version>${immutables.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.javatuples</groupId>
+        <artifactId>javatuples</artifactId>
+        <version>${javatuples.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>com.datastax.oss</groupId>
+        <artifactId>java-driver-shaded-guava</artifactId>
+        <version>25.1-jre</version>
+      </dependency>
+      <dependency>
+        <groupId>com.datastax.oss</groupId>
+        <artifactId>java-driver-core</artifactId>
+        <version>${driver.version}</version>
+      </dependency>
+      <!-- 14-Jun-2022, tatu: with java-driver-core 4.14.1 this dependency is optional
+      and not brought as compile-time dependency, so needs to be explicitly added
+      (see [stargate#1889] for details). But we better use consistent version
+      -->
+      <!-- 13-Apr-2023, tatu: And now DSE-6.8.34 upgraded version to 2.2.4 (from 1.2.1) let's hope things still work -->
+      <dependency>
+        <groupId>com.esri.geometry</groupId>
+        <artifactId>esri-geometry-api</artifactId>
+        <version>2.2.4</version>
+      </dependency>
+      <dependency>
+        <groupId>com.datastax.oss</groupId>
+        <artifactId>java-driver-query-builder</artifactId>
+        <version>${driver.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.assertj</groupId>
+        <artifactId>assertj-core</artifactId>
+        <version>${assertj.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -243,12 +291,20 @@
       <activation>
         <activeByDefault>true</activeByDefault>
       </activation>
+      <modules>
+        <module>metrics</module>
+        <module>persistence-api</module>
+      </modules>
     </profile>
     <profile>
       <id>dse-68</id>
       <activation>
         <activeByDefault>false</activeByDefault>
       </activation>
+      <modules>
+        <module>metrics</module>
+        <module>persistence-api</module>
+      </modules>
     </profile>
     <!-- Deployment profile (required so these plugins are only used when deploying) -->
     <profile>
