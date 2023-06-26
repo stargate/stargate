@@ -1,19 +1,12 @@
 # Changelog
 
-## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.16...HEAD)
-
-**Closed issues:**
-
-- Guava version 32.0.0 has a CVE [\#2638](https://github.com/stargate/stargate/issues/2638)
-
 ## [v2.0.16](https://github.com/stargate/stargate/tree/v2.0.16) (2023-06-21)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.77...v2.0.16)
 
 **Closed issues:**
 
+- Guava version 32.0.0 has a CVE [\#2638](https://github.com/stargate/stargate/issues/2638)
 - NPE in `persistence-dse-6.8` class `Conversion.java` \(line 580\) [\#2623](https://github.com/stargate/stargate/issues/2623)
 
 **Merged pull requests:**
