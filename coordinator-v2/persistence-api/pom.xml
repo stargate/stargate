@@ -32,6 +32,7 @@
       </dependency>
       <!-- To upgrade StringTemplate version Duzzt uses, easiest to force here
         -->
+      <!-- TODO: this seems wrong, at least the pace is wrong? -->
       <dependency>
         <groupId>org.antlr</groupId>
         <artifactId>ST4</artifactId>
@@ -40,6 +41,7 @@
     </dependencies>
   </dependencyManagement>
   <dependencies>
+    <!-- Stargate component dependencies -->
     <dependency>
       <groupId>io.stargate.core</groupId>
       <artifactId>metrics</artifactId>
