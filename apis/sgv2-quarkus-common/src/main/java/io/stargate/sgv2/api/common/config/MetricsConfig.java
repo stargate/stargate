@@ -60,7 +60,7 @@ public interface MetricsConfig {
     @WithDefault("error")
     String errorTag();
 
-    /** @return The tag key for user-agent flag, defaults to <code>error</code>. */
+    /** @return The tag key for user-agent flag, defaults to <code>user_agent</code>. */
     @NotBlank
     @WithDefault("user_agent")
     String userAgentTag();
@@ -68,5 +68,14 @@ public interface MetricsConfig {
     /** @return If tenant counting metric should include the user agent information. */
     @WithDefault("false")
     boolean userAgentTagEnabled();
+
+    /** @return The tag key for HTTP status flag, defaults to <code>status</code>. */
+    @NotBlank
+    @WithDefault("status")
+    String statusTag();
+
+    /** @return If tenant counting metric should include the HTTP status information. */
+    @WithDefault("true")
+    boolean statusTagEnabled();
   }
 }

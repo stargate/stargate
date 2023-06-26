@@ -48,6 +48,7 @@ class TenantRequestMetricsFilterTest {
           .put("stargate.metrics.tenant-request-counter.metric-name", "test.metrics")
           .put("stargate.metrics.tenant-request-counter.tenant-tag", "tenantTag")
           .put("stargate.metrics.tenant-request-counter.error-tag", "errorTag")
+          .put("stargate.metrics.tenant-request-counter.status-tag", "statusTag")
           .build();
     }
   }
@@ -83,6 +84,7 @@ class TenantRequestMetricsFilterTest {
                 assertThat(metric)
                     .contains("tenantTag=\"" + FixedTenantTestProfile.TENANT_ID + "\"")
                     .contains("errorTag=\"false\"")
+                    .contains("statusTag=\"200\"")
                     .doesNotContain("agent="));
   }
 }
