@@ -1,5 +1,39 @@
 # Changelog
 
+## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.16...HEAD)
+
+**Closed issues:**
+
+- Guava version 32.0.0 has a CVE [\#2638](https://github.com/stargate/stargate/issues/2638)
+
+## [v2.0.16](https://github.com/stargate/stargate/tree/v2.0.16) (2023-06-21)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.77...v2.0.16)
+
+**Closed issues:**
+
+- NPE in `persistence-dse-6.8` class `Conversion.java` \(line 580\) [\#2623](https://github.com/stargate/stargate/issues/2623)
+
+**Merged pull requests:**
+
+- Fix \#2638: update Guava to 32.0.1 to resolve CVE [\#2639](https://github.com/stargate/stargate/pull/2639) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update Maven plugins to latest versions [\#2637](https://github.com/stargate/stargate/pull/2637) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Merge \#2631 \(to fix \#2623\) from v1 to v2 [\#2633](https://github.com/stargate/stargate/pull/2633) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump snappy-java from 1.1.10.0 to 1.1.10.1 in /coordinator [\#2627](https://github.com/stargate/stargate/pull/2627) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Update snappy-java to latest [\#2622](https://github.com/stargate/stargate/pull/2622) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Upgrade DSE to 6.8.36 [\#2620](https://github.com/stargate/stargate/pull/2620) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Remove use of errorprone static analyzer plugin \(see \#2616 for rationale\) [\#2617](https://github.com/stargate/stargate/pull/2617) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump guava from 31.1-jre to 32.0.0-jre in /coordinator/persistence-dse-6.8 [\#2615](https://github.com/stargate/stargate/pull/2615) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Docker compose improvements for DSE on Mac M1 machines [\#2608](https://github.com/stargate/stargate/pull/2608) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- make sure DSE persistence jar is available for Dockerfile [\#2606](https://github.com/stargate/stargate/pull/2606) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- fix build issue related to version missmatch [\#2604](https://github.com/stargate/stargate/pull/2604) ([ivansenic](https://github.com/ivansenic))
+- update to quarkus 3.1.0 [\#2603](https://github.com/stargate/stargate/pull/2603) ([ivansenic](https://github.com/ivansenic))
+- Update C\*4 dep to 4.0.10, C\*3.11 to 3.11.15 [\#2602](https://github.com/stargate/stargate/pull/2602) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version to 2.0.16-SNAPSHOT [\#2598](https://github.com/stargate/stargate/pull/2598) ([github-actions[bot]](https://github.com/apps/github-actions))
+- C2-2727: improve loadAuthenticationSubject performance [\#2595](https://github.com/stargate/stargate/pull/2595) ([ivansenic](https://github.com/ivansenic))
+
 ## [v2.0.15](https://github.com/stargate/stargate/tree/v2.0.15) (2023-05-26)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.14...v2.0.15)
