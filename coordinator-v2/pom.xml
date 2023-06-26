@@ -288,6 +288,7 @@
         <activeByDefault>true</activeByDefault>
       </activation>
       <modules>
+        <module>authnz</module>
         <module>metrics</module>
         <module>persistence-api</module>
         <module>persistence-common</module>
@@ -299,6 +300,7 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <modules>
+        <module>authnz</module>
         <module>metrics</module>
         <module>persistence-api</module>
         <module>persistence-common</module>

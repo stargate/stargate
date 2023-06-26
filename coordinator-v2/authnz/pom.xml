@@ -7,10 +7,10 @@
     <artifactId>stargate</artifactId>
     <version>2.1.0-ALPHA-1-SNAPSHOT</version>
   </parent>
-  <!-- Artifact properties -->
-  <groupId>io.stargate.db</groupId>
-  <artifactId>persistence-common</artifactId>
-  <name>Stargate - Coordinator - Persistence commons</name>
+  <!-- Artifact props -->
+  <groupId>io.stargate.auth</groupId>
+  <artifactId>authnz</artifactId>
+  <name>Stargate - Coordinator - AuthN/Z</name>
   <dependencies>
     <!-- Stargate component dependencies -->
     <dependency>
@@ -18,26 +18,10 @@
       <artifactId>persistence-api</artifactId>
       <version>${project.version}</version>
     </dependency>
-    <!-- Cassandra/DataStax -->
-    <dependency>
-      <groupId>com.datastax.oss</groupId>
-      <artifactId>java-driver-shaded-guava</artifactId>
-    </dependency>
-    <!-- 3rd party dependencies -->
-    <dependency>
-      <groupId>org.immutables</groupId>
-      <artifactId>value</artifactId>
-      <scope>provided</scope>
-    </dependency>
     <!-- Test dependencies -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.mockito</groupId>
-      <artifactId>mockito-core</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>

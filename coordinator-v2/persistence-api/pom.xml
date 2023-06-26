@@ -63,7 +63,6 @@
     <dependency>
       <groupId>com.datastax.oss</groupId>
       <artifactId>java-driver-shaded-guava</artifactId>
-      <scope>provided</scope>
     </dependency>
     <!-- 3rd party dependencies -->
     <dependency>
@@ -98,13 +97,6 @@
     <dependency>
       <groupId>org.assertj</groupId>
       <artifactId>assertj-core</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <!-- TODO: remove this one -->
-    <dependency>
-      <groupId>org.apache.cassandra</groupId>
-      <artifactId>cassandra-all</artifactId>
-      <version>4.0.10</version>
       <scope>test</scope>
     </dependency>
     <dependency>
