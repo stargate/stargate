@@ -53,6 +53,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <!-- JDK 11 settings -->
+    <!-- When changing these, make sure to also update the app docker image java args -->
     <jdk11.module-exports>--add-exports java.base/jdk.internal.ref=ALL-UNNAMED --add-exports java.base/jdk.internal.misc=ALL-UNNAMED</jdk11.module-exports>
     <!-- Quarkus -->
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
@@ -305,6 +306,7 @@
         <activeByDefault>true</activeByDefault>
       </activation>
       <modules>
+        <module>app-cassandra-4.0</module>
         <module>authnz</module>
         <module>metrics</module>
         <module>persistence-api</module>
@@ -318,6 +320,7 @@
         <activeByDefault>false</activeByDefault>
       </activation>
       <modules>
+        <module>app-cassandra-4.0</module>
         <module>authnz</module>
         <module>metrics</module>
         <module>persistence-api</module>

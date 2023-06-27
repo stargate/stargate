@@ -2,6 +2,8 @@ package io.stargate.db.cassandra;
 
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
+import io.quarkus.arc.Unremovable;
+import io.quarkus.runtime.Startup;
 import io.stargate.auth.AuthorizationProcessor;
 import io.stargate.auth.AuthorizationService;
 import io.stargate.db.cassandra.impl.Cassandra40Persistence;
@@ -11,6 +13,7 @@ import io.stargate.db.cassandra.impl.StargateSeedProvider;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.inject.Instance;
 import jakarta.enterprise.inject.Produces;
+import jakarta.inject.Singleton;
 import java.io.File;
 import java.io.IOException;
 import java.net.InetAddress;
@@ -32,8 +35,10 @@ public class Cassandra40Configuration {
 
   @ApplicationScoped
   @Produces
+  @Unremovable
+  @Startup
   public MetricRegistry metricRegistry() {
-    // TODO Prefixed metric registry
+    // TODO Prefixed metric registry, check injection
     MetricRegistry metricRegistry = new MetricRegistry();
     CassandraMetricsRegistry.actualRegistry = metricRegistry;
     return metricRegistry;

@@ -1,0 +1,61 @@
+---
+# please keep properties in the alphabetical order
+
+stargate:
+
+  # configuration related to the documents
+  # see io.stargate.sgv2.docsapi.config.DocumentConfig for all config properties and options
+  documents:
+
+  # metrics properties
+  # see io.stargate.sgv2.api.common.config.MetricsConfig for all config properties and options
+  metrics:
+    global-tags:
+      module: sgv2-docsapi
+
+quarkus:
+
+  # general app properties
+  application:
+    name: Stargate Coord C* 4.0
+    ui-header: ${quarkus.application.name} (powered by DataStax)
+
+  # banner for the startup
+  banner:
+    path: banner/banner.txt
+
+  # log format setup
+  log:
+    console:
+      format: "%-5p [%t] %d{yyyy-MM-dd HH:mm:ss,SSS} %F:%L - %m%n"
+
+  #  HTTP settings
+  http:
+
+    # disable basic auth completely
+    auth:
+      basic: false
+
+    # access log format, must be explicitly enabled
+    access-log:
+      pattern: "%h %l %t \"%r\" %s %b"
+
+    # non-application path to /stargate
+    non-application-root-path: stargate
+
+
+  # built-in micrometer properties
+  micrometer:
+    binder:
+      http-server:
+        # ignore all non-application uris, as well as the custom set
+        suppress-non-application-uris: true
+    # exports at prometheus default path
+    export:
+      prometheus:
+        path: /metrics
+
+  # OpenTelemetry configuration
+  otel:
+    enabled: false
+

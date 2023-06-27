@@ -53,8 +53,8 @@
     </dependency>
     <!-- Quarkus dependencies -->
     <dependency>
-      <groupId>io.quarkus.arc</groupId>
-      <artifactId>arc</artifactId>
+      <groupId>io.quarkus</groupId>
+      <artifactId>quarkus-arc</artifactId>
     </dependency>
     <!-- Cassandra/DataStax -->
     <dependency>
@@ -151,6 +151,19 @@
         <configuration>
           <argLine>${jdk11.module-exports}</argLine>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.jboss.jandex</groupId>
+        <artifactId>jandex-maven-plugin</artifactId>
+        <version>1.2.2</version>
+        <executions>
+          <execution>
+            <id>make-index</id>
+            <goals>
+              <goal>jandex</goal>
+            </goals>
+          </execution>
+        </executions>
       </plugin>
       <plugin>
         <artifactId>maven-dependency-plugin</artifactId>

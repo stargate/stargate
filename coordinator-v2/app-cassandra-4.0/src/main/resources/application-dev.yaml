@@ -1,0 +1,15 @@
+quarkus:
+
+  # enable OpenTelemetry
+  otel:
+    enabled: true
+    traces:
+      # in the dev env use the sampler that samples all requests
+      sampler:
+        ~: traceidratio
+        arg: 1.0
+    # the OTPL should be enabled and endpoint should be specified in order to report traces
+    exporter:
+      otlp:
+        enabled: false
+        endpoint:
