@@ -308,6 +308,7 @@
       <modules>
         <module>app-cassandra-4.0</module>
         <module>authnz</module>
+        <module>core</module>
         <module>metrics</module>
         <module>persistence-api</module>
         <module>persistence-common</module>
@@ -322,6 +323,7 @@
       <modules>
         <module>app-cassandra-4.0</module>
         <module>authnz</module>
+        <module>core</module>
         <module>metrics</module>
         <module>persistence-api</module>
         <module>persistence-common</module>
