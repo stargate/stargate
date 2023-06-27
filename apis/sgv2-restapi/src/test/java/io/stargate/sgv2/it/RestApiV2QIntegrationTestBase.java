@@ -677,7 +677,7 @@ public abstract class RestApiV2QIntegrationTestBase {
     row.put("pk1", "two");
     row.put("pk2", -2);
     row.put("ck0", 10);
-    row.put("ck1", "bar");
+    row.put("ck1", "bar%2Fbaz");
     row.put("v", 18);
     insertRow(keyspaceName, tableName, row);
   }
