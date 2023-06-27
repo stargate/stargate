@@ -68,6 +68,10 @@
     <driver.version>4.15.0</driver.version>
     <immutables.version>2.8.8</immutables.version>
     <javatuples.version>1.2</javatuples.version>
+    <!-- SnakeYAML needs to be synced with jackson-dataformat-yaml
+       most of the time, but occasionally higher for CVEs
+      -->
+    <snakeyaml.version>1.33</snakeyaml.version>
     <!-- Netty version used by Cassandra 4.0 (DSE uses different version)
     NOTE: upgrading version often breaks persistence backend so make sure
     you know what you are doing if/when upgrading
@@ -83,6 +87,14 @@
         <version>${quarkus.platform.version}</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+      <!-- SnakeYAML dependency from Jackson 2.14.1 is 1.33 but Persistence backends
+      try to bring in older versions, so:
+      -->
+      <dependency>
+        <groupId>org.yaml</groupId>
+        <artifactId>snakeyaml</artifactId>
+        <version>${snakeyaml.version}</version>
       </dependency>
       <dependency>
         <groupId>org.immutables</groupId>
@@ -123,6 +135,11 @@
         <groupId>org.assertj</groupId>
         <artifactId>assertj-core</artifactId>
         <version>${assertj.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.xerial.snappy</groupId>
+        <artifactId>snappy-java</artifactId>
+        <version>1.1.10.1</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -292,6 +309,7 @@
         <module>metrics</module>
         <module>persistence-api</module>
         <module>persistence-common</module>
+        <module>persistence-cassandra-4.0</module>
       </modules>
     </profile>
     <profile>
@@ -304,6 +322,7 @@
         <module>metrics</module>
         <module>persistence-api</module>
         <module>persistence-common</module>
+        <module>persistence-cassandra-4.0</module>
       </modules>
     </profile>
     <!-- Deployment profile (required so these plugins are only used when deploying) -->
