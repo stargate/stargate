@@ -30,6 +30,7 @@ import org.jboss.resteasy.reactive.RestResponse;
  */
 @ApplicationScoped
 @Path("/v2/keyspaces/{keyspaceName}/{tableName}")
+@Encoded
 @Produces(MediaType.APPLICATION_JSON)
 @Consumes(MediaType.APPLICATION_JSON)
 @SecurityRequirement(name = RestOpenApiConstants.SecuritySchemes.TOKEN)
@@ -127,7 +128,6 @@ public interface Sgv2RowsResourceApi {
           final String tableName,
       @Parameter(name = "primaryKey", ref = RestOpenApiConstants.Parameters.PRIMARY_KEY)
           @PathParam("primaryKey")
-          @Encoded
           List<PathSegment> path,
       @Parameter(name = "fields", ref = RestOpenApiConstants.Parameters.FIELDS)
           @QueryParam("fields")
@@ -238,7 +238,6 @@ public interface Sgv2RowsResourceApi {
           final String tableName,
       @Parameter(name = "primaryKey", ref = RestOpenApiConstants.Parameters.PRIMARY_KEY)
           @PathParam("primaryKey")
-          @Encoded
           List<PathSegment> path,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw,
@@ -271,7 +270,6 @@ public interface Sgv2RowsResourceApi {
           final String tableName,
       @Parameter(name = "primaryKey", ref = RestOpenApiConstants.Parameters.PRIMARY_KEY)
           @PathParam("primaryKey")
-          @Encoded
           List<PathSegment> path,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw,
@@ -299,6 +297,5 @@ public interface Sgv2RowsResourceApi {
           final String tableName,
       @Parameter(name = "primaryKey", ref = RestOpenApiConstants.Parameters.PRIMARY_KEY)
           @PathParam("primaryKey")
-          @Encoded
           List<PathSegment> path);
 }
