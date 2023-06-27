@@ -127,6 +127,7 @@ public interface Sgv2RowsResourceApi {
           final String tableName,
       @Parameter(name = "primaryKey", ref = RestOpenApiConstants.Parameters.PRIMARY_KEY)
           @PathParam("primaryKey")
+          @Encoded
           List<PathSegment> path,
       @Parameter(name = "fields", ref = RestOpenApiConstants.Parameters.FIELDS)
           @QueryParam("fields")
@@ -237,6 +238,7 @@ public interface Sgv2RowsResourceApi {
           final String tableName,
       @Parameter(name = "primaryKey", ref = RestOpenApiConstants.Parameters.PRIMARY_KEY)
           @PathParam("primaryKey")
+          @Encoded
           List<PathSegment> path,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw,
@@ -269,6 +271,7 @@ public interface Sgv2RowsResourceApi {
           final String tableName,
       @Parameter(name = "primaryKey", ref = RestOpenApiConstants.Parameters.PRIMARY_KEY)
           @PathParam("primaryKey")
+          @Encoded
           List<PathSegment> path,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw,
@@ -296,5 +299,6 @@ public interface Sgv2RowsResourceApi {
           final String tableName,
       @Parameter(name = "primaryKey", ref = RestOpenApiConstants.Parameters.PRIMARY_KEY)
           @PathParam("primaryKey")
+          @Encoded
           List<PathSegment> path);
 }
