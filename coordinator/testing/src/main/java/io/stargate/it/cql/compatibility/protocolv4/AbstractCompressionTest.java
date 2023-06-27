@@ -1,4 +1,4 @@
-package io.stargate.it.cql;
+package io.stargate.it.cql.compatibility.protocolv4;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.offset;

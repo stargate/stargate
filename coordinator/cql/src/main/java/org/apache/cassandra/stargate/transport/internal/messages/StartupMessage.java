@@ -26,14 +26,9 @@ import java.util.concurrent.CompletableFuture;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
+import org.apache.cassandra.stargate.transport.internal.Compressor;
 import org.apache.cassandra.stargate.transport.internal.Message;
-import org.apache.cassandra.stargate.transport.internal.frame.checksum.ChecksummingTransformer;
-import org.apache.cassandra.stargate.transport.internal.frame.compress.CompressingTransformer;
-import org.apache.cassandra.stargate.transport.internal.frame.compress.Compressor;
-import org.apache.cassandra.stargate.transport.internal.frame.compress.LZ4Compressor;
-import org.apache.cassandra.stargate.transport.internal.frame.compress.SnappyCompressor;
 import org.apache.cassandra.utils.CassandraVersion;
-import org.apache.cassandra.utils.ChecksumType;
 
 /** The initial message of the protocol. Sets up a number of connection options. */
 public class StartupMessage extends Message.Request {
@@ -42,7 +37,6 @@ public class StartupMessage extends Message.Request {
   public static final String PROTOCOL_VERSIONS = "PROTOCOL_VERSIONS";
   public static final String DRIVER_NAME = "DRIVER_NAME";
   public static final String DRIVER_VERSION = "DRIVER_VERSION";
-  public static final String CHECKSUM = "CONTENT_CHECKSUM";
   public static final String THROW_ON_OVERLOAD = "THROW_ON_OVERLOAD";
 
   public static final Message.Codec<StartupMessage> codec =
@@ -86,18 +80,22 @@ public class StartupMessage extends Message.Request {
       throw new ProtocolException(e.getMessage());
     }
 
-    ChecksumType checksumType = getChecksumType();
-    Compressor compressor = getCompressor();
+    if (options.containsKey(COMPRESSION)) {
+      String compression = options.get(COMPRESSION).toLowerCase();
+      if (compression.equals("snappy")) {
+        if (Compressor.SnappyCompressor.instance == null)
+          throw new ProtocolException("This instance does not support Snappy compression");
 
-    if (null != checksumType) {
-      if (!connection.getVersion().supportsChecksums())
+        if (getSource().header.version.isGreaterOrEqualTo(ProtocolVersion.V5))
+          throw new ProtocolException("Snappy compression is not supported in protocol V5");
+
+        connection.setCompressor(Compressor.SnappyCompressor.instance);
+      } else if (compression.equals("lz4")) {
+        connection.setCompressor(Compressor.LZ4Compressor.instance);
+      } else {
         throw new ProtocolException(
-            String.format(
-                "Invalid message flag. Protocol version %s does not support frame body checksums",
-                connection.getVersion().toString()));
-      connection.setTransformer(ChecksummingTransformer.getTransformer(checksumType, compressor));
-    } else if (null != compressor) {
-      connection.setTransformer(CompressingTransformer.getTransformer(compressor));
+            String.format("Unknown compression algorithm: %s", compression));
+      }
     }
 
     connection.setThrowOnOverload("1".equals(options.get(THROW_ON_OVERLOAD)));
@@ -120,38 +118,6 @@ public class StartupMessage extends Message.Request {
     for (Map.Entry<String, String> entry : options.entrySet())
       newMap.put(entry.getKey().toUpperCase(), entry.getValue());
     return newMap;
-  }
-
-  private ChecksumType getChecksumType() throws ProtocolException {
-    String name = options.get(CHECKSUM);
-    try {
-      return name != null ? ChecksumType.valueOf(name.toUpperCase()) : null;
-    } catch (IllegalArgumentException e) {
-      throw new ProtocolException(
-          String.format(
-              "Requested checksum type %s is not known or supported by "
-                  + "this version of Cassandra",
-              name));
-    }
-  }
-
-  private Compressor getCompressor() throws ProtocolException {
-    String name = options.get(COMPRESSION);
-    if (null == name) return null;
-
-    switch (name.toLowerCase()) {
-      case "snappy":
-        {
-          if (SnappyCompressor.INSTANCE == null)
-            throw new ProtocolException("This instance does not support Snappy compression");
-
-          return SnappyCompressor.INSTANCE;
-        }
-      case "lz4":
-        return LZ4Compressor.INSTANCE;
-      default:
-        throw new ProtocolException(String.format("Unknown compression algorithm: %s", name));
-    }
   }
 
   @Override
