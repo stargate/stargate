@@ -33,7 +33,7 @@ public class Cassandra40Configuration {
   @Singleton
   @Produces
   public MetricRegistry metricRegistry() {
-    // TODO Prefixed metric registry, check injection
+    // TODO should somebody else provide meter registry?
     return new MetricRegistry();
   }
 
@@ -44,6 +44,7 @@ public class Cassandra40Configuration {
       Instance<AuthorizationService> authorizationService,
       Instance<AuthorizationProcessor> authorizationProcessor)
       throws Exception {
+    // TODO Prefixed metric registry here,
     CassandraMetricsRegistry.actualRegistry = metricRegistry;
 
     Cassandra40Persistence cassandraDB = new Cassandra40Persistence();
