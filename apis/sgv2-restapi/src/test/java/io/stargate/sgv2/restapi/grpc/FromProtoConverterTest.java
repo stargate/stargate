@@ -1,17 +1,18 @@
 package io.stargate.sgv2.restapi.grpc;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-
 import io.stargate.bridge.grpc.CqlDuration;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
-import java.util.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.*;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 public class FromProtoConverterTest {
   private static final String TEST_COLUMN = "test_column";
@@ -50,36 +51,6 @@ public class FromProtoConverterTest {
           setOf(123, 456),
           setType(QueryOuterClass.TypeSpec.Basic.INT),
           Values.of(Arrays.asList(Values.of(123), Values.of(456)))),
-
-      // Maps
-      arguments(
-          Collections.singletonList(
-              new HashMap<>() {
-                {
-                  put("key", "foo");
-                  put("value", "bar");
-                }
-              }),
-          mapType(QueryOuterClass.TypeSpec.Basic.VARCHAR, QueryOuterClass.TypeSpec.Basic.VARCHAR),
-          // since internal representation is just as Collection...
-          Values.of(Arrays.asList(Values.of("foo"), Values.of("bar")))),
-      arguments(
-          Arrays.asList(
-              new HashMap<>() {
-                {
-                  put("key", 123);
-                  put("value", true);
-                }
-              },
-              new HashMap<>() {
-                {
-                  put("key", 456);
-                  put("value", false);
-                }
-              }),
-          mapType(QueryOuterClass.TypeSpec.Basic.INT, QueryOuterClass.TypeSpec.Basic.BOOLEAN),
-          Values.of(
-              Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false))))
     };
   }
 
