@@ -44,6 +44,7 @@ public interface RestOpenApiConstants {
     String RAW = "raw";
     String TABLE_NAME = "tableName";
     String SORT = "sort";
+    String OPTIMIZE_MAP = "optimize_map";
   }
 
   /** Reused example snippets, mostly for error codes */

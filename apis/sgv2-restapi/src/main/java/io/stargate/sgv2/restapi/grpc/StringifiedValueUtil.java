@@ -81,6 +81,97 @@ public class StringifiedValueUtil {
             "Invalid %s value '%s': missing closing '%s'", typeDesc, value, closingBrace));
   }
 
+  public static void decodeStringifiedOptimizedMap(
+      String value,
+      ToProtoValueCodec keyCodec,
+      ToProtoValueCodec valueCodec,
+      Collection<QueryOuterClass.Value> results) {
+    int idx = skipSpaces(value, 0);
+    if (idx >= value.length()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid Map value '%s': at character %d expecting '{' but got EOF", value, idx));
+    }
+    if (value.charAt(idx++) != '{') {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid Map value '%s': at character %d expecting '{' but got '%c'",
+              value, idx, value.charAt(idx)));
+    }
+
+    idx = skipSpaces(value, idx);
+
+    if (idx >= value.length()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid Map value '%s': at character %d expecting element or '}' but got EOF",
+              value, idx));
+    }
+    if (value.charAt(idx) == '}') {
+      return;
+    }
+
+    while (idx < value.length()) {
+      int n = skipCqlValue(value, idx);
+      if (n < 0) {
+        throw new IllegalArgumentException(
+            String.format("Invalid map value '%s': invalid CQL value at character %d", value, idx));
+      }
+
+      QueryOuterClass.Value k =
+          keyCodec.protoValueFromStringified(handleSingleQuotes(value.substring(idx, n)));
+      idx = n;
+
+      idx = skipSpaces(value, idx);
+      if (idx >= value.length()) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid map value '%s': at character %d expecting ':' but got EOF", value, idx));
+      }
+      if (value.charAt(idx) != ':') {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid map value '%s': at character %d expecting ':' but got '%c'",
+                value, idx, value.charAt(idx)));
+      }
+      idx = skipSpaces(value, ++idx);
+
+      n = skipCqlValue(value, idx);
+      if (n < 0) {
+        throw new IllegalArgumentException(
+            String.format("Invalid map value '%s': invalid CQL value at character %d", value, idx));
+      }
+
+      QueryOuterClass.Value v =
+          valueCodec.protoValueFromStringified(handleSingleQuotes(value.substring(idx, n)));
+      idx = n;
+
+      results.add(k);
+      results.add(v);
+
+      idx = skipSpaces(value, idx);
+      if (idx >= value.length()) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid map value '%s': at character %d expecting ',' or '}' but got EOF",
+                value, idx));
+      }
+      if (value.charAt(idx) == '}') {
+        return;
+      }
+      if (value.charAt(idx++) != ',') {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid map value '%s': at character %d expecting ',' but got '%c'",
+                value, idx, value.charAt(idx)));
+      }
+
+      idx = skipSpaces(value, idx);
+    }
+    throw new IllegalArgumentException(
+        String.format("Invalid map value '%s': missing closing '}'", value));
+  }
+
   public static void decodeStringifiedMap(
       String value,
       ToProtoValueCodec keyCodec,

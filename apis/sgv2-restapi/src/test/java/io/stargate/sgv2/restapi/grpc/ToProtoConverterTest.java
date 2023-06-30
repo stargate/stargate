@@ -1,23 +1,22 @@
 package io.stargate.sgv2.restapi.grpc;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
 import io.stargate.bridge.grpc.CqlDuration;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 public class ToProtoConverterTest {
   private static final String TEST_TABLE = "test_table";
@@ -51,9 +50,14 @@ public class ToProtoConverterTest {
           Arrays.asList(123, 456),
           setType(TypeSpec.Basic.INT),
           Values.of(Arrays.asList(Values.of(123), Values.of(456)))),
+    };
+  }
 
+  private static Arguments[] fromExternalMapSamplesStrict() {
+    return new Arguments[] {
       // Maps
       arguments(
+          false,
           Collections.singletonList(
               new HashMap<>() {
                 {
@@ -65,6 +69,13 @@ public class ToProtoConverterTest {
           // since internal representation is just as Collection...
           Values.of(Arrays.asList(Values.of("foo"), Values.of("bar")))),
       arguments(
+          true,
+          Collections.singletonMap("foo", "bar"),
+          mapType(TypeSpec.Basic.VARCHAR, TypeSpec.Basic.VARCHAR),
+          // since internal representation is just as Collection...
+          Values.of(Arrays.asList(Values.of("foo"), Values.of("bar")))),
+      arguments(
+          false,
           Arrays.asList(
               new HashMap<>() {
                 {
@@ -78,6 +89,17 @@ public class ToProtoConverterTest {
                   put("value", false);
                 }
               }),
+          mapType(TypeSpec.Basic.INT, TypeSpec.Basic.BOOLEAN),
+          Values.of(
+              Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false)))),
+      arguments(
+          true,
+          new HashMap<>() {
+            {
+              put(123, true);
+              put(456, false);
+            }
+          },
           mapType(TypeSpec.Basic.INT, TypeSpec.Basic.BOOLEAN),
           Values.of(
               Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false)))),
@@ -132,7 +154,22 @@ public class ToProtoConverterTest {
   @DisplayName("Should coerce 'strict' external value to Bridge/grpc value")
   public void strictExternalToBridgeValueTest(
       Object externalValue, TypeSpec typeSpec, QueryOuterClass.Value bridgeValue) {
-    ToProtoConverter conv = createConverter(typeSpec);
+    ToProtoConverter conv = createConverter(typeSpec, false);
+    // First verify that it works in strict mode
+    assertThat(conv.protoValueFromStrictlyTyped(TEST_COLUMN, externalValue)).isEqualTo(bridgeValue);
+    // But also that "loose" accepts it as well
+    assertThat(conv.protoValueFromLooselyTyped(TEST_COLUMN, externalValue)).isEqualTo(bridgeValue);
+  }
+
+  @ParameterizedTest
+  @MethodSource("fromExternalMapSamplesStrict")
+  @DisplayName("Should coerce 'strict' external value to Bridge/grpc value")
+  public void strictExternalToBridgeMapValueTest(
+      boolean optimizeMapData,
+      Object externalValue,
+      TypeSpec typeSpec,
+      QueryOuterClass.Value bridgeValue) {
+    ToProtoConverter conv = createConverter(typeSpec, optimizeMapData);
     // First verify that it works in strict mode
     assertThat(conv.protoValueFromStrictlyTyped(TEST_COLUMN, externalValue)).isEqualTo(bridgeValue);
     // But also that "loose" accepts it as well
@@ -144,7 +181,7 @@ public class ToProtoConverterTest {
   @DisplayName("Should coerce 'strict' external Timestamp to Bridge/grpc value")
   public void strictExternalTimestampToBridgeValueTest(
       Object externalValue, QueryOuterClass.Value bridgeValue) {
-    ToProtoConverter conv = createConverter(basicType(TypeSpec.Basic.TIMESTAMP));
+    ToProtoConverter conv = createConverter(basicType(TypeSpec.Basic.TIMESTAMP), false);
     // First verify that it works in strict mode
     assertThat(conv.protoValueFromStrictlyTyped(TEST_COLUMN, externalValue)).isEqualTo(bridgeValue);
     // But also that "loose" accepts it as well
@@ -171,32 +208,66 @@ public class ToProtoConverterTest {
           "[123, 456]",
           listType(TypeSpec.Basic.INT),
           Values.of(Arrays.asList(Values.of(123), Values.of(456)))),
+    };
+  }
+
+  private static Arguments[] fromExternalMapSamplesStringified() {
+    return new Arguments[] {
       // Maps
       arguments(
+          false,
           "[ {'key':'foo','value': 'bar'}]",
           mapType(TypeSpec.Basic.VARCHAR, TypeSpec.Basic.VARCHAR),
           // since internal representation is just as Collection...
           Values.of(Arrays.asList(Values.of("foo"), Values.of("bar")))),
       arguments(
+          true,
+          "{'foo': 'bar'}",
+          mapType(TypeSpec.Basic.VARCHAR, TypeSpec.Basic.VARCHAR),
+          // since internal representation is just as Collection...
+          Values.of(Arrays.asList(Values.of("foo"), Values.of("bar")))),
+      arguments(
+          false,
           "[ {'key':123, 'value': true},{'key':456, 'value': false}]",
           mapType(TypeSpec.Basic.INT, TypeSpec.Basic.BOOLEAN),
           Values.of(
               Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false)))),
       arguments(
+          true,
+          "{123: true, 456: false}",
+          mapType(TypeSpec.Basic.INT, TypeSpec.Basic.BOOLEAN),
+          Values.of(
+              Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false)))),
+      arguments(
+          false,
           "[ ]",
           mapType(TypeSpec.Basic.INT, TypeSpec.Basic.BOOLEAN),
           Values.of(Collections.emptyList())),
       arguments(
+          true,
+          "{}",
+          mapType(TypeSpec.Basic.INT, TypeSpec.Basic.BOOLEAN),
+          Values.of(Collections.emptyList())),
+      arguments(
+          false,
           "[ {} ]",
           mapType(TypeSpec.Basic.INT, TypeSpec.Basic.BOOLEAN),
           Values.of(Collections.emptyList())),
       arguments(
+          false,
           "[ {}, {} ]",
           mapType(TypeSpec.Basic.INT, TypeSpec.Basic.BOOLEAN),
           Values.of(Collections.emptyList())),
       arguments(
+          false,
           "[ {\"key\":123, \"value\": true},{\"key\":456, \"value\": false}]",
           mapType(TypeSpec.Basic.INT, TypeSpec.Basic.BOOLEAN),
+          Values.of(
+              Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false)))),
+      arguments(
+          true,
+          "{ \"key1\": true, \"key2\" : false}",
+          mapType(TypeSpec.Basic.VARCHAR, TypeSpec.Basic.BOOLEAN),
           Values.of(
               Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false)))),
     };
@@ -207,7 +278,23 @@ public class ToProtoConverterTest {
   @DisplayName("Should coerce 'stringified' external value to Bridge/grpc value")
   public void stringifiedExternalToBridgeValueTest(
       String externalValue, TypeSpec typeSpec, QueryOuterClass.Value bridgeValue) {
-    ToProtoConverter conv = createConverter(typeSpec);
+    ToProtoConverter conv = createConverter(typeSpec, false);
+
+    // Ensure explicitly Stringified works
+    assertThat(conv.protoValueFromStringified(TEST_COLUMN, externalValue)).isEqualTo(bridgeValue);
+    // but also general "loose"
+    assertThat(conv.protoValueFromLooselyTyped(TEST_COLUMN, externalValue)).isEqualTo(bridgeValue);
+  }
+
+  @ParameterizedTest
+  @MethodSource("fromExternalMapSamplesStringified")
+  @DisplayName("Should coerce 'stringified' external value to Bridge/grpc value")
+  public void stringifiedExternalToBridgeValueTest(
+      boolean optimizeMapData,
+      String externalValue,
+      TypeSpec typeSpec,
+      QueryOuterClass.Value bridgeValue) {
+    ToProtoConverter conv = createConverter(typeSpec, optimizeMapData);
 
     // Ensure explicitly Stringified works
     assertThat(conv.protoValueFromStringified(TEST_COLUMN, externalValue)).isEqualTo(bridgeValue);
@@ -222,11 +309,12 @@ public class ToProtoConverterTest {
     TypeSpec doubleType = basicType(TypeSpec.Basic.DOUBLE);
     TypeSpec tupleType = tupleType(doubleType, doubleType);
     // Let's assert types from innermost to outermost; failure is via exception
-    assertThat(createConverter(tupleType)).isNotNull();
+    assertThat(createConverter(tupleType, false)).isNotNull();
     TypeSpec listType = listType(tupleType);
-    assertThat(createConverter(listType)).isNotNull();
+    assertThat(createConverter(listType, false)).isNotNull();
     TypeSpec mapType = mapType(basicType(TypeSpec.Basic.VARCHAR), listType);
-    assertThat(createConverter(mapType)).isNotNull();
+    assertThat(createConverter(mapType, true)).isNotNull();
+    assertThat(createConverter(mapType, false)).isNotNull();
   }
 
   /*
@@ -235,9 +323,9 @@ public class ToProtoConverterTest {
   ///////////////////////////////////////////////////////////////////////
    */
 
-  private static ToProtoConverter createConverter(TypeSpec typeSpec) {
+  private static ToProtoConverter createConverter(TypeSpec typeSpec, boolean optimizeMapData) {
     ColumnSpec column = ColumnSpec.newBuilder().setName(TEST_COLUMN).setType(typeSpec).build();
-    ToProtoValueCodec codec = TO_PROTO_VALUE_CODECS.codecFor(column);
+    ToProtoValueCodec codec = TO_PROTO_VALUE_CODECS.codecFor(column, optimizeMapData);
     return new ToProtoConverter(TEST_TABLE, Collections.singletonMap(TEST_COLUMN, codec));
   }
 

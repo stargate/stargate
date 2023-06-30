@@ -15,6 +15,7 @@ import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.schema.SchemaManager;
+import io.stargate.sgv2.restapi.config.constants.RestApiConfig;
 import io.stargate.sgv2.restapi.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restapi.grpc.FromProtoConverter;
 import io.stargate.sgv2.restapi.grpc.ToProtoConverter;
@@ -66,6 +67,8 @@ public abstract class RestResourceBase {
   @Inject protected SchemaManager schemaManager;
 
   @Inject protected StargateRequestInfo requestInfo;
+
+  @Inject protected RestApiConfig restApiConfig;
 
   // // // Helper methods for Schema access
 
@@ -220,24 +223,26 @@ public abstract class RestResourceBase {
     return null;
   }
 
-  protected ToProtoConverter findProtoConverter(Schema.CqlTable tableDef) {
-    return PROTO_CONVERTERS.toProtoConverter(tableDef);
+  protected ToProtoConverter findProtoConverter(Schema.CqlTable tableDef, boolean optimizeMapData) {
+    return PROTO_CONVERTERS.toProtoConverter(tableDef, optimizeMapData);
   }
 
   public static RestResponse<Object> convertRowsToResponse(
-      QueryOuterClass.Response grpcResponse, boolean raw) {
+      QueryOuterClass.Response grpcResponse, boolean raw, boolean optimizeMapData) {
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
     final int count = rs.getRowsCount();
 
     String pageStateStr = extractPagingStateFromResultSet(rs);
-    List<Map<String, Object>> rows = convertRows(rs);
+    List<Map<String, Object>> rows = convertRows(rs, optimizeMapData);
     Object response = raw ? rows : new Sgv2RowsResponse(count, pageStateStr, rows);
     return RestResponse.ok(response);
   }
 
-  protected static List<Map<String, Object>> convertRows(QueryOuterClass.ResultSet rs) {
+  protected static List<Map<String, Object>> convertRows(
+      QueryOuterClass.ResultSet rs, boolean optimizeMapData) {
     FromProtoConverter converter =
-        BridgeProtoValueConverters.instance().fromProtoConverter(rs.getColumnsList());
+        BridgeProtoValueConverters.instance()
+            .fromProtoConverter(rs.getColumnsList(), optimizeMapData);
     List<Map<String, Object>> resultRows = new ArrayList<>();
     List<QueryOuterClass.Row> rows = rs.getRowsList();
     for (QueryOuterClass.Row row : rows) {
@@ -246,9 +251,11 @@ public abstract class RestResourceBase {
     return resultRows;
   }
 
-  protected static ArrayNode convertRowsToArrayNode(QueryOuterClass.ResultSet rs) {
+  protected static ArrayNode convertRowsToArrayNode(
+      QueryOuterClass.ResultSet rs, boolean optimizeMapData) {
     FromProtoConverter converter =
-        BridgeProtoValueConverters.instance().fromProtoConverter(rs.getColumnsList());
+        BridgeProtoValueConverters.instance()
+            .fromProtoConverter(rs.getColumnsList(), optimizeMapData);
     ArrayNode resultRows = JSON_MAPPER.createArrayNode();
     List<QueryOuterClass.Row> rows = rs.getRowsList();
     for (QueryOuterClass.Row row : rows) {

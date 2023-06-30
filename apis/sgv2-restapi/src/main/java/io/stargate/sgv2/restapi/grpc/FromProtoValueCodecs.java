@@ -47,26 +47,29 @@ public class FromProtoValueCodecs {
   private static final InetCodec CODEC_INET = new InetCodec();
   private static final BlobCodec CODEC_BLOB = new BlobCodec();
 
-  public FromProtoValueCodec codecFor(QueryOuterClass.ColumnSpec columnSpec) {
-    return codecFor(columnSpec, columnSpec.getType());
+  public FromProtoValueCodec codecFor(
+      QueryOuterClass.ColumnSpec columnSpec, boolean optimizeMapData) {
+    return codecFor(columnSpec, columnSpec.getType(), optimizeMapData);
   }
 
   protected FromProtoValueCodec codecFor(
-      QueryOuterClass.ColumnSpec columnSpec, QueryOuterClass.TypeSpec type) {
+      QueryOuterClass.ColumnSpec columnSpec,
+      QueryOuterClass.TypeSpec type,
+      boolean optimizeMapData) {
     switch (type.getSpecCase()) {
       case BASIC:
         return basicCodecFor(columnSpec, type.getBasic());
 
       case LIST:
-        return listCodecFor(columnSpec, type.getList());
+        return listCodecFor(columnSpec, type.getList(), optimizeMapData);
       case MAP:
-        return mapCodecFor(columnSpec, type.getMap());
+        return mapCodecFor(columnSpec, type.getMap(), optimizeMapData);
       case SET:
-        return setCodecFor(columnSpec, type.getSet());
+        return setCodecFor(columnSpec, type.getSet(), optimizeMapData);
       case TUPLE:
-        return tupleCodecFor(columnSpec, type.getTuple());
+        return tupleCodecFor(columnSpec, type.getTuple(), optimizeMapData);
       case UDT:
-        return udtCodecFor(columnSpec, type.getUdt());
+        return udtCodecFor(columnSpec, type.getUdt(), optimizeMapData);
 
         // Invalid cases:
       case SPEC_NOT_SET:
@@ -143,37 +146,49 @@ public class FromProtoValueCodecs {
   }
 
   protected FromProtoValueCodec listCodecFor(
-      QueryOuterClass.ColumnSpec columnSpec, QueryOuterClass.TypeSpec.List listSpec) {
-    return new ListCodec(codecFor(columnSpec, listSpec.getElement()));
+      QueryOuterClass.ColumnSpec columnSpec,
+      QueryOuterClass.TypeSpec.List listSpec,
+      boolean optimizeMapData) {
+    return new ListCodec(codecFor(columnSpec, listSpec.getElement(), optimizeMapData));
   }
 
   protected FromProtoValueCodec mapCodecFor(
-      QueryOuterClass.ColumnSpec columnSpec, QueryOuterClass.TypeSpec.Map mapSpec) {
+      QueryOuterClass.ColumnSpec columnSpec,
+      QueryOuterClass.TypeSpec.Map mapSpec,
+      boolean optimizeMapData) {
     return new MapCodec(
-        codecFor(columnSpec, mapSpec.getKey()), codecFor(columnSpec, mapSpec.getValue()));
+        codecFor(columnSpec, mapSpec.getKey(), optimizeMapData),
+        codecFor(columnSpec, mapSpec.getValue(), optimizeMapData),
+        optimizeMapData);
   }
 
   protected FromProtoValueCodec setCodecFor(
-      QueryOuterClass.ColumnSpec columnSpec, QueryOuterClass.TypeSpec.Set setSpec) {
-    return new SetCodec(codecFor(columnSpec, setSpec.getElement()));
+      QueryOuterClass.ColumnSpec columnSpec,
+      QueryOuterClass.TypeSpec.Set setSpec,
+      boolean optimizeMapData) {
+    return new SetCodec(codecFor(columnSpec, setSpec.getElement(), optimizeMapData));
   }
 
   protected FromProtoValueCodec tupleCodecFor(
-      QueryOuterClass.ColumnSpec columnSpec, QueryOuterClass.TypeSpec.Tuple tupleSpec) {
+      QueryOuterClass.ColumnSpec columnSpec,
+      QueryOuterClass.TypeSpec.Tuple tupleSpec,
+      boolean optimizeMapData) {
     List<FromProtoValueCodec> codecs = new ArrayList<>();
     for (QueryOuterClass.TypeSpec elementSpec : tupleSpec.getElementsList()) {
-      codecs.add(codecFor(columnSpec, elementSpec));
+      codecs.add(codecFor(columnSpec, elementSpec, optimizeMapData));
     }
     return new TupleCodec(codecs);
   }
 
   protected FromProtoValueCodec udtCodecFor(
-      QueryOuterClass.ColumnSpec columnSpec, QueryOuterClass.TypeSpec.Udt udtSpec) {
+      QueryOuterClass.ColumnSpec columnSpec,
+      QueryOuterClass.TypeSpec.Udt udtSpec,
+      boolean optimizeMapData) {
     Map<String, QueryOuterClass.TypeSpec> fieldSpecs = udtSpec.getFieldsMap();
     Map<String, FromProtoValueCodec> fieldCodecs = new HashMap<>();
     for (Map.Entry<String, QueryOuterClass.TypeSpec> entry : fieldSpecs.entrySet()) {
       final String fieldName = entry.getKey();
-      fieldCodecs.put(fieldName, codecFor(columnSpec, entry.getValue()));
+      fieldCodecs.put(fieldName, codecFor(columnSpec, entry.getValue(), optimizeMapData));
     }
     return new UDTCodec(udtSpec.getName(), fieldCodecs);
   }
@@ -549,38 +564,60 @@ public class FromProtoValueCodecs {
 
   protected static final class MapCodec extends FromProtoValueCodec {
     private final FromProtoValueCodec keyCodec, valueCodec;
+    private final boolean optimizeMapData;
 
-    public MapCodec(FromProtoValueCodec kc, FromProtoValueCodec vc) {
-      keyCodec = kc;
-      valueCodec = vc;
+    public MapCodec(FromProtoValueCodec kc, FromProtoValueCodec vc, boolean optimizeMapData) {
+      this.keyCodec = kc;
+      this.valueCodec = vc;
+      this.optimizeMapData = optimizeMapData;
     }
 
     @Override
     public Object fromProtoValue(QueryOuterClass.Value value) {
       QueryOuterClass.Collection coll = value.getCollection();
       int len = verifyMapLength(coll);
-      List<Object> result = new LinkedList<>();
-      for (int i = 0; i < len; i += 2) {
-        Map<Object, Object> mapEntry = new LinkedHashMap<>();
-        mapEntry.put("key", keyCodec.fromProtoValue(coll.getElements(i)));
-        mapEntry.put("value", valueCodec.fromProtoValue(coll.getElements(i + 1)));
-        result.add(mapEntry);
+      if (optimizeMapData) {
+        ObjectNode map = jsonNodeFactory.objectNode();
+        for (int i = 0; i < len; i += 2) {
+          map.set(
+              keyCodec.jsonNodeFrom(coll.getElements(i)).asText(),
+              valueCodec.jsonNodeFrom(coll.getElements(i + 1)));
+        }
+        return map;
+      } else {
+        List<Object> list = new LinkedList<>();
+        for (int i = 0; i < len; i += 2) {
+          Map<Object, Object> mapEntry = new LinkedHashMap<>();
+          mapEntry.put("key", keyCodec.fromProtoValue(coll.getElements(i)));
+          mapEntry.put("value", valueCodec.fromProtoValue(coll.getElements(i + 1)));
+          list.add(mapEntry);
+        }
+        return list;
       }
-      return result;
     }
 
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
       QueryOuterClass.Collection coll = value.getCollection();
       int len = verifyMapLength(coll);
-      ArrayNode list = jsonNodeFactory.arrayNode();
-      for (int i = 0; i < len; i += 2) {
-        ObjectNode mapEntry = jsonNodeFactory.objectNode();
-        mapEntry.set("key", keyCodec.jsonNodeFrom(coll.getElements(i)));
-        mapEntry.set("value", valueCodec.jsonNodeFrom(coll.getElements(i + 1)));
-        list.add(mapEntry);
+      if (optimizeMapData) {
+        ObjectNode map = jsonNodeFactory.objectNode();
+        for (int i = 0; i < len; i += 2) {
+          map.set(
+              keyCodec.jsonNodeFrom(coll.getElements(i)).asText(),
+              valueCodec.jsonNodeFrom(coll.getElements(i + 1)));
+        }
+        return map;
+      } else {
+        ArrayNode list = jsonNodeFactory.arrayNode();
+        for (int i = 0; i < len; i += 2) {
+          ObjectNode mapEntry = jsonNodeFactory.objectNode();
+          mapEntry.set("key", keyCodec.jsonNodeFrom(coll.getElements(i)));
+          mapEntry.set("value", valueCodec.jsonNodeFrom(coll.getElements(i + 1)));
+          list.add(mapEntry);
+        }
+        return list;
       }
-      return list;
     }
 
     private int verifyMapLength(QueryOuterClass.Collection mapValue) {

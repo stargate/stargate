@@ -8,16 +8,13 @@ import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
+import io.stargate.sgv2.restapi.config.constants.RestApiConfig;
 import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.service.models.Sgv2RowsResponse;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.ws.rs.Consumes;
-import jakarta.ws.rs.POST;
-import jakarta.ws.rs.Path;
-import jakarta.ws.rs.Produces;
-import jakarta.ws.rs.QueryParam;
+import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
@@ -43,6 +40,7 @@ import org.jboss.resteasy.reactive.RestResponse;
     disableIfMissing = true)
 public class CQLResource {
   @Inject protected StargateRequestInfo requestInfo;
+  @Inject protected RestApiConfig restApiConfig;
 
   @POST
   @Operation(summary = "CQL Query", description = "Execute a cql query directly")
@@ -73,6 +71,9 @@ public class CQLResource {
           final String pageStateParam,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw,
+      @Parameter(name = "optimize_map", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
+          @QueryParam("optimize_map")
+          final boolean optimizeMap,
       @RequestBody(description = "CQL Query String", required = true)
           @NotBlank(message = "CQL query body required")
           final String payloadAsString) {
@@ -85,6 +86,9 @@ public class CQLResource {
     return requestInfo
         .getStargateBridge()
         .executeQuery(query)
-        .map(response -> convertRowsToResponse(response, raw));
+        .map(
+            response ->
+                convertRowsToResponse(
+                    response, raw, optimizeMap || restApiConfig.optimizeMapData()));
   }
 }

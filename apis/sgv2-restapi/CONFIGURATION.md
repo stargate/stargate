@@ -8,9 +8,10 @@
 
 *Configuration for distinct endpoints*
 
-| Property                     | Type      | Default | Description                                         |
-|------------------------------|-----------|---------|-----------------------------------------------------|
-| `stargate.rest.cql.disabled` | `boolean` | `true`  | Whether /v2/cql endpoint should be disabled or not. |
+| Property                          | Type      | Default | Description                                                                                                                                                                                                                                                                                                                                                                                                      |
+|-----------------------------------|-----------|---------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `stargate.rest.cql.disabled`      | `boolean` | `true`  | Whether /v2/cql endpoint should be disabled or not.                                                                                                                                                                                                                                                                                                                                                              |
+| `stargate.rest.optimize-map-data` | `boolean` | `true`  | When enabled, the map data will be of the below format for example:<br/>```characteristics: { "accuracy" : "medium" }``` <br/>when disabled:<br/>```characteristics: [ { "key" : "accuracy", "value" : "medium" } ]```<br/>_This flag can be overridden in the runtime using `optimize_map` flag in the data read and write APIs. Please check the API specification in the swagger-ui for API specific options_ |
 
 ## Quarkus Configuration
 

@@ -10,11 +10,7 @@ import io.stargate.sgv2.api.common.cql.builder.Column;
 import io.stargate.sgv2.api.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.api.common.cql.builder.Predicate;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
-import io.stargate.sgv2.restapi.service.models.Sgv2NameResponse;
-import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
-import io.stargate.sgv2.restapi.service.models.Sgv2UDT;
-import io.stargate.sgv2.restapi.service.models.Sgv2UDTAddRequest;
-import io.stargate.sgv2.restapi.service.models.Sgv2UDTUpdateRequest;
+import io.stargate.sgv2.restapi.service.models.*;
 import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
@@ -27,7 +23,8 @@ import org.jboss.resteasy.reactive.RestResponse;
 
 public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsResourceApi {
   @Override
-  public Uni<RestResponse<Object>> findAllTypes(final String keyspaceName, final boolean raw) {
+  public Uni<RestResponse<Object>> findAllTypes(
+      final String keyspaceName, final boolean raw, final boolean optimizeMap) {
     QueryOuterClass.Query query =
         new QueryBuilder()
             .select()
@@ -37,14 +34,14 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
             .from("system_schema", "types")
             .where("keyspace_name", Predicate.EQ, Values.of(keyspaceName))
             .build();
-
+    final boolean optimizeMapData = optimizeMap || restApiConfig.optimizeMapData();
     return executeQueryAsync(query)
         .map(response -> response.getResultSet())
         .map(
             rs -> {
               // two-part conversion: first from proto to JsonNode for easier traversability,
               // then from that to actual response we need:
-              ArrayNode ksRows = convertRowsToArrayNode(rs);
+              ArrayNode ksRows = convertRowsToArrayNode(rs, optimizeMapData);
               return jsonArray2Udts(keyspaceName, ksRows);
             })
         .map(udts -> raw ? udts : new Sgv2RESTResponse<>(udts))
@@ -53,7 +50,10 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
 
   @Override
   public Uni<RestResponse<Object>> findTypeById(
-      final String keyspaceName, final String typeName, final boolean raw) {
+      final String keyspaceName,
+      final String typeName,
+      final boolean raw,
+      final boolean optimizeMap) {
     QueryOuterClass.Query query =
         new QueryBuilder()
             .select()
@@ -64,10 +64,10 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
             .where("keyspace_name", Predicate.EQ, Values.of(keyspaceName))
             .where("type_name", Predicate.EQ, Values.of(typeName))
             .build();
-
+    final boolean optimizeMapData = optimizeMap || restApiConfig.optimizeMapData();
     return executeQueryAsync(query)
         .map(response -> response.getResultSet())
-        .map(rs -> convertRowsToArrayNode(rs))
+        .map(rs -> convertRowsToArrayNode(rs, optimizeMapData))
         .map(
             ksRows -> {
               // Must get one and only one response, verify

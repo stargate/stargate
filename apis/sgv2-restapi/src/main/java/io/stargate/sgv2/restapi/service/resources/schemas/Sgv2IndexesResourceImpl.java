@@ -35,7 +35,9 @@ import org.jboss.resteasy.reactive.RestResponse;
 public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2IndexesResourceApi {
 
   @Override
-  public Uni<RestResponse<Object>> getAllIndexes(String keyspaceName, String tableName) {
+  public Uni<RestResponse<Object>> getAllIndexes(
+      String keyspaceName, String tableName, final boolean optimizeMap) {
+    final boolean optimizeMapData = optimizeMap || restApiConfig.optimizeMapData();
     Query query =
         new QueryBuilder()
             .select()
@@ -49,7 +51,7 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
     // should be needed
     return getTableAsyncCheckExistence(keyspaceName, tableName, true, Response.Status.BAD_REQUEST)
         .flatMap(table -> executeQueryAsync(query))
-        .map(response -> convertRowsToResponse(response, true));
+        .map(response -> convertRowsToResponse(response, true, optimizeMapData));
   }
 
   @Override

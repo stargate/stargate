@@ -66,7 +66,10 @@ public interface Sgv2UDTsResourceApi {
           @NotBlank(message = "keyspaceName must be provided")
           final String keyspaceName,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
-          final boolean raw);
+          final boolean raw,
+      @Parameter(name = "optimize_map", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
+          @QueryParam("optimize_map")
+          final boolean optimizeMap);
 
   @GET
   @Operation(
@@ -97,7 +100,10 @@ public interface Sgv2UDTsResourceApi {
           @NotBlank(message = "typeName must be provided")
           final String typeName,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
-          final boolean raw);
+          final boolean raw,
+      @Parameter(name = "optimize_map", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
+          @QueryParam("optimize_map")
+          final boolean optimizeMap);
 
   @POST
   @Operation(
