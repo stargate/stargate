@@ -1,21 +1,18 @@
 package io.stargate.sgv2.restapi.grpc;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-
 import io.stargate.bridge.grpc.CqlDuration;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.*;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 public class FromProtoConverterTest {
   private static final String TEST_COLUMN = "test_column";
@@ -57,14 +54,33 @@ public class FromProtoConverterTest {
 
       // Maps
       arguments(
-          Collections.singletonMap("foo", "bar"),
+          Collections.singletonList(
+              new HashMap<>() {
+                {
+                  put("key", "foo");
+                  put("value", "bar");
+                }
+              }),
           mapType(QueryOuterClass.TypeSpec.Basic.VARCHAR, QueryOuterClass.TypeSpec.Basic.VARCHAR),
           // since internal representation is just as Collection...
           Values.of(Arrays.asList(Values.of("foo"), Values.of("bar")))),
       arguments(
-          Collections.singletonMap(123, Boolean.TRUE),
+          Arrays.asList(
+              new HashMap<>() {
+                {
+                  put("key", 123);
+                  put("value", true);
+                }
+              },
+              new HashMap<>() {
+                {
+                  put("key", 456);
+                  put("value", false);
+                }
+              }),
           mapType(QueryOuterClass.TypeSpec.Basic.INT, QueryOuterClass.TypeSpec.Basic.BOOLEAN),
-          Values.of(Arrays.asList(Values.of(123), Values.of(true))))
+          Values.of(
+              Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false))))
     };
   }
 

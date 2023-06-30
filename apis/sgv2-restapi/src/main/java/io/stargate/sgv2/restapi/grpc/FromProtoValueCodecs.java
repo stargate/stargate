@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
@@ -558,11 +559,12 @@ public class FromProtoValueCodecs {
     public Object fromProtoValue(QueryOuterClass.Value value) {
       QueryOuterClass.Collection coll = value.getCollection();
       int len = verifyMapLength(coll);
-      Map<Object, Object> result = new LinkedHashMap<>(len);
+      List<Object> result = new LinkedList<>();
       for (int i = 0; i < len; i += 2) {
-        result.put(
-            keyCodec.fromProtoValue(coll.getElements(i)),
-            valueCodec.fromProtoValue(coll.getElements(i + 1)));
+        Map<Object, Object> mapEntry = new LinkedHashMap<>();
+        mapEntry.put("key", keyCodec.fromProtoValue(coll.getElements(i)));
+        mapEntry.put("value", valueCodec.fromProtoValue(coll.getElements(i + 1)));
+        result.add(mapEntry);
       }
       return result;
     }
@@ -571,13 +573,14 @@ public class FromProtoValueCodecs {
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
       QueryOuterClass.Collection coll = value.getCollection();
       int len = verifyMapLength(coll);
-      ObjectNode map = jsonNodeFactory.objectNode();
+      ArrayNode list = jsonNodeFactory.arrayNode();
       for (int i = 0; i < len; i += 2) {
-        map.set(
-            keyCodec.jsonNodeFrom(coll.getElements(i)).asText(),
-            valueCodec.jsonNodeFrom(coll.getElements(i + 1)));
+        ObjectNode mapEntry = jsonNodeFactory.objectNode();
+        mapEntry.set("key", keyCodec.jsonNodeFrom(coll.getElements(i)));
+        mapEntry.set("value", valueCodec.jsonNodeFrom(coll.getElements(i + 1)));
+        list.add(mapEntry);
       }
-      return map;
+      return list;
     }
 
     private int verifyMapLength(QueryOuterClass.Collection mapValue) {

@@ -13,13 +13,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class ToProtoValueCodecs {
   /**
@@ -804,12 +798,13 @@ public class ToProtoValueCodecs {
 
     @Override
     public QueryOuterClass.Value protoValueFromStrictlyTyped(Object mapValue) {
-      if (mapValue instanceof Map<?, ?>) {
+      if (mapValue instanceof List<?>) {
         // Maps are actually encoded as Collections where keys and values are interleaved
         List<QueryOuterClass.Value> elements = new ArrayList<>();
-        for (Map.Entry<?, ?> entry : ((Map<?, ?>) mapValue).entrySet()) {
-          elements.add(keyCodec.protoValueFromStrictlyTyped(entry.getKey()));
-          elements.add(valueCodec.protoValueFromStrictlyTyped(entry.getValue()));
+        for (Object entry : (List<?>) mapValue) {
+          Map<?, ?> entryNode = (Map<?, ?>) entry;
+          elements.add(keyCodec.protoValueFromStrictlyTyped(entryNode.get("key")));
+          elements.add(valueCodec.protoValueFromStrictlyTyped(entryNode.get("value")));
         }
         return Values.of(elements);
       }

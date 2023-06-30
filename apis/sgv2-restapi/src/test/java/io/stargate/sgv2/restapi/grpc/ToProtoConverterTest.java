@@ -1,21 +1,23 @@
 package io.stargate.sgv2.restapi.grpc;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-
 import io.stargate.bridge.grpc.CqlDuration;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collections;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashMap;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 public class ToProtoConverterTest {
   private static final String TEST_TABLE = "test_table";
@@ -52,14 +54,33 @@ public class ToProtoConverterTest {
 
       // Maps
       arguments(
-          Collections.singletonMap("foo", "bar"),
+          Collections.singletonList(
+              new HashMap<>() {
+                {
+                  put("key", "foo");
+                  put("value", "bar");
+                }
+              }),
           mapType(TypeSpec.Basic.VARCHAR, TypeSpec.Basic.VARCHAR),
           // since internal representation is just as Collection...
           Values.of(Arrays.asList(Values.of("foo"), Values.of("bar")))),
       arguments(
-          Collections.singletonMap(123, Boolean.TRUE),
+          Arrays.asList(
+              new HashMap<>() {
+                {
+                  put("key", 123);
+                  put("value", true);
+                }
+              },
+              new HashMap<>() {
+                {
+                  put("key", 456);
+                  put("value", false);
+                }
+              }),
           mapType(TypeSpec.Basic.INT, TypeSpec.Basic.BOOLEAN),
-          Values.of(Arrays.asList(Values.of(123), Values.of(true)))),
+          Values.of(
+              Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false)))),
     };
   }
   ;
@@ -152,17 +173,34 @@ public class ToProtoConverterTest {
           Values.of(Arrays.asList(Values.of(123), Values.of(456)))),
       // Maps
       arguments(
-          "{'foo': 'bar'}",
+          "[ {'key':'foo','value': 'bar'}]",
           mapType(TypeSpec.Basic.VARCHAR, TypeSpec.Basic.VARCHAR),
           // since internal representation is just as Collection...
           Values.of(Arrays.asList(Values.of("foo"), Values.of("bar")))),
       arguments(
-          "{123:true}",
+          "[ {'key':123, 'value': true},{'key':456, 'value': false}]",
           mapType(TypeSpec.Basic.INT, TypeSpec.Basic.BOOLEAN),
-          Values.of(Arrays.asList(Values.of(123), Values.of(true)))),
+          Values.of(
+              Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false)))),
+      arguments(
+          "[ ]",
+          mapType(TypeSpec.Basic.INT, TypeSpec.Basic.BOOLEAN),
+          Values.of(Collections.emptyList())),
+      arguments(
+          "[ {} ]",
+          mapType(TypeSpec.Basic.INT, TypeSpec.Basic.BOOLEAN),
+          Values.of(Collections.emptyList())),
+      arguments(
+          "[ {}, {} ]",
+          mapType(TypeSpec.Basic.INT, TypeSpec.Basic.BOOLEAN),
+          Values.of(Collections.emptyList())),
+      arguments(
+          "[ {\"key\":123, \"value\": true},{\"key\":456, \"value\": false}]",
+          mapType(TypeSpec.Basic.INT, TypeSpec.Basic.BOOLEAN),
+          Values.of(
+              Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false)))),
     };
   }
-  ;
 
   @ParameterizedTest
   @MethodSource("fromExternalSamplesStringified")
