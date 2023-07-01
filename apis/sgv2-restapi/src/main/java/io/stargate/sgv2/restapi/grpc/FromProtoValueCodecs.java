@@ -580,8 +580,8 @@ public class FromProtoValueCodecs {
         Map<Object, Object> result = new LinkedHashMap<>(len);
         for (int i = 0; i < len; i += 2) {
           result.put(
-                  keyCodec.fromProtoValue(coll.getElements(i)),
-                  valueCodec.fromProtoValue(coll.getElements(i + 1)));
+              keyCodec.fromProtoValue(coll.getElements(i)),
+              valueCodec.fromProtoValue(coll.getElements(i + 1)));
         }
         return result;
       } else {
