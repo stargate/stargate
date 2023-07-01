@@ -577,13 +577,13 @@ public class FromProtoValueCodecs {
       QueryOuterClass.Collection coll = value.getCollection();
       int len = verifyMapLength(coll);
       if (optimizeMapData) {
-        ObjectNode map = jsonNodeFactory.objectNode();
+        Map<Object, Object> result = new LinkedHashMap<>(len);
         for (int i = 0; i < len; i += 2) {
-          map.set(
-              keyCodec.jsonNodeFrom(coll.getElements(i)).asText(),
-              valueCodec.jsonNodeFrom(coll.getElements(i + 1)));
+          result.put(
+                  keyCodec.fromProtoValue(coll.getElements(i)),
+                  valueCodec.fromProtoValue(coll.getElements(i + 1)));
         }
-        return map;
+        return result;
       } else {
         List<Object> list = new LinkedList<>();
         for (int i = 0; i < len; i += 2) {

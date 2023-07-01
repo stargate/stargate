@@ -1,17 +1,18 @@
 package io.stargate.sgv2.restapi.grpc;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-
 import io.stargate.bridge.grpc.CqlDuration;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
-import java.util.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.*;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 public class FromProtoConverterTest {
   private static final String TEST_COLUMN = "test_column";
@@ -59,7 +60,7 @@ public class FromProtoConverterTest {
       arguments(
           false,
           Collections.singletonList(
-              new HashMap<>() {
+              new LinkedHashMap<>() {
                 {
                   put("key", "foo");
                   put("value", "bar");
@@ -77,13 +78,13 @@ public class FromProtoConverterTest {
       arguments(
           false,
           Arrays.asList(
-              new HashMap<>() {
+              new LinkedHashMap<>() {
                 {
                   put("key", 123);
                   put("value", true);
                 }
               },
-              new HashMap<>() {
+              new LinkedHashMap<>() {
                 {
                   put("key", 456);
                   put("value", false);
@@ -94,7 +95,7 @@ public class FromProtoConverterTest {
               Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false)))),
       arguments(
           true,
-          new HashMap<>() {
+          new LinkedHashMap<>() {
             {
               put(123, true);
               put(456, false);

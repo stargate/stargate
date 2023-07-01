@@ -1,22 +1,23 @@
 package io.stargate.sgv2.restapi.grpc;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-
 import io.stargate.bridge.grpc.CqlDuration;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 public class ToProtoConverterTest {
   private static final String TEST_TABLE = "test_table";
@@ -59,7 +60,7 @@ public class ToProtoConverterTest {
       arguments(
           false,
           Collections.singletonList(
-              new HashMap<>() {
+              new LinkedHashMap<>() {
                 {
                   put("key", "foo");
                   put("value", "bar");
@@ -77,13 +78,13 @@ public class ToProtoConverterTest {
       arguments(
           false,
           Arrays.asList(
-              new HashMap<>() {
+              new LinkedHashMap<>() {
                 {
                   put("key", 123);
                   put("value", true);
                 }
               },
-              new HashMap<>() {
+              new LinkedHashMap<>() {
                 {
                   put("key", 456);
                   put("value", false);
@@ -94,7 +95,7 @@ public class ToProtoConverterTest {
               Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false)))),
       arguments(
           true,
-          new HashMap<>() {
+          new LinkedHashMap<>() {
             {
               put(123, true);
               put(456, false);
@@ -266,10 +267,10 @@ public class ToProtoConverterTest {
               Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false)))),
       arguments(
           true,
-          "{ \"key1\": true, \"key2\" : false}",
+          "{ 'key1': true, 'key2' : false}",
           mapType(TypeSpec.Basic.VARCHAR, TypeSpec.Basic.BOOLEAN),
           Values.of(
-              Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false)))),
+              Arrays.asList(Values.of("key1"), Values.of(true), Values.of("key2"), Values.of(false)))),
     };
   }
 
