@@ -10,7 +10,6 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.ws.rs.*;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.PathSegment;
-import java.util.List;
 import org.eclipse.microprofile.openapi.annotations.Operation;
 import org.eclipse.microprofile.openapi.annotations.enums.ParameterIn;
 import org.eclipse.microprofile.openapi.annotations.enums.SchemaType;
@@ -23,6 +22,8 @@ import org.eclipse.microprofile.openapi.annotations.responses.APIResponses;
 import org.eclipse.microprofile.openapi.annotations.security.SecurityRequirement;
 import org.eclipse.microprofile.openapi.annotations.tags.Tag;
 import org.jboss.resteasy.reactive.RestResponse;
+
+import java.util.List;
 
 /**
  * Definition of REST API DML endpoint methods including JAX-RS and OpenAPI annotations. No
@@ -98,7 +99,7 @@ public interface Sgv2RowsResourceApi {
       @Parameter(name = "sort", ref = RestOpenApiConstants.Parameters.SORT) @QueryParam("sort")
           final String sort,
       @Parameter(name = "optimize_map", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
-          @QueryParam("sort")
+          @QueryParam("optimize_map")
           final boolean optimizeMap);
 
   @GET
@@ -145,7 +146,7 @@ public interface Sgv2RowsResourceApi {
       @Parameter(name = "sort", ref = RestOpenApiConstants.Parameters.SORT) @QueryParam("sort")
           final String sort,
       @Parameter(name = "optimize_map", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
-          @QueryParam("sort")
+          @QueryParam("optimize_map")
           final boolean optimizeMap);
 
   @GET
@@ -191,7 +192,7 @@ public interface Sgv2RowsResourceApi {
       @Parameter(name = "sort", ref = RestOpenApiConstants.Parameters.SORT) @QueryParam("sort")
           final String sort,
       @Parameter(name = "optimize_map", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
-          @QueryParam("sort")
+          @QueryParam("optimize_map")
           final boolean optimizeMap);
 
   @POST
