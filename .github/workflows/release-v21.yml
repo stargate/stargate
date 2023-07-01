@@ -1,0 +1,575 @@
+name: Release v2.1
+
+on:
+  push:
+    tags:
+      - 'v2.1.*'
+
+  workflow_dispatch:
+    inputs:
+      skipPublish:
+        description: 'Skip publishing docker images and JARs to OSSRH?'
+        required: true
+        default: true
+        type: boolean
+      tag:
+        description: 'Custom release tag value.'
+        required: true
+        type: string
+
+# global env vars, available in all jobs and steps
+env:
+  ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+  ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+  MAVEN_OPTS: '-Xmx4g'
+
+jobs:
+
+  # resolves tag value
+  # outputs the resolved release tag value in the release-tag output var
+  resolve-tag:
+    name: Resolve tag
+    runs-on: ubuntu-latest
+    outputs:
+      release-tag: ${{ steps.resolve_tag.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set reference
+        id: vars
+        run: echo "tag=${GITHUB_REF#refs/*/}" >> $GITHUB_OUTPUT
+
+      - name: Resolve tag
+        id: resolve_tag
+        run: |
+          TAG=${{ inputs.tag != null && inputs.tag || steps.vars.outputs.tag }}
+          echo "Resolved tag for the release $TAG"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+
+  # creates a new release if it's not existing
+  # outputs the upload URL in the release-upload-url output var
+  create-release:
+    name: Create release
+    needs: resolve-tag
+    runs-on: ubuntu-latest
+    outputs:
+      release-upload-url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - name: Create release
+        id: create_release
+        uses: softprops/action-gh-release@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          tag_name: ${{needs.resolve-tag.outputs.release-tag}}
+          name: Release ${{needs.resolve-tag.outputs.release-tag}}
+          draft: false
+          prerelease: false
+
+  # builds coordinator, zips stargate-lib folder and uploads the zip to the created release
+  build:
+    name: Build coordinator
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          cache: maven
+
+      - name: Setup Maven
+        run: |
+          mkdir -p ~/.m2
+          cat <<EOF > ~/.m2/settings.xml
+          <settings>
+            <servers>
+              <server>
+                <id>artifactory-snapshots</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+              <server>
+                <id>artifactory-releases</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+             </server>
+           </servers>
+          </settings>
+          EOF
+
+      - name: Build with Maven
+        run: |
+          cd coordinator/
+          ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          ./mvnw -B -ntp -q -ff -P dse clean package -DskipTests
+
+      - name: Zip-up `stargate-lib`
+        run: |
+          cd coordinator/
+          zip -r stargate-jars.zip starctl* stargate-lib
+
+      # uploads the jars by referencing the release-upload-url from create-release job
+      - name: Upload jars
+        uses: shogo82148/actions-upload-release-asset@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          upload_url: ${{needs.create-release.outputs.release-upload-url}}
+          asset_name: stargate-jars.zip
+          asset_path: coordinator/stargate-jars.zip
+
+  # builds api uber-jars, zips and uploads the created release
+  build-apis:
+    name: Build APIs
+    needs: create-release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # install both Java 11 & Java 17, keep paths in vars
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          cache: maven
+      - run: echo "JAVA_11=$JAVA_HOME" >> $GITHUB_ENV
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: maven
+      - run: echo "JAVA_17=$JAVA_HOME" >> $GITHUB_ENV
+
+      - name: Setup Maven
+        run: |
+          mkdir -p ~/.m2
+          cat <<EOF > ~/.m2/settings.xml
+          <settings>
+            <servers>
+              <server>
+                <id>artifactory-snapshots</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+              <server>
+                <id>artifactory-releases</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+             </server>
+           </servers>
+          </settings>
+          EOF
+
+      - name: Build bridge protos library
+        if: ${{ !inputs.skipPublish }}
+        run: |
+          cd coordinator/
+          JAVA_HOME=$JAVA_11 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          JAVA_HOME=$JAVA_11 ./mvnw -B -ntp clean install -DskipTests -pl bridge-proto -am
+
+      - name: Build APIs with Maven
+        run: |
+          cd apis/
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -Dquarkus.package.type=uber-jar -DskipTests
+
+      - name: Zip-up APIs
+        run: |
+          zip -j stargate-restapi.zip apis/sgv2-restapi/target/sgv2-restapi-*-runner.jar apis/sgv2-restapi/start-restapi.sh
+          zip -j stargate-docsapi.zip apis/sgv2-docsapi/target/sgv2-docsapi-*-runner.jar apis/sgv2-docsapi/start-docsapi.sh
+          zip -j stargate-graphqlapi.zip apis/sgv2-graphqlapi/target/sgv2-graphqlapi-*-runner.jar apis/sgv2-graphqlapi/start-graphqlapi.sh
+
+      - name: Upload API Zips
+        uses: shogo82148/actions-upload-release-asset@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          upload_url: ${{needs.create-release.outputs.release-upload-url}}
+          asset_path: stargate-*api.zip
+
+  # publish coordinator and sgv2-quarkus-common JARs to the OSSRH
+  publish-ossrh:
+    name: Publish to OSSRH
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # install both Java 11 & Java 17, keep paths in vars
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          cache: maven
+      - run: echo "JAVA_11=$JAVA_HOME" >> $GITHUB_ENV
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: maven
+      - run: echo "JAVA_17=$JAVA_HOME" >> $GITHUB_ENV
+
+      - name: Setup Maven
+        env:
+          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+          OSSRH_TOKEN: ${{ secrets.OSSRH_TOKEN }}
+        run: |
+          mkdir -p ~/.m2
+          cat <<EOF > ~/.m2/settings.xml
+          <settings>
+            <servers>
+              <server>
+                <id>ossrh</id>
+                <username>${OSSRH_USERNAME}</username>
+                <password>${OSSRH_TOKEN}</password>
+              </server>
+              <server>
+                <id>artifactory-snapshots</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+              <server>
+                <id>artifactory-releases</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+             </server>
+           </servers>
+          </settings>
+          EOF
+
+      - id: install-secret-key
+        name: Install gpg secret key
+        run: |
+          cat <(echo -e "${{ secrets.OSSRH_GPG_SECRET_KEY }}") | gpg --batch --import
+
+      # coordinator jars
+      # continue on error as sometimes deploy works even if an error is reported and we want to try next step as well
+      - name: Publish coordinator JARs
+        if: ${{ !inputs.skipPublish }}
+        continue-on-error: true
+        run: |
+          cd coordinator/
+          JAVA_HOME=$JAVA_11 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          JAVA_HOME=$JAVA_11 ./mvnw -B -ntp -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse
+
+      # explicitly only -pl sgv2-quarkus-common
+      - name: Publish Quarkus Common JAR
+        if: ${{ !inputs.skipPublish }}
+        run: |
+          cd apis/
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp -pl sgv2-quarkus-common -am -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy
+
+  # publishes the docker images for the coordinator and the APIs
+  publish-docker:
+    name: Publish docker images
+    needs: resolve-tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # install both Java 11 & Java 17, keep paths in vars
+      - name: Set up JDK 11
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          cache: maven
+      - run: echo "JAVA_11=$JAVA_HOME" >> $GITHUB_ENV
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: maven
+      - run: echo "JAVA_17=$JAVA_HOME" >> $GITHUB_ENV
+
+      - name: Setup Maven
+        run: |
+          mkdir -p ~/.m2
+          cat <<EOF > ~/.m2/settings.xml
+          <settings>
+            <servers>
+              <server>
+                <id>artifactory-snapshots</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+              <server>
+                <id>artifactory-releases</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+             </server>
+           </servers>
+          </settings>
+          EOF
+
+      - name: Install coordinator
+        run: |
+          cd coordinator/
+          JAVA_HOME=$JAVA_11 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          JAVA_HOME=$JAVA_11 ./mvnw -B -ntp clean install -P dse -DskipTests 
+
+      # only set version here
+      - name: Install APIs
+        run: |
+          cd apis/
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          cd ../
+
+      - name: Set up Docker QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      # build and push images to Docker hub
+      # if input.skipPublish is true we are still having tasks for building images without push
+      # this enables build docker check without pushing
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      - name: Build and push (coordinator, DockerHub)
+        if: ${{ !inputs.skipPublish }}
+        run: |
+          cd coordinator/
+          ./build_docker_images.sh -p -t ${{needs.resolve-tag.outputs.release-tag}}
+
+      - name: Build without push (coordinator, DockerHub)
+        if: ${{ inputs.skipPublish }}
+        run: |
+          cd coordinator/
+          ./build_docker_images.sh -t ${{needs.resolve-tag.outputs.release-tag}}
+
+      - name: Build and push (apis, DockerHub)
+        if: ${{ !inputs.skipPublish }}
+        run: |
+          cd apis/
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          cd ../
+
+      - name: Build without push (apis, DockerHub)
+        if: ${{ inputs.skipPublish }}
+        run: |
+          cd apis/
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          cd ../
+
+      # repeat the same for the AWS ECR
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.ECR_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.ECR_SECRET_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      - name: Build and push (coordinator, Amazon ECR)
+        if: ${{ !inputs.skipPublish }}
+        run: |
+          cd coordinator/
+          ./build_docker_images.sh -p -t ${{needs.resolve-tag.outputs.release-tag}} -r ${{ secrets.ECR_REPOSITORY }}
+
+      # downloads and prepares datastax assets
+      - name: Download branding assets
+        if: ${{ !inputs.skipPublish }}
+        run : |
+          curl https://www.datastax.com/favicon.ico -o ./apis/sgv2-quarkus-common/src/main/resources/META-INF/branding/favicon.ico
+          curl https://cdn.sanity.io/files/bbnkhnhl/production/cf8b48832cfd43cdb24aec0e0d1c656e9234b620.zip -o icons.zip
+          unzip -j icons.zip 'Brand\ Icons/astra-square.png' -d ./apis/sgv2-quarkus-common/src/main/resources/META-INF/branding/
+          mv ./apis/sgv2-quarkus-common/src/main/resources/META-INF/branding/astra-square.png ./apis/sgv2-quarkus-common/src/main/resources/META-INF/branding/logo.png
+
+      - name: Build and push (graphqlapi, Amazon ECR)
+        if: ${{ !inputs.skipPublish }}
+        env:
+          QUARKUS_APPLICATION_NAME: 'Astra DB GraphQL API'
+        run: |
+          cd apis/
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-graphqlapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+
+      - name: Build and push (docsapi, Amazon ECR)
+        if: ${{ !inputs.skipPublish }}
+        env:
+          QUARKUS_APPLICATION_NAME: 'Astra DB Document API'
+          QUARKUS_SMALLRYE_OPENAPI_INFO_DESCRIPTION: 'The Astra DB Document API modifies and queries data stored as unstructured JSON documents in collections. See the [documentation site](https://docs.datastax.com/en/astra-serverless/docs/develop/dev-with-doc.html) for additional information.'
+          QUARKUS_SMALLRYE_OPENAPI_INFO_TERMS_OF_SERVICE: 'https://www.datastax.com/legal'
+          QUARKUS_SMALLRYE_OPENAPI_INFO_CONTACT_NAME: 'DataStax'
+          QUARKUS_SMALLRYE_OPENAPI_INFO_CONTACT_URL: 'https://www.datastax.com/contact-us'
+          QUARKUS_SMALLRYE_OPENAPI_INFO_LICENSE_NAME: ''
+          QUARKUS_SMALLRYE_OPENAPI_INFO_LICENSE_URL: ''
+        run: |
+          cd apis/
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-docsapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+
+      - name: Build and push (restapi, Amazon ECR)
+        if: ${{ !inputs.skipPublish }}
+        env:
+          QUARKUS_APPLICATION_NAME: 'Astra DB REST API'
+          QUARKUS_SMALLRYE_OPENAPI_INFO_DESCRIPTION: 'The Astra DB REST API exposes CRUD access to data stored in Cassandra tables. See the [documentation site](https://docs.datastax.com/en/astra-serverless/docs/develop/dev-with-rest.html) for additional information.'
+          QUARKUS_SMALLRYE_OPENAPI_INFO_TERMS_OF_SERVICE: 'https://www.datastax.com/legal'
+          QUARKUS_SMALLRYE_OPENAPI_INFO_CONTACT_NAME: 'DataStax'
+          QUARKUS_SMALLRYE_OPENAPI_INFO_CONTACT_URL: 'https://www.datastax.com/contact-us'
+          QUARKUS_SMALLRYE_OPENAPI_INFO_LICENSE_NAME: ''
+          QUARKUS_SMALLRYE_OPENAPI_INFO_LICENSE_URL: ''
+        run: |
+          cd apis/
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-restapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+
+  # signs all docker images with cosign
+  # skip whole job if we did not push images
+  sign-images:
+    name: Sign container images
+    needs: [resolve-tag, publish-docker]
+    if: ${{ !inputs.skipPublish }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        image: [restapi, graphqlapi, docsapi]
+
+    env:
+      # not a newest version, this reflects riptano action target version
+      COSIGN_VERSION: v1.9.0
+
+    steps:
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@main
+        with:
+          cosign-release: ${COSIGN_VERSION}
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.ECR_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.ECR_SECRET_KEY }}
+          aws-region: us-east-1
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+
+      # we need to sign also images created by additional tags
+      # in this case v2 tag
+      - name: Sign a docker image
+        shell: bash
+        env:
+          COSIGN_IMAGE: ${{ secrets.ECR_REPOSITORY }}/stargateio/${{ matrix.image }}:${{ needs.resolve-tag.outputs.release-tag }}
+          COSIGN_IMAGE_V2: ${{ secrets.ECR_REPOSITORY }}/stargateio/${{ matrix.image }}:v2
+          COSIGN_PRIVATE_BASE64: ${{ secrets.COSIGN_PRIVATE_BASE64}}
+          COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD}}
+          COSIGN_KEY_FILE: _cosign_key_
+          AUX_KEY: signedby
+          AUX_VALUE: stargate
+        run: |
+          echo $COSIGN_PRIVATE_BASE64 | base64 --decode > $COSIGN_KEY_FILE
+          echo "=== signing image [$COSIGN_IMAGE] ..."
+          cosign sign --key $COSIGN_KEY_FILE -a $AUX_KEY=$AUX_VALUE $COSIGN_IMAGE
+          echo "=== signing image [$COSIGN_IMAGE_V2] ..."
+          cosign sign --key $COSIGN_KEY_FILE -a $AUX_KEY=$AUX_VALUE $COSIGN_IMAGE_V2
+
+  # creates a PR for bumping the versions to the next snapshot
+  # only executed if we have created the new release
+  create-pr:
+    name: Version upgrade PR
+    needs: [create-release]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      # since we only bump the versions, Java 17 only is fine here
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: maven
+
+      - name: Setup Maven
+        run: |
+          mkdir -p ~/.m2
+          cat <<EOF > ~/.m2/settings.xml
+          <settings>
+            <servers>
+              <server>
+                <id>artifactory-snapshots</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+              <server>
+                <id>artifactory-releases</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+             </server>
+           </servers>
+          </settings>
+          EOF
+
+      - name: Generate changelog
+        continue-on-error: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: ./update_changelog.sh
+
+      - name: Update version numbers (coordinator)
+        run: |
+          cd coordinator/
+          ./mvnw -B -ntp release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse
+          ./mvnw -B -ntp xml-format:xml-format fmt:format -Pdse
+
+      - name: Update version numbers (apis)
+        run: |
+          cd apis/
+          ./mvnw -B -ntp release:update-versions -DautoVersionSubmodules=true versions:commit
+          ./mvnw -B -ntp xml-format:xml-format fmt:format
+
+      - name: Rev Version
+        if: success()
+        uses: peter-evans/create-pull-request@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "Bumping version for next v2.1 release"
+          title: "Bumping version for next v2.1 release"
+          branch-suffix: "short-commit-hash"
+          base: "v2.1"
+          labels: "v2.1"
+
+  # dispatch release event
+  dispatch:
+    name: Dispatch release event
+    needs: [ 'resolve-tag', 'build', 'publish-ossrh', 'publish-docker']
+    if: ${{ always() }}
+    continue-on-error: true
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        repo: [ 'stargate/jsonapi', 'riptano/c2']
+        include:
+          - repo: stargate/jsonapi
+            secret: SG_EVENTS_PAT
+
+          - repo: riptano/c2
+            secret: STARGATE_GH_RELEASE
+
+    steps:
+      - name: Repository dispatch
+        uses: peter-evans/repository-dispatch@v2
+        with:
+          token: ${{ secrets[matrix.secret] }}
+          repository: ${{ matrix.repo }}
+          event-type: stargate-v2-release
+          client-payload: '{"version": "${{ needs.resolve-tag.outputs.release-tag}}"}'
