@@ -19,14 +19,15 @@ package io.stargate.sgv2.restapi.config.constants;
 
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
-import jakarta.validation.constraints.NotBlank;
 
 /** Configuration for the REST API. */
 @ConfigMapping(prefix = "stargate.rest")
 public interface RestApiConfig {
 
   /** @return Flag to control map data optimization {@value RestApiConstants#OPTIMIZE_MAP_DATA} */
-  @NotBlank
   @WithDefault(RestApiConstants.OPTIMIZE_MAP_DATA)
   boolean optimizeMapData();
+
+  @WithDefault(RestApiConstants.CQL_DISABLED)
+  boolean cqlDisabled();
 }
