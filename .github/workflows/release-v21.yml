@@ -467,7 +467,7 @@ jobs:
         shell: bash
         env:
           COSIGN_IMAGE: ${{ secrets.ECR_REPOSITORY }}/stargateio/${{ matrix.image }}:${{ needs.resolve-tag.outputs.release-tag }}
-          COSIGN_IMAGE_V2: ${{ secrets.ECR_REPOSITORY }}/stargateio/${{ matrix.image }}:v2
+          COSIGN_IMAGE_V2: ${{ secrets.ECR_REPOSITORY }}/stargateio/${{ matrix.image }}:v2.1
           COSIGN_PRIVATE_BASE64: ${{ secrets.COSIGN_PRIVATE_BASE64}}
           COSIGN_PASSWORD: ${{ secrets.COSIGN_PASSWORD}}
           COSIGN_KEY_FILE: _cosign_key_
