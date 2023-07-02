@@ -8,8 +8,8 @@ fi
 
 # Default to INFO as root log level
 LOGLEVEL=INFO
-# Default to using images tagged "v2"
-SGTAG=v2
+# Default to using images tagged "v2.1"
+SGTAG=v2.1
 
 while getopts "lqr:t:" opt; do
   case $opt in
