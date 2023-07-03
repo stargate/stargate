@@ -97,9 +97,9 @@ public interface Sgv2RowsResourceApi {
           final boolean raw,
       @Parameter(name = "sort", ref = RestOpenApiConstants.Parameters.SORT) @QueryParam("sort")
           final String sort,
-      @Parameter(name = "optimize_map", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
-          @QueryParam("optimize_map")
-          final boolean optimizeMap);
+      @Parameter(name = "optimizeMap", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
+          @QueryParam("optimizeMap")
+          final Boolean optimizeMap);
 
   @GET
   @Operation(
@@ -144,9 +144,9 @@ public interface Sgv2RowsResourceApi {
           final boolean raw,
       @Parameter(name = "sort", ref = RestOpenApiConstants.Parameters.SORT) @QueryParam("sort")
           final String sort,
-      @Parameter(name = "optimize_map", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
-          @QueryParam("optimize_map")
-          final boolean optimizeMap);
+      @Parameter(name = "optimizeMap", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
+          @QueryParam("optimizeMap")
+          final Boolean optimizeMap);
 
   @GET
   @Operation(summary = "Retrieve all rows", description = "Get all rows from a table.")
@@ -190,9 +190,9 @@ public interface Sgv2RowsResourceApi {
           final boolean raw,
       @Parameter(name = "sort", ref = RestOpenApiConstants.Parameters.SORT) @QueryParam("sort")
           final String sort,
-      @Parameter(name = "optimize_map", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
-          @QueryParam("optimize_map")
-          final boolean optimizeMap);
+      @Parameter(name = "optimizeMap", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
+          @QueryParam("optimizeMap")
+          final Boolean optimizeMap);
 
   @POST
   @Operation(
@@ -221,9 +221,9 @@ public interface Sgv2RowsResourceApi {
           final String tableName,
       @RequestBody(description = "Fields of the Row to create as JSON", required = true)
           final String payloadAsString,
-      @Parameter(name = "optimize_map", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
-          @QueryParam("optimize_map")
-          final boolean optimizeMap);
+      @Parameter(name = "optimizeMap", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
+          @QueryParam("optimizeMap")
+          final Boolean optimizeMap);
 
   @PUT
   @Operation(summary = "Replace row(s)", description = "Update existing rows in a table.")
@@ -254,9 +254,9 @@ public interface Sgv2RowsResourceApi {
           final boolean raw,
       @RequestBody(description = "Fields of the Row to update as JSON", required = true)
           String payloadAsString,
-      @Parameter(name = "optimize_map", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
-          @QueryParam("optimize_map")
-          final boolean optimizeMap);
+      @Parameter(name = "optimizeMap", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
+          @QueryParam("optimizeMap")
+          final Boolean optimizeMap);
 
   @PATCH
   @Operation(
@@ -289,9 +289,9 @@ public interface Sgv2RowsResourceApi {
           final boolean raw,
       @RequestBody(description = "Fields of the Row to patch as JSON", required = true)
           String payloadAsString,
-      @Parameter(name = "optimize_map", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
-          @QueryParam("optimize_map")
-          final boolean optimizeMap);
+      @Parameter(name = "optimizeMap", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
+          @QueryParam("optimizeMap")
+          final Boolean optimizeMap);
 
   @DELETE
   @Operation(summary = "Delete row(s)", description = "Delete one or more rows in a table")
@@ -315,7 +315,7 @@ public interface Sgv2RowsResourceApi {
       @Parameter(name = "primaryKey", ref = RestOpenApiConstants.Parameters.PRIMARY_KEY)
           @PathParam("primaryKey")
           List<PathSegment> path,
-      @Parameter(name = "optimize_map", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
-          @QueryParam("optimize_map")
-          final boolean optimizeMap);
+      @Parameter(name = "optimizeMap", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
+          @QueryParam("optimizeMap")
+          final Boolean optimizeMap);
 }

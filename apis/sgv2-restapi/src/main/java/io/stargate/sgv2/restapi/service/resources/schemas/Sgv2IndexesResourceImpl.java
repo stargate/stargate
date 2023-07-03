@@ -36,8 +36,9 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
 
   @Override
   public Uni<RestResponse<Object>> getAllIndexes(
-      String keyspaceName, String tableName, final boolean optimizeMap) {
-    final boolean optimizeMapData = optimizeMap || restApiConfig.optimizeMapData();
+      String keyspaceName, String tableName, final Boolean optimizeMap) {
+    final boolean optimizeMapData =
+        (optimizeMap != null) ? (optimizeMap.booleanValue()) : restApiConfig.optimizeMapData();
     Query query =
         new QueryBuilder()
             .select()

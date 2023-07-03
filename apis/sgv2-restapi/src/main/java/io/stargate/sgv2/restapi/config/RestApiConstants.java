@@ -14,20 +14,12 @@
  * limitations under the License.
  *
  */
+package io.stargate.sgv2.restapi.config;
 
-package io.stargate.sgv2.restapi.config.constants;
+/** REST API server side defaults for the configurations defined in {@link RestApiConfig}. */
+public interface RestApiConstants {
 
-import io.smallrye.config.ConfigMapping;
-import io.smallrye.config.WithDefault;
+  public static final String OPTIMIZE_MAP_DATA = "true";
 
-/** Configuration for the REST API. */
-@ConfigMapping(prefix = "stargate.rest")
-public interface RestApiConfig {
-
-  /** @return Flag to control map data optimization {@value RestApiConstants#OPTIMIZE_MAP_DATA} */
-  @WithDefault(RestApiConstants.OPTIMIZE_MAP_DATA)
-  boolean optimizeMapData();
-
-  @WithDefault(RestApiConstants.CQL_DISABLED)
-  boolean cqlDisabled();
+  public static final String CQL_DISABLED = "true";
 }

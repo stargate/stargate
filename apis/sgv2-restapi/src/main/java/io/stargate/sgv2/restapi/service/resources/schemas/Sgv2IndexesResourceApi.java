@@ -71,9 +71,9 @@ public interface Sgv2IndexesResourceApi {
           @PathParam("tableName")
           @NotBlank(message = "tableName must be provided")
           final String tableName,
-      @Parameter(name = "optimize_map", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
-          @QueryParam("optimize_map")
-          final boolean optimizeMap);
+      @Parameter(name = "optimizeMap", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
+          @QueryParam("optimizeMap")
+          final Boolean optimizeMap);
 
   @POST
   @Operation(

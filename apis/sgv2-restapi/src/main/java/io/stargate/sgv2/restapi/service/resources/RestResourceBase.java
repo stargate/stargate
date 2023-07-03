@@ -15,7 +15,7 @@ import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.schema.SchemaManager;
-import io.stargate.sgv2.restapi.config.constants.RestApiConfig;
+import io.stargate.sgv2.restapi.config.RestApiConfig;
 import io.stargate.sgv2.restapi.grpc.BridgeProtoValueConverters;
 import io.stargate.sgv2.restapi.grpc.FromProtoConverter;
 import io.stargate.sgv2.restapi.grpc.ToProtoConverter;

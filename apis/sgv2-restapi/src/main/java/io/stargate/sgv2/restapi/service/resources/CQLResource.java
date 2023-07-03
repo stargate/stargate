@@ -8,7 +8,7 @@ import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
-import io.stargate.sgv2.restapi.config.constants.RestApiConfig;
+import io.stargate.sgv2.restapi.config.RestApiConfig;
 import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.service.models.Sgv2RowsResponse;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -71,9 +71,9 @@ public class CQLResource {
           final String pageStateParam,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw,
-      @Parameter(name = "optimize_map", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
-          @QueryParam("optimize_map")
-          final boolean optimizeMap,
+      @Parameter(name = "optimizeMap", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
+          @QueryParam("optimizeMap")
+          final Boolean optimizeMap,
       @RequestBody(description = "CQL Query String", required = true)
           @NotBlank(message = "CQL query body required")
           final String payloadAsString) {
@@ -89,6 +89,10 @@ public class CQLResource {
         .map(
             response ->
                 convertRowsToResponse(
-                    response, raw, optimizeMap || restApiConfig.optimizeMapData()));
+                    response,
+                    raw,
+                    (optimizeMap != null)
+                        ? (optimizeMap.booleanValue())
+                        : restApiConfig.optimizeMapData()));
   }
 }

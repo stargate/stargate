@@ -24,7 +24,7 @@ import org.jboss.resteasy.reactive.RestResponse;
 public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsResourceApi {
   @Override
   public Uni<RestResponse<Object>> findAllTypes(
-      final String keyspaceName, final boolean raw, final boolean optimizeMap) {
+      final String keyspaceName, final boolean raw, final Boolean optimizeMap) {
     QueryOuterClass.Query query =
         new QueryBuilder()
             .select()
@@ -34,7 +34,8 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
             .from("system_schema", "types")
             .where("keyspace_name", Predicate.EQ, Values.of(keyspaceName))
             .build();
-    final boolean optimizeMapData = optimizeMap || restApiConfig.optimizeMapData();
+    final boolean optimizeMapData =
+        (optimizeMap != null) ? (optimizeMap.booleanValue()) : restApiConfig.optimizeMapData();
     return executeQueryAsync(query)
         .map(response -> response.getResultSet())
         .map(
@@ -53,7 +54,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
       final String keyspaceName,
       final String typeName,
       final boolean raw,
-      final boolean optimizeMap) {
+      final Boolean optimizeMap) {
     QueryOuterClass.Query query =
         new QueryBuilder()
             .select()
@@ -64,7 +65,8 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
             .where("keyspace_name", Predicate.EQ, Values.of(keyspaceName))
             .where("type_name", Predicate.EQ, Values.of(typeName))
             .build();
-    final boolean optimizeMapData = optimizeMap || restApiConfig.optimizeMapData();
+    final boolean optimizeMapData =
+        (optimizeMap != null) ? (optimizeMap.booleanValue()) : restApiConfig.optimizeMapData();
     return executeQueryAsync(query)
         .map(response -> response.getResultSet())
         .map(rs -> convertRowsToArrayNode(rs, optimizeMapData))

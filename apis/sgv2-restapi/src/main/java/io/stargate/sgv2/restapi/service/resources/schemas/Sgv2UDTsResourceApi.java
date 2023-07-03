@@ -67,9 +67,9 @@ public interface Sgv2UDTsResourceApi {
           final String keyspaceName,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw,
-      @Parameter(name = "optimize_map", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
-          @QueryParam("optimize_map")
-          final boolean optimizeMap);
+      @Parameter(name = "optimizeMap", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
+          @QueryParam("optimizeMap")
+          final Boolean optimizeMap);
 
   @GET
   @Operation(
@@ -101,9 +101,9 @@ public interface Sgv2UDTsResourceApi {
           final String typeName,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw,
-      @Parameter(name = "optimize_map", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
-          @QueryParam("optimize_map")
-          final boolean optimizeMap);
+      @Parameter(name = "optimizeMap", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
+          @QueryParam("optimizeMap")
+          final Boolean optimizeMap);
 
   @POST
   @Operation(

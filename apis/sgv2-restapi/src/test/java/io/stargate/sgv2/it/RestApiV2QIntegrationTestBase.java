@@ -15,33 +15,12 @@ import io.restassured.specification.RequestSpecification;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
 import io.stargate.sgv2.common.IntegrationTestUtils;
-import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
-import io.stargate.sgv2.restapi.service.models.Sgv2IndexAddRequest;
-import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
-import io.stargate.sgv2.restapi.service.models.Sgv2Table;
-import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
+import io.stargate.sgv2.restapi.service.models.*;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.ClassOrderer;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestClassOrder;
-import org.junit.jupiter.api.TestInfo;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.*;
 
 /**
  * Serves as the base class for integration tests that need to create namespace prior to running the
@@ -502,11 +481,38 @@ public abstract class RestApiV2QIntegrationTestBase {
     return insertRowExpectStatus(keyspaceName, tableName, row, HttpStatus.SC_CREATED);
   }
 
+  protected String insertRowWithOptimizeMapFlag(
+      String keyspaceName, String tableName, Map<?, ?> row, Boolean optimizeMap) {
+    return insertRowWithOptimizeMapFlagExpectStatus(
+        keyspaceName, tableName, row, HttpStatus.SC_CREATED, optimizeMap);
+  }
+
+  protected String insertRowWithOptimizeMapFlagExpectStatus(
+      String keyspaceName,
+      String tableName,
+      Map<?, ?> row,
+      int expectedStatus,
+      Boolean optimizeMapFlag) {
+    return getInsertRowRequest(row, optimizeMapFlag)
+        .when()
+        .post(endpointPathForRowAdd(keyspaceName, tableName))
+        .then()
+        .statusCode(expectedStatus)
+        .extract()
+        .asString();
+  }
+
+  private RequestSpecification getInsertRowRequest(Map<?, ?> row, Boolean optimizeMapFlag) {
+    RequestSpecification requestSpecification =
+        givenWithAuth().contentType(ContentType.JSON).body(asJsonString(row));
+    return optimizeMapFlag == null
+        ? requestSpecification
+        : requestSpecification.queryParam("optimizeMap", optimizeMapFlag);
+  }
+
   protected String insertRowExpectStatus(
       String keyspaceName, String tableName, Map<?, ?> row, int expectedStatus) {
-    return givenWithAuth()
-        .contentType(ContentType.JSON)
-        .body(asJsonString(row))
+    return getInsertRowRequest(row, null)
         .when()
         .post(endpointPathForRowAdd(keyspaceName, tableName))
         .then()
@@ -527,6 +533,23 @@ public abstract class RestApiV2QIntegrationTestBase {
             .extract()
             .asString();
     return readJsonAs(response, LIST_OF_MAPS_TYPE);
+  }
+
+  protected JsonNode findRowsAsJsonNode(
+      String keyspaceName, String tableName, Boolean optimizeMapData, Object... primaryKeys) {
+    final String path = endpointPathForRowByPK(keyspaceName, tableName, primaryKeys);
+    RequestSpecification rquest = givenWithAuth();
+    if (optimizeMapData != null) {
+      rquest =
+          rquest
+              .queryParam("optimizeMap", optimizeMapData.booleanValue())
+              .queryParam("raw", "false");
+    } else {
+      rquest = rquest.queryParam("raw", "true");
+    }
+    String response =
+        rquest.when().get(path).then().statusCode(HttpStatus.SC_OK).extract().asString();
+    return readJsonAsTree(response);
   }
 
   protected List<Map<String, Object>> findRowsAsList(
