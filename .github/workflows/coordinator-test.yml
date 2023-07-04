@@ -21,6 +21,7 @@ on:
       - '.github/workflows/coordinator-test.yml'
 
   pull_request:
+    branches: [ "main", "v1" ]
     paths:
       - 'coordinator/**pom.xml'
       - 'coordinator/**/src/**'
@@ -83,7 +84,6 @@ jobs:
           </settings>
           EOF
 
-      # TODO: get rid of the CCM in the unit tests
       #  all unit tests should run without storage
       - name: Install CCM
         run: |
