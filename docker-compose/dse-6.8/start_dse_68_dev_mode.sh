@@ -2,8 +2,8 @@
 
 # Default to INFO as root log level
 LOGLEVEL=INFO
-# Default to using images tagged "v2"
-SGTAG=v2
+# Default to using images tagged "v2.1"
+SGTAG=v2.1
 
 # require Docker Compose v2
 if [[ ! $(docker compose version --short) =~ ^2. ]]; then

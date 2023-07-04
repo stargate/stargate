@@ -33,7 +33,7 @@ This convenience script verifies your Docker installation meets minimum requirem
 
 The convenience script uses the `-d` and `--wait` options to track the startup progress, so that the compose command exits when all containers have started and reported healthy status within a specified timeout.
 
-The default environment settings in the `.env` file include variables that describe which image tags to use, typically Stargate `v2` and Cassandra `4.0`. The `start_cass_40.sh` script supports [options](#script-options) for overriding which image tags are used, including using a locally generated image as described [above](#building-the-local-docker-image). We recommend doing a `docker compose pull` periodically to ensure you always have the latest patch versions of these tags.
+The default environment settings in the `.env` file include variables that describe which image tags to use, typically Stargate `v2.1` and Cassandra `4.0`. The `start_cass_40.sh` script supports [options](#script-options) for overriding which image tags are used, including using a locally generated image as described [above](#building-the-local-docker-image). We recommend doing a `docker compose pull` periodically to ensure you always have the latest patch versions of these tags.
 
 Once done using the containers, you can stop them using the command `docker compose down`.
 
@@ -71,7 +71,7 @@ Both convenience scripts support the following options:
 
 * When using the convenience scripts, the Stargate Docker image (`SGTAG`) used for the `-l` option is the current (snapshot) version as defined in the top level project `pom.xml` file. It can be overridden with the `-t` option on either script:
 
-  `./start_cass_40.sh -t v2.0.0-BETA-2`
+  `./start_cass_40.sh -t v2.0.0`
 
 * Running more than one of these multi-container environments on one host may require changing the port mapping to be changed to avoid conflicts on the host machine.
 
