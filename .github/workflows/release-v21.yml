@@ -571,5 +571,5 @@ jobs:
         with:
           token: ${{ secrets[matrix.secret] }}
           repository: ${{ matrix.repo }}
-          event-type: stargate-v2-release
+          event-type: stargate-v21-release
           client-payload: '{"version": "${{ needs.resolve-tag.outputs.release-tag}}"}'
