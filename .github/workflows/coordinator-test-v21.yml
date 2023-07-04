@@ -1,0 +1,180 @@
+name: Coordinator Tests v2.1
+
+# run on:
+# - push on our branches (only code paths)
+# - pull request (only code paths)
+# - manual trigger
+
+# paths filter:
+# - any pom change
+# - any change in the src/ in sub-modules
+# - any maven related change (executables/wrapper)
+# - the workflow itself
+on:
+
+  push:
+    branches: [ "v2.1" ]
+    paths:
+      - 'coordinator/**pom.xml'
+      - 'coordinator/**/src/**'
+      - 'coordinator/**mvn**'
+      - '.github/workflows/coordinator-test.yml'
+
+  pull_request:
+    branches: [ "v2.1" ]
+    paths:
+      - 'coordinator/**pom.xml'
+      - 'coordinator/**/src/**'
+      - 'coordinator/**mvn**'
+      - '.github/workflows/coordinator-test.yml'
+
+  workflow_dispatch:
+
+# cancel same workflows in progress for pull request branches
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/v1' }}
+
+# global env vars, available in all jobs and steps
+env:
+  ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
+  ARTIFACTORY_PASSWORD: ${{ secrets.ARTIFACTORY_PASSWORD }}
+  MAVEN_OPTS: '-Xmx4g'
+
+jobs:
+
+  unit-test:
+    name: Coordinator unit tests
+    runs-on: ubuntu-latest
+
+    # max run time 30 minutes
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - uses: actions/setup-java@v3
+        name: Setup Java JDK
+        with:
+          distribution: 'temurin'
+          java-version: 11
+          cache: 'maven'
+
+      - name: Setup Maven
+        run: |
+          mkdir -p ~/.m2
+          cat <<EOF > ~/.m2/settings.xml
+          <settings>
+            <servers>
+              <server>
+                <id>artifactory-snapshots</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+              <server>
+                <id>artifactory-releases</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+             </server>
+           </servers>
+          </settings>
+          EOF
+
+      #  all unit tests should run without storage
+      - name: Install CCM
+        run: |
+          python -m pip install --upgrade pip ccm
+          ccm list
+
+      - name: Run unit tests
+        run: |
+          cd coordinator/
+          ./mvnw -B -ntp clean test -P dse
+
+  integration-test:
+    name: Integration tests
+    runs-on: ubuntu-latest
+
+    # max run time 120 minutes
+    timeout-minutes: 120
+
+    strategy:
+      # Defaults to "true" but let's let all runs finish
+      # (see https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs)
+      fail-fast: false
+      matrix:
+        backend: [ cassandra-40, cassandra-311, dse-68 ]
+        include:
+          - backend: cassandra-40
+            build-profile:
+            test-profile: -P it-cassandra-4.0
+
+          - backend: cassandra-311
+            build-profile:
+            test-profile: -P it-cassandra-3.11
+
+          - backend: dse-68
+            build-profile: -P dse
+            test-profile: -P dse -P it-dse-6.8
+
+    steps:
+
+      # Kill unused mono process that uses port 8084 starting on Ubuntu 20.04 GitHub runner
+      # This is brute force but other attempts did not work
+      #   see: https://github.com/actions/runner-images/issues/2821
+      #   this doesn't seem to stop the process:
+      #     sudo systemctl stop mono-xsp4.service || true
+      #   neither does uninstalling mono:
+      #     sudo apt-get purge --auto-remove ubuntu-mono mono-runtime
+      - name: Disable Mono
+        run: |
+          sudo killall mono
+          sudo lsof -iTCP -n -P | sort -k1
+
+      - uses: actions/checkout@v3
+
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - uses: actions/setup-java@v3
+        name: Setup Java JDK
+        with:
+          distribution: 'temurin'
+          java-version: 11
+          cache: 'maven'
+
+      - name: Setup Maven
+        run: |
+          mkdir -p ~/.m2
+          cat <<EOF > ~/.m2/settings.xml
+          <settings>
+            <servers>
+              <server>
+                <id>artifactory-snapshots</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+              <server>
+                <id>artifactory-releases</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+             </server>
+           </servers>
+          </settings>
+          EOF
+
+      - name: Install CCM
+        run: |
+          python -m pip install --upgrade pip ccm
+          ccm list
+
+      - name: Run Integration Tests
+        run: |
+          cd coordinator/
+          ./mvnw -B -ntp ${{ matrix.build-profile }} clean install -DskipTests
+          ./mvnw -B -ntp -pl testing ${{ matrix.test-profile }} clean verify -DskipUnitTests
