@@ -75,7 +75,7 @@ public interface MetricsConfig {
     String statusTag();
 
     /** @return If tenant counting metric should include the HTTP status information. */
-    @WithDefault("true")
+    @WithDefault("false")
     boolean statusTagEnabled();
   }
 }
