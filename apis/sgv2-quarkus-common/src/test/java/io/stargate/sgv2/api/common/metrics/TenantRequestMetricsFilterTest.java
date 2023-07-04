@@ -49,6 +49,7 @@ class TenantRequestMetricsFilterTest {
           .put("stargate.metrics.tenant-request-counter.tenant-tag", "tenantTag")
           .put("stargate.metrics.tenant-request-counter.error-tag", "errorTag")
           .put("stargate.metrics.tenant-request-counter.status-tag", "statusTag")
+          .put("stargate.metrics.tenant-request-counter.status-tag-enabled", "true")
           .build();
     }
   }
