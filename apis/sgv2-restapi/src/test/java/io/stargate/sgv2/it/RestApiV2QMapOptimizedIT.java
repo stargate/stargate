@@ -10,6 +10,7 @@ import org.junit.jupiter.api.Test;
 public class RestApiV2QMapOptimizedIT extends RestApiV2QIntegrationTestBase
     implements RestApiV2QMapTests {
   private static final boolean SERVER_FLAG = true;
+
   public RestApiV2QMapOptimizedIT() {
     super("rowadd_ks_", "rowadd_t_", KeyspaceCreation.PER_CLASS);
   }
@@ -38,8 +39,8 @@ public class RestApiV2QMapOptimizedIT extends RestApiV2QIntegrationTestBase
   @Test
   @Override
   public void updateRowWithNonCompactMap() {
-    RestApiV2QMapTestsImplIT.updateRowWithNonCompactMap(this,SERVER_FLAG, true);
-    RestApiV2QMapTestsImplIT.updateRowWithNonCompactMap(this,SERVER_FLAG, false);
+    RestApiV2QMapTestsImplIT.updateRowWithNonCompactMap(this, SERVER_FLAG, true);
+    RestApiV2QMapTestsImplIT.updateRowWithNonCompactMap(this, SERVER_FLAG, false);
   }
 
   @Test

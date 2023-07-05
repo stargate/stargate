@@ -1,19 +1,19 @@
 package io.stargate.sgv2.it;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertTrue;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
-
 public class RestApiV2QMapTestsImplIT {
-  public static void addRowWithCompactMap(RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
+  public static void addRowWithCompactMap(
+      RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
     Boolean optimizeMapData = getFlagForCompactDataTest(serverFlag, testDefault);
-    final String tableName = testBase.testTableName()+(testDefault?"1":"2");
+    final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
     testBase.createTestTable(
         testBase.testKeyspaceName(),
         tableName,
@@ -29,7 +29,8 @@ public class RestApiV2QMapTestsImplIT {
 
     // And verify
     JsonNode readRow =
-        testBase.findRowsAsJsonNode(testBase.testKeyspaceName(), tableName, optimizeMapData, "alice");
+        testBase.findRowsAsJsonNode(
+            testBase.testKeyspaceName(), tableName, optimizeMapData, "alice");
     assertThat(readRow).hasSize(1);
     assertThat(readRow.get(0).get("name").asText()).isEqualTo("alice");
     assertThat(readRow.get(0).get("properties").get("key1").asText()).isEqualTo("value1");
@@ -38,9 +39,10 @@ public class RestApiV2QMapTestsImplIT {
     assertThat(readRow.get(0).get("events").get("456").asBoolean()).isEqualTo(false);
   }
 
-  public static void addRowWithNonCompactMap(RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
+  public static void addRowWithNonCompactMap(
+      RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
     Boolean optimizeMapData = getFlagForNonCompactDataTest(serverFlag, testDefault);
-    final String tableName = testBase.testTableName()+(testDefault?"1":"2");
+    final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
     testBase.createTestTable(
         testBase.testKeyspaceName(),
         tableName,
@@ -57,7 +59,8 @@ public class RestApiV2QMapTestsImplIT {
 
     // And verify
     JsonNode readRow =
-        testBase.findRowsAsJsonNode(testBase.testKeyspaceName(), tableName, optimizeMapData, "alice");
+        testBase.findRowsAsJsonNode(
+            testBase.testKeyspaceName(), tableName, optimizeMapData, "alice");
     assertThat(readRow).hasSize(1);
     assertThat(readRow.get(0).get("name").asText()).isEqualTo("alice");
     assertThat(readRow.get(0).get("properties").get(0).get("key").asText()).isEqualTo("key1");
@@ -70,9 +73,10 @@ public class RestApiV2QMapTestsImplIT {
     assertThat(readRow.get(0).get("events").get(1).get("value").asBoolean()).isEqualTo(false);
   }
 
-  public static void updateRowWithCompactMap(RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
+  public static void updateRowWithCompactMap(
+      RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
     Boolean optimizeMapData = getFlagForCompactDataTest(serverFlag, testDefault);
-    final String tableName = testBase.testTableName()+(testDefault?"1":"2");
+    final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
     testBase.createTestTable(
         testBase.testKeyspaceName(),
         tableName,
@@ -98,7 +102,7 @@ public class RestApiV2QMapTestsImplIT {
             testBase.endpointPathForRowByPK(testBase.testKeyspaceName(), tableName, rowIdentifier),
             true,
             rowUpdate,
-                optimizeMapData);
+            optimizeMapData);
     Map<String, Object> data = (Map<String, Object>) testBase.readJsonAs(updateResponse, Map.class);
     assertThat(data).containsAllEntriesOf(rowUpdate);
 
@@ -110,11 +114,12 @@ public class RestApiV2QMapTestsImplIT {
         testBase.endpointPathForRowByPK(testBase.testKeyspaceName(), tableName, rowIdentifier),
         true,
         update2,
-            optimizeMapData);
+        optimizeMapData);
 
     // And that change actually occurs
     JsonNode json =
-        testBase.findRowsAsJsonNode(testBase.testKeyspaceName(), tableName, optimizeMapData, rowIdentifier);
+        testBase.findRowsAsJsonNode(
+            testBase.testKeyspaceName(), tableName, optimizeMapData, rowIdentifier);
     assertThat(json.size()).isEqualTo(1);
     assertThat(json.get(0).get("id").asText()).isEqualTo(rowIdentifier);
     assertThat(json.get(0).get("name").asText()).isEqualTo("Jimmy");
@@ -123,9 +128,10 @@ public class RestApiV2QMapTestsImplIT {
     assertTrue(json.get(0).at("/events").isEmpty());
   }
 
-  public static void updateRowWithNonCompactMap(RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
+  public static void updateRowWithNonCompactMap(
+      RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
     Boolean optimizeMapData = getFlagForNonCompactDataTest(serverFlag, testDefault);
-    final String tableName = testBase.testTableName()+(testDefault?"1":"2");
+    final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
     testBase.createTestTable(
         testBase.testKeyspaceName(),
         tableName,
@@ -154,7 +160,7 @@ public class RestApiV2QMapTestsImplIT {
             testBase.endpointPathForRowByPK(testBase.testKeyspaceName(), tableName, rowIdentifier),
             true,
             rowUpdate,
-                optimizeMapData);
+            optimizeMapData);
     Map<String, Object> data = (Map<String, Object>) testBase.readJsonAs(updateResponse, Map.class);
     assertThat(data).containsAllEntriesOf(rowUpdate);
 
@@ -166,11 +172,12 @@ public class RestApiV2QMapTestsImplIT {
         testBase.endpointPathForRowByPK(testBase.testKeyspaceName(), tableName, rowIdentifier),
         true,
         update2,
-            optimizeMapData);
+        optimizeMapData);
 
     // And that change actually occurs
     JsonNode json =
-        testBase.findRowsAsJsonNode(testBase.testKeyspaceName(), tableName, optimizeMapData, rowIdentifier);
+        testBase.findRowsAsJsonNode(
+            testBase.testKeyspaceName(), tableName, optimizeMapData, rowIdentifier);
     assertThat(json.size()).isEqualTo(1);
     assertThat(json.get(0).get("id").asText()).isEqualTo(rowIdentifier);
     assertThat(json.get(0).get("name").asText()).isEqualTo("Jimmy");

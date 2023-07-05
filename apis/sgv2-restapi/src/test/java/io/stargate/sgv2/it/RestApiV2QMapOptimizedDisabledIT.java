@@ -5,9 +5,8 @@ import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
-import org.junit.jupiter.api.Test;
-
 import java.util.Map;
+import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
 @QuarkusTestResource(StargateTestResource.class)
@@ -15,6 +14,7 @@ import java.util.Map;
 public class RestApiV2QMapOptimizedDisabledIT extends RestApiV2QIntegrationTestBase
     implements RestApiV2QMapTests {
   private static final boolean SERVER_FLAG = false;
+
   public static class Profile implements QuarkusTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
