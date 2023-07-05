@@ -116,10 +116,4 @@ public class RestApiV2QRowPatchIT extends RestApiV2QIntegrationTestBase {
         .contains("Invalid path for row to update")
         .contains("'not-an-actual-uuid'");
   }
-
-  /*
-  /////////////////////////////////////////////////////////////////////////
-  // Helper methods
-  /////////////////////////////////////////////////////////////////////////
-   */
 }

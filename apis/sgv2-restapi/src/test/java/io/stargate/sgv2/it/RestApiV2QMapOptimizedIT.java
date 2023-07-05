@@ -60,7 +60,8 @@ public class RestApiV2QMapOptimizedIT extends RestApiV2QIntegrationTestBase
   @Test
   @Override
   public void deleteRowWithCompactMap() {
-    RestApiV2QMapTestsImplIT.deleteRowWithCompactMap(this);
+    RestApiV2QMapTestsImplIT.deleteRowWithCompactMap(this, SERVER_FLAG, true);
+    RestApiV2QMapTestsImplIT.deleteRowWithCompactMap(this, SERVER_FLAG, false);
   }
 
   @Test
@@ -72,37 +73,43 @@ public class RestApiV2QMapOptimizedIT extends RestApiV2QIntegrationTestBase
   @Test
   @Override
   public void getRowsWithCompactMap() {
-    RestApiV2QMapTestsImplIT.getRowsWithCompactMap(this);
+    RestApiV2QMapTestsImplIT.getRowsWithCompactMap(this, SERVER_FLAG, true);
+    RestApiV2QMapTestsImplIT.getRowsWithCompactMap(this, SERVER_FLAG, false);
   }
 
   @Test
   @Override
   public void getRowsWithNonCompactMap() {
-    RestApiV2QMapTestsImplIT.getRowsWithNonCompactMap(this);
+    RestApiV2QMapTestsImplIT.getRowsWithNonCompactMap(this, SERVER_FLAG, true);
+    RestApiV2QMapTestsImplIT.getRowsWithNonCompactMap(this, SERVER_FLAG, false);
   }
 
   @Test
   @Override
   public void getAllRowsWithCompactMap() {
-    RestApiV2QMapTestsImplIT.getAllRowsWithCompactMap(this);
+    RestApiV2QMapTestsImplIT.getAllRowsWithCompactMap(this, SERVER_FLAG, true);
+    RestApiV2QMapTestsImplIT.getAllRowsWithCompactMap(this, SERVER_FLAG, false);
   }
 
   @Test
   @Override
   public void getAllRowsWithNonCompactMap() {
-    RestApiV2QMapTestsImplIT.getAllRowsWithNonCompactMap(this);
+    RestApiV2QMapTestsImplIT.getAllRowsWithNonCompactMap(this, SERVER_FLAG, true);
+    RestApiV2QMapTestsImplIT.getAllRowsWithNonCompactMap(this, SERVER_FLAG, false);
   }
 
   @Test
   @Override
   public void getRowsWithWhereWithCompactMap() {
-    RestApiV2QMapTestsImplIT.getRowsWithWhereWithCompactMap(this);
+    RestApiV2QMapTestsImplIT.getRowsWithWhereWithCompactMap(this, SERVER_FLAG, true);
+    RestApiV2QMapTestsImplIT.getRowsWithWhereWithCompactMap(this, SERVER_FLAG, false);
   }
 
   @Test
   @Override
   public void getRowsWithWhereWithNonCompactMap() {
-    RestApiV2QMapTestsImplIT.getRowsWithWhereWithNonCompactMap(this);
+    RestApiV2QMapTestsImplIT.getRowsWithWhereWithNonCompactMap(this, SERVER_FLAG, true);
+    RestApiV2QMapTestsImplIT.getRowsWithWhereWithNonCompactMap(this, SERVER_FLAG, false);
   }
 
   @Test

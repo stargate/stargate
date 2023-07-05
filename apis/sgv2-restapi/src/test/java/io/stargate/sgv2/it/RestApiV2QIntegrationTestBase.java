@@ -1,8 +1,5 @@
 package io.stargate.sgv2.it;
 
-import static io.restassured.RestAssured.given;
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -16,11 +13,15 @@ import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
 import io.stargate.sgv2.common.IntegrationTestUtils;
 import io.stargate.sgv2.restapi.service.models.*;
+import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.*;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
-import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.*;
+
+import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Serves as the base class for integration tests that need to create namespace prior to running the
@@ -208,6 +209,10 @@ public abstract class RestApiV2QIntegrationTestBase {
 
   protected Map<String, Object> map(String key, Object value) {
     return Collections.singletonMap(key, value);
+  }
+
+  protected List<Object> list(Object entry){
+    return Collections.singletonList(entry);
   }
 
   protected Map<String, Object> map(String key1, Object value1, String key2, Object value2) {
@@ -451,6 +456,16 @@ public abstract class RestApiV2QIntegrationTestBase {
 
   protected List<Map<String, String>> insertRows(
       String keyspaceName, String tableName, List<List<String>> rows) {
+    return insertRowsFromListOfList(keyspaceName, tableName, rows, null);
+  }
+
+  protected List<Map<String, String>> insertRows(
+      String keyspaceName, String tableName, List<List<String>> rows, Boolean optimizeMapData) {
+    return insertRowsFromListOfList(keyspaceName, tableName, rows, optimizeMapData);
+  }
+
+  private List<Map<String, String>> insertRowsFromListOfList(
+      String keyspaceName, String tableName, List<List<String>> rows, Boolean optimizeMapData) {
     final List<Map<String, String>> insertedRows = new ArrayList<>();
     for (List<String> row : rows) {
       Map<String, String> rowMap = new HashMap<>();
@@ -460,7 +475,7 @@ public abstract class RestApiV2QIntegrationTestBase {
         String[] parts = kv.split(" ", 2);
         rowMap.put(parts[0].trim(), parts[1].trim());
       }
-      insertRow(keyspaceName, tableName, rowMap);
+      insertRow(keyspaceName, tableName, rowMap, optimizeMapData);
       insertedRows.add(rowMap);
     }
 
@@ -468,10 +483,20 @@ public abstract class RestApiV2QIntegrationTestBase {
   }
 
   protected List<Map<String, Object>> insertTypedRows(
-      String keyspaceName, String tableName, List<Map<String, Object>> rows) {
+          String keyspaceName, String tableName, List<Map<String, Object>> rows) {
+    return insertTypedRowsInternal(keyspaceName, tableName, rows, null);
+  }
+
+  protected List<Map<String, Object>> insertTypedRows(
+          String keyspaceName, String tableName, List<Map<String, Object>> rows, Boolean optimizeMapData) {
+    return insertTypedRowsInternal(keyspaceName, tableName, rows, optimizeMapData);
+  }
+
+  private List<Map<String, Object>> insertTypedRowsInternal(
+      String keyspaceName, String tableName, List<Map<String, Object>> rows, Boolean optimizeMapData) {
     final List<Map<String, Object>> insertedRows = new ArrayList<>();
     for (Map<String, Object> row : rows) {
-      insertRow(keyspaceName, tableName, row);
+      insertRow(keyspaceName, tableName, row, optimizeMapData);
       insertedRows.add(row);
     }
     return insertedRows;
@@ -600,11 +625,24 @@ public abstract class RestApiV2QIntegrationTestBase {
   }
 
   protected ArrayNode findRowsWithWhereAsJsonNode(
-      String keyspaceName, String tableName, String whereClause) {
-    String response =
-        givenWithAuth()
+          String keyspaceName, String tableName, String whereClause) {
+    return findRowsWithWhereAsJsonNodeInternal(keyspaceName, tableName, whereClause, null);
+  }
+
+  protected ArrayNode findRowsWithWhereAsJsonNode(
+          String keyspaceName, String tableName, String whereClause, Boolean optimizeMapData) {
+    return findRowsWithWhereAsJsonNodeInternal(keyspaceName, tableName, whereClause, optimizeMapData);
+  }
+
+  private ArrayNode findRowsWithWhereAsJsonNodeInternal(
+      String keyspaceName, String tableName, String whereClause, Boolean optimizeMapData) {
+    RequestSpecification request = givenWithAuth()
             .queryParam("raw", true)
-            .queryParam("where", whereClause)
+            .queryParam("where", whereClause);
+    if(optimizeMapData != null){
+        request = request.queryParam("optimizeMap", optimizeMapData);
+    }
+    String response = request
             .when()
             .get(endpointPathForRowGetWith(testKeyspaceName(), tableName))
             .then()
@@ -805,6 +843,33 @@ public abstract class RestApiV2QIntegrationTestBase {
     return getPatchRequest(payloadJSON, raw)
         .when()
         .patch(patchPath)
+        .then()
+        .statusCode(expectedStatus)
+        .extract()
+        .asString();
+  }
+
+  protected String deleteRow(String deletePath, Boolean optimizeMapData) {
+    return deleteRow(deletePath, HttpStatus.SC_NO_CONTENT, optimizeMapData);
+  }
+
+  protected String deleteRow(String deletePath) {
+    return deleteRow(deletePath, HttpStatus.SC_NO_CONTENT);
+  }
+
+  protected String deleteRow(String deletePath, int expectedStatus, Boolean optimizeMapData) {
+    RequestSpecification req = givenWithAuth();
+    if (optimizeMapData != null) {
+      req.queryParam("optimizeMap", optimizeMapData);
+    }
+    return req.when().delete(deletePath).then().statusCode(expectedStatus).extract().asString();
+  }
+
+  protected String deleteRow(String deletePath, int expectedStatus) {
+    // Usually "no content" (returns empty String), but for fails gives ApiError
+    return givenWithAuth()
+        .when()
+        .delete(deletePath)
         .then()
         .statusCode(expectedStatus)
         .extract()
