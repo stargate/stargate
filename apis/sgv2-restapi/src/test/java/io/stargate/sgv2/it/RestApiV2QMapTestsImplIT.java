@@ -1,14 +1,13 @@
 package io.stargate.sgv2.it;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertTrue;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
 
 public class RestApiV2QMapTestsImplIT {
   public static void addRowWithCompactMap(RestApiV2QIntegrationTestBase testBase) {

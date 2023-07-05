@@ -1,23 +1,22 @@
 package io.stargate.sgv2.restapi.grpc;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
 import io.stargate.bridge.grpc.CqlDuration;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 public class ToProtoConverterTest {
   private static final String TEST_TABLE = "test_table";
