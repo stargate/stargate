@@ -34,14 +34,13 @@ public class RestApiV2QRowUpdateIT extends RestApiV2QIntegrationTestBase {
     createSimpleTestTable(testKeyspaceName(), tableName);
 
     final String rowIdentifier = UUID.randomUUID().toString();
-    Map<String, String> row = new HashMap<>();
-    row.put("id", rowIdentifier);
-    row.put("firstName", "John");
+    Map<String, String> row = Map.of("id", rowIdentifier, "firstName", "John");
     insertRow(testKeyspaceName(), tableName, row);
 
-    Map<String, String> rowUpdate = new HashMap<>();
-    rowUpdate.put("firstName", "Robert");
-    rowUpdate.put("lastName", "Plant");
+    Map<String, String> rowUpdate =
+        Map.of(
+            "firstName", "Robert",
+            "lastName", "Plant");
     String updateResponse =
         updateRowReturnResponse(
             endpointPathForRowByPK(testKeyspaceName(), tableName, rowIdentifier), false, rowUpdate);
@@ -86,6 +85,28 @@ public class RestApiV2QRowUpdateIT extends RestApiV2QIntegrationTestBase {
     assertTrue(json.at("/0/lastName").isNull());
     assertTrue(json.at("/0/age").isNull());
     assertThat(json.at("/0").size()).isEqualTo(4);
+  }
+
+  @Test
+  public void updateRowWithSpecialCharsInId() {
+    final String tableName = testTableName();
+    createTestTable(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList("id text", "description text"),
+        Arrays.asList("id"),
+        null);
+
+    final String rowIdentifier = "path/to/row&column";
+    Map<String, Object> row = Map.of("id", rowIdentifier, "description", "Stuff");
+    insertRow(testKeyspaceName(), tableName, row);
+
+    Map<String, String> rowUpdate = Map.of("description", "Updated Stuff");
+    String updateResponse =
+        updateRowReturnResponse(
+            endpointPathForRowByPK(testKeyspaceName(), tableName, rowIdentifier), false, rowUpdate);
+    Map<String, String> data = readWrappedRESTResponse(updateResponse, Map.class);
+    assertThat(data).containsAllEntriesOf(rowUpdate);
   }
 
   @Test
