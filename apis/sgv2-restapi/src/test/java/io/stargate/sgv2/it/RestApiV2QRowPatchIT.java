@@ -4,7 +4,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
-import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
 import java.util.HashMap;
@@ -123,27 +122,4 @@ public class RestApiV2QRowPatchIT extends RestApiV2QIntegrationTestBase {
   // Helper methods
   /////////////////////////////////////////////////////////////////////////
    */
-
-  private String patchRowReturnResponse(String patchPath, boolean raw, Map<?, ?> payload) {
-    return patchRowReturnResponse(patchPath, raw, payload, HttpStatus.SC_OK);
-  }
-
-  private String patchRowReturnResponse(
-      String patchPath, boolean raw, Map<?, ?> payloadMap, int expectedStatus) {
-    return patchRowReturnResponse(patchPath, raw, asJsonString(payloadMap), expectedStatus);
-  }
-
-  private String patchRowReturnResponse(
-      String patchPath, boolean raw, String payloadJSON, int expectedStatus) {
-    return givenWithAuth()
-        .queryParam("raw", raw)
-        .contentType(ContentType.JSON)
-        .body(payloadJSON)
-        .when()
-        .patch(patchPath)
-        .then()
-        .statusCode(expectedStatus)
-        .extract()
-        .asString();
-  }
 }

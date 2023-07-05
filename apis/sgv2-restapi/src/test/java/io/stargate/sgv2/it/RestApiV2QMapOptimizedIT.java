@@ -46,13 +46,15 @@ public class RestApiV2QMapOptimizedIT extends RestApiV2QIntegrationTestBase
   @Test
   @Override
   public void patchRowWithCompactMap() {
-    RestApiV2QMapTestsImplIT.patchRowWithCompactMap(this);
+    RestApiV2QMapTestsImplIT.patchRowWithCompactMap(this, SERVER_FLAG, true);
+    RestApiV2QMapTestsImplIT.patchRowWithCompactMap(this, SERVER_FLAG, false);
   }
 
   @Test
   @Override
   public void patchRowWithNonCompactMap() {
-    RestApiV2QMapTestsImplIT.patchRowWithNonCompactMap(this);
+    RestApiV2QMapTestsImplIT.patchRowWithNonCompactMap(this, SERVER_FLAG, true);
+    RestApiV2QMapTestsImplIT.patchRowWithNonCompactMap(this, SERVER_FLAG, false);
   }
 
   @Test

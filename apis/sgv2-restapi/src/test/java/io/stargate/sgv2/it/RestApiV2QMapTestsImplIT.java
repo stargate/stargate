@@ -4,10 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class RestApiV2QMapTestsImplIT {
   public static void addRowWithCompactMap(
@@ -187,9 +184,98 @@ public class RestApiV2QMapTestsImplIT {
     assertTrue(json.get(0).at("/events").isEmpty());
   }
 
-  public static void patchRowWithCompactMap(RestApiV2QIntegrationTestBase testBase) {}
+  public static void patchRowWithCompactMap(
+      RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
+    Boolean optimizeMapData = getFlagForCompactDataTest(serverFlag, testDefault);
+    final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
+    testBase.createTestTable(
+        testBase.testKeyspaceName(),
+        tableName,
+        Arrays.asList(
+            "id uuid", "name text", "properties map<text,text>", "events map<int,boolean>"),
+        Arrays.asList("id"),
+        null);
 
-  public static void patchRowWithNonCompactMap(RestApiV2QIntegrationTestBase testBase) {}
+    String rowIdentifier = UUID.randomUUID().toString();
+    Map<String, String> row = new HashMap<>();
+    row.put("id", rowIdentifier);
+    row.put("name", "John");
+    row.put("properties", "{'key1': 'value1', 'key2': 'value2'}");
+    row.put("events", "{123: true, 456: false}");
+    testBase.insertRow(testBase.testKeyspaceName(), tableName, row, optimizeMapData);
+
+    Map<String, String> rowUpdate = new HashMap<>();
+    rowUpdate.put("name", "Jimmy");
+    rowUpdate.put("properties", "{'key1': 'value11'}");
+    rowUpdate.put("events", "{123: false}");
+
+    String patchResponse =
+        testBase.patchRowReturnResponse(
+            testBase.endpointPathForRowByPK(testBase.testKeyspaceName(), tableName, rowIdentifier),
+            false,
+            rowUpdate,
+            optimizeMapData);
+    Map<String, String> data = testBase.readWrappedRESTResponse(patchResponse, Map.class);
+    assertThat(data).containsAllEntriesOf(rowUpdate);
+
+    JsonNode json =
+        testBase.findRowsAsJsonNode(
+            testBase.testKeyspaceName(), tableName, optimizeMapData, rowIdentifier);
+    assertThat(json.size()).isEqualTo(1);
+    assertThat(json.get(0).get("id").asText()).isEqualTo(rowIdentifier);
+    assertThat(json.get(0).get("name").asText()).isEqualTo("Jimmy");
+    assertThat(json.get(0).get("properties").get("key1").asText()).isEqualTo("value11");
+    assertTrue(json.get(0).get("properties").at("/key2").isMissingNode());
+    assertThat(json.get(0).get("events").get("123").asBoolean()).isFalse();
+  }
+
+  public static void patchRowWithNonCompactMap(
+      RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
+    Boolean optimizeMapData = getFlagForNonCompactDataTest(serverFlag, testDefault);
+    final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
+    testBase.createTestTable(
+        testBase.testKeyspaceName(),
+        tableName,
+        Arrays.asList(
+            "id uuid", "name text", "properties map<text,text>", "events map<int,boolean>"),
+        Arrays.asList("id"),
+        null);
+
+    String rowIdentifier = UUID.randomUUID().toString();
+    Map<String, String> row = new HashMap<>();
+    row.put("id", rowIdentifier);
+    row.put("name", "John");
+    row.put(
+        "properties", "[{'key': 'key1', 'value': 'value1' }, {'key': 'key2', 'value' : 'value2'}]");
+    row.put("events", "[{'key': 123, 'value': true }, {'key': 456, 'value' : false}]");
+    testBase.insertRow(testBase.testKeyspaceName(), tableName, row, optimizeMapData);
+
+    Map<String, String> rowUpdate = new HashMap<>();
+    rowUpdate.put("name", "Jimmy");
+    rowUpdate.put("properties", "[{'key': 'key1', 'value': 'value11' }]");
+    rowUpdate.put("events", "[{'key': 123, 'value': false }]");
+
+    String patchResponse =
+        testBase.patchRowReturnResponse(
+            testBase.endpointPathForRowByPK(testBase.testKeyspaceName(), tableName, rowIdentifier),
+            false,
+            rowUpdate,
+            optimizeMapData);
+    Map<String, String> data = testBase.readWrappedRESTResponse(patchResponse, Map.class);
+    assertThat(data).containsAllEntriesOf(rowUpdate);
+
+    JsonNode json =
+        testBase.findRowsAsJsonNode(
+            testBase.testKeyspaceName(), tableName, optimizeMapData, rowIdentifier);
+    assertThat(json.size()).isEqualTo(1);
+    assertThat(json.get(0).get("id").asText()).isEqualTo(rowIdentifier);
+    assertThat(json.get(0).get("name").asText()).isEqualTo("Jimmy");
+    assertThat(json.get(0).get("properties").get(0).get("key").asText()).isEqualTo("key1");
+    assertThat(json.get(0).get("properties").get(0).get("value").asText()).isEqualTo("value11");
+    assertThat(json.get(0).get("properties").size()).isEqualTo(1);
+    assertThat(json.get(0).get("events").get(0).get("key").asInt()).isEqualTo(123);
+    assertThat(json.get(0).get("events").get(0).get("value").asBoolean()).isFalse();
+  }
 
   public static void deleteRowWithCompactMap(RestApiV2QIntegrationTestBase testBase) {}
 

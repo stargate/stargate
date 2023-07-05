@@ -758,4 +758,56 @@ public abstract class RestApiV2QIntegrationTestBase {
         .extract()
         .asString();
   }
+
+  protected String patchRowReturnResponse(
+      String patchPath, boolean raw, Map<?, ?> payload, Boolean optimizeMapData) {
+    return patchRowReturnResponse(patchPath, raw, payload, HttpStatus.SC_OK, optimizeMapData);
+  }
+
+  protected String patchRowReturnResponse(String patchPath, boolean raw, Map<?, ?> payload) {
+    return patchRowReturnResponse(patchPath, raw, payload, HttpStatus.SC_OK);
+  }
+
+  protected String patchRowReturnResponse(
+      String patchPath, boolean raw, Map<?, ?> payloadMap, int expectedStatus) {
+    return patchRowReturnResponse(patchPath, raw, asJsonString(payloadMap), expectedStatus);
+  }
+
+  protected String patchRowReturnResponse(
+      String patchPath,
+      boolean raw,
+      Map<?, ?> payloadMap,
+      int expectedStatus,
+      Boolean optimizeMapData) {
+    return patchRowReturnResponse(
+        patchPath, raw, asJsonString(payloadMap), expectedStatus, optimizeMapData);
+  }
+
+  protected String patchRowReturnResponse(
+      String patchPath,
+      boolean raw,
+      String payloadJSON,
+      int expectedStatus,
+      Boolean optimizeMapData) {
+    RequestSpecification req = getPatchRequest(payloadJSON, raw);
+    if (optimizeMapData != null) {
+      req.queryParam("optimizeMap", optimizeMapData);
+    }
+    return req.when().patch(patchPath).then().statusCode(expectedStatus).extract().asString();
+  }
+
+  private RequestSpecification getPatchRequest(String payloadJSON, boolean raw) {
+    return givenWithAuth().queryParam("raw", raw).contentType(ContentType.JSON).body(payloadJSON);
+  }
+
+  protected String patchRowReturnResponse(
+      String patchPath, boolean raw, String payloadJSON, int expectedStatus) {
+    return getPatchRequest(payloadJSON, raw)
+        .when()
+        .patch(patchPath)
+        .then()
+        .statusCode(expectedStatus)
+        .extract()
+        .asString();
+  }
 }
