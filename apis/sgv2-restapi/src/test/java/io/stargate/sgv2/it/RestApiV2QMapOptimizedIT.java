@@ -1,71 +1,135 @@
 package io.stargate.sgv2.it;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
-import com.fasterxml.jackson.databind.JsonNode;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
 @QuarkusTestResource(StargateTestResource.class)
-public class RestApiV2QMapOptimizedIT extends RestApiV2QIntegrationTestBase {
+public class RestApiV2QMapOptimizedIT extends RestApiV2QIntegrationTestBase
+    implements RestApiV2QMapTests {
   public RestApiV2QMapOptimizedIT() {
     super("rowadd_ks_", "rowadd_t_", KeyspaceCreation.PER_CLASS);
   }
 
   @Test
+  @Override
   public void addRowWithCompactMap() {
-    final String tableName = testTableName();
-    createTestTable(
-        testKeyspaceName(),
-        tableName,
-        Arrays.asList("name text", "properties map<text,text>"),
-        Arrays.asList("name"),
-        null);
-
-    Map<String, String> row = new HashMap<>();
-    row.put("name", "alice");
-    row.put("properties", "{'key1': 'value1', 'key2': 'value2'}");
-    insertRowWithOptimizeMapFlag(testKeyspaceName(), tableName, row, true);
-
-    // And verify
-    JsonNode readRow = findRowsAsJsonNode(testKeyspaceName(), tableName, true, "alice");
-    assertThat(readRow).hasSize(2);
-    assertThat(readRow.at("/count").asInt()).isEqualTo(1);
-    assertThat(readRow.at("/data/0/name").asText()).isEqualTo("alice");
-    assertThat(readRow.at("/data/0/properties/key1").asText()).isEqualTo("value1");
-    assertThat(readRow.at("/data/0/properties/key2").asText()).isEqualTo("value2");
+    RestApiV2QMapTestsImplIT.addRowWithCompactMap(this);
   }
 
   @Test
+  @Override
   public void addRowWithNonCompactMap() {
-    final String tableName = testTableName();
-    createTestTable(
-        testKeyspaceName(),
-        tableName,
-        Arrays.asList("name text", "properties map<text,text>"),
-        Arrays.asList("name"),
-        null);
+    RestApiV2QMapTestsImplIT.addRowWithNonCompactMap(this);
+  }
 
-    Map<String, String> row = new HashMap<>();
-    row.put("name", "alice");
-    row.put(
-        "properties", "[{'key': 'key1', 'value': 'value1' }, {'key': 'key2', 'value' : 'value2'}]");
-    insertRowWithOptimizeMapFlag(testKeyspaceName(), tableName, row, false);
+  @Test
+  @Override
+  public void updateRowWithCompactMap() {
+    RestApiV2QMapTestsImplIT.updateRowWithCompactMap(this);
+  }
 
-    // And verify
-    JsonNode readRow = findRowsAsJsonNode(testKeyspaceName(), tableName, false, "alice");
-    assertThat(readRow).hasSize(2);
-    assertThat(readRow.at("/count").asInt()).isEqualTo(1);
-    assertThat(readRow.at("/data/0/name").asText()).isEqualTo("alice");
-    assertThat(readRow.at("/data/0/properties/0/key").asText()).isEqualTo("key1");
-    assertThat(readRow.at("/data/0/properties/0/value").asText()).isEqualTo("value1");
-    assertThat(readRow.at("/data/0/properties/1/key").asText()).isEqualTo("key2");
-    assertThat(readRow.at("/data/0/properties/1/value").asText()).isEqualTo("value2");
+  @Test
+  @Override
+  public void updateRowWithNonCompactMap() {
+    RestApiV2QMapTestsImplIT.updateRowWithNonCompactMap(this);
+  }
+
+  @Test
+  @Override
+  public void patchRowWithCompactMap() {
+    RestApiV2QMapTestsImplIT.patchRowWithCompactMap(this);
+  }
+
+  @Test
+  @Override
+  public void patchRowWithNonCompactMap() {
+    RestApiV2QMapTestsImplIT.patchRowWithNonCompactMap(this);
+  }
+
+  @Test
+  @Override
+  public void deleteRowWithCompactMap() {
+    RestApiV2QMapTestsImplIT.deleteRowWithCompactMap(this);
+  }
+
+  @Test
+  @Override
+  public void deleteRowWithNonCompactMap() {
+    RestApiV2QMapTestsImplIT.deleteRowWithNonCompactMap(this);
+  }
+
+  @Test
+  @Override
+  public void getRowsWithCompactMap() {
+    RestApiV2QMapTestsImplIT.getRowsWithCompactMap(this);
+  }
+
+  @Test
+  @Override
+  public void getRowsWithNonCompactMap() {
+    RestApiV2QMapTestsImplIT.getRowsWithNonCompactMap(this);
+  }
+
+  @Test
+  @Override
+  public void getAllRowsWithCompactMap() {
+    RestApiV2QMapTestsImplIT.getAllRowsWithCompactMap(this);
+  }
+
+  @Test
+  @Override
+  public void getAllRowsWithNonCompactMap() {
+    RestApiV2QMapTestsImplIT.getAllRowsWithNonCompactMap(this);
+  }
+
+  @Test
+  @Override
+  public void getRowsWithWhereWithCompactMap() {
+    RestApiV2QMapTestsImplIT.getRowsWithWhereWithCompactMap(this);
+  }
+
+  @Test
+  @Override
+  public void getRowsWithWhereWithNonCompactMap() {
+    RestApiV2QMapTestsImplIT.getRowsWithWhereWithNonCompactMap(this);
+  }
+
+  @Test
+  @Override
+  public void getAllIndexesWithCompactMap() {
+    RestApiV2QMapTestsImplIT.getAllIndexesWithCompactMap(this);
+  }
+
+  @Override
+  @Test
+  public void getAllIndexesWithNonCompactMap() {
+    RestApiV2QMapTestsImplIT.getAllIndexesWithNonCompactMap(this);
+  }
+
+  @Test
+  @Override
+  public void findAllTypesWithCompactMap() {
+    RestApiV2QMapTestsImplIT.findAllTypesWithCompactMap(this);
+  }
+
+  @Test
+  @Override
+  public void findAllTypesWithNonCompactMap() {
+    RestApiV2QMapTestsImplIT.findAllTypesWithNonCompactMap(this);
+  }
+
+  @Test
+  @Override
+  public void findTypeByIdWithCompactMap() {
+    RestApiV2QMapTestsImplIT.findTypeByIdWithCompactMap(this);
+  }
+
+  @Test
+  @Override
+  public void findTypeByIdWithNonCompactMap() {
+    RestApiV2QMapTestsImplIT.findTypeByIdWithNonCompactMap(this);
   }
 }
