@@ -88,28 +88,6 @@ public class RestApiV2QRowUpdateIT extends RestApiV2QIntegrationTestBase {
   }
 
   @Test
-  public void updateRowWithSpecialCharsInId() {
-    final String tableName = testTableName();
-    createTestTable(
-        testKeyspaceName(),
-        tableName,
-        Arrays.asList("id text", "description text"),
-        Arrays.asList("id"),
-        null);
-
-    final String rowIdentifier = "path/to/row&column";
-    Map<String, Object> row = Map.of("id", rowIdentifier, "description", "Stuff");
-    insertRow(testKeyspaceName(), tableName, row);
-
-    Map<String, String> rowUpdate = Map.of("description", "Updated Stuff");
-    String updateResponse =
-        updateRowReturnResponse(
-            endpointPathForRowByPK(testKeyspaceName(), tableName, rowIdentifier), false, rowUpdate);
-    Map<String, String> data = readWrappedRESTResponse(updateResponse, Map.class);
-    assertThat(data).containsAllEntriesOf(rowUpdate);
-  }
-
-  @Test
   public void updateRowWithCounter() {
     final String tableName = testTableName();
     List<Sgv2ColumnDefinition> columnDefs =

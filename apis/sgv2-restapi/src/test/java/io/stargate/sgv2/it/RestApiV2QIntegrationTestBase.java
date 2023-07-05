@@ -21,6 +21,8 @@ import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2Table;
 import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -216,7 +218,7 @@ public abstract class RestApiV2QIntegrationTestBase {
   protected String endpointPathForRowByPK(String ksName, String tableName, Object... primaryKeys) {
     StringBuilder sb = new StringBuilder(String.format("/v2/keyspaces/%s/%s", ksName, tableName));
     for (Object key : primaryKeys) {
-      sb.append('/').append(key);
+      sb.append('/').append(URLEncoder.encode(key.toString(), StandardCharsets.UTF_8));
     }
     return sb.toString();
   }
