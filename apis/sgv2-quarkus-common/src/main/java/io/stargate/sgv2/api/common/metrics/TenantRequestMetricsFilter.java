@@ -100,6 +100,11 @@ public class TenantRequestMetricsFilter {
         tags = tags.and(Tag.of(config.userAgentTag(), userAgentValue));
       }
 
+      // add http status code
+      if (config.statusTagEnabled()) {
+        tags = tags.and(Tag.of(config.statusTag(), String.valueOf(responseContext.getStatus())));
+      }
+
       // record
       meterRegistry.counter(config.metricName(), tags).increment();
     }
