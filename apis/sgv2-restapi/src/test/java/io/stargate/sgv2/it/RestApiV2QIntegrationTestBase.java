@@ -21,8 +21,6 @@ import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import io.stargate.sgv2.restapi.service.models.Sgv2Table;
 import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
 import java.io.IOException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -218,7 +216,19 @@ public abstract class RestApiV2QIntegrationTestBase {
   protected String endpointPathForRowByPK(String ksName, String tableName, Object... primaryKeys) {
     StringBuilder sb = new StringBuilder(String.format("/v2/keyspaces/%s/%s", ksName, tableName));
     for (Object key : primaryKeys) {
-      sb.append('/').append(URLEncoder.encode(key.toString(), StandardCharsets.UTF_8));
+      // NOTE! Does NOT URL-encode the key -- doing so would lead to double-escaping. But
+      // also means this should NOT be used for keys that need escaping
+      sb.append('/').append(key);
+    }
+    return sb.toString();
+  }
+
+  // Alternative method that will create template to use for passing segments of primary key
+  // that may require escaping (contain slashes, ampersands etc)
+  protected String endpointTemplateForRowByPK(String ksName, String tableName, int pkCount) {
+    StringBuilder sb = new StringBuilder(String.format("/v2/keyspaces/%s/%s", ksName, tableName));
+    for (int i = 0; i < pkCount; ++i) {
+      sb.append("/{pk").append(i).append('}');
     }
     return sb.toString();
   }

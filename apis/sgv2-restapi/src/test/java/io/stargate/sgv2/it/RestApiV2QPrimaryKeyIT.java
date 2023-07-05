@@ -23,8 +23,8 @@ public class RestApiV2QPrimaryKeyIT extends RestApiV2QIntegrationTestBase {
     super("rowpk_ks_", "rowpk_t_", KeyspaceCreation.PER_CLASS);
   }
 
-  private static final String TEST_KEY1 = "id1/a&b/x";
-  private static final String TEST_KEY2 = "id2/c&d/y";
+  private static final String TEST_KEY1 = "key11/ab&cd/xy";
+  private static final String TEST_KEY2 = "key2/ef&gh/yz";
 
   @Test
   public void getWithSpecialCharsInPK() {
@@ -43,8 +43,17 @@ public class RestApiV2QPrimaryKeyIT extends RestApiV2QIntegrationTestBase {
         tableName,
         Map.of("id1", TEST_KEY1, "id2", TEST_KEY2, "description", "Desc"));
 
-    ListOfMapsGetResponseWrapper wrapper =
-        findRowsAsWrapped(testKeyspaceName(), tableName, TEST_KEY1, TEST_KEY2);
+    String response =
+        givenWithAuth()
+            .queryParam("raw", "false")
+            .when()
+            .get(endpointTemplateForRowByPK(testKeyspaceName(), tableName, 2), TEST_KEY1, TEST_KEY2)
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    ListOfMapsGetResponseWrapper wrapper = readJsonAs(response, ListOfMapsGetResponseWrapper.class);
+
     // Verify we fetch one and only one entry
     assertThat(wrapper.count()).isEqualTo(1);
     List<Map<String, Object>> data = wrapper.data();
@@ -66,13 +75,22 @@ public class RestApiV2QPrimaryKeyIT extends RestApiV2QIntegrationTestBase {
         Map.of("id1", TEST_KEY1, "id2", TEST_KEY2, "description", "Desc"));
 
     Map<String, String> rowUpdate = Map.of("description", "Updated Desc");
-    String updateResponse =
-        updateRowReturnResponse(
-            endpointPathForRowByPK(testKeyspaceName(), tableName, TEST_KEY1, TEST_KEY2),
-            false,
-            rowUpdate);
-    Map<String, String> data = readWrappedRESTResponse(updateResponse, Map.class);
-    assertThat(data).containsAllEntriesOf(rowUpdate);
+    final String payloadJSON = asJsonString(rowUpdate);
+    givenWithAuth()
+        .queryParam("raw", false)
+        .contentType(ContentType.JSON)
+        .body(payloadJSON)
+        .when()
+        .put(endpointTemplateForRowByPK(testKeyspaceName(), tableName, 2), TEST_KEY1, TEST_KEY2)
+        .then()
+        .statusCode(HttpStatus.SC_OK);
+
+    List<Map<String, Object>> rows =
+        findRowsAsList(testKeyspaceName(), tableName, TEST_KEY1, TEST_KEY2);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.get(0).get("id1")).isEqualTo(TEST_KEY1);
+    assertThat(rows.get(0).get("id2")).isEqualTo(TEST_KEY2);
+    assertThat(rows.get(0).get("description")).isEqualTo("Updated Desc");
   }
 
   @Test
@@ -85,16 +103,14 @@ public class RestApiV2QPrimaryKeyIT extends RestApiV2QIntegrationTestBase {
         tableName,
         Map.of("id1", TEST_KEY1, "id2", TEST_KEY2, "description", "Desc"));
 
-    Map<String, String> rowUpdate = Map.of("description", "Updated Desc");
+    Map<String, String> rowUpdate = Map.of("description", "Patched Desc");
     final String payloadJSON = asJsonString(rowUpdate);
-    final String endpoint =
-        endpointPathForRowByPK(testKeyspaceName(), tableName, TEST_KEY1, TEST_KEY2);
     givenWithAuth()
         .queryParam("raw", true)
         .contentType(ContentType.JSON)
         .body(payloadJSON)
         .when()
-        .patch(endpoint)
+        .patch(endpointTemplateForRowByPK(testKeyspaceName(), tableName, 2), TEST_KEY1, TEST_KEY2)
         .then()
         .statusCode(HttpStatus.SC_OK);
 
@@ -103,7 +119,7 @@ public class RestApiV2QPrimaryKeyIT extends RestApiV2QIntegrationTestBase {
     assertThat(rows).hasSize(1);
     assertThat(rows.get(0).get("id1")).isEqualTo(TEST_KEY1);
     assertThat(rows.get(0).get("id2")).isEqualTo(TEST_KEY2);
-    assertThat(rows.get(0).get("description")).isEqualTo("Updated Desc");
+    assertThat(rows.get(0).get("description")).isEqualTo("Patched Desc");
   }
 
   @Test
@@ -119,7 +135,7 @@ public class RestApiV2QPrimaryKeyIT extends RestApiV2QIntegrationTestBase {
     assertThat(findRowsAsList(testKeyspaceName(), tableName, TEST_KEY1, TEST_KEY2)).hasSize(1);
     givenWithAuth()
         .when()
-        .delete(endpointPathForRowByPK(testKeyspaceName(), tableName, TEST_KEY1, TEST_KEY2))
+        .delete(endpointTemplateForRowByPK(testKeyspaceName(), tableName, 2), TEST_KEY1, TEST_KEY2)
         .then()
         .statusCode(HttpStatus.SC_NO_CONTENT);
     assertThat(findRowsAsList(testKeyspaceName(), tableName, TEST_KEY1, TEST_KEY2)).hasSize(0);
@@ -138,28 +154,5 @@ public class RestApiV2QPrimaryKeyIT extends RestApiV2QIntegrationTestBase {
         Arrays.asList("id1 text", "id2 text", "description text"),
         Arrays.asList("id1"),
         Arrays.asList("id2"));
-  }
-
-  private String updateRowReturnResponse(String updatePath, boolean raw, Map<?, ?> payload) {
-    return updateRowReturnResponse(updatePath, raw, payload, HttpStatus.SC_OK);
-  }
-
-  private String updateRowReturnResponse(
-      String updatePath, boolean raw, Map<?, ?> payloadMap, int expectedStatus) {
-    return updateRowReturnResponse(updatePath, raw, asJsonString(payloadMap), expectedStatus);
-  }
-
-  private String updateRowReturnResponse(
-      String updatePath, boolean raw, String payloadJSON, int expectedStatus) {
-    return givenWithAuth()
-        .queryParam("raw", raw)
-        .contentType(ContentType.JSON)
-        .body(payloadJSON)
-        .when()
-        .put(updatePath)
-        .then()
-        .statusCode(expectedStatus)
-        .extract()
-        .asString();
   }
 }
