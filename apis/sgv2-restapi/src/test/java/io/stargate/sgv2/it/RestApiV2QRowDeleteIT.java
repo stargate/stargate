@@ -1,18 +1,17 @@
 package io.stargate.sgv2.it;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
-import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.Test;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
-import static org.assertj.core.api.Assertions.assertThat;
+import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
 @QuarkusTestResource(StargateTestResource.class)

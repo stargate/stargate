@@ -1,16 +1,15 @@
 package io.stargate.sgv2.it;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertTrue;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.restassured.specification.RequestSpecification;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
-import org.apache.http.HttpStatus;
-
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
+import org.apache.http.HttpStatus;
 
 public class RestApiV2QMapTestsImplIT {
   public static void addRowWithCompactMap(
@@ -659,7 +658,7 @@ public class RestApiV2QMapTestsImplIT {
         testBase.testKeyspaceName(),
         tableName,
         "attributes",
-        "attributes_mapentry_index"+ (serverFlag ? "1" : "2") + (testDefault ? "1" : "2"),
+        "attributes_mapentry_index" + (serverFlag ? "1" : "2") + (testDefault ? "1" : "2"),
         false,
         CollectionIndexingType.ENTRIES);
 
@@ -670,7 +669,7 @@ public class RestApiV2QMapTestsImplIT {
             testBase.map("id", 1, "firstName", "Bob", "attributes", testBase.map("a", "1")),
             testBase.map("id", 1, "firstName", "Dave", "attributes", testBase.map("b", "2")),
             testBase.map("id", 1, "firstName", "Fred", "attributes", testBase.map("c", "3"))),
-            optimizeMapData);
+        optimizeMapData);
 
     // First, no match
     String noMatchesClause =
@@ -692,51 +691,71 @@ public class RestApiV2QMapTestsImplIT {
     assertThat(rows.at("/0/attributes")).isEqualTo(testBase.readJsonAsTree("{\"c\":\"3\"}"));
   }
 
-  public static void getRowsWithWhereWithNonCompactMap(RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
+  public static void getRowsWithWhereWithNonCompactMap(
+      RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
     Boolean optimizeMapData = getFlagForNonCompactDataTest(serverFlag, testDefault);
     final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
     testBase.createTestTable(
-            testBase.testKeyspaceName(),
-            tableName,
-            Arrays.asList("id text", "attributes map<text,int>", "firstName text"),
-            Arrays.asList("id"),
-            Arrays.asList("firstName"));
+        testBase.testKeyspaceName(),
+        tableName,
+        Arrays.asList("id text", "attributes map<text,int>", "firstName text"),
+        Arrays.asList("id"),
+        Arrays.asList("firstName"));
     // Cannot query against non-key columns, unless there's an index, so:
     testBase.createTestIndex(
-            testBase.testKeyspaceName(),
-            tableName,
-            "attributes",
-            "attributes_mapentry_index"+ (testDefault ? "1" : "2"),
-            false,
-            CollectionIndexingType.ENTRIES);
+        testBase.testKeyspaceName(),
+        tableName,
+        "attributes",
+        "attributes_mapentry_index" + (testDefault ? "1" : "2"),
+        false,
+        CollectionIndexingType.ENTRIES);
 
     testBase.insertTypedRows(
-            testBase.testKeyspaceName(),
-            tableName,
-            Arrays.asList(
-                    testBase.map("id", 1, "firstName", "Bob", "attributes",  testBase.list(testBase.map("key", "a", "value", 1))),
-                    testBase.map("id", 1, "firstName", "Dave", "attributes", testBase.list(testBase.map("key", "b", "value", 2))),
-                    testBase.map("id", 1, "firstName", "Fred", "attributes", testBase.list(testBase.map("key", "c", "value", 3)))),
-            optimizeMapData);
+        testBase.testKeyspaceName(),
+        tableName,
+        Arrays.asList(
+            testBase.map(
+                "id",
+                1,
+                "firstName",
+                "Bob",
+                "attributes",
+                testBase.list(testBase.map("key", "a", "value", 1))),
+            testBase.map(
+                "id",
+                1,
+                "firstName",
+                "Dave",
+                "attributes",
+                testBase.list(testBase.map("key", "b", "value", 2))),
+            testBase.map(
+                "id",
+                1,
+                "firstName",
+                "Fred",
+                "attributes",
+                testBase.list(testBase.map("key", "c", "value", 3)))),
+        optimizeMapData);
 
     // First, no match
     String noMatchesClause =
-            "{\"id\":{\"$eq\":\"1\"},\"attributes\":{\"$containsEntry\":{\"key\":\"b\",\"value\":1}}}";
+        "{\"id\":{\"$eq\":\"1\"},\"attributes\":{\"$containsEntry\":{\"key\":\"b\",\"value\":1}}}";
     ArrayNode rows =
-            testBase.findRowsWithWhereAsJsonNode(
-                    testBase.testKeyspaceName(), tableName, noMatchesClause, optimizeMapData);
+        testBase.findRowsWithWhereAsJsonNode(
+            testBase.testKeyspaceName(), tableName, noMatchesClause, optimizeMapData);
     assertThat(rows).hasSize(0);
 
     // and then a single match
     String matchingClause =
-            "{\"id\":{\"$eq\":\"1\"},\"attributes\":{\"$containsEntry\":{\"key\":\"c\",\"value\":3}}}";
+        "{\"id\":{\"$eq\":\"1\"},\"attributes\":{\"$containsEntry\":{\"key\":\"c\",\"value\":3}}}";
     rows =
-            testBase.findRowsWithWhereAsJsonNode(
-                    testBase.testKeyspaceName(), tableName, matchingClause, optimizeMapData);
+        testBase.findRowsWithWhereAsJsonNode(
+            testBase.testKeyspaceName(), tableName, matchingClause, optimizeMapData);
     assertThat(rows).hasSize(1);
     assertThat(rows.at("/0/firstName").asText()).isEqualTo("Fred");
     // Also verify how Map values serialized (see [stargate#2577])
-    assertThat(rows.at("/0/attributes")).isEqualTo(testBase.readJsonAsTree("[{\"key\":\"c\", \"value\":3}]"));
+    assertThat(rows.at("/0/attributes"))
+        .isEqualTo(testBase.readJsonAsTree("[{\"key\":\"c\", \"value\":3}]"));
   }
 
   public static void getAllIndexesWithCompactMap(RestApiV2QIntegrationTestBase testBase) {}

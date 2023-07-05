@@ -1,5 +1,8 @@
 package io.stargate.sgv2.it;
 
+import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -13,15 +16,11 @@ import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
 import io.stargate.sgv2.common.IntegrationTestUtils;
 import io.stargate.sgv2.restapi.service.models.*;
-import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.*;
-
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static io.restassured.RestAssured.given;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.*;
 
 /**
  * Serves as the base class for integration tests that need to create namespace prior to running the
@@ -211,7 +210,7 @@ public abstract class RestApiV2QIntegrationTestBase {
     return Collections.singletonMap(key, value);
   }
 
-  protected List<Object> list(Object entry){
+  protected List<Object> list(Object entry) {
     return Collections.singletonList(entry);
   }
 
@@ -483,17 +482,23 @@ public abstract class RestApiV2QIntegrationTestBase {
   }
 
   protected List<Map<String, Object>> insertTypedRows(
-          String keyspaceName, String tableName, List<Map<String, Object>> rows) {
+      String keyspaceName, String tableName, List<Map<String, Object>> rows) {
     return insertTypedRowsInternal(keyspaceName, tableName, rows, null);
   }
 
   protected List<Map<String, Object>> insertTypedRows(
-          String keyspaceName, String tableName, List<Map<String, Object>> rows, Boolean optimizeMapData) {
+      String keyspaceName,
+      String tableName,
+      List<Map<String, Object>> rows,
+      Boolean optimizeMapData) {
     return insertTypedRowsInternal(keyspaceName, tableName, rows, optimizeMapData);
   }
 
   private List<Map<String, Object>> insertTypedRowsInternal(
-      String keyspaceName, String tableName, List<Map<String, Object>> rows, Boolean optimizeMapData) {
+      String keyspaceName,
+      String tableName,
+      List<Map<String, Object>> rows,
+      Boolean optimizeMapData) {
     final List<Map<String, Object>> insertedRows = new ArrayList<>();
     for (Map<String, Object> row : rows) {
       insertRow(keyspaceName, tableName, row, optimizeMapData);
@@ -625,24 +630,25 @@ public abstract class RestApiV2QIntegrationTestBase {
   }
 
   protected ArrayNode findRowsWithWhereAsJsonNode(
-          String keyspaceName, String tableName, String whereClause) {
+      String keyspaceName, String tableName, String whereClause) {
     return findRowsWithWhereAsJsonNodeInternal(keyspaceName, tableName, whereClause, null);
   }
 
   protected ArrayNode findRowsWithWhereAsJsonNode(
-          String keyspaceName, String tableName, String whereClause, Boolean optimizeMapData) {
-    return findRowsWithWhereAsJsonNodeInternal(keyspaceName, tableName, whereClause, optimizeMapData);
+      String keyspaceName, String tableName, String whereClause, Boolean optimizeMapData) {
+    return findRowsWithWhereAsJsonNodeInternal(
+        keyspaceName, tableName, whereClause, optimizeMapData);
   }
 
   private ArrayNode findRowsWithWhereAsJsonNodeInternal(
       String keyspaceName, String tableName, String whereClause, Boolean optimizeMapData) {
-    RequestSpecification request = givenWithAuth()
-            .queryParam("raw", true)
-            .queryParam("where", whereClause);
-    if(optimizeMapData != null){
-        request = request.queryParam("optimizeMap", optimizeMapData);
+    RequestSpecification request =
+        givenWithAuth().queryParam("raw", true).queryParam("where", whereClause);
+    if (optimizeMapData != null) {
+      request = request.queryParam("optimizeMap", optimizeMapData);
     }
-    String response = request
+    String response =
+        request
             .when()
             .get(endpointPathForRowGetWith(testKeyspaceName(), tableName))
             .then()
