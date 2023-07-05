@@ -9,6 +9,7 @@ import org.junit.jupiter.api.Test;
 @QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QMapOptimizedIT extends RestApiV2QIntegrationTestBase
     implements RestApiV2QMapTests {
+  private static final boolean SERVER_FLAG = true;
   public RestApiV2QMapOptimizedIT() {
     super("rowadd_ks_", "rowadd_t_", KeyspaceCreation.PER_CLASS);
   }
@@ -16,25 +17,29 @@ public class RestApiV2QMapOptimizedIT extends RestApiV2QIntegrationTestBase
   @Test
   @Override
   public void addRowWithCompactMap() {
-    RestApiV2QMapTestsImplIT.addRowWithCompactMap(this);
+    RestApiV2QMapTestsImplIT.addRowWithCompactMap(this, SERVER_FLAG, true);
+    RestApiV2QMapTestsImplIT.addRowWithCompactMap(this, SERVER_FLAG, false);
   }
 
   @Test
   @Override
   public void addRowWithNonCompactMap() {
-    RestApiV2QMapTestsImplIT.addRowWithNonCompactMap(this);
+    RestApiV2QMapTestsImplIT.addRowWithNonCompactMap(this, SERVER_FLAG, true);
+    RestApiV2QMapTestsImplIT.addRowWithNonCompactMap(this, SERVER_FLAG, false);
   }
 
   @Test
   @Override
   public void updateRowWithCompactMap() {
-    RestApiV2QMapTestsImplIT.updateRowWithCompactMap(this);
+    RestApiV2QMapTestsImplIT.updateRowWithCompactMap(this, SERVER_FLAG, true);
+    RestApiV2QMapTestsImplIT.updateRowWithCompactMap(this, SERVER_FLAG, false);
   }
 
   @Test
   @Override
   public void updateRowWithNonCompactMap() {
-    RestApiV2QMapTestsImplIT.updateRowWithNonCompactMap(this);
+    RestApiV2QMapTestsImplIT.updateRowWithNonCompactMap(this,SERVER_FLAG, true);
+    RestApiV2QMapTestsImplIT.updateRowWithNonCompactMap(this,SERVER_FLAG, false);
   }
 
   @Test

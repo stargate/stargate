@@ -5,18 +5,20 @@ import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
 
 @QuarkusIntegrationTest
 @QuarkusTestResource(StargateTestResource.class)
 @TestProfile(RestApiV2QMapOptimizedDisabledIT.Profile.class)
 public class RestApiV2QMapOptimizedDisabledIT extends RestApiV2QIntegrationTestBase
     implements RestApiV2QMapTests {
+  private static final boolean SERVER_FLAG = false;
   public static class Profile implements QuarkusTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
-      return Map.of("stargate.rest.optimize-map-data", "false");
+      return Map.of("stargate.rest.optimize-map-data", Boolean.toString(SERVER_FLAG));
     }
   }
 
@@ -27,25 +29,29 @@ public class RestApiV2QMapOptimizedDisabledIT extends RestApiV2QIntegrationTestB
   @Test
   @Override
   public void addRowWithCompactMap() {
-    RestApiV2QMapTestsImplIT.addRowWithCompactMap(this);
+    RestApiV2QMapTestsImplIT.addRowWithCompactMap(this, SERVER_FLAG, true);
+    RestApiV2QMapTestsImplIT.addRowWithCompactMap(this, SERVER_FLAG, false);
   }
 
   @Test
   @Override
   public void addRowWithNonCompactMap() {
-    RestApiV2QMapTestsImplIT.addRowWithNonCompactMap(this);
+    RestApiV2QMapTestsImplIT.addRowWithNonCompactMap(this, SERVER_FLAG, true);
+    RestApiV2QMapTestsImplIT.addRowWithNonCompactMap(this, SERVER_FLAG, false);
   }
 
   @Test
   @Override
   public void updateRowWithCompactMap() {
-    RestApiV2QMapTestsImplIT.updateRowWithCompactMap(this);
+    RestApiV2QMapTestsImplIT.updateRowWithCompactMap(this, SERVER_FLAG, true);
+    RestApiV2QMapTestsImplIT.updateRowWithCompactMap(this, SERVER_FLAG, false);
   }
 
   @Test
   @Override
   public void updateRowWithNonCompactMap() {
-    RestApiV2QMapTestsImplIT.updateRowWithNonCompactMap(this);
+    RestApiV2QMapTestsImplIT.updateRowWithNonCompactMap(this, SERVER_FLAG, true);
+    RestApiV2QMapTestsImplIT.updateRowWithNonCompactMap(this, SERVER_FLAG, false);
   }
 
   @Test
