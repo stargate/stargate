@@ -11,9 +11,10 @@ import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.PathSegment;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
+import org.jboss.resteasy.reactive.RestResponse;
+
 import java.util.*;
 import java.util.stream.Collectors;
-import org.jboss.resteasy.reactive.RestResponse;
 
 public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsResourceApi {
   @Override
@@ -36,7 +37,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       throw invalidSortParameterException(e);
     }
     final boolean optimizeMapData =
-        (optimizeMap != null) ? (optimizeMap.booleanValue()) : restApiConfig.optimizeMapData();
+        optimizeMap != null ? optimizeMap : restApiConfig.optimizeMapData();
     return queryWithTableAsync(
             keyspaceName,
             tableName,
@@ -95,7 +96,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       throw invalidSortParameterException(e);
     }
     final boolean optimizeMapData =
-        (optimizeMap != null) ? optimizeMap.booleanValue() : restApiConfig.optimizeMapData();
+        (optimizeMap != null) ? optimizeMap : restApiConfig.optimizeMapData();
     return queryWithTableAsync(
             keyspaceName,
             tableName,
@@ -133,7 +134,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       final String sortJson,
       final Boolean optimizeMap) {
     final boolean optimizeMapData =
-        (optimizeMap != null) ? optimizeMap.booleanValue() : restApiConfig.optimizeMapData();
+        (optimizeMap != null) ? optimizeMap : restApiConfig.optimizeMapData();
     List<Column> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
     Map<String, Column.Order> sortOrder;
     try {
@@ -178,7 +179,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       throw invalidPayloadException(e);
     }
     final boolean optimizeMapData =
-        (optimizeMap != null) ? (optimizeMap.booleanValue()) : restApiConfig.optimizeMapData();
+        (optimizeMap != null) ? optimizeMap : restApiConfig.optimizeMapData();
     return queryWithTableAsync(
             keyspaceName,
             tableName,
@@ -212,7 +213,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
         path,
         raw,
         payload,
-        (optimizeMap != null) ? optimizeMap.booleanValue() : restApiConfig.optimizeMapData());
+        (optimizeMap != null) ? optimizeMap : restApiConfig.optimizeMapData());
   }
 
   @Override
@@ -229,7 +230,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
         path,
         raw,
         payload,
-        (optimizeMap != null) ? optimizeMap.booleanValue() : restApiConfig.optimizeMapData());
+        (optimizeMap != null) ? optimizeMap : restApiConfig.optimizeMapData());
   }
 
   @Override
@@ -239,7 +240,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       final List<PathSegment> path,
       final Boolean optimizeMap) {
     final boolean optimizeMapData =
-        (optimizeMap != null) ? optimizeMap.booleanValue() : restApiConfig.optimizeMapData();
+        (optimizeMap != null) ? optimizeMap : restApiConfig.optimizeMapData();
     return queryWithTableAsync(
             keyspaceName,
             tableName,

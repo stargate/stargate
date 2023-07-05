@@ -1,8 +1,5 @@
 package io.stargate.sgv2.it;
 
-import static io.restassured.RestAssured.given;
-import static org.assertj.core.api.Assertions.assertThat;
-
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -16,11 +13,15 @@ import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
 import io.stargate.sgv2.common.IntegrationTestUtils;
 import io.stargate.sgv2.restapi.service.models.*;
+import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.*;
+
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
-import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.*;
+
+import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Serves as the base class for integration tests that need to create namespace prior to running the
@@ -481,7 +482,7 @@ public abstract class RestApiV2QIntegrationTestBase {
     return insertRowExpectStatus(keyspaceName, tableName, row, HttpStatus.SC_CREATED);
   }
 
-  protected String insertRowWithOptimizeMapFlag(
+  protected String insertRow(
       String keyspaceName, String tableName, Map<?, ?> row, Boolean optimizeMap) {
     return insertRowWithOptimizeMapFlagExpectStatus(
         keyspaceName, tableName, row, HttpStatus.SC_CREATED, optimizeMap);
@@ -540,15 +541,17 @@ public abstract class RestApiV2QIntegrationTestBase {
     final String path = endpointPathForRowByPK(keyspaceName, tableName, primaryKeys);
     RequestSpecification rquest = givenWithAuth();
     if (optimizeMapData != null) {
-      rquest =
-          rquest
-              .queryParam("optimizeMap", optimizeMapData.booleanValue())
-              .queryParam("raw", "false");
-    } else {
-      rquest = rquest.queryParam("raw", "true");
+      rquest = rquest.queryParam("optimizeMap", optimizeMapData.booleanValue());
     }
     String response =
-        rquest.when().get(path).then().statusCode(HttpStatus.SC_OK).extract().asString();
+        rquest
+            .queryParam("raw", "true")
+            .when()
+            .get(path)
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
     return readJsonAsTree(response);
   }
 
@@ -703,5 +706,57 @@ public abstract class RestApiV2QIntegrationTestBase {
     row.put("ck1", "bar");
     row.put("v", 18);
     insertRow(keyspaceName, tableName, row);
+  }
+
+  protected String updateRowReturnResponse(
+      String updatePath, boolean raw, Map<?, ?> payload, Boolean optimizeMapData) {
+    return updateRowReturnResponse(updatePath, raw, payload, HttpStatus.SC_OK, optimizeMapData);
+  }
+
+  protected String updateRowReturnResponse(String updatePath, boolean raw, Map<?, ?> payload) {
+    return updateRowReturnResponse(updatePath, raw, payload, HttpStatus.SC_OK);
+  }
+
+  protected String updateRowReturnResponse(
+      String updatePath,
+      boolean raw,
+      Map<?, ?> payloadMap,
+      int expectedStatus,
+      Boolean optimizeMapData) {
+    return updateRowReturnResponse(
+        updatePath, raw, asJsonString(payloadMap), expectedStatus, optimizeMapData);
+  }
+
+  protected String updateRowReturnResponse(
+      String updatePath, boolean raw, Map<?, ?> payloadMap, int expectedStatus) {
+    return updateRowReturnResponse(updatePath, raw, asJsonString(payloadMap), expectedStatus);
+  }
+
+  private RequestSpecification getUpdateRequest(String payloadJSON, boolean raw) {
+    return givenWithAuth().queryParam("raw", raw).contentType(ContentType.JSON).body(payloadJSON);
+  }
+
+  protected String updateRowReturnResponse(
+      String updatePath,
+      boolean raw,
+      String payloadJSON,
+      int expectedStatus,
+      Boolean optimizeMapData) {
+    RequestSpecification req = getUpdateRequest(payloadJSON, raw);
+    if (optimizeMapData != null) {
+      req.queryParam("optimizeMap", optimizeMapData);
+    }
+    return req.when().put(updatePath).then().statusCode(expectedStatus).extract().asString();
+  }
+
+  protected String updateRowReturnResponse(
+      String updatePath, boolean raw, String payloadJSON, int expectedStatus) {
+    return getUpdateRequest(payloadJSON, raw)
+        .when()
+        .put(updatePath)
+        .then()
+        .statusCode(expectedStatus)
+        .extract()
+        .asString();
   }
 }

@@ -1,25 +1,20 @@
 package io.stargate.sgv2.it;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
-import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
 import io.stargate.sgv2.restapi.service.models.Sgv2Table;
 import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
+
+import java.util.*;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertTrue;
 
 @QuarkusIntegrationTest
 @QuarkusTestResource(StargateTestResource.class)
@@ -209,27 +204,4 @@ public class RestApiV2QRowUpdateIT extends RestApiV2QIntegrationTestBase {
   // Helper methods
   /////////////////////////////////////////////////////////////////////////
    */
-
-  private String updateRowReturnResponse(String updatePath, boolean raw, Map<?, ?> payload) {
-    return updateRowReturnResponse(updatePath, raw, payload, HttpStatus.SC_OK);
-  }
-
-  private String updateRowReturnResponse(
-      String updatePath, boolean raw, Map<?, ?> payloadMap, int expectedStatus) {
-    return updateRowReturnResponse(updatePath, raw, asJsonString(payloadMap), expectedStatus);
-  }
-
-  private String updateRowReturnResponse(
-      String updatePath, boolean raw, String payloadJSON, int expectedStatus) {
-    return givenWithAuth()
-        .queryParam("raw", raw)
-        .contentType(ContentType.JSON)
-        .body(payloadJSON)
-        .when()
-        .put(updatePath)
-        .then()
-        .statusCode(expectedStatus)
-        .extract()
-        .asString();
-  }
 }
