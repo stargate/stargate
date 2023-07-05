@@ -86,14 +86,17 @@ public class RestApiV2QPrimaryKeyIT extends RestApiV2QIntegrationTestBase {
         Map.of("id1", TEST_KEY1, "id2", TEST_KEY2, "description", "Desc"));
 
     Map<String, String> rowUpdate = Map.of("description", "Updated Desc");
-
-    String patchResponse =
-        patchRowReturnResponse(
-            endpointPathForRowByPK(testKeyspaceName(), tableName, TEST_KEY1, TEST_KEY2),
-            false,
-            rowUpdate);
-    Map<String, String> data = readWrappedRESTResponse(patchResponse, Map.class);
-    assertThat(data).containsAllEntriesOf(rowUpdate);
+    final String payloadJSON = asJsonString(rowUpdate);
+    final String endpoint =
+        endpointPathForRowByPK(testKeyspaceName(), tableName, TEST_KEY1, TEST_KEY2);
+    givenWithAuth()
+        .queryParam("raw", true)
+        .contentType(ContentType.JSON)
+        .body(payloadJSON)
+        .when()
+        .patch(endpoint)
+        .then()
+        .statusCode(HttpStatus.SC_OK);
 
     List<Map<String, Object>> rows =
         findRowsAsList(testKeyspaceName(), tableName, TEST_KEY1, TEST_KEY2);
@@ -154,29 +157,6 @@ public class RestApiV2QPrimaryKeyIT extends RestApiV2QIntegrationTestBase {
         .body(payloadJSON)
         .when()
         .put(updatePath)
-        .then()
-        .statusCode(expectedStatus)
-        .extract()
-        .asString();
-  }
-
-  private String patchRowReturnResponse(String patchPath, boolean raw, Map<?, ?> payload) {
-    return patchRowReturnResponse(patchPath, raw, payload, HttpStatus.SC_OK);
-  }
-
-  private String patchRowReturnResponse(
-      String patchPath, boolean raw, Map<?, ?> payloadMap, int expectedStatus) {
-    return patchRowReturnResponse(patchPath, raw, asJsonString(payloadMap), expectedStatus);
-  }
-
-  private String patchRowReturnResponse(
-      String patchPath, boolean raw, String payloadJSON, int expectedStatus) {
-    return givenWithAuth()
-        .queryParam("raw", raw)
-        .contentType(ContentType.JSON)
-        .body(payloadJSON)
-        .when()
-        .patch(patchPath)
         .then()
         .statusCode(expectedStatus)
         .extract()
