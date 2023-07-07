@@ -87,7 +87,7 @@ public class Cassandra50PersistenceActivator extends BaseActivator {
     cacheDir.mkdirs();
 
     // Add hook to cleanup
-    FileUtils.deleteRecursiveOnExit(baseDir);
+    new org.apache.cassandra.io.util.File(baseDir).deleteRecursiveOnExit();
 
     String clusterName = System.getProperty("stargate.cluster_name", "stargate-cassandra");
     String listenAddress =

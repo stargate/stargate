@@ -19,6 +19,7 @@ import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.statements.SelectStatement;
 import org.apache.cassandra.cql3.statements.schema.CreateTableStatement;
+import org.apache.cassandra.db.ColumnFamilyStore;
 import org.apache.cassandra.db.Keyspace;
 import org.apache.cassandra.db.SystemKeyspace;
 import org.apache.cassandra.db.commitlog.CommitLogPosition;
@@ -267,7 +268,7 @@ public class StargateSystemKeyspace {
       List<ListenableFuture<CommitLogPosition>> futures = new ArrayList<>();
 
       for (String cfname : cfnames) {
-        futures.add(Keyspace.open(SYSTEM_KEYSPACE_NAME).getColumnFamilyStore(cfname).forceFlush());
+        futures.add(Keyspace.open(SYSTEM_KEYSPACE_NAME).getColumnFamilyStore(cfname).forceFlush(ColumnFamilyStore.FlushReason.INTERNALLY_FORCED);
       }
       FBUtilities.waitOnFutures(futures);
     }
