@@ -222,7 +222,9 @@ public class StargateSystemKeyspace {
 
     String req = "INSERT INTO %s.%s (peer, %s) VALUES (?, ?)";
     executeInternal(
-        String.format(req, SYSTEM_KEYSPACE_NAME, PEERS_TABLE_NAME, columnName), ep.getAddress(), value);
+        String.format(req, SYSTEM_KEYSPACE_NAME, PEERS_TABLE_NAME, columnName),
+        ep.getAddress(),
+        value);
     // This column doesn't match across the two tables
     if (columnName.equals("rpc_address")) {
       columnName = "native_address";
@@ -241,7 +243,9 @@ public class StargateSystemKeyspace {
 
     String req = "INSERT INTO %s.%s (peer, rpc_address) VALUES (?, ?)";
     executeInternal(
-        String.format(req, SYSTEM_KEYSPACE_NAME, PEERS_TABLE_NAME), ep.getAddress(), address.getAddress());
+        String.format(req, SYSTEM_KEYSPACE_NAME, PEERS_TABLE_NAME),
+        ep.getAddress(),
+        address.getAddress());
     req = "INSERT INTO %s.%s (peer, peer_port, native_address, native_port) VALUES (?, ?, ?, ?)";
     executeInternal(
         String.format(req, SYSTEM_KEYSPACE_NAME, PEERS_V2_TABLE_NAME),

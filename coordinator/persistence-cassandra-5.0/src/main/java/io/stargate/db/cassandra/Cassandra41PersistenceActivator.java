@@ -8,7 +8,7 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
-import io.stargate.db.cassandra.impl.Cassandra50Persistence;
+import io.stargate.db.cassandra.impl.Cassandra41Persistence;
 import io.stargate.db.cassandra.impl.DelegatingAuthorizer;
 import io.stargate.db.cassandra.impl.StargateConfigSnitch;
 import io.stargate.db.cassandra.impl.StargateSeedProvider;
@@ -34,14 +34,14 @@ import org.apache.cassandra.metrics.CassandraMetricsRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Cassandra50PersistenceActivator extends BaseActivator {
+public class Cassandra41PersistenceActivator extends BaseActivator {
 
   static {
     UserDefinedFunctionHelper.fixCompilerClassLoader();
   }
 
   private static final Logger logger =
-      LoggerFactory.getLogger(Cassandra50PersistenceActivator.class);
+      LoggerFactory.getLogger(Cassandra41PersistenceActivator.class);
 
   private static final String AUTHZ_PROCESSOR_ID =
       System.getProperty("stargate.authorization.processor.id");
@@ -55,7 +55,7 @@ public class Cassandra50PersistenceActivator extends BaseActivator {
   private final ServicePointer<AuthorizationProcessor> authorizationProcessor =
       ServicePointer.create(AuthorizationProcessor.class, "AuthProcessorId", AUTHZ_PROCESSOR_ID);
 
-  public Cassandra50PersistenceActivator() {
+  public Cassandra41PersistenceActivator() {
     super("persistence-cassandra-5.0");
   }
 
@@ -145,7 +145,7 @@ public class Cassandra50PersistenceActivator extends BaseActivator {
 
   @Override
   protected ServiceAndProperties createService() {
-    Cassandra50Persistence cassandraDB = new Cassandra50Persistence();
+    Cassandra41Persistence cassandraDB = new Cassandra41Persistence();
     @SuppressWarnings("JdkObsolete")
     Hashtable<String, String> props = new Hashtable<>();
     props.put("Identifier", "CassandraPersistence");

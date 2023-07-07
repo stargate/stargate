@@ -88,7 +88,7 @@ import org.apache.cassandra.utils.MD5Digest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Cassandra50Persistence
+public class Cassandra41Persistence
     extends AbstractCassandraPersistence<
         Config,
         KeyspaceMetadata,
@@ -97,7 +97,7 @@ public class Cassandra50Persistence
         UserType,
         IndexMetadata,
         ViewMetadata> {
-  private static final Logger logger = LoggerFactory.getLogger(Cassandra50Persistence.class);
+  private static final Logger logger = LoggerFactory.getLogger(Cassandra41Persistence.class);
 
   private static final boolean USE_TRANSITIONAL_AUTH =
       Boolean.getBoolean("stargate.cql_use_transitional_auth");
@@ -131,7 +131,7 @@ public class Cassandra50Persistence
   private SchemaChangeListener schemaChangeListener;
   private AtomicReference<AuthorizationService> authorizationService;
 
-  public Cassandra50Persistence() {
+  public Cassandra41Persistence() {
     super("Apache Cassandra");
   }
 
@@ -310,7 +310,7 @@ public class Cassandra50Persistence
 
     // Collect schema IDs from all relevant nodes and check that we have at most 1 distinct ID.
     return Gossiper.instance.getLiveMembers().stream()
-            .filter(Cassandra50Persistence::shouldCheckSchema)
+            .filter(Cassandra41Persistence::shouldCheckSchema)
             .map(Gossiper.instance::getSchemaVersion)
             .distinct()
             .count()
@@ -322,7 +322,7 @@ public class Cassandra50Persistence
     // Collect schema IDs from storage and local node and check that we have at most 1 distinct ID
     InetAddressAndPort localAddress = FBUtilities.getLocalAddressAndPort();
     return Gossiper.instance.getLiveMembers().stream()
-            .filter(Cassandra50Persistence::shouldCheckSchema)
+            .filter(Cassandra41Persistence::shouldCheckSchema)
             .filter(ep -> isStorageNode(ep) || localAddress.equals(ep))
             .map(Gossiper.instance::getSchemaVersion)
             .distinct()
@@ -338,8 +338,8 @@ public class Cassandra50Persistence
   boolean isStorageInSchemaAgreement() {
     // Collect schema IDs from storage nodes and check that we have at most 1 distinct ID.
     return Gossiper.instance.getLiveMembers().stream()
-            .filter(Cassandra50Persistence::shouldCheckSchema)
-            .filter(Cassandra50Persistence::isStorageNode)
+            .filter(Cassandra41Persistence::shouldCheckSchema)
+            .filter(Cassandra41Persistence::isStorageNode)
             .map(Gossiper.instance::getSchemaVersion)
             .distinct()
             .count()
@@ -420,7 +420,7 @@ public class Cassandra50Persistence
 
     @Override
     public Persistence persistence() {
-      return Cassandra50Persistence.this;
+      return Cassandra41Persistence.this;
     }
 
     @Override
@@ -553,8 +553,8 @@ public class Cassandra50Persistence
 
     public SchemaCheck() {
       super(
-          Cassandra50Persistence.this::isInSchemaAgreement,
-          Cassandra50Persistence.this::isStorageInSchemaAgreement,
+          Cassandra41Persistence.this::isInSchemaAgreement,
+          Cassandra41Persistence.this::isStorageInSchemaAgreement,
           SCHEMA_SYNC_GRACE_PERIOD,
           TimeSource.SYSTEM);
     }
