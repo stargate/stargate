@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.cql3.ColumnSpecification;
+import org.apache.cassandra.cql3.PageSize;
 import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.statements.BatchStatement;
@@ -191,12 +192,16 @@ public class Conversion {
             .pagingState()
             .map(s -> PagingState.deserialize(s.duplicate(), protocolVersion))
             .orElse(null);
+    PageSize pageSize =
+        parameters.pageSize().isPresent()
+            ? new PageSize(parameters.pageSize().getAsInt(), PageSize.PageUnit.ROWS)
+            : PageSize.NONE;
     QueryOptions options =
         QueryOptions.create(
             toInternal(parameters.consistencyLevel()),
             values,
             parameters.skipMetadataInResult(),
-            parameters.pageSize().orElse(-1),
+            pageSize,
             pagingState,
             toInternal(parameters.serialConsistencyLevel().orElse(ConsistencyLevel.SERIAL)),
             protocolVersion,

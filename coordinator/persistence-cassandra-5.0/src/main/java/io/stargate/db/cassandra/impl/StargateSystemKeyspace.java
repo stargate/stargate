@@ -28,16 +28,7 @@ import org.apache.cassandra.dht.IPartitioner;
 import org.apache.cassandra.dht.Token.TokenFactory;
 import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.locator.InetAddressAndPort;
-import org.apache.cassandra.schema.ColumnMetadata;
-import org.apache.cassandra.schema.Functions;
-import org.apache.cassandra.schema.KeyspaceMetadata;
-import org.apache.cassandra.schema.KeyspaceParams;
-import org.apache.cassandra.schema.SchemaConstants;
-import org.apache.cassandra.schema.TableId;
-import org.apache.cassandra.schema.TableMetadata;
-import org.apache.cassandra.schema.Tables;
-import org.apache.cassandra.schema.Types;
-import org.apache.cassandra.schema.Views;
+import org.apache.cassandra.schema.*;
 import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.MurmurHash;
@@ -149,7 +140,7 @@ public class StargateSystemKeyspace {
         tables(),
         Views.none(),
         Types.none(),
-        Functions.none());
+        UserFunctions.none());
   }
 
   public static void persistLocalMetadata() {
@@ -268,7 +259,10 @@ public class StargateSystemKeyspace {
       List<ListenableFuture<CommitLogPosition>> futures = new ArrayList<>();
 
       for (String cfname : cfnames) {
-        futures.add(Keyspace.open(SYSTEM_KEYSPACE_NAME).getColumnFamilyStore(cfname).forceFlush(ColumnFamilyStore.FlushReason.INTERNALLY_FORCED));
+        futures.add(
+            Keyspace.open(SYSTEM_KEYSPACE_NAME)
+                .getColumnFamilyStore(cfname)
+                .forceFlush(ColumnFamilyStore.FlushReason.INTERNALLY_FORCED));
       }
       FBUtilities.waitOnFutures(futures);
     }
