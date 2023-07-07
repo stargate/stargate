@@ -182,14 +182,14 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     StargateSystemKeyspace.removeEndpoint(endpoint);
     InetAddressAndPort nativeAddress = getNativeAddress(endpoint);
     for (EventListener listener : listeners) {
-      listener.onLeaveCluster(nativeAddress.address, nativeAddress.port);
+      listener.onLeaveCluster(nativeAddress.getAddress(), nativeAddress.getPort());
     }
   }
 
   private void notifyJoinCluster(InetAddressAndPort endpoint) {
     InetAddressAndPort nativeAddress = getNativeAddress(endpoint);
     for (EventListener listener : listeners) {
-      listener.onJoinCluster(nativeAddress.address, nativeAddress.port);
+      listener.onJoinCluster(nativeAddress.getAddress(), nativeAddress.getPort());
     }
   }
 
@@ -212,7 +212,7 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
 
     InetAddressAndPort nativeAddress = getNativeAddress(endpoint);
     for (EventListener listener : listeners) {
-      listener.onUp(nativeAddress.address, nativeAddress.port);
+      listener.onUp(nativeAddress.getAddress(), nativeAddress.getPort());
     }
   }
 
@@ -274,7 +274,7 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
   private void notifyDown(InetAddressAndPort endpoint) {
     InetAddressAndPort nativeAddress = getNativeAddress(endpoint);
     for (EventListener listener : listeners) {
-      listener.onDown(nativeAddress.address, nativeAddress.port);
+      listener.onDown(nativeAddress.getAddress(), nativeAddress.getPort());
     }
   }
 

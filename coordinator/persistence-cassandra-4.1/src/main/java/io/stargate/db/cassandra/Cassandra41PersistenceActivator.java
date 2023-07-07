@@ -25,10 +25,10 @@ import org.apache.cassandra.auth.IAuthorizer;
 import org.apache.cassandra.auth.PasswordAuthenticator;
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.config.DatabaseDescriptor;
+import org.apache.cassandra.config.DurationSpec;
 import org.apache.cassandra.config.ParameterizedClass;
 import org.apache.cassandra.config.YamlConfigurationLoader;
 import org.apache.cassandra.dht.Murmur3Partitioner;
-import org.apache.cassandra.io.util.FileUtils;
 import org.apache.cassandra.locator.SimpleSnitch;
 import org.apache.cassandra.metrics.CassandraMetricsRegistry;
 import org.slf4j.Logger;
@@ -87,7 +87,7 @@ public class Cassandra41PersistenceActivator extends BaseActivator {
     cacheDir.mkdirs();
 
     // Add hook to cleanup
-    FileUtils.deleteRecursiveOnExit(baseDir);
+    new org.apache.cassandra.io.util.File(baseDir).deleteRecursiveOnExit();
 
     String clusterName = System.getProperty("stargate.cluster_name", "stargate-cassandra");
     String listenAddress =
@@ -118,7 +118,7 @@ public class Cassandra41PersistenceActivator extends BaseActivator {
     c.cluster_name = clusterName;
     c.num_tokens = Integer.getInteger("stargate.num_tokens", 256);
     c.commitlog_sync = Config.CommitLogSync.periodic;
-    c.commitlog_sync_period_in_ms = 10000;
+    c.commitlog_sync_period = new DurationSpec.IntMillisecondsBound(10000);
     c.internode_compression = Config.InternodeCompression.none;
     c.commitlog_directory = commitLogDir.getAbsolutePath();
     c.hints_directory = hintDir.getAbsolutePath();
@@ -138,7 +138,7 @@ public class Cassandra41PersistenceActivator extends BaseActivator {
     c.seed_provider =
         new ParameterizedClass(
             StargateSeedProvider.class.getName(), Collections.singletonMap("seeds", seedList));
-    c.enable_user_defined_functions = Boolean.getBoolean("stargate.enable_user_defined_functions");
+    c.user_defined_functions_enabled = Boolean.getBoolean("stargate.enable_user_defined_functions");
 
     return c;
   }
