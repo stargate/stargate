@@ -13,10 +13,6 @@ public interface RestApiV2QMapTests {
 
   public void patchRowWithNonCompactMap();
 
-  public void deleteRowWithCompactMap();
-
-  public void deleteRowWithNonCompactMap();
-
   public void getRowsWithCompactMap();
 
   public void getRowsWithNonCompactMap();
@@ -32,12 +28,4 @@ public interface RestApiV2QMapTests {
   public void getAllIndexesWithCompactMap();
 
   public void getAllIndexesWithNonCompactMap();
-
-  public void findAllTypesWithCompactMap();
-
-  public void findAllTypesWithNonCompactMap();
-
-  public void findTypeByIdWithCompactMap();
-
-  public void findTypeByIdWithNonCompactMap();
 }

@@ -14,17 +14,18 @@ import io.stargate.sgv2.restapi.service.models.*;
 import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
+import org.jboss.resteasy.reactive.RestResponse;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-import org.jboss.resteasy.reactive.RestResponse;
 
 public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsResourceApi {
   @Override
   public Uni<RestResponse<Object>> findAllTypes(
-      final String keyspaceName, final boolean raw, final Boolean optimizeMap) {
+      final String keyspaceName, final boolean raw) {
     QueryOuterClass.Query query =
         new QueryBuilder()
             .select()
@@ -34,8 +35,10 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
             .from("system_schema", "types")
             .where("keyspace_name", Predicate.EQ, Values.of(keyspaceName))
             .build();
-    final boolean optimizeMapData =
-        (optimizeMap != null) ? (optimizeMap.booleanValue()) : restApiConfig.optimizeMapData();
+    //User defined types are stored in a table called "types" in the system_schema keyspace.
+    //That table doesn't have any map column, so this flag is not useful for this API
+    //since the converters require this flag, we set it to true here.
+    final boolean optimizeMapData = true;
     return executeQueryAsync(query)
         .map(response -> response.getResultSet())
         .map(
@@ -53,8 +56,7 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
   public Uni<RestResponse<Object>> findTypeById(
       final String keyspaceName,
       final String typeName,
-      final boolean raw,
-      final Boolean optimizeMap) {
+      final boolean raw) {
     QueryOuterClass.Query query =
         new QueryBuilder()
             .select()
@@ -65,8 +67,10 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
             .where("keyspace_name", Predicate.EQ, Values.of(keyspaceName))
             .where("type_name", Predicate.EQ, Values.of(typeName))
             .build();
-    final boolean optimizeMapData =
-        (optimizeMap != null) ? (optimizeMap.booleanValue()) : restApiConfig.optimizeMapData();
+    //User defined types are stored in a table called "types" in the system_schema keyspace.
+    //That table doesn't have any map column, so this flag is not useful for this API
+    //since the converters require this flag, we set it to true here.
+    final boolean optimizeMapData = true;
     return executeQueryAsync(query)
         .map(response -> response.getResultSet())
         .map(rs -> convertRowsToArrayNode(rs, optimizeMapData))

@@ -5,8 +5,9 @@ import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
 
 @QuarkusIntegrationTest
 @QuarkusTestResource(StargateTestResource.class)
@@ -23,7 +24,7 @@ public class RestApiV2QMapOptimizedDisabledIT extends RestApiV2QIntegrationTestB
   }
 
   public RestApiV2QMapOptimizedDisabledIT() {
-    super("rowadd_ks_", "rowadd_t_", KeyspaceCreation.PER_CLASS);
+    super("maptest_ks_", "maptest_t_", KeyspaceCreation.PER_CLASS);
   }
 
   @Test
@@ -66,19 +67,6 @@ public class RestApiV2QMapOptimizedDisabledIT extends RestApiV2QIntegrationTestB
   public void patchRowWithNonCompactMap() {
     RestApiV2QMapTestsImplIT.patchRowWithNonCompactMap(this, SERVER_FLAG, true);
     RestApiV2QMapTestsImplIT.patchRowWithNonCompactMap(this, SERVER_FLAG, false);
-  }
-
-  @Test
-  @Override
-  public void deleteRowWithCompactMap() {
-    RestApiV2QMapTestsImplIT.deleteRowWithCompactMap(this, SERVER_FLAG, true);
-    RestApiV2QMapTestsImplIT.deleteRowWithCompactMap(this, SERVER_FLAG, false);
-  }
-
-  @Test
-  @Override
-  public void deleteRowWithNonCompactMap() {
-    RestApiV2QMapTestsImplIT.deleteRowWithNonCompactMap(this);
   }
 
   @Test
@@ -126,36 +114,14 @@ public class RestApiV2QMapOptimizedDisabledIT extends RestApiV2QIntegrationTestB
   @Test
   @Override
   public void getAllIndexesWithCompactMap() {
-    RestApiV2QMapTestsImplIT.getAllIndexesWithCompactMap(this);
+    RestApiV2QMapTestsImplIT.getAllIndexesWithCompactMap(this, SERVER_FLAG, true);
+    RestApiV2QMapTestsImplIT.getAllIndexesWithCompactMap(this, SERVER_FLAG, false);
   }
 
   @Override
   @Test
   public void getAllIndexesWithNonCompactMap() {
-    RestApiV2QMapTestsImplIT.getAllIndexesWithNonCompactMap(this);
-  }
-
-  @Test
-  @Override
-  public void findAllTypesWithCompactMap() {
-    RestApiV2QMapTestsImplIT.findAllTypesWithCompactMap(this);
-  }
-
-  @Test
-  @Override
-  public void findAllTypesWithNonCompactMap() {
-    RestApiV2QMapTestsImplIT.findAllTypesWithNonCompactMap(this);
-  }
-
-  @Test
-  @Override
-  public void findTypeByIdWithCompactMap() {
-    RestApiV2QMapTestsImplIT.findTypeByIdWithCompactMap(this);
-  }
-
-  @Test
-  @Override
-  public void findTypeByIdWithNonCompactMap() {
-    RestApiV2QMapTestsImplIT.findTypeByIdWithNonCompactMap(this);
+    RestApiV2QMapTestsImplIT.getAllIndexesWithNonCompactMap(this, SERVER_FLAG, true);
+    RestApiV2QMapTestsImplIT.getAllIndexesWithNonCompactMap(this, SERVER_FLAG, false);
   }
 }

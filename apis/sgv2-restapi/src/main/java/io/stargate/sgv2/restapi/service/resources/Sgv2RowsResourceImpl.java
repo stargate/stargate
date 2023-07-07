@@ -11,9 +11,10 @@ import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.PathSegment;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
+import org.jboss.resteasy.reactive.RestResponse;
+
 import java.util.*;
 import java.util.stream.Collectors;
-import org.jboss.resteasy.reactive.RestResponse;
 
 public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsResourceApi {
   @Override
@@ -236,10 +237,11 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
   public Uni<RestResponse<Object>> deleteRows(
       final String keyspaceName,
       final String tableName,
-      final List<PathSegment> path,
-      final Boolean optimizeMap) {
-    final boolean optimizeMapData =
-        (optimizeMap != null) ? optimizeMap : restApiConfig.optimizeMapData();
+      final List<PathSegment> path) {
+    //Map data in the primary key is not supported/tested via REST API
+    //Since this flag is used only for map data in the primary key, this is not supported in this API
+    //since the converters require this flag, we set it to true here.
+    final boolean optimizeMapData = true;
     return queryWithTableAsync(
             keyspaceName,
             tableName,
