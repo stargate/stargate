@@ -1,4 +1,4 @@
-name: Coordinator Tests
+name: Coordinator Tests v2.1
 
 # run on:
 # - push on our branches (only code paths)
@@ -13,7 +13,7 @@ name: Coordinator Tests
 on:
 
   push:
-    branches: [ "main", "v1" ]
+    branches: [ "v2.1" ]
     paths:
       - 'coordinator/**pom.xml'
       - 'coordinator/**/src/**'
@@ -21,7 +21,7 @@ on:
       - '.github/workflows/coordinator-test.yml'
 
   pull_request:
-    branches: [ "main", "v1" ]
+    branches: [ "v2.1" ]
     paths:
       - 'coordinator/**pom.xml'
       - 'coordinator/**/src/**'
@@ -61,7 +61,7 @@ jobs:
         name: Setup Java JDK
         with:
           distribution: 'temurin'
-          java-version: 8
+          java-version: 11
           cache: 'maven'
 
       - name: Setup Maven
@@ -145,7 +145,7 @@ jobs:
         name: Setup Java JDK
         with:
           distribution: 'temurin'
-          java-version: 8
+          java-version: 11
           cache: 'maven'
 
       - name: Setup Maven
