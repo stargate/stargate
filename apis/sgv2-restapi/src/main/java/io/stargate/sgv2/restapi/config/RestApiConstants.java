@@ -19,7 +19,7 @@ package io.stargate.sgv2.restapi.config;
 /** REST API server side defaults for the configurations defined in {@link RestApiConfig}. */
 public interface RestApiConstants {
 
-  public static final String OPTIMIZE_MAP_DATA = "true";
+  public static final String COMPACT_MAP_DATA = "true";
 
   public static final String CQL_DISABLED = "true";
 }

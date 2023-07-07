@@ -843,7 +843,7 @@ public class ToProtoValueCodecs {
     public QueryOuterClass.Value protoValueFromStringified(String value) {
       List<QueryOuterClass.Value> elements = new ArrayList<>();
       if (optimizeMapData) {
-        StringifiedValueUtil.decodeStringifiedOptimizedMap(value, keyCodec, valueCodec, elements);
+        StringifiedValueUtil.decodeStringifiedCompactMap(value, keyCodec, valueCodec, elements);
       } else {
         StringifiedValueUtil.decodeStringifiedMap(value, keyCodec, valueCodec, elements);
       }

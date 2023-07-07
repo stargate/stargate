@@ -26,7 +26,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       final String pageStateParam,
       final boolean raw,
       final String sortJson,
-      final Boolean optimizeMap) {
+      final Boolean compactMap) {
     final List<Column> columns =
         isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
     final Map<String, Column.Order> sortOrder;
@@ -35,15 +35,14 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     } catch (IllegalArgumentException e) {
       throw invalidSortParameterException(e);
     }
-    final boolean optimizeMapData =
-        optimizeMap != null ? optimizeMap : restApiConfig.optimizeMapData();
+    final boolean compactMapData = compactMap != null ? compactMap : restApiConfig.compactMapData();
     return queryWithTableAsync(
             keyspaceName,
             tableName,
             false,
             tableDef -> {
               final ToProtoConverter toProtoConverter =
-                  findProtoConverter(tableDef, optimizeMapData);
+                  findProtoConverter(tableDef, compactMapData);
 
               final List<BuiltCondition> whereConditions;
               try {
@@ -72,7 +71,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
                     .build();
               }
             })
-        .map(response -> convertRowsToResponse(response, raw, optimizeMapData));
+        .map(response -> convertRowsToResponse(response, raw, compactMapData));
   }
 
   @Override
@@ -85,7 +84,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       final String pageStateParam,
       final boolean raw,
       final String sortJson,
-      final Boolean optimizeMap) {
+      final Boolean compactMap) {
     final List<Column> columns =
         isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
     final Map<String, Column.Order> sortOrder;
@@ -94,15 +93,15 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     } catch (IllegalArgumentException e) {
       throw invalidSortParameterException(e);
     }
-    final boolean optimizeMapData =
-        (optimizeMap != null) ? optimizeMap : restApiConfig.optimizeMapData();
+    final boolean compactMapData =
+        (compactMap != null) ? compactMap : restApiConfig.compactMapData();
     return queryWithTableAsync(
             keyspaceName,
             tableName,
             false,
             tableDef -> {
               final ToProtoConverter toProtoConverter =
-                  findProtoConverter(tableDef, optimizeMapData);
+                  findProtoConverter(tableDef, compactMapData);
               try {
                 return buildGetRowsByPKQuery(
                     keyspaceName,
@@ -119,7 +118,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
                     "Invalid path for row to find, problem: " + e.getMessage(), Status.BAD_REQUEST);
               }
             })
-        .map(response -> convertRowsToResponse(response, raw, optimizeMapData));
+        .map(response -> convertRowsToResponse(response, raw, compactMapData));
   }
 
   @Override
@@ -131,9 +130,9 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       final String pageStateParam,
       final boolean raw,
       final String sortJson,
-      final Boolean optimizeMap) {
-    final boolean optimizeMapData =
-        (optimizeMap != null) ? optimizeMap : restApiConfig.optimizeMapData();
+      final Boolean compactMap) {
+    final boolean compactMapData =
+        (compactMap != null) ? compactMap : restApiConfig.compactMapData();
     List<Column> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
     Map<String, Column.Order> sortOrder;
     try {
@@ -162,7 +161,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
                 .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
                 .build();
     return executeQueryAsync(query)
-        .map(response -> convertRowsToResponse(response, raw, optimizeMapData));
+        .map(response -> convertRowsToResponse(response, raw, compactMapData));
   }
 
   @Override
@@ -170,22 +169,22 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       final String keyspaceName,
       final String tableName,
       final String payloadAsString,
-      final Boolean optimizeMap) {
+      final Boolean compactMap) {
     Map<String, Object> payloadMap;
     try {
       payloadMap = parseJsonAsMap(payloadAsString);
     } catch (Exception e) {
       throw invalidPayloadException(e);
     }
-    final boolean optimizeMapData =
-        (optimizeMap != null) ? optimizeMap : restApiConfig.optimizeMapData();
+    final boolean compactMapData =
+        (compactMap != null) ? compactMap : restApiConfig.compactMapData();
     return queryWithTableAsync(
             keyspaceName,
             tableName,
             false,
             tableDef -> {
               final ToProtoConverter toProtoConverter =
-                  findProtoConverter(tableDef, optimizeMapData);
+                  findProtoConverter(tableDef, compactMapData);
 
               try {
                 return buildAddRowQuery(keyspaceName, tableName, payloadMap, toProtoConverter);
@@ -205,14 +204,14 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       final List<PathSegment> path,
       final boolean raw,
       final String payload,
-      final Boolean optimizeMap) {
+      final Boolean compactMap) {
     return modifyRow(
         keyspaceName,
         tableName,
         path,
         raw,
         payload,
-        (optimizeMap != null) ? optimizeMap : restApiConfig.optimizeMapData());
+        (compactMap != null) ? compactMap : restApiConfig.compactMapData());
   }
 
   @Override
@@ -222,14 +221,14 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       final List<PathSegment> path,
       final boolean raw,
       final String payload,
-      final Boolean optimizeMap) {
+      final Boolean compactMap) {
     return modifyRow(
         keyspaceName,
         tableName,
         path,
         raw,
         payload,
-        (optimizeMap != null) ? optimizeMap : restApiConfig.optimizeMapData());
+        (compactMap != null) ? compactMap : restApiConfig.compactMapData());
   }
 
   @Override
@@ -239,14 +238,14 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     // Since this flag is used only for map data in the primary key, this is not supported in this
     // API
     // since the converters require this flag, we set it to true here.
-    final boolean optimizeMapData = true;
+    final boolean compactMapData = true;
     return queryWithTableAsync(
             keyspaceName,
             tableName,
             false,
             (tableDef) -> {
               final ToProtoConverter toProtoConverter =
-                  findProtoConverter(tableDef, optimizeMapData);
+                  findProtoConverter(tableDef, compactMapData);
               try {
                 return buildDeleteRowsByPKCQuery(
                     keyspaceName, tableName, path, tableDef, toProtoConverter);
@@ -266,7 +265,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       final List<PathSegment> path,
       final boolean raw,
       final String payloadAsString,
-      final boolean optimizeMapData) {
+      final boolean compactMapData) {
     Map<String, Object> payloadMap;
     try {
       payloadMap = parseJsonAsMap(payloadAsString);
@@ -279,7 +278,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
             false,
             tableDef -> {
               final ToProtoConverter toProtoConverter =
-                  findProtoConverter(tableDef, optimizeMapData);
+                  findProtoConverter(tableDef, compactMapData);
               try {
                 return buildUpdateRowQuery(
                     keyspaceName, tableName, path, tableDef, payloadMap, toProtoConverter);

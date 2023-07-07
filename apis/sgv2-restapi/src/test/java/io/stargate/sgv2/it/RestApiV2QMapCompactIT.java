@@ -7,11 +7,11 @@ import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
 @QuarkusTestResource(StargateTestResource.class)
-public class RestApiV2QMapOptimizedIT extends RestApiV2QIntegrationTestBase
+public class RestApiV2QMapCompactIT extends RestApiV2QIntegrationTestBase
     implements RestApiV2QMapTests {
   private static final boolean SERVER_FLAG = true;
 
-  public RestApiV2QMapOptimizedIT() {
+  public RestApiV2QMapCompactIT() {
     super("maptest_ks_", "maptest_t_", KeyspaceCreation.PER_CLASS);
   }
 

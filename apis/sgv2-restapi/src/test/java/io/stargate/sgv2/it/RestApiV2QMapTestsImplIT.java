@@ -13,7 +13,7 @@ import org.apache.http.HttpStatus;
 public class RestApiV2QMapTestsImplIT {
   public static void addRowWithCompactMap(
       RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
-    Boolean optimizeMapData = getFlagForCompactDataTest(serverFlag, testDefault);
+    Boolean compactMapData = getFlagForCompactDataTest(serverFlag, testDefault);
     final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
     testBase.createTestTable(
         testBase.testKeyspaceName(),
@@ -26,12 +26,12 @@ public class RestApiV2QMapTestsImplIT {
     row.put("name", "alice");
     row.put("properties", "{'key1': 'value1', 'key2': 'value2'}");
     row.put("events", "{123: true, 456: false}");
-    testBase.insertRow(testBase.testKeyspaceName(), tableName, row, optimizeMapData);
+    testBase.insertRow(testBase.testKeyspaceName(), tableName, row, compactMapData);
 
     // And verify
     JsonNode readRow =
         testBase.findRowsAsJsonNode(
-            testBase.testKeyspaceName(), tableName, optimizeMapData, "alice");
+            testBase.testKeyspaceName(), tableName, compactMapData, "alice");
     assertThat(readRow).hasSize(1);
     assertThat(readRow.get(0).get("name").asText()).isEqualTo("alice");
     assertThat(readRow.get(0).get("properties").get("key1").asText()).isEqualTo("value1");
@@ -42,7 +42,7 @@ public class RestApiV2QMapTestsImplIT {
 
   public static void addRowWithNonCompactMap(
       RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
-    Boolean optimizeMapData = getFlagForNonCompactDataTest(serverFlag, testDefault);
+    Boolean compactMapData = getFlagForNonCompactDataTest(serverFlag, testDefault);
     final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
     testBase.createTestTable(
         testBase.testKeyspaceName(),
@@ -56,12 +56,12 @@ public class RestApiV2QMapTestsImplIT {
     row.put(
         "properties", "[{'key': 'key1', 'value': 'value1' }, {'key': 'key2', 'value' : 'value2'}]");
     row.put("events", "[{'key': 123, 'value': true }, {'key': 456, 'value' : false}]");
-    testBase.insertRow(testBase.testKeyspaceName(), tableName, row, optimizeMapData);
+    testBase.insertRow(testBase.testKeyspaceName(), tableName, row, compactMapData);
 
     // And verify
     JsonNode readRow =
         testBase.findRowsAsJsonNode(
-            testBase.testKeyspaceName(), tableName, optimizeMapData, "alice");
+            testBase.testKeyspaceName(), tableName, compactMapData, "alice");
     assertThat(readRow).hasSize(1);
     assertThat(readRow.get(0).get("name").asText()).isEqualTo("alice");
     assertThat(readRow.get(0).get("properties").get(0).get("key").asText()).isEqualTo("key1");
@@ -76,7 +76,7 @@ public class RestApiV2QMapTestsImplIT {
 
   public static void updateRowWithCompactMap(
       RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
-    Boolean optimizeMapData = getFlagForCompactDataTest(serverFlag, testDefault);
+    Boolean compactMapData = getFlagForCompactDataTest(serverFlag, testDefault);
     final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
     testBase.createTestTable(
         testBase.testKeyspaceName(),
@@ -92,7 +92,7 @@ public class RestApiV2QMapTestsImplIT {
     row.put("name", "John");
     row.put("properties", "{'key1': 'value1', 'key2': 'value2'}");
     row.put("events", "{123: true, 456: false}");
-    testBase.insertRow(testBase.testKeyspaceName(), tableName, row, optimizeMapData);
+    testBase.insertRow(testBase.testKeyspaceName(), tableName, row, compactMapData);
 
     Map<String, Object> rowUpdate = new HashMap<>();
     rowUpdate.put("name", "Jimmy");
@@ -103,7 +103,7 @@ public class RestApiV2QMapTestsImplIT {
             testBase.endpointPathForRowByPK(testBase.testKeyspaceName(), tableName, rowIdentifier),
             true,
             rowUpdate,
-            optimizeMapData);
+            compactMapData);
     Map<String, Object> data = (Map<String, Object>) testBase.readJsonAs(updateResponse, Map.class);
     assertThat(data).containsAllEntriesOf(rowUpdate);
 
@@ -115,12 +115,12 @@ public class RestApiV2QMapTestsImplIT {
         testBase.endpointPathForRowByPK(testBase.testKeyspaceName(), tableName, rowIdentifier),
         true,
         update2,
-        optimizeMapData);
+        compactMapData);
 
     // And that change actually occurs
     JsonNode json =
         testBase.findRowsAsJsonNode(
-            testBase.testKeyspaceName(), tableName, optimizeMapData, rowIdentifier);
+            testBase.testKeyspaceName(), tableName, compactMapData, rowIdentifier);
     assertThat(json.size()).isEqualTo(1);
     assertThat(json.get(0).get("id").asText()).isEqualTo(rowIdentifier);
     assertThat(json.get(0).get("name").asText()).isEqualTo("Jimmy");
@@ -131,7 +131,7 @@ public class RestApiV2QMapTestsImplIT {
 
   public static void updateRowWithNonCompactMap(
       RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
-    Boolean optimizeMapData = getFlagForNonCompactDataTest(serverFlag, testDefault);
+    Boolean compactMapData = getFlagForNonCompactDataTest(serverFlag, testDefault);
     final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
     testBase.createTestTable(
         testBase.testKeyspaceName(),
@@ -148,7 +148,7 @@ public class RestApiV2QMapTestsImplIT {
     row.put(
         "properties", "[{'key': 'key1', 'value': 'value1' }, {'key': 'key2', 'value' : 'value2'}]");
     row.put("events", "[{'key': 123, 'value': true }, {'key': 456, 'value' : false}]");
-    testBase.insertRow(testBase.testKeyspaceName(), tableName, row, optimizeMapData);
+    testBase.insertRow(testBase.testKeyspaceName(), tableName, row, compactMapData);
 
     Map<String, Object> rowUpdate = new HashMap<>();
     rowUpdate.put("name", "Jimmy");
@@ -161,7 +161,7 @@ public class RestApiV2QMapTestsImplIT {
             testBase.endpointPathForRowByPK(testBase.testKeyspaceName(), tableName, rowIdentifier),
             true,
             rowUpdate,
-            optimizeMapData);
+            compactMapData);
     Map<String, Object> data = (Map<String, Object>) testBase.readJsonAs(updateResponse, Map.class);
     assertThat(data).containsAllEntriesOf(rowUpdate);
 
@@ -173,12 +173,12 @@ public class RestApiV2QMapTestsImplIT {
         testBase.endpointPathForRowByPK(testBase.testKeyspaceName(), tableName, rowIdentifier),
         true,
         update2,
-        optimizeMapData);
+        compactMapData);
 
     // And that change actually occurs
     JsonNode json =
         testBase.findRowsAsJsonNode(
-            testBase.testKeyspaceName(), tableName, optimizeMapData, rowIdentifier);
+            testBase.testKeyspaceName(), tableName, compactMapData, rowIdentifier);
     assertThat(json.size()).isEqualTo(1);
     assertThat(json.get(0).get("id").asText()).isEqualTo(rowIdentifier);
     assertThat(json.get(0).get("name").asText()).isEqualTo("Jimmy");
@@ -190,7 +190,7 @@ public class RestApiV2QMapTestsImplIT {
 
   public static void patchRowWithCompactMap(
       RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
-    Boolean optimizeMapData = getFlagForCompactDataTest(serverFlag, testDefault);
+    Boolean compactMapData = getFlagForCompactDataTest(serverFlag, testDefault);
     final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
     testBase.createTestTable(
         testBase.testKeyspaceName(),
@@ -206,7 +206,7 @@ public class RestApiV2QMapTestsImplIT {
     row.put("name", "John");
     row.put("properties", "{'key1': 'value1', 'key2': 'value2'}");
     row.put("events", "{123: true, 456: false}");
-    testBase.insertRow(testBase.testKeyspaceName(), tableName, row, optimizeMapData);
+    testBase.insertRow(testBase.testKeyspaceName(), tableName, row, compactMapData);
 
     Map<String, String> rowUpdate = new HashMap<>();
     rowUpdate.put("name", "Jimmy");
@@ -218,13 +218,13 @@ public class RestApiV2QMapTestsImplIT {
             testBase.endpointPathForRowByPK(testBase.testKeyspaceName(), tableName, rowIdentifier),
             false,
             rowUpdate,
-            optimizeMapData);
+            compactMapData);
     Map<String, String> data = testBase.readWrappedRESTResponse(patchResponse, Map.class);
     assertThat(data).containsAllEntriesOf(rowUpdate);
 
     JsonNode json =
         testBase.findRowsAsJsonNode(
-            testBase.testKeyspaceName(), tableName, optimizeMapData, rowIdentifier);
+            testBase.testKeyspaceName(), tableName, compactMapData, rowIdentifier);
     assertThat(json.size()).isEqualTo(1);
     assertThat(json.get(0).get("id").asText()).isEqualTo(rowIdentifier);
     assertThat(json.get(0).get("name").asText()).isEqualTo("Jimmy");
@@ -235,7 +235,7 @@ public class RestApiV2QMapTestsImplIT {
 
   public static void patchRowWithNonCompactMap(
       RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
-    Boolean optimizeMapData = getFlagForNonCompactDataTest(serverFlag, testDefault);
+    Boolean compactMapData = getFlagForNonCompactDataTest(serverFlag, testDefault);
     final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
     testBase.createTestTable(
         testBase.testKeyspaceName(),
@@ -252,7 +252,7 @@ public class RestApiV2QMapTestsImplIT {
     row.put(
         "properties", "[{'key': 'key1', 'value': 'value1' }, {'key': 'key2', 'value' : 'value2'}]");
     row.put("events", "[{'key': 123, 'value': true }, {'key': 456, 'value' : false}]");
-    testBase.insertRow(testBase.testKeyspaceName(), tableName, row, optimizeMapData);
+    testBase.insertRow(testBase.testKeyspaceName(), tableName, row, compactMapData);
 
     Map<String, String> rowUpdate = new HashMap<>();
     rowUpdate.put("name", "Jimmy");
@@ -264,13 +264,13 @@ public class RestApiV2QMapTestsImplIT {
             testBase.endpointPathForRowByPK(testBase.testKeyspaceName(), tableName, rowIdentifier),
             false,
             rowUpdate,
-            optimizeMapData);
+            compactMapData);
     Map<String, String> data = testBase.readWrappedRESTResponse(patchResponse, Map.class);
     assertThat(data).containsAllEntriesOf(rowUpdate);
 
     JsonNode json =
         testBase.findRowsAsJsonNode(
-            testBase.testKeyspaceName(), tableName, optimizeMapData, rowIdentifier);
+            testBase.testKeyspaceName(), tableName, compactMapData, rowIdentifier);
     assertThat(json.size()).isEqualTo(1);
     assertThat(json.get(0).get("id").asText()).isEqualTo(rowIdentifier);
     assertThat(json.get(0).get("name").asText()).isEqualTo("Jimmy");
@@ -283,7 +283,7 @@ public class RestApiV2QMapTestsImplIT {
 
   public static void getRowsWithCompactMap(
       RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
-    Boolean optimizeMapData = getFlagForCompactDataTest(serverFlag, testDefault);
+    Boolean compactMapData = getFlagForCompactDataTest(serverFlag, testDefault);
     final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
     testBase.createTestTable(
         testBase.testKeyspaceName(),
@@ -296,12 +296,12 @@ public class RestApiV2QMapTestsImplIT {
     row.put("name", "alice");
     row.put("properties", "{'key1': 'value1', 'key2': 'value2'}");
     row.put("events", "{123: true, 456: false}");
-    testBase.insertRow(testBase.testKeyspaceName(), tableName, row, optimizeMapData);
+    testBase.insertRow(testBase.testKeyspaceName(), tableName, row, compactMapData);
 
     // And verify
     JsonNode readRow =
         testBase.findRowsAsJsonNode(
-            testBase.testKeyspaceName(), tableName, optimizeMapData, "alice");
+            testBase.testKeyspaceName(), tableName, compactMapData, "alice");
     assertThat(readRow).hasSize(1);
     assertThat(readRow.get(0).get("name").asText()).isEqualTo("alice");
     assertThat(readRow.get(0).get("properties").get("key1").asText()).isEqualTo("value1");
@@ -312,7 +312,7 @@ public class RestApiV2QMapTestsImplIT {
 
   public static void getRowsWithNonCompactMap(
       RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
-    Boolean optimizeMapData = getFlagForNonCompactDataTest(serverFlag, testDefault);
+    Boolean compactMapData = getFlagForNonCompactDataTest(serverFlag, testDefault);
     final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
     testBase.createTestTable(
         testBase.testKeyspaceName(),
@@ -326,12 +326,12 @@ public class RestApiV2QMapTestsImplIT {
     row.put(
         "properties", "[{'key': 'key1', 'value': 'value1' }, {'key': 'key2', 'value' : 'value2'}]");
     row.put("events", "[{'key': 123, 'value': true }, {'key': 456, 'value' : false}]");
-    testBase.insertRow(testBase.testKeyspaceName(), tableName, row, optimizeMapData);
+    testBase.insertRow(testBase.testKeyspaceName(), tableName, row, compactMapData);
 
     // And verify
     JsonNode readRow =
         testBase.findRowsAsJsonNode(
-            testBase.testKeyspaceName(), tableName, optimizeMapData, "alice");
+            testBase.testKeyspaceName(), tableName, compactMapData, "alice");
     assertThat(readRow).hasSize(1);
     assertThat(readRow.get(0).get("name").asText()).isEqualTo("alice");
     assertThat(readRow.get(0).get("properties").get(0).get("key").asText()).isEqualTo("key1");
@@ -346,7 +346,7 @@ public class RestApiV2QMapTestsImplIT {
 
   public static void getAllRowsWithCompactMap(
       RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
-    Boolean optimizeMapData = getFlagForCompactDataTest(serverFlag, testDefault);
+    Boolean compactMapData = getFlagForCompactDataTest(serverFlag, testDefault);
     final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
     testBase.createTestTable(
         testBase.testKeyspaceName(),
@@ -389,14 +389,14 @@ public class RestApiV2QMapTestsImplIT {
                 "name Alice",
                 "properties {'key41': 'value41', 'key42': 'value42'}",
                 "events {192021: true, 222324: true}")),
-        optimizeMapData);
+        compactMapData);
 
     // get first page; cannot use "raw" mode as we need pagingState
     String whereClause = String.format("{\"id\":{\"$eq\":\"%s\"}}", mainKey);
     final String path = testBase.endpointPathForRowGetWith(testBase.testKeyspaceName(), tableName);
     RequestSpecification requestSpecification = testBase.givenWithAuth();
-    if (optimizeMapData != null) {
-      requestSpecification.queryParam("optimizeMap", optimizeMapData);
+    if (compactMapData != null) {
+      requestSpecification.queryParam("compactMapData", compactMapData);
     }
     String response =
         requestSpecification
@@ -431,8 +431,8 @@ public class RestApiV2QMapTestsImplIT {
     String pagingState = json.at("/pageState").asText();
     assertThat(pagingState).isNotEmpty();
     requestSpecification = testBase.givenWithAuth();
-    if (optimizeMapData != null) {
-      requestSpecification.queryParam("optimizeMap", optimizeMapData);
+    if (compactMapData != null) {
+      requestSpecification.queryParam("compactMapData", compactMapData);
     }
     response =
         requestSpecification
@@ -463,7 +463,7 @@ public class RestApiV2QMapTestsImplIT {
 
   public static void getAllRowsWithNonCompactMap(
       RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
-    Boolean optimizeMapData = getFlagForNonCompactDataTest(serverFlag, testDefault);
+    Boolean compactMapData = getFlagForNonCompactDataTest(serverFlag, testDefault);
     final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
     testBase.createTestTable(
         testBase.testKeyspaceName(),
@@ -506,14 +506,14 @@ public class RestApiV2QMapTestsImplIT {
                 "name Alice",
                 "properties [{'key': 'key41', 'value': 'value41'}, { 'key': 'key42', 'value': 'value42'}]",
                 "events [ { 'key': 192021, 'value': false }, { 'key': 222324, 'value': false } ]")),
-        optimizeMapData);
+        compactMapData);
 
     // get first page; cannot use "raw" mode as we need pagingState
     String whereClause = String.format("{\"id\":{\"$eq\":\"%s\"}}", mainKey);
     final String path = testBase.endpointPathForRowGetWith(testBase.testKeyspaceName(), tableName);
     RequestSpecification requestSpecification = testBase.givenWithAuth();
-    if (optimizeMapData != null) {
-      requestSpecification.queryParam("optimizeMap", optimizeMapData);
+    if (compactMapData != null) {
+      requestSpecification.queryParam("compactMapData", compactMapData);
     }
     String response =
         requestSpecification
@@ -556,8 +556,8 @@ public class RestApiV2QMapTestsImplIT {
     String pagingState = json.at("/pageState").asText();
     assertThat(pagingState).isNotEmpty();
     requestSpecification = testBase.givenWithAuth();
-    if (optimizeMapData != null) {
-      requestSpecification.queryParam("optimizeMap", optimizeMapData);
+    if (compactMapData != null) {
+      requestSpecification.queryParam("compactMapData", compactMapData);
     }
     response =
         requestSpecification
@@ -592,7 +592,7 @@ public class RestApiV2QMapTestsImplIT {
 
   public static void getRowsWithWhereWithCompactMap(
       RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
-    Boolean optimizeMapData = getFlagForCompactDataTest(serverFlag, testDefault);
+    Boolean compactMapData = getFlagForCompactDataTest(serverFlag, testDefault);
     final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
     testBase.createTestTable(
         testBase.testKeyspaceName(),
@@ -616,14 +616,14 @@ public class RestApiV2QMapTestsImplIT {
             testBase.map("id", 1, "firstName", "Bob", "attributes", testBase.map("a", "1")),
             testBase.map("id", 1, "firstName", "Dave", "attributes", testBase.map("b", "2")),
             testBase.map("id", 1, "firstName", "Fred", "attributes", testBase.map("c", "3"))),
-        optimizeMapData);
+        compactMapData);
 
     // First, no match
     String noMatchesClause =
         "{\"id\":{\"$eq\":\"1\"},\"attributes\":{\"$containsEntry\":{\"key\":\"b\",\"value\":\"1\"}}}";
     ArrayNode rows =
         testBase.findRowsWithWhereAsJsonNode(
-            testBase.testKeyspaceName(), tableName, noMatchesClause, optimizeMapData);
+            testBase.testKeyspaceName(), tableName, noMatchesClause, compactMapData);
     assertThat(rows).hasSize(0);
 
     // and then a single match
@@ -631,7 +631,7 @@ public class RestApiV2QMapTestsImplIT {
         "{\"id\":{\"$eq\":\"1\"},\"attributes\":{\"$containsEntry\":{\"key\":\"c\",\"value\":\"3\"}}}";
     rows =
         testBase.findRowsWithWhereAsJsonNode(
-            testBase.testKeyspaceName(), tableName, matchingClause, optimizeMapData);
+            testBase.testKeyspaceName(), tableName, matchingClause, compactMapData);
     assertThat(rows).hasSize(1);
     assertThat(rows.at("/0/firstName").asText()).isEqualTo("Fred");
     // Also verify how Map values serialized (see [stargate#2577])
@@ -640,7 +640,7 @@ public class RestApiV2QMapTestsImplIT {
 
   public static void getRowsWithWhereWithNonCompactMap(
       RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
-    Boolean optimizeMapData = getFlagForNonCompactDataTest(serverFlag, testDefault);
+    Boolean compactMapData = getFlagForNonCompactDataTest(serverFlag, testDefault);
     final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
     testBase.createTestTable(
         testBase.testKeyspaceName(),
@@ -682,14 +682,14 @@ public class RestApiV2QMapTestsImplIT {
                 "Fred",
                 "attributes",
                 testBase.list(testBase.map("key", "c", "value", 3)))),
-        optimizeMapData);
+        compactMapData);
 
     // First, no match
     String noMatchesClause =
         "{\"id\":{\"$eq\":\"1\"},\"attributes\":{\"$containsEntry\":{\"key\":\"b\",\"value\":1}}}";
     ArrayNode rows =
         testBase.findRowsWithWhereAsJsonNode(
-            testBase.testKeyspaceName(), tableName, noMatchesClause, optimizeMapData);
+            testBase.testKeyspaceName(), tableName, noMatchesClause, compactMapData);
     assertThat(rows).hasSize(0);
 
     // and then a single match
@@ -697,7 +697,7 @@ public class RestApiV2QMapTestsImplIT {
         "{\"id\":{\"$eq\":\"1\"},\"attributes\":{\"$containsEntry\":{\"key\":\"c\",\"value\":3}}}";
     rows =
         testBase.findRowsWithWhereAsJsonNode(
-            testBase.testKeyspaceName(), tableName, matchingClause, optimizeMapData);
+            testBase.testKeyspaceName(), tableName, matchingClause, compactMapData);
     assertThat(rows).hasSize(1);
     assertThat(rows.at("/0/firstName").asText()).isEqualTo("Fred");
     // Also verify how Map values serialized (see [stargate#2577])
@@ -707,7 +707,7 @@ public class RestApiV2QMapTestsImplIT {
 
   public static void getAllIndexesWithCompactMap(
       RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
-    Boolean optimizeMapData = getFlagForCompactDataTest(serverFlag, testDefault);
+    Boolean compactMapData = getFlagForCompactDataTest(serverFlag, testDefault);
     final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
     testBase.createTestTable(
         testBase.testKeyspaceName(),
@@ -725,7 +725,7 @@ public class RestApiV2QMapTestsImplIT {
         false,
         CollectionIndexingType.ENTRIES);
     String response =
-        testBase.getAllIndexes(testBase.testKeyspaceName(), tableName, optimizeMapData);
+        testBase.getAllIndexes(testBase.testKeyspaceName(), tableName, compactMapData);
     List<RestApiV2QSchemaIndexesIT.IndexDesc> indexList =
         Arrays.asList(testBase.readJsonAs(response, RestApiV2QSchemaIndexesIT.IndexDesc[].class));
     assertThat(indexList).hasSize(1);
@@ -735,7 +735,7 @@ public class RestApiV2QMapTestsImplIT {
 
   public static void getAllIndexesWithNonCompactMap(
       RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
-    Boolean optimizeMapData = getFlagForNonCompactDataTest(serverFlag, testDefault);
+    Boolean compactMapData = getFlagForNonCompactDataTest(serverFlag, testDefault);
     final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
     testBase.createTestTable(
         testBase.testKeyspaceName(),
@@ -753,7 +753,7 @@ public class RestApiV2QMapTestsImplIT {
         false,
         CollectionIndexingType.ENTRIES);
     String response =
-        testBase.getAllIndexes(testBase.testKeyspaceName(), tableName, optimizeMapData);
+        testBase.getAllIndexes(testBase.testKeyspaceName(), tableName, compactMapData);
     List<RestApiV2QSchemaIndexesIT.IndexDescOptionsAsList> indexList =
         Arrays.asList(
             testBase.readJsonAs(

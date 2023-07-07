@@ -145,4 +145,25 @@ public class RestApiV2QRowDeleteIT extends RestApiV2QIntegrationTestBase {
         .contains("Invalid String value")
         .contains("'not-really-uuid'");
   }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Helper methods
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  private String deleteRow(String deletePath) {
+    return deleteRow(deletePath, HttpStatus.SC_NO_CONTENT);
+  }
+
+  private String deleteRow(String deletePath, int expectedStatus) {
+    // Usually "no content" (returns empty String), but for fails gives ApiError
+    return givenWithAuth()
+        .when()
+        .delete(deletePath)
+        .then()
+        .statusCode(expectedStatus)
+        .extract()
+        .asString();
+  }
 }

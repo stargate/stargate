@@ -165,11 +165,11 @@ public class ToProtoConverterTest {
   @MethodSource("fromExternalMapSamplesStrict")
   @DisplayName("Should coerce 'strict' external value to Bridge/grpc value")
   public void strictExternalToBridgeMapValueTest(
-      boolean optimizeMapData,
+      boolean compactMapData,
       Object externalValue,
       TypeSpec typeSpec,
       QueryOuterClass.Value bridgeValue) {
-    ToProtoConverter conv = createConverter(typeSpec, optimizeMapData);
+    ToProtoConverter conv = createConverter(typeSpec, compactMapData);
     // First verify that it works in strict mode
     assertThat(conv.protoValueFromStrictlyTyped(TEST_COLUMN, externalValue)).isEqualTo(bridgeValue);
     // But also that "loose" accepts it as well
@@ -301,11 +301,11 @@ public class ToProtoConverterTest {
   @MethodSource("fromExternalMapSamplesStringified")
   @DisplayName("Should coerce 'stringified' external value to Bridge/grpc value")
   public void stringifiedExternalToBridgeValueTest(
-      boolean optimizeMapData,
+      boolean compactMapData,
       String externalValue,
       TypeSpec typeSpec,
       QueryOuterClass.Value bridgeValue) {
-    ToProtoConverter conv = createConverter(typeSpec, optimizeMapData);
+    ToProtoConverter conv = createConverter(typeSpec, compactMapData);
 
     // Ensure explicitly Stringified works
     assertThat(conv.protoValueFromStringified(TEST_COLUMN, externalValue)).isEqualTo(bridgeValue);
@@ -334,9 +334,9 @@ public class ToProtoConverterTest {
   ///////////////////////////////////////////////////////////////////////
    */
 
-  private static ToProtoConverter createConverter(TypeSpec typeSpec, boolean optimizeMapData) {
+  private static ToProtoConverter createConverter(TypeSpec typeSpec, boolean compactMapData) {
     ColumnSpec column = ColumnSpec.newBuilder().setName(TEST_COLUMN).setType(typeSpec).build();
-    ToProtoValueCodec codec = TO_PROTO_VALUE_CODECS.codecFor(column, optimizeMapData);
+    ToProtoValueCodec codec = TO_PROTO_VALUE_CODECS.codecFor(column, compactMapData);
     return new ToProtoConverter(TEST_TABLE, Collections.singletonMap(TEST_COLUMN, codec));
   }
 

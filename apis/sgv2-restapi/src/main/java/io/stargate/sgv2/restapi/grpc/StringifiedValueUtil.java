@@ -81,7 +81,7 @@ public class StringifiedValueUtil {
             "Invalid %s value '%s': missing closing '%s'", typeDesc, value, closingBrace));
   }
 
-  public static void decodeStringifiedOptimizedMap(
+  public static void decodeStringifiedCompactMap(
       String value,
       ToProtoValueCodec keyCodec,
       ToProtoValueCodec valueCodec,

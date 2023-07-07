@@ -459,12 +459,12 @@ public abstract class RestApiV2QIntegrationTestBase {
   }
 
   protected List<Map<String, String>> insertRows(
-      String keyspaceName, String tableName, List<List<String>> rows, Boolean optimizeMapData) {
-    return insertRowsFromListOfList(keyspaceName, tableName, rows, optimizeMapData);
+      String keyspaceName, String tableName, List<List<String>> rows, Boolean compactMapData) {
+    return insertRowsFromListOfList(keyspaceName, tableName, rows, compactMapData);
   }
 
   private List<Map<String, String>> insertRowsFromListOfList(
-      String keyspaceName, String tableName, List<List<String>> rows, Boolean optimizeMapData) {
+      String keyspaceName, String tableName, List<List<String>> rows, Boolean compactMapData) {
     final List<Map<String, String>> insertedRows = new ArrayList<>();
     for (List<String> row : rows) {
       Map<String, String> rowMap = new HashMap<>();
@@ -474,7 +474,7 @@ public abstract class RestApiV2QIntegrationTestBase {
         String[] parts = kv.split(" ", 2);
         rowMap.put(parts[0].trim(), parts[1].trim());
       }
-      insertRow(keyspaceName, tableName, rowMap, optimizeMapData);
+      insertRow(keyspaceName, tableName, rowMap, compactMapData);
       insertedRows.add(rowMap);
     }
 
@@ -490,18 +490,18 @@ public abstract class RestApiV2QIntegrationTestBase {
       String keyspaceName,
       String tableName,
       List<Map<String, Object>> rows,
-      Boolean optimizeMapData) {
-    return insertTypedRowsInternal(keyspaceName, tableName, rows, optimizeMapData);
+      Boolean compactMapData) {
+    return insertTypedRowsInternal(keyspaceName, tableName, rows, compactMapData);
   }
 
   private List<Map<String, Object>> insertTypedRowsInternal(
       String keyspaceName,
       String tableName,
       List<Map<String, Object>> rows,
-      Boolean optimizeMapData) {
+      Boolean compactMapData) {
     final List<Map<String, Object>> insertedRows = new ArrayList<>();
     for (Map<String, Object> row : rows) {
-      insertRow(keyspaceName, tableName, row, optimizeMapData);
+      insertRow(keyspaceName, tableName, row, compactMapData);
       insertedRows.add(row);
     }
     return insertedRows;
@@ -512,18 +512,18 @@ public abstract class RestApiV2QIntegrationTestBase {
   }
 
   protected String insertRow(
-      String keyspaceName, String tableName, Map<?, ?> row, Boolean optimizeMap) {
-    return insertRowWithOptimizeMapFlagExpectStatus(
-        keyspaceName, tableName, row, HttpStatus.SC_CREATED, optimizeMap);
+      String keyspaceName, String tableName, Map<?, ?> row, Boolean compactMapData) {
+    return insertRowWithCompactMapFlagExpectStatus(
+        keyspaceName, tableName, row, HttpStatus.SC_CREATED, compactMapData);
   }
 
-  protected String insertRowWithOptimizeMapFlagExpectStatus(
+  protected String insertRowWithCompactMapFlagExpectStatus(
       String keyspaceName,
       String tableName,
       Map<?, ?> row,
       int expectedStatus,
-      Boolean optimizeMapFlag) {
-    return getInsertRowRequest(row, optimizeMapFlag)
+      Boolean compactMapFlag) {
+    return getInsertRowRequest(row, compactMapFlag)
         .when()
         .post(endpointPathForRowAdd(keyspaceName, tableName))
         .then()
@@ -532,12 +532,12 @@ public abstract class RestApiV2QIntegrationTestBase {
         .asString();
   }
 
-  private RequestSpecification getInsertRowRequest(Map<?, ?> row, Boolean optimizeMapFlag) {
+  private RequestSpecification getInsertRowRequest(Map<?, ?> row, Boolean compactMapFlag) {
     RequestSpecification requestSpecification =
         givenWithAuth().contentType(ContentType.JSON).body(asJsonString(row));
-    return optimizeMapFlag == null
+    return compactMapFlag == null
         ? requestSpecification
-        : requestSpecification.queryParam("optimizeMap", optimizeMapFlag);
+        : requestSpecification.queryParam("compactMapData", compactMapFlag);
   }
 
   protected String insertRowExpectStatus(
@@ -566,11 +566,11 @@ public abstract class RestApiV2QIntegrationTestBase {
   }
 
   protected JsonNode findRowsAsJsonNode(
-      String keyspaceName, String tableName, Boolean optimizeMapData, Object... primaryKeys) {
+      String keyspaceName, String tableName, Boolean compactMapData, Object... primaryKeys) {
     final String path = endpointPathForRowByPK(keyspaceName, tableName, primaryKeys);
     RequestSpecification rquest = givenWithAuth();
-    if (optimizeMapData != null) {
-      rquest = rquest.queryParam("optimizeMap", optimizeMapData.booleanValue());
+    if (compactMapData != null) {
+      rquest = rquest.queryParam("compactMapData", compactMapData);
     }
     String response =
         rquest
@@ -635,17 +635,17 @@ public abstract class RestApiV2QIntegrationTestBase {
   }
 
   protected ArrayNode findRowsWithWhereAsJsonNode(
-      String keyspaceName, String tableName, String whereClause, Boolean optimizeMapData) {
+      String keyspaceName, String tableName, String whereClause, Boolean compactMapData) {
     return findRowsWithWhereAsJsonNodeInternal(
-        keyspaceName, tableName, whereClause, optimizeMapData);
+        keyspaceName, tableName, whereClause, compactMapData);
   }
 
   private ArrayNode findRowsWithWhereAsJsonNodeInternal(
-      String keyspaceName, String tableName, String whereClause, Boolean optimizeMapData) {
+      String keyspaceName, String tableName, String whereClause, Boolean compactMapData) {
     RequestSpecification request =
         givenWithAuth().queryParam("raw", true).queryParam("where", whereClause);
-    if (optimizeMapData != null) {
-      request = request.queryParam("optimizeMap", optimizeMapData);
+    if (compactMapData != null) {
+      request = request.queryParam("compactMapData", compactMapData);
     }
     String response =
         request
@@ -752,8 +752,8 @@ public abstract class RestApiV2QIntegrationTestBase {
   }
 
   protected String updateRowReturnResponse(
-      String updatePath, boolean raw, Map<?, ?> payload, Boolean optimizeMapData) {
-    return updateRowReturnResponse(updatePath, raw, payload, HttpStatus.SC_OK, optimizeMapData);
+      String updatePath, boolean raw, Map<?, ?> payload, Boolean compactMapData) {
+    return updateRowReturnResponse(updatePath, raw, payload, HttpStatus.SC_OK, compactMapData);
   }
 
   protected String updateRowReturnResponse(String updatePath, boolean raw, Map<?, ?> payload) {
@@ -765,9 +765,9 @@ public abstract class RestApiV2QIntegrationTestBase {
       boolean raw,
       Map<?, ?> payloadMap,
       int expectedStatus,
-      Boolean optimizeMapData) {
+      Boolean compactMapData) {
     return updateRowReturnResponse(
-        updatePath, raw, asJsonString(payloadMap), expectedStatus, optimizeMapData);
+        updatePath, raw, asJsonString(payloadMap), expectedStatus, compactMapData);
   }
 
   protected String updateRowReturnResponse(
@@ -784,10 +784,10 @@ public abstract class RestApiV2QIntegrationTestBase {
       boolean raw,
       String payloadJSON,
       int expectedStatus,
-      Boolean optimizeMapData) {
+      Boolean compactMapData) {
     RequestSpecification req = getUpdateRequest(payloadJSON, raw);
-    if (optimizeMapData != null) {
-      req.queryParam("optimizeMap", optimizeMapData);
+    if (compactMapData != null) {
+      req.queryParam("compactMapData", compactMapData);
     }
     return req.when().put(updatePath).then().statusCode(expectedStatus).extract().asString();
   }
@@ -804,8 +804,8 @@ public abstract class RestApiV2QIntegrationTestBase {
   }
 
   protected String patchRowReturnResponse(
-      String patchPath, boolean raw, Map<?, ?> payload, Boolean optimizeMapData) {
-    return patchRowReturnResponse(patchPath, raw, payload, HttpStatus.SC_OK, optimizeMapData);
+      String patchPath, boolean raw, Map<?, ?> payload, Boolean compactMapData) {
+    return patchRowReturnResponse(patchPath, raw, payload, HttpStatus.SC_OK, compactMapData);
   }
 
   protected String patchRowReturnResponse(String patchPath, boolean raw, Map<?, ?> payload) {
@@ -822,9 +822,9 @@ public abstract class RestApiV2QIntegrationTestBase {
       boolean raw,
       Map<?, ?> payloadMap,
       int expectedStatus,
-      Boolean optimizeMapData) {
+      Boolean compactMapData) {
     return patchRowReturnResponse(
-        patchPath, raw, asJsonString(payloadMap), expectedStatus, optimizeMapData);
+        patchPath, raw, asJsonString(payloadMap), expectedStatus, compactMapData);
   }
 
   protected String patchRowReturnResponse(
@@ -832,10 +832,10 @@ public abstract class RestApiV2QIntegrationTestBase {
       boolean raw,
       String payloadJSON,
       int expectedStatus,
-      Boolean optimizeMapData) {
+      Boolean compactMapData) {
     RequestSpecification req = getPatchRequest(payloadJSON, raw);
-    if (optimizeMapData != null) {
-      req.queryParam("optimizeMap", optimizeMapData);
+    if (compactMapData != null) {
+      req.queryParam("compactMapData", compactMapData);
     }
     return req.when().patch(patchPath).then().statusCode(expectedStatus).extract().asString();
   }
@@ -855,43 +855,16 @@ public abstract class RestApiV2QIntegrationTestBase {
         .asString();
   }
 
-  protected String deleteRow(String deletePath, Boolean optimizeMapData) {
-    return deleteRow(deletePath, HttpStatus.SC_NO_CONTENT, optimizeMapData);
-  }
-
-  protected String deleteRow(String deletePath) {
-    return deleteRow(deletePath, HttpStatus.SC_NO_CONTENT);
-  }
-
-  protected String deleteRow(String deletePath, int expectedStatus, Boolean optimizeMapData) {
-    RequestSpecification req = givenWithAuth();
-    if (optimizeMapData != null) {
-      req.queryParam("optimizeMap", optimizeMapData);
-    }
-    return req.when().delete(deletePath).then().statusCode(expectedStatus).extract().asString();
-  }
-
-  protected String deleteRow(String deletePath, int expectedStatus) {
-    // Usually "no content" (returns empty String), but for fails gives ApiError
-    return givenWithAuth()
-        .when()
-        .delete(deletePath)
-        .then()
-        .statusCode(expectedStatus)
-        .extract()
-        .asString();
-  }
-
   protected List<RestApiV2QSchemaIndexesIT.IndexDesc> findAllIndexesViaEndpoint(
       String ksName, String tableName) {
     String response = getAllIndexes(ksName, tableName, null);
     return Arrays.asList(readJsonAs(response, RestApiV2QSchemaIndexesIT.IndexDesc[].class));
   }
 
-  protected String getAllIndexes(String ksName, String tableName, Boolean optimizeMapData) {
+  protected String getAllIndexes(String ksName, String tableName, Boolean compactMapData) {
     RequestSpecification req = givenWithAuth();
-    if (optimizeMapData != null) {
-      req.queryParam("optimizeMap", optimizeMapData);
+    if (compactMapData != null) {
+      req.queryParam("compactMapData", compactMapData);
     }
     return req.when()
         .get(endpointPathForAllIndexes(ksName, tableName))

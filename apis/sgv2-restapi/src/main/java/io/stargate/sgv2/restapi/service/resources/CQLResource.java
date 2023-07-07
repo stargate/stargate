@@ -71,9 +71,9 @@ public class CQLResource {
           final String pageStateParam,
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw,
-      @Parameter(name = "optimizeMap", ref = RestOpenApiConstants.Parameters.OPTIMIZE_MAP)
-          @QueryParam("optimizeMap")
-          final Boolean optimizeMap,
+      @Parameter(name = "compactMapData", ref = RestOpenApiConstants.Parameters.COMPACT_MAP_DATA)
+          @QueryParam("compactMapData")
+          final Boolean compactMapData,
       @RequestBody(description = "CQL Query String", required = true)
           @NotBlank(message = "CQL query body required")
           final String payloadAsString) {
@@ -91,8 +91,6 @@ public class CQLResource {
                 convertRowsToResponse(
                     response,
                     raw,
-                    (optimizeMap != null)
-                        ? (optimizeMap.booleanValue())
-                        : restApiConfig.optimizeMapData()));
+                    compactMapData != null ? compactMapData : restApiConfig.compactMapData()));
   }
 }

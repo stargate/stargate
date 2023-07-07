@@ -10,19 +10,19 @@ import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
 @QuarkusTestResource(StargateTestResource.class)
-@TestProfile(RestApiV2QMapOptimizedDisabledIT.Profile.class)
-public class RestApiV2QMapOptimizedDisabledIT extends RestApiV2QIntegrationTestBase
+@TestProfile(RestApiV2QMapCompactDisabledIT.Profile.class)
+public class RestApiV2QMapCompactDisabledIT extends RestApiV2QIntegrationTestBase
     implements RestApiV2QMapTests {
   private static final boolean SERVER_FLAG = false;
 
   public static class Profile implements QuarkusTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
-      return Map.of("stargate.rest.optimize-map-data", Boolean.toString(SERVER_FLAG));
+      return Map.of("stargate.rest.compact-map-data", Boolean.toString(SERVER_FLAG));
     }
   }
 
-  public RestApiV2QMapOptimizedDisabledIT() {
+  public RestApiV2QMapCompactDisabledIT() {
     super("maptest_ks_", "maptest_t_", KeyspaceCreation.PER_CLASS);
   }
 

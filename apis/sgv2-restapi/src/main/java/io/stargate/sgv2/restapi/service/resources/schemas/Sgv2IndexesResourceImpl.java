@@ -36,9 +36,8 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
 
   @Override
   public Uni<RestResponse<Object>> getAllIndexes(
-      String keyspaceName, String tableName, final Boolean optimizeMap) {
-    final boolean optimizeMapData =
-        (optimizeMap != null) ? (optimizeMap.booleanValue()) : restApiConfig.optimizeMapData();
+      String keyspaceName, String tableName, final Boolean compactMap) {
+    final boolean compactMapData = compactMap != null ? compactMap : restApiConfig.compactMapData();
     Query query =
         new QueryBuilder()
             .select()
@@ -52,7 +51,7 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
     // should be needed
     return getTableAsyncCheckExistence(keyspaceName, tableName, true, Response.Status.BAD_REQUEST)
         .flatMap(table -> executeQueryAsync(query))
-        .map(response -> convertRowsToResponse(response, true, optimizeMapData));
+        .map(response -> convertRowsToResponse(response, true, compactMapData));
   }
 
   @Override

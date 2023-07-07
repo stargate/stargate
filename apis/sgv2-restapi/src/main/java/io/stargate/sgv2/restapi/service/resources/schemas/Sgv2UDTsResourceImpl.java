@@ -36,14 +36,14 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
     // User defined types are stored in a table called "types" in the system_schema keyspace.
     // That table doesn't have any map column, so this flag is not useful for this API
     // since the converters require this flag, we set it to true here.
-    final boolean optimizeMapData = true;
+    final boolean compactMapData = true;
     return executeQueryAsync(query)
         .map(response -> response.getResultSet())
         .map(
             rs -> {
               // two-part conversion: first from proto to JsonNode for easier traversability,
               // then from that to actual response we need:
-              ArrayNode ksRows = convertRowsToArrayNode(rs, optimizeMapData);
+              ArrayNode ksRows = convertRowsToArrayNode(rs, compactMapData);
               return jsonArray2Udts(keyspaceName, ksRows);
             })
         .map(udts -> raw ? udts : new Sgv2RESTResponse<>(udts))
@@ -66,10 +66,10 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
     // User defined types are stored in a table called "types" in the system_schema keyspace.
     // That table doesn't have any map column, so this flag is not useful for this API
     // since the converters require this flag, we set it to true here.
-    final boolean optimizeMapData = true;
+    final boolean compactMapData = true;
     return executeQueryAsync(query)
         .map(response -> response.getResultSet())
-        .map(rs -> convertRowsToArrayNode(rs, optimizeMapData))
+        .map(rs -> convertRowsToArrayNode(rs, compactMapData))
         .map(
             ksRows -> {
               // Must get one and only one response, verify

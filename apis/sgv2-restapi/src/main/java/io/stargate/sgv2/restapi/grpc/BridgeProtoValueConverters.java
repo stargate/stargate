@@ -28,7 +28,7 @@ public class BridgeProtoValueConverters {
   }
 
   public FromProtoConverter fromProtoConverter(
-      List<QueryOuterClass.ColumnSpec> columns, boolean optimizeMapData) {
+      List<QueryOuterClass.ColumnSpec> columns, boolean compactMapData) {
     final String[] names = new String[columns.size()];
     final FromProtoValueCodec[] codecs = new FromProtoValueCodec[columns.size()];
 
@@ -36,7 +36,7 @@ public class BridgeProtoValueConverters {
       QueryOuterClass.ColumnSpec spec = columns.get(i);
       names[i] = spec.getName();
       try {
-        codecs[i] = FROM_PROTO_CODECS.codecFor(spec, optimizeMapData);
+        codecs[i] = FROM_PROTO_CODECS.codecFor(spec, compactMapData);
       } catch (IllegalArgumentException e) {
         throw new IllegalArgumentException(
             String.format(
@@ -48,13 +48,13 @@ public class BridgeProtoValueConverters {
   }
 
   /** Factory method that will fetch converters for all fields. */
-  public ToProtoConverter toProtoConverter(Schema.CqlTable forTable, boolean optimizeMapData) {
+  public ToProtoConverter toProtoConverter(Schema.CqlTable forTable, boolean compactMapData) {
     // retain order for error message info
     Map<String, ToProtoValueCodec> codecsByName = new LinkedHashMap<>();
-    addFields(forTable, codecsByName, forTable.getPartitionKeyColumnsList(), optimizeMapData);
-    addFields(forTable, codecsByName, forTable.getClusteringKeyColumnsList(), optimizeMapData);
-    addFields(forTable, codecsByName, forTable.getStaticColumnsList(), optimizeMapData);
-    addFields(forTable, codecsByName, forTable.getColumnsList(), optimizeMapData);
+    addFields(forTable, codecsByName, forTable.getPartitionKeyColumnsList(), compactMapData);
+    addFields(forTable, codecsByName, forTable.getClusteringKeyColumnsList(), compactMapData);
+    addFields(forTable, codecsByName, forTable.getStaticColumnsList(), compactMapData);
+    addFields(forTable, codecsByName, forTable.getColumnsList(), compactMapData);
     return new ToProtoConverter(forTable.getName(), codecsByName);
   }
 
@@ -62,10 +62,10 @@ public class BridgeProtoValueConverters {
       Schema.CqlTable tableDef,
       Map<String, ToProtoValueCodec> codecsByName,
       List<QueryOuterClass.ColumnSpec> columns,
-      boolean optimizeMapData) {
+      boolean compactMapData) {
     for (QueryOuterClass.ColumnSpec column : columns) {
       try {
-        codecsByName.put(column.getName(), TO_PROTO_CODECS.codecFor(column, optimizeMapData));
+        codecsByName.put(column.getName(), TO_PROTO_CODECS.codecFor(column, compactMapData));
       } catch (Exception e) {
         throw new IllegalArgumentException(
             String.format(

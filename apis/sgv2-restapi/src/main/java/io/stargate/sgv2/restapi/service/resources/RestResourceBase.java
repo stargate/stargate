@@ -223,26 +223,26 @@ public abstract class RestResourceBase {
     return null;
   }
 
-  protected ToProtoConverter findProtoConverter(Schema.CqlTable tableDef, boolean optimizeMapData) {
-    return PROTO_CONVERTERS.toProtoConverter(tableDef, optimizeMapData);
+  protected ToProtoConverter findProtoConverter(Schema.CqlTable tableDef, boolean compactMapData) {
+    return PROTO_CONVERTERS.toProtoConverter(tableDef, compactMapData);
   }
 
   public static RestResponse<Object> convertRowsToResponse(
-      QueryOuterClass.Response grpcResponse, boolean raw, boolean optimizeMapData) {
+      QueryOuterClass.Response grpcResponse, boolean raw, boolean compactMapData) {
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
     final int count = rs.getRowsCount();
 
     String pageStateStr = extractPagingStateFromResultSet(rs);
-    List<Map<String, Object>> rows = convertRows(rs, optimizeMapData);
+    List<Map<String, Object>> rows = convertRows(rs, compactMapData);
     Object response = raw ? rows : new Sgv2RowsResponse(count, pageStateStr, rows);
     return RestResponse.ok(response);
   }
 
   protected static List<Map<String, Object>> convertRows(
-      QueryOuterClass.ResultSet rs, boolean optimizeMapData) {
+      QueryOuterClass.ResultSet rs, boolean compactMapData) {
     FromProtoConverter converter =
         BridgeProtoValueConverters.instance()
-            .fromProtoConverter(rs.getColumnsList(), optimizeMapData);
+            .fromProtoConverter(rs.getColumnsList(), compactMapData);
     List<Map<String, Object>> resultRows = new ArrayList<>();
     List<QueryOuterClass.Row> rows = rs.getRowsList();
     for (QueryOuterClass.Row row : rows) {
@@ -252,10 +252,10 @@ public abstract class RestResourceBase {
   }
 
   protected static ArrayNode convertRowsToArrayNode(
-      QueryOuterClass.ResultSet rs, boolean optimizeMapData) {
+      QueryOuterClass.ResultSet rs, boolean compactMapData) {
     FromProtoConverter converter =
         BridgeProtoValueConverters.instance()
-            .fromProtoConverter(rs.getColumnsList(), optimizeMapData);
+            .fromProtoConverter(rs.getColumnsList(), compactMapData);
     ArrayNode resultRows = JSON_MAPPER.createArrayNode();
     List<QueryOuterClass.Row> rows = rs.getRowsList();
     for (QueryOuterClass.Row row : rows) {

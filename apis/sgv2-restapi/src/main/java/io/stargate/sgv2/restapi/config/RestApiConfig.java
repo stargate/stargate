@@ -52,10 +52,10 @@ public interface RestApiConfig {
    *  </pre>
    *
    * Note: this is a server side flag and the client can override this in different APIs using the
-   * query param {@value #RestOpenApiConstants.Parameters#OPTIMIZE_MAP}
+   * query param {@code RestOpenApiConstants.Parameters.COMPACT_MAP_DATA}
    */
-  @WithDefault(RestApiConstants.OPTIMIZE_MAP_DATA)
-  boolean optimizeMapData();
+  @WithDefault(RestApiConstants.COMPACT_MAP_DATA)
+  boolean compactMapData();
 
   /** Flag to either enable or disable CQL over REST API. */
   @WithDefault(RestApiConstants.CQL_DISABLED)

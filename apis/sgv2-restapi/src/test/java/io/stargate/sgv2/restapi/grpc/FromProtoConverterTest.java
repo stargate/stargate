@@ -121,11 +121,11 @@ public class FromProtoConverterTest {
   @MethodSource("fromExternalMapSamples")
   @DisplayName("Should converted Bridge/gRPC value into expected external representation")
   public void strictExternalToBridgeValueTest(
-      boolean optimizeMapData,
+      boolean compactMapData,
       Object externalValue,
       QueryOuterClass.TypeSpec typeSpec,
       QueryOuterClass.Value bridgeValue) {
-    FromProtoConverter conv = createConverter(typeSpec, optimizeMapData);
+    FromProtoConverter conv = createConverter(typeSpec, compactMapData);
     Map<String, Object> result = conv.mapFromProtoValues(Arrays.asList(bridgeValue));
 
     assertThat(result.get(TEST_COLUMN)).isEqualTo(externalValue);
@@ -163,10 +163,10 @@ public class FromProtoConverterTest {
   }
 
   private static FromProtoConverter createConverter(
-      QueryOuterClass.TypeSpec typeSpec, boolean optimizeMapData) {
+      QueryOuterClass.TypeSpec typeSpec, boolean compactMapData) {
     QueryOuterClass.ColumnSpec column =
         QueryOuterClass.ColumnSpec.newBuilder().setName(TEST_COLUMN).setType(typeSpec).build();
-    FromProtoValueCodec codec = FROM_PROTO_VALUE_CODECS.codecFor(column, optimizeMapData);
+    FromProtoValueCodec codec = FROM_PROTO_VALUE_CODECS.codecFor(column, compactMapData);
     return FromProtoConverter.construct(
         new String[] {TEST_COLUMN}, new FromProtoValueCodec[] {codec});
   }
