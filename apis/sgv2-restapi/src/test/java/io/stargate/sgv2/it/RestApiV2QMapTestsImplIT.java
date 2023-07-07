@@ -1,15 +1,14 @@
 package io.stargate.sgv2.it;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertTrue;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.restassured.specification.RequestSpecification;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
-import org.apache.http.HttpStatus;
-
 import java.util.*;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
+import org.apache.http.HttpStatus;
 
 public class RestApiV2QMapTestsImplIT {
   public static void addRowWithCompactMap(
@@ -647,8 +646,8 @@ public class RestApiV2QMapTestsImplIT {
         testBase.testKeyspaceName(),
         tableName,
         Arrays.asList("id text", "attributes map<text,int>", "firstName text"),
-            List.of("id"),
-            List.of("firstName"));
+        List.of("id"),
+        List.of("firstName"));
     // Cannot query against non-key columns, unless there's an index, so:
     testBase.createTestIndex(
         testBase.testKeyspaceName(),
@@ -706,51 +705,59 @@ public class RestApiV2QMapTestsImplIT {
         .isEqualTo(testBase.readJsonAsTree("[{\"key\":\"c\", \"value\":3}]"));
   }
 
-  public static void getAllIndexesWithCompactMap(RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
+  public static void getAllIndexesWithCompactMap(
+      RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
     Boolean optimizeMapData = getFlagForCompactDataTest(serverFlag, testDefault);
     final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
     testBase.createTestTable(
-            testBase.testKeyspaceName(),
-            tableName,
-            Arrays.asList("id text", "attributes map<text,text>", "firstName text"),
-            List.of("id"),
-            List.of("firstName"));
+        testBase.testKeyspaceName(),
+        tableName,
+        Arrays.asList("id text", "attributes map<text,text>", "firstName text"),
+        List.of("id"),
+        List.of("firstName"));
 
-    String indexName = "attributes_mapentry_idx" + "_" + serverFlag + "_" + testDefault+"_c";
+    String indexName = "attributes_mapentry_idx" + "_" + serverFlag + "_" + testDefault + "_c";
     testBase.createTestIndex(
-            testBase.testKeyspaceName(),
-            tableName,
-            "attributes",
-            indexName,
-            false,
-            CollectionIndexingType.ENTRIES);
-    String response = testBase.getAllIndexes(testBase.testKeyspaceName(), tableName, optimizeMapData);
-    List<RestApiV2QSchemaIndexesIT.IndexDesc> indexList = Arrays.asList(testBase.readJsonAs(response, RestApiV2QSchemaIndexesIT.IndexDesc[].class));
+        testBase.testKeyspaceName(),
+        tableName,
+        "attributes",
+        indexName,
+        false,
+        CollectionIndexingType.ENTRIES);
+    String response =
+        testBase.getAllIndexes(testBase.testKeyspaceName(), tableName, optimizeMapData);
+    List<RestApiV2QSchemaIndexesIT.IndexDesc> indexList =
+        Arrays.asList(testBase.readJsonAs(response, RestApiV2QSchemaIndexesIT.IndexDesc[].class));
     assertThat(indexList).hasSize(1);
     assertThat(indexList.get(0).index_name()).isEqualTo(indexName);
     assertThat(indexList.get(0).options().get("target")).isEqualTo("entries(attributes)");
   }
 
-  public static void getAllIndexesWithNonCompactMap(RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
+  public static void getAllIndexesWithNonCompactMap(
+      RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
     Boolean optimizeMapData = getFlagForNonCompactDataTest(serverFlag, testDefault);
     final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
     testBase.createTestTable(
-            testBase.testKeyspaceName(),
-            tableName,
-            Arrays.asList("id text", "attributes map<text,text>", "firstName text"),
-            List.of("id"),
-            List.of("firstName"));
+        testBase.testKeyspaceName(),
+        tableName,
+        Arrays.asList("id text", "attributes map<text,text>", "firstName text"),
+        List.of("id"),
+        List.of("firstName"));
 
-    String indexName = "attributes_mapentry_idx" + "_" + serverFlag + "_" + testDefault+"_nc";
+    String indexName = "attributes_mapentry_idx" + "_" + serverFlag + "_" + testDefault + "_nc";
     testBase.createTestIndex(
-            testBase.testKeyspaceName(),
-            tableName,
-            "attributes",
-            indexName,
-            false,
-            CollectionIndexingType.ENTRIES);
-    String response = testBase.getAllIndexes(testBase.testKeyspaceName(), tableName, optimizeMapData);
-    List<RestApiV2QSchemaIndexesIT.IndexDescOptionsAsList> indexList = Arrays.asList(testBase.readJsonAs(response, RestApiV2QSchemaIndexesIT.IndexDescOptionsAsList[].class));
+        testBase.testKeyspaceName(),
+        tableName,
+        "attributes",
+        indexName,
+        false,
+        CollectionIndexingType.ENTRIES);
+    String response =
+        testBase.getAllIndexes(testBase.testKeyspaceName(), tableName, optimizeMapData);
+    List<RestApiV2QSchemaIndexesIT.IndexDescOptionsAsList> indexList =
+        Arrays.asList(
+            testBase.readJsonAs(
+                response, RestApiV2QSchemaIndexesIT.IndexDescOptionsAsList[].class));
     assertThat(indexList).hasSize(1);
     assertThat(indexList.get(0).index_name()).isEqualTo(indexName);
     assertThat(indexList.get(0).options().get(0).get("key")).isEqualTo("target");

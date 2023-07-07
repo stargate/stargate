@@ -1,5 +1,9 @@
 package io.stargate.sgv2.it;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.startsWith;
+
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
@@ -7,18 +11,13 @@ import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.restapi.service.models.Sgv2IndexAddRequest;
-import org.apache.http.HttpStatus;
-import org.hamcrest.Matchers;
-import org.junit.jupiter.api.Test;
-
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.is;
-import static org.hamcrest.Matchers.startsWith;
+import org.apache.http.HttpStatus;
+import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
 @QuarkusTestResource(StargateTestResource.class)
@@ -345,9 +344,9 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
       Map<String, String> options) {}
 
   record IndexDescOptionsAsList(
-          String keyspace_name,
-          String table_name,
-          String index_name,
-          String kind,
-          List<Map<String, String>> options) {}
+      String keyspace_name,
+      String table_name,
+      String index_name,
+      String kind,
+      List<Map<String, String>> options) {}
 }
