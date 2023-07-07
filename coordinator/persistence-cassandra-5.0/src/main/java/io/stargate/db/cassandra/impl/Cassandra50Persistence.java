@@ -42,7 +42,7 @@ import java.util.function.Supplier;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import org.apache.cassandra.auth.AuthenticatedUser;
-import org.apache.cassandra.concurrent.LocalAwareExecutorService;
+import org.apache.cassandra.concurrent.LocalAwareExecutorPlus;
 import org.apache.cassandra.config.Config;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.cql3.QueryOptions;
@@ -121,7 +121,7 @@ public class Cassandra50Persistence
 
   private final SchemaCheck schemaCheck = new SchemaCheck();
 
-  private LocalAwareExecutorService executor;
+  private LocalAwareExecutorPlus executor;
 
   private CassandraDaemon daemon;
   private Authenticator authenticator;

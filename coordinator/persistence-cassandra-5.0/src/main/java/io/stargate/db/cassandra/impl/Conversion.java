@@ -243,7 +243,7 @@ public class Conversion {
   public static org.apache.cassandra.stargate.locator.InetAddressAndPort toExternal(
       InetAddressAndPort internal) {
     return org.apache.cassandra.stargate.locator.InetAddressAndPort.getByAddressOverrideDefaults(
-        internal.address, internal.port);
+        internal.getAddress(), internal.getPort());
   }
 
   public static InetAddressAndPort toInternal(
@@ -269,7 +269,7 @@ public class Conversion {
       InetAddressAndPort addressAndPort = entry.getKey();
       external.put(
           org.apache.cassandra.stargate.locator.InetAddressAndPort.getByAddressOverrideDefaults(
-              addressAndPort.address, addressAndPort.addressBytes, addressAndPort.port),
+              addressAndPort.getAddress(), addressAndPort.addressBytes, addressAndPort.getPort()),
           RequestFailureReason.fromCode(entry.getValue().code));
     }
     return external;

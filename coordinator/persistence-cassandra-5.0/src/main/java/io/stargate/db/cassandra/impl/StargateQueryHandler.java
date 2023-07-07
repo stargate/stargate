@@ -244,26 +244,23 @@ public class StargateQueryHandler implements QueryHandler {
           "preparing to authorize statement of type {} on {}.{}",
           castStatement.getClass().toString(),
           castStatement.keyspace(),
-          castStatement.columnFamily());
+          castStatement.table());
 
       try {
         authorization.authorizeDataRead(
-            authenticationSubject,
-            castStatement.keyspace(),
-            castStatement.columnFamily(),
-            sourceApi);
+            authenticationSubject, castStatement.keyspace(), castStatement.table(), sourceApi);
       } catch (io.stargate.auth.UnauthorizedException e) {
         throw new UnauthorizedException(
             String.format(
                 "No SELECT permission on <table %s.%s>",
-                castStatement.keyspace(), castStatement.columnFamily()));
+                castStatement.keyspace(), castStatement.table()));
       }
 
       logger.debug(
           "authorized statement of type {} on {}.{}",
           castStatement.getClass(),
           castStatement.keyspace(),
-          castStatement.columnFamily());
+          castStatement.table());
     } else if (statement instanceof ModificationStatement) {
       authorizeModificationStatement(statement, authenticationSubject, authorization, sourceApi);
     } else if (statement instanceof TruncateStatement) {
@@ -339,27 +336,23 @@ public class StargateQueryHandler implements QueryHandler {
         "preparing to authorize statement of type {} on {}.{}",
         castStatement.getClass().toString(),
         castStatement.keyspace(),
-        castStatement.columnFamily());
+        castStatement.table());
 
     try {
       authorization.authorizeDataWrite(
-          authenticationSubject,
-          castStatement.keyspace(),
-          castStatement.columnFamily(),
-          scope,
-          sourceApi);
+          authenticationSubject, castStatement.keyspace(), castStatement.table(), scope, sourceApi);
     } catch (io.stargate.auth.UnauthorizedException e) {
       throw new UnauthorizedException(
           String.format(
               "Missing correct permission on <table %s.%s>",
-              castStatement.keyspace(), castStatement.columnFamily()));
+              castStatement.keyspace(), castStatement.table()));
     }
 
     logger.debug(
         "authorized statement of type {} on {}.{}",
         castStatement.getClass(),
         castStatement.keyspace(),
-        castStatement.columnFamily());
+        castStatement.table());
   }
 
   private void authorizeAuthenticationStatement(

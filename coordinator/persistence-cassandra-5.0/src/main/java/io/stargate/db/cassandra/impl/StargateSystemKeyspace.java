@@ -198,18 +198,18 @@ public class StargateSystemKeyspace {
   }
 
   public static boolean isSystemPeers(SelectStatement statement) {
-    return statement.columnFamily().equals(SystemKeyspace.LEGACY_PEERS);
+    return statement.table().equals(SystemKeyspace.LEGACY_PEERS);
   }
 
   public static boolean isSystemPeersV2(SelectStatement statement) {
-    return statement.columnFamily().equals(SystemKeyspace.PEERS_V2);
+    return statement.table().equals(SystemKeyspace.PEERS_V2);
   }
 
   public static boolean isSystemLocalOrPeers(CQLStatement statement) {
     if (statement instanceof SelectStatement) {
       SelectStatement selectStatement = (SelectStatement) statement;
       return selectStatement.keyspace().equals(SchemaConstants.SYSTEM_KEYSPACE_NAME)
-          && (selectStatement.columnFamily().equals(SystemKeyspace.LOCAL)
+          && (selectStatement.table().equals(SystemKeyspace.LOCAL)
               || isSystemPeers(selectStatement)
               || isSystemPeersV2(selectStatement));
     }
@@ -222,7 +222,7 @@ public class StargateSystemKeyspace {
 
     String req = "INSERT INTO %s.%s (peer, %s) VALUES (?, ?)";
     executeInternal(
-        String.format(req, SYSTEM_KEYSPACE_NAME, PEERS_TABLE_NAME, columnName), ep.address, value);
+        String.format(req, SYSTEM_KEYSPACE_NAME, PEERS_TABLE_NAME, columnName), ep.getAddress(), value);
     // This column doesn't match across the two tables
     if (columnName.equals("rpc_address")) {
       columnName = "native_address";
@@ -230,8 +230,8 @@ public class StargateSystemKeyspace {
     req = "INSERT INTO %s.%s (peer, peer_port, %s) VALUES (?, ?, ?)";
     executeInternal(
         String.format(req, SYSTEM_KEYSPACE_NAME, PEERS_V2_TABLE_NAME, columnName),
-        ep.address,
-        ep.port,
+        ep.getAddress(),
+        ep.getPort(),
         value);
   }
 
@@ -241,24 +241,24 @@ public class StargateSystemKeyspace {
 
     String req = "INSERT INTO %s.%s (peer, rpc_address) VALUES (?, ?)";
     executeInternal(
-        String.format(req, SYSTEM_KEYSPACE_NAME, PEERS_TABLE_NAME), ep.address, address.address);
+        String.format(req, SYSTEM_KEYSPACE_NAME, PEERS_TABLE_NAME), ep.getAddress(), address.getAddress());
     req = "INSERT INTO %s.%s (peer, peer_port, native_address, native_port) VALUES (?, ?, ?, ?)";
     executeInternal(
         String.format(req, SYSTEM_KEYSPACE_NAME, PEERS_V2_TABLE_NAME),
-        ep.address,
-        ep.port,
-        address.address,
-        address.port);
+        ep.getAddress(),
+        ep.getPort(),
+        address.getAddress(),
+        address.getPort());
   }
 
   public static synchronized void removeEndpoint(InetAddressAndPort ep) {
     String req = "DELETE FROM %s.%s WHERE peer = ?";
-    executeInternal(String.format(req, SYSTEM_KEYSPACE_NAME, PEERS_TABLE_NAME), ep.address);
+    executeInternal(String.format(req, SYSTEM_KEYSPACE_NAME, PEERS_TABLE_NAME), ep.getAddress());
     req =
         String.format(
             "DELETE FROM %s.%s WHERE peer = ? AND peer_port = ?",
             SYSTEM_KEYSPACE_NAME, PEERS_V2_TABLE_NAME);
-    executeInternal(req, ep.address, ep.port);
+    executeInternal(req, ep.getAddress(), ep.getPort());
     forceBlockingFlush(PEERS_TABLE_NAME, PEERS_V2_TABLE_NAME);
   }
 
@@ -287,7 +287,7 @@ public class StargateSystemKeyspace {
   private static long getSeed(InetAddressAndPort inetAddress) {
     final int size = inetAddress.addressBytes.length + 4;
     ByteBuffer bytes =
-        ByteBuffer.allocate(size).put(inetAddress.addressBytes).putInt(inetAddress.port);
+        ByteBuffer.allocate(size).put(inetAddress.addressBytes).putInt(inetAddress.getPort());
     bytes.rewind();
     return MurmurHash.hash2_64(bytes, bytes.position(), bytes.remaining(), 0);
   }
