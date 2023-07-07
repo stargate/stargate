@@ -1,8 +1,15 @@
 package io.stargate.db.cassandra.impl;
 
 import java.util.List;
+
+import org.apache.cassandra.cql3.functions.UDAggregate;
+import org.apache.cassandra.cql3.functions.UDFunction;
 import org.apache.cassandra.db.marshal.AbstractType;
+import org.apache.cassandra.db.marshal.UserType;
+import org.apache.cassandra.schema.KeyspaceMetadata;
 import org.apache.cassandra.schema.SchemaChangeListener;
+import org.apache.cassandra.schema.TableMetadata;
+import org.apache.cassandra.schema.ViewMetadata;
 
 /**
  * Simple abstract {@link SchemaChangeListener} implementation that funnels all the discrete schema
@@ -10,103 +17,109 @@ import org.apache.cassandra.schema.SchemaChangeListener;
  * to do "something" on schema changes, but that something doesn't depend on the details of the
  * schema change.
  */
-abstract class SimpleCallbackMigrationListener extends SchemaChangeListener {
+abstract class SimpleCallbackMigrationListener implements SchemaChangeListener {
 
   abstract void onSchemaChange();
 
   @Override
-  public void onCreateKeyspace(String keyspace) {
+  public void onCreateKeyspace(KeyspaceMetadata keyspace) {
     onSchemaChange();
   }
 
   @Override
-  public void onCreateTable(String keyspace, String table) {
+  public void onCreateTable(TableMetadata table) {
     onSchemaChange();
   }
 
   @Override
-  public void onCreateView(String keyspace, String view) {
+  public void onCreateView(ViewMetadata view) {
     onSchemaChange();
   }
 
   @Override
-  public void onCreateType(String keyspace, String type) {
+  public void onCreateType(UserType type) {
     onSchemaChange();
   }
 
   @Override
-  public void onCreateFunction(
-      String keyspace, String function, List<AbstractType<?>> argumentTypes) {
+  public void onCreateFunction(UDFunction function) {
     onSchemaChange();
   }
 
   @Override
-  public void onCreateAggregate(
-      String keyspace, String aggregate, List<AbstractType<?>> argumentTypes) {
+  public void onCreateAggregate(UDAggregate aggregate) {
     onSchemaChange();
   }
 
   @Override
-  public void onAlterKeyspace(String keyspace) {
+  public void onAlterKeyspace(KeyspaceMetadata before, KeyspaceMetadata after) {
     onSchemaChange();
   }
 
   @Override
-  public void onAlterTable(String keyspace, String table, boolean affectsStatements) {
+  public void onPreAlterTable(TableMetadata before, TableMetadata after) {
+    // Do we need call for pre-event?
     onSchemaChange();
   }
 
   @Override
-  public void onAlterView(String keyspace, String view, boolean affectsStatements) {
+  public void onAlterTable(TableMetadata before, TableMetadata after, boolean affectStatements) {
     onSchemaChange();
   }
 
   @Override
-  public void onAlterType(String keyspace, String type) {
+  public void onPreAlterView(ViewMetadata before, ViewMetadata after) {
+    // Do we need call for pre-event?
     onSchemaChange();
   }
 
   @Override
-  public void onAlterFunction(
-      String keyspace, String function, List<AbstractType<?>> argumentTypes) {
+  public void onAlterView(ViewMetadata before, ViewMetadata after, boolean affectStatements) {
     onSchemaChange();
   }
 
   @Override
-  public void onAlterAggregate(
-      String keyspace, String aggregate, List<AbstractType<?>> argumentTypes) {
+  public void onAlterType(UserType before, UserType after) {
     onSchemaChange();
   }
 
   @Override
-  public void onDropKeyspace(String keyspace) {
+  public void onAlterFunction(UDFunction before, UDFunction after) {
     onSchemaChange();
   }
 
   @Override
-  public void onDropTable(String keyspace, String table) {
+  public void onAlterAggregate(UDAggregate before, UDAggregate after) {
     onSchemaChange();
   }
 
   @Override
-  public void onDropView(String keyspace, String view) {
+  public void onDropKeyspace(KeyspaceMetadata keyspace, boolean dropData) {
     onSchemaChange();
   }
 
   @Override
-  public void onDropType(String keyspace, String type) {
+  public void onDropTable(TableMetadata table, boolean dropData) {
     onSchemaChange();
   }
 
   @Override
-  public void onDropFunction(
-      String keyspace, String function, List<AbstractType<?>> argumentTypes) {
+  public void onDropView(ViewMetadata view, boolean dropData) {
     onSchemaChange();
   }
 
   @Override
-  public void onDropAggregate(
-      String keyspace, String aggregate, List<AbstractType<?>> argumentTypes) {
+  public void onDropType(UserType type) {
+    onSchemaChange();
+  }
+
+  @Override
+  public void onDropFunction(UDFunction function) {
+    onSchemaChange();
+  }
+
+  @Override
+  public void onDropAggregate(UDAggregate aggregate) {
     onSchemaChange();
   }
 }
