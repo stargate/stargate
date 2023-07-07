@@ -20,6 +20,7 @@ import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.Schema;
+import io.stargate.sgv2.api.common.config.ImmutableRequestParams;
 import io.stargate.sgv2.api.common.cql.builder.Predicate;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.restapi.service.models.Sgv2IndexAddRequest;
@@ -38,6 +39,8 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
   public Uni<RestResponse<Object>> getAllIndexes(
       String keyspaceName, String tableName, final Boolean compactMap) {
     final boolean compactMapData = compactMap != null ? compactMap : restApiConfig.compactMapData();
+    ImmutableRequestParams requestParams =
+        ImmutableRequestParams.builder().compactMapData(compactMapData).build();
     Query query =
         new QueryBuilder()
             .select()
@@ -51,7 +54,7 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
     // should be needed
     return getTableAsyncCheckExistence(keyspaceName, tableName, true, Response.Status.BAD_REQUEST)
         .flatMap(table -> executeQueryAsync(query))
-        .map(response -> convertRowsToResponse(response, true, compactMapData));
+        .map(response -> convertRowsToResponse(response, true, requestParams));
   }
 
   @Override

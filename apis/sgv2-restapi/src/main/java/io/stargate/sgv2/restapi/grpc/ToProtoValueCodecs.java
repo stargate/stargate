@@ -3,6 +3,7 @@ package io.stargate.sgv2.restapi.grpc;
 import io.stargate.bridge.grpc.CqlDuration;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.sgv2.api.common.config.RequestParams;
 import io.stargate.sgv2.api.common.util.ByteBufferUtils;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -64,29 +65,30 @@ public class ToProtoValueCodecs {
 
   public ToProtoValueCodecs() {}
 
-  public ToProtoValueCodec codecFor(QueryOuterClass.ColumnSpec forColumn, boolean optimizeMapData) {
-    return codecFor(forColumn, forColumn.getType(), optimizeMapData);
+  public ToProtoValueCodec codecFor(
+      QueryOuterClass.ColumnSpec forColumn, RequestParams requestParams) {
+    return codecFor(forColumn, forColumn.getType(), requestParams);
   }
 
   protected ToProtoValueCodec codecFor(
       QueryOuterClass.ColumnSpec columnSpec,
       QueryOuterClass.TypeSpec type,
-      boolean optimizeMapData) {
+      RequestParams requestParams) {
     switch (type.getSpecCase()) {
       case BASIC:
         return basicCodecFor(columnSpec, type.getBasic());
 
       case LIST:
-        return listCodecFor(columnSpec, type.getList(), optimizeMapData);
+        return listCodecFor(columnSpec, type.getList(), requestParams);
       case MAP:
-        return mapCodecFor(columnSpec, type.getMap(), optimizeMapData);
+        return mapCodecFor(columnSpec, type.getMap(), requestParams);
       case SET:
-        return setCodecFor(columnSpec, type.getSet(), optimizeMapData);
+        return setCodecFor(columnSpec, type.getSet(), requestParams);
 
       case TUPLE:
-        return tupleCodecFor(columnSpec, type.getTuple(), optimizeMapData);
+        return tupleCodecFor(columnSpec, type.getTuple(), requestParams);
       case UDT:
-        return udtCodecFor(columnSpec, type.getUdt(), optimizeMapData);
+        return udtCodecFor(columnSpec, type.getUdt(), requestParams);
 
         // Invalid cases:
       case SPEC_NOT_SET:
@@ -162,36 +164,36 @@ public class ToProtoValueCodecs {
   protected ToProtoValueCodec listCodecFor(
       QueryOuterClass.ColumnSpec columnSpec,
       QueryOuterClass.TypeSpec.List listSpec,
-      boolean optimizeMapData) {
+      RequestParams requestParams) {
     return new CollectionCodec(
-        "TypeSpec.List", codecFor(columnSpec, listSpec.getElement(), optimizeMapData), '[', ']');
+        "TypeSpec.List", codecFor(columnSpec, listSpec.getElement(), requestParams), '[', ']');
   }
 
   protected ToProtoValueCodec mapCodecFor(
       QueryOuterClass.ColumnSpec columnSpec,
       QueryOuterClass.TypeSpec.Map mapSpec,
-      boolean optimizeMapData) {
+      RequestParams requestParams) {
     return new MapCodec(
-        codecFor(columnSpec, mapSpec.getKey(), optimizeMapData),
-        codecFor(columnSpec, mapSpec.getValue(), optimizeMapData),
-        optimizeMapData);
+        codecFor(columnSpec, mapSpec.getKey(), requestParams),
+        codecFor(columnSpec, mapSpec.getValue(), requestParams),
+        requestParams.compactMapData());
   }
 
   protected ToProtoValueCodec setCodecFor(
       QueryOuterClass.ColumnSpec columnSpec,
       QueryOuterClass.TypeSpec.Set setSpec,
-      boolean optimizeMapData) {
+      RequestParams requestParams) {
     return new CollectionCodec(
-        "TypeSpec.Set", codecFor(columnSpec, setSpec.getElement(), optimizeMapData), '{', '}');
+        "TypeSpec.Set", codecFor(columnSpec, setSpec.getElement(), requestParams), '{', '}');
   }
 
   protected ToProtoValueCodec tupleCodecFor(
       QueryOuterClass.ColumnSpec columnSpec,
       QueryOuterClass.TypeSpec.Tuple tupleSpec,
-      boolean optimizeMapData) {
+      RequestParams requestParams) {
     List<ToProtoValueCodec> codecs = new ArrayList<>();
     for (QueryOuterClass.TypeSpec elementSpec : tupleSpec.getElementsList()) {
-      codecs.add(codecFor(columnSpec, elementSpec, optimizeMapData));
+      codecs.add(codecFor(columnSpec, elementSpec, requestParams));
     }
     return new TupleCodec(codecs);
   }
@@ -199,12 +201,12 @@ public class ToProtoValueCodecs {
   protected ToProtoValueCodec udtCodecFor(
       QueryOuterClass.ColumnSpec columnSpec,
       QueryOuterClass.TypeSpec.Udt udtSpec,
-      boolean optimizeMapData) {
+      RequestParams requestParams) {
     Map<String, QueryOuterClass.TypeSpec> fieldSpecs = udtSpec.getFieldsMap();
     Map<String, ToProtoValueCodec> fieldCodecs = new HashMap<>();
     for (Map.Entry<String, QueryOuterClass.TypeSpec> entry : fieldSpecs.entrySet()) {
       final String fieldName = entry.getKey();
-      fieldCodecs.put(fieldName, codecFor(columnSpec, entry.getValue(), optimizeMapData));
+      fieldCodecs.put(fieldName, codecFor(columnSpec, entry.getValue(), requestParams));
     }
     return new UDTCodec(udtSpec.getName(), fieldCodecs);
   }
@@ -793,14 +795,14 @@ public class ToProtoValueCodecs {
 
   protected static final class MapCodec extends ToProtoCodecBase {
     private final ToProtoValueCodec keyCodec, valueCodec;
-    private final boolean optimizeMapData;
+    private final boolean compactMapData;
 
     public MapCodec(
-        ToProtoValueCodec keyCodec, ToProtoValueCodec valueCodec, boolean optimizeMapData) {
+        ToProtoValueCodec keyCodec, ToProtoValueCodec valueCodec, boolean compactMapData) {
       super("TypeSpec.Map");
       this.keyCodec = keyCodec;
       this.valueCodec = valueCodec;
-      this.optimizeMapData = optimizeMapData;
+      this.compactMapData = compactMapData;
     }
 
     @Override
@@ -815,7 +817,7 @@ public class ToProtoValueCodecs {
 
     @Override
     public QueryOuterClass.Value protoValueFromStrictlyTyped(Object mapValue) {
-      if (optimizeMapData) {
+      if (compactMapData) {
         if (mapValue instanceof Map<?, ?>) {
           // Maps are actually encoded as Collections where keys and values are interleaved
           List<QueryOuterClass.Value> elements = new ArrayList<>();
@@ -842,7 +844,7 @@ public class ToProtoValueCodecs {
     @Override
     public QueryOuterClass.Value protoValueFromStringified(String value) {
       List<QueryOuterClass.Value> elements = new ArrayList<>();
-      if (optimizeMapData) {
+      if (compactMapData) {
         StringifiedValueUtil.decodeStringifiedCompactMap(value, keyCodec, valueCodec, elements);
       } else {
         StringifiedValueUtil.decodeStringifiedMap(value, keyCodec, valueCodec, elements);

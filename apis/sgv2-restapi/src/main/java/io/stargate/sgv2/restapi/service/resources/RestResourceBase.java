@@ -14,6 +14,7 @@ import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
+import io.stargate.sgv2.api.common.config.RequestParams;
 import io.stargate.sgv2.api.common.schema.SchemaManager;
 import io.stargate.sgv2.restapi.config.RestApiConfig;
 import io.stargate.sgv2.restapi.grpc.BridgeProtoValueConverters;
@@ -223,26 +224,27 @@ public abstract class RestResourceBase {
     return null;
   }
 
-  protected ToProtoConverter findProtoConverter(Schema.CqlTable tableDef, boolean compactMapData) {
-    return PROTO_CONVERTERS.toProtoConverter(tableDef, compactMapData);
+  protected ToProtoConverter findProtoConverter(
+      Schema.CqlTable tableDef, RequestParams requestParams) {
+    return PROTO_CONVERTERS.toProtoConverter(tableDef, requestParams);
   }
 
   public static RestResponse<Object> convertRowsToResponse(
-      QueryOuterClass.Response grpcResponse, boolean raw, boolean compactMapData) {
+      QueryOuterClass.Response grpcResponse, boolean raw, RequestParams requestParams) {
     final QueryOuterClass.ResultSet rs = grpcResponse.getResultSet();
     final int count = rs.getRowsCount();
 
     String pageStateStr = extractPagingStateFromResultSet(rs);
-    List<Map<String, Object>> rows = convertRows(rs, compactMapData);
+    List<Map<String, Object>> rows = convertRows(rs, requestParams);
     Object response = raw ? rows : new Sgv2RowsResponse(count, pageStateStr, rows);
     return RestResponse.ok(response);
   }
 
   protected static List<Map<String, Object>> convertRows(
-      QueryOuterClass.ResultSet rs, boolean compactMapData) {
+      QueryOuterClass.ResultSet rs, RequestParams requestParams) {
     FromProtoConverter converter =
         BridgeProtoValueConverters.instance()
-            .fromProtoConverter(rs.getColumnsList(), compactMapData);
+            .fromProtoConverter(rs.getColumnsList(), requestParams);
     List<Map<String, Object>> resultRows = new ArrayList<>();
     List<QueryOuterClass.Row> rows = rs.getRowsList();
     for (QueryOuterClass.Row row : rows) {
@@ -252,10 +254,10 @@ public abstract class RestResourceBase {
   }
 
   protected static ArrayNode convertRowsToArrayNode(
-      QueryOuterClass.ResultSet rs, boolean compactMapData) {
+      QueryOuterClass.ResultSet rs, RequestParams requestParams) {
     FromProtoConverter converter =
         BridgeProtoValueConverters.instance()
-            .fromProtoConverter(rs.getColumnsList(), compactMapData);
+            .fromProtoConverter(rs.getColumnsList(), requestParams);
     ArrayNode resultRows = JSON_MAPPER.createArrayNode();
     List<QueryOuterClass.Row> rows = rs.getRowsList();
     for (QueryOuterClass.Row row : rows) {

@@ -2,6 +2,7 @@ package io.stargate.sgv2.restapi.grpc;
 
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
+import io.stargate.sgv2.api.common.config.RequestParams;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +29,7 @@ public class BridgeProtoValueConverters {
   }
 
   public FromProtoConverter fromProtoConverter(
-      List<QueryOuterClass.ColumnSpec> columns, boolean compactMapData) {
+      List<QueryOuterClass.ColumnSpec> columns, RequestParams requestParams) {
     final String[] names = new String[columns.size()];
     final FromProtoValueCodec[] codecs = new FromProtoValueCodec[columns.size()];
 
@@ -36,7 +37,7 @@ public class BridgeProtoValueConverters {
       QueryOuterClass.ColumnSpec spec = columns.get(i);
       names[i] = spec.getName();
       try {
-        codecs[i] = FROM_PROTO_CODECS.codecFor(spec, compactMapData);
+        codecs[i] = FROM_PROTO_CODECS.codecFor(spec, requestParams);
       } catch (IllegalArgumentException e) {
         throw new IllegalArgumentException(
             String.format(
@@ -48,13 +49,13 @@ public class BridgeProtoValueConverters {
   }
 
   /** Factory method that will fetch converters for all fields. */
-  public ToProtoConverter toProtoConverter(Schema.CqlTable forTable, boolean compactMapData) {
+  public ToProtoConverter toProtoConverter(Schema.CqlTable forTable, RequestParams requestParams) {
     // retain order for error message info
     Map<String, ToProtoValueCodec> codecsByName = new LinkedHashMap<>();
-    addFields(forTable, codecsByName, forTable.getPartitionKeyColumnsList(), compactMapData);
-    addFields(forTable, codecsByName, forTable.getClusteringKeyColumnsList(), compactMapData);
-    addFields(forTable, codecsByName, forTable.getStaticColumnsList(), compactMapData);
-    addFields(forTable, codecsByName, forTable.getColumnsList(), compactMapData);
+    addFields(forTable, codecsByName, forTable.getPartitionKeyColumnsList(), requestParams);
+    addFields(forTable, codecsByName, forTable.getClusteringKeyColumnsList(), requestParams);
+    addFields(forTable, codecsByName, forTable.getStaticColumnsList(), requestParams);
+    addFields(forTable, codecsByName, forTable.getColumnsList(), requestParams);
     return new ToProtoConverter(forTable.getName(), codecsByName);
   }
 
@@ -62,10 +63,10 @@ public class BridgeProtoValueConverters {
       Schema.CqlTable tableDef,
       Map<String, ToProtoValueCodec> codecsByName,
       List<QueryOuterClass.ColumnSpec> columns,
-      boolean compactMapData) {
+      RequestParams requestParams) {
     for (QueryOuterClass.ColumnSpec column : columns) {
       try {
-        codecsByName.put(column.getName(), TO_PROTO_CODECS.codecFor(column, compactMapData));
+        codecsByName.put(column.getName(), TO_PROTO_CODECS.codecFor(column, requestParams));
       } catch (Exception e) {
         throw new IllegalArgumentException(
             String.format(

@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
+import io.stargate.sgv2.api.common.config.ImmutableRequestParams;
 import io.stargate.sgv2.api.common.cql.builder.*;
 import io.stargate.sgv2.restapi.grpc.ToProtoConverter;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
@@ -36,13 +37,14 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       throw invalidSortParameterException(e);
     }
     final boolean compactMapData = compactMap != null ? compactMap : restApiConfig.compactMapData();
+    ImmutableRequestParams requestParams =
+        ImmutableRequestParams.builder().compactMapData(compactMapData).build();
     return queryWithTableAsync(
             keyspaceName,
             tableName,
             false,
             tableDef -> {
-              final ToProtoConverter toProtoConverter =
-                  findProtoConverter(tableDef, compactMapData);
+              final ToProtoConverter toProtoConverter = findProtoConverter(tableDef, requestParams);
 
               final List<BuiltCondition> whereConditions;
               try {
@@ -71,7 +73,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
                     .build();
               }
             })
-        .map(response -> convertRowsToResponse(response, raw, compactMapData));
+        .map(response -> convertRowsToResponse(response, raw, requestParams));
   }
 
   @Override
@@ -95,13 +97,14 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     }
     final boolean compactMapData =
         (compactMap != null) ? compactMap : restApiConfig.compactMapData();
+    ImmutableRequestParams requestParams =
+        ImmutableRequestParams.builder().compactMapData(compactMapData).build();
     return queryWithTableAsync(
             keyspaceName,
             tableName,
             false,
             tableDef -> {
-              final ToProtoConverter toProtoConverter =
-                  findProtoConverter(tableDef, compactMapData);
+              final ToProtoConverter toProtoConverter = findProtoConverter(tableDef, requestParams);
               try {
                 return buildGetRowsByPKQuery(
                     keyspaceName,
@@ -118,7 +121,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
                     "Invalid path for row to find, problem: " + e.getMessage(), Status.BAD_REQUEST);
               }
             })
-        .map(response -> convertRowsToResponse(response, raw, compactMapData));
+        .map(response -> convertRowsToResponse(response, raw, requestParams));
   }
 
   @Override
@@ -133,6 +136,8 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       final Boolean compactMap) {
     final boolean compactMapData =
         (compactMap != null) ? compactMap : restApiConfig.compactMapData();
+    ImmutableRequestParams requestParams =
+        ImmutableRequestParams.builder().compactMapData(compactMapData).build();
     List<Column> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
     Map<String, Column.Order> sortOrder;
     try {
@@ -161,7 +166,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
                 .parameters(parametersForPageSizeAndState(pageSizeParam, pageStateParam))
                 .build();
     return executeQueryAsync(query)
-        .map(response -> convertRowsToResponse(response, raw, compactMapData));
+        .map(response -> convertRowsToResponse(response, raw, requestParams));
   }
 
   @Override
@@ -178,13 +183,14 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     }
     final boolean compactMapData =
         (compactMap != null) ? compactMap : restApiConfig.compactMapData();
+    ImmutableRequestParams requestParams =
+        ImmutableRequestParams.builder().compactMapData(compactMapData).build();
     return queryWithTableAsync(
             keyspaceName,
             tableName,
             false,
             tableDef -> {
-              final ToProtoConverter toProtoConverter =
-                  findProtoConverter(tableDef, compactMapData);
+              final ToProtoConverter toProtoConverter = findProtoConverter(tableDef, requestParams);
 
               try {
                 return buildAddRowQuery(keyspaceName, tableName, payloadMap, toProtoConverter);
@@ -239,13 +245,14 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     // API
     // since the converters require this flag, we set it to true here.
     final boolean compactMapData = true;
+    ImmutableRequestParams requestParams =
+        ImmutableRequestParams.builder().compactMapData(compactMapData).build();
     return queryWithTableAsync(
             keyspaceName,
             tableName,
             false,
             (tableDef) -> {
-              final ToProtoConverter toProtoConverter =
-                  findProtoConverter(tableDef, compactMapData);
+              final ToProtoConverter toProtoConverter = findProtoConverter(tableDef, requestParams);
               try {
                 return buildDeleteRowsByPKCQuery(
                     keyspaceName, tableName, path, tableDef, toProtoConverter);
@@ -266,6 +273,8 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       final boolean raw,
       final String payloadAsString,
       final boolean compactMapData) {
+    ImmutableRequestParams requestParams =
+        ImmutableRequestParams.builder().compactMapData(compactMapData).build();
     Map<String, Object> payloadMap;
     try {
       payloadMap = parseJsonAsMap(payloadAsString);
@@ -277,8 +286,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
             tableName,
             false,
             tableDef -> {
-              final ToProtoConverter toProtoConverter =
-                  findProtoConverter(tableDef, compactMapData);
+              final ToProtoConverter toProtoConverter = findProtoConverter(tableDef, requestParams);
               try {
                 return buildUpdateRowQuery(
                     keyspaceName, tableName, path, tableDef, payloadMap, toProtoConverter);

@@ -6,6 +6,7 @@ import io.grpc.StatusRuntimeException;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.sgv2.api.common.config.ImmutableRequestParams;
 import io.stargate.sgv2.api.common.cql.builder.Column;
 import io.stargate.sgv2.api.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.api.common.cql.builder.Predicate;
@@ -37,13 +38,15 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
     // That table doesn't have any map column, so this flag is not useful for this API
     // since the converters require this flag, we set it to true here.
     final boolean compactMapData = true;
+    ImmutableRequestParams requestParams =
+        ImmutableRequestParams.builder().compactMapData(compactMapData).build();
     return executeQueryAsync(query)
         .map(response -> response.getResultSet())
         .map(
             rs -> {
               // two-part conversion: first from proto to JsonNode for easier traversability,
               // then from that to actual response we need:
-              ArrayNode ksRows = convertRowsToArrayNode(rs, compactMapData);
+              ArrayNode ksRows = convertRowsToArrayNode(rs, requestParams);
               return jsonArray2Udts(keyspaceName, ksRows);
             })
         .map(udts -> raw ? udts : new Sgv2RESTResponse<>(udts))
@@ -67,9 +70,11 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
     // That table doesn't have any map column, so this flag is not useful for this API
     // since the converters require this flag, we set it to true here.
     final boolean compactMapData = true;
+    ImmutableRequestParams requestParams =
+        ImmutableRequestParams.builder().compactMapData(compactMapData).build();
     return executeQueryAsync(query)
         .map(response -> response.getResultSet())
-        .map(rs -> convertRowsToArrayNode(rs, compactMapData))
+        .map(rs -> convertRowsToArrayNode(rs, requestParams))
         .map(
             ksRows -> {
               // Must get one and only one response, verify

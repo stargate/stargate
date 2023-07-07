@@ -1,17 +1,19 @@
 package io.stargate.sgv2.restapi.grpc;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
-
 import io.stargate.bridge.grpc.CqlDuration;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
-import java.util.*;
+import io.stargate.sgv2.api.common.config.ImmutableRequestParams;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import java.util.*;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 public class FromProtoConverterTest {
   private static final String TEST_COLUMN = "test_column";
@@ -166,7 +168,9 @@ public class FromProtoConverterTest {
       QueryOuterClass.TypeSpec typeSpec, boolean compactMapData) {
     QueryOuterClass.ColumnSpec column =
         QueryOuterClass.ColumnSpec.newBuilder().setName(TEST_COLUMN).setType(typeSpec).build();
-    FromProtoValueCodec codec = FROM_PROTO_VALUE_CODECS.codecFor(column, compactMapData);
+    FromProtoValueCodec codec =
+        FROM_PROTO_VALUE_CODECS.codecFor(
+            column, ImmutableRequestParams.builder().compactMapData(compactMapData).build());
     return FromProtoConverter.construct(
         new String[] {TEST_COLUMN}, new FromProtoValueCodec[] {codec});
   }
