@@ -9,8 +9,8 @@
   </parent>
   <!-- Artifact properties -->
   <groupId>io.stargate.db.cassandra</groupId>
-  <artifactId>persistence-cassandra-5.0</artifactId>
-  <name>Stargate - Coordinator - Persistence C* 5.0</name>
+  <artifactId>persistence-cassandra-4.1</artifactId>
+  <name>Stargate - Coordinator - Persistence C* 4.1</name>
   <properties>
     <!-- If you update this, make sure to keep `cassandra.bundled-driver.version` in sync -->
     <!-- 4.1.2 depends on 3.11.0: https://mvnrepository.com/artifact/org.apache.cassandra/cassandra-all/4.1.2 -->
@@ -19,7 +19,7 @@
       The driver used internally by cassandra-all for UDFs (must match the version declared in
       cassandra-all's POM).
     -->
-    <cassandra.bundled-driver.version>3.11.0</cassandra.bundled-driver.version>
+    <cassandra.bundled-driver.version>3.11.3</cassandra.bundled-driver.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -231,7 +231,7 @@
           <instructions>
             <Bundle-Name>Cassandra-Persistence</Bundle-Name>
             <Bundle-Description>Cassandra DB component for project</Bundle-Description>
-            <Bundle-SymbolicName>io.stargate.db.cassandra_5_0</Bundle-SymbolicName>
+            <Bundle-SymbolicName>io.stargate.db.cassandra_4_1</Bundle-SymbolicName>
             <Bundle-Activator>io.stargate.db.cassandra.Cassandra41PersistenceActivator</Bundle-Activator>
             <Import-Package><![CDATA[
               org.slf4j,
@@ -275,7 +275,7 @@
   </build>
   <profiles>
     <profile>
-      <id>it-cassandra-5.0</id>
+      <id>it-cassandra-4.1</id>
       <activation>
         <activeByDefault>true</activeByDefault>
       </activation>
@@ -285,7 +285,7 @@
             <artifactId>maven-failsafe-plugin</artifactId>
             <executions>
               <execution>
-                <id>cassandra-5.0</id>
+                <id>cassandra-4.1</id>
                 <goals>
                   <goal>integration-test</goal>
                   <goal>verify</goal>

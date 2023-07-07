@@ -1,6 +1,6 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+s5.0<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://mas5.0xcven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVexrsion>4.0.0</modelVersion>
   <!-- Artifact props -->
   <groupId>io.stargate</groupId>
   <artifactId>stargate</artifactId>
@@ -195,7 +195,7 @@
         <module>persistence-common</module>
         <module>persistence-test</module>
         <module>persistence-cassandra-4.0</module>
-        <module>persistence-cassandra-4.1</module>
+        <module>persistence-cassandra-5.0</module>
         <module>persistence-dse-6.8</module>
         <module>bridge</module>
         <module>cql</module>
@@ -228,7 +228,7 @@
         <module>persistence-common</module>
         <module>persistence-test</module>
         <module>persistence-cassandra-4.0</module>
-        <module>persistence-cassandra-4.1</module>
+        <module>persistence-cassandra-5.0</module>
         <module>bridge</module>
         <module>cql</module>
         <module>auth-api</module>
