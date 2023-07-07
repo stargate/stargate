@@ -6,9 +6,9 @@ name: Stargate APIs V2
 # * manual trigger
 on:
   push:
-    branches: [ "main", "v2.1" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "main", "v2.1" ]
+    branches: [ "main" ]
   workflow_dispatch:
 
 # cancel same workflows in progress for pull request branches
@@ -19,10 +19,10 @@ concurrency:
 # Jobs structure:
 #
 # 1. Builds the coordinator without tests in order to get snapshot jar versions
-# 2. Then, in parallel
-#  a) Build and unit test the Stargate APIs
-#  b) Build coordinator docker images
-# 3. Run INT tests for Stargate APIs against coordinator images (in parallel: C*4, dse)
+# 2. Then 4 jobs in parallel
+#  a) Build and test the sgv2-docsapi
+#  b) Build coordinator docker images (x3)
+# 3. Runs INT tests for [sgv2-docsapi] (x4 in parallel, C*3, C*4, dse)
 # 4. Clean-up - deletes created docker image artifacts
 jobs:
 
@@ -39,11 +39,11 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up JDK 11
+      - name: Set up JDK 8
         uses: actions/setup-java@v3
         with:
           distribution: 'temurin'
-          java-version: '11'
+          java-version: '8'
 
       - name: Setup Maven
         env:
@@ -127,7 +127,7 @@ jobs:
     # image name needed only
     strategy:
       matrix:
-        image: [ coordinator-4_0, coordinator-dse-68 ]
+        image: [ coordinator-4_0 , coordinator-3_11, coordinator-dse-68 ]
 
     steps:
       - uses: actions/checkout@v3
@@ -255,7 +255,7 @@ jobs:
       # image - final image name to use when running int tests (-Dtesting.containers.stargate-image)
       matrix:
         project: [ sgv2-docsapi, sgv2-graphqlapi, sgv2-restapi ]
-        name: [ cassandra-40, dse-68 ]
+        name: [ cassandra-40, cassandra-311, dse-68 ]
         include:
           - name: cassandra-40
             profile: cassandra-40
@@ -263,6 +263,14 @@ jobs:
             image-cache-key: docker-coordinator-4_0-${{ needs.resolve-coordinator-docker.outputs.sha }}
             image-file: coordinator-4_0-${{ needs.resolve-coordinator-docker.outputs.sha }}.tar
             image: stargateio/coordinator-4_0:${{ needs.resolve-coordinator-docker.outputs.sha }}
+
+          - name: cassandra-311
+            profile: cassandra-311
+            repository-login: false
+            image-artifact: img-coordinator-3_11-${{ github.sha }}
+            image-cache-key: docker-coordinator-3_11-${{ needs.resolve-coordinator-docker.outputs.sha }}
+            image-file: coordinator-3_11-${{ needs.resolve-coordinator-docker.outputs.sha }}.tar
+            image: stargateio/coordinator-3_11:${{ needs.resolve-coordinator-docker.outputs.sha }}
 
           - name: dse-68
             profile: dse-68
@@ -335,4 +343,3 @@ jobs:
         run: |
           cd apis/
           ./mvnw -B -ntp verify -DskipUnitTests -pl ${{ matrix.project }} -am -P ${{ matrix.profile }} -Dquarkus.container-image.build=$CONTAINER_TEST -Dtesting.containers.stargate-image=${{ matrix.image }}
-
