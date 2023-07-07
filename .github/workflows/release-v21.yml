@@ -63,7 +63,7 @@ jobs:
           tag_name: ${{needs.resolve-tag.outputs.release-tag}}
           name: Release ${{needs.resolve-tag.outputs.release-tag}}
           draft: false
-          prerelease: false
+          prerelease: true
 
   # builds coordinator, zips stargate-lib folder and uploads the zip to the created release
   build:
@@ -571,5 +571,5 @@ jobs:
         with:
           token: ${{ secrets[matrix.secret] }}
           repository: ${{ matrix.repo }}
-          event-type: stargate-v2-release
+          event-type: stargate-v21-release
           client-payload: '{"version": "${{ needs.resolve-tag.outputs.release-tag}}"}'

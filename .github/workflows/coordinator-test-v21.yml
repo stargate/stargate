@@ -1,4 +1,4 @@
-name: Coordinator Tests
+name: Coordinator Tests v2.1
 
 # run on:
 # - push on our branches (only code paths)
@@ -13,7 +13,7 @@ name: Coordinator Tests
 on:
 
   push:
-    branches: [ "main", "v1", "V2.1" ]
+    branches: [ "v2.1" ]
     paths:
       - 'coordinator/**pom.xml'
       - 'coordinator/**/src/**'
@@ -21,7 +21,7 @@ on:
       - '.github/workflows/coordinator-test.yml'
 
   pull_request:
-    branches: [ "main", "v1" ]
+    branches: [ "v2.1" ]
     paths:
       - 'coordinator/**pom.xml'
       - 'coordinator/**/src/**'
@@ -58,7 +58,7 @@ jobs:
           python-version: '3.x'
 
       - uses: actions/setup-java@v3
-        name: Setup Java JDK 11
+        name: Setup Java JDK
         with:
           distribution: 'temurin'
           java-version: 11
@@ -107,11 +107,15 @@ jobs:
       # (see https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs)
       fail-fast: false
       matrix:
-        backend: [ cassandra-40, dse-68 ]
+        backend: [ cassandra-40, cassandra-311, dse-68 ]
         include:
           - backend: cassandra-40
             build-profile:
             test-profile: -P it-cassandra-4.0
+
+          - backend: cassandra-311
+            build-profile:
+            test-profile: -P it-cassandra-3.11
 
           - backend: dse-68
             build-profile: -P dse
@@ -138,7 +142,7 @@ jobs:
           python-version: '3.x'
 
       - uses: actions/setup-java@v3
-        name: Setup Java JDK 11
+        name: Setup Java JDK
         with:
           distribution: 'temurin'
           java-version: 11

@@ -557,7 +557,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        repo: [ 'stargate/jsonapi', 'riptano/c2']
+        repo: [ 'riptano/c2']
         include:
           - repo: stargate/jsonapi
             secret: SG_EVENTS_PAT
