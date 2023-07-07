@@ -268,7 +268,7 @@ public class StargateSystemKeyspace {
       List<ListenableFuture<CommitLogPosition>> futures = new ArrayList<>();
 
       for (String cfname : cfnames) {
-        futures.add(Keyspace.open(SYSTEM_KEYSPACE_NAME).getColumnFamilyStore(cfname).forceFlush(ColumnFamilyStore.FlushReason.INTERNALLY_FORCED);
+        futures.add(Keyspace.open(SYSTEM_KEYSPACE_NAME).getColumnFamilyStore(cfname).forceFlush(ColumnFamilyStore.FlushReason.INTERNALLY_FORCED));
       }
       FBUtilities.waitOnFutures(futures);
     }
