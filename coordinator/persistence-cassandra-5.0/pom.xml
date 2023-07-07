@@ -13,8 +13,7 @@
   <name>Stargate - Coordinator - Persistence C* 5.0</name>
   <properties>
     <!-- If you update this, make sure to keep `cassandra.bundled-driver.version` in sync -->
-    <!-- 4.1.2 depends on 3.11.0: https://mvnrepository.com/artifact/org.apache.cassandra/cassandra-all/4.1.2 -->
-    <cassandra.version>4.1.2</cassandra.version>
+    <ds-cassandra.version>4.0.7-0acaae364c19</ds-cassandra.version>
     <!--
       The driver used internally by cassandra-all for UDFs (must match the version declared in
       cassandra-all's POM).
@@ -61,10 +60,14 @@
     </dependency>
     <!-- Cassandra/DataStax -->
     <dependency>
-      <groupId>org.apache.cassandra</groupId>
-      <artifactId>cassandra-all</artifactId>
-      <version>${cassandra.version}</version>
+      <groupId>com.datastax.dse</groupId>
+      <artifactId>dse-db-all</artifactId>
+      <version>${ds-cassandra.version}</version>
       <exclusions>
+        <exclusion>
+          <groupId>io.netty</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
         <exclusion>
           <groupId>org.gridkit.jvmtool</groupId>
           <artifactId>sjk-core</artifactId>
