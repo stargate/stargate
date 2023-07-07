@@ -357,6 +357,37 @@
       </build>
     </profile>
     <profile>
+      <id>it-cassandra-5.0</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>cassandra-5.0</id>
+                <goals>
+                  <goal>integration-test</goal>
+                  <goal>verify</goal>
+                </goals>
+                <configuration>
+                  <systemPropertyVariables>
+                    <ccm.version>4.1.2</ccm.version>
+                    <stargate.test.nodes>1</stargate.test.nodes>
+                  </systemPropertyVariables>
+                  <failIfNoTests>true</failIfNoTests>
+                  <reportsDirectory>target/failsafe-reports/cassandra-5.0</reportsDirectory>
+                  <summaryFile>target/failsafe-reports/summary-cassandra-5.0.xml</summaryFile>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
       <id>it-dse-6.8</id>
       <activation>
         <activeByDefault>false</activeByDefault>
