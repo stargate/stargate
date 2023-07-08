@@ -21,6 +21,7 @@ import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.Lists;
 import org.apache.cassandra.cql3.Operation;
 import org.apache.cassandra.cql3.functions.Function;
+import org.apache.cassandra.cql3.functions.NativeFunctions;
 import org.apache.cassandra.cql3.functions.TimeFcts;
 import org.apache.cassandra.cql3.functions.UuidFcts;
 import org.apache.cassandra.cql3.statements.BatchStatement;
@@ -56,8 +57,12 @@ public class IdempotencyAnalyzer {
   private static final Set<Function> NON_IDEMPOTENT_FUNCTION;
 
   static {
+    NativeFunctions nonIdempotentFunctions = new NativeFunctions();
+    TimeFcts.addFunctionsTo(nonIdempotentFunctions);
+    UuidFcts.addFunctionsTo(nonIdempotentFunctions);
+
     NON_IDEMPOTENT_FUNCTION =
-        ImmutableSet.<Function>builder().addAll(TimeFcts.all()).addAll(UuidFcts.all()).build();
+        ImmutableSet.<Function>builder().addAll(nonIdempotentFunctions.getFunctions()).build();
   }
 
   public static boolean isIdempotent(CQLStatement statement) {
