@@ -55,15 +55,14 @@ public class DelegatingAuthorizer extends CassandraAuthorizer {
   }
 
   @Override
-  public void grant(
+  public Set<Permission> grant(
       AuthenticatedUser performer,
       Set<Permission> permissions,
       IResource resource,
       RoleResource grantee)
       throws RequestValidationException, RequestExecutionException {
     if (authProcessor == null) {
-      super.grant(performer, permissions, resource, grantee);
-      return;
+      return super.grant(performer, permissions, resource, grantee);
     }
 
     CompletionStage<Void> stage =
@@ -76,18 +75,18 @@ public class DelegatingAuthorizer extends CassandraAuthorizer {
             role(grantee));
 
     get(stage);
+    return permissions;
   }
 
   @Override
-  public void revoke(
+  public Set<Permission> revoke(
       AuthenticatedUser performer,
       Set<Permission> permissions,
       IResource resource,
       RoleResource revokee)
       throws RequestValidationException, RequestExecutionException {
     if (authProcessor == null) {
-      super.revoke(performer, permissions, resource, revokee);
-      return;
+      return super.revoke(performer, permissions, resource, revokee);
     }
 
     CompletionStage<Void> stage =
@@ -100,6 +99,7 @@ public class DelegatingAuthorizer extends CassandraAuthorizer {
             role(revokee));
 
     get(stage);
+    return permissions;
   }
 
   private static void get(CompletionStage<Void> stage) {
