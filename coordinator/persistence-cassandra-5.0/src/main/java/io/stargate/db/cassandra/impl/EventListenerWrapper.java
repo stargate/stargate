@@ -2,10 +2,17 @@ package io.stargate.db.cassandra.impl;
 
 import io.stargate.db.EventListener;
 import java.util.List;
-import org.apache.cassandra.db.marshal.AbstractType;
-import org.apache.cassandra.schema.SchemaChangeListener;
 
-public class EventListenerWrapper extends SchemaChangeListener {
+import org.apache.cassandra.cql3.functions.UDAggregate;
+import org.apache.cassandra.cql3.functions.UDFunction;
+import org.apache.cassandra.db.marshal.AbstractType;
+import org.apache.cassandra.db.marshal.UserType;
+import org.apache.cassandra.schema.KeyspaceMetadata;
+import org.apache.cassandra.schema.SchemaChangeListener;
+import org.apache.cassandra.schema.TableMetadata;
+import org.apache.cassandra.schema.ViewMetadata;
+
+public class EventListenerWrapper implements SchemaChangeListener {
   private final EventListener wrapped;
 
   EventListenerWrapper(EventListener wrapped) {
@@ -13,98 +20,106 @@ public class EventListenerWrapper extends SchemaChangeListener {
   }
 
   @Override
-  public void onCreateKeyspace(String keyspace) {
-    wrapped.onCreateKeyspace(keyspace);
+  public void onCreateKeyspace(KeyspaceMetadata keyspace) {
+    wrapped.onCreateKeyspace(keyspace.name);
   }
 
   @Override
-  public void onCreateTable(String keyspace, String table) {
-    wrapped.onCreateTable(keyspace, table);
+  public void onCreateTable(TableMetadata table) {
+    wrapped.onCreateTable(table.keyspace, table.name);
   }
 
   @Override
-  public void onCreateView(String keyspace, String view) {
-    wrapped.onCreateView(keyspace, view);
+  public void onCreateView(ViewMetadata view) {
+    wrapped.onCreateView(view.keyspace(), view.name());
   }
 
   @Override
-  public void onCreateType(String keyspace, String type) {
-    wrapped.onCreateType(keyspace, type);
+  public void onCreateType(UserType type) {
+    wrapped.onCreateType(type.keyspace, type.getNameAsString());
   }
 
   @Override
-  public void onCreateFunction(
-      String keyspace, String function, List<AbstractType<?>> argumentTypes) {
-    wrapped.onCreateFunction(keyspace, function, AbstractType.asCQLTypeStringList(argumentTypes));
+  public void onCreateFunction(UDFunction function) {
+    wrapped.onCreateFunction(function.name().keyspace, function.name().name, AbstractType.asCQLTypeStringList(function.argTypes()));
   }
 
   @Override
-  public void onCreateAggregate(
-      String keyspace, String aggregate, List<AbstractType<?>> argumentTypes) {
-    wrapped.onCreateAggregate(keyspace, aggregate, AbstractType.asCQLTypeStringList(argumentTypes));
+  public void onCreateAggregate(UDAggregate aggregate) {
+    wrapped.onCreateAggregate(aggregate.name().keyspace, aggregate.name().name, AbstractType.asCQLTypeStringList(aggregate.argTypes()));
   }
 
   @Override
-  public void onAlterKeyspace(String keyspace) {
-    wrapped.onAlterKeyspace(keyspace);
+  public void onAlterKeyspace(KeyspaceMetadata before, KeyspaceMetadata after) {
+    wrapped.onAlterKeyspace(before.name);
   }
 
   @Override
-  public void onAlterTable(String keyspace, String table, boolean affectsStatements) {
-    wrapped.onAlterTable(keyspace, table);
+  public void onPreAlterTable(TableMetadata before, TableMetadata after) {
+    // What to do here?
   }
 
   @Override
-  public void onAlterView(String keyspace, String view, boolean affectsStatements) {
-    wrapped.onAlterView(keyspace, view);
+  public void onAlterTable(TableMetadata before, TableMetadata after, boolean affectStatements) {
+    wrapped.onAlterTable(before.keyspace, before.name);
   }
 
   @Override
-  public void onAlterType(String keyspace, String type) {
-    wrapped.onAlterType(keyspace, type);
+  public void onPreAlterView(ViewMetadata before, ViewMetadata after) {
+    // What to do here?
   }
 
   @Override
-  public void onAlterFunction(
-      String keyspace, String function, List<AbstractType<?>> argumentTypes) {
-    wrapped.onAlterFunction(keyspace, function, AbstractType.asCQLTypeStringList(argumentTypes));
+  public void onAlterView(ViewMetadata before, ViewMetadata after, boolean affectStatements) {
+    wrapped.onAlterView(before.keyspace(), before.name());
   }
 
   @Override
-  public void onAlterAggregate(
-      String keyspace, String aggregate, List<AbstractType<?>> argumentTypes) {
-    wrapped.onAlterAggregate(keyspace, aggregate, AbstractType.asCQLTypeStringList(argumentTypes));
+  public void onAlterType(UserType before, UserType after) {
+    wrapped.onAlterType(before.keyspace, before.getNameAsString());
   }
 
   @Override
-  public void onDropKeyspace(String keyspace) {
-    wrapped.onDropKeyspace(keyspace);
+  public void onAlterFunction(UDFunction before, UDFunction after) {
+    wrapped.onAlterFunction(before.name().keyspace, before.name().name,
+            AbstractType.asCQLTypeStringList(before.argTypes()));
   }
 
   @Override
-  public void onDropTable(String keyspace, String table) {
-    wrapped.onDropTable(keyspace, table);
+  public void onAlterAggregate(UDAggregate before, UDAggregate after) {
+    wrapped.onAlterAggregate(before.name().keyspace, before.name().name,
+            AbstractType.asCQLTypeStringList(before.argTypes()));
   }
 
   @Override
-  public void onDropView(String keyspace, String view) {
-    wrapped.onDropView(keyspace, view);
+  public void onDropKeyspace(KeyspaceMetadata keyspace, boolean dropData) {
+    wrapped.onDropKeyspace(keyspace.name);
   }
 
   @Override
-  public void onDropType(String keyspace, String type) {
-    wrapped.onDropType(keyspace, type);
+  public void onDropTable(TableMetadata table, boolean dropData) {
+    wrapped.onDropTable(table.keyspace, table.name);
   }
 
   @Override
-  public void onDropFunction(
-      String keyspace, String function, List<AbstractType<?>> argumentTypes) {
-    wrapped.onDropFunction(keyspace, function, AbstractType.asCQLTypeStringList(argumentTypes));
+  public void onDropView(ViewMetadata view, boolean dropData) {
+    wrapped.onDropView(view.keyspace(), view.name());
   }
 
   @Override
-  public void onDropAggregate(
-      String keyspace, String aggregate, List<AbstractType<?>> argumentTypes) {
-    wrapped.onDropAggregate(keyspace, aggregate, AbstractType.asCQLTypeStringList(argumentTypes));
+  public void onDropType(UserType type) {
+    wrapped.onDropType(type.keyspace, type.getNameAsString());
+  }
+
+  @Override
+  public void onDropFunction(UDFunction function) {
+    wrapped.onDropFunction(function.name().keyspace, function.name().name,
+            AbstractType.asCQLTypeStringList(function.argTypes()));
+  }
+
+  @Override
+  public void onDropAggregate(UDAggregate aggregate) {
+    wrapped.onDropAggregate(aggregate.name().keyspace, aggregate.name().name,
+            AbstractType.asCQLTypeStringList(aggregate.argTypes()));
   }
 }
