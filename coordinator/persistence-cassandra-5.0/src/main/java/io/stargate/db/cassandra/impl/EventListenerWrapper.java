@@ -1,8 +1,6 @@
 package io.stargate.db.cassandra.impl;
 
 import io.stargate.db.EventListener;
-import java.util.List;
-
 import org.apache.cassandra.cql3.functions.UDAggregate;
 import org.apache.cassandra.cql3.functions.UDFunction;
 import org.apache.cassandra.db.marshal.AbstractType;
@@ -41,12 +39,18 @@ public class EventListenerWrapper implements SchemaChangeListener {
 
   @Override
   public void onCreateFunction(UDFunction function) {
-    wrapped.onCreateFunction(function.name().keyspace, function.name().name, AbstractType.asCQLTypeStringList(function.argTypes()));
+    wrapped.onCreateFunction(
+        function.name().keyspace,
+        function.name().name,
+        AbstractType.asCQLTypeStringList(function.argTypes()));
   }
 
   @Override
   public void onCreateAggregate(UDAggregate aggregate) {
-    wrapped.onCreateAggregate(aggregate.name().keyspace, aggregate.name().name, AbstractType.asCQLTypeStringList(aggregate.argTypes()));
+    wrapped.onCreateAggregate(
+        aggregate.name().keyspace,
+        aggregate.name().name,
+        AbstractType.asCQLTypeStringList(aggregate.argTypes()));
   }
 
   @Override
@@ -81,14 +85,18 @@ public class EventListenerWrapper implements SchemaChangeListener {
 
   @Override
   public void onAlterFunction(UDFunction before, UDFunction after) {
-    wrapped.onAlterFunction(before.name().keyspace, before.name().name,
-            AbstractType.asCQLTypeStringList(before.argTypes()));
+    wrapped.onAlterFunction(
+        before.name().keyspace,
+        before.name().name,
+        AbstractType.asCQLTypeStringList(before.argTypes()));
   }
 
   @Override
   public void onAlterAggregate(UDAggregate before, UDAggregate after) {
-    wrapped.onAlterAggregate(before.name().keyspace, before.name().name,
-            AbstractType.asCQLTypeStringList(before.argTypes()));
+    wrapped.onAlterAggregate(
+        before.name().keyspace,
+        before.name().name,
+        AbstractType.asCQLTypeStringList(before.argTypes()));
   }
 
   @Override
@@ -113,13 +121,17 @@ public class EventListenerWrapper implements SchemaChangeListener {
 
   @Override
   public void onDropFunction(UDFunction function) {
-    wrapped.onDropFunction(function.name().keyspace, function.name().name,
-            AbstractType.asCQLTypeStringList(function.argTypes()));
+    wrapped.onDropFunction(
+        function.name().keyspace,
+        function.name().name,
+        AbstractType.asCQLTypeStringList(function.argTypes()));
   }
 
   @Override
   public void onDropAggregate(UDAggregate aggregate) {
-    wrapped.onDropAggregate(aggregate.name().keyspace, aggregate.name().name,
-            AbstractType.asCQLTypeStringList(aggregate.argTypes()));
+    wrapped.onDropAggregate(
+        aggregate.name().keyspace,
+        aggregate.name().name,
+        AbstractType.asCQLTypeStringList(aggregate.argTypes()));
   }
 }
