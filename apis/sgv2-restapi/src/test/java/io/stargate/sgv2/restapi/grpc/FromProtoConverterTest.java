@@ -103,7 +103,36 @@ public class FromProtoConverterTest {
           },
           mapType(QueryOuterClass.TypeSpec.Basic.INT, QueryOuterClass.TypeSpec.Basic.BOOLEAN),
           Values.of(
-              Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false))))
+              Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false)))),
+      arguments(
+          true,
+          new LinkedHashMap<>() {
+            {
+              put(
+                  "k1",
+                  new LinkedHashMap<>() {
+                    {
+                      put(123, true);
+                    }
+                  });
+              put(
+                  "k2",
+                  new LinkedHashMap<>() {
+                    {
+                      put(456, false);
+                    }
+                  });
+            }
+          },
+          mapType(
+              QueryOuterClass.TypeSpec.Basic.VARCHAR,
+              mapType(QueryOuterClass.TypeSpec.Basic.INT, QueryOuterClass.TypeSpec.Basic.BOOLEAN)),
+          Values.of(
+              Arrays.asList(
+                  Values.of("k1"),
+                  Values.of(Arrays.asList(Values.of(123), Values.of(true))),
+                  Values.of("k2"),
+                  Values.of(Arrays.asList(Values.of(456), Values.of(false))))))
     };
   }
 
@@ -209,6 +238,17 @@ public class FromProtoConverterTest {
     return QueryOuterClass.TypeSpec.newBuilder()
         .setMap(
             QueryOuterClass.TypeSpec.Map.newBuilder().setKey(keyType).setValue(valueType).build())
+        .build();
+  }
+
+  private static QueryOuterClass.TypeSpec mapType(
+      QueryOuterClass.TypeSpec.Basic basicKeyType, QueryOuterClass.TypeSpec valueType) {
+    return QueryOuterClass.TypeSpec.newBuilder()
+        .setMap(
+            QueryOuterClass.TypeSpec.Map.newBuilder()
+                .setKey(basicType(basicKeyType))
+                .setValue(valueType)
+                .build())
         .build();
   }
 }

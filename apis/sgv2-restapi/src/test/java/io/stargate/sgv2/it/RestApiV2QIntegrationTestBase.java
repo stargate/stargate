@@ -230,6 +230,23 @@ public abstract class RestApiV2QIntegrationTestBase {
     return map;
   }
 
+  protected Map<String, Object> map(
+      String key1,
+      Object value1,
+      String key2,
+      Object value2,
+      String key3,
+      Object value3,
+      String key4,
+      Object value4) {
+    Map<String, Object> map = new LinkedHashMap<>();
+    map.put(key1, value1);
+    map.put(key2, value2);
+    map.put(key3, value3);
+    map.put(key4, value4);
+    return map;
+  }
+
   /*
   /////////////////////////////////////////////////////////////////////////
   // JSON handling, generic

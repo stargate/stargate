@@ -5,6 +5,7 @@ import static org.junit.Assert.assertTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
+import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
 import java.util.*;
@@ -288,7 +289,11 @@ public class RestApiV2QMapTestsImplIT {
     testBase.createTestTable(
         testBase.testKeyspaceName(),
         tableName,
-        Arrays.asList("name text", "properties map<text,text>", "events map<int,boolean>"),
+        Arrays.asList(
+            "name text",
+            "properties map<text,text>",
+            "events map<int,boolean>",
+            "pairs map<text,tuple<boolean,int>>"),
         Arrays.asList("name"),
         null);
 
@@ -296,6 +301,7 @@ public class RestApiV2QMapTestsImplIT {
     row.put("name", "alice");
     row.put("properties", "{'key1': 'value1', 'key2': 'value2'}");
     row.put("events", "{123: true, 456: false}");
+    row.put("pairs", "{'key1': (true, 1), 'key2': (false, 2)}");
     testBase.insertRow(testBase.testKeyspaceName(), tableName, row, compactMapData);
 
     // And verify
@@ -308,6 +314,10 @@ public class RestApiV2QMapTestsImplIT {
     assertThat(readRow.get(0).get("properties").get("key2").asText()).isEqualTo("value2");
     assertThat(readRow.get(0).get("events").get("123").asBoolean()).isEqualTo(true);
     assertThat(readRow.get(0).get("events").get("456").asBoolean()).isEqualTo(false);
+    assertThat(readRow.get(0).get("pairs").get("key1").get(0).asBoolean()).isEqualTo(true);
+    assertThat(readRow.get(0).get("pairs").get("key1").get(1).asInt()).isEqualTo(1);
+    assertThat(readRow.get(0).get("pairs").get("key2").get(0).asBoolean()).isEqualTo(false);
+    assertThat(readRow.get(0).get("pairs").get("key2").get(1).asInt()).isEqualTo(2);
   }
 
   public static void getRowsWithNonCompactMap(
@@ -317,7 +327,11 @@ public class RestApiV2QMapTestsImplIT {
     testBase.createTestTable(
         testBase.testKeyspaceName(),
         tableName,
-        Arrays.asList("name text", "properties map<text,text>", "events map<int,boolean>"),
+        Arrays.asList(
+            "name text",
+            "properties map<text,text>",
+            "events map<int,boolean>",
+            "pairs map<text,tuple<boolean,int>>"),
         Arrays.asList("name"),
         null);
 
@@ -326,6 +340,8 @@ public class RestApiV2QMapTestsImplIT {
     row.put(
         "properties", "[{'key': 'key1', 'value': 'value1' }, {'key': 'key2', 'value' : 'value2'}]");
     row.put("events", "[{'key': 123, 'value': true }, {'key': 456, 'value' : false}]");
+    row.put(
+        "pairs", "[{'key': 'key1', 'value': (true, 1) }, {'key': 'key2', 'value' : (false, 2)}]");
     testBase.insertRow(testBase.testKeyspaceName(), tableName, row, compactMapData);
 
     // And verify
@@ -342,6 +358,12 @@ public class RestApiV2QMapTestsImplIT {
     assertThat(readRow.get(0).get("events").get(0).get("value").asBoolean()).isEqualTo(true);
     assertThat(readRow.get(0).get("events").get(1).get("key").asInt()).isEqualTo(456);
     assertThat(readRow.get(0).get("events").get(1).get("value").asBoolean()).isEqualTo(false);
+    assertThat(readRow.get(0).get("pairs").get(0).get("key").asText()).isEqualTo("key1");
+    assertThat(readRow.get(0).get("pairs").get(0).get("value").get(0).asBoolean()).isEqualTo(true);
+    assertThat(readRow.get(0).get("pairs").get(0).get("value").get(1).asInt()).isEqualTo(1);
+    assertThat(readRow.get(0).get("pairs").get(1).get("key").asText()).isEqualTo("key2");
+    assertThat(readRow.get(0).get("pairs").get(1).get("value").get(0).asBoolean()).isEqualTo(false);
+    assertThat(readRow.get(0).get("pairs").get(1).get("value").get(1).asInt()).isEqualTo(2);
   }
 
   public static void getAllRowsWithCompactMap(
@@ -594,10 +616,29 @@ public class RestApiV2QMapTestsImplIT {
       RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
     Boolean compactMapData = getFlagForCompactDataTest(serverFlag, testDefault);
     final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
+    final String udtName = "testUDT" + (testDefault ? "1" : "2") + (serverFlag ? "1" : "2") + "_c";
+    String udtCreate =
+        "{\"name\": \""
+            + udtName
+            + "\", \"fields\":"
+            + "[{\"name\":\"name\",\"typeDefinition\":\"text\"},"
+            + "{\"name\":\"age\",\"typeDefinition\":\"int\"}]}";
+    testBase
+        .givenWithAuth()
+        .contentType(ContentType.JSON)
+        .body(udtCreate)
+        .when()
+        .post(testBase.endpointPathForUDTAdd(testBase.testKeyspaceName()))
+        .then()
+        .statusCode(HttpStatus.SC_CREATED);
     testBase.createTestTable(
         testBase.testKeyspaceName(),
         tableName,
-        Arrays.asList("id text", "attributes map<text,text>", "firstName text"),
+        Arrays.asList(
+            "id text",
+            "attributes map<text,text>",
+            "firstName text",
+            "info1 map<text,frozen<" + udtName + ">>"),
         Arrays.asList("id"),
         Arrays.asList("firstName"));
     // Cannot query against non-key columns, unless there's an index, so:
@@ -615,7 +656,15 @@ public class RestApiV2QMapTestsImplIT {
         Arrays.asList(
             testBase.map("id", 1, "firstName", "Bob", "attributes", testBase.map("a", "1")),
             testBase.map("id", 1, "firstName", "Dave", "attributes", testBase.map("b", "2")),
-            testBase.map("id", 1, "firstName", "Fred", "attributes", testBase.map("c", "3"))),
+            testBase.map(
+                "id",
+                1,
+                "firstName",
+                "Fred",
+                "attributes",
+                testBase.map("c", "3"),
+                "info1",
+                testBase.map("a", testBase.map("name", "Bob", "age", 42)))),
         compactMapData);
 
     // First, no match
@@ -636,16 +685,37 @@ public class RestApiV2QMapTestsImplIT {
     assertThat(rows.at("/0/firstName").asText()).isEqualTo("Fred");
     // Also verify how Map values serialized (see [stargate#2577])
     assertThat(rows.at("/0/attributes")).isEqualTo(testBase.readJsonAsTree("{\"c\":\"3\"}"));
+    assertThat(rows.at("/0/info1"))
+        .isEqualTo(testBase.readJsonAsTree("{\"a\":{\"name\":\"Bob\",\"age\":42}}"));
   }
 
   public static void getRowsWithWhereWithNonCompactMap(
       RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
     Boolean compactMapData = getFlagForNonCompactDataTest(serverFlag, testDefault);
     final String tableName = testBase.testTableName() + (testDefault ? "1" : "2");
+    final String udtName = "testUDT" + (testDefault ? "1" : "2") + (serverFlag ? "1" : "2") + "_nc";
+    String udtCreate =
+        "{\"name\": \""
+            + udtName
+            + "\", \"fields\":"
+            + "[{\"name\":\"name\",\"typeDefinition\":\"text\"},"
+            + "{\"name\":\"age\",\"typeDefinition\":\"int\"}]}";
+    testBase
+        .givenWithAuth()
+        .contentType(ContentType.JSON)
+        .body(udtCreate)
+        .when()
+        .post(testBase.endpointPathForUDTAdd(testBase.testKeyspaceName()))
+        .then()
+        .statusCode(HttpStatus.SC_CREATED);
     testBase.createTestTable(
         testBase.testKeyspaceName(),
         tableName,
-        Arrays.asList("id text", "attributes map<text,int>", "firstName text"),
+        Arrays.asList(
+            "id text",
+            "attributes map<text,int>",
+            "firstName text",
+            "info1 map<text,frozen<" + udtName + ">>"),
         List.of("id"),
         List.of("firstName"));
     // Cannot query against non-key columns, unless there's an index, so:
@@ -681,7 +751,10 @@ public class RestApiV2QMapTestsImplIT {
                 "firstName",
                 "Fred",
                 "attributes",
-                testBase.list(testBase.map("key", "c", "value", 3)))),
+                testBase.list(testBase.map("key", "c", "value", 3)),
+                "info1",
+                testBase.list(
+                    testBase.map("key", "a", "value", testBase.map("name", "Bob", "age", 42))))),
         compactMapData);
 
     // First, no match
@@ -703,6 +776,9 @@ public class RestApiV2QMapTestsImplIT {
     // Also verify how Map values serialized (see [stargate#2577])
     assertThat(rows.at("/0/attributes"))
         .isEqualTo(testBase.readJsonAsTree("[{\"key\":\"c\", \"value\":3}]"));
+    assertThat(rows.at("/0/info1"))
+        .isEqualTo(
+            testBase.readJsonAsTree("[{\"key\":\"a\", \"value\":{\"name\":\"Bob\",\"age\":42}}]"));
   }
 
   public static void getAllIndexesWithCompactMap(

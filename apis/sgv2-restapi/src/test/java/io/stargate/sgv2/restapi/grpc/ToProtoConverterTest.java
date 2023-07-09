@@ -282,6 +282,22 @@ public class ToProtoConverterTest {
                   Values.of("value11"),
                   Values.of("key2"),
                   Values.of("value12")))),
+      arguments(
+          false,
+          "[{'key': 'black', 'value' : [{'key':'123', 'value': '456'}]}]",
+          mapType(TypeSpec.Basic.VARCHAR, mapType(TypeSpec.Basic.VARCHAR, TypeSpec.Basic.VARCHAR)),
+          Values.of(
+              Arrays.asList(
+                  Values.of("black"),
+                  Values.of(Arrays.asList(Values.of("123"), Values.of("456")))))),
+      arguments(
+          true,
+          "{'black' : {'123' : '456'}}",
+          mapType(TypeSpec.Basic.VARCHAR, mapType(TypeSpec.Basic.VARCHAR, TypeSpec.Basic.VARCHAR)),
+          Values.of(
+              Arrays.asList(
+                  Values.of("black"),
+                  Values.of(Arrays.asList(Values.of("123"), Values.of("456"))))))
     };
   }
 
@@ -369,6 +385,13 @@ public class ToProtoConverterTest {
 
   private static TypeSpec mapType(TypeSpec.Basic basicKeyType, TypeSpec.Basic basicValueType) {
     return mapType(basicType(basicKeyType), basicType(basicValueType));
+  }
+
+  private static TypeSpec mapType(TypeSpec.Basic basicKeyType, TypeSpec valueType) {
+    return TypeSpec.newBuilder()
+        .setMap(
+            TypeSpec.Map.newBuilder().setKey(basicType(basicKeyType)).setValue(valueType).build())
+        .build();
   }
 
   private static TypeSpec mapType(TypeSpec keyType, TypeSpec valueType) {
