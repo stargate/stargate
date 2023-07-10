@@ -281,7 +281,7 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
 
   private InetAddressAndPort getNativeAddress(InetAddressAndPort endpoint) {
     try {
-      return InetAddressAndPort.getByName(StorageService.instance.getNativeaddress(endpoint, true));
+      return InetAddressAndPort.getByName(StorageService.instance.getNativeAddress(endpoint, true));
     } catch (UnknownHostException e) {
       // That should not happen, so log an error, but return the
       // endpoint address since there's a good change this is right
