@@ -6,11 +6,12 @@ import io.grpc.StatusRuntimeException;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
-import io.stargate.sgv2.api.common.config.ImmutableRequestParams;
+import io.stargate.sgv2.api.common.config.RequestParams;
 import io.stargate.sgv2.api.common.cql.builder.Column;
 import io.stargate.sgv2.api.common.cql.builder.ImmutableColumn;
 import io.stargate.sgv2.api.common.cql.builder.Predicate;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
+import io.stargate.sgv2.restapi.config.RestApiUtils;
 import io.stargate.sgv2.restapi.service.models.*;
 import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
 import jakarta.ws.rs.WebApplicationException;
@@ -37,9 +38,9 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
     // User defined types are stored in a table called "types" in the system_schema keyspace.
     // That table doesn't have any map column, so this flag is not useful for this API
     // since the converters require this flag, we set it to true here.
-    final boolean compactMapData = true;
-    ImmutableRequestParams requestParams =
-        ImmutableRequestParams.builder().compactMapData(compactMapData).build();
+    final Boolean compactMap = true;
+    final RequestParams requestParams = RestApiUtils.getRequestParams(restApiConfig, compactMap);
+
     return executeQueryAsync(query)
         .map(response -> response.getResultSet())
         .map(
@@ -69,9 +70,8 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
     // User defined types are stored in a table called "types" in the system_schema keyspace.
     // That table doesn't have any map column, so this flag is not useful for this API
     // since the converters require this flag, we set it to true here.
-    final boolean compactMapData = true;
-    ImmutableRequestParams requestParams =
-        ImmutableRequestParams.builder().compactMapData(compactMapData).build();
+    final Boolean compactMap = true;
+    final RequestParams requestParams = RestApiUtils.getRequestParams(restApiConfig, compactMap);
     return executeQueryAsync(query)
         .map(response -> response.getResultSet())
         .map(rs -> convertRowsToArrayNode(rs, requestParams))

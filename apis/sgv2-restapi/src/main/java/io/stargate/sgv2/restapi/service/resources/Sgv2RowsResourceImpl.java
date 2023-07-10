@@ -4,8 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.Schema;
-import io.stargate.sgv2.api.common.config.ImmutableRequestParams;
+import io.stargate.sgv2.api.common.config.RequestParams;
 import io.stargate.sgv2.api.common.cql.builder.*;
+import io.stargate.sgv2.restapi.config.RestApiUtils;
 import io.stargate.sgv2.restapi.grpc.ToProtoConverter;
 import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
 import jakarta.ws.rs.WebApplicationException;
@@ -36,9 +37,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     } catch (IllegalArgumentException e) {
       throw invalidSortParameterException(e);
     }
-    final boolean compactMapData = compactMap != null ? compactMap : restApiConfig.compactMapData();
-    ImmutableRequestParams requestParams =
-        ImmutableRequestParams.builder().compactMapData(compactMapData).build();
+    final RequestParams requestParams = RestApiUtils.getRequestParams(restApiConfig, compactMap);
     return queryWithTableAsync(
             keyspaceName,
             tableName,
@@ -95,10 +94,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     } catch (IllegalArgumentException e) {
       throw invalidSortParameterException(e);
     }
-    final boolean compactMapData =
-        (compactMap != null) ? compactMap : restApiConfig.compactMapData();
-    ImmutableRequestParams requestParams =
-        ImmutableRequestParams.builder().compactMapData(compactMapData).build();
+    final RequestParams requestParams = RestApiUtils.getRequestParams(restApiConfig, compactMap);
     return queryWithTableAsync(
             keyspaceName,
             tableName,
@@ -134,10 +130,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       final boolean raw,
       final String sortJson,
       final Boolean compactMap) {
-    final boolean compactMapData =
-        (compactMap != null) ? compactMap : restApiConfig.compactMapData();
-    ImmutableRequestParams requestParams =
-        ImmutableRequestParams.builder().compactMapData(compactMapData).build();
+    final RequestParams requestParams = RestApiUtils.getRequestParams(restApiConfig, compactMap);
     List<Column> columns = isStringEmpty(fields) ? Collections.emptyList() : splitColumns(fields);
     Map<String, Column.Order> sortOrder;
     try {
@@ -181,10 +174,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     } catch (Exception e) {
       throw invalidPayloadException(e);
     }
-    final boolean compactMapData =
-        (compactMap != null) ? compactMap : restApiConfig.compactMapData();
-    ImmutableRequestParams requestParams =
-        ImmutableRequestParams.builder().compactMapData(compactMapData).build();
+    final RequestParams requestParams = RestApiUtils.getRequestParams(restApiConfig, compactMap);
     return queryWithTableAsync(
             keyspaceName,
             tableName,
@@ -211,13 +201,8 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       final boolean raw,
       final String payload,
       final Boolean compactMap) {
-    return modifyRow(
-        keyspaceName,
-        tableName,
-        path,
-        raw,
-        payload,
-        (compactMap != null) ? compactMap : restApiConfig.compactMapData());
+    final RequestParams requestParams = RestApiUtils.getRequestParams(restApiConfig, compactMap);
+    return modifyRow(keyspaceName, tableName, path, raw, payload, requestParams);
   }
 
   @Override
@@ -228,13 +213,8 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       final boolean raw,
       final String payload,
       final Boolean compactMap) {
-    return modifyRow(
-        keyspaceName,
-        tableName,
-        path,
-        raw,
-        payload,
-        (compactMap != null) ? compactMap : restApiConfig.compactMapData());
+    final RequestParams requestParams = RestApiUtils.getRequestParams(restApiConfig, compactMap);
+    return modifyRow(keyspaceName, tableName, path, raw, payload, requestParams);
   }
 
   @Override
@@ -244,9 +224,8 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
     // Since this flag is used only for map data in the primary key, this is not supported in this
     // API
     // since the converters require this flag, we set it to true here.
-    final boolean compactMapData = true;
-    ImmutableRequestParams requestParams =
-        ImmutableRequestParams.builder().compactMapData(compactMapData).build();
+    final Boolean compactMap = true;
+    final RequestParams requestParams = RestApiUtils.getRequestParams(restApiConfig, compactMap);
     return queryWithTableAsync(
             keyspaceName,
             tableName,
@@ -272,9 +251,7 @@ public class Sgv2RowsResourceImpl extends RestResourceBase implements Sgv2RowsRe
       final List<PathSegment> path,
       final boolean raw,
       final String payloadAsString,
-      final boolean compactMapData) {
-    ImmutableRequestParams requestParams =
-        ImmutableRequestParams.builder().compactMapData(compactMapData).build();
+      final RequestParams requestParams) {
     Map<String, Object> payloadMap;
     try {
       payloadMap = parseJsonAsMap(payloadAsString);

@@ -20,9 +20,10 @@ import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.Schema;
-import io.stargate.sgv2.api.common.config.ImmutableRequestParams;
+import io.stargate.sgv2.api.common.config.RequestParams;
 import io.stargate.sgv2.api.common.cql.builder.Predicate;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
+import io.stargate.sgv2.restapi.config.RestApiUtils;
 import io.stargate.sgv2.restapi.service.models.Sgv2IndexAddRequest;
 import io.stargate.sgv2.restapi.service.resources.RestResourceBase;
 import jakarta.ws.rs.WebApplicationException;
@@ -38,9 +39,7 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
   @Override
   public Uni<RestResponse<Object>> getAllIndexes(
       String keyspaceName, String tableName, final Boolean compactMap) {
-    final boolean compactMapData = compactMap != null ? compactMap : restApiConfig.compactMapData();
-    ImmutableRequestParams requestParams =
-        ImmutableRequestParams.builder().compactMapData(compactMapData).build();
+    final RequestParams requestParams = RestApiUtils.getRequestParams(restApiConfig, compactMap);
     Query query =
         new QueryBuilder()
             .select()

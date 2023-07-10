@@ -90,7 +90,8 @@ public class StringifiedValueUtil {
     if (idx >= value.length()) {
       throw new IllegalArgumentException(
           String.format(
-              "Invalid Compact Map value '%s': at character %d expecting '{' but got EOF", value, idx));
+              "Invalid Compact Map value '%s': at character %d expecting '{' but got EOF",
+              value, idx));
     }
     if (value.charAt(idx++) != '{') {
       throw new IllegalArgumentException(
@@ -115,7 +116,8 @@ public class StringifiedValueUtil {
       int n = skipCqlValue(value, idx);
       if (n < 0) {
         throw new IllegalArgumentException(
-            String.format("Invalid Compact Map value '%s': invalid CQL value at character %d", value, idx));
+            String.format(
+                "Invalid Compact Map value '%s': invalid CQL value at character %d", value, idx));
       }
 
       QueryOuterClass.Value k =
@@ -126,7 +128,8 @@ public class StringifiedValueUtil {
       if (idx >= value.length()) {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid Compact Map value '%s': at character %d expecting ':' but got EOF", value, idx));
+                "Invalid Compact Map value '%s': at character %d expecting ':' but got EOF",
+                value, idx));
       }
       if (value.charAt(idx) != ':') {
         throw new IllegalArgumentException(
@@ -139,7 +142,8 @@ public class StringifiedValueUtil {
       n = skipCqlValue(value, idx);
       if (n < 0) {
         throw new IllegalArgumentException(
-            String.format("Invalid Compact Map value '%s': invalid CQL value at character %d", value, idx));
+            String.format(
+                "Invalid Compact Map value '%s': invalid CQL value at character %d", value, idx));
       }
 
       QueryOuterClass.Value v =
@@ -181,7 +185,8 @@ public class StringifiedValueUtil {
     if (idx >= value.length()) {
       throw new IllegalArgumentException(
           String.format(
-              "Invalid Non-Compact Map value '%s': at character %d expecting '[' but got EOF", value, idx));
+              "Invalid Non-Compact Map value '%s': at character %d expecting '[' but got EOF",
+              value, idx));
     }
     if (value.charAt(idx++) != '[') {
       throw new IllegalArgumentException(
@@ -211,7 +216,8 @@ public class StringifiedValueUtil {
         } else {
           throw new IllegalArgumentException(
               String.format(
-                  "Invalid Non-Compact Map value '%s': invalid CQL value at character %d", value, idx));
+                  "Invalid Non-Compact Map value '%s': invalid CQL value at character %d",
+                  value, idx));
         }
       }
       if (value.charAt(idx) == '}') {
@@ -220,7 +226,9 @@ public class StringifiedValueUtil {
       int n = skipKeyName(value, idx, entriesToCheck[e % 2]);
       if (n < 0) {
         throw new IllegalArgumentException(
-            String.format("Invalid Non-Compact Map value '%s': invalid CQL value at character %d", value, idx));
+            String.format(
+                "Invalid Non-Compact Map value '%s': invalid CQL value at character %d",
+                value, idx));
       }
       // skip reading "key"
       idx = n;
@@ -228,7 +236,8 @@ public class StringifiedValueUtil {
       if (idx >= value.length()) {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid Non-Compact Map value '%s': at character %d expecting ':' but got EOF", value, idx));
+                "Invalid Non-Compact Map value '%s': at character %d expecting ':' but got EOF",
+                value, idx));
       }
       if (value.charAt(idx) != ':') {
         throw new IllegalArgumentException(
@@ -241,7 +250,9 @@ public class StringifiedValueUtil {
       n = skipCqlValue(value, idx);
       if (n < 0) {
         throw new IllegalArgumentException(
-            String.format("Invalid Non-Compact Map value '%s': invalid CQL value at character %d", value, idx));
+            String.format(
+                "Invalid Non-Compact Map value '%s': invalid CQL value at character %d",
+                value, idx));
       }
 
       QueryOuterClass.Value v =
@@ -293,7 +304,8 @@ public class StringifiedValueUtil {
     if (idx >= value.length()) {
       throw new IllegalArgumentException(
           String.format(
-              "Invalid Non-Compact Map value '%s': at character %d expecting ':' but got EOF", value, idx));
+              "Invalid Non-Compact Map value '%s': at character %d expecting ':' but got EOF",
+              value, idx));
     }
     return idx;
   }

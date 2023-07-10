@@ -7,9 +7,9 @@ import io.quarkus.resteasy.reactive.server.EndpointDisabled;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
-import io.stargate.sgv2.api.common.config.ImmutableRequestParams;
 import io.stargate.sgv2.api.common.cql.builder.QueryBuilder;
 import io.stargate.sgv2.restapi.config.RestApiConfig;
+import io.stargate.sgv2.restapi.config.RestApiUtils;
 import io.stargate.sgv2.restapi.config.constants.RestOpenApiConstants;
 import io.stargate.sgv2.restapi.service.models.Sgv2RowsResponse;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -90,13 +90,6 @@ public class CQLResource {
         .map(
             response ->
                 convertRowsToResponse(
-                    response,
-                    raw,
-                    ImmutableRequestParams.builder()
-                        .compactMapData(
-                            compactMapData != null
-                                ? compactMapData
-                                : restApiConfig.compactMapData())
-                        .build()));
+                    response, raw, RestApiUtils.getRequestParams(restApiConfig, compactMapData)));
   }
 }
