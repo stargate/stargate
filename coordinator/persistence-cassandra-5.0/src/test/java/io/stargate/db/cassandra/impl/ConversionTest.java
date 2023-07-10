@@ -79,6 +79,8 @@ class ConversionTest {
 
     QueryOptions converted = Conversion.toInternal(values, names, parameters);
 
+    final QueryState queryState = QueryState.forInternalCalls();
+
     // We have to prepare() to check the named parameters are re-ordered properly.
     converted = converted.prepare(asList(spec("v1"), spec("v2")));
 
@@ -89,15 +91,15 @@ class ConversionTest {
     assertThat(converted.getValues()).isEqualTo(asList(bytes("hello"), bytes("world")));
     assertThat(converted.getProtocolVersion())
         .isEqualTo(org.apache.cassandra.transport.ProtocolVersion.V3);
-    assertThat(converted.getSerialConsistency())
+    assertThat(converted.getSerialConsistency(queryState))
         .isEqualTo(org.apache.cassandra.db.ConsistencyLevel.LOCAL_SERIAL);
     assertThat(converted.getPageSize()).isEqualTo(15);
     assertThat(
             converted.getPagingState().serialize(org.apache.cassandra.transport.ProtocolVersion.V3))
         .isEqualTo(pagingState);
     // Since we don't use the default, we should we good passing null
-    assertThat(converted.getTimestamp(null)).isEqualTo(123456);
-    assertThat(converted.getNowInSeconds(null)).isEqualTo(123);
+    assertThat(converted.getTimestamp(queryState)).isEqualTo(123456);
+    assertThat(converted.getNowInSeconds(queryState)).isEqualTo(123);
     assertThat(converted.getKeyspace()).isEqualTo("foobar");
   }
 
@@ -118,7 +120,7 @@ class ConversionTest {
     assertThat(converted.getValues()).isEmpty();
     assertThat(converted.getProtocolVersion())
         .isEqualTo(Conversion.toInternal(ProtocolVersion.CURRENT));
-    assertThat(converted.getSerialConsistency())
+    assertThat(converted.getSerialConsistency(queryState))
         .isEqualTo(org.apache.cassandra.db.ConsistencyLevel.SERIAL);
     assertThat(converted.getPageSize()).isEqualTo(-1);
     assertThat(converted.getPagingState()).isNull();
