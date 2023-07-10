@@ -28,6 +28,8 @@ import org.apache.cassandra.dht.IPartitioner;
 import org.apache.cassandra.dht.Token.TokenFactory;
 import org.apache.cassandra.locator.IEndpointSnitch;
 import org.apache.cassandra.locator.InetAddressAndPort;
+import org.apache.cassandra.nodes.BootstrapState;
+import org.apache.cassandra.nodes.Nodes;
 import org.apache.cassandra.schema.*;
 import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.utils.FBUtilities;
@@ -182,8 +184,8 @@ public class StargateSystemKeyspace {
         DatabaseDescriptor.getStoragePort(),
         FBUtilities.getJustLocalAddress(),
         DatabaseDescriptor.getStoragePort(),
-        SystemKeyspace.BootstrapState.COMPLETED.name(),
-        SystemKeyspace.getLocalHostId(),
+        BootstrapState.COMPLETED.name(),
+        Nodes.local().get().getHostId(),
         StargateSystemKeyspace.generateRandomTokens(
             FBUtilities.getBroadcastNativeAddressAndPort(), DatabaseDescriptor.getNumTokens()),
         SCHEMA_VERSION);
