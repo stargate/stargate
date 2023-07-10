@@ -74,6 +74,7 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     else if (isSystemPeersV2(selectStatement)) tableMetadata = StargateSystemKeyspace.PeersV2;
     SelectStatement interceptStatement =
         new SelectStatement(
+            selectStatement.getRawCQLStatement(),
             tableMetadata,
             selectStatement.bindVariables,
             selectStatement.parameters,
