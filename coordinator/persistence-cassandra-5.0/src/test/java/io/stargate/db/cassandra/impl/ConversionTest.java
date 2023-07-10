@@ -11,6 +11,7 @@ import java.util.Collections;
 import java.util.List;
 import org.apache.cassandra.cql3.ColumnIdentifier;
 import org.apache.cassandra.cql3.ColumnSpecification;
+import org.apache.cassandra.cql3.PageSize;
 import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.db.marshal.AsciiType;
 import org.apache.cassandra.db.marshal.BooleanType;
@@ -93,7 +94,7 @@ class ConversionTest {
         .isEqualTo(org.apache.cassandra.transport.ProtocolVersion.V3);
     assertThat(converted.getSerialConsistency(queryState))
         .isEqualTo(org.apache.cassandra.db.ConsistencyLevel.LOCAL_SERIAL);
-    assertThat(converted.getPageSize()).isEqualTo(15);
+    assertThat(converted.getPageSize()).isEqualTo(new PageSize(15, PageSize.PageUnit.ROWS));
     assertThat(
             converted.getPagingState().serialize(org.apache.cassandra.transport.ProtocolVersion.V3))
         .isEqualTo(pagingState);
@@ -122,7 +123,7 @@ class ConversionTest {
         .isEqualTo(Conversion.toInternal(ProtocolVersion.CURRENT));
     assertThat(converted.getSerialConsistency(queryState))
         .isEqualTo(org.apache.cassandra.db.ConsistencyLevel.SERIAL);
-    assertThat(converted.getPageSize()).isEqualTo(-1);
+    assertThat(converted.getPageSize().getSize()).isEqualTo(PageSize.NO_LIMIT);
     assertThat(converted.getPagingState()).isNull();
     // The timestamp and nowInSecond are going to be basically the server time. We don't care about
     // the details, let's just make sure it's not obviously broken
