@@ -49,7 +49,6 @@ import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.statements.BatchStatement;
 import org.apache.cassandra.db.Keyspace;
-import org.apache.cassandra.db.SystemKeyspace;
 import org.apache.cassandra.db.marshal.UserType;
 import org.apache.cassandra.exceptions.AuthenticationException;
 import org.apache.cassandra.gms.ApplicationState;
@@ -58,6 +57,7 @@ import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.gms.IEndpointStateChangeSubscriber;
 import org.apache.cassandra.gms.VersionedValue;
 import org.apache.cassandra.locator.InetAddressAndPort;
+import org.apache.cassandra.nodes.Nodes;
 import org.apache.cassandra.schema.ColumnMetadata;
 import org.apache.cassandra.schema.IndexMetadata;
 import org.apache.cassandra.schema.KeyspaceMetadata;
@@ -187,7 +187,8 @@ public class Cassandra50Persistence
     String hostId = System.getProperty("stargate.host_id");
     if (hostId != null && !hostId.isEmpty()) {
       try {
-        SystemKeyspace.setLocalHostId(UUID.fromString(hostId));
+        // This is from DSE backend logic:
+        Nodes.local().update(l -> l.setHostId(UUID.fromString(hostId)), true);
       } catch (IllegalArgumentException e) {
         throw new IllegalArgumentException(
             String.format("Invalid host ID '%s': not a valid UUID", hostId), e);
