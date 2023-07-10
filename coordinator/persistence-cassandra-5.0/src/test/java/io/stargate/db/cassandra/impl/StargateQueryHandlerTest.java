@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.UnaryOperator;
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.ColumnIdentifier;
 import org.apache.cassandra.cql3.QueryProcessor;
@@ -39,7 +40,6 @@ import org.apache.cassandra.cql3.statements.ListRolesStatement;
 import org.apache.cassandra.cql3.statements.PermissionsManagementStatement;
 import org.apache.cassandra.cql3.statements.RevokeRoleStatement;
 import org.apache.cassandra.cql3.statements.SelectStatement;
-import org.apache.cassandra.cql3.statements.TruncateStatement;
 import org.apache.cassandra.cql3.statements.UpdateStatement;
 import org.apache.cassandra.cql3.statements.UseStatement;
 import org.apache.cassandra.cql3.statements.schema.AlterKeyspaceStatement;
@@ -160,7 +160,9 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     CQLStatement statement =
         rawStatement.prepare(
             new VariableSpecifications(
-                Collections.singletonList(new ColumnIdentifier("key", true))));
+                Collections.singletonList(new ColumnIdentifier("key", true))),
+            // No need for KeyspaceMapper?
+            UnaryOperator.identity());
 
     queryHandler.authorizeByToken(createToken(sourceApi), statement);
 
@@ -181,7 +183,9 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     CQLStatement statement =
         rawStatement.prepare(
             new VariableSpecifications(
-                Collections.singletonList(new ColumnIdentifier("key", true))));
+                Collections.singletonList(new ColumnIdentifier("key", true))),
+            // No need for KeyspaceMapper?
+            UnaryOperator.identity());
 
     queryHandler.authorizeByToken(createToken(sourceApi), statement);
 
@@ -194,7 +198,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   @ParameterizedTest
   @MethodSource("sourceApiValues")
   void authorizeByTokenTruncateStatement(SourceAPI sourceApi) throws UnauthorizedException {
-    TruncateStatement.Raw rawStatement = QueryProcessor.parseStatement("truncate ks1.tbl1");
+    CQLStatement.Raw rawStatement = QueryProcessor.parseStatement("truncate ks1.tbl1");
 
     CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
 
