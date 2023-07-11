@@ -20,7 +20,6 @@
       cassandra-all's POM).
     -->
     <cassandra.bundled-driver.version>3.11.3</cassandra.bundled-driver.version>
-    <netty.version>4.1.94.Final</netty.version>
   </properties>
   <dependencies>
     <!-- Stargate component dependencies -->
@@ -49,19 +48,10 @@
     </dependency>
     <!-- Cassandra/DataStax -->
     <dependency>
-      <groupId>io.netty</groupId>
-      <artifactId>netty-all</artifactId>
-      <version>${netty.version}</version>
-    </dependency>
-    <dependency>
       <groupId>com.datastax.dse</groupId>
       <artifactId>dse-db-all</artifactId>
       <version>${ds-cassandra.version}</version>
       <exclusions>
-        <exclusion>
-          <groupId>io.netty</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
         <exclusion>
           <groupId>org.gridkit.jvmtool</groupId>
           <artifactId>sjk-core</artifactId>
