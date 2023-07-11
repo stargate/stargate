@@ -15,7 +15,7 @@
     <quarkus.container-image.group>stargateio</quarkus.container-image.group>
     <quarkus.container-image.name>graphqlapi</quarkus.container-image.name>
     <quarkus.container-image.tag>v${project.version}</quarkus.container-image.tag>
-    <quarkus.container-image.additional-tags>v2.1</quarkus.container-image.additional-tags>
+    <quarkus.container-image.additional-tags>v2</quarkus.container-image.additional-tags>
   </properties>
   <dependencies>
     <dependency>
