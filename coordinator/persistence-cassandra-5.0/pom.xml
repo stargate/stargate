@@ -34,6 +34,10 @@
       <id>artifactory-releases</id>
       <url>https://repo.datastax.com/datastax-releases-local</url>
     </repository>
+    <repository>
+      <id>artifactory-dse</id>
+      <url>https://repo.datastax.com/artifactory/dse/</url>
+    </repository>
   </repositories>
   <dependencies>
     <!-- Stargate component dependencies -->

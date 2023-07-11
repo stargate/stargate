@@ -95,8 +95,13 @@ jobs:
                 <id>artifactory-releases</id>
                 <username>${ARTIFACTORY_USERNAME}</username>
                 <password>${ARTIFACTORY_PASSWORD}</password>
-             </server>
-           </servers>
+              </server>
+              <server>
+                <id>artifactory-dse</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+            </servers>
           </settings>
           EOF
 
@@ -160,8 +165,13 @@ jobs:
                 <id>artifactory-releases</id>
                 <username>${ARTIFACTORY_USERNAME}</username>
                 <password>${ARTIFACTORY_PASSWORD}</password>
-             </server>
-           </servers>
+              </server>
+              <server>
+                <id>artifactory-dse</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+            </servers>
           </settings>
           EOF
 
@@ -238,8 +248,13 @@ jobs:
                 <id>artifactory-releases</id>
                 <username>${ARTIFACTORY_USERNAME}</username>
                 <password>${ARTIFACTORY_PASSWORD}</password>
-             </server>
-           </servers>
+              </server>
+              <server>
+                <id>artifactory-dse</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+            </servers>
           </settings>
           EOF
 
@@ -306,8 +321,13 @@ jobs:
                 <id>artifactory-releases</id>
                 <username>${ARTIFACTORY_USERNAME}</username>
                 <password>${ARTIFACTORY_PASSWORD}</password>
-             </server>
-           </servers>
+              </server>
+              <server>
+                <id>artifactory-dse</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+            </servers>
           </settings>
           EOF
 
@@ -512,8 +532,13 @@ jobs:
                 <id>artifactory-releases</id>
                 <username>${ARTIFACTORY_USERNAME}</username>
                 <password>${ARTIFACTORY_PASSWORD}</password>
-             </server>
-           </servers>
+              </server>
+              <server>
+                <id>artifactory-dse</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+            </servers>
           </settings>
           EOF
 
