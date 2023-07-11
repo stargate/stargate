@@ -96,7 +96,10 @@ public interface Sgv2RowsResourceApi {
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw,
       @Parameter(name = "sort", ref = RestOpenApiConstants.Parameters.SORT) @QueryParam("sort")
-          final String sort);
+          final String sort,
+      @Parameter(name = "compactMapData", ref = RestOpenApiConstants.Parameters.COMPACT_MAP_DATA)
+          @QueryParam("compactMapData")
+          final Boolean compactMapData);
 
   @GET
   @Operation(
@@ -140,7 +143,10 @@ public interface Sgv2RowsResourceApi {
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw,
       @Parameter(name = "sort", ref = RestOpenApiConstants.Parameters.SORT) @QueryParam("sort")
-          final String sort);
+          final String sort,
+      @Parameter(name = "compactMapData", ref = RestOpenApiConstants.Parameters.COMPACT_MAP_DATA)
+          @QueryParam("compactMapData")
+          final Boolean compactMapData);
 
   @GET
   @Operation(summary = "Retrieve all rows", description = "Get all rows from a table.")
@@ -183,7 +189,10 @@ public interface Sgv2RowsResourceApi {
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw,
       @Parameter(name = "sort", ref = RestOpenApiConstants.Parameters.SORT) @QueryParam("sort")
-          final String sort);
+          final String sort,
+      @Parameter(name = "compactMapData", ref = RestOpenApiConstants.Parameters.COMPACT_MAP_DATA)
+          @QueryParam("compactMapData")
+          final Boolean compactMapData);
 
   @POST
   @Operation(
@@ -211,7 +220,10 @@ public interface Sgv2RowsResourceApi {
           @NotBlank(message = "tableName must be provided")
           final String tableName,
       @RequestBody(description = "Fields of the Row to create as JSON", required = true)
-          final String payloadAsString);
+          final String payloadAsString,
+      @Parameter(name = "compactMapData", ref = RestOpenApiConstants.Parameters.COMPACT_MAP_DATA)
+          @QueryParam("compactMapData")
+          final Boolean compactMapData);
 
   @PUT
   @Operation(summary = "Replace row(s)", description = "Update existing rows in a table.")
@@ -241,7 +253,10 @@ public interface Sgv2RowsResourceApi {
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw,
       @RequestBody(description = "Fields of the Row to update as JSON", required = true)
-          String payloadAsString);
+          String payloadAsString,
+      @Parameter(name = "compactMapData", ref = RestOpenApiConstants.Parameters.COMPACT_MAP_DATA)
+          @QueryParam("compactMapData")
+          final Boolean compactMapData);
 
   @PATCH
   @Operation(
@@ -273,7 +288,10 @@ public interface Sgv2RowsResourceApi {
       @Parameter(name = "raw", ref = RestOpenApiConstants.Parameters.RAW) @QueryParam("raw")
           final boolean raw,
       @RequestBody(description = "Fields of the Row to patch as JSON", required = true)
-          String payloadAsString);
+          String payloadAsString,
+      @Parameter(name = "compactMapData", ref = RestOpenApiConstants.Parameters.COMPACT_MAP_DATA)
+          @QueryParam("compactMapData")
+          final Boolean compactMapData);
 
   @DELETE
   @Operation(summary = "Delete row(s)", description = "Delete one or more rows in a table")

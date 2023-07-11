@@ -3,6 +3,7 @@ package io.stargate.sgv2.restapi.grpc;
 import io.stargate.bridge.grpc.CqlDuration;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
+import io.stargate.sgv2.api.common.config.RequestParams;
 import io.stargate.sgv2.api.common.util.ByteBufferUtils;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -13,13 +14,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 public class ToProtoValueCodecs {
   /**
@@ -70,27 +65,30 @@ public class ToProtoValueCodecs {
 
   public ToProtoValueCodecs() {}
 
-  public ToProtoValueCodec codecFor(QueryOuterClass.ColumnSpec forColumn) {
-    return codecFor(forColumn, forColumn.getType());
+  public ToProtoValueCodec codecFor(
+      QueryOuterClass.ColumnSpec forColumn, RequestParams requestParams) {
+    return codecFor(forColumn, forColumn.getType(), requestParams);
   }
 
   protected ToProtoValueCodec codecFor(
-      QueryOuterClass.ColumnSpec columnSpec, QueryOuterClass.TypeSpec type) {
+      QueryOuterClass.ColumnSpec columnSpec,
+      QueryOuterClass.TypeSpec type,
+      RequestParams requestParams) {
     switch (type.getSpecCase()) {
       case BASIC:
         return basicCodecFor(columnSpec, type.getBasic());
 
       case LIST:
-        return listCodecFor(columnSpec, type.getList());
+        return listCodecFor(columnSpec, type.getList(), requestParams);
       case MAP:
-        return mapCodecFor(columnSpec, type.getMap());
+        return mapCodecFor(columnSpec, type.getMap(), requestParams);
       case SET:
-        return setCodecFor(columnSpec, type.getSet());
+        return setCodecFor(columnSpec, type.getSet(), requestParams);
 
       case TUPLE:
-        return tupleCodecFor(columnSpec, type.getTuple());
+        return tupleCodecFor(columnSpec, type.getTuple(), requestParams);
       case UDT:
-        return udtCodecFor(columnSpec, type.getUdt());
+        return udtCodecFor(columnSpec, type.getUdt(), requestParams);
 
         // Invalid cases:
       case SPEC_NOT_SET:
@@ -164,39 +162,51 @@ public class ToProtoValueCodecs {
   }
 
   protected ToProtoValueCodec listCodecFor(
-      QueryOuterClass.ColumnSpec columnSpec, QueryOuterClass.TypeSpec.List listSpec) {
+      QueryOuterClass.ColumnSpec columnSpec,
+      QueryOuterClass.TypeSpec.List listSpec,
+      RequestParams requestParams) {
     return new CollectionCodec(
-        "TypeSpec.List", codecFor(columnSpec, listSpec.getElement()), '[', ']');
+        "TypeSpec.List", codecFor(columnSpec, listSpec.getElement(), requestParams), '[', ']');
   }
 
   protected ToProtoValueCodec mapCodecFor(
-      QueryOuterClass.ColumnSpec columnSpec, QueryOuterClass.TypeSpec.Map mapSpec) {
+      QueryOuterClass.ColumnSpec columnSpec,
+      QueryOuterClass.TypeSpec.Map mapSpec,
+      RequestParams requestParams) {
     return new MapCodec(
-        codecFor(columnSpec, mapSpec.getKey()), codecFor(columnSpec, mapSpec.getValue()));
+        codecFor(columnSpec, mapSpec.getKey(), requestParams),
+        codecFor(columnSpec, mapSpec.getValue(), requestParams),
+        requestParams.compactMapData());
   }
 
   protected ToProtoValueCodec setCodecFor(
-      QueryOuterClass.ColumnSpec columnSpec, QueryOuterClass.TypeSpec.Set setSpec) {
+      QueryOuterClass.ColumnSpec columnSpec,
+      QueryOuterClass.TypeSpec.Set setSpec,
+      RequestParams requestParams) {
     return new CollectionCodec(
-        "TypeSpec.Set", codecFor(columnSpec, setSpec.getElement()), '{', '}');
+        "TypeSpec.Set", codecFor(columnSpec, setSpec.getElement(), requestParams), '{', '}');
   }
 
   protected ToProtoValueCodec tupleCodecFor(
-      QueryOuterClass.ColumnSpec columnSpec, QueryOuterClass.TypeSpec.Tuple tupleSpec) {
+      QueryOuterClass.ColumnSpec columnSpec,
+      QueryOuterClass.TypeSpec.Tuple tupleSpec,
+      RequestParams requestParams) {
     List<ToProtoValueCodec> codecs = new ArrayList<>();
     for (QueryOuterClass.TypeSpec elementSpec : tupleSpec.getElementsList()) {
-      codecs.add(codecFor(columnSpec, elementSpec));
+      codecs.add(codecFor(columnSpec, elementSpec, requestParams));
     }
     return new TupleCodec(codecs);
   }
 
   protected ToProtoValueCodec udtCodecFor(
-      QueryOuterClass.ColumnSpec columnSpec, QueryOuterClass.TypeSpec.Udt udtSpec) {
+      QueryOuterClass.ColumnSpec columnSpec,
+      QueryOuterClass.TypeSpec.Udt udtSpec,
+      RequestParams requestParams) {
     Map<String, QueryOuterClass.TypeSpec> fieldSpecs = udtSpec.getFieldsMap();
     Map<String, ToProtoValueCodec> fieldCodecs = new HashMap<>();
     for (Map.Entry<String, QueryOuterClass.TypeSpec> entry : fieldSpecs.entrySet()) {
       final String fieldName = entry.getKey();
-      fieldCodecs.put(fieldName, codecFor(columnSpec, entry.getValue()));
+      fieldCodecs.put(fieldName, codecFor(columnSpec, entry.getValue(), requestParams));
     }
     return new UDTCodec(udtSpec.getName(), fieldCodecs);
   }
@@ -785,11 +795,14 @@ public class ToProtoValueCodecs {
 
   protected static final class MapCodec extends ToProtoCodecBase {
     private final ToProtoValueCodec keyCodec, valueCodec;
+    private final boolean compactMapData;
 
-    public MapCodec(ToProtoValueCodec keyCodec, ToProtoValueCodec valueCodec) {
+    public MapCodec(
+        ToProtoValueCodec keyCodec, ToProtoValueCodec valueCodec, boolean compactMapData) {
       super("TypeSpec.Map");
       this.keyCodec = keyCodec;
       this.valueCodec = valueCodec;
+      this.compactMapData = compactMapData;
     }
 
     @Override
@@ -804,14 +817,33 @@ public class ToProtoValueCodecs {
 
     @Override
     public QueryOuterClass.Value protoValueFromStrictlyTyped(Object mapValue) {
-      if (mapValue instanceof Map<?, ?>) {
-        // Maps are actually encoded as Collections where keys and values are interleaved
-        List<QueryOuterClass.Value> elements = new ArrayList<>();
-        for (Map.Entry<?, ?> entry : ((Map<?, ?>) mapValue).entrySet()) {
-          elements.add(keyCodec.protoValueFromStrictlyTyped(entry.getKey()));
-          elements.add(valueCodec.protoValueFromStrictlyTyped(entry.getValue()));
+      if (compactMapData) {
+        if (mapValue instanceof Map<?, ?>) {
+          // Maps are actually encoded as Collections where keys and values are interleaved
+          List<QueryOuterClass.Value> elements = new ArrayList<>();
+          for (Map.Entry<?, ?> entry : ((Map<?, ?>) mapValue).entrySet()) {
+            elements.add(keyCodec.protoValueFromStrictlyTyped(entry.getKey()));
+            elements.add(valueCodec.protoValueFromStrictlyTyped(entry.getValue()));
+          }
+          return Values.of(elements);
         }
-        return Values.of(elements);
+      } else {
+        if (mapValue instanceof List<?>) {
+          List<QueryOuterClass.Value> elements = new ArrayList<>();
+          for (Object entry : (List<?>) mapValue) {
+            Map<?, ?> entryNode = (Map<?, ?>) entry;
+            if (entryNode.size() != 2) {
+              throw new IllegalArgumentException("Map entry must have exactly 2 elements");
+            } else if (!entryNode.containsKey("key")) {
+              throw new IllegalArgumentException("Map entry missing key");
+            } else if (!entryNode.containsKey("value")) {
+              throw new IllegalArgumentException("Map entry missing value");
+            }
+            elements.add(keyCodec.protoValueFromStrictlyTyped(entryNode.get("key")));
+            elements.add(valueCodec.protoValueFromStrictlyTyped(entryNode.get("value")));
+          }
+          return Values.of(elements);
+        }
       }
       return cannotCoerce(mapValue);
     }
@@ -819,7 +851,11 @@ public class ToProtoValueCodecs {
     @Override
     public QueryOuterClass.Value protoValueFromStringified(String value) {
       List<QueryOuterClass.Value> elements = new ArrayList<>();
-      StringifiedValueUtil.decodeStringifiedMap(value, keyCodec, valueCodec, elements);
+      if (compactMapData) {
+        StringifiedValueUtil.decodeStringifiedCompactMap(value, keyCodec, valueCodec, elements);
+      } else {
+        StringifiedValueUtil.decodeStringifiedMap(value, keyCodec, valueCodec, elements);
+      }
       return Values.of(elements);
     }
   }

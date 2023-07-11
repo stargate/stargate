@@ -1,9 +1,7 @@
 package io.stargate.sgv2.restapi.grpc;
 
 import io.stargate.bridge.proto.QueryOuterClass;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Helper class that deals with "Stringified" variants of structured values.
@@ -12,6 +10,8 @@ import java.util.Map;
  * io.stargate.web.resources.Converters}), unchanged.
  */
 public class StringifiedValueUtil {
+  private static final String[] entriesToCheck = new String[] {"key", "value"};
+
   public static void decodeStringifiedCollection(
       String value,
       ToProtoValueCodec elementCodec,
@@ -81,7 +81,7 @@ public class StringifiedValueUtil {
             "Invalid %s value '%s': missing closing '%s'", typeDesc, value, closingBrace));
   }
 
-  public static void decodeStringifiedMap(
+  public static void decodeStringifiedCompactMap(
       String value,
       ToProtoValueCodec keyCodec,
       ToProtoValueCodec valueCodec,
@@ -90,12 +90,13 @@ public class StringifiedValueUtil {
     if (idx >= value.length()) {
       throw new IllegalArgumentException(
           String.format(
-              "Invalid Map value '%s': at character %d expecting '{' but got EOF", value, idx));
+              "Invalid Compact Map value '%s': at character %d expecting '{' but got EOF",
+              value, idx));
     }
     if (value.charAt(idx++) != '{') {
       throw new IllegalArgumentException(
           String.format(
-              "Invalid Map value '%s': at character %d expecting '{' but got '%c'",
+              "Invalid Compact Map value '%s': at character %d expecting '{' but got '%c'",
               value, idx, value.charAt(idx)));
     }
 
@@ -104,7 +105,7 @@ public class StringifiedValueUtil {
     if (idx >= value.length()) {
       throw new IllegalArgumentException(
           String.format(
-              "Invalid Map value '%s': at character %d expecting element or '}' but got EOF",
+              "Invalid Compact Map value '%s': at character %d expecting element or '}' but got EOF",
               value, idx));
     }
     if (value.charAt(idx) == '}') {
@@ -115,7 +116,8 @@ public class StringifiedValueUtil {
       int n = skipCqlValue(value, idx);
       if (n < 0) {
         throw new IllegalArgumentException(
-            String.format("Invalid map value '%s': invalid CQL value at character %d", value, idx));
+            String.format(
+                "Invalid Compact Map value '%s': invalid CQL value at character %d", value, idx));
       }
 
       QueryOuterClass.Value k =
@@ -126,12 +128,13 @@ public class StringifiedValueUtil {
       if (idx >= value.length()) {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid map value '%s': at character %d expecting ':' but got EOF", value, idx));
+                "Invalid Compact Map value '%s': at character %d expecting ':' but got EOF",
+                value, idx));
       }
       if (value.charAt(idx) != ':') {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid map value '%s': at character %d expecting ':' but got '%c'",
+                "Invalid Compact Map value '%s': at character %d expecting ':' but got '%c'",
                 value, idx, value.charAt(idx)));
       }
       idx = skipSpaces(value, ++idx);
@@ -139,7 +142,8 @@ public class StringifiedValueUtil {
       n = skipCqlValue(value, idx);
       if (n < 0) {
         throw new IllegalArgumentException(
-            String.format("Invalid map value '%s': invalid CQL value at character %d", value, idx));
+            String.format(
+                "Invalid Compact Map value '%s': invalid CQL value at character %d", value, idx));
       }
 
       QueryOuterClass.Value v =
@@ -153,7 +157,7 @@ public class StringifiedValueUtil {
       if (idx >= value.length()) {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid map value '%s': at character %d expecting ',' or '}' but got EOF",
+                "Invalid Compact Map value '%s': at character %d expecting ',' or '}' but got EOF",
                 value, idx));
       }
       if (value.charAt(idx) == '}') {
@@ -162,14 +166,152 @@ public class StringifiedValueUtil {
       if (value.charAt(idx++) != ',') {
         throw new IllegalArgumentException(
             String.format(
-                "Invalid map value '%s': at character %d expecting ',' but got '%c'",
+                "Invalid Compact Map value '%s': at character %d expecting ',' but got '%c'",
                 value, idx, value.charAt(idx)));
       }
 
       idx = skipSpaces(value, idx);
     }
     throw new IllegalArgumentException(
-        String.format("Invalid map value '%s': missing closing '}'", value));
+        String.format("Invalid Compact Map value '%s': missing closing '}'", value));
+  }
+
+  public static void decodeStringifiedMap(
+      String value,
+      ToProtoValueCodec keyCodec,
+      ToProtoValueCodec valueCodec,
+      Collection<QueryOuterClass.Value> results) {
+    int idx = skipSpaces(value, 0);
+    if (idx >= value.length()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid Non-Compact Map value '%s': at character %d expecting '[' but got EOF",
+              value, idx));
+    }
+    if (value.charAt(idx++) != '[') {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid Non-Compact Map value '%s': at character %d expecting '[' but got '%c'",
+              value, idx, value.charAt(idx)));
+    }
+
+    idx = skipSpaces(value, idx);
+
+    if (idx >= value.length()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid Non-Compact Map value '%s': at character %d expecting element or ']' but got EOF",
+              value, idx));
+    }
+    if (value.charAt(idx) == ']') {
+      return;
+    }
+    int e = 0;
+    while (idx < value.length()) {
+      idx = skipSpaces(value, idx);
+      if (e % 2 == 0) {
+        if (value.charAt(idx) == '{') {
+          idx++;
+          idx = skipSpaces(value, idx);
+        } else {
+          throw new IllegalArgumentException(
+              String.format(
+                  "Invalid Non-Compact Map value '%s': invalid CQL value at character %d",
+                  value, idx));
+        }
+      }
+      if (value.charAt(idx) == '}') {
+        return;
+      }
+      int n = skipKeyName(value, idx, entriesToCheck[e % 2]);
+      if (n < 0) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid Non-Compact Map value '%s': invalid CQL value at character %d",
+                value, idx));
+      }
+      // skip reading "key"
+      idx = n;
+      idx = skipSpaces(value, idx);
+      if (idx >= value.length()) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid Non-Compact Map value '%s': at character %d expecting ':' but got EOF",
+                value, idx));
+      }
+      if (value.charAt(idx) != ':') {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid Non-Compact Map value '%s': at character %d expecting ':' but got '%c'",
+                value, idx, value.charAt(idx)));
+      }
+      idx = skipSpaces(value, ++idx);
+
+      n = skipCqlValue(value, idx);
+      if (n < 0) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid Non-Compact Map value '%s': invalid CQL value at character %d",
+                value, idx));
+      }
+
+      QueryOuterClass.Value v =
+          e % 2 == 0
+              ? keyCodec.protoValueFromStringified(handleSingleQuotes(value.substring(idx, n)))
+              : valueCodec.protoValueFromStringified(handleSingleQuotes(value.substring(idx, n)));
+      idx = n;
+
+      results.add(v);
+
+      idx = skipSpaces(value, idx);
+      if (idx >= value.length()) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid Non-Compact Map value '%s': at character %d expecting ',' or '}' but got EOF",
+                value, idx));
+      }
+      if (value.charAt(idx) == '}') {
+        idx++;
+        idx = skipSpaces(value, idx);
+      }
+      if (value.charAt(idx) == ']') {
+        if (results.size() % 2 != 0) {
+          throw new IllegalArgumentException(
+              String.format("Invalid Non-Compact Map value: '%s'. Missing value.", value));
+        }
+        return;
+      }
+      if (value.charAt(idx++) != ',') {
+        throw new IllegalArgumentException(
+            String.format(
+                "Invalid Non-Compact Map value '%s': at character %d expecting ',' but got '%c'",
+                value, idx, value.charAt(idx)));
+      }
+
+      idx = skipSpaces(value, idx);
+      e++;
+    }
+  }
+
+  private static int skipKeyName(String value, int idx, String keyName) {
+    while (idx < value.length() && (Character.isWhitespace(value.charAt(idx)))) {
+      idx++;
+    }
+    if (idx + keyName.length() + 2 > value.length()) {
+      return -1;
+    }
+    if (!value.startsWith("\"" + keyName + "\"", idx)
+        && !value.startsWith("'" + keyName + "'", idx)) {
+      return -1;
+    }
+    idx += keyName.length() + 2;
+    if (idx >= value.length()) {
+      throw new IllegalArgumentException(
+          String.format(
+              "Invalid Non-Compact Map value '%s': at character %d expecting ':' but got EOF",
+              value, idx));
+    }
+    return idx;
   }
 
   // Quite a bit of similarities with Collection handler but not enough to
