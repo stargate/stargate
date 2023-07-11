@@ -15,33 +15,12 @@ import io.restassured.specification.RequestSpecification;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
 import io.stargate.sgv2.common.IntegrationTestUtils;
-import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
-import io.stargate.sgv2.restapi.service.models.Sgv2IndexAddRequest;
-import io.stargate.sgv2.restapi.service.models.Sgv2RESTResponse;
-import io.stargate.sgv2.restapi.service.models.Sgv2Table;
-import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
+import io.stargate.sgv2.restapi.service.models.*;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.ClassOrderer;
-import org.junit.jupiter.api.MethodOrderer;
-import org.junit.jupiter.api.Order;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestClassOrder;
-import org.junit.jupiter.api.TestInfo;
-import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.api.TestMethodOrder;
+import org.junit.jupiter.api.*;
 
 /**
  * Serves as the base class for integration tests that need to create namespace prior to running the
@@ -229,6 +208,10 @@ public abstract class RestApiV2QIntegrationTestBase {
 
   protected Map<String, Object> map(String key, Object value) {
     return Collections.singletonMap(key, value);
+  }
+
+  protected List<Object> list(Object entry) {
+    return Collections.singletonList(entry);
   }
 
   protected Map<String, Object> map(String key1, Object value1, String key2, Object value2) {
@@ -472,6 +455,16 @@ public abstract class RestApiV2QIntegrationTestBase {
 
   protected List<Map<String, String>> insertRows(
       String keyspaceName, String tableName, List<List<String>> rows) {
+    return insertRowsFromListOfList(keyspaceName, tableName, rows, null);
+  }
+
+  protected List<Map<String, String>> insertRows(
+      String keyspaceName, String tableName, List<List<String>> rows, Boolean compactMapData) {
+    return insertRowsFromListOfList(keyspaceName, tableName, rows, compactMapData);
+  }
+
+  private List<Map<String, String>> insertRowsFromListOfList(
+      String keyspaceName, String tableName, List<List<String>> rows, Boolean compactMapData) {
     final List<Map<String, String>> insertedRows = new ArrayList<>();
     for (List<String> row : rows) {
       Map<String, String> rowMap = new HashMap<>();
@@ -481,7 +474,7 @@ public abstract class RestApiV2QIntegrationTestBase {
         String[] parts = kv.split(" ", 2);
         rowMap.put(parts[0].trim(), parts[1].trim());
       }
-      insertRow(keyspaceName, tableName, rowMap);
+      insertRow(keyspaceName, tableName, rowMap, compactMapData);
       insertedRows.add(rowMap);
     }
 
@@ -490,9 +483,25 @@ public abstract class RestApiV2QIntegrationTestBase {
 
   protected List<Map<String, Object>> insertTypedRows(
       String keyspaceName, String tableName, List<Map<String, Object>> rows) {
+    return insertTypedRowsInternal(keyspaceName, tableName, rows, null);
+  }
+
+  protected List<Map<String, Object>> insertTypedRows(
+      String keyspaceName,
+      String tableName,
+      List<Map<String, Object>> rows,
+      Boolean compactMapData) {
+    return insertTypedRowsInternal(keyspaceName, tableName, rows, compactMapData);
+  }
+
+  private List<Map<String, Object>> insertTypedRowsInternal(
+      String keyspaceName,
+      String tableName,
+      List<Map<String, Object>> rows,
+      Boolean compactMapData) {
     final List<Map<String, Object>> insertedRows = new ArrayList<>();
     for (Map<String, Object> row : rows) {
-      insertRow(keyspaceName, tableName, row);
+      insertRow(keyspaceName, tableName, row, compactMapData);
       insertedRows.add(row);
     }
     return insertedRows;
@@ -502,11 +511,38 @@ public abstract class RestApiV2QIntegrationTestBase {
     return insertRowExpectStatus(keyspaceName, tableName, row, HttpStatus.SC_CREATED);
   }
 
+  protected String insertRow(
+      String keyspaceName, String tableName, Map<?, ?> row, Boolean compactMapData) {
+    return insertRowWithCompactMapFlagExpectStatus(
+        keyspaceName, tableName, row, HttpStatus.SC_CREATED, compactMapData);
+  }
+
+  protected String insertRowWithCompactMapFlagExpectStatus(
+      String keyspaceName,
+      String tableName,
+      Map<?, ?> row,
+      int expectedStatus,
+      Boolean compactMapFlag) {
+    return getInsertRowRequest(row, compactMapFlag)
+        .when()
+        .post(endpointPathForRowAdd(keyspaceName, tableName))
+        .then()
+        .statusCode(expectedStatus)
+        .extract()
+        .asString();
+  }
+
+  private RequestSpecification getInsertRowRequest(Map<?, ?> row, Boolean compactMapFlag) {
+    RequestSpecification requestSpecification =
+        givenWithAuth().contentType(ContentType.JSON).body(asJsonString(row));
+    return compactMapFlag == null
+        ? requestSpecification
+        : requestSpecification.queryParam("compactMapData", compactMapFlag);
+  }
+
   protected String insertRowExpectStatus(
       String keyspaceName, String tableName, Map<?, ?> row, int expectedStatus) {
-    return givenWithAuth()
-        .contentType(ContentType.JSON)
-        .body(asJsonString(row))
+    return getInsertRowRequest(row, null)
         .when()
         .post(endpointPathForRowAdd(keyspaceName, tableName))
         .then()
@@ -527,6 +563,25 @@ public abstract class RestApiV2QIntegrationTestBase {
             .extract()
             .asString();
     return readJsonAs(response, LIST_OF_MAPS_TYPE);
+  }
+
+  protected JsonNode findRowsAsJsonNode(
+      String keyspaceName, String tableName, Boolean compactMapData, Object... primaryKeys) {
+    final String path = endpointPathForRowByPK(keyspaceName, tableName, primaryKeys);
+    RequestSpecification request = givenWithAuth();
+    if (compactMapData != null) {
+      request = request.queryParam("compactMapData", compactMapData);
+    }
+    String response =
+        request
+            .queryParam("raw", "true")
+            .when()
+            .get(path)
+            .then()
+            .statusCode(HttpStatus.SC_OK)
+            .extract()
+            .asString();
+    return readJsonAsTree(response);
   }
 
   protected List<Map<String, Object>> findRowsAsList(
@@ -576,10 +631,24 @@ public abstract class RestApiV2QIntegrationTestBase {
 
   protected ArrayNode findRowsWithWhereAsJsonNode(
       String keyspaceName, String tableName, String whereClause) {
+    return findRowsWithWhereAsJsonNodeInternal(keyspaceName, tableName, whereClause, null);
+  }
+
+  protected ArrayNode findRowsWithWhereAsJsonNode(
+      String keyspaceName, String tableName, String whereClause, Boolean compactMapData) {
+    return findRowsWithWhereAsJsonNodeInternal(
+        keyspaceName, tableName, whereClause, compactMapData);
+  }
+
+  private ArrayNode findRowsWithWhereAsJsonNodeInternal(
+      String keyspaceName, String tableName, String whereClause, Boolean compactMapData) {
+    RequestSpecification request =
+        givenWithAuth().queryParam("raw", true).queryParam("where", whereClause);
+    if (compactMapData != null) {
+      request = request.queryParam("compactMapData", compactMapData);
+    }
     String response =
-        givenWithAuth()
-            .queryParam("raw", true)
-            .queryParam("where", whereClause)
+        request
             .when()
             .get(endpointPathForRowGetWith(testKeyspaceName(), tableName))
             .then()
@@ -680,5 +749,132 @@ public abstract class RestApiV2QIntegrationTestBase {
     row.put("ck1", "bar");
     row.put("v", 18);
     insertRow(keyspaceName, tableName, row);
+  }
+
+  protected String updateRowReturnResponse(
+      String updatePath, boolean raw, Map<?, ?> payload, Boolean compactMapData) {
+    return updateRowReturnResponse(updatePath, raw, payload, HttpStatus.SC_OK, compactMapData);
+  }
+
+  protected String updateRowReturnResponse(String updatePath, boolean raw, Map<?, ?> payload) {
+    return updateRowReturnResponse(updatePath, raw, payload, HttpStatus.SC_OK);
+  }
+
+  protected String updateRowReturnResponse(
+      String updatePath,
+      boolean raw,
+      Map<?, ?> payloadMap,
+      int expectedStatus,
+      Boolean compactMapData) {
+    return updateRowReturnResponse(
+        updatePath, raw, asJsonString(payloadMap), expectedStatus, compactMapData);
+  }
+
+  protected String updateRowReturnResponse(
+      String updatePath, boolean raw, Map<?, ?> payloadMap, int expectedStatus) {
+    return updateRowReturnResponse(updatePath, raw, asJsonString(payloadMap), expectedStatus);
+  }
+
+  private RequestSpecification getUpdateRequest(String payloadJSON, boolean raw) {
+    return givenWithAuth().queryParam("raw", raw).contentType(ContentType.JSON).body(payloadJSON);
+  }
+
+  protected String updateRowReturnResponse(
+      String updatePath,
+      boolean raw,
+      String payloadJSON,
+      int expectedStatus,
+      Boolean compactMapData) {
+    RequestSpecification req = getUpdateRequest(payloadJSON, raw);
+    if (compactMapData != null) {
+      req.queryParam("compactMapData", compactMapData);
+    }
+    return req.when().put(updatePath).then().statusCode(expectedStatus).extract().asString();
+  }
+
+  protected String updateRowReturnResponse(
+      String updatePath, boolean raw, String payloadJSON, int expectedStatus) {
+    return getUpdateRequest(payloadJSON, raw)
+        .when()
+        .put(updatePath)
+        .then()
+        .statusCode(expectedStatus)
+        .extract()
+        .asString();
+  }
+
+  protected String patchRowReturnResponse(
+      String patchPath, boolean raw, Map<?, ?> payload, Boolean compactMapData) {
+    return patchRowReturnResponse(patchPath, raw, payload, HttpStatus.SC_OK, compactMapData);
+  }
+
+  protected String patchRowReturnResponse(String patchPath, boolean raw, Map<?, ?> payload) {
+    return patchRowReturnResponse(patchPath, raw, payload, HttpStatus.SC_OK);
+  }
+
+  protected String patchRowReturnResponse(
+      String patchPath, boolean raw, Map<?, ?> payloadMap, int expectedStatus) {
+    return patchRowReturnResponse(patchPath, raw, asJsonString(payloadMap), expectedStatus);
+  }
+
+  protected String patchRowReturnResponse(
+      String patchPath,
+      boolean raw,
+      Map<?, ?> payloadMap,
+      int expectedStatus,
+      Boolean compactMapData) {
+    return patchRowReturnResponse(
+        patchPath, raw, asJsonString(payloadMap), expectedStatus, compactMapData);
+  }
+
+  protected String patchRowReturnResponse(
+      String patchPath,
+      boolean raw,
+      String payloadJSON,
+      int expectedStatus,
+      Boolean compactMapData) {
+    RequestSpecification req = getPatchRequest(payloadJSON, raw);
+    if (compactMapData != null) {
+      req.queryParam("compactMapData", compactMapData);
+    }
+    return req.when().patch(patchPath).then().statusCode(expectedStatus).extract().asString();
+  }
+
+  private RequestSpecification getPatchRequest(String payloadJSON, boolean raw) {
+    return givenWithAuth().queryParam("raw", raw).contentType(ContentType.JSON).body(payloadJSON);
+  }
+
+  protected String patchRowReturnResponse(
+      String patchPath, boolean raw, String payloadJSON, int expectedStatus) {
+    return getPatchRequest(payloadJSON, raw)
+        .when()
+        .patch(patchPath)
+        .then()
+        .statusCode(expectedStatus)
+        .extract()
+        .asString();
+  }
+
+  protected List<RestApiV2QSchemaIndexesIT.IndexDesc> findAllIndexesViaEndpoint(
+      String ksName, String tableName) {
+    String response = getAllIndexes(ksName, tableName, null);
+    return Arrays.asList(readJsonAs(response, RestApiV2QSchemaIndexesIT.IndexDesc[].class));
+  }
+
+  protected String getAllIndexes(String ksName, String tableName, Boolean compactMapData) {
+    RequestSpecification req = givenWithAuth();
+    if (compactMapData != null) {
+      req.queryParam("compactMapData", compactMapData);
+    }
+    return req.when()
+        .get(endpointPathForAllIndexes(ksName, tableName))
+        .then()
+        .statusCode(HttpStatus.SC_OK)
+        .extract()
+        .asString();
+  }
+
+  protected String endpointPathForAllIndexes(String ksName, String tableName) {
+    return String.format("/v2/schemas/keyspaces/%s/tables/%s/indexes", ksName, tableName);
   }
 }
