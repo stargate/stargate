@@ -1,16 +1,24 @@
 package io.stargate.sgv2.it;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertTrue;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
-import java.util.*;
 import org.apache.http.HttpStatus;
 
+import java.util.*;
+
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.Assert.assertTrue;
+
+/**
+ * Tests for MAP data type.
+ *
+ * <p>These tests are run twice, once with the default MAP data type being compact and once with it
+ * being non-compact. In order to write the tests only once, the tests are implemented here in this
+ * class.
+ */
 public class RestApiV2QMapTestsImplIT {
   public static void addRowWithCompactMap(
       RestApiV2QIntegrationTestBase testBase, boolean serverFlag, boolean testDefault) {
@@ -656,7 +664,7 @@ public class RestApiV2QMapTestsImplIT {
         Arrays.asList(
             testBase.map("id", 1, "firstName", "Bob", "attributes", testBase.map("a", "1")),
             testBase.map("id", 1, "firstName", "Dave", "attributes", testBase.map("b", "2")),
-            testBase.map(
+            Map.of(
                 "id",
                 1,
                 "firstName",
@@ -745,7 +753,7 @@ public class RestApiV2QMapTestsImplIT {
                 "Dave",
                 "attributes",
                 testBase.list(testBase.map("key", "b", "value", 2))),
-            testBase.map(
+            Map.of(
                 "id",
                 1,
                 "firstName",

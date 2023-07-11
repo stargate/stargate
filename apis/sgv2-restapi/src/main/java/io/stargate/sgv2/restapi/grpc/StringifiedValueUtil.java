@@ -275,6 +275,10 @@ public class StringifiedValueUtil {
         idx = skipSpaces(value, idx);
       }
       if (value.charAt(idx) == ']') {
+        if (results.size() % 2 != 0) {
+          throw new IllegalArgumentException(
+              String.format("Invalid Non-Compact Map value: '%s'. Missing key or value.", value));
+        }
         return;
       }
       if (value.charAt(idx++) != ',') {

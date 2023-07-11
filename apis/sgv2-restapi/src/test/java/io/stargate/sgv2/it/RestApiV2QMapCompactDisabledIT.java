@@ -5,20 +5,22 @@ import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
+
+import java.util.Map;
 
 @QuarkusIntegrationTest
 @QuarkusTestResource(StargateTestResource.class)
 @TestProfile(RestApiV2QMapCompactDisabledIT.Profile.class)
 public class RestApiV2QMapCompactDisabledIT extends RestApiV2QIntegrationTestBase
     implements RestApiV2QMapTests {
-  private static final boolean SERVER_FLAG = false;
+  /** Flag to indicate if the default MAP data type is compact or not. */
+  private static final boolean COMPACT_MAP_DATA = false;
 
   public static class Profile implements QuarkusTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
-      return Map.of("stargate.rest.compact-map-data", Boolean.toString(SERVER_FLAG));
+      return Map.of("stargate.rest.compact-map-data", Boolean.toString(COMPACT_MAP_DATA));
     }
   }
 
@@ -29,98 +31,98 @@ public class RestApiV2QMapCompactDisabledIT extends RestApiV2QIntegrationTestBas
   @Test
   @Override
   public void addRowWithCompactMap() {
-    RestApiV2QMapTestsImplIT.addRowWithCompactMap(this, SERVER_FLAG, true);
-    RestApiV2QMapTestsImplIT.addRowWithCompactMap(this, SERVER_FLAG, false);
+    RestApiV2QMapTestsImplIT.addRowWithCompactMap(this, COMPACT_MAP_DATA, true);
+    RestApiV2QMapTestsImplIT.addRowWithCompactMap(this, COMPACT_MAP_DATA, false);
   }
 
   @Test
   @Override
   public void addRowWithNonCompactMap() {
-    RestApiV2QMapTestsImplIT.addRowWithNonCompactMap(this, SERVER_FLAG, true);
-    RestApiV2QMapTestsImplIT.addRowWithNonCompactMap(this, SERVER_FLAG, false);
+    RestApiV2QMapTestsImplIT.addRowWithNonCompactMap(this, COMPACT_MAP_DATA, true);
+    RestApiV2QMapTestsImplIT.addRowWithNonCompactMap(this, COMPACT_MAP_DATA, false);
   }
 
   @Test
   @Override
   public void updateRowWithCompactMap() {
-    RestApiV2QMapTestsImplIT.updateRowWithCompactMap(this, SERVER_FLAG, true);
-    RestApiV2QMapTestsImplIT.updateRowWithCompactMap(this, SERVER_FLAG, false);
+    RestApiV2QMapTestsImplIT.updateRowWithCompactMap(this, COMPACT_MAP_DATA, true);
+    RestApiV2QMapTestsImplIT.updateRowWithCompactMap(this, COMPACT_MAP_DATA, false);
   }
 
   @Test
   @Override
   public void updateRowWithNonCompactMap() {
-    RestApiV2QMapTestsImplIT.updateRowWithNonCompactMap(this, SERVER_FLAG, true);
-    RestApiV2QMapTestsImplIT.updateRowWithNonCompactMap(this, SERVER_FLAG, false);
+    RestApiV2QMapTestsImplIT.updateRowWithNonCompactMap(this, COMPACT_MAP_DATA, true);
+    RestApiV2QMapTestsImplIT.updateRowWithNonCompactMap(this, COMPACT_MAP_DATA, false);
   }
 
   @Test
   @Override
   public void patchRowWithCompactMap() {
-    RestApiV2QMapTestsImplIT.patchRowWithCompactMap(this, SERVER_FLAG, true);
-    RestApiV2QMapTestsImplIT.patchRowWithCompactMap(this, SERVER_FLAG, false);
+    RestApiV2QMapTestsImplIT.patchRowWithCompactMap(this, COMPACT_MAP_DATA, true);
+    RestApiV2QMapTestsImplIT.patchRowWithCompactMap(this, COMPACT_MAP_DATA, false);
   }
 
   @Test
   @Override
   public void patchRowWithNonCompactMap() {
-    RestApiV2QMapTestsImplIT.patchRowWithNonCompactMap(this, SERVER_FLAG, true);
-    RestApiV2QMapTestsImplIT.patchRowWithNonCompactMap(this, SERVER_FLAG, false);
+    RestApiV2QMapTestsImplIT.patchRowWithNonCompactMap(this, COMPACT_MAP_DATA, true);
+    RestApiV2QMapTestsImplIT.patchRowWithNonCompactMap(this, COMPACT_MAP_DATA, false);
   }
 
   @Test
   @Override
   public void getRowsWithCompactMap() {
-    RestApiV2QMapTestsImplIT.getRowsWithCompactMap(this, SERVER_FLAG, true);
-    RestApiV2QMapTestsImplIT.getRowsWithCompactMap(this, SERVER_FLAG, false);
+    RestApiV2QMapTestsImplIT.getRowsWithCompactMap(this, COMPACT_MAP_DATA, true);
+    RestApiV2QMapTestsImplIT.getRowsWithCompactMap(this, COMPACT_MAP_DATA, false);
   }
 
   @Test
   @Override
   public void getRowsWithNonCompactMap() {
-    RestApiV2QMapTestsImplIT.getRowsWithNonCompactMap(this, SERVER_FLAG, true);
-    RestApiV2QMapTestsImplIT.getRowsWithNonCompactMap(this, SERVER_FLAG, false);
+    RestApiV2QMapTestsImplIT.getRowsWithNonCompactMap(this, COMPACT_MAP_DATA, true);
+    RestApiV2QMapTestsImplIT.getRowsWithNonCompactMap(this, COMPACT_MAP_DATA, false);
   }
 
   @Test
   @Override
   public void getAllRowsWithCompactMap() {
-    RestApiV2QMapTestsImplIT.getAllRowsWithCompactMap(this, SERVER_FLAG, true);
-    RestApiV2QMapTestsImplIT.getAllRowsWithCompactMap(this, SERVER_FLAG, false);
+    RestApiV2QMapTestsImplIT.getAllRowsWithCompactMap(this, COMPACT_MAP_DATA, true);
+    RestApiV2QMapTestsImplIT.getAllRowsWithCompactMap(this, COMPACT_MAP_DATA, false);
   }
 
   @Test
   @Override
   public void getAllRowsWithNonCompactMap() {
-    RestApiV2QMapTestsImplIT.getAllRowsWithNonCompactMap(this, SERVER_FLAG, true);
-    RestApiV2QMapTestsImplIT.getAllRowsWithNonCompactMap(this, SERVER_FLAG, false);
+    RestApiV2QMapTestsImplIT.getAllRowsWithNonCompactMap(this, COMPACT_MAP_DATA, true);
+    RestApiV2QMapTestsImplIT.getAllRowsWithNonCompactMap(this, COMPACT_MAP_DATA, false);
   }
 
   @Test
   @Override
   public void getRowsWithWhereWithCompactMap() {
-    RestApiV2QMapTestsImplIT.getRowsWithWhereWithCompactMap(this, SERVER_FLAG, true);
-    RestApiV2QMapTestsImplIT.getRowsWithWhereWithCompactMap(this, SERVER_FLAG, false);
+    RestApiV2QMapTestsImplIT.getRowsWithWhereWithCompactMap(this, COMPACT_MAP_DATA, true);
+    RestApiV2QMapTestsImplIT.getRowsWithWhereWithCompactMap(this, COMPACT_MAP_DATA, false);
   }
 
   @Test
   @Override
   public void getRowsWithWhereWithNonCompactMap() {
-    RestApiV2QMapTestsImplIT.getRowsWithWhereWithNonCompactMap(this, SERVER_FLAG, true);
-    RestApiV2QMapTestsImplIT.getRowsWithWhereWithNonCompactMap(this, SERVER_FLAG, false);
+    RestApiV2QMapTestsImplIT.getRowsWithWhereWithNonCompactMap(this, COMPACT_MAP_DATA, true);
+    RestApiV2QMapTestsImplIT.getRowsWithWhereWithNonCompactMap(this, COMPACT_MAP_DATA, false);
   }
 
   @Test
   @Override
   public void getAllIndexesWithCompactMap() {
-    RestApiV2QMapTestsImplIT.getAllIndexesWithCompactMap(this, SERVER_FLAG, true);
-    RestApiV2QMapTestsImplIT.getAllIndexesWithCompactMap(this, SERVER_FLAG, false);
+    RestApiV2QMapTestsImplIT.getAllIndexesWithCompactMap(this, COMPACT_MAP_DATA, true);
+    RestApiV2QMapTestsImplIT.getAllIndexesWithCompactMap(this, COMPACT_MAP_DATA, false);
   }
 
   @Override
   @Test
   public void getAllIndexesWithNonCompactMap() {
-    RestApiV2QMapTestsImplIT.getAllIndexesWithNonCompactMap(this, SERVER_FLAG, true);
-    RestApiV2QMapTestsImplIT.getAllIndexesWithNonCompactMap(this, SERVER_FLAG, false);
+    RestApiV2QMapTestsImplIT.getAllIndexesWithNonCompactMap(this, COMPACT_MAP_DATA, true);
+    RestApiV2QMapTestsImplIT.getAllIndexesWithNonCompactMap(this, COMPACT_MAP_DATA, false);
   }
 }
