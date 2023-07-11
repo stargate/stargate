@@ -85,6 +85,9 @@ public class Cassandra50PersistenceActivator extends BaseActivator {
     File cacheDir = Paths.get(baseDir.getPath(), "caches").toFile();
     cacheDir.mkdirs();
 
+    File metadataDir = Paths.get(baseDir.getPath(), "metadata_directory").toFile();
+    metadataDir.mkdirs();
+
     // Add hook to cleanup
     new org.apache.cassandra.io.util.File(baseDir).deleteRecursiveOnExit();
 
@@ -124,6 +127,7 @@ public class Cassandra50PersistenceActivator extends BaseActivator {
     c.cdc_raw_directory = cdcDir.getAbsolutePath();
     c.saved_caches_directory = cacheDir.getAbsolutePath();
     c.data_file_directories = new String[] {dataDir.getAbsolutePath()};
+    c.metadata_directory = metadataDir.getAbsolutePath();
     c.partitioner = Murmur3Partitioner.class.getCanonicalName();
     c.disk_failure_policy = Config.DiskFailurePolicy.best_effort;
     c.start_native_transport = false;
