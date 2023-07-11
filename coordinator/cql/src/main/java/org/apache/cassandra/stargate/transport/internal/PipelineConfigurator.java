@@ -85,6 +85,11 @@ public class PipelineConfigurator {
   private static final String FRAME_ENCODER = "frameEncoder";
   private static final String MESSAGE_PROCESSOR = "cqlProcessor";
 
+  public static final Boolean USE_PROXY_PROTOCOL =
+      Boolean.parseBoolean(System.getProperty("stargate.use_proxy_protocol", "false"));
+
+  private static final String PROXY_PROTOCOL = "proxyProtocol";
+
   private final boolean epoll;
   private final boolean keepAlive;
   private final EncryptionOptions.TlsEncryptionPolicy tlsEncryptionPolicy;
@@ -241,6 +246,10 @@ public class PipelineConfigurator {
           });
     }
 
+    if (USE_PROXY_PROTOCOL) {
+      pipeline.addLast(PROXY_PROTOCOL, new HAProxyProtocolDetectingDecoder());
+    }
+
     if (DEBUG) pipeline.addLast(DEBUG_HANDLER, new LoggingHandler(LogLevel.INFO));
 
     pipeline.addLast(ENVELOPE_ENCODER, Envelope.Encoder.instance);
@@ -311,6 +320,9 @@ public class PipelineConfigurator {
             errorHandler,
             throwOnOverload);
 
+    if (USE_PROXY_PROTOCOL) {
+      pipeline.addLast(PROXY_PROTOCOL, new HAProxyProtocolDetectingDecoder());
+    }
     pipeline.remove(ENVELOPE_ENCODER); // remove old outbound cql envelope encoder
     pipeline.addBefore(INITIAL_HANDLER, FRAME_DECODER, frameDecoder);
     pipeline.addBefore(INITIAL_HANDLER, FRAME_ENCODER, frameEncoder);
