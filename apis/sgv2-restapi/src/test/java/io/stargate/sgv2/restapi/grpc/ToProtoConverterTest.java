@@ -1,26 +1,25 @@
 package io.stargate.sgv2.restapi.grpc;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
+import static org.junit.jupiter.params.provider.Arguments.arguments;
+
 import io.stargate.bridge.grpc.CqlDuration;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
 import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
 import io.stargate.sgv2.api.common.config.ImmutableRequestParams;
+import java.time.Instant;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.LinkedHashMap;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.testcontainers.shaded.org.apache.commons.lang3.tuple.Pair;
-
-import java.time.Instant;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashMap;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
-import static org.junit.jupiter.params.provider.Arguments.arguments;
 
 public class ToProtoConverterTest {
   private static final String TEST_TABLE = "test_table";
@@ -361,14 +360,13 @@ public class ToProtoConverterTest {
                   Values.of("black"),
                   Values.of(Arrays.asList(Values.of("123"), Values.of("456")))))),
       arguments(
-              false,
-              Pair.of(null, null),
-              "[{'key': 'black', 'value' : [123, 456]}]",
-              mapType(TypeSpec.Basic.VARCHAR, listType(TypeSpec.Basic.INT)),
-              Values.of(
-                      Arrays.asList(
-                              Values.of("black"),
-                              Values.of(Arrays.asList(Values.of(123), Values.of(456)))))),
+          false,
+          Pair.of(null, null),
+          "[{'key': 'black', 'value' : [123, 456]}]",
+          mapType(TypeSpec.Basic.VARCHAR, listType(TypeSpec.Basic.INT)),
+          Values.of(
+              Arrays.asList(
+                  Values.of("black"), Values.of(Arrays.asList(Values.of(123), Values.of(456)))))),
       arguments(
           true,
           Pair.of(null, null),

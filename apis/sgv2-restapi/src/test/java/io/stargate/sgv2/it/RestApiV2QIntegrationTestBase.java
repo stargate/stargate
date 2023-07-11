@@ -1,5 +1,8 @@
 package io.stargate.sgv2.it;
 
+import static io.restassured.RestAssured.given;
+import static org.assertj.core.api.Assertions.assertThat;
+
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JavaType;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -13,15 +16,11 @@ import io.stargate.sgv2.api.common.config.constants.HttpConstants;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
 import io.stargate.sgv2.common.IntegrationTestUtils;
 import io.stargate.sgv2.restapi.service.models.*;
-import org.apache.http.HttpStatus;
-import org.junit.jupiter.api.*;
-
 import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
-
-import static io.restassured.RestAssured.given;
-import static org.assertj.core.api.Assertions.assertThat;
+import org.apache.http.HttpStatus;
+import org.junit.jupiter.api.*;
 
 /**
  * Serves as the base class for integration tests that need to create namespace prior to running the
