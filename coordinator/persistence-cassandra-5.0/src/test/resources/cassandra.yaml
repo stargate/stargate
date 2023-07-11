@@ -1,3 +1,4 @@
+
 # Cassandra storage config YAML
 
 # NOTE:
@@ -20,7 +21,10 @@ cluster_name: 'Test Cluster'
 # Specifying initial_token will override this setting on the node's initial start,
 # on subsequent starts, this setting will apply even if initial token is set.
 #
-num_tokens: 256
+# See https://cassandra.apache.org/doc/latest/getting_started/production.html#tokens for
+# best practice information about num_tokens.
+#
+num_tokens: 16
 
 # Triggers automatic allocation of num_tokens tokens for this node. The allocation
 # algorithm attempts to choose tokens in a way that optimizes replicated load over
@@ -37,7 +41,7 @@ num_tokens: 256
 
 # Replica factor is explicitly set, regardless of keyspace or datacenter.
 # This is the replica factor within the datacenter, like NTS.
-# allocate_tokens_for_local_replication_factor: 3
+allocate_tokens_for_local_replication_factor: 3
 
 # initial_token allows you to specify tokens manually.  While you can use it with
 # vnodes (num_tokens > 1, above) -- in which case you should provide a 
@@ -203,10 +207,22 @@ partitioner: org.apache.cassandra.dht.Murmur3Partitioner
 data_file_directories:
     - target/test/cassandra/data
 
+# Metadata directory that holds information about the cluster, local node and its peers.
+# Currently, only a single subdirectory called 'nodes' will be used.
+# If not set, the default directory is $CASSANDRA_HOME/data/metadata.
+metadata_directory: target/test/cassandra/metadata
+
+# Directory were Cassandra should store the data of the local system keyspaces.
+# By default Cassandra will store the data of the local system keyspaces in the first of the data directories specified
+# by data_file_directories.
+# This approach ensures that if one of the other disks is lost Cassandra can continue to operate. For extra security
+# this setting allows to store those data on a different directory that provides redundancy.
+# local_system_data_file_directory:
+
 # commit log.  when running on magnetic HDD, this should be a
 # separate spindle than the data directories.
 # If not set, the default directory is $CASSANDRA_HOME/data/commitlog.
-commitlog_directory: target/test/cassandra/commitlog
+# commitlog_directory: target/test/cassandra/commitlog
 
 # Enable / disable CDC functionality on a per-node basis. This modifies the logic used
 # for write path allocation rejection (standard: never reject. cdc: reject Mutation
@@ -325,7 +341,7 @@ key_cache_save_period: 14400
 # headroom for OS block level cache. Do never allow your system to swap.
 #
 # Default value is 0, to disable row caching.
-row_cache_size_in_mb: 1024
+row_cache_size_in_mb: 0
 
 # Duration in seconds after which Cassandra should save the row cache.
 # Caches are saved to saved_caches_directory as specified in this configuration file.
@@ -371,6 +387,11 @@ counter_cache_save_period: 7200
 # If not set, the default directory is $CASSANDRA_HOME/data/saved_caches.
 saved_caches_directory: target/test/cassandra/saved_caches
 
+# Number of seconds the server will wait for each cache (row, key, etc ...) to load while starting
+# the Cassandra process. Setting this to a negative value is equivalent to disabling all cache loading on startup
+# while still having the cache during runtime.
+# cache_load_timeout_seconds: 30
+
 # commitlog_sync may be either "periodic", "group", or "batch." 
 # 
 # When in batch mode, Cassandra won't ack writes until the commit log
@@ -394,7 +415,7 @@ commitlog_sync_period_in_ms: 10000
 
 # When in periodic commitlog mode, the number of milliseconds to block writes
 # while waiting for a slow disk flush to complete.
-# periodic_commitlog_sync_lag_block_in_ms: 
+# periodic_commitlog_sync_lag_block_in_ms:
 
 # The size of the individual commitlog file segments.  A commitlog
 # segment may be archived, deleted, or recycled once all the data
@@ -440,7 +461,7 @@ commitlog_segment_size_in_mb: 32
 # any class that implements the SeedProvider interface and has a
 # constructor that takes a Map<String, String> of parameters will do.
 seed_provider:
-    # Addresses of hosts that are deemed contact points. 
+    # Addresses of hosts that are deemed contact points.
     # Cassandra nodes use this list of hosts to find each other and learn
     # the topology of the ring.  You must change this if you are running
     # multiple nodes!
@@ -469,9 +490,22 @@ concurrent_counter_writes: 32
 # be limited by the less of concurrent reads or concurrent writes.
 concurrent_materialized_view_writes: 32
 
+# Maximum memory to use for inter-node and client-server networking buffers.
+#
+# Defaults to the smaller of 1/16 of heap or 128MB. This pool is allocated off-heap,
+# so is in addition to the memory allocated for heap. The cache also has on-heap
+# overhead which is roughly 128 bytes per chunk (i.e. 0.2% of the reserved size
+# if the default 64k chunk size is used).
+# Memory is only allocated when needed.
+# networking_cache_size_in_mb: 128
+
+# Enable the sstable chunk cache.  The chunk cache will store recently accessed
+# sections of the sstable in-memory as uncompressed buffers.
+# file_cache_enabled: false
+
 # Maximum memory to use for sstable chunk cache and buffer pooling.
-# 32MB of this are reserved for pooling buffers, the rest is used as an
-# cache that holds uncompressed sstable chunks.
+# 32MB of this are reserved for pooling buffers, the rest is used for chunk cache
+# that holds uncompressed sstable chunks.
 # Defaults to the smaller of 1/4 of heap or 512MB. This pool is allocated off-heap,
 # so is in addition to the memory allocated for heap. The cache also has on-heap
 # overhead which is roughly 128 bytes per chunk (i.e. 0.2% of the reserved size
@@ -522,7 +556,7 @@ concurrent_materialized_view_writes: 32
 #
 # offheap_objects
 #    off heap objects
-memtable_allocation_type: heap_buffers
+memtable_allocation_type: offheap_objects
 
 # Limit memory usage for Merkle tree calculations during repairs. The default
 # is 1/16th of the available heap. The main tradeoff is that smaller trees
@@ -609,7 +643,7 @@ index_summary_resize_interval_in_minutes: 60
 # buffers. Enable this to avoid sudden dirty buffer flushing from
 # impacting read latencies. Almost always a good idea on SSDs; not
 # necessarily on platters.
-trickle_fsync: false
+trickle_fsync: true
 trickle_fsync_interval_in_kb: 10240
 
 # TCP port, for commands and data
@@ -686,10 +720,6 @@ native_transport_port: 9042
 # you may want to adjust max_value_size_in_mb accordingly. This should be positive and less than 2048.
 # native_transport_max_frame_size_in_mb: 256
 
-# If checksumming is enabled as a protocol option, denotes the size of the chunks into which frame
-# are bodies will be broken and checksummed.
-# native_transport_frame_block_size_in_kb: 32
-
 # The maximum number of concurrent client connections.
 # The default is -1, which means unlimited.
 # native_transport_max_concurrent_connections: -1
@@ -753,12 +783,12 @@ rpc_keepalive: true
 # /proc/sys/net/ipv4/tcp_wmem
 # /proc/sys/net/ipv4/tcp_wmem
 # and 'man tcp'
-# internode_send_buff_size_in_bytes:
+# internode_socket_send_buffer_size_in_bytes:
 
 # Uncomment to set socket buffer size for internode communication
 # Note that when setting this, the buffer size is limited by net.core.wmem_max
 # and when not setting it it is defined by net.ipv4.tcp_wmem
-# internode_recv_buff_size_in_bytes:
+# internode_socket_receive_buffer_size_in_bytes:
 
 # Set to true to have Cassandra create a hard link to each sstable
 # flushed or streamed locally in a backups/ subdirectory of the
@@ -777,6 +807,13 @@ snapshot_before_compaction: false
 # should be used to provide data safety. If you set this flag to false, you will
 # lose data on truncation or drop.
 auto_snapshot: true
+
+# The act of creating or clearing a snapshot involves creating or removing
+# potentially tens of thousands of links, which can cause significant performance
+# impact, especially on consumer grade SSDs. A non-zero value here can
+# be used to throttle these links to avoid negative performance impact of
+# taking and clearing snapshots
+snapshot_links_per_second: 0
 
 # Granularity of the collation index of rows within a partition.
 # Increase if your rows are large, or if you have a very large
@@ -842,6 +879,14 @@ compaction_throughput_mb_per_sec: 64
 # between the sstables, reducing page cache churn and keeping hot rows hot
 sstable_preemptive_open_interval_in_mb: 50
 
+# Starting from 4.1 sstables support UUID based generation identifiers. They are disabled by default
+# because once enabled, there is no easy way to downgrade. When the node is restarted with this option
+# set to true, each newly created sstable will have a UUID based generation identifier and such files are
+# not readable by previous Cassandra versions. At some point, this option will become true by default
+# and eventually get removed from the configuration.
+# In Converged Cassandra, we enable this option by default
+enable_uuid_sstable_identifiers: true
+
 # When enabled, permits Cassandra to zero-copy stream entire eligible
 # SSTables between nodes, including every component.
 # This speeds up the network transfer significantly subject to
@@ -849,9 +894,7 @@ sstable_preemptive_open_interval_in_mb: 50
 # Enabling this will reduce the GC pressure on sending and receiving node.
 # When unset, the default is enabled. While this feature tries to keep the
 # disks balanced, it cannot guarantee it. This feature will be automatically
-# disabled if internode encryption is enabled. Currently this can be used with
-# Leveled Compaction. Once CASSANDRA-14586 is fixed other compaction strategies
-# will benefit as well when used in combination with CASSANDRA-6696.
+# disabled if internode encryption is enabled.
 # stream_entire_sstables: true
 
 # Throttles all outbound streaming file transfers on this node to the
@@ -867,6 +910,19 @@ sstable_preemptive_open_interval_in_mb: 50
 # stream_throughput_outbound_megabits_per_sec
 # When unset, the default is 200 Mbps or 25 MB/s
 # inter_dc_stream_throughput_outbound_megabits_per_sec: 200
+
+# Server side timeouts for requests. The server will return a timeout exception
+# to the client if it can't complete an operation within the corresponding
+# timeout. Those settings are a protection against:
+#   1) having client wait on an operation that might never terminate due to some
+#      failures.
+#   2) operations that use too much CPU/read too much data (leading to memory build
+#      up) by putting a limit to how long an operation will execute.
+# For this reason, you should avoid putting these settings too high. In other words,
+# if you are timing out requests because of underlying resource constraints then
+# increasing the timeout will just cause more problems. Of course putting them too
+# low is equally ill-advised since clients could get timeouts even for successful
+# operations just because the timeout setting is too tight.
 
 # How long the coordinator should wait for read operations to complete.
 # Lowest acceptable value is 10 ms.
@@ -897,16 +953,17 @@ request_timeout_in_ms: 10000
 # See (CASSANDRA-14358) for details.
 #
 # The amount of time to wait for internode tcp connections to establish.
-# internode_tcp_connect_timeout_in_ms = 2000
+# internode_tcp_connect_timeout_in_ms: 2000
 #
 # The amount of time unacknowledged data is allowed on a connection before we throw out the connection
 # Note this is only supported on Linux + epoll, and it appears to behave oddly above a setting of 30000
 # (it takes much longer than 30s) as of Linux 4.12. If you want something that high set this to 0
 # which picks up the OS default and configure the net.ipv4.tcp_retries2 sysctl to be ~8.
-# internode_tcp_user_timeout_in_ms = 30000
+# internode_tcp_user_timeout_in_ms: 30000
 
-# The maximum continuous period a connection may be unwritable in application space
-# internode_application_timeout_in_ms = 30000
+# The amount of time unacknowledged data is allowed on a streaming connection.
+# The default is 5 minutes. Increase it or set it to 0 in order to increase the timeout.
+# internode_streaming_tcp_user_timeout_in_ms: 300000
 
 # Global, per-endpoint and per-connection limits imposed on messages queued for delivery to other nodes
 # and waiting to be processed on arrival from other nodes in the cluster.  These limits are applied to the on-wire
@@ -1031,7 +1088,7 @@ endpoint_snitch: SimpleSnitch
 
 # controls how often to perform the more expensive part of host score
 # calculation
-dynamic_snitch_update_interval_in_ms: 100 
+dynamic_snitch_update_interval_in_ms: 100
 # controls how often to reset all host scores, allowing a bad host to
 # possibly recover
 dynamic_snitch_reset_interval_in_ms: 600000
@@ -1042,7 +1099,7 @@ dynamic_snitch_reset_interval_in_ms: 600000
 # expressed as a double which represents a percentage.  Thus, a value of
 # 0.2 means Cassandra would continue to prefer the static snitch values
 # until the pinned host was 20% worse than the fastest.
-dynamic_snitch_badness_threshold: 0.1
+dynamic_snitch_badness_threshold: 1.0
 
 # Configure server-to-server internode encryption
 #
@@ -1214,18 +1271,6 @@ transparent_data_encryption_options:
 # SAFETY THRESHOLDS #
 #####################
 
-# When executing a scan, within or across a partition, we need to keep the
-# tombstones seen in memory so we can return them to the coordinator, which
-# will use them to make sure other replicas also know about the deleted rows.
-# With workloads that generate a lot of tombstones, this can cause performance
-# problems and even exaust the server heap.
-# (http://www.datastax.com/dev/blog/cassandra-anti-patterns-queues-and-queue-like-datasets)
-# Adjust the thresholds here if you understand the dangers and want to
-# scan more tombstones anyway.  These thresholds may also be adjusted at runtime
-# using the StorageService mbean.
-tombstone_warn_threshold: 1000
-tombstone_failure_threshold: 100000
-
 # Filtering and secondary index queries at read consistency levels above ONE/LOCAL_ONE use a
 # mechanism called replica filtering protection to ensure that results from stale replicas do
 # not violate consistency. (See CASSANDRA-8272 and CASSANDRA-15907 for more details.) This
@@ -1246,19 +1291,6 @@ replica_filtering_protection:
     cached_rows_warn_threshold: 2000
     cached_rows_fail_threshold: 32000
 
-# Log WARN on any multiple-partition batch size exceeding this value. 5kb per batch by default.
-# Caution should be taken on increasing the size of this threshold as it can lead to node instability.
-batch_size_warn_threshold_in_kb: 5
-
-# Fail any multiple-partition batch exceeding this value. 50kb (10x warn threshold) by default.
-batch_size_fail_threshold_in_kb: 50
-
-# Log WARN on any batches not of type LOGGED than span across more partitions than this limit
-unlogged_batch_across_partitions_warn_threshold: 10
-
-# Log a warning when compacting partitions larger than this value
-compaction_large_partition_warning_threshold_mb: 100
-
 # GC Pauses greater than 200 ms will be logged at INFO level
 # This threshold can be adjusted to minimize logging if necessary
 # gc_log_threshold_in_ms: 200
@@ -1272,42 +1304,6 @@ compaction_large_partition_warning_threshold_mb: 100
 # early. Any value size larger than this threshold will result into marking an SSTable
 # as corrupted. This should be positive and less than 2048.
 # max_value_size_in_mb: 256
-
-# Coalescing Strategies #
-# Coalescing multiples messages turns out to significantly boost message processing throughput (think doubling or more).
-# On bare metal, the floor for packet processing throughput is high enough that many applications won't notice, but in
-# virtualized environments, the point at which an application can be bound by network packet processing can be
-# surprisingly low compared to the throughput of task processing that is possible inside a VM. It's not that bare metal
-# doesn't benefit from coalescing messages, it's that the number of packets a bare metal network interface can process
-# is sufficient for many applications such that no load starvation is experienced even without coalescing.
-# There are other benefits to coalescing network messages that are harder to isolate with a simple metric like messages
-# per second. By coalescing multiple tasks together, a network thread can process multiple messages for the cost of one
-# trip to read from a socket, and all the task submission work can be done at the same time reducing context switching
-# and increasing cache friendliness of network message processing.
-# See CASSANDRA-8692 for details.
-
-# Strategy to use for coalescing messages in OutboundTcpConnection.
-# Can be fixed, movingaverage, timehorizon, disabled (default).
-# You can also specify a subclass of CoalescingStrategies.CoalescingStrategy by name.
-# otc_coalescing_strategy: DISABLED
-
-# How many microseconds to wait for coalescing. For fixed strategy this is the amount of time after the first
-# message is received before it will be sent with any accompanying messages. For moving average this is the
-# maximum amount of time that will be waited as well as the interval at which messages must arrive on average
-# for coalescing to be enabled.
-# otc_coalescing_window_us: 200
-
-# Do not try to coalesce messages if we already got that many messages. This should be more than 2 and less than 128.
-# otc_coalescing_enough_coalesced_messages: 8
-
-# How many milliseconds to wait between two expiration runs on the backlog (queue) of the OutboundTcpConnection.
-# Expiration is done if messages are piling up in the backlog. Droppable messages are expired to free the memory
-# taken by expired messages. The interval should be between 0 and 1000, and in most installations the default value
-# will be appropriate. A smaller value could potentially expire messages slightly sooner at the expense of more CPU
-# time and queue contention while iterating the backlog of messages.
-# An interval of 0 disables any wait time, which is the behavior of former Cassandra versions.
-#
-# otc_backlog_expiration_interval_ms: 200
 
 # Track a metric per keyspace indicating whether replication achieved the ideal consistency
 # level for writes without timing out. This is different from the consistency level requested by
@@ -1384,6 +1380,10 @@ repaired_data_tracking_for_partition_reads_enabled: false
 # mismatches are less actionable than confirmed ones.
 report_unconfirmed_repaired_data_mismatches: false
 
+# This is the page size used internally by aggregation queries. It aims to limit the memory used by aggregation
+# queries when there is a lot of data to aggregate.
+# aggregation_subpage_size_in_kb: 2048
+
 #########################
 # EXPERIMENTAL FEATURES #
 #########################
@@ -1399,3 +1399,142 @@ enable_sasi_indexes: false
 # Enables creation of transiently replicated keyspaces on this node.
 # Transient replication is experimental and is not recommended for production use.
 enable_transient_replication: false
+
+# Enables the used of 'ALTER ... DROP COMPACT STORAGE' statements on this node.
+# 'ALTER ... DROP COMPACT STORAGE' is considered experimental and is not recommended for production use.
+enable_drop_compact_storage: false
+
+# Emulates DataStax Constellation database-as-a-service defaults.
+#
+# When enabled, some defaults are modified to match those used by DataStax Constellation (DataStax cloud data
+# platform). This includes (but is not limited to) stricter guardrails defaults.
+#
+# This can be used as an convenience to develop and test applications meant to run on DataStax Constellation.
+#
+# Warning: when enabled, the updated defaults reflect those of DataStax Constellation _at the time_ of the currently
+#                 used DSE release. This is a best-effort emulation of said defaults. Further, all nodes must use the same
+#                 config value.
+# emulate_dbaas_defaults: false
+
+# Guardrails settings.
+# guardrails:
+  # When executing a scan, within or across a partition, we need to keep the
+  # tombstones seen in memory so we can return them to the coordinator, which
+  # will use them to make sure other replicas also know about the deleted rows.
+  # With workloads that generate a lot of tombstones, this can cause performance
+  # problems and even exhaust the server heap.
+  # (http://www.datastax.com/dev/blog/cassandra-anti-patterns-queues-and-queue-like-datasets)
+  # Adjust the thresholds here if you understand the dangers and want to
+  # scan more tombstones anyway.  These thresholds may also be adjusted at runtime
+  # using the StorageService mbean.
+  #
+  # Default tombstone_warn_threshold is 1000, may differ if emulate_dbaas_defaults is enabled
+  # Default tombstone_failure_threshold is 100000, may differ if emulate_dbaas_defaults is enabled
+  # tombstone_warn_threshold: 1000
+  # tombstone_failure_threshold: 100000
+
+  # Log a warning when compacting partitions larger than this value.
+  # Default value is 100mb, may differ if emulate_dbaas_defaults is enabled
+  # partition_size_warn_threshold_in_mb: 100
+
+  # Log WARN on any multiple-partition batch size that exceeds this value. 64kb per batch by default.
+  # Use caution when increasing the size of this threshold as it can lead to node instability.
+  # Default value is 64kb, may differ if emulate_dbaas_defaults is enabled
+  # batch_size_warn_threshold_in_kb: 64
+
+  # Fail any multiple-partition batch that exceeds this value. The calculated default is 640kb (10x warn threshold).
+  # Default value is 640kb, may differ if emulate_dbaas_defaults is enabled
+  # batch_size_fail_threshold_in_kb: 640
+
+  # Log WARN on any batches not of type LOGGED than span across more partitions than this limit.
+  # Default value is 10, may differ if emulate_dbaas_defaults is enabled
+  # unlogged_batch_across_partitions_warn_threshold: 10
+
+  # Failure threshold to prevent writing large column value into Cassandra.
+  # Default -1 to disable, may differ if emulate_dbaas_defaults is enabled
+  # column_value_size_failure_threshold_in_kb: -1
+
+  # Failure threshold to prevent creating more columns per table than threshold.
+  # Default -1 to disable, may differ if emulate_dbaas_defaults is enabled
+  # columns_per_table_failure_threshold: -1
+
+  # Failure threshold to prevent creating more fields in user-defined-type than threshold.
+  # Default -1 to disable, may differ if emulate_dbaas_defaults is enabled
+  # fields_per_udt_failure_threshold: -1
+
+  # Warning threshold to warn when encountering larger size of collection data than threshold.
+  # Default -1 to disable, may differ if emulate_dbaas_defaults is enabled
+  # collection_size_warn_threshold_in_kb: -1
+
+  # Warning threshold to warn when encountering more elements in collection than threshold.
+  # Default -1 to disable, may differ if emulate_dbaas_defaults is enabled
+  # items_per_collection_warn_threshold: -1
+
+  # Whether read-before-write operation is allowed, eg. setting list element by index, removing list element
+  # by index. Note: LWT is always allowed.
+  # Default true to allow read before write operation, may differ if emulate_dbaas_defaults is enabled
+  # read_before_write_list_operations_enabled: true
+
+  # Failure threshold to prevent creating more secondary index per table than threshold (does not apply to CUSTOM INDEX StorageAttachedIndex)
+  # Default -1 to disable, may differ if emulate_dbaas_defaults is enabled
+  # secondary_index_per_table_failure_threshold: -1
+
+  # Failure threshold for number of StorageAttachedIndex per table (only applies to CUSTOM INDEX StorageAttachedIndex)
+  # Default is 10 (same when emulate_dbaas_defaults is enabled)
+  # sai_indexes_per_table_failure_threshold: 10
+  #
+  # Failure threshold for total number of StorageAttachedIndex across all keyspaces (only applies to CUSTOM INDEX StorageAttachedIndex)
+  # Default is 10 (same when emulate_dbaas_defaults is enabled)
+  # sai_indexes_total_failure_threshold: 100
+
+  # Failure threshold to prevent creating more materialized views per table than threshold.
+  # Default -1 to disable, may differ if emulate_dbaas_defaults is enabled
+  # materialized_view_per_table_failure_threshold: -1
+
+  # Warn threshold to warn creating more tables than threshold.
+  # Default -1 to disable, may differ if emulate_dbaas_defaults is enabled
+  # tables_warn_threshold: -1
+
+  # Failure threshold to prevent creating more tables than threshold.
+  # Default -1 to disable, may differ if emulate_dbaas_defaults is enabled
+  # tables_failure_threshold: -1
+
+  # Preventing creating tables with provided configurations.
+  # Default all properties are allowed, may differ if emulate_dbaas_defaults is enabled
+  # table_properties_disallowed:
+
+  # Whether to allow user-provided timestamp in write request
+  # Default true to allow user-provided timestamp, may differ if emulate_dbaas_defaults is enabled
+  # user_timestamps_enabled: true
+
+  # Preventing query with provided consistency levels
+  # Default all consistency levels are allowed.
+  # write_consistency_levels_disallowed:
+
+  # Failure threshold to prevent providing larger paging by bytes than threshold, also served as a hard paging limit
+  # when paging by rows is used.
+  # Default -1 to disable, may differ if emulate_dbaas_defaults is enabled
+  # page_size_failure_threshold_in_kb: -1
+
+  # Failure threshold to prevent IN query creating size of cartesian product exceeding threshold, eg.
+  # "a in (1,2,...10) and b in (1,2...10)" results in cartesian product of 100.
+  # Default -1 to disable, may differ if emulate_dbaas_defaults is enabled
+  # in_select_cartesian_product_failure_threshold: -1
+
+  # Failure threshold to prevent IN query containing more partition keys than threshold
+  # Default -1 to disable, may differ if emulate_dbaas_defaults is enabled
+  # partition_keys_in_select_failure_threshold: -1
+
+  # Warning threshold to warn when local disk usage exceeding threshold. Valid values: (1, 100]
+  # Default -1 to disable, may differ if emulate_dbaas_defaults is enabled
+  # disk_usage_percentage_warn_threshold: -1
+
+  # Failure threshold to reject write requests if replica disk usage exceeding threshold. Valid values: (1, 100]
+  # Default -1 to disable, may differ if emulate_dbaas_defaults is enabled
+  # disk_usage_percentage_failure_threshold: -1
+
+  # Allows configuring max disk size of data directories when calculating thresholds for disk_usage_percentage_warn_threshold
+  # and disk_usage_percentage_failure_threshold. Valid values: (1, max available disk size of all data directories]
+  # Default -1 to disable and use the physically available disk size of data directories during calculations.
+  # may differ if emulate_dbaas_defaults is enabled
+  # disk_usage_max_disk_size_in_gb: -1
