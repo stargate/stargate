@@ -21,6 +21,20 @@
     -->
     <cassandra.bundled-driver.version>3.11.3</cassandra.bundled-driver.version>
   </properties>
+  <repositories>
+    <repository>
+      <id>central</id>
+      <url>https://repo.maven.apache.org/maven2</url>
+    </repository>
+    <repository>
+      <id>artifactory-snapshots</id>
+      <url>https://repo.datastax.com/datastax-snapshots-local</url>
+    </repository>
+    <repository>
+      <id>artifactory-releases</id>
+      <url>https://repo.datastax.com/datastax-releases-local</url>
+    </repository>
+  </repositories>
   <dependencies>
     <!-- Stargate component dependencies -->
     <dependency>
