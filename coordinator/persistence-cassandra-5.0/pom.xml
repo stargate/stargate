@@ -20,20 +20,8 @@
       cassandra-all's POM).
     -->
     <cassandra.bundled-driver.version>3.11.3</cassandra.bundled-driver.version>
+    <netty.version>4.1.94.Final</netty.version>
   </properties>
-  <dependencyManagement>
-    <dependencies>
-      <!-- 29-Mar-2022, tatu: Need to force Netty overrides here
-        -->
-      <dependency>
-        <groupId>io.netty</groupId>
-        <artifactId>netty-bom</artifactId>
-        <version>${netty.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-    </dependencies>
-  </dependencyManagement>
   <dependencies>
     <!-- Stargate component dependencies -->
     <dependency>
@@ -60,6 +48,11 @@
       <scope>provided</scope>
     </dependency>
     <!-- Cassandra/DataStax -->
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-all</artifactId>
+      <version>${netty.version}</version>
+    </dependency>
     <dependency>
       <groupId>com.datastax.dse</groupId>
       <artifactId>dse-db-all</artifactId>
