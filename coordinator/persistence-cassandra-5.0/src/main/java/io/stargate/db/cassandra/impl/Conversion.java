@@ -266,18 +266,39 @@ public class Conversion {
 
   public static Map<org.apache.cassandra.stargate.locator.InetAddressAndPort, RequestFailureReason>
       toExternal(
-          Map<InetAddressAndPort, org.apache.cassandra.exceptions.RequestFailureReason> internal) {
-    Map<org.apache.cassandra.stargate.locator.InetAddressAndPort, RequestFailureReason> external =
-        new HashMap<>(internal.size());
+          Map<InetAddressAndPort, org.apache.cassandra.exceptions.RequestFailureReason> internals) {
+    Map<org.apache.cassandra.stargate.locator.InetAddressAndPort, RequestFailureReason> externals =
+        new HashMap<>(internals.size());
     for (Map.Entry<InetAddressAndPort, org.apache.cassandra.exceptions.RequestFailureReason> entry :
-        internal.entrySet()) {
+        internals.entrySet()) {
       InetAddressAndPort addressAndPort = entry.getKey();
-      external.put(
+      org.apache.cassandra.exceptions.RequestFailureReason internalReason = entry.getValue();
+      RequestFailureReason externalReason = RequestFailureReason.fromCode(internalReason.code);
+      if (externalReason == RequestFailureReason.UNKNOWN) {
+        switch (internalReason) {
+          case INDEX_NOT_AVAILABLE:
+            externalReason = RequestFailureReason.INDEX_NOT_AVAILABLE;
+            break;
+          case READ_TOO_MANY_TOMBSTONES:
+            externalReason = RequestFailureReason.READ_TOO_MANY_TOMBSTONES;
+            break;
+          case REMOTE_STORAGE_FAILURE:
+            externalReason = RequestFailureReason.REMOTE_STORAGE_FAILURE;
+            break;
+          case UNKNOWN_COLUMN:
+            externalReason = RequestFailureReason.UNKNOWN_COLUMN;
+            break;
+          case UNKNOWN_TABLE:
+            externalReason = RequestFailureReason.UNKNOWN_TABLE;
+            break;
+        }
+      }
+      externals.put(
           org.apache.cassandra.stargate.locator.InetAddressAndPort.getByAddressOverrideDefaults(
               addressAndPort.address, addressAndPort.addressBytes, addressAndPort.port),
-          RequestFailureReason.fromCode(entry.getValue().code));
+          externalReason);
     }
-    return external;
+    return externals;
   }
 
   public static WriteType toExternal(org.apache.cassandra.db.WriteType internal) {
