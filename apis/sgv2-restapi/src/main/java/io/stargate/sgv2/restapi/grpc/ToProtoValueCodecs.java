@@ -834,9 +834,10 @@ public class ToProtoValueCodecs {
             Map<?, ?> entryNode = (Map<?, ?>) entry;
             if (entryNode.size() != 2) {
               throw new IllegalArgumentException("Map entry must have exactly 2 elements");
-            }
-            if (!entryNode.containsKey("key") || !entryNode.containsKey("value")) {
-              throw new IllegalArgumentException("Map entry missing key or value");
+            } else if (!entryNode.containsKey("key")) {
+              throw new IllegalArgumentException("Map entry missing key");
+            } else if (!entryNode.containsKey("value")) {
+              throw new IllegalArgumentException("Map entry missing value");
             }
             elements.add(keyCodec.protoValueFromStrictlyTyped(entryNode.get("key")));
             elements.add(valueCodec.protoValueFromStrictlyTyped(entryNode.get("value")));

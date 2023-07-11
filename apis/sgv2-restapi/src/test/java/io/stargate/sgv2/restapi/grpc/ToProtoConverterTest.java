@@ -132,7 +132,7 @@ public class ToProtoConverterTest {
               Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false)))),
       arguments(
           false,
-          Pair.of(IllegalArgumentException.class, "Map entry missing key or value"),
+          Pair.of(IllegalArgumentException.class, "Map entry missing value"),
           Arrays.asList(
               new LinkedHashMap<>() {
                 {
@@ -149,6 +149,24 @@ public class ToProtoConverterTest {
           mapType(TypeSpec.Basic.INT, TypeSpec.Basic.BOOLEAN),
           Values.of(
               Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false)))),
+      arguments(
+          false,
+          Pair.of(IllegalArgumentException.class, "Map entry missing key"),
+          Arrays.asList(
+              new LinkedHashMap<>() {
+                {
+                  put("key1", true);
+                  put("value", true);
+                }
+              },
+              new LinkedHashMap<>() {
+                {
+                  put("key", 456);
+                }
+              }),
+          mapType(TypeSpec.Basic.INT, TypeSpec.Basic.BOOLEAN),
+          Values.of(
+              Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false))))
     };
   }
   ;
@@ -380,7 +398,7 @@ public class ToProtoConverterTest {
           false,
           Pair.of(
               IllegalArgumentException.class,
-              "Invalid Non-Compact Map value: '[{'key': 'black'}]'. Missing key or value."),
+              "Invalid Non-Compact Map value: '[{'key': 'black'}]'. Missing value."),
           "[{'key': 'black'}]",
           mapType(TypeSpec.Basic.VARCHAR, mapType(TypeSpec.Basic.VARCHAR, TypeSpec.Basic.VARCHAR)),
           Values.of(Arrays.asList(Values.of("black")))),

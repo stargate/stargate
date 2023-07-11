@@ -277,7 +277,7 @@ public class StringifiedValueUtil {
       if (value.charAt(idx) == ']') {
         if (results.size() % 2 != 0) {
           throw new IllegalArgumentException(
-              String.format("Invalid Non-Compact Map value: '%s'. Missing key or value.", value));
+              String.format("Invalid Non-Compact Map value: '%s'. Missing value.", value));
         }
         return;
       }
