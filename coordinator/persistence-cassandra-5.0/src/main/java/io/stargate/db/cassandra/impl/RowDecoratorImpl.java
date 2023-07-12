@@ -75,18 +75,13 @@ public class RowDecoratorImpl extends AbstractRowDecorator {
   @Override
   public ByteBuffer getComparableBytes(Row row) {
     DecoratedKey decoratedKey = decoratedKeyFromRawKeyValues(primaryKeyValues(row));
-
-    // based on
-    // https://github.com/apache/cassandra/blob/trunk/src/java/org/apache/cassandra/db/DecoratedKey.java#L109-L119
-
-    ByteComparable.Version version = ByteComparable.Version.OSS42;
+    ByteComparable.Version version = ByteComparable.Version.OSS41;
     ByteSource keyComparableBytes = ByteSource.of(decoratedKey.getKey(), version);
     ByteSource tokenComparableBytes = getTokenComparableBytes(decoratedKey.getToken(), version);
 
     // combine
     ByteSource bytes =
-        ByteSource.withTerminatorMaybeLegacy(
-            version, ByteSource.END_OF_STREAM, tokenComparableBytes, keyComparableBytes);
+        ByteSource.withTerminator(ByteSource.TERMINATOR, tokenComparableBytes, keyComparableBytes);
     return ByteBuffer.wrap(readBytes(bytes, 64));
   }
 
