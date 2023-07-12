@@ -1,5 +1,18 @@
 # Changelog
 
+## [v2.1.0-ALPHA-2](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-2) (2023-07-12)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-ALPHA-1...v2.1.0-ALPHA-2)
+
+**Closed issues:**
+
+- Support protocol v5  [\#770](https://github.com/stargate/stargate/issues/770)
+
+**Merged pull requests:**
+
+- fix docker image tagging for apis [\#2672](https://github.com/stargate/stargate/pull/2672) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Enable HAProxy if configured [\#2670](https://github.com/stargate/stargate/pull/2670) ([maheshrajamani](https://github.com/maheshrajamani))
+
 ## [v2.1.0-ALPHA-1](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-1) (2023-07-04)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.16...v2.1.0-ALPHA-1)
