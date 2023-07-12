@@ -119,7 +119,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     }
     CommitLog.instance.start();
 
-    // VirtualKeyspaceRegistry.instance.register(SystemViewsKeyspace.instance);
+    VirtualKeyspaceRegistry.instance.register(SystemViewsKeyspace.instance);
   }
 
   @ParameterizedTest
@@ -140,32 +140,16 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   void authorizeByTokenSelectStatementMissingRoleName() {
     SelectStatement.Raw rawStatement = QueryProcessor.parseStatement("select * from system.local");
 
-    try {
+    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    RuntimeException thrown =
+        assertThrows(
+            RuntimeException.class,
+            () ->
+                queryHandler.authorizeByToken(
+                    ImmutableMap.of("stargate.auth.subject.token", ByteBuffer.allocate(10)),
+                    statement));
 
-      System.out.println(
-          Class.forName("org.apache.cassandra.utils.bytecomparable.ByteComparable")
-              .getProtectionDomain()
-              .getCodeSource()
-              .getLocation()
-              .toString());
-
-      Class.forName("org.apache.cassandra.db.virtual.SystemViewsKeyspace");
-      VirtualKeyspaceRegistry.instance.register(SystemViewsKeyspace.instance);
-
-      CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
-      RuntimeException thrown =
-          assertThrows(
-              RuntimeException.class,
-              () ->
-                  queryHandler.authorizeByToken(
-                      ImmutableMap.of("stargate.auth.subject.token", ByteBuffer.allocate(10)),
-                      statement));
-
-      assertThat(thrown.getMessage()).isEqualTo("token and roleName must be provided");
-    } catch (java.lang.Throwable e) {
-      e.printStackTrace();
-      throw new RuntimeException(e);
-    }
+    assertThat(thrown.getMessage()).isEqualTo("token and roleName must be provided");
   }
 
   @ParameterizedTest
