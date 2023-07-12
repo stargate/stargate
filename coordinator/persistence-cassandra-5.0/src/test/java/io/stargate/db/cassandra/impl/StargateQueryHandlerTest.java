@@ -65,6 +65,8 @@ import org.apache.cassandra.cql3.statements.schema.DropTypeStatement;
 import org.apache.cassandra.cql3.statements.schema.DropViewStatement;
 import org.apache.cassandra.db.commitlog.CommitLog;
 import org.apache.cassandra.db.marshal.AsciiType;
+import org.apache.cassandra.db.virtual.SystemViewsKeyspace;
+import org.apache.cassandra.db.virtual.VirtualKeyspaceRegistry;
 import org.apache.cassandra.schema.KeyspaceMetadata;
 import org.apache.cassandra.schema.KeyspaceParams;
 import org.apache.cassandra.schema.Schema;
@@ -116,6 +118,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
       Schema.instance.load(cyclingKeyspaceMetadata);
     }
     CommitLog.instance.start();
+
+    // VirtualKeyspaceRegistry.instance.register(SystemViewsKeyspace.instance);
   }
 
   @ParameterizedTest
@@ -136,17 +140,32 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   void authorizeByTokenSelectStatementMissingRoleName() {
     SelectStatement.Raw rawStatement = QueryProcessor.parseStatement("select * from system.local");
 
-    CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+    try {
 
-    RuntimeException thrown =
-        assertThrows(
-            RuntimeException.class,
-            () ->
-                queryHandler.authorizeByToken(
-                    ImmutableMap.of("stargate.auth.subject.token", ByteBuffer.allocate(10)),
-                    statement));
+      System.out.println(
+          Class.forName("org.apache.cassandra.utils.bytecomparable.ByteComparable")
+              .getProtectionDomain()
+              .getCodeSource()
+              .getLocation()
+              .toString());
 
-    assertThat(thrown.getMessage()).isEqualTo("token and roleName must be provided");
+      Class.forName("org.apache.cassandra.db.virtual.SystemViewsKeyspace");
+      VirtualKeyspaceRegistry.instance.register(SystemViewsKeyspace.instance);
+
+      CQLStatement statement = rawStatement.prepare(ClientState.forInternalCalls());
+      RuntimeException thrown =
+          assertThrows(
+              RuntimeException.class,
+              () ->
+                  queryHandler.authorizeByToken(
+                      ImmutableMap.of("stargate.auth.subject.token", ByteBuffer.allocate(10)),
+                      statement));
+
+      assertThat(thrown.getMessage()).isEqualTo("token and roleName must be provided");
+    } catch (java.lang.Throwable e) {
+      e.printStackTrace();
+      throw new RuntimeException(e);
+    }
   }
 
   @ParameterizedTest
