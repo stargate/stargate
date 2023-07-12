@@ -11,6 +11,7 @@
 **Closed issues:**
 
 - Possible Serialization incompatibility for `Map`s between SGv2/SGv1 for REST API \(v2\) [\#2577](https://github.com/stargate/stargate/issues/2577)
+- Guava version 32.0.0 has a CVE [\#2638](https://github.com/stargate/stargate/issues/2638)
 - Update `cassandra.bundled-driver.version` of Cassandra 4.0 persistence module to 3.11.3 [\#2664](https://github.com/stargate/stargate/issues/2664)
 - Upgrade to Quarkus 3.2.0 [\#2659](https://github.com/stargate/stargate/issues/2659)
 
@@ -21,37 +22,6 @@
 - Update to Quarkus 3.2.0 [\#2660](https://github.com/stargate/stargate/pull/2660) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Option added for Map data format in REST API  [\#2651](https://github.com/stargate/stargate/pull/2651) ([kathirsvn](https://github.com/kathirsvn))
 - add HTTP status tagging to tenant metrics [\#2646](https://github.com/stargate/stargate/pull/2646) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
-
-## [v2.1.0-ALPHA-1](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-1) (2023-07-04)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.16...v2.1.0-ALPHA-1)
-
-**Closed issues:**
-
-- Guava version 32.0.0 has a CVE [\#2638](https://github.com/stargate/stargate/issues/2638)
-- Enable Github Action based Coordinator Test to replace GCB for Stargate V2 [\#2281](https://github.com/stargate/stargate/issues/2281)
-- Remove in-coordinator \(SGv1\) RESTv2 API \(leave RESTv1\) [\#2121](https://github.com/stargate/stargate/issues/2121)
-- Remove in-coordinator \(SGv1\) GraphQL-api [\#2117](https://github.com/stargate/stargate/issues/2117)
-
-**Merged pull requests:**
-
-- docker image tagging for v2.1 [\#2655](https://github.com/stargate/stargate/pull/2655) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
-- v2.1 release workflow [\#2652](https://github.com/stargate/stargate/pull/2652) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
-- update to Quarkus 3.1.3, sync grpc versions [\#2650](https://github.com/stargate/stargate/pull/2650) ([ivansenic](https://github.com/ivansenic))
-- Bumping version for next v2 release [\#2648](https://github.com/stargate/stargate/pull/2648) ([github-actions[bot]](https://github.com/apps/github-actions))
-- Add JSON as an API option [\#2644](https://github.com/stargate/stargate/pull/2644) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
-- Fix DSE ITs for Java 11 \(second attempt\) [\#2643](https://github.com/stargate/stargate/pull/2643) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
-- Remove rate limiting [\#2641](https://github.com/stargate/stargate/pull/2641) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
-- Remove REST and GraphQL APIs from coordinator [\#2640](https://github.com/stargate/stargate/pull/2640) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
-- Fix GH actions to run for v2.1 too [\#2634](https://github.com/stargate/stargate/pull/2634) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Remove unnecessary maven-failsafe-plugin \(IT\) settings [\#2632](https://github.com/stargate/stargate/pull/2632) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- fix formatting error [\#2630](https://github.com/stargate/stargate/pull/2630) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
-- add java exports to stargate extension cmd line [\#2629](https://github.com/stargate/stargate/pull/2629) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
-- Try to fix v2.1 branch ITs [\#2628](https://github.com/stargate/stargate/pull/2628) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Update version to 2.1.0-ALPHA-1-SNAPSHOT for v2.1 branch [\#2625](https://github.com/stargate/stargate/pull/2625) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- removing Cassandra 3.11 support [\#2614](https://github.com/stargate/stargate/pull/2614) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
-- JDK 11 upgrade work, prep for vector-search feature [\#2613](https://github.com/stargate/stargate/pull/2613) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Protocol v5 support for cql [\#2611](https://github.com/stargate/stargate/pull/2611) ([maheshrajamani](https://github.com/maheshrajamani))
 
 ## [v2.0.16](https://github.com/stargate/stargate/tree/v2.0.16) (2023-06-21)
 
