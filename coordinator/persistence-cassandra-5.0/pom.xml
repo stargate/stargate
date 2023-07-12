@@ -14,7 +14,6 @@
   <properties>
     <!-- If you update this, make sure to keep `cassandra.bundled-driver.version` in sync -->
     <ds-cassandra.version>4.0.7-0acaae364c19</ds-cassandra.version>
-    <ccm.version>github:datastax/vsearch</ccm.version>
     <!--
       The driver used internally by cassandra-all for UDFs (must match the version declared in
       cassandra-all's POM).
@@ -172,7 +171,7 @@
           <reuseForks>false</reuseForks>
           <forkCount>1</forkCount>
           <systemPropertyVariables>
-            <ccm.version>${ccm.version}</ccm.version>
+            <ccm.directory>${project.basedir}/../ds-cassandra</ccm.directory>
           </systemPropertyVariables>
         </configuration>
       </plugin>
