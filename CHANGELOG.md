@@ -1,5 +1,45 @@
 # Changelog
 
+## [v2.1.0-ALPHA-2](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-2) (2023-07-12)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.17...v2.1.0-ALPHA-2)
+
+**Closed issues:**
+
+- Possible Serialization incompatibility for `Map`s between SGv2/SGv1 for REST API \(v2\) [\#2577](https://github.com/stargate/stargate/issues/2577)
+- Support protocol v5  [\#770](https://github.com/stargate/stargate/issues/770)
+
+**Merged pull requests:**
+
+- fix docker image tagging for apis [\#2672](https://github.com/stargate/stargate/pull/2672) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Bumping version for next v2.0 release [\#2671](https://github.com/stargate/stargate/pull/2671) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Enable HAProxy if configured [\#2670](https://github.com/stargate/stargate/pull/2670) ([maheshrajamani](https://github.com/maheshrajamani))
+- update driver version for test [\#2668](https://github.com/stargate/stargate/pull/2668) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Bumping version for next v2.1 release [\#2656](https://github.com/stargate/stargate/pull/2656) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.0.17](https://github.com/stargate/stargate/tree/v2.0.17) (2023-07-11)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-ALPHA-1...v2.0.17)
+
+**Fixed bugs:**
+
+- Maven `install package` does not work [\#2636](https://github.com/stargate/stargate/issues/2636)
+
+**Closed issues:**
+
+- Update `cassandra.bundled-driver.version` of Cassandra 4.0 persistence module to 3.11.3 [\#2664](https://github.com/stargate/stargate/issues/2664)
+- Upgrade to Quarkus 3.2.0 [\#2659](https://github.com/stargate/stargate/issues/2659)
+
+**Merged pull requests:**
+
+- remove C\* 3 from v21 APIs workflow [\#2666](https://github.com/stargate/stargate/pull/2666) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Fix \#2664: update `cassandra-driver-core` dep for C-4.0 persistence to 3.11.3 [\#2665](https://github.com/stargate/stargate/pull/2665) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Move microbenchmark class\(es\) to `testing` [\#2661](https://github.com/stargate/stargate/pull/2661) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update to Quarkus 3.2.0 [\#2660](https://github.com/stargate/stargate/pull/2660) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- v2.1 workflow improvements [\#2657](https://github.com/stargate/stargate/pull/2657) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Option added for Map data format in REST API  [\#2651](https://github.com/stargate/stargate/pull/2651) ([kathirsvn](https://github.com/kathirsvn))
+- add HTTP status tagging to tenant metrics [\#2646](https://github.com/stargate/stargate/pull/2646) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+
 ## [v2.1.0-ALPHA-1](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-1) (2023-07-04)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.16...v2.1.0-ALPHA-1)
