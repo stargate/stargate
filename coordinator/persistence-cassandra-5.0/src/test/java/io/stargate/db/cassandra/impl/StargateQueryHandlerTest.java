@@ -67,6 +67,8 @@ import org.apache.cassandra.db.commitlog.CommitLog;
 import org.apache.cassandra.db.marshal.AsciiType;
 import org.apache.cassandra.db.virtual.SystemViewsKeyspace;
 import org.apache.cassandra.db.virtual.VirtualKeyspaceRegistry;
+import org.apache.cassandra.db.virtual.VirtualSchemaKeyspace;
+import org.apache.cassandra.nodes.Nodes;
 import org.apache.cassandra.schema.KeyspaceMetadata;
 import org.apache.cassandra.schema.KeyspaceParams;
 import org.apache.cassandra.schema.Schema;
@@ -117,8 +119,9 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     if (Schema.instance.getKeyspaceMetadata("cycling") == null) {
       Schema.instance.load(cyclingKeyspaceMetadata);
     }
+    Nodes.Instance.persistLocalMetadata();
     CommitLog.instance.start();
-
+    VirtualKeyspaceRegistry.instance.register(VirtualSchemaKeyspace.instance);
     VirtualKeyspaceRegistry.instance.register(SystemViewsKeyspace.instance);
   }
 
@@ -133,7 +136,8 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
 
     SourceAPI expected = sourceApi != null ? sourceApi : SourceAPI.CQL;
     verify(authorizationService, times(1))
-        .authorizeDataRead(refEq(authenticationSubject), eq("system"), eq("local"), eq(expected));
+        .authorizeDataRead(
+            refEq(authenticationSubject), eq("system_views"), eq("local_node"), eq(expected));
   }
 
   @Test
