@@ -98,7 +98,7 @@ jobs:
       - name: Run unit tests
         run: |
           cd coordinator/
-          ./mvnw -B -ntp clean test -P dse
+          ./mvnw -B -ntp clean test -P all
 
   integration-test:
     name: Integration tests
@@ -120,13 +120,13 @@ jobs:
             test-props:
 
           - backend: cassandra-50
-            build-profile:
-            test-profile: -P it-cassandra-5.0
+            build-profile: -P cassandra-5.0
+            test-profile: -P cassandra-5.0,it-cassandra-5.0
             test-props: -Dccm.directory=$GITHUB_WORKSPACE/ds-cassandra
 
           - backend: dse-68
             build-profile: -P dse
-            test-profile: -P dse -P it-dse-6.8
+            test-profile: -P dse,it-dse-6.8
             test-props:
 
     steps:
