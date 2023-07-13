@@ -17,6 +17,10 @@
     <kotlin.version>1.3.72</kotlin.version>
     <code.coverage.project.folder>${basedir}/../</code.coverage.project.folder>
     <code.coverage.overall.data.folder>${basedir}/../target/</code.coverage.overall.data.folder>
+    <!--
+      Path to where you have downloaded and compiled datastax/cassandra
+    -->
+    <ccm.directory>${project.basedir}/../../ds-cassandra</ccm.directory>
   </properties>
   <dependencies>
     <!-- Stargate component dependencies -->
@@ -393,7 +397,8 @@
                 </goals>
                 <configuration>
                   <systemPropertyVariables>
-                    <ccm.directory>${project.basedir}/../ds-cassandra</ccm.directory>
+                    <ccm.version>5.0.0</ccm.version>
+                    <ccm.directory>${ccm.directory}</ccm.directory>
                     <stargate.test.nodes>1</stargate.test.nodes>
                   </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>
