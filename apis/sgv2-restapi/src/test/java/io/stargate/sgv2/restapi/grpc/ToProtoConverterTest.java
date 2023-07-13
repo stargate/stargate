@@ -208,6 +208,12 @@ public class ToProtoConverterTest {
           "2021-04-23T18:42:22-03",
           Values.of(Instant.parse("2021-04-23T21:42:22Z").toEpochMilli())),
 
+      // Should allow 6 digits of fractional seconds (issue #2674); truncating extra digits
+      // beyond milliseconds (first 3 digits)
+      arguments(
+          "2023-07-13T14:02:06.018850Z",
+          Values.of(Instant.parse("2023-07-13T14:02:06.018Z").toEpochMilli())),
+
       // Also: timestamp as Long should be supported
       arguments(DEFAULT_INSTANT.toEpochMilli(), Values.of(DEFAULT_INSTANT.toEpochMilli()))
     };
