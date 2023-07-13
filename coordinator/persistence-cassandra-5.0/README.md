@@ -2,7 +2,7 @@
 
 This module represents the implementation of the [persistence-api](../persistence-api) for the Cassandra `5.0.x` version.
 
-Note: the initial implementation is based on the DataStax Cassandra implementation and may include code that has not been accepted into the Apache Cassandra project.
+Note: the initial implementation is based on an experimental fork of Cassandra implementation and may include code that has not yet been accepted into the Apache Cassandra project.
 
 ## Cassandra version update
 
