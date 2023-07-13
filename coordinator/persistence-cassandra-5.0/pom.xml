@@ -23,6 +23,12 @@
       Path to where you have downloaded and compiled datastax/cassandra
     -->
     <ccm.directory>${project.basedir}/../../ds-cassandra</ccm.directory>
+    <!--
+      This actually doesn't affect behavior if ccm.directory is set, but is helpful so that
+      log messages aren't misleading. (Otherwise defaults to value set in
+      io.stargate.it.storage.ExternalStorage)
+    -->
+    <ccm.version>4.0.7</ccm.version>
   </properties>
   <repositories>
     <repository>
