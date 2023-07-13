@@ -99,7 +99,7 @@ jobs:
         if: steps.cache-coordinator-snapshots.outputs.cache-hit != 'true'
         run: |
           cd coordinator/
-          MAVEN_OPTS="-Xmx4g" ./mvnw -B -ntp install -P dse -DskipTests
+          MAVEN_OPTS="-Xmx4g" ./mvnw -B -ntp install -P all -DskipTests
 
   resolve-coordinator-docker:
     name: Resolve coordinator docker SHA
