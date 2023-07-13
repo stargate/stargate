@@ -119,7 +119,7 @@ jobs:
           echo "Resolved commit SHA for coordinator docker image to $SHA"
           echo "sha=${SHA}" >> $GITHUB_OUTPUT
 
-  # Builds C*4 and DSE coordinator images using matrix
+  # Builds C*4, C*5 and DSE coordinator images using matrix
   # Exports image to a file and then uploads it using action artifacts
   build-coordinator-docker:
     name: Docker image
@@ -132,7 +132,7 @@ jobs:
     # image name needed only
     strategy:
       matrix:
-        image: [ coordinator-4_0, coordinator-dse-68 ]
+        image: [ coordinator-4_0, coordinator-5_0, coordinator-dse-68 ]
 
     steps:
       - uses: actions/checkout@v3
@@ -181,7 +181,7 @@ jobs:
         run: |
           docker save --output ${{ matrix.image }}-${{ needs.resolve-coordinator-docker.outputs.sha }}.tar stargateio/${{ matrix.image }}:${{ needs.resolve-coordinator-docker.outputs.sha }}
 
-  # runs unit tests for the sgv2-docsapi
+  # runs unit tests for the Stargate v2 APIs
   build:
     name: Unit tests
     needs: build-coordinator
@@ -242,7 +242,7 @@ jobs:
           cd apis/
           ./mvnw -B -ntp clean test
 
-  # runs int tests for the sgv2-docsapi
+  # runs int tests for the Stargate v2 APIs
   # supports downloading and importing the built docker image
   int-tests:
     name: Integration tests
@@ -265,7 +265,7 @@ jobs:
       # image - final image name to use when running int tests (-Dtesting.containers.stargate-image)
       matrix:
         project: [ sgv2-docsapi, sgv2-graphqlapi, sgv2-restapi ]
-        name: [ cassandra-40, dse-68 ]
+        name: [ cassandra-40, cassandra-50, dse-68 ]
         include:
           - name: cassandra-40
             profile: cassandra-40
@@ -273,6 +273,13 @@ jobs:
             image-cache-key: docker-coordinator-4_0-${{ needs.resolve-coordinator-docker.outputs.sha }}
             image-file: coordinator-4_0-${{ needs.resolve-coordinator-docker.outputs.sha }}.tar
             image: stargateio/coordinator-4_0:${{ needs.resolve-coordinator-docker.outputs.sha }}
+
+          - name: cassandra-50
+            profile: cassandra-50
+            repository-login: false
+            image-cache-key: docker-coordinator-5_0-${{ needs.resolve-coordinator-docker.outputs.sha }}
+            image-file: coordinator-5_0-${{ needs.resolve-coordinator-docker.outputs.sha }}.tar
+            image: stargateio/coordinator-5_0:${{ needs.resolve-coordinator-docker.outputs.sha }}
 
           - name: dse-68
             profile: dse-68
