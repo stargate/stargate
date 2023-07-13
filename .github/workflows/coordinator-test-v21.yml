@@ -200,7 +200,8 @@ jobs:
         run: |
           cd ds-cassandra/
           ant -Duse.jdk11=true
-          mkdir -p /var/log/cassandra
+          sudo mkdir -p /var/log/cassandra
+          sudo chmod 777 /var/log/cassandra
 
       - name: Run Integration Tests
         run: |
