@@ -191,8 +191,8 @@ jobs:
         if: ${{ matrix.backend == 'cassandra-50' }}
         uses: actions/checkout@v3
         with:
-          repository: jeffreyscarpenter/cassandra
-          ref: jvm11-options
+          repository: datastax/cassandra
+          ref: vsearch
           path: ds-cassandra
 
       - name: Build datastax/cassandra
@@ -200,6 +200,7 @@ jobs:
         run: |
           cd ds-cassandra/
           ant -Duse.jdk11=true
+          mkdir -p /var/log/cassandra
 
       - name: Run Integration Tests
         run: |
