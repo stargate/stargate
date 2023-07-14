@@ -16,7 +16,6 @@
 package io.stargate.grpc;
 
 import com.google.common.base.Preconditions;
-import com.google.common.collect.ImmutableList;
 import java.time.Duration;
 import java.time.Period;
 import java.time.temporal.ChronoUnit;
@@ -24,6 +23,7 @@ import java.time.temporal.Temporal;
 import java.time.temporal.TemporalAmount;
 import java.time.temporal.TemporalUnit;
 import java.time.temporal.UnsupportedTemporalTypeException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
@@ -71,8 +71,8 @@ public final class CqlDuration implements TemporalAmount {
   private static final Pattern ISO8601_ALTERNATIVE_PATTERN =
       Pattern.compile("P(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2}):(\\d{2})");
 
-  private static final ImmutableList<TemporalUnit> TEMPORAL_UNITS =
-      ImmutableList.of(ChronoUnit.MONTHS, ChronoUnit.DAYS, ChronoUnit.NANOS);
+  private static final List<TemporalUnit> TEMPORAL_UNITS =
+          Arrays.asList(ChronoUnit.MONTHS, ChronoUnit.DAYS, ChronoUnit.NANOS);
 
   private final int months;
   private final int days;
