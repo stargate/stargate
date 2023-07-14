@@ -353,6 +353,16 @@ public class QueryBuilderTest {
       arguments(
           new QueryBuilder().select().count("a").from("ks", "tbl").limit().build().getCql(),
           "SELECT COUNT(a) FROM ks.tbl LIMIT ?"),
+      arguments(
+          new QueryBuilder()
+              .select()
+              .column("a", "b", "c")
+              .from("ks", "tbl")
+              .limit(1)
+              .vsearch("vector_column")
+              .build()
+              .getCql(),
+          "SELECT a, b, c FROM ks.tbl ORDER BY vector_column ANN OF ? LIMIT 1"),
     };
   }
 
