@@ -71,6 +71,7 @@ public class ValueCodecTest {
     "tupleValues",
     "bigIntegerValues",
     "bigDecimalValues",
+    "vectorValues",
   })
   public void validValues(ColumnType type, Value expectedValue) {
     ValueCodec codec = ValueCodecs.get(type.rawType());
@@ -122,7 +123,8 @@ public class ValueCodecTest {
     "invalidTupleValues",
     "invalidUdtValues",
     "invalidBigIntegerValues",
-    "invalidBigDecimalValues"
+    "invalidBigDecimalValues",
+    "invalidVectorValues",
   })
   public void invalidValues(ColumnType type, Value value, String expectedMessage) {
     ValueCodec codec = ValueCodecs.get(type.rawType());
@@ -410,6 +412,26 @@ public class ValueCodecTest {
             Type.List.of(Type.Text), Values.of(Values.NULL), "null is not supported inside lists"),
         arguments(
             Type.List.of(Type.Int), Values.of(Values.NULL), "null is not supported inside lists"));
+  }
+
+  public static Stream<Arguments> vectorValues() {
+    return Stream.of(
+        arguments(Type.Vector, Values.of()),
+        arguments(
+            Type.Vector,
+            Values.of(Values.of(1.0f), Values.of(1.1f), Values.of(1.2f), Values.of(1.3f))));
+  }
+
+  public static Stream<Arguments> invalidVectorValues() {
+    return Stream.of(
+        arguments(
+            Type.Vector,
+            Values.of(Values.of("1"), Values.NULL),
+            "Expected collection of float type"),
+        arguments(Type.Vector, Values.of(""), "Expected collection of float type"),
+        arguments(Type.Vector, Values.NULL, "Expected collection of float type"),
+        arguments(Type.Vector, Values.UNSET, "Expected collection of float type"),
+        arguments(Type.Vector, Values.of(Values.NULL), "Expected collection of float type"));
   }
 
   public static Stream<Arguments> setValues() {
