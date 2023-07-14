@@ -39,7 +39,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import org.apache.cassandra.metrics.DefaultNameFactory;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
 import org.apache.cassandra.stargate.transport.internal.CqlServer;
 import org.apache.commons.lang3.concurrent.BasicThreadFactory;
@@ -52,9 +51,6 @@ public final class ClientMetrics {
 
   /** Singleton instance to use. */
   public static final ClientMetrics instance = new ClientMetrics();
-
-  /** Default name factory for the cassandra metrics. */
-  private static final DefaultNameFactory factory = new DefaultNameFactory("Client");
 
   // these are our metric names used
   private static final String REQUESTS_PROCESSED_METRIC;
@@ -271,8 +267,14 @@ public final class ClientMetrics {
    */
   private static String metric(String name) {
     // to keep the back-ward compatibility, init all metric names with cql. + DefaultNameFactory
-    String metricName = factory.createMetricName(name).getMetricName();
-    return "cql." + metricName;
+    // 14-Jul-2023, tatu: To avoid problem with Maven shade plug-in, class relocation,
+    //    copy logic from `org.apache.cassandra.metrics.DefaultNameFactory` here
+    //
+    // String metricName = new
+    // org.apache.cassandra.metrics.DefaultNameFactory("Client").createMetricName(name).getMetricName();
+    // return "cql." + metricName;
+
+    return "cql.org.apache.cassandra.metrics.Client." + name;
   }
 
   private class ConnectionMetricsImpl implements ConnectionMetrics {
