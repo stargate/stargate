@@ -847,7 +847,9 @@ public class RestApiV2QRowGetIT extends RestApiV2QIntegrationTestBase {
             map("id", 3, "firstName", "Graham", "created", "2021-04-22T18:42:22.139-0800"),
             map("id", 4, "firstName", "Joel", "created", "2021-04-22T18:42:22.139+07"),
             map("id", 4, "firstName", "Deborah", "created", "2021-04-22T18:42:22.139-05"),
-            map("id", 5, "firstName", "Timothy", "created", timestampAsMsecs)));
+            map("id", 5, "firstName", "Timothy", "created", timestampAsMsecs),
+            // 13-Jul-2023, tatu: [stargaate#2674] Support microsecond fractions too
+            map("id", 6, "firstName", "Jerome", "created", "2023-07-13T14:02:06.018850Z")));
 
     String whereClause =
         String.format("{\"id\":{\"$eq\":\"1\"},\"created\":{\"$in\":[\"%s\"]}}", timestamp);
