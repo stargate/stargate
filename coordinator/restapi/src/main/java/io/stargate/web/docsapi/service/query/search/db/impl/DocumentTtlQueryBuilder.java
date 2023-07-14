@@ -25,7 +25,6 @@ import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.query.builder.QueryBuilderImpl;
 import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.query.search.db.AbstractSearchQueryBuilder;
-
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -46,7 +45,7 @@ public class DocumentTtlQueryBuilder extends AbstractSearchQueryBuilder {
   public BuiltQuery<? extends BoundQuery> buildQuery(
       Supplier<QueryBuilder> queryBuilder, String keyspace, String table, String... columns) {
     List<QueryBuilderImpl.FunctionCall> ttlFunction =
-            Arrays.asList(QueryBuilderImpl.FunctionCall.ttl(DocsApiConstants.LEAF_COLUMN_NAME));
+        Arrays.asList(QueryBuilderImpl.FunctionCall.ttl(DocsApiConstants.LEAF_COLUMN_NAME));
     return buildQuery(
         queryBuilder, keyspace, table, null, ttlFunction, DocsApiConstants.KEY_COLUMN_NAME);
   }

@@ -72,7 +72,7 @@ public final class CqlDuration implements TemporalAmount {
       Pattern.compile("P(\\d{4})-(\\d{2})-(\\d{2})T(\\d{2}):(\\d{2}):(\\d{2})");
 
   private static final List<TemporalUnit> TEMPORAL_UNITS =
-          Arrays.asList(ChronoUnit.MONTHS, ChronoUnit.DAYS, ChronoUnit.NANOS);
+      Arrays.asList(ChronoUnit.MONTHS, ChronoUnit.DAYS, ChronoUnit.NANOS);
 
   private final int months;
   private final int days;
