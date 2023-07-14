@@ -416,7 +416,7 @@ public class ValueCodecTest {
 
   public static Stream<Arguments> vectorValues() {
     return Stream.of(
-        arguments(Type.Vector, Values.of()),
+        arguments(Type.Vector, Values.NULL),
         arguments(
             Type.Vector,
             Values.of(Values.of(1.0f), Values.of(1.1f), Values.of(1.2f), Values.of(1.3f))));
@@ -429,7 +429,6 @@ public class ValueCodecTest {
             Values.of(Values.of("1"), Values.NULL),
             "Expected collection of float type"),
         arguments(Type.Vector, Values.of(""), "Expected collection of float type"),
-        arguments(Type.Vector, Values.NULL, "Expected collection of float type"),
         arguments(Type.Vector, Values.UNSET, "Expected collection of float type"),
         arguments(Type.Vector, Values.of(Values.NULL), "Expected collection of float type"));
   }
