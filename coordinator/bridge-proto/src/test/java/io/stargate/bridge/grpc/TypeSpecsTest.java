@@ -22,6 +22,8 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
 import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Map;
 import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Udt;
+
+import java.util.Arrays;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
