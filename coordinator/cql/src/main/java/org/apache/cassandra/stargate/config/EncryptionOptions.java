@@ -17,8 +17,9 @@
  */
 package org.apache.cassandra.stargate.config;
 
-import com.google.common.collect.ImmutableList;
 import java.io.File;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import org.apache.cassandra.stargate.security.SSLFactory;
@@ -209,7 +210,7 @@ public class EncryptionOptions {
    */
   public void setaccepted_protocols(List<String> accepted_protocols) {
     this.accepted_protocols =
-        accepted_protocols == null ? null : ImmutableList.copyOf(accepted_protocols);
+        accepted_protocols == null ? null : new ArrayList<>(accepted_protocols);
   }
 
   /* This list is substituted in configurations that have explicitly specified the original "TLS" default,
@@ -237,7 +238,7 @@ public class EncryptionOptions {
         return TLS_PROTOCOL_SUBSTITUTION;
       } else // the user was trying to limit to a single specific protocol, so try that
       {
-        return ImmutableList.of(protocol);
+        return Arrays.asList(protocol);
       }
     }
 
@@ -246,7 +247,9 @@ public class EncryptionOptions {
         && accepted_protocols.stream().noneMatch(ap -> ap.equalsIgnoreCase(protocol))) {
       // If the user provided a non-generic default protocol, append it to accepted_protocols - they
       // wanted it after all.
-      return ImmutableList.<String>builder().addAll(accepted_protocols).add(protocol).build();
+      List<String> accepted = new ArrayList<>(accepted_protocols);
+      accepted.add(protocol);
+      return accepted;
     } else {
       return accepted_protocols;
     }
@@ -367,7 +370,7 @@ public class EncryptionOptions {
             keystore_password,
             truststore,
             truststore_password,
-            ImmutableList.copyOf(cipher_suites),
+            Arrays.asList(cipher_suites),
             protocol,
             accepted_protocols,
             algorithm,
@@ -405,7 +408,7 @@ public class EncryptionOptions {
             truststore_password,
             cipher_suites,
             protocol,
-            accepted_protocols == null ? null : ImmutableList.copyOf(accepted_protocols),
+            accepted_protocols == null ? null : new ArrayList<>(accepted_protocols),
             algorithm,
             store_type,
             require_client_auth,

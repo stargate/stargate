@@ -17,7 +17,6 @@
 
 package io.stargate.web.docsapi.service.query.search.db.impl;
 
-import com.google.common.collect.ImmutableList;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Predicate;
 import io.stargate.db.query.builder.BuiltCondition;
@@ -26,6 +25,7 @@ import io.stargate.db.query.builder.QueryBuilder;
 import io.stargate.db.query.builder.QueryBuilderImpl;
 import io.stargate.web.docsapi.service.query.DocsApiConstants;
 import io.stargate.web.docsapi.service.query.search.db.AbstractSearchQueryBuilder;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -45,7 +45,7 @@ public class DocumentTtlQueryBuilder extends AbstractSearchQueryBuilder {
   public BuiltQuery<? extends BoundQuery> buildQuery(
       Supplier<QueryBuilder> queryBuilder, String keyspace, String table, String... columns) {
     List<QueryBuilderImpl.FunctionCall> ttlFunction =
-        ImmutableList.of(QueryBuilderImpl.FunctionCall.ttl(DocsApiConstants.LEAF_COLUMN_NAME));
+        Arrays.asList(QueryBuilderImpl.FunctionCall.ttl(DocsApiConstants.LEAF_COLUMN_NAME));
     return buildQuery(
         queryBuilder, keyspace, table, null, ttlFunction, DocsApiConstants.KEY_COLUMN_NAME);
   }

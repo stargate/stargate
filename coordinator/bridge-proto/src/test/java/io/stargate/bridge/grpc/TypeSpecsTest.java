@@ -19,11 +19,10 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
-import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import io.stargate.bridge.proto.QueryOuterClass.TypeSpec;
 import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Map;
 import io.stargate.bridge.proto.QueryOuterClass.TypeSpec.Udt;
+import java.util.Arrays;
 import java.util.Collections;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -48,7 +47,7 @@ public class TypeSpecsTest {
   public void shouldParseWithStrictUdtResolution() {
     Udt udtA = Udt.newBuilder().setName("a").putFields("i", TypeSpecs.INT).build();
     Udt udtB = Udt.newBuilder().setName("b").putFields("s", TypeSpecs.VARCHAR).build();
-    java.util.List<Udt> udts = ImmutableList.of(udtA, udtB);
+    java.util.List<Udt> udts = Arrays.asList(udtA, udtB);
 
     assertThat(TypeSpecs.parse("frozen<map<a,b>>", udts, true))
         .satisfies(
@@ -120,8 +119,8 @@ public class TypeSpecsTest {
           TypeSpecs.frozenList(TypeSpecs.set(TypeSpecs.INT)),
           TypeSpecs.list(TypeSpecs.set(TypeSpecs.INT))),
       arguments(
-          TypeSpecs.frozenUdt("a", ImmutableMap.of("i", TypeSpecs.INT)),
-          TypeSpecs.udt("a", ImmutableMap.of("i", TypeSpecs.INT))),
+          TypeSpecs.frozenUdt("a", Collections.singletonMap("i", TypeSpecs.INT)),
+          TypeSpecs.udt("a", Collections.singletonMap("i", TypeSpecs.INT))),
       arguments(
           TypeSpecs.tuple(TypeSpecs.INT, TypeSpecs.VARCHAR),
           TypeSpecs.tuple(TypeSpecs.INT, TypeSpecs.VARCHAR)),
