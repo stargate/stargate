@@ -55,6 +55,7 @@ import org.apache.cassandra.db.marshal.TupleType;
 import org.apache.cassandra.db.marshal.UTF8Type;
 import org.apache.cassandra.db.marshal.UUIDType;
 import org.apache.cassandra.db.marshal.UserType;
+import org.apache.cassandra.db.marshal.VectorType;
 import org.apache.cassandra.db.rows.BTreeRow;
 import org.apache.cassandra.exceptions.CassandraException;
 import org.apache.cassandra.locator.InetAddressAndPort;
@@ -570,6 +571,9 @@ public class Conversion {
           .addAllColumns(getUDTColumns(udt))
           .build()
           .frozen(!udt.isMultiCell());
+    } else if (abstractType.getClass().equals(VectorType.class)) {
+      VectorType vt = (VectorType) abstractType;
+      return io.stargate.db.schema.VectorType.of(vt.elementType.getClass().getName(), vt.dimension);
     }
 
     Column.Type type = TYPE_MAPPINGS.get(abstractType.getClass());
