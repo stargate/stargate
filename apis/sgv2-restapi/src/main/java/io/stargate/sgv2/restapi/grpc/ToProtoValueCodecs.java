@@ -14,6 +14,8 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeFormatterBuilder;
+import java.time.temporal.ChronoField;
 import java.util.*;
 
 public class ToProtoValueCodecs {
@@ -23,6 +25,7 @@ public class ToProtoValueCodecs {
    * <ul>
    *   <li>https://stackoverflow.com/questions/43360852/cannot-parse-string-in-iso-8601-format-lacking-colon-in-offset-to-java-8-date
    *   <li>https://stackoverflow.com/questions/34637626/java-datetimeformatter-for-time-zone-with-an-optional-colon-separator
+   *   <li>https://stackoverflow.com/questions/54682028/java-localdatetime-parse-with-millisecond-precision-but-optional-microsecond-pre
    * </ul>
    *
    * <p>Notes:
@@ -32,10 +35,18 @@ public class ToProtoValueCodecs {
    *       without colon)
    *   <li>[.SSS] is needed to make millisecond part optional (and not required)
    *   <li>Date part is mandatory; similarly hours/minutes/seconds time part
+   *   <li>Must use DateTimeFormatterBuilder for flexible fraction support
    * </ul>
    */
   private static final DateTimeFormatter ISO_OFFSET_DATE_TIME_OPTIONAL_COLON =
-      DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss[.SSS][XXX][X]");
+      new DateTimeFormatterBuilder()
+          .append(DateTimeFormatter.ISO_LOCAL_DATE)
+          .appendLiteral('T')
+          .appendPattern("HH:mm:ss")
+          // Allow optional second fraction with flexible length down to microseconds
+          .appendFraction(ChronoField.MICRO_OF_SECOND, 0, 6, true)
+          .appendPattern("[XXX][X]")
+          .toFormatter();
 
   protected static final QueryOuterClass.Value VALUE_FALSE = Values.of(false);
   protected static final QueryOuterClass.Value VALUE_TRUE = Values.of(true);

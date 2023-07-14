@@ -2,10 +2,10 @@ package io.stargate.db.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.collect.ImmutableMap;
 import io.stargate.db.schema.Column.Kind;
 import io.stargate.db.schema.Column.Order;
 import io.stargate.db.schema.Column.Type;
+import java.util.Collections;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -25,13 +25,13 @@ public class SchemaHashableTest {
       assertThat(
               ImmutableKeyspace.builder()
                   .name("ks")
-                  .replication(ImmutableMap.of("class", "SimpleStrategy"))
+                  .replication(Collections.singletonMap("class", "SimpleStrategy"))
                   .build()
                   .schemaHashCode())
           .isNotEqualTo(
               ImmutableKeyspace.builder()
                   .name("ks")
-                  .replication(ImmutableMap.of("class", "NetworkTopologyStrategy"))
+                  .replication(Collections.singletonMap("class", "NetworkTopologyStrategy"))
                   .build()
                   .schemaHashCode());
     }
