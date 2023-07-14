@@ -17,8 +17,8 @@
  */
 package org.apache.cassandra.stargate.config;
 
-import com.google.common.collect.ImmutableList;
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import org.apache.cassandra.stargate.security.SSLFactory;
@@ -209,7 +209,7 @@ public class EncryptionOptions {
    */
   public void setaccepted_protocols(List<String> accepted_protocols) {
     this.accepted_protocols =
-        accepted_protocols == null ? null : ImmutableList.copyOf(accepted_protocols);
+        accepted_protocols == null ? null : new ArrayList<>(accepted_protocols);
   }
 
   /* This list is substituted in configurations that have explicitly specified the original "TLS" default,

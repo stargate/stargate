@@ -2,8 +2,8 @@ package io.stargate.db.schema;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import com.google.common.collect.ImmutableMap;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 
@@ -123,8 +123,9 @@ public class SchemaHashStabilityTest {
   }
 
   private Keyspace buildKeyspace() {
-    Map<String, String> keyspaceReplication =
-        ImmutableMap.of("class", "SimpleStrategy", "eu-west-1", "3");
+    Map<String, String> keyspaceReplication = new LinkedHashMap<>();
+    keyspaceReplication.put("class", "SimpleStrategy");
+    keyspaceReplication.put("eu-west-1", "3");
     return ImmutableKeyspace.builder()
         .name("users_keyspace")
         .replication(keyspaceReplication)
