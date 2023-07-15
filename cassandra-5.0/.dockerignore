@@ -1,0 +1,11 @@
+cassandra
+!cassandra/*.txt
+!cassandra/bin
+!cassandra/build/dse-db*.jar
+!cassandra/conf
+!cassandra/doc
+!cassandra/lib
+!cassandra/pylib
+!cassandra/tools/bin
+!cassandra/tools/analytics
+!cassandra/tools/*.yaml

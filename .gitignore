@@ -50,3 +50,5 @@ settings.xml
 .factorypath
 # JENV
 .java-version
+
+cassandra-5.0/cassandra/

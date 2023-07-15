@@ -117,17 +117,14 @@ jobs:
           - backend: cassandra-40
             build-profile:
             test-profile: -P it-cassandra-4.0
-            test-props:
 
           - backend: cassandra-50
             build-profile: -P cassandra-5.0
             test-profile: -P cassandra-5.0,it-cassandra-5.0
-            test-props: -Dccm.directory=$GITHUB_WORKSPACE/ds-cassandra
 
           - backend: dse-68
             build-profile: -P dse
             test-profile: -P dse,it-dse-6.8
-            test-props:
 
     steps:
 
@@ -187,24 +184,14 @@ jobs:
           ccm list
 
       # only for Cassandra 5 persistence so that ccm can use
-      - name: Download datastax/cassandra
-        if: ${{ matrix.backend == 'cassandra-50' }}
-        uses: actions/checkout@v3
-        with:
-          repository: datastax/cassandra
-          ref: vsearch
-          path: ds-cassandra
-
-      - name: Build datastax/cassandra
+      - name: Download and build datastax/cassandra
         if: ${{ matrix.backend == 'cassandra-50' }}
         run: |
-          cd ds-cassandra/
-          ant -Duse.jdk11=true
-          sudo mkdir -p /var/log/cassandra
-          sudo chmod 777 /var/log/cassandra
+          cd cassandra-5.0/
+          ./download-cassandra.sh
 
       - name: Run Integration Tests
         run: |
           cd coordinator/
           ./mvnw -B -ntp ${{ matrix.build-profile }} clean install -DskipTests
-          ./mvnw -B -ntp -pl testing ${{ matrix.test-profile }} clean verify -DskipUnitTests ${{ matrix.test-props }}
+          ./mvnw -B -ntp -pl testing ${{ matrix.test-profile }} clean verify -DskipUnitTests 

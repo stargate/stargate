@@ -13,7 +13,7 @@
   <name>Stargate - Coordinator - Persistence C* 5.0</name>
   <properties>
     <!-- If you update this, make sure to keep `cassandra.bundled-driver.version` in sync -->
-    <ds-cassandra.version>4.0.7-0acaae364c19</ds-cassandra.version>
+    <cassandra.version>4.0.7-0acaae364c19</cassandra.version>
     <!--
       The driver used internally by cassandra-all for UDFs (must match the version declared in
       cassandra-all's POM).
@@ -22,7 +22,7 @@
     <!--
       Path to where you have downloaded and compiled datastax/cassandra
     -->
-    <ccm.directory>${project.basedir}/../../ds-cassandra</ccm.directory>
+    <ccm.directory>${project.basedir}/../../cassandra-5.0/cassandra</ccm.directory>
     <!--
       This actually doesn't affect behavior if ccm.directory is set, but is helpful so that
       log messages aren't misleading. (Otherwise defaults to value set in
@@ -77,7 +77,7 @@
     <dependency>
       <groupId>com.datastax.dse</groupId>
       <artifactId>dse-db-all</artifactId>
-      <version>${ds-cassandra.version}</version>
+      <version>${cassandra.version}</version>
       <exclusions>
         <exclusion>
           <groupId>org.gridkit.jvmtool</groupId>

@@ -394,7 +394,7 @@
                 <configuration>
                   <systemPropertyVariables>
                     <ccm.version>5.0.0</ccm.version>
-                    <ccm.directory>${project.basedir}/../../ds-cassandra</ccm.directory>
+                    <ccm.directory>${project.basedir}/../../cassandra</ccm.directory>
                     <stargate.test.nodes>1</stargate.test.nodes>
                   </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>

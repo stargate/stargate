@@ -42,6 +42,6 @@ export LOGLEVEL
 export REQUESTLOG
 export SGTAG
 
-echo "Running Stargate version $SGTAG with Cassandra 5.0"
+echo "Running Stargate version $SGTAG with Cassandra 5.0 fork"
 
 docker-compose up -d --wait
