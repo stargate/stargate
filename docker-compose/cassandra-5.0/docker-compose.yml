@@ -41,28 +41,6 @@ services:
       timeout: 10s
       retries: 10
 
-  cassandra-3:
-    image: stargateio/cassandra-5_0:${CASSTAG}
-    networks:
-      - stargate
-    mem_limit: 2G
-    cap_add:
-      - IPC_LOCK
-    ulimits:
-      memlock: -1
-    depends_on:
-      cassandra-2:
-        condition: service_healthy
-    environment:
-      - MAX_HEAP_SIZE=1536M
-      - CASSANDRA_SEEDS=cassandra-1
-      - CASSANDRA_CLUSTER_NAME=c5-${CASSTAG}-cluster
-    healthcheck:
-      test: [ "CMD", "cqlsh", "-u cassandra", "-p cassandra" ,"-e describe keyspaces" ]
-      interval: 15s
-      timeout: 10s
-      retries: 10
-
   coordinator:
     image: stargateio/coordinator-5_0:${SGTAG}
     depends_on: 
