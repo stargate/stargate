@@ -76,9 +76,20 @@ public final class IntegrationTestUtils {
     return "6.8".equals(getClusterVersion());
   }
 
-  /** @return True if the backend cluster is Cassandra 4.0; false otherwise (DSE) */
-  public static boolean isCassandra40() {
-    return "4.0".equals(getClusterVersion());
+  /**
+   * @return True if the backend cluster supports SASI (currently only enabled by default in DSE,
+   *     not OSS Cassandra backends)
+   */
+  public static boolean supportsSASI() {
+    return !isDSE();
+  }
+
+  /**
+   * @return True if the backend cluster supports Materialized Views (currently only enabled by
+   *     default in DSE, not OSS Cassandra backends)
+   */
+  public static boolean supportsMaterializedViews() {
+    return !isDSE();
   }
 
   /** @return Returns the port where the application to test runs. */

@@ -218,10 +218,8 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
   public void keyspaceCreateWithInvalidDC() {
     // 08-Dec-2022, tatu: Alas, DSE does not appear to ever validate DC (either it
     //   defaults to valid one, or just fails KS create quietly).
-    //   So for now limit test to C-4.0
-    assumeThat(IntegrationTestUtils.isCassandra40())
-        .as("Test only applicable to C-4.x backend")
-        .isTrue();
+    //   So for now limit test to Cassandra backends
+    assumeThat(IntegrationTestUtils.isDSE()).as("Test only applicable to C-4.x backend").isFalse();
 
     final String invalidDC = "noSuchDC";
     String keyspaceName = "ks_createw_invalid_dc_" + System.currentTimeMillis();
