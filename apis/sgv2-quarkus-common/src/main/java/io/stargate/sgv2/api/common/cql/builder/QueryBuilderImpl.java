@@ -78,7 +78,7 @@ import java.util.stream.Stream;
           name = "select",
           definedAs =
               "select star? column* function* ((count|min|max|avg|sum|writeTimeColumn) as?)* "
-                  + "from (where* perPartitionLimit? limit? groupBy* orderBy*) allowFiltering?"),
+                  + "from (where* perPartitionLimit? limit? groupBy* orderBy* vsearch*) allowFiltering?"),
       @SubExpr(
           name = "index",
           definedAs =
@@ -141,6 +141,8 @@ public class QueryBuilderImpl {
   private Integer perPartitionLimitInt;
   private final List<String> groupBys = new ArrayList<>();
   private final Map<String, Column.Order> orders = new LinkedHashMap<>();
+
+  private String orderByAnn;
   // The bind markers that were generated if the client passed Value instances to the API methods
   private final Map<Marker, Value> generatedMarkers = new HashMap<>();
   // The generated bind values in their final order in the query
@@ -694,11 +696,18 @@ public class QueryBuilderImpl {
 
   public void orderBy(String column, Column.Order order) {
     this.orders.put(column, order);
+    orderByAnn = null;
+  }
+
+  public void vsearch(String column) {
+    this.orderByAnn = column;
+    this.orders.clear();
   }
 
   public void orderBy(Map<String, Column.Order> orders) {
     this.orders.clear();
     this.orders.putAll(orders);
+    this.orderByAnn = null;
   }
 
   public void allowFiltering() {
@@ -1369,6 +1378,10 @@ public class QueryBuilderImpl {
               orders.entrySet().stream()
                   .map(e -> cqlName(e.getKey()) + " " + e.getValue().name())
                   .collect(Collectors.joining(", ")));
+    }
+
+    if (orderByAnn != null) {
+      builder.append(" ORDER BY ").append(orderByAnn).append(" ANN OF ?");
     }
 
     if (perPartitionLimitInt != null) {
