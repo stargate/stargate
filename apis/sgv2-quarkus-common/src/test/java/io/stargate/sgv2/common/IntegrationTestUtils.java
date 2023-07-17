@@ -81,7 +81,7 @@ public final class IntegrationTestUtils {
    *     not OSS Cassandra backends)
    */
   public static boolean supportsSASI() {
-    return !isDSE();
+    return isDSE();
   }
 
   /**
@@ -89,7 +89,7 @@ public final class IntegrationTestUtils {
    *     default in DSE, not OSS Cassandra backends)
    */
   public static boolean supportsMaterializedViews() {
-    return !isDSE();
+    return isDSE();
   }
 
   /** @return Returns the port where the application to test runs. */
