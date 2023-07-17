@@ -188,7 +188,7 @@ jobs:
         if: ${{ matrix.backend == 'cassandra-50' }}
         run: |
           cd cassandra-5.0/
-          ./download-cassandra.sh
+          ./download_cassandra.sh
 
       - name: Run Integration Tests
         run: |
