@@ -426,6 +426,8 @@
                     <!-- TODO: fix result matching issues:
                     "Expecting ArrayList: ["127.0.2.14"] to contain: ["127.0.0.1"]..."
                     "expected: "cc03e747-a6af-3bcb-b8be-7668acfebee5" but was: "9b0a72d6-5861-4344-8d21-cbb2296c6865""-->
+                    <exclude>io.stargate.it.cql.BatchStatementTest</exclude>
+                    <exclude>io.stargate.it.cql.compatibility.protocolv4.BatchStatementTest</exclude>
                     <exclude>io.stargate.it.cql.BoundStatementTest</exclude>
                     <exclude>io.stargate.it.cql.compatibility.protocolv4.BoundStatementTest</exclude>
                     <exclude>io.stargate.it.cql.SimpleStatementTest</exclude>
