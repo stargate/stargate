@@ -340,8 +340,9 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
     ApiError error = readJsonAs(responseStr, ApiError.class);
     assertThat(error.code()).isEqualTo(HttpStatus.SC_CONFLICT);
     assertThat(error.grpcStatus()).isEqualTo("ALREADY_EXISTS");
-    assertThat(error.description()).startsWith("Resource already exists")
-            .contains("Cannot add already existing table");
+    assertThat(error.description())
+        .startsWith("Resource already exists")
+        .contains("Cannot add already existing table");
   }
 
   /*
