@@ -47,6 +47,8 @@ public class StatusRuntimeExceptionMapper {
     switch (sc) {
 
         // client-side problems, do not log
+      case ALREADY_EXISTS:
+        return grpcResponseNoLog(sc, Response.Status.CONFLICT, "Resource already exists", msg);
       case FAILED_PRECONDITION:
         return grpcResponseNoLog(
             sc,
@@ -64,8 +66,6 @@ public class StatusRuntimeExceptionMapper {
       case UNAUTHENTICATED:
         return grpcResponseNoLog(
             sc, Response.Status.UNAUTHORIZED, "Unauthenticated gRPC operation", msg);
-      case ALREADY_EXISTS:
-        return grpcResponseNoLog(sc, Response.Status.CONFLICT, "Resource already exists", msg);
 
         // server-side problems, do log
       case UNAVAILABLE:
