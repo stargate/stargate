@@ -142,7 +142,7 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
 
   /*
   /////////////////////////////////////////////////////////////////////////
-  // Tests: Create
+  // Tests: Create, success
   /////////////////////////////////////////////////////////////////////////
    */
 
@@ -295,6 +295,53 @@ public class RestApiV2QSchemaTablesIT extends RestApiV2QIntegrationTestBase {
     assertThat(data.get(0).get("ID")).isEqualTo(rowIdentifier);
     assertThat(data.get(0).get("Firstname")).isEqualTo("John");
     assertThat(data.get(0).get("Lastname")).isEqualTo("Doe");
+  }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Tests: Create, fail
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  @Test
+  public void tableCreateFailDueToExisting() {
+    final String tableName = testTableName();
+
+    // First: create table, verify it exists
+    final List<Sgv2ColumnDefinition> columnDefs =
+        Arrays.asList(
+            new Sgv2ColumnDefinition("id", "int", false),
+            new Sgv2ColumnDefinition("name", "text", false));
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey(Arrays.asList("id"), null);
+    NameResponse response =
+        createTable(
+            testKeyspaceName(),
+            new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null));
+    assertThat(response.name).isEqualTo(tableName);
+
+    final Sgv2Table table = findTable(testKeyspaceName(), tableName);
+    assertThat(table.keyspace()).isEqualTo(testKeyspaceName());
+    assertThat(table.name()).isEqualTo(tableName);
+
+    // Second: verify that attempt to re-create fine iff "createIfExists"
+
+    response =
+        createTable(
+            testKeyspaceName(),
+            new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, true, null));
+    assertThat(response.name).isEqualTo(tableName);
+
+    // And finally: verify that attempts without "createIfExists" fails in expected way
+    String responseStr =
+        tryCreateTable(
+            testKeyspaceName(),
+            new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null),
+            HttpStatus.SC_CONFLICT);
+    ApiError error = readJsonAs(responseStr, ApiError.class);
+    assertThat(error.code()).isEqualTo(HttpStatus.SC_CONFLICT);
+    assertThat(error.grpcStatus()).isEqualTo("ALREADY_EXISTS");
+    assertThat(error.description()).startsWith("Resource already exists")
+            .contains("Cannot add already existing table");
   }
 
   /*
