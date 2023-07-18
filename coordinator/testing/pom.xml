@@ -432,6 +432,8 @@
                     <exclude>io.stargate.it.cql.compatibility.protocolv4.BoundStatementTest</exclude>
                     <exclude>io.stargate.it.cql.SimpleStatementTest</exclude>
                     <exclude>io.stargate.it.cql.compatibility.protocolv4.SimpleStatementTest</exclude>
+                    <exclude>io.stargate.it.cql.HostIdTest</exclude>
+                    <exclude>io.stargate.it.cql.compatibility.protocolv4.HostIdTest</exclude>
                   </excludes>
                 </configuration>
               </execution>
