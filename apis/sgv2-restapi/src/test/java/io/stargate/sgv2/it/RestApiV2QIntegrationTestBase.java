@@ -382,17 +382,21 @@ public abstract class RestApiV2QIntegrationTestBase {
   }
 
   protected NameResponse createTable(String keyspaceName, Sgv2TableAddRequest addRequest) {
-    String response =
-        givenWithAuth()
-            .contentType(ContentType.JSON)
-            .body(asJsonString(addRequest))
-            .when()
-            .post(endpointPathForTables(keyspaceName))
-            .then()
-            .statusCode(HttpStatus.SC_CREATED)
-            .extract()
-            .asString();
+    String response = tryCreateTable(keyspaceName, addRequest, HttpStatus.SC_CREATED);
     return readJsonAs(response, NameResponse.class);
+  }
+
+  protected String tryCreateTable(
+      String keyspaceName, Sgv2TableAddRequest addRequest, int expStatus) {
+    return givenWithAuth()
+        .contentType(ContentType.JSON)
+        .body(asJsonString(addRequest))
+        .when()
+        .post(endpointPathForTables(keyspaceName))
+        .then()
+        .statusCode(expStatus)
+        .extract()
+        .asString();
   }
 
   protected Sgv2Table findTable(String keyspaceName, String tableName) {

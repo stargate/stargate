@@ -47,6 +47,8 @@ public class StatusRuntimeExceptionMapper {
     switch (sc) {
 
         // client-side problems, do not log
+      case ALREADY_EXISTS:
+        return grpcResponseNoLog(sc, Response.Status.CONFLICT, "Resource already exists", msg);
       case FAILED_PRECONDITION:
         return grpcResponseNoLog(
             sc,
@@ -80,7 +82,6 @@ public class StatusRuntimeExceptionMapper {
       case OK:
       case CANCELLED:
       case UNKNOWN:
-      case ALREADY_EXISTS:
       case RESOURCE_EXHAUSTED:
       case ABORTED:
       case OUT_OF_RANGE:

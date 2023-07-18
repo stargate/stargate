@@ -43,7 +43,7 @@ public class StatusRuntimeExceptionMapperTest {
     RestResponse<ApiError> response = mapper.statusRuntimeException(error);
     assertThat(response.getEntity().description().endsWith(error.getMessage())).isTrue();
     assertThat(response.getEntity().grpcStatus()).isEqualTo(Status.Code.ALREADY_EXISTS.toString());
-    assertThat(response.getEntity().code()).isEqualTo(500);
+    assertThat(response.getEntity().code()).isEqualTo(409);
   }
 
   @Test
