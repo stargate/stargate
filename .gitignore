@@ -51,4 +51,4 @@ settings.xml
 # JENV
 .java-version
 
-cassandra-5.0/cassandra/
+dse-next/cassandra/

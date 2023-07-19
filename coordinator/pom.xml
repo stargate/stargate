@@ -215,7 +215,7 @@
       </modules>
     </profile>
     <profile>
-      <id>cassandra-5.0</id>
+      <id>dse-next</id>
       <activation>
         <activeByDefault>true</activeByDefault>
       </activation>
@@ -225,7 +225,7 @@
         <module>persistence-api</module>
         <module>persistence-common</module>
         <module>persistence-test</module>
-        <module>persistence-cassandra-5.0</module>
+        <module>persistence-dse-next</module>
         <module>bridge</module>
         <module>cql</module>
         <module>auth-api</module>
@@ -288,7 +288,7 @@
         <module>persistence-common</module>
         <module>persistence-test</module>
         <module>persistence-cassandra-4.0</module>
-        <module>persistence-cassandra-5.0</module>
+        <module>persistence-dse-next</module>
         <module>persistence-dse-6.8</module>
         <module>bridge</module>
         <module>cql</module>

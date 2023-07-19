@@ -112,19 +112,19 @@ jobs:
       # (see https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs)
       fail-fast: false
       matrix:
-        backend: [ cassandra-40, cassandra-50, dse-68 ]
+        backend: [ cassandra-40, dse-next, dse-68 ]
         include:
           - backend: cassandra-40
             build-profile:
             test-profile: -P it-cassandra-4.0
 
-          - backend: cassandra-50
-            build-profile: -P cassandra-5.0
-            test-profile: -P cassandra-5.0,it-cassandra-5.0
-
           - backend: dse-68
             build-profile: -P dse
             test-profile: -P dse,it-dse-6.8
+
+          - backend: dse-next
+            build-profile: -P dse-next
+            test-profile: -P dse-next,it-dse-next
 
     steps:
 
@@ -183,11 +183,11 @@ jobs:
           python -m pip install --upgrade pip ccm
           ccm list
 
-      # only for Cassandra 5 persistence so that ccm can use
+      # only for DSE-next persistence so that ccm can use
       - name: Download and build datastax/cassandra
-        if: ${{ matrix.backend == 'cassandra-50' }}
+        if: ${{ matrix.backend == 'dse-next' }}
         run: |
-          cd cassandra-5.0/
+          cd dse-next/
           ./download_cassandra.sh
 
       - name: Run Integration Tests

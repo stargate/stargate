@@ -1,0 +1,148 @@
+version: '2'
+
+services:
+  cassandra-1:
+    image: stargateio/dse-next:${DSETAG}
+    networks:
+      - stargate
+    mem_limit: 2G
+    cap_add:
+      - IPC_LOCK
+    ulimits:
+      memlock: -1
+    environment:
+      - MAX_HEAP_SIZE=1536M
+      - CASSANDRA_CLUSTER_NAME=c5-${DSETAG}-cluster
+    healthcheck:
+      test: [ "CMD", "cqlsh", "-u cassandra", "-p cassandra" ,"-e describe keyspaces" ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  cassandra-2:
+    image: stargateio/dse-next:${DSETAG}
+    networks:
+      - stargate
+    mem_limit: 2G
+    cap_add:
+      - IPC_LOCK
+    ulimits:
+      memlock: -1
+    depends_on:
+      cassandra-1:
+        condition: service_healthy
+    environment:
+      - MAX_HEAP_SIZE=1536M
+      - CASSANDRA_SEEDS=cassandra-1
+      - CASSANDRA_CLUSTER_NAME=c5-${DSETAG}-cluster
+    healthcheck:
+      test: [ "CMD", "cqlsh", "-u cassandra", "-p cassandra" ,"-e describe keyspaces" ]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  coordinator:
+    image: stargateio/dse-next:${SGTAG}
+    depends_on: 
+      cassandra-1:
+        condition: service_healthy
+    networks:
+      - stargate
+    ports:
+      - "9042:9042"
+      - "8081:8081"
+      - "8084:8084"
+      - "8090:8090"
+    mem_limit: 2G
+    cap_add:
+      - IPC_LOCK
+    ulimits:
+      memlock: -1
+    environment:
+      - JAVA_OPTS="-Xmx1536M"
+      - CLUSTER_NAME=c5-${DSETAG}-cluster
+      - CLUSTER_VERSION=5.0
+      - SEED=cassandra-1
+      - RACK_NAME=rack1
+      - DATACENTER_NAME=datacenter1
+      - ENABLE_AUTH=true
+    healthcheck:
+      test: curl -f http://localhost:8084/checker/readiness || exit 1
+      interval: 15s
+      timeout: 10s
+      retries: 10
+
+  restapi:
+    image: stargateio/restapi:${SGTAG}
+    depends_on:
+      coordinator:
+        condition: service_healthy
+    networks:
+      - stargate
+    ports:
+      - "8082:8082"
+    mem_limit: 2G
+    environment:
+      - JAVA_MAX_MEM_RATIO=75
+      - JAVA_INITIAL_MEM_RATIO=50
+      - GC_CONTAINER_OPTIONS=-XX:+UseG1GC
+      - QUARKUS_GRPC_CLIENTS_BRIDGE_HOST=coordinator
+      - QUARKUS_GRPC_CLIENTS_BRIDGE_PORT=8091
+      - QUARKUS_HTTP_ACCESS_LOG_ENABLED=${REQUESTLOG}
+      - QUARKUS_LOG_LEVEL=${LOGLEVEL}
+    healthcheck:
+      test: curl -f http://localhost:8082/stargate/health || exit 1
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  graphqlapi:
+    image: stargateio/graphqlapi:${SGTAG}
+    depends_on:
+      coordinator:
+        condition: service_healthy
+    networks:
+      - stargate
+    ports:
+      - "8080:8080"
+    mem_limit: 2G
+    environment:
+      - JAVA_MAX_MEM_RATIO=75
+      - JAVA_INITIAL_MEM_RATIO=50
+      - GC_CONTAINER_OPTIONS=-XX:+UseG1GC
+      - QUARKUS_GRPC_CLIENTS_BRIDGE_HOST=coordinator
+      - QUARKUS_GRPC_CLIENTS_BRIDGE_PORT=8091
+      - QUARKUS_HTTP_ACCESS_LOG_ENABLED=${REQUESTLOG}
+      - QUARKUS_LOG_LEVEL=${LOGLEVEL}
+    healthcheck:
+      test: curl -f http://localhost:8080/stargate/health || exit 1
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+  docsapi:
+    image: stargateio/docsapi:${SGTAG}
+    depends_on:
+      coordinator:
+        condition: service_healthy
+    networks:
+      - stargate
+    ports:
+      - "8180:8180"
+    mem_limit: 2G
+    environment:
+      - JAVA_MAX_MEM_RATIO=75
+      - JAVA_INITIAL_MEM_RATIO=50
+      - GC_CONTAINER_OPTIONS=-XX:+UseG1GC
+      - QUARKUS_GRPC_CLIENTS_BRIDGE_HOST=coordinator
+      - QUARKUS_GRPC_CLIENTS_BRIDGE_PORT=8091
+      - QUARKUS_HTTP_ACCESS_LOG_ENABLED=${REQUESTLOG}
+      - QUARKUS_LOG_LEVEL=${LOGLEVEL}
+    healthcheck:
+      test: curl -f http://localhost:8180/stargate/health || exit 1
+      interval: 5s
+      timeout: 10s
+      retries: 10
+
+networks:
+  stargate:
