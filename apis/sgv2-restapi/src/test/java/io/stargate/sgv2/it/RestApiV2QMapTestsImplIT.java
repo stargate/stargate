@@ -1,17 +1,16 @@
 package io.stargate.sgv2.it;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
+import static org.junit.Assert.assertTrue;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import io.restassured.http.ContentType;
 import io.restassured.specification.RequestSpecification;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
-import org.apache.http.HttpStatus;
-
 import java.util.*;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
-import static org.junit.Assert.assertTrue;
+import org.apache.http.HttpStatus;
 
 /**
  * Tests for MAP data type.
