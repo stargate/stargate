@@ -1,6 +1,7 @@
 package io.stargate.sgv2.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 import static org.junit.Assert.assertTrue;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -813,6 +814,8 @@ public class RestApiV2QMapTestsImplIT {
         Arrays.asList(testBase.readJsonAs(response, RestApiV2QSchemaIndexesIT.IndexDesc[].class));
     assertThat(indexList).hasSize(1);
     assertThat(indexList.get(0).index_name()).isEqualTo(indexName);
+    // Based on the backend indexing type, there could be more than one 'options' returned.
+    assertThat(indexList.get(0).options().size()).isGreaterThanOrEqualTo(1);
     assertThat(indexList.get(0).options().get("target")).isEqualTo("entries(attributes)");
   }
 
@@ -843,8 +846,20 @@ public class RestApiV2QMapTestsImplIT {
                 response, RestApiV2QSchemaIndexesIT.IndexDescOptionsAsList[].class));
     assertThat(indexList).hasSize(1);
     assertThat(indexList.get(0).index_name()).isEqualTo(indexName);
-    assertThat(indexList.get(0).options().get(0).get("key")).isEqualTo("target");
-    assertThat(indexList.get(0).options().get(0).get("value")).isEqualTo("entries(attributes)");
+    // Based on the backend indexing type, there could be more than one 'options' returned.
+    // At the minimum, the 'options' should have one entry with key as target and value as
+    // entries(attributes)
+    assertThat(indexList.get(0).options().size()).isGreaterThanOrEqualTo(1);
+    boolean foundAtleastTargat = false;
+    for (Map<String, String> mapOptions : indexList.get(0).options()) {
+      if (mapOptions.get("key").equals("target")) {
+        assertThat(mapOptions.get("value")).isEqualTo("entries(attributes)");
+        foundAtleastTargat = true;
+      }
+    }
+    if (!foundAtleastTargat) {
+      fail("target option not found");
+    }
   }
 
   private static Boolean getFlagForCompactDataTest(boolean serverFlag, boolean testDefault) {
