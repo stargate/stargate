@@ -49,6 +49,7 @@ class BridgeDataStorePropertiesConfigurationTest extends BridgeTest {
             .setSecondaryIndexes(false)
             .setSai(true)
             .setLoggedBatches(false)
+            .setVectorSearch(true)
             .build();
 
     doAnswer(
@@ -74,5 +75,6 @@ class BridgeDataStorePropertiesConfigurationTest extends BridgeTest {
     assertThat(dataStoreProperties.secondaryIndexesEnabled()).isFalse();
     assertThat(dataStoreProperties.saiEnabled()).isTrue();
     assertThat(dataStoreProperties.loggedBatchesEnabled()).isFalse();
+    assertThat(dataStoreProperties.vectorSearchEnabled()).isFalse();
   }
 }

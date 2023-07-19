@@ -226,6 +226,11 @@ public class PersistenceBackedDataStore implements DataStore {
   }
 
   @Override
+  public boolean supportsVectorSearch() {
+    return persistence().supportsVectorSearch();
+  }
+
+  @Override
   public boolean supportsLoggedBatches() {
     return persistence().supportsLoggedBatches();
   }

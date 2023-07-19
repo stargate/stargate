@@ -41,6 +41,7 @@ public class BridgeDataStorePropertiesRetryTest extends BridgeTest {
           .setSecondaryIndexes(false)
           .setSai(false)
           .setLoggedBatches(true)
+          .setVectorSearch(true)
           .build();
 
   @Test

@@ -55,6 +55,9 @@ public interface DataStore extends AsyncQueryExecutor {
   /** Returns true if the persistence backend supports Storage Attached Indexes. */
   boolean supportsSAI();
 
+  /** Returns true if the persistence backend supports vector search Indexes. */
+  boolean supportsVectorSearch();
+
   /** Returns true if the persistence backend allows logged batches. */
   boolean supportsLoggedBatches();
 

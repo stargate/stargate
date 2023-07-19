@@ -31,12 +31,13 @@ public class SupportedFeaturesTest extends BaseBridgeTest {
   @ParameterizedTest
   @MethodSource("getSupportedFeatures")
   public void shouldGetSupportedFeatures(
-      boolean secondaryIndexes, boolean sai, boolean loggedBatches) {
+      boolean secondaryIndexes, boolean sai, boolean loggedBatches, boolean vectorSearch) {
     // Given
     StargateBridgeGrpc.StargateBridgeBlockingStub stub = makeBlockingStub();
     when(persistence.supportsSecondaryIndex()).thenReturn(secondaryIndexes);
     when(persistence.supportsSAI()).thenReturn(sai);
     when(persistence.supportsLoggedBatches()).thenReturn(loggedBatches);
+    when(persistence.supportsVectorSearch()).thenReturn(vectorSearch);
 
     startServer(persistence);
 
@@ -48,18 +49,29 @@ public class SupportedFeaturesTest extends BaseBridgeTest {
     assertThat(response.getSecondaryIndexes()).isEqualTo(secondaryIndexes);
     assertThat(response.getSai()).isEqualTo(sai);
     assertThat(response.getLoggedBatches()).isEqualTo(loggedBatches);
+    assertThat(response.getVectorSearch()).isEqualTo(vectorSearch);
   }
 
   public static Arguments[] getSupportedFeatures() {
     return new Arguments[] {
-      arguments(false, false, false),
-      arguments(false, false, true),
-      arguments(false, true, false),
-      arguments(false, true, true),
-      arguments(true, false, false),
-      arguments(true, false, true),
-      arguments(true, true, false),
-      arguments(true, true, true),
+      arguments(false, false, false, false),
+      arguments(false, false, true, false),
+      arguments(false, true, false, false),
+      arguments(false, true, true, false),
+      arguments(true, false, false, false),
+      arguments(true, false, true, false),
+      arguments(true, true, false, false),
+      arguments(true, true, true, false),
+
+      // with vector search enabled
+      arguments(false, false, false, true),
+      arguments(false, false, true, true),
+      arguments(false, true, false, true),
+      arguments(false, true, true, true),
+      arguments(true, false, false, true),
+      arguments(true, false, true, true),
+      arguments(true, true, false, true),
+      arguments(true, true, true, true),
     };
   }
 }

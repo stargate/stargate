@@ -51,4 +51,7 @@ public interface DataStoreConfig {
   /** @return If logged batches are enabled, defaults to <code>true</code>. */
   @WithDefault("true")
   boolean loggedBatchesEnabled();
+
+  @WithDefault("true")
+  boolean vectorSearchEnabled();
 }
