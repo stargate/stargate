@@ -96,6 +96,11 @@ public interface Persistence extends SchemaAgreementChecker {
   /** Returns true if the persistence backend supports Storage Attached Indexes. */
   boolean supportsSAI();
 
+  /** Returns true if the persistence backend supports Vector search Indexes. */
+  default boolean supportsVectorSearch() {
+    return true;
+  }
+
   default boolean supportsLoggedBatches() {
     return true;
   }
