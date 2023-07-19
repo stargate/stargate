@@ -1,8 +1,31 @@
 # Changelog
 
+## [v2.0.17](https://github.com/stargate/stargate/tree/v2.0.17) (2023-07-11)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.16...v2.0.17)
+
+**Fixed bugs:**
+
+- Maven `install package` does not work [\#2636](https://github.com/stargate/stargate/issues/2636)
+
+**Closed issues:**
+
+- Possible Serialization incompatibility for `Map`s between SGv2/SGv1 for REST API \(v2\) [\#2577](https://github.com/stargate/stargate/issues/2577)
+- Guava version 32.0.0 has a CVE [\#2638](https://github.com/stargate/stargate/issues/2638)
+- Update `cassandra.bundled-driver.version` of Cassandra 4.0 persistence module to 3.11.3 [\#2664](https://github.com/stargate/stargate/issues/2664)
+- Upgrade to Quarkus 3.2.0 [\#2659](https://github.com/stargate/stargate/issues/2659)
+
+**Merged pull requests:**
+
+- Fix \#2664: update `cassandra-driver-core` dep for C-4.0 persistence to 3.11.3 [\#2665](https://github.com/stargate/stargate/pull/2665) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Move microbenchmark class\(es\) to `testing` [\#2661](https://github.com/stargate/stargate/pull/2661) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update to Quarkus 3.2.0 [\#2660](https://github.com/stargate/stargate/pull/2660) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Option added for Map data format in REST API  [\#2651](https://github.com/stargate/stargate/pull/2651) ([kathirsvn](https://github.com/kathirsvn))
+- add HTTP status tagging to tenant metrics [\#2646](https://github.com/stargate/stargate/pull/2646) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+
 ## [v2.0.16](https://github.com/stargate/stargate/tree/v2.0.16) (2023-06-21)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.77...v2.0.16)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.15...v2.0.16)
 
 **Closed issues:**
 

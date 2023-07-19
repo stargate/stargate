@@ -6,11 +6,8 @@ import static org.junit.jupiter.params.provider.Arguments.arguments;
 import io.stargate.bridge.grpc.CqlDuration;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
+import io.stargate.sgv2.api.common.config.ImmutableRequestParams;
+import java.util.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -54,17 +51,88 @@ public class FromProtoConverterTest {
           setOf(123, 456),
           setType(QueryOuterClass.TypeSpec.Basic.INT),
           Values.of(Arrays.asList(Values.of(123), Values.of(456)))),
+    };
+  }
 
+  private static Arguments[] fromExternalMapSamples() {
+    return new Arguments[] {
       // Maps
       arguments(
+          false,
+          Collections.singletonList(
+              new LinkedHashMap<>() {
+                {
+                  put("key", "foo");
+                  put("value", "bar");
+                }
+              }),
+          mapType(QueryOuterClass.TypeSpec.Basic.VARCHAR, QueryOuterClass.TypeSpec.Basic.VARCHAR),
+          // since internal representation is just as Collection...
+          Values.of(Arrays.asList(Values.of("foo"), Values.of("bar")))),
+      arguments(
+          true,
           Collections.singletonMap("foo", "bar"),
           mapType(QueryOuterClass.TypeSpec.Basic.VARCHAR, QueryOuterClass.TypeSpec.Basic.VARCHAR),
           // since internal representation is just as Collection...
           Values.of(Arrays.asList(Values.of("foo"), Values.of("bar")))),
       arguments(
-          Collections.singletonMap(123, Boolean.TRUE),
+          false,
+          Arrays.asList(
+              new LinkedHashMap<>() {
+                {
+                  put("key", 123);
+                  put("value", true);
+                }
+              },
+              new LinkedHashMap<>() {
+                {
+                  put("key", 456);
+                  put("value", false);
+                }
+              }),
           mapType(QueryOuterClass.TypeSpec.Basic.INT, QueryOuterClass.TypeSpec.Basic.BOOLEAN),
-          Values.of(Arrays.asList(Values.of(123), Values.of(true))))
+          Values.of(
+              Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false)))),
+      arguments(
+          true,
+          new LinkedHashMap<>() {
+            {
+              put(123, true);
+              put(456, false);
+            }
+          },
+          mapType(QueryOuterClass.TypeSpec.Basic.INT, QueryOuterClass.TypeSpec.Basic.BOOLEAN),
+          Values.of(
+              Arrays.asList(Values.of(123), Values.of(true), Values.of(456), Values.of(false)))),
+      arguments(
+          true,
+          new LinkedHashMap<>() {
+            {
+              put(
+                  "k1",
+                  new LinkedHashMap<>() {
+                    {
+                      put(123, true);
+                    }
+                  });
+              put(
+                  "k2",
+                  new LinkedHashMap<>() {
+                    {
+                      put(456, false);
+                    }
+                  });
+            }
+          },
+          mapType(
+              QueryOuterClass.TypeSpec.Basic.VARCHAR,
+              mapType(QueryOuterClass.TypeSpec.Basic.INT, QueryOuterClass.TypeSpec.Basic.BOOLEAN)),
+          Values.of(
+              Arrays.asList(
+                  Values.of("k1"),
+                  Values.of(Arrays.asList(Values.of(123), Values.of(true))),
+                  Values.of("k2"),
+                  Values.of(Arrays.asList(Values.of(456), Values.of(false))))))
     };
   }
 
@@ -73,7 +141,21 @@ public class FromProtoConverterTest {
   @DisplayName("Should converted Bridge/gRPC value into expected external representation")
   public void strictExternalToBridgeValueTest(
       Object externalValue, QueryOuterClass.TypeSpec typeSpec, QueryOuterClass.Value bridgeValue) {
-    FromProtoConverter conv = createConverter(typeSpec);
+    FromProtoConverter conv = createConverter(typeSpec, false);
+    Map<String, Object> result = conv.mapFromProtoValues(Arrays.asList(bridgeValue));
+
+    assertThat(result.get(TEST_COLUMN)).isEqualTo(externalValue);
+  }
+
+  @ParameterizedTest
+  @MethodSource("fromExternalMapSamples")
+  @DisplayName("Should converted Bridge/gRPC value into expected external representation")
+  public void strictExternalToBridgeValueTest(
+      boolean compactMapData,
+      Object externalValue,
+      QueryOuterClass.TypeSpec typeSpec,
+      QueryOuterClass.Value bridgeValue) {
+    FromProtoConverter conv = createConverter(typeSpec, compactMapData);
     Map<String, Object> result = conv.mapFromProtoValues(Arrays.asList(bridgeValue));
 
     assertThat(result.get(TEST_COLUMN)).isEqualTo(externalValue);
@@ -87,7 +169,7 @@ public class FromProtoConverterTest {
         QueryOuterClass.TypeSpec.Tuple.newBuilder().addElements(textType).addElements(textType);
     QueryOuterClass.TypeSpec tupleType =
         QueryOuterClass.TypeSpec.newBuilder().setTuple(tupleBuilder.build()).build();
-    FromProtoConverter conv = createConverter(tupleType);
+    FromProtoConverter conv = createConverter(tupleType, false);
 
     // Tuples are represents as Lists
     QueryOuterClass.Value emptyTuple =
@@ -110,10 +192,13 @@ public class FromProtoConverterTest {
     return set;
   }
 
-  private static FromProtoConverter createConverter(QueryOuterClass.TypeSpec typeSpec) {
+  private static FromProtoConverter createConverter(
+      QueryOuterClass.TypeSpec typeSpec, boolean compactMapData) {
     QueryOuterClass.ColumnSpec column =
         QueryOuterClass.ColumnSpec.newBuilder().setName(TEST_COLUMN).setType(typeSpec).build();
-    FromProtoValueCodec codec = FROM_PROTO_VALUE_CODECS.codecFor(column);
+    FromProtoValueCodec codec =
+        FROM_PROTO_VALUE_CODECS.codecFor(
+            column, ImmutableRequestParams.builder().compactMapData(compactMapData).build());
     return FromProtoConverter.construct(
         new String[] {TEST_COLUMN}, new FromProtoValueCodec[] {codec});
   }
@@ -153,6 +238,17 @@ public class FromProtoConverterTest {
     return QueryOuterClass.TypeSpec.newBuilder()
         .setMap(
             QueryOuterClass.TypeSpec.Map.newBuilder().setKey(keyType).setValue(valueType).build())
+        .build();
+  }
+
+  private static QueryOuterClass.TypeSpec mapType(
+      QueryOuterClass.TypeSpec.Basic basicKeyType, QueryOuterClass.TypeSpec valueType) {
+    return QueryOuterClass.TypeSpec.newBuilder()
+        .setMap(
+            QueryOuterClass.TypeSpec.Map.newBuilder()
+                .setKey(basicType(basicKeyType))
+                .setValue(valueType)
+                .build())
         .build();
   }
 }
