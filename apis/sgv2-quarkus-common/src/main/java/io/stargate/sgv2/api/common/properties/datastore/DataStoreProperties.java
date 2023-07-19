@@ -26,6 +26,9 @@ public interface DataStoreProperties {
   /** @return If Storage attached indexes are enabled. */
   boolean saiEnabled();
 
+  /** @return If vector search indexes are enabled. */
+  boolean vectorSearchEnabled();
+
   /** @return If logged batches are enabled. */
   boolean loggedBatchesEnabled();
 

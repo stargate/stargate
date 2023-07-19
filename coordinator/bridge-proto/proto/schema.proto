@@ -158,6 +158,9 @@ message SupportedFeaturesResponse {
 
   // Whether the persistence backend supports logged CQL batches.
   bool logged_batches = 3;
+
+  // Whether the persistence backend supports vector search.
+  bool vector_search = 4;
 }
 
 

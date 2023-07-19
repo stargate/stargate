@@ -24,5 +24,8 @@ import io.stargate.sgv2.api.common.properties.datastore.DataStoreProperties;
  * @see DataStoreProperties
  */
 public record DataStorePropertiesImpl(
-    boolean secondaryIndexesEnabled, boolean saiEnabled, boolean loggedBatchesEnabled)
+    boolean secondaryIndexesEnabled,
+    boolean saiEnabled,
+    boolean loggedBatchesEnabled,
+    boolean vectorSearchEnabled)
     implements DataStoreProperties {}
