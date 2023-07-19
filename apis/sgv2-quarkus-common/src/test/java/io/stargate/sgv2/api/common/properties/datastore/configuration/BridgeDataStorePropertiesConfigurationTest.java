@@ -75,6 +75,6 @@ class BridgeDataStorePropertiesConfigurationTest extends BridgeTest {
     assertThat(dataStoreProperties.secondaryIndexesEnabled()).isFalse();
     assertThat(dataStoreProperties.saiEnabled()).isTrue();
     assertThat(dataStoreProperties.loggedBatchesEnabled()).isFalse();
-    assertThat(dataStoreProperties.vectorSearchEnabled()).isFalse();
+    assertThat(dataStoreProperties.vectorSearchEnabled()).isTrue();
   }
 }

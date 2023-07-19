@@ -85,6 +85,7 @@ public class BridgeDataStorePropertiesRetryTest extends BridgeTest {
     assertThat(props.secondaryIndexesEnabled()).isEqualTo(expected.getSecondaryIndexes());
     assertThat(props.saiEnabled()).isEqualTo(expected.getSai());
     assertThat(props.loggedBatchesEnabled()).isEqualTo(expected.getLoggedBatches());
+    assertThat(props.vectorSearchEnabled()).isEqualTo(expected.getVectorSearch());
   }
 
   /**
