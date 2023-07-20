@@ -521,18 +521,14 @@ public class Starter {
     ArrayList<File> jars = new ArrayList<>();
     boolean foundPersistence = false;
 
-    // if no module specified, pick a default based on the DSE flag
-    if (persistenceModule == null) {
-      persistenceModule = dse ? "persistence-dse-6.8" : "persistence-cassandra-4.0";
-    }
-
     if (files != null) {
       Arrays.sort(files);
       for (File file : files) {
         String name = file.getName().toLowerCase();
 
         if (name.contains("persistence-dse") || name.contains("persistence-cassandra")) {
-          if (foundPersistence || !name.contains(persistenceModule)) {
+          if (foundPersistence
+              || (persistenceModule != null && !name.contains(persistenceModule))) {
             log("Skipping persistence backend " + name, Level.INFO);
           } else {
             log("Loading persistence backend " + name, Level.INFO);
