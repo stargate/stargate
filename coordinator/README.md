@@ -132,7 +132,7 @@ sudo ifconfig lo0 alias 127.0.0.2
 Start Stargate from the command line as follows:
 
 ```sh
-./starctl --cluster-name stargate --cluster-seed 127.0.0.1 --cluster-version 4.0 --listen 127.0.0.2 --simple-snitch
+./starctl --cluster-name stargate --cluster-seed 127.0.0.1 --listen 127.0.0.2 --simple-snitch
 
 # See all cli options with -h
 ```
@@ -142,7 +142,7 @@ Or use a pre-built image from [Docker Hub](https://hub.docker.com/r/stargateio/)
 ```sh
 docker pull stargateio/coordinator-4_0:v2.0.0-ALPHA-17
 
-docker run --name stargate -d stargateio/coordinator-4_0:v2.0.0-ALPHA-17 --cluster-name stargate --cluster-seed 127.0.0.1 --cluster-version 4.0 --listen 127.0.0.2 --simple-snitch
+docker run --name stargate -d stargateio/coordinator-4_0:v2.0.0-ALPHA-17 --cluster-name stargate --cluster-seed 127.0.0.1 --listen 127.0.0.2 --simple-snitch
 ```
 
 The `starctl` script respects the `JAVA_OPTS` environment variable.
@@ -155,6 +155,13 @@ therefore they do not need any extra quoting.
 ```sh script
 env JAVA_OPTS='-Dmy_property="some value"' ./starctl --cluster-name 'Some Cluster' ...
 ```
+
+The `--persistence-module` option can be used to specify a persistence module to use for storing data. The default is `persistence-cassandra-4.0`, unless the `--dse` option is set, in which case the default is `persistence-dse-6.8`. The following would be used to start Stargate with the DSE-next persistence module:
+
+```sh script
+./starctl --cluster-name stargate --persistence-module persistence-dse-next --cluster-seed 127.0.0.1 --listen 127.0.0.2 --simple-snitch
+```
+
 #### Starting Stargate API Services (Optional)
 
 The instructions above describe how to start up a Stargate coordinator node and backing Cassandra cluster. If you are only using the CQL or gRPC interfaces to Stargate, these are the only components you need to start. Additional APIs including REST, GraphQL and Docs API are implemented as separate microservices which can be started independently using instructions found under the [apis](apis) directory.

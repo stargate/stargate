@@ -334,11 +334,6 @@ public class Starter {
       throw new IllegalArgumentException("--cluster-name must be specified");
     }
 
-    // if no module specified, pick a default based on the DSE flag
-    if (persistenceModule == null) {
-      persistenceModule = dse ? "persistence-dse-6.8" : "persistence-cassandra-4.0";
-    }
-
     if (!InetAddressValidator.getInstance().isValid(listenHostStr)) {
       throw new IllegalArgumentException("--listen must be a valid IPv4 or IPv6 address");
     }
@@ -525,6 +520,11 @@ public class Starter {
   protected List<File> pickBundles(File[] files) {
     ArrayList<File> jars = new ArrayList<>();
     boolean foundPersistence = false;
+
+    // if no module specified, pick a default based on the DSE flag
+    if (persistenceModule == null) {
+      persistenceModule = dse ? "persistence-dse-6.8" : "persistence-cassandra-4.0";
+    }
 
     if (files != null) {
       Arrays.sort(files);

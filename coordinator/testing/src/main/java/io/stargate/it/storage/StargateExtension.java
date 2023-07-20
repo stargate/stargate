@@ -628,7 +628,6 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
         args.add("--persistence-module");
         args.add(PERSISTENCE_MODULE);
       }
-      ;
 
       args.add("--dc");
       args.add(backend.datacenter());
