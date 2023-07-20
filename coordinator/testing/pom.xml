@@ -364,6 +364,7 @@
                   <systemPropertyVariables>
                     <ccm.version>4.0.10</ccm.version>
                     <stargate.test.nodes>1</stargate.test.nodes>
+                    <stargate.test.persistence.module>persistence-cassandra-4.0</stargate.test.persistence.module>
                   </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>
                   <reportsDirectory>target/failsafe-reports/cassandra-4.0</reportsDirectory>
@@ -395,6 +396,7 @@
                   <systemPropertyVariables>
                     <ccm.dse>true</ccm.dse>
                     <ccm.version>6.8.36</ccm.version>
+                    <stargate.test.persistence.module>persistence-dse-6.8</stargate.test.persistence.module>
                     <stargate.test.nodes>1</stargate.test.nodes>
                   </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>
@@ -429,6 +431,7 @@
                      the ccm.directory determines the actual distribution used -->
                     <ccm.version>4.0.7</ccm.version>
                     <ccm.directory>${project.basedir}/../../dse-next/cassandra</ccm.directory>
+                    <stargate.test.persistence.module>persistence-dse-next</stargate.test.persistence.module>
                     <stargate.test.nodes>1</stargate.test.nodes>
                   </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>

@@ -22,7 +22,6 @@ import com.github.rvesse.airline.annotations.Option;
 import com.github.rvesse.airline.annotations.Parser;
 import com.github.rvesse.airline.annotations.help.License;
 import com.github.rvesse.airline.annotations.restrictions.Port;
-import com.github.rvesse.airline.annotations.restrictions.Required;
 import com.github.rvesse.airline.help.cli.CliCommandUsageGenerator;
 import com.github.rvesse.airline.model.OptionMetadata;
 import com.github.rvesse.airline.parser.ParseResult;
@@ -58,7 +57,6 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Level;
 import javax.inject.Inject;
 import org.apache.commons.collections4.iterators.PeekingIterator;
-import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.validator.routines.InetAddressValidator;
 import org.apache.felix.framework.Felix;
 import org.apache.felix.framework.util.FelixConstants;
@@ -101,12 +99,14 @@ public class Starter {
       description = "Seed node address")
   protected List<String> seedList = new ArrayList<>();
 
-  @Required
+  @Deprecated
   @Order(value = 3)
   @Option(
       name = {"--cluster-version"},
       title = "version",
-      description = "The major version number of the backend cluster (example: 4.0 or 6.8)")
+      description =
+          "(Deprecated, use --persistence-module instead) "
+              + "The major version number of the backend cluster (example: 4.0 or 6.8)")
   protected String version;
 
   @Order(value = 4)
@@ -249,6 +249,13 @@ public class Starter {
       description = "The host ID to use for this node. Must be a valid UUID.")
   protected String hostId;
 
+  @Order(value = 24)
+  @Option(
+      name = {"--persistence-module"},
+      description =
+          "name of the persistence module to use (example: persistence-cassandra-4.0 or persistence-dse-6.8)")
+  protected String persistenceModule;
+
   @Order(value = 1000)
   @Option(
       name = "--nodetool",
@@ -281,6 +288,7 @@ public class Starter {
   public Starter(
       String clusterName,
       String version,
+      String persistenceModule,
       String listenHostStr,
       String seedHost,
       Integer seedPort,
@@ -292,6 +300,7 @@ public class Starter {
       int jmxPort) {
     this.clusterName = clusterName;
     this.version = version;
+    this.persistenceModule = persistenceModule;
     this.listenHostStr = listenHostStr;
     this.seedList = Collections.singletonList(seedHost);
     this.seedPort = seedPort;
@@ -317,12 +326,17 @@ public class Starter {
   }
 
   protected void setStargateProperties() {
-    if (version == null || version.trim().isEmpty() || !NumberUtils.isParsable(version)) {
-      throw new IllegalArgumentException("--cluster-version must be a number");
+    if (version != null) {
+      log("ignoring deprecated option --cluster-version", Level.WARNING);
     }
 
     if (clusterName == null || clusterName.trim().isEmpty()) {
       throw new IllegalArgumentException("--cluster-name must be specified");
+    }
+
+    // if no module specified, pick a default based on the DSE flag
+    if (persistenceModule == null) {
+      persistenceModule = dse ? "persistence-dse-6.8" : "persistence-cassandra-4.0";
     }
 
     if (!InetAddressValidator.getInstance().isValid(listenHostStr)) {
@@ -510,30 +524,23 @@ public class Starter {
 
   protected List<File> pickBundles(File[] files) {
     ArrayList<File> jars = new ArrayList<>();
-    boolean foundVersion = false;
+    boolean foundPersistence = false;
 
     if (files != null) {
       Arrays.sort(files);
       for (File file : files) {
         String name = file.getName().toLowerCase();
 
-        // Avoid loading the wrong persistence module
-        if (!dse
-            && (name.contains("persistence-dse")
-                || (name.contains("persistence-cassandra")
-                    && !name.contains("persistence-cassandra-" + version)))) continue;
+        if (name.contains("persistence-dse") || name.contains("persistence-cassandra")) {
+          if (foundPersistence || !name.contains(persistenceModule)) {
+            log("Skipping persistence backend " + name, Level.INFO);
+          } else {
+            log("Loading persistence backend " + name, Level.INFO);
+            foundPersistence = true;
 
-        if (dse
-            && (name.contains("persistence-cassandra")
-                || (name.contains("persistence-dse")
-                    && !name.contains("persistence-dse-" + version)))) continue;
-
-        if (name.contains("persistence-cassandra") || name.contains("persistence-dse")) {
-          log("Loading persistence backend " + name, Level.INFO);
-          foundVersion = true;
-
-          // Put the persistence bundle first in the list
-          jars.add(0, file);
+            // Put the persistence bundle first in the list
+            jars.add(0, file);
+          }
           continue;
         }
 
@@ -543,10 +550,9 @@ public class Starter {
       }
     }
 
-    if (!foundVersion)
+    if (!foundPersistence)
       throw new IllegalArgumentException(
-          String.format(
-              "No persistence backend found for %s %s", (dse ? "dse" : "cassandra"), version));
+          String.format("No persistence backend found for %s", dse ? "dse" : "cassandra"));
 
     return jars;
   }
