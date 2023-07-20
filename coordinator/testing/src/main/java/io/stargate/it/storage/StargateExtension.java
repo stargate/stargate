@@ -18,7 +18,6 @@ package io.stargate.it.storage;
 import static io.stargate.starter.Starter.STARTED_MESSAGE;
 import static java.lang.management.ManagementFactory.getRuntimeMXBean;
 
-import com.datastax.oss.driver.api.core.Version;
 import com.datastax.oss.driver.shaded.guava.common.io.Resources;
 import io.stargate.it.exec.OutputListener;
 import io.stargate.it.exec.ProcessRunner;
@@ -76,10 +75,10 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
   private static final Logger LOG = LoggerFactory.getLogger(StargateExtension.class);
 
   private static final String ARGS_PROVIDER_CLASS_NAME =
-          System.getProperty("stargate.test.args.provider.class", ArgumentProviderImpl.class.getName());
+      System.getProperty("stargate.test.args.provider.class", ArgumentProviderImpl.class.getName());
 
   private static final String PERSISTENCE_MODULE =
-          System.getProperty("stargate.test.persistence.module");
+      System.getProperty("stargate.test.persistence.module");
   public static final File LIB_DIR = initLibDir();
   private static final int MAX_NODES = 20;
 
@@ -628,7 +627,8 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
       if (PERSISTENCE_MODULE != null) {
         args.add("--persistence-module");
         args.add(PERSISTENCE_MODULE);
-      };
+      }
+      ;
 
       args.add("--dc");
       args.add(backend.datacenter());
