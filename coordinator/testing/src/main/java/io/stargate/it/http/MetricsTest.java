@@ -157,7 +157,7 @@ public class MetricsTest extends BaseIntegrationTest {
   @Test
   public void dropwizardMetricsPersistence() throws IOException {
     String expectedPrefix =
-        System.getProperty("stargate.test.persistence.module").replace('.', '_');
+        System.getProperty("stargate.test.persistence.module").replace('.', '_').replace('-', '_');
 
     String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 
