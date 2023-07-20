@@ -63,7 +63,10 @@ public final class IntegrationTestUtils {
     return System.getProperty(CASSANDRA_PASSWORD_PROP, "cassandra");
   }
 
-  /** @return Returns the persistence module used by the coordinator (4.0, 6.8 (== DSE)) specified for the coordinator */
+  /**
+   * @return Returns the persistence module used by the coordinator (4.0, 6.8 (== DSE)) specified
+   *     for the coordinator
+   */
   public static String getPersistenceModule() {
     return System.getProperty(PERSISTENCE_MODULE_PROP, "");
   }

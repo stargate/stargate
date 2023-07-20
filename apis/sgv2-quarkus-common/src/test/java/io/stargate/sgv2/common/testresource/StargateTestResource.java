@@ -309,7 +309,8 @@ public class StargateTestResource
   }
 
   public static String getPersistenceModule() {
-    return System.getProperty("testing.containers.cluster-persistence", Defaults.PERSISTENCE_MODULE);
+    return System.getProperty(
+        "testing.containers.cluster-persistence", Defaults.PERSISTENCE_MODULE);
   }
 
   private boolean isDse() {
