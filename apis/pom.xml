@@ -248,7 +248,7 @@
         <stargate.int-test.coordinator.image>stargateio/coordinator-4_0</stargate.int-test.coordinator.image>
         <stargate.int-test.coordinator.image-tag>v${project.version}</stargate.int-test.coordinator.image-tag>
         <stargate.int-test.cluster.name>cass-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>
-        <stargate.int-test.cluster.version>4.0</stargate.int-test.cluster.version>
+        <stargate.int-test.cluster.persistence>persistence-cassandra-4.0</stargate.int-test.cluster.persistence>
         <stargate.int-test.cluster.dse>false</stargate.int-test.cluster.dse>
       </properties>
     </profile>
@@ -260,7 +260,7 @@
         <stargate.int-test.coordinator.image>stargateio/dse-next</stargate.int-test.coordinator.image>
         <stargate.int-test.coordinator.image-tag>v${project.version}</stargate.int-test.coordinator.image-tag>
         <stargate.int-test.cluster.name>cass-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>
-        <stargate.int-test.cluster.version>4.0</stargate.int-test.cluster.version>
+        <stargate.int-test.cluster.persistence>persistence-dse-next</stargate.int-test.cluster.persistence>
         <stargate.int-test.cluster.dse>false</stargate.int-test.cluster.dse>
       </properties>
     </profile>
@@ -272,7 +272,7 @@
         <stargate.int-test.coordinator.image>stargateio/coordinator-dse-68</stargate.int-test.coordinator.image>
         <stargate.int-test.coordinator.image-tag>v${project.version}</stargate.int-test.coordinator.image-tag>
         <stargate.int-test.cluster.name>dse-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>
-        <stargate.int-test.cluster.version>6.8</stargate.int-test.cluster.version>
+        <stargate.int-test.cluster.persistence>persistence-dse-6.8</stargate.int-test.cluster.persistence>
         <stargate.int-test.cluster.dse>true</stargate.int-test.cluster.dse>
       </properties>
     </profile>

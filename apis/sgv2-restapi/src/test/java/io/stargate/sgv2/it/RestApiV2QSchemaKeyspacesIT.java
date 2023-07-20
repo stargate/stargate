@@ -303,20 +303,20 @@ public class RestApiV2QSchemaKeyspacesIT extends RestApiV2QIntegrationTestBase {
    */
 
   protected String selectPrimaryDC() {
-    String clusterVersion = IntegrationTestUtils.getClusterVersion();
+    String persistenceModule = IntegrationTestUtils.getPersistenceModule();
     final String dc;
 
-    switch (clusterVersion) {
-      case "6.8": // DSE has different one
+    switch (persistenceModule) {
+      case "persistence-dse-6.8": // DSE has different one
         dc = "dc1";
         break;
       default:
         dc = "datacenter1";
     }
     LOG.info(
-        "selectPrimaryDC() selects '{}' as the default DC given cluster version of '{}'",
+        "selectPrimaryDC() selects '{}' as the default DC given persistence module of '{}'",
         dc,
-        clusterVersion);
+        persistenceModule);
     return dc;
   }
 
