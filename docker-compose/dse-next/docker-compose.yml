@@ -42,7 +42,7 @@ services:
       retries: 10
 
   coordinator:
-    image: stargateio/dse-next:${SGTAG}
+    image: stargateio/coordinator-dse-next:${SGTAG}
     depends_on: 
       cassandra-1:
         condition: service_healthy

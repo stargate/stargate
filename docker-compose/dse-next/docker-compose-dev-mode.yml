@@ -2,7 +2,7 @@ version: '2'
 
 services:
   coordinator:
-    image: stargateio/dse-next:${SGTAG}
+    image: stargateio/coordinator-dse-next:${SGTAG}
     networks:
       - stargate
     ports:

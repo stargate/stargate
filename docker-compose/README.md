@@ -43,7 +43,7 @@ The fastest way to build your own local images involves the following steps:
   * Make sure you are in the repository root directory and have `JAVA_HOME` set to point to a JDK 1.8 installation
   * Do a local build of jar files for coordinator:
     ```
-    ./mvnw clean install -DskipTests -P dse
+    ./mvnw clean install -DskipTests -P all
     ```
   * Generate docker images (image tag will default to the Stargate version specified in the `pom.xml`):
     ```
