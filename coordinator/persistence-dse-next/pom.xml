@@ -246,7 +246,7 @@
           <instructions>
             <Bundle-Name>Cassandra-Persistence</Bundle-Name>
             <Bundle-Description>Cassandra DB component for project</Bundle-Description>
-            <Bundle-SymbolicName>io.stargate.db.cassandra_5_0</Bundle-SymbolicName>
+            <Bundle-SymbolicName>io.stargate.db.dse_next</Bundle-SymbolicName>
             <Bundle-Activator>io.stargate.db.cassandra.DseNextPersistenceActivator</Bundle-Activator>
             <Import-Package><![CDATA[
               org.slf4j,

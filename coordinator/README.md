@@ -9,8 +9,8 @@ If you're developing on macOS, we've added notes throughout to highlight a few s
 The fastest way to build your own copy of the Stargate coordinator code and Docker images involves the following steps:
 
 * Local build of coordinator images
-  * Make sure you are in the `coordinator` directory and have `JAVA_HOME` set to point to a JDK 1.8 installation
-  * Do a local build of jar files for coordinator (include the `-P dse` option if you want to build the DSE version, but note this requires access to Datastax's Maven repository)
+  * Make sure you are in the `coordinator` directory and have `JAVA_HOME` set to point to a JDK 11 installation
+  * Do a local build of jar files for coordinator (include the `-P dse`, `-P dse-next`, or `-P all` options if you want to build the DSE versions, but note that building DSE versions requires access to Datastax's Maven repository)
     ```
     ./mvnw clean install -DskipTests -P dse
     ```
