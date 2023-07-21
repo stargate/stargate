@@ -249,8 +249,8 @@ jobs:
     needs: [ resolve-coordinator-docker, build-coordinator-docker, build ]
     runs-on: ubuntu-latest
 
-    # max run time 30 minutes
-    timeout-minutes: 30
+    # max run time 45 minutes
+    timeout-minutes: 45
 
     strategy:
 
