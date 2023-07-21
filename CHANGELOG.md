@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.18...HEAD)
+
 ## [v2.0.18](https://github.com/stargate/stargate/tree/v2.0.17) (2023-07-21)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.17...v2.0.18)
