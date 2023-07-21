@@ -17,7 +17,6 @@ services:
     environment:
       - JAVA_OPTS="-Xmx1536M"
       - CLUSTER_NAME=c4-${CASSTAG}-cluster
-      - CLUSTER_VERSION=4.0
       - RACK_NAME=rack1
       - DATACENTER_NAME=datacenter1
       - ENABLE_AUTH=true

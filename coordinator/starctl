@@ -139,8 +139,8 @@ if [[ ${#STARGATE_ARGS[@]} -eq 0 ]]; then
         STARGATE_ARGS+=("--cluster-name" "$CLUSTER_NAME")
     fi
 
-    if [[ ! -z "$CLUSTER_VERSION" ]]; then
-        STARGATE_ARGS+=("--cluster-version" "$CLUSTER_VERSION")
+    if [[ ! -z "$PERSISTENCE_MODULE" ]]; then
+        STARGATE_ARGS+=("--persistence-module" "$PERSISTENCE_MODULE")
     fi
 
     if [[ ! -z "$SEED" ]]; then

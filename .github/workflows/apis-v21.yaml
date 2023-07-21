@@ -20,9 +20,9 @@ concurrency:
 #
 # 1. Builds the coordinator without tests in order to get snapshot jar versions
 # 2. Then 4 jobs in parallel
-#  a) Build and test the sgv2-docsapi
-#  b) Build coordinator docker images (x3)
-# 3. Runs INT tests for [sgv2-docsapi] (x4 in parallel, C*3, C*4, dse)
+#  a) Build and test the Stargate APIs
+#  b) Build coordinator docker images
+# 3. Run INT tests for Stargate APIs against each coordinator image
 # 4. Clean-up - deletes created docker image artifacts
 jobs:
 
@@ -63,8 +63,13 @@ jobs:
                 <id>artifactory-releases</id>
                 <username>${ARTIFACTORY_USERNAME}</username>
                 <password>${ARTIFACTORY_PASSWORD}</password>
-             </server>
-           </servers>
+              </server>
+              <server>
+                <id>artifactory-dse</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+            </servers>
           </settings>
           EOF
 
@@ -94,7 +99,7 @@ jobs:
         if: steps.cache-coordinator-snapshots.outputs.cache-hit != 'true'
         run: |
           cd coordinator/
-          MAVEN_OPTS="-Xmx4g" ./mvnw -B -ntp install -P dse -DskipTests
+          MAVEN_OPTS="-Xmx4g" ./mvnw -B -ntp install -P all -DskipTests
 
   resolve-coordinator-docker:
     name: Resolve coordinator docker SHA
@@ -114,7 +119,7 @@ jobs:
           echo "Resolved commit SHA for coordinator docker image to $SHA"
           echo "sha=${SHA}" >> $GITHUB_OUTPUT
 
-  # Builds C*4 and DSE coordinator images using matrix
+  # Builds C* and DSE coordinator images using matrix
   # Exports image to a file and then uploads it using action artifacts
   build-coordinator-docker:
     name: Docker image
@@ -127,7 +132,7 @@ jobs:
     # image name needed only
     strategy:
       matrix:
-        image: [ coordinator-4_0, coordinator-dse-68 ]
+        image: [ coordinator-4_0, coordinator-dse-next, coordinator-dse-68 ]
 
     steps:
       - uses: actions/checkout@v3
@@ -176,7 +181,7 @@ jobs:
         run: |
           docker save --output ${{ matrix.image }}-${{ needs.resolve-coordinator-docker.outputs.sha }}.tar stargateio/${{ matrix.image }}:${{ needs.resolve-coordinator-docker.outputs.sha }}
 
-  # runs unit tests for the sgv2-docsapi
+  # runs unit tests for the Stargate v2 APIs
   build:
     name: Unit tests
     needs: build-coordinator
@@ -213,8 +218,13 @@ jobs:
                 <id>artifactory-releases</id>
                 <username>${ARTIFACTORY_USERNAME}</username>
                 <password>${ARTIFACTORY_PASSWORD}</password>
-             </server>
-           </servers>
+              </server>
+              <server>
+                <id>artifactory-dse</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+            </servers>
           </settings>
           EOF
 
@@ -232,7 +242,7 @@ jobs:
           cd apis/
           ./mvnw -B -ntp clean test
 
-  # runs int tests for the sgv2-docsapi
+  # runs int tests for the Stargate v2 APIs
   # supports downloading and importing the built docker image
   int-tests:
     name: Integration tests
@@ -255,7 +265,7 @@ jobs:
       # image - final image name to use when running int tests (-Dtesting.containers.stargate-image)
       matrix:
         project: [ sgv2-docsapi, sgv2-graphqlapi, sgv2-restapi ]
-        name: [ cassandra-40, dse-68 ]
+        name: [ cassandra-40, dse-68, dse-next ]
         include:
           - name: cassandra-40
             profile: cassandra-40
@@ -270,6 +280,13 @@ jobs:
             image-cache-key: docker-coordinator-dse-68-${{ needs.resolve-coordinator-docker.outputs.sha }}
             image-file: coordinator-dse-68-${{ needs.resolve-coordinator-docker.outputs.sha }}.tar
             image: stargateio/coordinator-dse-68:${{ needs.resolve-coordinator-docker.outputs.sha }}
+
+          - name: dse-next
+            profile: dse-next
+            repository-login: false
+            image-cache-key: docker-coordinator-dse-next-${{ needs.resolve-coordinator-docker.outputs.sha }}
+            image-file: coordinator-dse-next-${{ needs.resolve-coordinator-docker.outputs.sha }}.tar
+            image: stargateio/coordinator-dse-next:${{ needs.resolve-coordinator-docker.outputs.sha }}
 
     steps:
       - uses: actions/checkout@v3
@@ -299,8 +316,13 @@ jobs:
                 <id>artifactory-releases</id>
                 <username>${ARTIFACTORY_USERNAME}</username>
                 <password>${ARTIFACTORY_PASSWORD}</password>
-             </server>
-           </servers>
+              </server>
+              <server>
+                <id>artifactory-dse</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+            </servers>
           </settings>
           EOF
 

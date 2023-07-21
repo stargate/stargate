@@ -14,7 +14,7 @@ public final class IntegrationTestUtils {
       "stargate.int-test.cassandra.auth-enabled";
   public static final String CASSANDRA_USERNAME_PROP = "stargate.int-test.cassandra.username";
   public static final String CASSANDRA_PASSWORD_PROP = "stargate.int-test.cassandra.password";
-  public static final String CLUSTER_VERSION_PROP = "stargate.int-test.cluster-version";
+  public static final String PERSISTENCE_MODULE_PROP = "stargate.int-test.cluster.persistence";
 
   private IntegrationTestUtils() {}
 
@@ -63,9 +63,12 @@ public final class IntegrationTestUtils {
     return System.getProperty(CASSANDRA_PASSWORD_PROP, "cassandra");
   }
 
-  /** @return Returns the cluster version (4.0, 6.8 (== DSE)) specified for the coordinator */
-  public static String getClusterVersion() {
-    return System.getProperty(CLUSTER_VERSION_PROP, "");
+  /**
+   * @return Returns the persistence module used by the coordinator (4.0, 6.8 (== DSE)) specified
+   *     for the coordinator
+   */
+  public static String getPersistenceModule() {
+    return System.getProperty(PERSISTENCE_MODULE_PROP, "");
   }
 
   /**
@@ -73,12 +76,23 @@ public final class IntegrationTestUtils {
    *     Cassandra (4.0)
    */
   public static boolean isDSE() {
-    return "6.8".equals(getClusterVersion());
+    return "persistence-dse-6.8".equals(getPersistenceModule());
   }
 
-  /** @return True if the backend cluster is Cassandra 4.0; false otherwise (DSE) */
-  public static boolean isCassandra40() {
-    return "4.0".equals(getClusterVersion());
+  /**
+   * @return True if the backend cluster supports SASI (currently only enabled by default in DSE,
+   *     not OSS Cassandra backends)
+   */
+  public static boolean supportsSASI() {
+    return isDSE();
+  }
+
+  /**
+   * @return True if the backend cluster supports Materialized Views (currently only enabled by
+   *     default in DSE, not OSS Cassandra backends)
+   */
+  public static boolean supportsMaterializedViews() {
+    return isDSE();
   }
 
   /** @return Returns the port where the application to test runs. */

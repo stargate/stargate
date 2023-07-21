@@ -53,7 +53,6 @@ import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
  * <ol>
  *   <li><code>testing.containers.cassandra-image</code>
  *   <li><code>testing.containers.stargate-image</code>
- *   <li><code>testing.containers.cluster-version</code>
  *   <li><code>testing.containers.cluster-dse</code>
  *   <li><code>testing.containers.cassandra-startup-timeout</code>
  *   <li><code>testing.containers.coordinator-startup-timeout</code>
@@ -80,7 +79,7 @@ public class StargateTestResource
     String STARGATE_IMAGE_TAG = "v2.1";
 
     String CLUSTER_NAME = "int-test-cluster";
-    String CLUSTER_VERSION = "4.0";
+    String PERSISTENCE_MODULE = "persistence-cassandra-4.0";
 
     String CLUSTER_DSE = null;
 
@@ -158,7 +157,7 @@ public class StargateTestResource
 
     // Some Integration tests need to know backend storage version, to work around
     // discrepancies between Cassandra/DSE versions
-    propsBuilder.put(IntegrationTestUtils.CLUSTER_VERSION_PROP, getClusterVersion());
+    propsBuilder.put(IntegrationTestUtils.PERSISTENCE_MODULE_PROP, getPersistenceModule());
 
     // log props and return them
     ImmutableMap<String, String> props = propsBuilder.build();
@@ -262,7 +261,6 @@ public class StargateTestResource
         new GenericContainer<>(image)
             .withEnv("JAVA_OPTS", "-Xmx1G")
             .withEnv("CLUSTER_NAME", getClusterName())
-            .withEnv("CLUSTER_VERSION", getClusterVersion())
             .withEnv("SIMPLE_SNITCH", "true")
             .withEnv("ENABLE_AUTH", "true")
             .withNetworkAliases("coordinator")
@@ -310,8 +308,9 @@ public class StargateTestResource
     return System.getProperty("testing.containers.cluster-name", Defaults.CLUSTER_NAME);
   }
 
-  public static String getClusterVersion() {
-    return System.getProperty("testing.containers.cluster-version", Defaults.CLUSTER_VERSION);
+  public static String getPersistenceModule() {
+    return System.getProperty(
+        "testing.containers.cluster-persistence", Defaults.PERSISTENCE_MODULE);
   }
 
   private boolean isDse() {

@@ -40,6 +40,9 @@ public class NodeToolTest extends BaseIntegrationTest {
   private static File starterJar;
   private static StargateConnectionInfo stargate;
 
+  private static final String PERSISTENCE_MODULE =
+      System.getProperty("stargate.test.persistence.module");
+
   @BeforeAll
   public static void init(StargateEnvironmentInfo stargateEnv) throws IOException {
     stargate = stargateEnv.nodes().get(0);
@@ -65,8 +68,10 @@ public class NodeToolTest extends BaseIntegrationTest {
     cmd.addArgument("-jar");
     cmd.addArgument(starterJar.getCanonicalPath());
 
-    cmd.addArgument("--cluster-version");
-    cmd.addArgument(backend.clusterVersion());
+    if (PERSISTENCE_MODULE != null) {
+      cmd.addArgument("--persistence-module");
+      cmd.addArgument(PERSISTENCE_MODULE);
+    }
 
     if (backend.isDse()) {
       cmd.addArgument("--dse");

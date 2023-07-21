@@ -115,19 +115,6 @@ class StarterTest {
   }
 
   @Test
-  void testSetStargatePropertiesMissingVersion() {
-    starter.version = null;
-
-    RuntimeException thrown =
-        assertThrows(
-            IllegalArgumentException.class,
-            starter::setStargateProperties,
-            "Expected setStargateProperties() to throw RuntimeException");
-
-    assertThat(thrown.getMessage()).isEqualTo("--cluster-version must be a number");
-  }
-
-  @Test
   void testSetStargatePropertiesMissingClusterName() {
     starter.clusterName = null;
 
