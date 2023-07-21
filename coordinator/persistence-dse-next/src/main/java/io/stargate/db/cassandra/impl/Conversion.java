@@ -275,6 +275,10 @@ public class Conversion {
       InetAddressAndPort addressAndPort = entry.getKey();
       org.apache.cassandra.exceptions.RequestFailureReason internalReason = entry.getValue();
       RequestFailureReason externalReason = RequestFailureReason.fromCode(internalReason.code);
+      // 21-Jul-2023, tatu: Only first 4 RequestFailureReason have "code" to allow automatic
+      //    mapping, so we need to do manually map the rest. Fortunately there is a unit test
+      //    (ConversionTest.allKnownCode()) that verifies that mapping exists for all internal
+      //    reasons.
       if (externalReason == RequestFailureReason.UNKNOWN) {
         switch (internalReason) {
           case INDEX_NOT_AVAILABLE:
