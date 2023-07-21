@@ -1,5 +1,3 @@
-# Changelog
-
 ## [v2.0.17](https://github.com/stargate/stargate/tree/v2.0.17) (2023-07-11)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.16...v2.0.17)
