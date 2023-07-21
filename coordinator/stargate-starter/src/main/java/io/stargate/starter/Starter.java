@@ -327,7 +327,9 @@ public class Starter {
 
   protected void setStargateProperties() {
     if (version != null) {
-      log("ignoring deprecated option --cluster-version, use --persistence-module instead", Level.WARNING);
+      log(
+          "ignoring deprecated option --cluster-version, use --persistence-module instead",
+          Level.WARNING);
     }
 
     if (clusterName == null || clusterName.trim().isEmpty()) {
