@@ -1,3 +1,19 @@
+# Changelog
+
+## [v2.0.18](https://github.com/stargate/stargate/tree/v2.0.17) (2023-07-21)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.17...v2.0.18)
+
+**Fixed bugs:**
+
+* REST Timestamp with additional fraction not accepted: #2674 (fixed via #2675)
+* Table already exists 500 instead of 409: #2679 (fixed via #2684)
+
+**Merged pull requests:**
+
+* Fix in tests related to Index definition retrieval (#2688)
+* Fix the issue on REST API primaryPath encoding (Quarkus Reactive REST) (#2658)
+
 ## [v2.0.17](https://github.com/stargate/stargate/tree/v2.0.17) (2023-07-11)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.16...v2.0.17)
