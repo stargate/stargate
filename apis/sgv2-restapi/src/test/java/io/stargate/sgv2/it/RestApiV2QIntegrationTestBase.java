@@ -195,7 +195,19 @@ public abstract class RestApiV2QIntegrationTestBase {
   protected String endpointPathForRowByPK(String ksName, String tableName, Object... primaryKeys) {
     StringBuilder sb = new StringBuilder(String.format("/v2/keyspaces/%s/%s", ksName, tableName));
     for (Object key : primaryKeys) {
+      // NOTE! Does NOT URL-encode the key -- doing so would lead to double-escaping. But
+      // also means this should NOT be used for keys that need escaping
       sb.append('/').append(key);
+    }
+    return sb.toString();
+  }
+
+  // Alternative method that will create template to use for passing segments of primary key
+  // that may require escaping (contain slashes, ampersands etc)
+  protected String endpointTemplateForRowByPK(String ksName, String tableName, int pkCount) {
+    StringBuilder sb = new StringBuilder(String.format("/v2/keyspaces/%s/%s", ksName, tableName));
+    for (int i = 0; i < pkCount; ++i) {
+      sb.append("/{pk").append(i).append('}');
     }
     return sb.toString();
   }

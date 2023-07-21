@@ -46,6 +46,11 @@ public class RestApiV2QRowAddIT extends RestApiV2QIntegrationTestBase {
     Map<?, ?> rowResponse = readJsonAs(body, Map.class);
     assertThat(rowResponse.get("id")).isEqualTo(rowIdentifier);
     assertThat(rowResponse).isEqualTo(row);
+
+    // And verify row was actually added
+    List<Map<String, Object>> data = findRowsAsList(testKeyspaceName(), tableName, rowIdentifier);
+    assertThat(data).hasSize(1);
+    assertThat(data.get(0).get("firstName")).isEqualTo("John");
   }
 
   // 12-Aug-2022, tatu: Bit odd test, ported over from "addRowWithCounter()"; apparently
@@ -90,6 +95,7 @@ public class RestApiV2QRowAddIT extends RestApiV2QIntegrationTestBase {
 
     // And verify
     List<Map<String, Object>> data = findRowsAsList(testKeyspaceName(), tableName, "alice");
+    assertThat(data).hasSize(1);
     assertThat(data.get(0).get("name")).isEqualTo("alice");
     assertThat(data.get(0).get("email"))
         .isEqualTo(Arrays.asList("foo@example.com", "bar@example.com"));
