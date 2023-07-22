@@ -1,11 +1,12 @@
+# Changelog
+
 ## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-ALPHA-3...HEAD)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-ALPHA-4...HEAD)
 
-**Merged pull requests:**
+## [v2.1.0-ALPHA-4](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-4) (2023-07-219)
 
-- Fix an issue with running ITs locally: should not use "latest" tag but "v2" [\#2689](https://github.com/stargate/stargate/pull/2689) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Fix in tests related to Index definition retrieval [\#2688](https://github.com/stargate/stargate/pull/2688) ([kathirsvn](https://github.com/kathirsvn))
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-ALPHA-3...v2.1.0-ALPHA-4)
 
 ## [v2.1.0-ALPHA-3](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-3) (2023-07-19)
 
