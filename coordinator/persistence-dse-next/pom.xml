@@ -13,7 +13,8 @@
   <name>Stargate - Coordinator - Persistence DSE Next</name>
   <properties>
     <!-- If you update this, make sure to keep `cassandra.bundled-driver.version` in sync -->
-    <cassandra.version>4.0.7-0acaae364c19</cassandra.version>
+    <!-- Latest as of 2023-07-25: 4.0.7-336cdd7405ee -->
+    <cassandra.version>4.0.7-336cdd7405ee</cassandra.version>
     <!--
       The driver used internally by cassandra-all for UDFs (must match the version declared in
       cassandra-all's POM).
