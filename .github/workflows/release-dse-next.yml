@@ -1,0 +1,40 @@
+# @author Ivan Senic
+name: Merge main/v1
+
+# runs on
+# * manual trigger
+on:
+  workflow_dispatch:
+
+jobs:
+
+  merge:
+    name: Merge branches
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Login to DockerHub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_TOKEN }}
+
+      # always checkout main, but fetch complete history
+      - uses: actions/checkout@v3
+        with:
+          ref: v21-deploy-dse-next
+          fetch-depth: 0
+
+      # only for DSE-next persistence so that ccm can use
+      - name: Download and build datastax/cassandra
+        if: ${{ matrix.backend == 'dse-next' }}
+        run: |
+          cd dse-next/
+          ./download_cassandra.sh
+
+      # only for DSE-next persistence so that ccm can use
+      - name: Download and build datastax/cassandra
+        if: ${{ matrix.backend == 'dse-next' }}
+        run: |
+          cd dse-next/
+          ./build_docker_image.sh -p
