@@ -27,14 +27,12 @@ jobs:
 
       # only for DSE-next persistence so that ccm can use
       - name: Download and build datastax/cassandra
-        if: ${{ matrix.backend == 'dse-next' }}
         run: |
           cd dse-next/
           ./download_cassandra.sh
 
       # only for DSE-next persistence so that ccm can use
       - name: Download and build datastax/cassandra
-        if: ${{ matrix.backend == 'dse-next' }}
         run: |
           cd dse-next/
           ./build_docker_image.sh -p
