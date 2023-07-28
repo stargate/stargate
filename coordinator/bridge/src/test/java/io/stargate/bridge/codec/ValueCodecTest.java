@@ -416,7 +416,7 @@ public class ValueCodecTest {
   }
 
   public static Stream<Arguments> vectorValues() {
-    Column.ColumnType vectorType = VectorType.of("float", 4);
+    Column.ColumnType vectorType = VectorType.of("org.apache.cassandra.db.marshal.FloatType", 4);
     return Stream.of(
         arguments(vectorType, Values.NULL),
         arguments(
@@ -425,7 +425,7 @@ public class ValueCodecTest {
   }
 
   public static Stream<Arguments> invalidVectorValues() {
-    Column.ColumnType vectorType = VectorType.of("float", 10);
+    Column.ColumnType vectorType = VectorType.of("org.apache.cassandra.db.marshal.FloatType", 10);
     return Stream.of(
         arguments(
             vectorType,

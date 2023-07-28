@@ -577,7 +577,9 @@ public class Conversion {
           .frozen(!udt.isMultiCell());
     } else if (abstractType.getClass().equals(VectorType.class)) {
       VectorType vt = (VectorType) abstractType;
-      return io.stargate.db.schema.VectorType.of(vt.elementType.getClass().getName(), vt.dimension);
+      // NOTE: elementType.toString() for simple types is same as elementType.getClass().getName()
+      // but should work correctly for complex types as well if and when we support them.
+      return io.stargate.db.schema.VectorType.of(vt.elementType.toString(), vt.dimension);
     }
 
     Column.Type type = TYPE_MAPPINGS.get(abstractType.getClass());
