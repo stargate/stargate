@@ -365,6 +365,7 @@
                     <ccm.version>4.0.10</ccm.version>
                     <stargate.test.nodes>1</stargate.test.nodes>
                     <stargate.test.persistence.module>persistence-cassandra-4.0</stargate.test.persistence.module>
+                    <stargate.test.backend.vsearch>false</stargate.test.backend.vsearch>
                   </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>
                   <reportsDirectory>target/failsafe-reports/cassandra-4.0</reportsDirectory>
@@ -398,6 +399,7 @@
                     <ccm.version>6.8.36</ccm.version>
                     <stargate.test.persistence.module>persistence-dse-6.8</stargate.test.persistence.module>
                     <stargate.test.nodes>1</stargate.test.nodes>
+                    <stargate.test.backend.vsearch>false</stargate.test.backend.vsearch>
                   </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>
                   <reportsDirectory>target/failsafe-reports/dse-6.8</reportsDirectory>
@@ -433,6 +435,7 @@
                     <ccm.directory>${project.basedir}/../../dse-next/cassandra</ccm.directory>
                     <stargate.test.persistence.module>persistence-dse-next</stargate.test.persistence.module>
                     <stargate.test.nodes>1</stargate.test.nodes>
+                    <stargate.test.backend.vsearch>true</stargate.test.backend.vsearch>
                   </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>
                   <reportsDirectory>target/failsafe-reports/dse-next</reportsDirectory>
