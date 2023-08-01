@@ -1,5 +1,7 @@
 package io.stargate.it.cql;
 
+import static org.junit.jupiter.api.Assumptions.assumeTrue;
+
 import com.datastax.oss.driver.api.core.CqlSession;
 import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
@@ -21,6 +23,10 @@ public class VectorTypeTest extends BaseIntegrationTest {
   @Test
   @DisplayName("Should be able to create a table with Vector column")
   public void createTableInsertAndFetch(CqlSession session) {
+    assumeTrue(
+        backend.supportsVSearch(),
+        "Test disabled if backend does not support Vector Search (vsearch)");
+
     session.execute(DROP_VECTOR_TABLE);
     session.execute(CREATE_VECTOR_TABLE);
   }
