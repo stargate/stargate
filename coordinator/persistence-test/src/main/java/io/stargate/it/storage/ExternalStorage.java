@@ -192,6 +192,11 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
     public int errorsDetected() {
       return errorsInTest.get();
     }
+
+    @Override
+    public boolean supportsVSearch() {
+      return Boolean.getBoolean("stargate.test.backend.vsearch");
+    }
   }
 
   public static class CcmCluster extends Cluster {
