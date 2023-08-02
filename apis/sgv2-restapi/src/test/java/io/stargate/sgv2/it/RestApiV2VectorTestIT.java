@@ -79,8 +79,13 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
     // And then find the table itself
     final Sgv2Table table = findTable(keyspace, tableName);
     assertThat(table.name()).isEqualTo(tableName);
-    // Alas, returned column order unpredictable, so:
-    assertThat(table.columnDefinitions()).hasSameElementsAs(columnDefs);
+
+    assertThat(table.columnDefinitions()).hasSize(2);
+    assertThat(table.columnDefinitions()).contains(new Sgv2ColumnDefinition("id", "int", false));
+    // 02-Aug-2023, tatu: For now Vector type is "custom" type (as it's not defined with
+    //    specific type code in CQL spec as of v5) so need check separately
+    assertThat(table.columnDefinitions())
+        .contains(new Sgv2ColumnDefinition("embedding", "custom", false));
 
     // Plus then SAI for vector field too
     // !!! TODO
