@@ -425,15 +425,18 @@ public class ValueCodecTest {
   }
 
   public static Stream<Arguments> invalidVectorValues() {
-    Column.ColumnType vectorType = VectorType.of("org.apache.cassandra.db.marshal.FloatType", 10);
+    Column.ColumnType vectorType = VectorType.of("org.apache.cassandra.db.marshal.FloatType", 4);
     return Stream.of(
         arguments(
             vectorType,
-            Values.of(Values.of("1"), Values.NULL),
+            Values.of(Values.of("1"), Values.NULL, Values.NULL, Values.NULL),
             "Expected collection of float type"),
         arguments(vectorType, Values.of(""), "Expected collection of float type"),
         arguments(vectorType, Values.UNSET, "Expected collection of float type"),
-        arguments(vectorType, Values.of(Values.NULL), "Expected collection of float type"),
+        arguments(
+            vectorType,
+            Values.of(Values.NULL, Values.NULL, Values.NULL, Values.NULL),
+            "Expected collection of float type"),
         arguments(
             vectorType,
             Values.of(Values.of(1.0f), Values.of(1.1f), Values.of(1.2f)),
