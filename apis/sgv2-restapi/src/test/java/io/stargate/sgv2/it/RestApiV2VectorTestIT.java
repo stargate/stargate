@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assumptions.assumeThat;
 
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
+import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
 import io.stargate.sgv2.common.IntegrationTestUtils;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
@@ -88,6 +89,12 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
         .contains(new Sgv2ColumnDefinition("embedding", "custom", false));
 
     // Plus then SAI for vector field too
-    // !!! TODO
+    createTestIndex(
+            testKeyspaceName(),
+            tableName,
+            "embedding",
+            "embedding_idx",
+            false,
+            null);
   }
 }
