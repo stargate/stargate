@@ -38,10 +38,8 @@ public class RestApiV2QIndexSASI_IT extends RestApiV2QIntegrationTestBase {
 
   @Test
   public void indexCreateCustomSASI() {
-    boolean isC4 = IntegrationTestUtils.isCassandra40();
-    LOG.info("indexCreateCustomSASI(): is backend Cassandra 4.0? {}", isC4);
-    assumeThat(!isC4)
-        .as("Disabled because it is currently not possible to enable SASI indexes on C*4.0 backend")
+    assumeThat(IntegrationTestUtils.supportsSASI())
+        .as("Disabled because SASI not enabled by default on Cassandra backend")
         .isTrue();
 
     final String tableName = testTableName();

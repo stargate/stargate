@@ -86,6 +86,11 @@ public abstract class AbstractCassandraPersistence<Config, K, T, C, U, I, V>
   }
 
   @Override
+  public boolean supportsVectorSearch() {
+    return true;
+  }
+
+  @Override
   public final Schema schema() {
     if (schema == null) {
       throw new IllegalStateException(

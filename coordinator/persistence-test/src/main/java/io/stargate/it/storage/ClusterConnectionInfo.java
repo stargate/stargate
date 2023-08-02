@@ -48,4 +48,6 @@ public interface ClusterConnectionInfo {
     // OSS C* does not support SAI (yet?)
     return isDse();
   }
+
+  boolean supportsVSearch();
 }

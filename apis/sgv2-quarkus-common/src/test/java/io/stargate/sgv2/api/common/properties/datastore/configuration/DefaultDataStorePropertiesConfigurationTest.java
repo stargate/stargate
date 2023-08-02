@@ -33,5 +33,6 @@ class DefaultDataStorePropertiesConfigurationTest {
     assertThat(dataStoreProperties.secondaryIndexesEnabled()).isTrue();
     assertThat(dataStoreProperties.saiEnabled()).isFalse();
     assertThat(dataStoreProperties.loggedBatchesEnabled()).isTrue();
+    assertThat(dataStoreProperties.vectorSearchEnabled()).isTrue();
   }
 }

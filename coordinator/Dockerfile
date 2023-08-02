@@ -37,5 +37,8 @@ ENTRYPOINT ["./starctl"]
 FROM base as coordinator-4_0
 COPY stargate-lib/persistence-api*.jar stargate-lib/persistence-cassandra-4.0*.jar stargate-lib/
 
+FROM base as coordinator-dse-next
+COPY stargate-lib/persistence-api*.jar stargate-lib/persistence-dse-next*.jar stargate-lib/
+
 FROM base as coordinator-dse-68
 COPY stargate-lib/persistence-api*.jar stargate-lib/persistence-dse*.jar stargate-lib/

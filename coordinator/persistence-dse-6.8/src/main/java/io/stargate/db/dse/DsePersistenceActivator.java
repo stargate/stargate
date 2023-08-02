@@ -175,7 +175,7 @@ public class DsePersistenceActivator extends BaseActivator {
   protected ServiceAndProperties createService() {
     dseDB = new DsePersistence();
     // TODO copy metrics if this gets invoked more than once?
-    CassandraMetricsRegistry.actualRegistry = metrics.get().getRegistry("persistence-dse-68");
+    CassandraMetricsRegistry.actualRegistry = metrics.get().getRegistry("persistence-dse-6.8");
     @SuppressWarnings("JdkObsolete")
     Hashtable<String, String> props = new Hashtable<>();
     props.put("Identifier", "DsePersistence");

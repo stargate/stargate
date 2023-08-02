@@ -1,4 +1,34 @@
-# Changelog
+## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-ALPHA-4...HEAD)
+
+## [v2.1.0-ALPHA-4](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-4) (2023-07-219)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-ALPHA-3...v2.1.0-ALPHA-4)
+
+## [v2.1.0-ALPHA-3](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-3) (2023-07-19)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-ALPHA-2...v2.1.0-ALPHA-3)
+
+**Closed issues:**
+
+- REST Get All Indexes Test fix [\#2687](https://github.com/stargate/stargate/issues/2687)
+- Shade "cassandra-all" dependency by `cql` module [\#2680](https://github.com/stargate/stargate/issues/2680)
+- Table already exists 500 instead of 409 [\#2679](https://github.com/stargate/stargate/issues/2679)
+- REST Timestamp with additional fraction not accepted [\#2674](https://github.com/stargate/stargate/issues/2674)
+- Remove SERVER\_VERSION and PRODUCT\_TYPE assertions [\#2599](https://github.com/stargate/stargate/issues/2599)
+- Document exposed system properties [\#1365](https://github.com/stargate/stargate/issues/1365)
+- Remove `cassandra-all` dependency from CQL transport [\#660](https://github.com/stargate/stargate/issues/660)
+
+**Merged pull requests:**
+
+- Vector search feature support flag [\#2686](https://github.com/stargate/stargate/pull/2686) ([maheshrajamani](https://github.com/maheshrajamani))
+- Fix \#2679: handle dup table creation via REST [\#2684](https://github.com/stargate/stargate/pull/2684) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix 2680: shade cassandra-all 4.0 dep by cql module [\#2683](https://github.com/stargate/stargate/pull/2683) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Vector search integration to Stargate bridge  [\#2678](https://github.com/stargate/stargate/pull/2678) ([maheshrajamani](https://github.com/maheshrajamani))
+- Reduce Guava usage/dependencies to help against transitive Guava dep conflicts [\#2677](https://github.com/stargate/stargate/pull/2677) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fixes \#2674: support microsecond fractions for ISO-8601 date/time for REST API [\#2675](https://github.com/stargate/stargate/pull/2675) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.1 release [\#2673](https://github.com/stargate/stargate/pull/2673) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v2.1.0-ALPHA-2](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-2) (2023-07-12)
 

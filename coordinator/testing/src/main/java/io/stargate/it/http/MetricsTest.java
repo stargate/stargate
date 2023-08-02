@@ -37,7 +37,6 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Order;
@@ -157,13 +156,8 @@ public class MetricsTest extends BaseIntegrationTest {
 
   @Test
   public void dropwizardMetricsPersistence() throws IOException {
-    String expectedPrefix;
-    if (backend.isDse()) {
-      expectedPrefix =
-          "persistence_dse_" + StringUtils.remove(backend.clusterVersion(), '.').substring(0, 2);
-    } else {
-      expectedPrefix = "persistence_cassandra_" + backend.clusterVersion().replace('.', '_');
-    }
+    String expectedPrefix =
+        System.getProperty("stargate.test.persistence.module").replace('.', '_').replace('-', '_');
 
     String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
 

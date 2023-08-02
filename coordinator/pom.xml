@@ -5,7 +5,7 @@
   <groupId>io.stargate</groupId>
   <artifactId>stargate</artifactId>
   <name>Stargate - Coordinator Parent pom</name>
-  <version>2.1.0-ALPHA-3-SNAPSHOT</version>
+  <version>2.1.0-ALPHA-6-SNAPSHOT</version>
   <packaging>pom</packaging>
   <!-- Description -->
   <description>Stargate - An open source data API gateway</description>
@@ -55,7 +55,7 @@
     <!-- Release -->
     <project.scm.id>github</project.scm.id>
     <doclint>none</doclint>
-    <driver.version>4.16.0</driver.version>
+    <driver.version>4.17.0</driver.version>
     <!-- First DropWizard version and things it directly depends on that make sense to sync -->
     <dropwizard.version>2.1.6</dropwizard.version>
     <!--
@@ -184,6 +184,68 @@
       </build>
     </profile>
     <profile>
+      <id>default</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <modules>
+        <module>core</module>
+        <module>stargate-starter</module>
+        <module>persistence-api</module>
+        <module>persistence-common</module>
+        <module>persistence-test</module>
+        <module>persistence-cassandra-4.0</module>
+        <module>bridge</module>
+        <module>cql</module>
+        <module>auth-api</module>
+        <module>authnz</module>
+        <module>auth-table-based-service</module>
+        <module>auth-jwt-service</module>
+        <module>health-checker</module>
+        <module>config-store-api</module>
+        <module>config-store-yaml</module>
+        <module>grpc-proto</module>
+        <module>bridge-proto</module>
+        <module>grpc</module>
+        <module>metrics-jersey</module>
+        <module>grpc-examples</module>
+        <!-- testing last -->
+        <module>testing-services</module>
+        <module>testing</module>
+      </modules>
+    </profile>
+    <profile>
+      <id>dse-next</id>
+      <activation>
+        <activeByDefault>true</activeByDefault>
+      </activation>
+      <modules>
+        <module>core</module>
+        <module>stargate-starter</module>
+        <module>persistence-api</module>
+        <module>persistence-common</module>
+        <module>persistence-test</module>
+        <module>persistence-dse-next</module>
+        <module>bridge</module>
+        <module>cql</module>
+        <module>auth-api</module>
+        <module>authnz</module>
+        <module>auth-table-based-service</module>
+        <module>auth-jwt-service</module>
+        <module>health-checker</module>
+        <module>config-store-api</module>
+        <module>config-store-yaml</module>
+        <module>grpc-proto</module>
+        <module>bridge-proto</module>
+        <module>grpc</module>
+        <module>metrics-jersey</module>
+        <module>grpc-examples</module>
+        <!-- testing last -->
+        <module>testing-services</module>
+        <module>testing</module>
+      </modules>
+    </profile>
+    <profile>
       <id>dse</id>
       <activation>
         <activeByDefault>false</activeByDefault>
@@ -217,7 +279,7 @@
       </modules>
     </profile>
     <profile>
-      <id>default</id>
+      <id>all</id>
       <activation>
         <activeByDefault>true</activeByDefault>
       </activation>
@@ -229,6 +291,8 @@
         <module>persistence-test</module>
         <module>persistence-cassandra-4.0</module>
         <module>persistence-cassandra-4.1</module>
+        <module>persistence-dse-next</module>
+        <module>persistence-dse-6.8</module>
         <module>bridge</module>
         <module>cql</module>
         <module>auth-api</module>
@@ -307,6 +371,7 @@
           <excludes>
             <exclude>.idea/**</exclude>
             <exclude>**/target/**</exclude>
+            <exclude>**/dependency-reduced-pom.xml</exclude>
           </excludes>
         </configuration>
       </plugin>

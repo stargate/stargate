@@ -145,6 +145,10 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
       return frozen(true);
     }
 
+    default int size() {
+      throw new UnsupportedOperationException("ColumnType.size() not supported by " + rawType());
+    }
+
     default ColumnType of(ColumnType... types) {
       throw new UnsupportedOperationException("ColumnType.of() not supported by " + rawType());
     }
