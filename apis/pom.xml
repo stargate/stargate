@@ -250,7 +250,7 @@
         <stargate.int-test.cluster.name>cass-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>
         <stargate.int-test.cluster.persistence>persistence-cassandra-4.0</stargate.int-test.cluster.persistence>
         <stargate.int-test.cluster.dse>false</stargate.int-test.cluster.dse>
-	<stargate.int-test.feature.vsearch>false</stargate.int-test.feature.vsearch>
+        <stargate.int-test.feature.vsearch>false</stargate.int-test.feature.vsearch>
       </properties>
     </profile>
     <profile>
@@ -263,7 +263,7 @@
         <stargate.int-test.cluster.name>cass-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>
         <stargate.int-test.cluster.persistence>persistence-dse-next</stargate.int-test.cluster.persistence>
         <stargate.int-test.cluster.dse>false</stargate.int-test.cluster.dse>
-	<stargate.int-test.feature.vsearch>true</stargate.int-test.feature.vsearch>
+        <stargate.int-test.feature.vsearch>true</stargate.int-test.feature.vsearch>
       </properties>
     </profile>
     <profile>
@@ -276,7 +276,7 @@
         <stargate.int-test.cluster.name>dse-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>
         <stargate.int-test.cluster.persistence>persistence-dse-6.8</stargate.int-test.cluster.persistence>
         <stargate.int-test.cluster.dse>true</stargate.int-test.cluster.dse>
-	<stargate.int-test.feature.vsearch>false</stargate.int-test.feature.vsearch>
+        <stargate.int-test.feature.vsearch>false</stargate.int-test.feature.vsearch>
       </properties>
     </profile>
     <!-- The deployment profile must be used only with the sgv2-quarkus-common   -->
