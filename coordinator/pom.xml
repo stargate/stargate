@@ -5,7 +5,7 @@
   <groupId>io.stargate</groupId>
   <artifactId>stargate</artifactId>
   <name>Stargate - Coordinator Parent pom</name>
-  <version>2.1.0-ALPHA-2-SNAPSHOT</version>
+  <version>2.1.0-ALPHA-3-SNAPSHOT</version>
   <packaging>pom</packaging>
   <!-- Description -->
   <description>Stargate - An open source data API gateway</description>
@@ -55,7 +55,7 @@
     <!-- Release -->
     <project.scm.id>github</project.scm.id>
     <doclint>none</doclint>
-    <driver.version>4.15.0</driver.version>
+    <driver.version>4.16.0</driver.version>
     <!-- First DropWizard version and things it directly depends on that make sense to sync -->
     <dropwizard.version>2.1.6</dropwizard.version>
     <!--
