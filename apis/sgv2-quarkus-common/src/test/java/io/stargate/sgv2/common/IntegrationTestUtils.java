@@ -15,6 +15,7 @@ public final class IntegrationTestUtils {
   public static final String CASSANDRA_USERNAME_PROP = "stargate.int-test.cassandra.username";
   public static final String CASSANDRA_PASSWORD_PROP = "stargate.int-test.cassandra.password";
   public static final String PERSISTENCE_MODULE_PROP = "stargate.int-test.cluster.persistence";
+  public static final String PERSISTENCE_SUPPORTS_VSEARCH = "stargate.int-test.feature.vsearch";
 
   private IntegrationTestUtils() {}
 
@@ -93,6 +94,10 @@ public final class IntegrationTestUtils {
    */
   public static boolean supportsMaterializedViews() {
     return isDSE();
+  }
+
+  public static boolean supportsVSearch() {
+    return Boolean.parseBoolean(System.getProperty(PERSISTENCE_SUPPORTS_VSEARCH, "false"));
   }
 
   /** @return Returns the port where the application to test runs. */
