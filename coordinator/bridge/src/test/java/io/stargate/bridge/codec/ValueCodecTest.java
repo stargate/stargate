@@ -433,7 +433,20 @@ public class ValueCodecTest {
             "Expected collection of float type"),
         arguments(vectorType, Values.of(""), "Expected collection of float type"),
         arguments(vectorType, Values.UNSET, "Expected collection of float type"),
-        arguments(vectorType, Values.of(Values.NULL), "Expected collection of float type"));
+        arguments(vectorType, Values.of(Values.NULL), "Expected collection of float type"),
+        arguments(
+            vectorType,
+            Values.of(Values.of(1.0f), Values.of(1.1f), Values.of(1.2f)),
+            "Expected vector of 4 size, but received 3"),
+        arguments(
+            vectorType,
+            Values.of(
+                Values.of(1.0f),
+                Values.of(1.1f),
+                Values.of(1.2f),
+                Values.of(1.3f),
+                Values.of(1.4f)),
+            "Expected vector of 4 size, but received 5"));
   }
 
   public static Stream<Arguments> setValues() {
