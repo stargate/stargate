@@ -167,7 +167,7 @@ public class CqlStrings {
       if (BUILT_IN_TYPES.contains(dataTypeName) || Character.isDigit(firstChar)) {
         return dataTypeName;
       }
-      return BUILT_IN_TYPES.contains(dataTypeName) ? dataTypeName : quote(dataTypeName, '"');
+      return quote(dataTypeName, '"');
     } else {
       String baseTypeName = dataTypeName.substring(0, paramsIdx).trim();
       if (dataTypeName.charAt(lastCharIdx) != '>') {
