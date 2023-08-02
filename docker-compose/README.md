@@ -3,6 +3,7 @@ This directory provides Docker compose scripts with sample configurations for th
 
 - [Cassandra 4.0](cassandra-4.0)
 - [DataStax Enterprise 6.8](dse-6.8)
+- [DataStax Enterprise (Next)](dse-next)
 
 Once you have used one of the above options, give the APIs a try using the Swagger or Playground pages listed below, or use one of the Postman collections from the [DataStax Stargate workspace](https://www.postman.com/datastax/workspace/stargate-cassandra/overview). See the Stargate [documentation](https://stargate.io/docs/latest/develop/tooling.html) for more information.
 
@@ -42,7 +43,7 @@ The fastest way to build your own local images involves the following steps:
   * Make sure you are in the repository root directory and have `JAVA_HOME` set to point to a JDK 1.8 installation
   * Do a local build of jar files for coordinator:
     ```
-    ./mvnw clean install -DskipTests -P dse
+    ./mvnw clean install -DskipTests -P all
     ```
   * Generate docker images (image tag will default to the Stargate version specified in the `pom.xml`):
     ```

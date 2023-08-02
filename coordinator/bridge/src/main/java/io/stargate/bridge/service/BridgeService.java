@@ -73,6 +73,7 @@ public class BridgeService extends StargateBridgeGrpc.StargateBridgeImplBase {
             .setSecondaryIndexes(persistence.supportsSecondaryIndex())
             .setSai(persistence.supportsSAI())
             .setLoggedBatches(persistence.supportsLoggedBatches())
+            .setVectorSearch(persistence.supportsVectorSearch())
             .build();
   }
 

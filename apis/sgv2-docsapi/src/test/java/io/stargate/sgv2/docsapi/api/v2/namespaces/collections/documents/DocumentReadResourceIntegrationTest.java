@@ -2631,7 +2631,12 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
           .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .when()
-          .get(BASE_PATH + "/{document-id}/a%5C.b", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
+          .get(
+              BASE_PATH + "/{document-id}/{leaf}",
+              DEFAULT_NAMESPACE,
+              DEFAULT_COLLECTION,
+              id,
+              "a\\.b")
           .then()
           .statusCode(200)
           .body(jsonEquals("somedata"));
@@ -2640,7 +2645,12 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
           .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .when()
-          .get(BASE_PATH + "/{document-id}/some%5C,data", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
+          .get(
+              BASE_PATH + "/{document-id}/{leaf}",
+              DEFAULT_NAMESPACE,
+              DEFAULT_COLLECTION,
+              id,
+              "some\\,data")
           .then()
           .statusCode(200)
           .body(jsonEquals("something"));
@@ -2649,7 +2659,8 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
           .header(HttpConstants.AUTHENTICATION_TOKEN_HEADER_NAME, getAuthToken())
           .queryParam("raw", true)
           .when()
-          .get(BASE_PATH + "/{document-id}/%5C*", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id)
+          .get(
+              BASE_PATH + "/{document-id}/{leaf}", DEFAULT_NAMESPACE, DEFAULT_COLLECTION, id, "\\*")
           .then()
           .statusCode(200)
           .body(jsonEquals("star"));

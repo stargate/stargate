@@ -95,8 +95,13 @@ jobs:
                 <id>artifactory-releases</id>
                 <username>${ARTIFACTORY_USERNAME}</username>
                 <password>${ARTIFACTORY_PASSWORD}</password>
-             </server>
-           </servers>
+              </server>
+              <server>
+                <id>artifactory-dse</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+            </servers>
           </settings>
           EOF
 
@@ -104,7 +109,7 @@ jobs:
         run: |
           cd coordinator/
           ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
-          ./mvnw -B -ntp -q -ff -P dse clean package -DskipTests
+          ./mvnw -B -ntp -q -ff -P all clean package -DskipTests
 
       - name: Zip-up `stargate-lib`
         run: |
@@ -160,8 +165,13 @@ jobs:
                 <id>artifactory-releases</id>
                 <username>${ARTIFACTORY_USERNAME}</username>
                 <password>${ARTIFACTORY_PASSWORD}</password>
-             </server>
-           </servers>
+              </server>
+              <server>
+                <id>artifactory-dse</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+            </servers>
           </settings>
           EOF
 
@@ -238,8 +248,13 @@ jobs:
                 <id>artifactory-releases</id>
                 <username>${ARTIFACTORY_USERNAME}</username>
                 <password>${ARTIFACTORY_PASSWORD}</password>
-             </server>
-           </servers>
+              </server>
+              <server>
+                <id>artifactory-dse</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+            </servers>
           </settings>
           EOF
 
@@ -256,7 +271,7 @@ jobs:
         run: |
           cd coordinator/
           JAVA_HOME=$JAVA_11 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
-          JAVA_HOME=$JAVA_11 ./mvnw -B -ntp -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,dse
+          JAVA_HOME=$JAVA_11 ./mvnw -B -ntp -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,all
 
       # explicitly only -pl sgv2-quarkus-common
       - name: Publish Quarkus Common JAR
@@ -306,8 +321,13 @@ jobs:
                 <id>artifactory-releases</id>
                 <username>${ARTIFACTORY_USERNAME}</username>
                 <password>${ARTIFACTORY_PASSWORD}</password>
-             </server>
-           </servers>
+              </server>
+              <server>
+                <id>artifactory-dse</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+            </servers>
           </settings>
           EOF
 
@@ -315,7 +335,7 @@ jobs:
         run: |
           cd coordinator/
           JAVA_HOME=$JAVA_11 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
-          JAVA_HOME=$JAVA_11 ./mvnw -B -ntp clean install -P dse -DskipTests 
+          JAVA_HOME=$JAVA_11 ./mvnw -B -ntp clean install -P all -DskipTests 
 
       # only set version here
       - name: Install APIs
@@ -512,8 +532,13 @@ jobs:
                 <id>artifactory-releases</id>
                 <username>${ARTIFACTORY_USERNAME}</username>
                 <password>${ARTIFACTORY_PASSWORD}</password>
-             </server>
-           </servers>
+              </server>
+              <server>
+                <id>artifactory-dse</id>
+                <username>${ARTIFACTORY_USERNAME}</username>
+                <password>${ARTIFACTORY_PASSWORD}</password>
+              </server>
+            </servers>
           </settings>
           EOF
 
@@ -526,8 +551,8 @@ jobs:
       - name: Update version numbers (coordinator)
         run: |
           cd coordinator/
-          ./mvnw -B -ntp release:update-versions -DautoVersionSubmodules=true versions:commit -Pdse
-          ./mvnw -B -ntp xml-format:xml-format fmt:format -Pdse
+          ./mvnw -B -ntp release:update-versions -DautoVersionSubmodules=true versions:commit -P all
+          ./mvnw -B -ntp xml-format:xml-format fmt:format -P all
 
       - name: Update version numbers (apis)
         run: |

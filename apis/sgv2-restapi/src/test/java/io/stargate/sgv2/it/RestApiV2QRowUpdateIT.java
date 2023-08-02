@@ -28,14 +28,13 @@ public class RestApiV2QRowUpdateIT extends RestApiV2QIntegrationTestBase {
     createSimpleTestTable(testKeyspaceName(), tableName);
 
     final String rowIdentifier = UUID.randomUUID().toString();
-    Map<String, String> row = new HashMap<>();
-    row.put("id", rowIdentifier);
-    row.put("firstName", "John");
+    Map<String, String> row = Map.of("id", rowIdentifier, "firstName", "John");
     insertRow(testKeyspaceName(), tableName, row);
 
-    Map<String, String> rowUpdate = new HashMap<>();
-    rowUpdate.put("firstName", "Robert");
-    rowUpdate.put("lastName", "Plant");
+    Map<String, String> rowUpdate =
+        Map.of(
+            "firstName", "Robert",
+            "lastName", "Plant");
     String updateResponse =
         updateRowReturnResponse(
             endpointPathForRowByPK(testKeyspaceName(), tableName, rowIdentifier), false, rowUpdate);

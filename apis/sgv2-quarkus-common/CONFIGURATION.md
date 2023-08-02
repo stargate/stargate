@@ -23,6 +23,7 @@
 | `stargate.data-store.secondary-indexes-enabled` | `boolean` | `true`                              | If the data store supports secondary indexes.                                                                                                          |
 | `stargate.data-store.sai-enabled`               | `boolean` | `false`                             | If the data store supports SAI (storage-attached indexes).                                                                                             |
 | `stargate.data-store.logged-batches-enabled`    | `boolean` | `true`                              | If the data store supports logged batches.                                                                                                             |
+| `stargate.data-store.vector-search-enabled`     | `boolean` | `true`                              | If the data store supports vector search.                                                                                                              |
 
 ### gRPC configuration
 *Configuration for the gRPC calls to the Bridge, defined by [GrpcConfig.java](src/main/java/io/stargate/sgv2/api/common/config/GrpcConfig.java).*

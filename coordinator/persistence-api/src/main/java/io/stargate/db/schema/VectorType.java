@@ -31,6 +31,11 @@ public class VectorType extends Column.DelegatingColumnType {
   }
 
   @Override
+  public int size() {
+    return dimensions;
+  }
+
+  @Override
   public int schemaHashCode() {
     return delegate.schemaHashCode() ^ SchemaHashable.hashCode(elementTypeName) + dimensions;
   }

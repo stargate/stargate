@@ -48,7 +48,8 @@ public class DataStorePropertiesConfiguration {
         new DataStorePropertiesImpl(
             dataStoreConfig.secondaryIndexesEnabled(),
             dataStoreConfig.saiEnabled(),
-            dataStoreConfig.loggedBatchesEnabled());
+            dataStoreConfig.loggedBatchesEnabled(),
+            dataStoreConfig.vectorSearchEnabled());
 
     // if we should not read from the bridge, go for defaults
     if (dataStoreConfig.ignoreBridge()) {
@@ -69,7 +70,8 @@ public class DataStorePropertiesConfiguration {
           new DataStorePropertiesImpl(
               supportedFeatures.getSecondaryIndexes(),
               supportedFeatures.getSai(),
-              supportedFeatures.getLoggedBatches());
+              supportedFeatures.getLoggedBatches(),
+              supportedFeatures.getVectorSearch());
       LOG.info("Successfully fetched data store metadata ({} retries)", callCount.get() - 1);
       return props;
     } catch (Exception e) {

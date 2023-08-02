@@ -69,7 +69,6 @@ services:
     environment:
       - JAVA_OPTS="-Xmx1536M"
       - CLUSTER_NAME=dse-${DSETAG}-cluster
-      - CLUSTER_VERSION=6.8
       - DSE=1
       - SEED=dse-1
       - RACK_NAME=rack1

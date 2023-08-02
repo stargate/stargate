@@ -40,11 +40,9 @@ public class RestApiV2QMaterializedViewIT extends RestApiV2QCqlEnabledTestBase {
 
   @Test
   public void getRowsFromMV() throws Exception {
-    boolean isC4 = IntegrationTestUtils.isCassandra40();
-    LOG.info("getRowsFromMV(): is backend Cassandra 4.0? {}", isC4);
-    assumeThat(isC4)
-        .as("Disabled because MVs are not enabled by default on a Cassandra 4 backend")
-        .isFalse();
+    assumeThat(IntegrationTestUtils.supportsMaterializedViews())
+        .as("Disabled because MVs are not enabled by default on Cassandra backend")
+        .isTrue();
 
     final String keyspaceName = testKeyspaceName();
     final long testTimestamp = System.currentTimeMillis();

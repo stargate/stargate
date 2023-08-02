@@ -399,6 +399,11 @@ public class DsePersistence
   }
 
   @Override
+  public boolean supportsVectorSearch() {
+    return false;
+  }
+
+  @Override
   public Map<String, List<String>> cqlSupportedOptions() {
     List<String> pageUnits =
         Arrays.stream(PageSize.PageUnit.values()).map(Enum::toString).collect(Collectors.toList());
