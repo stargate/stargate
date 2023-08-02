@@ -37,6 +37,13 @@ public class VectorCodec extends CompositeCodec {
     Collection collection = value.getCollection();
     int elementCount = collection.getElementsCount();
 
+    int vectorSize = type.size();
+
+    if (elementCount != vectorSize) {
+      throw new IllegalArgumentException(
+          String.format("Expected vector of %d size, but received %d", vectorSize, elementCount));
+    }
+
     ByteBuffer[] encodedElements = new ByteBuffer[elementCount];
     int toAllocate = 0;
     for (int i = 0; i < elementCount; ++i) {
