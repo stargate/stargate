@@ -7,9 +7,11 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.stargate.sgv2.common.IntegrationTestUtils;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
+import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
 import io.stargate.sgv2.restapi.service.models.Sgv2Table;
+import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
 import java.util.Arrays;
-import org.junit.jupiter.api.BeforeAll;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
@@ -19,7 +21,7 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
     super("vec_ks_", "vec_t_", KeyspaceCreation.PER_CLASS);
   }
 
-  @BeforeAll
+  // @BeforeAll
   public static void validateRunningOnVSearchEnabled() {
     assumeThat(IntegrationTestUtils.supportsVSearch())
         .as("Test disabled if backend does not support Vector Search (vsearch)")
@@ -34,18 +36,9 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
 
   @Test
   public void tableCreateWithVectorIndex() {
+    validateRunningOnVSearchEnabled();
     final String tableName = testTableName();
-    createTestTable(
-        testKeyspaceName(),
-        tableName,
-        Arrays.asList("id int", "embedding vector<float,5>"),
-        Arrays.asList("id"),
-        Arrays.asList());
-
-    final Sgv2Table table = findTable(testKeyspaceName(), tableName);
-
-    assertThat(table.keyspace()).isEqualTo(testKeyspaceName());
-    assertThat(table.name()).isEqualTo(tableName);
+    createVectorTable(testKeyspaceName(), tableName);
   }
 
   /*
@@ -65,4 +58,31 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
   // Tests: Delete
   /////////////////////////////////////////////////////////////////////////
    */
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Helper methods
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  private void createVectorTable(String keyspace, String tableName) {
+    final List<Sgv2ColumnDefinition> columnDefs =
+        Arrays.asList(
+            new Sgv2ColumnDefinition("id", "int", false),
+            new Sgv2ColumnDefinition("embedding", "vector<float,5>", false));
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey(Arrays.asList("id"), null);
+    final Sgv2TableAddRequest tableAdd =
+        new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);
+    NameResponse response = createTable(keyspace, tableAdd);
+    assertThat(response.name).isEqualTo(tableName);
+
+    // And then find the table itself
+    final Sgv2Table table = findTable(keyspace, tableName);
+    assertThat(table.name()).isEqualTo(tableName);
+    // Alas, returned column order unpredictable, so:
+    assertThat(table.columnDefinitions()).hasSameElementsAs(columnDefs);
+
+    // Plus then SAI for vector field too
+    // !!! TODO
+  }
 }
