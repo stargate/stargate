@@ -100,6 +100,8 @@ public class ToProtoValueCodecs {
         return tupleCodecFor(columnSpec, type.getTuple(), requestParams);
       case UDT:
         return udtCodecFor(columnSpec, type.getUdt(), requestParams);
+      case VECTOR:
+        return vectorCodecFor(columnSpec, type.getVector(), requestParams);
 
         // Invalid cases:
       case SPEC_NOT_SET:
@@ -220,6 +222,14 @@ public class ToProtoValueCodecs {
       fieldCodecs.put(fieldName, codecFor(columnSpec, entry.getValue(), requestParams));
     }
     return new UDTCodec(udtSpec.getName(), fieldCodecs);
+  }
+
+  protected ToProtoValueCodec vectorCodecFor(
+      QueryOuterClass.ColumnSpec columnSpec,
+      QueryOuterClass.TypeSpec.Vector vectorSpec,
+      RequestParams requestParams) {
+    return new VectorCodec(
+        codecFor(columnSpec, vectorSpec.getElement(), requestParams), vectorSpec.getSize());
   }
 
   protected static String columnDesc(QueryOuterClass.ColumnSpec columnSpec) {
@@ -962,6 +972,57 @@ public class ToProtoValueCodecs {
       Map<String, QueryOuterClass.Value> decoded = new LinkedHashMap<>();
       StringifiedValueUtil.decodeStringifiedUDT(value, fieldCodecs, udtName, decoded);
       return Values.udtOf(decoded);
+    }
+  }
+
+  protected static final class VectorCodec extends ToProtoCodecBase {
+    protected final ToProtoValueCodec elementCodec;
+
+    protected final int size;
+
+    public VectorCodec(ToProtoValueCodec elementCodec, int size) {
+      super("TypeSpec.Vector");
+      this.elementCodec = elementCodec;
+      this.size = size;
+    }
+
+    @Override
+    public ToProtoValueCodec getKeyCodec() {
+      return null;
+    }
+
+    @Override
+    public ToProtoValueCodec getValueCodec() {
+      return elementCodec;
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStrictlyTyped(Object javaValue) {
+      if (javaValue instanceof Collection<?>) {
+        final Collection<?> collectionValue = (Collection<?>) javaValue;
+        validateSize(collectionValue.size());
+        List<QueryOuterClass.Value> elements = new ArrayList<>();
+        for (Object value : collectionValue) {
+          elements.add(elementCodec.protoValueFromStrictlyTyped(value));
+        }
+        return Values.of(elements);
+      }
+      return cannotCoerce(javaValue);
+    }
+
+    @Override
+    public QueryOuterClass.Value protoValueFromStringified(String value) {
+      List<QueryOuterClass.Value> elements = new ArrayList<>();
+      StringifiedValueUtil.decodeStringifiedCollection(value, elementCodec, elements, '[', ']');
+      validateSize(elements.size());
+      return Values.of(elements);
+    }
+
+    private void validateSize(int actualSize) {
+      if (actualSize != size) {
+        throw new IllegalArgumentException(
+            String.format("Expected vector of size %d, got %d", size, actualSize));
+      }
     }
   }
 }
