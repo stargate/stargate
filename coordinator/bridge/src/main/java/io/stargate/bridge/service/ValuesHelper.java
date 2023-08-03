@@ -25,6 +25,7 @@ import io.grpc.Status;
 import io.grpc.StatusException;
 import io.stargate.bridge.codec.ValueCodec;
 import io.stargate.bridge.codec.ValueCodecs;
+import io.stargate.bridge.grpc.TypeSpecs;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.BatchParameters;
 import io.stargate.bridge.proto.QueryOuterClass.ColumnSpec;
@@ -324,6 +325,14 @@ public class ValuesHelper {
         }
         udtBuilder.setFrozen(columnType.isFrozen());
         builder.setUdt(udtBuilder.build());
+        break;
+      case Vector:
+        builder.setVector(
+            TypeSpec.Vector.newBuilder()
+                .setSize(columnType.size())
+                // No way to parameterize yet
+                .setElement(TypeSpecs.FLOAT)
+                .build());
         break;
       default:
         builder.setBasic(

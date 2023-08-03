@@ -12,7 +12,6 @@ import io.stargate.sgv2.restapi.service.models.Sgv2Table;
 import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
 import java.util.Arrays;
 import java.util.List;
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -84,7 +83,7 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
     final List<Sgv2ColumnDefinition> columnDefs =
         Arrays.asList(
             new Sgv2ColumnDefinition("id", "int", false),
-            new Sgv2ColumnDefinition("embedding", "vector<float,5>", false));
+            new Sgv2ColumnDefinition("embedding", "vector<float, 5>", false));
     Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey(Arrays.asList("id"), null);
     final Sgv2TableAddRequest tableAdd =
         new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);
@@ -96,11 +95,7 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
     assertThat(table.name()).isEqualTo(tableName);
 
     assertThat(table.columnDefinitions()).hasSize(2);
-    assertThat(table.columnDefinitions()).contains(new Sgv2ColumnDefinition("id", "int", false));
-    // 02-Aug-2023, tatu: For now Vector type is "custom" type (as it's not defined with
-    //    specific type code in CQL spec as of v5) so need check separately
-    assertThat(table.columnDefinitions())
-        .contains(new Sgv2ColumnDefinition("embedding", "custom", false));
+    assertThat(table.columnDefinitions()).containsExactlyElementsOf(columnDefs);
 
     // Plus then SAI for vector field too
     createTestIndex(testKeyspaceName(), tableName, "embedding", "embedding_idx", true, null);
