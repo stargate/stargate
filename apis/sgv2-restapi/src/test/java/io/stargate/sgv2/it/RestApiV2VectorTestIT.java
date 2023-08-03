@@ -12,6 +12,7 @@ import io.stargate.sgv2.restapi.service.models.Sgv2Table;
 import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
@@ -47,9 +48,14 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
   /////////////////////////////////////////////////////////////////////////
    */
 
+  // TODO: Add test trying to create vector column with non-float element
+  //   type like "vector<string, 5>
+
+  // TODO: Add test trying to create "too big" vector column
+
   /*
   /////////////////////////////////////////////////////////////////////////
-  // Tests: Create, GET Row(s)
+  // Tests: INSERT, GET Row(s), happy
   /////////////////////////////////////////////////////////////////////////
    */
 
@@ -65,13 +71,36 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
             map("id", 1, "embedding", Arrays.asList(0.0, 0.0, 0.25, 0.0, 0.0)),
             map("id", 2, "embedding", Arrays.asList(0.5, 0.5, 0.5, 0.5, 0.5)),
             map("id", 3, "embedding", Arrays.asList(1.0, 1.0, 1.0, 1.0, 0.875))));
+
+    // And then select one of vector values
+    List<Map<String, Object>> rows = findRowsAsList(testKeyspaceName(), tableName, 2);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.get(0).get("id")).isEqualTo(2);
+    // Challenge here is that Jackson decodes fp values as Double, need to account for that
+    assertThat(rows.get(0).get("embedding")).isEqualTo(Arrays.asList(0.5, 0.5, 0.5, 0.5, 0.5));
   }
+
+  // TODO: Add test inserting row with no vector value
+
+  // TODO: Add test inserting row with null vector value
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Tests: INSERT, GET Row(s), fail
+  /////////////////////////////////////////////////////////////////////////
+   */
+
+  // TODO: Add test inserting row with wrong number of elements
+
+  // TODO: Add test inserting row with wrong element value type (strings)
 
   /*
   /////////////////////////////////////////////////////////////////////////
   // Tests: Delete
   /////////////////////////////////////////////////////////////////////////
    */
+
+  // TODO: insert simple row with vector, delete it, check it's gone
 
   /*
   /////////////////////////////////////////////////////////////////////////
