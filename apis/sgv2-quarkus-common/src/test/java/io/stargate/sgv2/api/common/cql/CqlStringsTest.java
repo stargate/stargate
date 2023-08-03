@@ -28,6 +28,7 @@ public class CqlStringsTest {
     assertThat(CqlStrings.doubleQuoteUdts("list<map<int, text>>"))
         .isEqualTo("list<map<int, text>>");
     assertThat(CqlStrings.doubleQuoteUdts("frozen<set<bigint>>")).isEqualTo("frozen<set<bigint>>");
+    assertThat(CqlStrings.doubleQuoteUdts("vector<float, 5>")).isEqualTo("vector<float, 5>");
 
     assertThat(CqlStrings.doubleQuoteUdts("address")).isEqualTo("\"address\"");
     assertThat(CqlStrings.doubleQuoteUdts("Address")).isEqualTo("\"Address\"");
