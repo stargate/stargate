@@ -12,6 +12,7 @@ services:
       memlock: -1
     environment:
       - MAX_HEAP_SIZE=1536M
+      - HEAP_NEWSIZE=400M
       - CASSANDRA_CLUSTER_NAME=c4-${CASSTAG}-cluster
     healthcheck:
       test: [ "CMD", "cqlsh", "-u cassandra", "-p cassandra" ,"-e describe keyspaces" ]
@@ -33,28 +34,7 @@ services:
         condition: service_healthy
     environment:
       - MAX_HEAP_SIZE=1536M
-      - CASSANDRA_SEEDS=cassandra-1
-      - CASSANDRA_CLUSTER_NAME=c4-${CASSTAG}-cluster
-    healthcheck:
-      test: [ "CMD", "cqlsh", "-u cassandra", "-p cassandra" ,"-e describe keyspaces" ]
-      interval: 15s
-      timeout: 10s
-      retries: 10
-
-  cassandra-3:
-    image: cassandra:${CASSTAG}
-    networks:
-      - stargate
-    mem_limit: 2G
-    cap_add:
-      - IPC_LOCK
-    ulimits:
-      memlock: -1
-    depends_on:
-      cassandra-2:
-        condition: service_healthy
-    environment:
-      - MAX_HEAP_SIZE=1536M
+      - HEAP_NEWSIZE=400M
       - CASSANDRA_SEEDS=cassandra-1
       - CASSANDRA_CLUSTER_NAME=c4-${CASSTAG}-cluster
     healthcheck:
