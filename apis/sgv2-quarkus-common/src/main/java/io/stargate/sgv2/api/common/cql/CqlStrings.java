@@ -140,7 +140,8 @@ public class CqlStrings {
     }
 
     int lastCharIdx = dataTypeName.length() - 1;
-    if (dataTypeName.charAt(0) == '\'') {
+    final char firstChar = dataTypeName.charAt(0);
+    if (firstChar == '\'') {
       // The quote should be terminated, and we should have at least 1 character + the quotes,
       if (dataTypeName.charAt(lastCharIdx) != '\'' || dataTypeName.length() < 3) {
         throw new IllegalArgumentException(
@@ -151,7 +152,7 @@ public class CqlStrings {
 
     // Normally we shouldn't get double-quoted types in the input, but if we do handle them
     // correctly
-    if (dataTypeName.charAt(0) == '"') {
+    if (firstChar == '"') {
       if (dataTypeName.charAt(lastCharIdx) != '"' || dataTypeName.length() < 3) {
         throw new IllegalArgumentException(
             "Malformed type name (missing closing quote): " + dataTypeName);
@@ -161,7 +162,12 @@ public class CqlStrings {
 
     int paramsIdx = dataTypeName.indexOf('<');
     if (paramsIdx < 0) {
-      return BUILT_IN_TYPES.contains(dataTypeName) ? dataTypeName : quote(dataTypeName, '"');
+      // No quoting for known scalar types OR numbers (enough to check first char since
+      // no legal type name starts with a digit)
+      if (BUILT_IN_TYPES.contains(dataTypeName) || Character.isDigit(firstChar)) {
+        return dataTypeName;
+      }
+      return quote(dataTypeName, '"');
     } else {
       String baseTypeName = dataTypeName.substring(0, paramsIdx).trim();
       if (dataTypeName.charAt(lastCharIdx) != '>') {
