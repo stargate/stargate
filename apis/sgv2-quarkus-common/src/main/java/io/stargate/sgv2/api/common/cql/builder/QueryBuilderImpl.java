@@ -77,7 +77,7 @@ import java.util.stream.Stream;
       @SubExpr(
           name = "select",
           definedAs =
-              "select star? column* function* ((count|min|max|avg|sum|writeTimeColumn) as?)* "
+              "select star? column* function* ((count|min|max|avg|sum|writeTimeColumn|similarityCosine|similarityDotProduct|similarityEuclidean) as?)* "
                   + "from (where* perPartitionLimit? limit? groupBy* orderBy* vsearch*) allowFiltering?"),
       @SubExpr(
           name = "index",
@@ -378,6 +378,18 @@ public class QueryBuilderImpl {
 
   public void avg(Column avgColumnName) {
     avg(avgColumnName.name());
+  }
+
+  public void similarityCosine(String columnName, Value value) {
+    functionCalls.add(FunctionCall.similarityCosine(columnName, termFor(value)));
+  }
+
+  public void similarityDotProduct(String columnName, Value value) {
+    functionCalls.add(FunctionCall.similarityDotProduct(columnName, termFor(value)));
+  }
+
+  public void similarityEuclidean(String columnName, Value value) {
+    functionCalls.add(FunctionCall.similarityEuclidean(columnName, termFor(value)));
   }
 
   public void function(Collection<FunctionCall> calls) {
@@ -1357,7 +1369,7 @@ public class QueryBuilderImpl {
       builder.append(
           Stream.concat(
                   selection.stream().map(QueryBuilderImpl::cqlName),
-                  functionCalls.stream().map(QueryBuilderImpl::formatFunctionCall))
+                  functionCalls.stream().map(functionCall -> formatFunctionCall(functionCall)))
               .collect(Collectors.joining(", ")));
     }
     builder.append(" FROM ").append(maybeQualify(tableName));
@@ -1485,7 +1497,7 @@ public class QueryBuilderImpl {
 
   private static final String COUNT_FUNCTION_NAME = "COUNT";
 
-  private static String formatFunctionCall(FunctionCall functionCall) {
+  private String formatFunctionCall(FunctionCall functionCall) {
     StringBuilder builder = new StringBuilder();
     if (functionCall.getColumnName() == null
         && COUNT_FUNCTION_NAME.equals(functionCall.getFunctionName())) {
@@ -1494,8 +1506,11 @@ public class QueryBuilderImpl {
       builder
           .append(functionCall.getFunctionName())
           .append('(')
-          .append(cqlName(functionCall.getColumnName()))
-          .append(')');
+          .append(cqlName(functionCall.getColumnName()));
+      if (functionCall.getVectorTerm() != null) {
+        builder.append(", ").append(formatValue(functionCall.getVectorTerm()));
+      }
+      builder.append(')');
     }
     if (functionCall.getAlias() != null) {
       builder.append(" AS ").append(cqlName(functionCall.getAlias()));
@@ -1509,14 +1524,22 @@ public class QueryBuilderImpl {
     String alias;
     final String functionName;
 
-    private FunctionCall(String columnName, String alias, String functionName) {
+    final Term vectorTerm;
+
+    private FunctionCall(String columnName, String alias, String functionName, Term vectorTerm) {
       this.columnName = columnName;
       this.alias = alias;
       this.functionName = functionName;
+      this.vectorTerm = vectorTerm;
     }
 
     public static FunctionCall function(String name, String alias, String functionName) {
-      return new FunctionCall(name, alias, functionName);
+      return new FunctionCall(name, alias, functionName, null);
+    }
+
+    public static FunctionCall function(
+        String name, String alias, String functionName, Term vectorTerm) {
+      return new FunctionCall(name, alias, functionName, vectorTerm);
     }
 
     public static FunctionCall count() {
@@ -1579,6 +1602,32 @@ public class QueryBuilderImpl {
       return function(columnName, alias, "WRITETIME");
     }
 
+    public static FunctionCall similarityCosine(String columnName, Term vectorTerm) {
+      return function(columnName, null, "SIMILARITY_COSINE", vectorTerm);
+    }
+
+    public static FunctionCall similarityCosine(String columnName, String alias, Term vectorTerm) {
+      return function(columnName, alias, "SIMILARITY_COSINE", vectorTerm);
+    }
+
+    public static FunctionCall similarityDotProduct(String columnName, Term vectorTerm) {
+      return function(columnName, null, "SIMILARITY_DOT_PRODUCT", vectorTerm);
+    }
+
+    public static FunctionCall similarityDotProduct(
+        String columnName, String alias, Term vectorTerm) {
+      return function(columnName, alias, "SIMILARITY_DOT_PRODUCT", vectorTerm);
+    }
+
+    public static FunctionCall similarityEuclidean(String columnName, Term vectorTerm) {
+      return function(columnName, null, "SIMILARITY_EUCLIDEAN", vectorTerm);
+    }
+
+    public static FunctionCall similarityEuclidean(
+        String columnName, String alias, Term vectorTerm) {
+      return function(columnName, alias, "SIMILARITY_EUCLIDEAN", vectorTerm);
+    }
+
     public void setAlias(String alias) {
       this.alias = alias;
     }
@@ -1593,6 +1642,10 @@ public class QueryBuilderImpl {
 
     public String getAlias() {
       return alias;
+    }
+
+    public Term getVectorTerm() {
+      return vectorTerm;
     }
   }
 }

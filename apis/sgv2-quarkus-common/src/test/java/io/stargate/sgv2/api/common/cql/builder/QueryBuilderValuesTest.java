@@ -22,6 +22,7 @@ import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.sgv2.api.common.cql.builder.BuiltCondition.LHS;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 public class QueryBuilderValuesTest {
@@ -41,6 +42,63 @@ public class QueryBuilderValuesTest {
 
     assertThat(query.getCql()).isEqualTo("INSERT INTO ks.tbl (c1, c2) VALUES (?, ?)");
     assertThat(query.getValues().getValuesList()).containsExactly(INT_VALUE1, TEXT_VALUE);
+  }
+
+  @Test
+  public void shouldBindSimilarityCosine() {
+    Value vectorValue = Values.of(List.of(Values.of(1.0f)));
+    Query query =
+        new QueryBuilder()
+            .select()
+            .column("a", "b", "c")
+            .similarityCosine("vector_column", vectorValue)
+            .from("ks", "tbl")
+            .limit(1)
+            .vsearch("vector_column")
+            .build();
+
+    assertThat(query.getCql())
+        .isEqualTo(
+            "SELECT a, b, c, SIMILARITY_COSINE(vector_column, ?) FROM ks.tbl ORDER BY vector_column ANN OF ? LIMIT 1");
+    assertThat(query.getValues().getValuesList()).containsExactly(vectorValue);
+  }
+
+  @Test
+  public void shouldBindSimilarityDotProduct() {
+    Value vectorValue = Values.of(List.of(Values.of(1.0f)));
+    Query query =
+        new QueryBuilder()
+            .select()
+            .column("a", "b", "c")
+            .similarityDotProduct("vector_column", vectorValue)
+            .from("ks", "tbl")
+            .limit(1)
+            .vsearch("vector_column")
+            .build();
+
+    assertThat(query.getCql())
+        .isEqualTo(
+            "SELECT a, b, c, SIMILARITY_DOT_PRODUCT(vector_column, ?) FROM ks.tbl ORDER BY vector_column ANN OF ? LIMIT 1");
+    assertThat(query.getValues().getValuesList()).containsExactly(vectorValue);
+  }
+
+  @Test
+  public void shouldBindSimilarityEuclidean() {
+    Value vectorValue = Values.of(List.of(Values.of(1.0f)));
+    Query query =
+        new QueryBuilder()
+            .select()
+            .column("a", "b", "c")
+            .similarityEuclidean("vector_column", vectorValue)
+            .from("ks", "tbl")
+            .limit(1)
+            .vsearch("vector_column")
+            .build();
+
+    assertThat(query.getCql())
+        .isEqualTo(
+            "SELECT a, b, c, SIMILARITY_EUCLIDEAN(vector_column, ?) FROM ks.tbl ORDER BY vector_column ANN OF ? LIMIT 1");
+    assertThat(query.getValues().getValuesList()).containsExactly(vectorValue);
   }
 
   @Test
