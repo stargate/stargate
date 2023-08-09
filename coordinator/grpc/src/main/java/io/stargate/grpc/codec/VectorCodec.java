@@ -17,12 +17,11 @@ package io.stargate.grpc.codec;
 
 import com.datastax.oss.driver.api.core.type.codec.TypeCodecs;
 import edu.umd.cs.findbugs.annotations.NonNull;
+import io.stargate.db.schema.Column;
+import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass.Collection;
 import io.stargate.proto.QueryOuterClass.Value;
-import io.stargate.db.schema.Column;
-import io.stargate.db.schema.Column.ColumnType;
-
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
