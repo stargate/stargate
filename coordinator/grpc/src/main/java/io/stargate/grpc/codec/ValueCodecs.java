@@ -52,6 +52,7 @@ public class ValueCodecs {
               .put(Type.Map, new MapCodec())
               .put(Type.Tuple, new TupleCodec())
               .put(Type.UDT, new UdtCodec())
+              .put(Type.Vector, new VectorCodec())
               .build());
 
   @NonNull
