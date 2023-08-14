@@ -23,6 +23,7 @@ import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.BatchQuery;
 import java.util.LinkedHashMap;
+import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -363,6 +364,39 @@ public class QueryBuilderTest {
               .build()
               .getCql(),
           "SELECT a, b, c FROM ks.tbl ORDER BY vector_column ANN OF ? LIMIT 1"),
+      arguments(
+          new QueryBuilder()
+              .select()
+              .column("a", "b", "c")
+              .similarityCosine("vector_column", Values.of(List.of(Values.of(1.0f))))
+              .from("ks", "tbl")
+              .limit(1)
+              .vsearch("vector_column")
+              .build()
+              .getCql(),
+          "SELECT a, b, c, SIMILARITY_COSINE(vector_column, ?) FROM ks.tbl ORDER BY vector_column ANN OF ? LIMIT 1"),
+      arguments(
+          new QueryBuilder()
+              .select()
+              .column("a", "b", "c")
+              .similarityDotProduct("vector_column", Values.of(List.of(Values.of(1.0f))))
+              .from("ks", "tbl")
+              .limit(1)
+              .vsearch("vector_column")
+              .build()
+              .getCql(),
+          "SELECT a, b, c, SIMILARITY_DOT_PRODUCT(vector_column, ?) FROM ks.tbl ORDER BY vector_column ANN OF ? LIMIT 1"),
+      arguments(
+          new QueryBuilder()
+              .select()
+              .column("a", "b", "c")
+              .similarityEuclidean("vector_column", Values.of(List.of(Values.of(1.0f))))
+              .from("ks", "tbl")
+              .limit(1)
+              .vsearch("vector_column")
+              .build()
+              .getCql(),
+          "SELECT a, b, c, SIMILARITY_EUCLIDEAN(vector_column, ?) FROM ks.tbl ORDER BY vector_column ANN OF ? LIMIT 1"),
     };
   }
 

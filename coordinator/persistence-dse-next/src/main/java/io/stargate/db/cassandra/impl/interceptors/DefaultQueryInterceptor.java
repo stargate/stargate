@@ -1,11 +1,10 @@
 package io.stargate.db.cassandra.impl.interceptors;
 
 import static io.stargate.db.cassandra.impl.StargateSystemKeyspace.isSystemLocalOrPeers;
-import static io.stargate.db.cassandra.impl.StargateSystemKeyspace.isSystemPeers;
-import static io.stargate.db.cassandra.impl.StargateSystemKeyspace.isSystemPeersV2;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import io.stargate.db.EventListener;
+import io.stargate.db.cassandra.impl.StargatePeerInfo;
 import io.stargate.db.cassandra.impl.StargateSystemKeyspace;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
@@ -16,22 +15,23 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import org.apache.cassandra.config.DatabaseDescriptor;
+import java.util.function.BiConsumer;
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.QueryOptions;
+import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.statements.SelectStatement;
+import org.apache.cassandra.db.virtual.VirtualKeyspaceRegistry;
 import org.apache.cassandra.gms.ApplicationState;
 import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.gms.IEndpointStateChangeSubscriber;
 import org.apache.cassandra.gms.VersionedValue;
 import org.apache.cassandra.locator.InetAddressAndPort;
-import org.apache.cassandra.schema.Schema;
-import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.transport.messages.ResultMessage;
+import org.apache.cassandra.utils.FBUtilities;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -52,9 +52,9 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
 
   @Override
   public void initialize() {
-    Schema.instance.load(StargateSystemKeyspace.metadata());
+    VirtualKeyspaceRegistry.instance.register(StargateSystemKeyspace.instance);
     Gossiper.instance.register(this);
-    StargateSystemKeyspace.persistLocalMetadata();
+    StargateSystemKeyspace.instance.persistLocalMetadata();
   }
 
   @Override
@@ -69,22 +69,13 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     }
 
     SelectStatement selectStatement = (SelectStatement) statement;
-    TableMetadata tableMetadata = StargateSystemKeyspace.Local;
-    if (isSystemPeers(selectStatement)) tableMetadata = StargateSystemKeyspace.Peers;
-    else if (isSystemPeersV2(selectStatement)) tableMetadata = StargateSystemKeyspace.PeersV2;
-    SelectStatement interceptStatement =
-        new SelectStatement(
-            selectStatement.getRawCQLStatement(),
-            tableMetadata,
-            selectStatement.bindVariables,
-            selectStatement.parameters,
-            selectStatement.getSelection(),
-            selectStatement.getRestrictions(),
-            false,
-            null,
-            null,
-            null,
-            null);
+
+    // Re-parse so that we can intercept and replace the keyspace.
+    SelectStatement.RawStatement rawStatement =
+        (SelectStatement.RawStatement)
+            QueryProcessor.parseStatement(selectStatement.getRawCQLStatement());
+    rawStatement.setKeyspace(StargateSystemKeyspace.SYSTEM_KEYSPACE_NAME);
+    SelectStatement interceptStatement = rawStatement.prepare(state.getClientState());
 
     ResultMessage.Rows rows = interceptStatement.execute(state, options, queryStartNanoTime);
     return new ResultMessage.Rows(
@@ -161,8 +152,6 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
       return false;
     }
 
-    updateTokens(endpoint);
-
     for (Map.Entry<ApplicationState, VersionedValue> entry : state.states()) {
       applyState(endpoint, entry.getKey(), entry.getValue(), state);
     }
@@ -180,7 +169,7 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     if (!liveStargateNodes.remove(endpoint)) {
       return;
     }
-    StargateSystemKeyspace.removeEndpoint(endpoint);
+    StargateSystemKeyspace.instance.getPeers().remove(endpoint);
     InetAddressAndPort nativeAddress = getNativeAddress(endpoint);
     for (EventListener listener : listeners) {
       listener.onLeaveCluster(nativeAddress.address, nativeAddress.port);
@@ -224,18 +213,18 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
       EndpointState epState) {
     switch (state) {
       case RELEASE_VERSION:
-        StargateSystemKeyspace.updatePeerInfo(endpoint, "release_version", value.value);
+        updatePeer(endpoint, value.value, StargatePeerInfo::setReleaseVersion);
         break;
       case DC:
-        StargateSystemKeyspace.updatePeerInfo(endpoint, "data_center", value.value);
+        updatePeer(endpoint, value.value, StargatePeerInfo::setDataCenter);
         break;
       case RACK:
-        StargateSystemKeyspace.updatePeerInfo(endpoint, "rack", value.value);
+        updatePeer(endpoint, value.value, StargatePeerInfo::setRack);
         break;
       case RPC_ADDRESS:
         try {
-          StargateSystemKeyspace.updatePeerInfo(
-              endpoint, "rpc_address", InetAddress.getByName(value.value));
+          updatePeer(
+              endpoint, InetAddress.getByName(value.value), StargatePeerInfo::setNativeAddress);
         } catch (UnknownHostException e) {
           throw new RuntimeException(e);
         }
@@ -243,19 +232,14 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
       case NATIVE_ADDRESS_AND_PORT:
         try {
           InetAddressAndPort address = InetAddressAndPort.getByName(value.value);
-          StargateSystemKeyspace.updatePeerNativeAddress(endpoint, address);
+          updatePeer(endpoint, address.address, StargatePeerInfo::setNativeAddress);
+          updatePeer(endpoint, address.port, StargatePeerInfo::setNativePort);
         } catch (UnknownHostException e) {
           throw new RuntimeException(e);
         }
         break;
-      case SCHEMA:
-        // Use a fix schema version for all peers (always in agreement) because stargate waits
-        // for DDL queries to reach agreement before returning.
-        StargateSystemKeyspace.updatePeerInfo(
-            endpoint, "schema_version", StargateSystemKeyspace.SCHEMA_VERSION);
-        break;
       case HOST_ID:
-        StargateSystemKeyspace.updatePeerInfo(endpoint, "host_id", UUID.fromString(value.value));
+        updatePeer(endpoint, UUID.fromString(value.value), StargatePeerInfo::setHostId);
         break;
       case RPC_READY:
         notifyRpcChange(endpoint, epState.isRpcReady());
@@ -265,11 +249,16 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     }
   }
 
-  private void updateTokens(InetAddressAndPort endpoint) {
-    StargateSystemKeyspace.updatePeerInfo(
-        endpoint,
-        "tokens",
-        StargateSystemKeyspace.generateRandomTokens(endpoint, DatabaseDescriptor.getNumTokens()));
+  private <V> void updatePeer(
+      InetAddressAndPort endpoint, V value, BiConsumer<StargatePeerInfo, V> updater) {
+
+    if (!endpoint.equals(FBUtilities.getBroadcastAddressAndPort())) {
+      StargatePeerInfo peer =
+          StargateSystemKeyspace.instance
+              .getPeers()
+              .computeIfAbsent(endpoint, StargatePeerInfo::new);
+      updater.accept(peer, value);
+    }
   }
 
   private void notifyDown(InetAddressAndPort endpoint) {
