@@ -1,8 +1,6 @@
 package io.stargate.db.cassandra.impl.interceptors;
 
 import static io.stargate.db.cassandra.impl.StargateSystemKeyspace.isSystemLocalOrPeers;
-import static io.stargate.db.cassandra.impl.StargateSystemKeyspace.isSystemPeers;
-import static io.stargate.db.cassandra.impl.StargateSystemKeyspace.isSystemPeersV2;
 
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import io.stargate.db.EventListener;
@@ -20,6 +18,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.QueryOptions;
+import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.ResultSet;
 import org.apache.cassandra.cql3.statements.SelectStatement;
 import org.apache.cassandra.db.virtual.VirtualKeyspaceRegistry;
@@ -29,8 +28,6 @@ import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.gms.IEndpointStateChangeSubscriber;
 import org.apache.cassandra.gms.VersionedValue;
 import org.apache.cassandra.locator.InetAddressAndPort;
-import org.apache.cassandra.nodes.virtual.NodesSystemViews;
-import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.transport.messages.ResultMessage;
@@ -72,22 +69,17 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     }
 
     SelectStatement selectStatement = (SelectStatement) statement;
-    TableMetadata tableMetadata = NodesSystemViews.LocalMetadata;
-    if (isSystemPeers(selectStatement)) tableMetadata = NodesSystemViews.LegacyPeersMetadata;
-    else if (isSystemPeersV2(selectStatement)) tableMetadata = NodesSystemViews.PeersV2Metadata;
-    SelectStatement interceptStatement =
-        new SelectStatement(
-            selectStatement.getRawCQLStatement(),
-            tableMetadata,
-            selectStatement.bindVariables,
-            selectStatement.parameters,
-            selectStatement.getSelection(),
-            selectStatement.getRestrictions(),
-            false,
-            null,
-            null,
-            null,
-            null);
+    logger.info(
+        "Intercepted query for keyspace {}: {}",
+        selectStatement.keyspace(),
+        selectStatement.getRawCQLStatement());
+
+    // Re-parse so that we can intercept and replace the keyspace.
+    SelectStatement.RawStatement rawStatement =
+        (SelectStatement.RawStatement)
+            QueryProcessor.parseStatement(selectStatement.getRawCQLStatement());
+    rawStatement.setKeyspace(StargateSystemKeyspace.SYSTEM_KEYSPACE_NAME);
+    SelectStatement interceptStatement = rawStatement.prepare(state.getClientState());
 
     ResultMessage.Rows rows = interceptStatement.execute(state, options, queryStartNanoTime);
     return new ResultMessage.Rows(

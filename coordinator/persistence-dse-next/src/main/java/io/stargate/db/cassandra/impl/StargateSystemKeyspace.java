@@ -9,12 +9,12 @@ import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.statements.SelectStatement;
-import org.apache.cassandra.db.SystemKeyspace;
 import org.apache.cassandra.db.virtual.*;
 import org.apache.cassandra.dht.IPartitioner;
 import org.apache.cassandra.dht.Token.TokenFactory;
 import org.apache.cassandra.locator.InetAddressAndPort;
 import org.apache.cassandra.nodes.Nodes;
+import org.apache.cassandra.nodes.virtual.NodeConstants;
 import org.apache.cassandra.schema.*;
 import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.utils.FBUtilities;
@@ -67,21 +67,13 @@ public class StargateSystemKeyspace extends VirtualKeyspace {
             FBUtilities.getBroadcastNativeAddressAndPort(), DatabaseDescriptor.getNumTokens()));
   }
 
-  public static boolean isSystemPeers(SelectStatement statement) {
-    return statement.columnFamily().equals(SystemKeyspace.LEGACY_PEERS);
-  }
-
-  public static boolean isSystemPeersV2(SelectStatement statement) {
-    return statement.columnFamily().equals(SystemKeyspace.PEERS_V2);
-  }
-
   public static boolean isSystemLocalOrPeers(CQLStatement statement) {
     if (statement instanceof SelectStatement) {
       SelectStatement selectStatement = (SelectStatement) statement;
-      return selectStatement.keyspace().equals(SchemaConstants.SYSTEM_KEYSPACE_NAME)
-          && (selectStatement.columnFamily().equals(SystemKeyspace.LOCAL)
-              || isSystemPeers(selectStatement)
-              || isSystemPeersV2(selectStatement));
+      return selectStatement.keyspace().equals(SchemaConstants.SYSTEM_VIEWS_KEYSPACE_NAME)
+          && (selectStatement.columnFamily().equals(NodeConstants.LEGACY_PEERS_VIEW_NAME)
+              || selectStatement.columnFamily().equals(NodeConstants.PEERS_V2_VIEW_NAME)
+              || selectStatement.columnFamily().equals(NodeConstants.LOCAL_VIEW_NAME));
     }
     return false;
   }
