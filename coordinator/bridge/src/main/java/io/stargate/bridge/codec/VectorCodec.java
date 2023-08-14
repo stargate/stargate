@@ -41,7 +41,7 @@ public class VectorCodec extends CompositeCodec {
 
     if (elementCount != vectorSize) {
       throw new IllegalArgumentException(
-          String.format("Expected vector of %d size, but received %d", vectorSize, elementCount));
+          String.format("Expected vector of size %d, but received %d", vectorSize, elementCount));
     }
 
     ByteBuffer[] encodedElements = new ByteBuffer[elementCount];
