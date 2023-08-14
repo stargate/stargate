@@ -69,10 +69,6 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
     }
 
     SelectStatement selectStatement = (SelectStatement) statement;
-    logger.info(
-        "Intercepted query for keyspace {}: {}",
-        selectStatement.keyspace(),
-        selectStatement.getRawCQLStatement());
 
     // Re-parse so that we can intercept and replace the keyspace.
     SelectStatement.RawStatement rawStatement =
