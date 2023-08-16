@@ -112,11 +112,15 @@ jobs:
       # (see https://docs.github.com/en/actions/using-jobs/using-a-matrix-for-your-jobs)
       fail-fast: false
       matrix:
-        backend: [ cassandra-40, dse-next, dse-68 ]
+        backend: [ cassandra-40, cassandra-41, dse-next, dse-68 ]
         include:
           - backend: cassandra-40
             build-profile:
             test-profile: -P it-cassandra-4.0
+
+          - backend: cassandra-41
+            build-profile:
+            test-profile: -P it-cassandra-4.1
 
           - backend: dse-68
             build-profile: -P dse
