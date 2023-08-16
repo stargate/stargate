@@ -286,7 +286,7 @@ public class Conversion {
       external.put(
           org.apache.cassandra.stargate.locator.InetAddressAndPort.getByAddressOverrideDefaults(
               addressAndPort.getAddress(), addressAndPort.addressBytes, addressAndPort.getPort()),
-              externalReason);
+          externalReason);
     }
     return external;
   }
