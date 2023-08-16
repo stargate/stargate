@@ -132,7 +132,7 @@ jobs:
     # image name needed only
     strategy:
       matrix:
-        image: [ coordinator-4_0, coordinator-dse-next, coordinator-dse-68 ]
+        image: [ coordinator-4_0, coordinator-4_1, coordinator-dse-next, coordinator-dse-68 ]
 
     steps:
       - uses: actions/checkout@v3
