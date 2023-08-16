@@ -27,13 +27,13 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-class Cassandra50PersistenceActivatorTest {
+class Cassandra41PersistenceActivatorTest {
   File baseDir;
 
   @BeforeEach
   void setUp() throws IOException {
     System.clearProperty("stargate.unsafe.cassandra_config_path");
-    baseDir = Files.createTempDirectory("stargate-cassandra-5.0-test").toFile();
+    baseDir = Files.createTempDirectory("stargate-cassandra-4.1-test").toFile();
   }
 
   @AfterEach
@@ -45,16 +45,16 @@ class Cassandra50PersistenceActivatorTest {
   void testMakeConfigWithDefaults() throws IOException {
     Config config = makeConfig(baseDir);
     // 0 is the default value of row_cache_size_in_mb
-    assertEquals(0, config.row_cache_size_in_mb);
+    assertEquals(0, config.row_cache_size);
   }
 
   @Test
   void testMakeConfigWithCustomConfig() throws IOException {
-    // This is the path to the default Cassandra 5.0 cassandra.yaml
+    // This is the path to the default Cassandra 4.1 cassandra.yaml
     // with row_cache_size_in_mb set to 1024 to test the override.
     System.setProperty(
         "stargate.unsafe.cassandra_config_path", "src/test/resources/cassandra.yaml");
     Config config = makeConfig(baseDir);
-    assertEquals(1024, config.row_cache_size_in_mb);
+    assertEquals(1024, config.row_cache_size);
   }
 }

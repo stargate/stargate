@@ -28,21 +28,21 @@ import org.junit.jupiter.api.BeforeAll;
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-class Cassandra50PersistenceIT extends PersistenceTest {
+class Cassandra41PersistenceIT extends PersistenceTest {
 
   private static Cassandra41Persistence persistence;
   private static File baseDir;
 
   @BeforeAll
   public static void createPersistence(ClusterConnectionInfo backend) throws IOException {
-    baseDir = Files.createTempDirectory("stargate-cassandra-5.0-test").toFile();
+    baseDir = Files.createTempDirectory("stargate-cassandra-4.1-test").toFile();
     baseDir.deleteOnExit();
 
     System.setProperty("stargate.listen_address", "127.0.0.11");
     System.setProperty("stargate.cluster_name", backend.clusterName());
     System.setProperty("stargate.datacenter", backend.datacenter());
     System.setProperty("stargate.rack", backend.rack());
-    ClassLoader classLoader = Cassandra50PersistenceIT.class.getClassLoader();
+    ClassLoader classLoader = Cassandra41PersistenceIT.class.getClassLoader();
     URL resource = classLoader.getResource("logback-test.xml");
 
     if (resource != null) {
@@ -52,7 +52,7 @@ class Cassandra50PersistenceIT extends PersistenceTest {
 
     persistence = new Cassandra41Persistence();
     Config config = makeConfig(baseDir);
-    config.enable_materialized_views = true;
+    config.materialized_views_enabled = true;
     persistence.initialize(config);
   }
 

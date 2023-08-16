@@ -56,7 +56,7 @@ public class Cassandra41PersistenceActivator extends BaseActivator {
       ServicePointer.create(AuthorizationProcessor.class, "AuthProcessorId", AUTHZ_PROCESSOR_ID);
 
   public Cassandra41PersistenceActivator() {
-    super("persistence-cassandra-5.0");
+    super("persistence-cassandra-4.1");
   }
 
   @VisibleForTesting
@@ -151,7 +151,7 @@ public class Cassandra41PersistenceActivator extends BaseActivator {
     props.put("Identifier", "CassandraPersistence");
     // TODO copy metrics if this gets invoked more than once?
     CassandraMetricsRegistry.actualRegistry =
-        metrics.get().getRegistry("persistence-cassandra-5.0");
+        metrics.get().getRegistry("persistence-cassandra-4.1");
 
     try {
       cassandraDB.setAuthorizationService(authorizationService.get());

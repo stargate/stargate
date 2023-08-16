@@ -35,11 +35,7 @@ import org.apache.cassandra.db.marshal.ListType;
 import org.apache.cassandra.db.marshal.MapType;
 import org.apache.cassandra.db.marshal.SetType;
 import org.apache.cassandra.db.marshal.UUIDType;
-import org.apache.cassandra.schema.KeyspaceMetadata;
-import org.apache.cassandra.schema.KeyspaceParams;
-import org.apache.cassandra.schema.Schema;
-import org.apache.cassandra.schema.TableMetadata;
-import org.apache.cassandra.schema.Tables;
+import org.apache.cassandra.schema.*;
 import org.apache.cassandra.service.ClientState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -76,7 +72,7 @@ class IdempotencyAnalyzerTest extends BaseCassandraTest {
     KeyspaceMetadata keyspaceMetadata =
         KeyspaceMetadata.create("ks1", KeyspaceParams.local(), Tables.of(tableMetadata));
     if (Schema.instance.getKeyspaceMetadata("ks1") == null) {
-      Schema.instance.load(keyspaceMetadata);
+      Schema.instance.transform(schema -> schema.withAddedOrUpdated(keyspaceMetadata));
     }
 
     CommitLog.instance.start();

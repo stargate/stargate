@@ -101,7 +101,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     KeyspaceMetadata keyspaceMetadata =
         KeyspaceMetadata.create("ks1", KeyspaceParams.local(), Tables.of(tableMetadata));
     if (Schema.instance.getKeyspaceMetadata("ks1") == null) {
-      Schema.instance.load(keyspaceMetadata);
+      Schema.instance.transform(schema -> schema.withAddedOrUpdated(keyspaceMetadata));
     }
 
     TableMetadata cyclingTableMetadata =
@@ -113,7 +113,7 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
     KeyspaceMetadata cyclingKeyspaceMetadata =
         KeyspaceMetadata.create("cycling", KeyspaceParams.local(), Tables.of(cyclingTableMetadata));
     if (Schema.instance.getKeyspaceMetadata("cycling") == null) {
-      Schema.instance.load(cyclingKeyspaceMetadata);
+      Schema.instance.transform(schema -> schema.withAddedOrUpdated(cyclingKeyspaceMetadata));
     }
     CommitLog.instance.start();
   }

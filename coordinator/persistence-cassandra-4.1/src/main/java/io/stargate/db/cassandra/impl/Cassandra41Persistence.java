@@ -250,12 +250,12 @@ public class Cassandra41Persistence
 
   @Override
   public Connection newConnection(ClientInfo clientInfo) {
-    return new Cassandra50Connection(clientInfo);
+    return new Cassandra41Connection(clientInfo);
   }
 
   @Override
   public Connection newConnection() {
-    return new Cassandra50Connection();
+    return new Cassandra41Connection();
   }
 
   private <T extends Result> CompletableFuture<T> runOnExecutor(
@@ -397,19 +397,19 @@ public class Cassandra41Persistence
     this.authorizationService = authorizationService;
   }
 
-  private class Cassandra50Connection extends AbstractConnection {
+  private class Cassandra41Connection extends AbstractConnection {
 
     private final ClientState clientState;
 
-    private Cassandra50Connection(@Nonnull ClientInfo clientInfo) {
+    private Cassandra41Connection(@Nonnull ClientInfo clientInfo) {
       this(clientInfo, ClientState.forExternalCalls(clientInfo.remoteAddress()));
     }
 
-    private Cassandra50Connection() {
+    private Cassandra41Connection() {
       this(null, ClientState.forInternalCalls());
     }
 
-    private Cassandra50Connection(@Nullable ClientInfo clientInfo, ClientState clientState) {
+    private Cassandra41Connection(@Nullable ClientInfo clientInfo, ClientState clientState) {
       super(clientInfo);
       this.clientState = clientState;
 

@@ -12,7 +12,7 @@ import org.apache.cassandra.locator.SeedProvider;
 
 public class StargateSeedProvider implements SeedProvider {
   private static final Integer DEFAULT_SEED_PORT =
-      Integer.getInteger("stargate.50_seed_port_override", null);
+      Integer.getInteger("stargate.41_seed_port_override", null);
 
   private final List<InetAddressAndPort> seeds;
 
