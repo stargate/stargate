@@ -267,10 +267,26 @@ public class Conversion {
     for (Map.Entry<InetAddressAndPort, org.apache.cassandra.exceptions.RequestFailureReason> entry :
         internal.entrySet()) {
       InetAddressAndPort addressAndPort = entry.getKey();
+      org.apache.cassandra.exceptions.RequestFailureReason internalReason = entry.getValue();
+      RequestFailureReason externalReason = RequestFailureReason.fromCode(internalReason.code);
+      // 16-Aug-2023, jsc: Only some RequestFailureReason have "code" to allow automatic
+      //    mapping, so we need to do manually map the rest. Fortunately there is a unit test
+      //    (ConversionTest.allKnownCode()) that verifies that mapping exists for all internal
+      //    reasons.
+      if (externalReason == RequestFailureReason.UNKNOWN) {
+        switch (internalReason) {
+          case READ_SIZE:
+            externalReason = RequestFailureReason.READ_SIZE;
+            break;
+          case NODE_DOWN:
+            externalReason = RequestFailureReason.NODE_DOWN;
+            break;
+        }
+      }
       external.put(
           org.apache.cassandra.stargate.locator.InetAddressAndPort.getByAddressOverrideDefaults(
               addressAndPort.getAddress(), addressAndPort.addressBytes, addressAndPort.getPort()),
-          RequestFailureReason.fromCode(entry.getValue().code));
+              externalReason);
     }
     return external;
   }

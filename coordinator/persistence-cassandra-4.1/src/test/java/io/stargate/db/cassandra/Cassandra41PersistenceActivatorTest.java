@@ -44,17 +44,17 @@ class Cassandra41PersistenceActivatorTest {
   @Test
   void testMakeConfigWithDefaults() throws IOException {
     Config config = makeConfig(baseDir);
-    // 0 is the default value of row_cache_size_in_mb
-    assertEquals(0, config.row_cache_size);
+    // 0 is the default value of row_cache_size
+    assertEquals(0, config.row_cache_size.toMebibytes());
   }
 
   @Test
   void testMakeConfigWithCustomConfig() throws IOException {
     // This is the path to the default Cassandra 4.1 cassandra.yaml
-    // with row_cache_size_in_mb set to 1024 to test the override.
+    // with row_cache_size set to 1024 to test the override.
     System.setProperty(
         "stargate.unsafe.cassandra_config_path", "src/test/resources/cassandra.yaml");
     Config config = makeConfig(baseDir);
-    assertEquals(1024, config.row_cache_size);
+    assertEquals(1024, config.row_cache_size.toMebibytes());
   }
 }
