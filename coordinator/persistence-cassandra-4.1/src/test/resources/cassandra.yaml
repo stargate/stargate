@@ -413,7 +413,7 @@ key_cache_save_period: 4h
 #
 # Default value is 0, to disable row caching.
 # Min unit: MiB
-row_cache_size: 0MiB
+row_cache_size: 1024MiB
 
 # Duration in seconds after which Cassandra should save the row cache.
 # Caches are saved to saved_caches_directory as specified in this configuration file.
