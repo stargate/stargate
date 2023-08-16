@@ -24,7 +24,6 @@ import io.stargate.db.cassandra.impl.BaseCassandraTest;
 import io.stargate.db.cassandra.impl.StargateQueryHandler;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
-
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.QueryProcessor;
@@ -56,7 +55,7 @@ class IdempotencyAnalyzerTest extends BaseCassandraTest {
     DatabaseDescriptor.daemonInitialization();
     CommitLog.instance.start();
   }
-  
+
   @BeforeEach
   public void initTest() {
     authorizationService = mock(AuthorizationService.class);

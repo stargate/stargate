@@ -34,7 +34,7 @@ public class CassandraMetricsRegistry extends MetricRegistry {
 
   private final Map<String, ThreadPoolMetrics> threadPoolMetrics = new ConcurrentHashMap<>();
 
-  public final static TimeUnit DEFAULT_TIMER_UNIT = TimeUnit.MICROSECONDS;
+  public static final TimeUnit DEFAULT_TIMER_UNIT = TimeUnit.MICROSECONDS;
 
   private CassandraMetricsRegistry() {
     super();
@@ -75,7 +75,9 @@ public class CassandraMetricsRegistry extends MetricRegistry {
   }
 
   public SnapshottingTimer timer(MetricName name, TimeUnit durationUnit) {
-    SnapshottingTimer timer = register(name, new SnapshottingTimer(CassandraMetricsRegistry.createReservoir(durationUnit)));
+    SnapshottingTimer timer =
+        register(
+            name, new SnapshottingTimer(CassandraMetricsRegistry.createReservoir(durationUnit)));
     return timer;
   }
 
@@ -85,18 +87,19 @@ public class CassandraMetricsRegistry extends MetricRegistry {
 
   public static SnapshottingReservoir createReservoir(TimeUnit durationUnit) {
     SnapshottingReservoir reservoir;
-    if (durationUnit != TimeUnit.NANOSECONDS)
-    {
-      SnapshottingReservoir underlying = new DecayingEstimatedHistogramReservoir(DecayingEstimatedHistogramReservoir.DEFAULT_ZERO_CONSIDERATION,
+    if (durationUnit != TimeUnit.NANOSECONDS) {
+      SnapshottingReservoir underlying =
+          new DecayingEstimatedHistogramReservoir(
+              DecayingEstimatedHistogramReservoir.DEFAULT_ZERO_CONSIDERATION,
               DecayingEstimatedHistogramReservoir.LOW_BUCKET_COUNT,
               DecayingEstimatedHistogramReservoir.DEFAULT_STRIPE_COUNT);
       // fewer buckets should suffice if timer is not based on nanos
-      reservoir = new ScalingReservoir(underlying,
+      reservoir =
+          new ScalingReservoir(
+              underlying,
               // timer update values in nanos.
               v -> durationUnit.convert(v, TimeUnit.NANOSECONDS));
-    }
-    else
-    {
+    } else {
       // Use more buckets if timer is created with nanos resolution.
       reservoir = new DecayingEstimatedHistogramReservoir();
     }
