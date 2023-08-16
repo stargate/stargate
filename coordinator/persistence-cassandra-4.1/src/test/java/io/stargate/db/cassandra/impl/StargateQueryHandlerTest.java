@@ -20,10 +20,13 @@ import io.stargate.auth.UnauthorizedException;
 import io.stargate.auth.entity.ResourceKind;
 import io.stargate.db.AuthenticatedUser;
 import java.nio.ByteBuffer;
+import java.time.Duration;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
+
+import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.ColumnIdentifier;
 import org.apache.cassandra.cql3.QueryProcessor;
@@ -71,6 +74,7 @@ import org.apache.cassandra.schema.Schema;
 import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.schema.Tables;
 import org.apache.cassandra.service.ClientState;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -83,6 +87,12 @@ class StargateQueryHandlerTest extends BaseCassandraTest {
   AuthenticationSubject authenticationSubject = AuthenticationSubject.of("token", "username");
   StargateQueryHandler queryHandler;
   AuthorizationService authorizationService;
+
+  @BeforeAll
+  public static void setup() {
+    DatabaseDescriptor.daemonInitialization();
+    CommitLog.instance.start();
+  }
 
   @BeforeEach
   public void initTest() {

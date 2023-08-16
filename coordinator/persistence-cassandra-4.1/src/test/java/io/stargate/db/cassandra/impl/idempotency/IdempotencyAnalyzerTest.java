@@ -24,6 +24,8 @@ import io.stargate.db.cassandra.impl.BaseCassandraTest;
 import io.stargate.db.cassandra.impl.StargateQueryHandler;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
+
+import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.QueryProcessor;
 import org.apache.cassandra.cql3.statements.BatchStatement;
@@ -37,6 +39,7 @@ import org.apache.cassandra.db.marshal.SetType;
 import org.apache.cassandra.db.marshal.UUIDType;
 import org.apache.cassandra.schema.*;
 import org.apache.cassandra.service.ClientState;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -48,6 +51,12 @@ class IdempotencyAnalyzerTest extends BaseCassandraTest {
   StargateQueryHandler queryHandler;
   AuthorizationService authorizationService;
 
+  @BeforeAll
+  public static void setup() {
+    DatabaseDescriptor.daemonInitialization();
+    CommitLog.instance.start();
+  }
+  
   @BeforeEach
   public void initTest() {
     authorizationService = mock(AuthorizationService.class);
