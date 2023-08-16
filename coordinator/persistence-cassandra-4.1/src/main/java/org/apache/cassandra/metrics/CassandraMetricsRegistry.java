@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 
@@ -32,6 +33,8 @@ public class CassandraMetricsRegistry extends MetricRegistry {
   public static final CassandraMetricsRegistry Metrics = new CassandraMetricsRegistry();
 
   private final Map<String, ThreadPoolMetrics> threadPoolMetrics = new ConcurrentHashMap<>();
+
+  public final static TimeUnit DEFAULT_TIMER_UNIT = TimeUnit.MICROSECONDS;
 
   private CassandraMetricsRegistry() {
     super();
@@ -64,12 +67,40 @@ public class CassandraMetricsRegistry extends MetricRegistry {
   }
 
   public Timer timer(MetricName name) {
-    Timer timer = new Timer(new DecayingEstimatedHistogramReservoir());
-    return register(name, timer);
+    return timer(name, DEFAULT_TIMER_UNIT);
   }
 
-  public Timer timer(MetricName name, MetricName alias) {
-    return timer(name);
+  public SnapshottingTimer timer(MetricName name, MetricName alias) {
+    return timer(name, DEFAULT_TIMER_UNIT);
+  }
+
+  public SnapshottingTimer timer(MetricName name, TimeUnit durationUnit) {
+    SnapshottingTimer timer = register(name, new SnapshottingTimer(CassandraMetricsRegistry.createReservoir(durationUnit)));
+    return timer;
+  }
+
+  public SnapshottingTimer timer(MetricName name, MetricName alias, TimeUnit durationUnit) {
+    return timer(name, durationUnit);
+  }
+
+  public static SnapshottingReservoir createReservoir(TimeUnit durationUnit) {
+    SnapshottingReservoir reservoir;
+    if (durationUnit != TimeUnit.NANOSECONDS)
+    {
+      SnapshottingReservoir underlying = new DecayingEstimatedHistogramReservoir(DecayingEstimatedHistogramReservoir.DEFAULT_ZERO_CONSIDERATION,
+              DecayingEstimatedHistogramReservoir.LOW_BUCKET_COUNT,
+              DecayingEstimatedHistogramReservoir.DEFAULT_STRIPE_COUNT);
+      // fewer buckets should suffice if timer is not based on nanos
+      reservoir = new ScalingReservoir(underlying,
+              // timer update values in nanos.
+              v -> durationUnit.convert(v, TimeUnit.NANOSECONDS));
+    }
+    else
+    {
+      // Use more buckets if timer is created with nanos resolution.
+      reservoir = new DecayingEstimatedHistogramReservoir();
+    }
+    return reservoir;
   }
 
   public <T extends Metric> T register(MetricName name, T metric) {
@@ -111,7 +142,7 @@ public class CassandraMetricsRegistry extends MetricRegistry {
     return actualRegistry.remove(name.getMetricName());
   }
 
-  public boolean remove(MetricName name, MetricName alias) {
+  public boolean remove(MetricName name, MetricName... alias) {
     return remove(name);
   }
 
