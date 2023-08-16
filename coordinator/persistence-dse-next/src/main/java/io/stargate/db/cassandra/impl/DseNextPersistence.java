@@ -354,7 +354,7 @@ public class DseNextPersistence
 
   @Override
   public boolean supportsSAI() {
-    return false;
+    return true;
   }
 
   @Override
