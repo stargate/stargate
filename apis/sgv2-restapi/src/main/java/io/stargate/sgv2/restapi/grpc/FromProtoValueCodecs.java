@@ -63,6 +63,8 @@ public class FromProtoValueCodecs {
         return tupleCodecFor(columnSpec, type.getTuple(), requestParams);
       case UDT:
         return udtCodecFor(columnSpec, type.getUdt(), requestParams);
+      case VECTOR:
+        return vectorCodecFor(columnSpec, type.getVector(), requestParams);
 
         // Invalid cases:
       case SPEC_NOT_SET:
@@ -184,6 +186,14 @@ public class FromProtoValueCodecs {
       fieldCodecs.put(fieldName, codecFor(columnSpec, entry.getValue(), requestParams));
     }
     return new UDTCodec(udtSpec.getName(), fieldCodecs);
+  }
+
+  protected FromProtoValueCodec vectorCodecFor(
+      QueryOuterClass.ColumnSpec columnSpec,
+      QueryOuterClass.TypeSpec.Vector vectorSpec,
+      RequestParams requestParams) {
+    return new VectorCodec(
+        codecFor(columnSpec, vectorSpec.getElement(), requestParams), vectorSpec.getSize());
   }
 
   /* Basic/scalar codec implementations: textual */
@@ -536,6 +546,7 @@ public class FromProtoValueCodecs {
     public Object fromProtoValue(QueryOuterClass.Value value) {
       QueryOuterClass.Collection coll = value.getCollection();
       final int len = coll.getElementsCount();
+      validateSize(len);
       Collection<Object> result = constructCollection(len);
       for (int i = 0; i < len; ++i) {
         result.add(elementCodec.fromProtoValue(coll.getElements(i)));
@@ -548,11 +559,14 @@ public class FromProtoValueCodecs {
       QueryOuterClass.Collection coll = value.getCollection();
       ArrayNode result = jsonNodeFactory.arrayNode();
       final int len = coll.getElementsCount();
+      validateSize(len);
       for (int i = 0; i < len; ++i) {
         result.add(elementCodec.jsonNodeFrom(coll.getElements(i)));
       }
       return result;
     }
+
+    protected void validateSize(int actualSize) {}
   }
 
   protected static final class MapCodec extends FromProtoValueCodec {
@@ -719,6 +733,33 @@ public class FromProtoValueCodecs {
       }
 
       return result;
+    }
+  }
+
+  protected static final class VectorCodec extends BaseCollectionCodec {
+    private final int size;
+
+    public VectorCodec(FromProtoValueCodec ec, int size) {
+      super(ec);
+      this.size = size;
+    }
+
+    @Override
+    protected Collection<Object> constructCollection(int size) {
+      if (size == 0) {
+        return Collections.emptySet();
+      }
+      return new ArrayList<>(size);
+    }
+
+    @Override
+    protected void validateSize(int actualSize) {
+      if (actualSize != size) {
+        throw new IllegalArgumentException(
+            String.format(
+                "Illegal Vector representation, expected %d values, received %d",
+                size, actualSize));
+      }
     }
   }
 }
