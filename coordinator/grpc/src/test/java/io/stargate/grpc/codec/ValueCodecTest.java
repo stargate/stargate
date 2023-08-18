@@ -27,6 +27,7 @@ import io.stargate.db.schema.Column.ColumnType;
 import io.stargate.db.schema.Column.Type;
 import io.stargate.db.schema.ImmutableUserDefinedType;
 import io.stargate.db.schema.UserDefinedType;
+import io.stargate.db.schema.VectorType;
 import io.stargate.grpc.Values;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.QueryOuterClass.Inet;
@@ -71,6 +72,7 @@ public class ValueCodecTest {
     "tupleValues",
     "bigIntegerValues",
     "bigDecimalValues",
+    "vectorValues",
   })
   public void validValues(ColumnType type, Value expectedValue) {
     ValueCodec codec = ValueCodecs.get(type.rawType());
@@ -122,7 +124,8 @@ public class ValueCodecTest {
     "invalidTupleValues",
     "invalidUdtValues",
     "invalidBigIntegerValues",
-    "invalidBigDecimalValues"
+    "invalidBigDecimalValues",
+    "invalidVectorValues",
   })
   public void invalidValues(ColumnType type, Value value, String expectedMessage) {
     ValueCodec codec = ValueCodecs.get(type.rawType());
@@ -410,6 +413,43 @@ public class ValueCodecTest {
             Type.List.of(Type.Text), Values.of(Values.NULL), "null is not supported inside lists"),
         arguments(
             Type.List.of(Type.Int), Values.of(Values.NULL), "null is not supported inside lists"));
+  }
+
+  public static Stream<Arguments> vectorValues() {
+    Column.ColumnType vectorType = VectorType.of("org.apache.cassandra.db.marshal.FloatType", 4);
+    return Stream.of(
+        arguments(vectorType, Values.NULL),
+        arguments(
+            vectorType,
+            Values.of(Values.of(1.0f), Values.of(1.1f), Values.of(1.2f), Values.of(1.3f))));
+  }
+
+  public static Stream<Arguments> invalidVectorValues() {
+    Column.ColumnType vectorType = VectorType.of("org.apache.cassandra.db.marshal.FloatType", 4);
+    return Stream.of(
+        arguments(
+            vectorType,
+            Values.of(Values.of("1"), Values.NULL, Values.NULL, Values.NULL),
+            "Expected collection of float type"),
+        arguments(vectorType, Values.of(""), "Expected collection of float type"),
+        arguments(vectorType, Values.UNSET, "Expected collection of float type"),
+        arguments(
+            vectorType,
+            Values.of(Values.NULL, Values.NULL, Values.NULL, Values.NULL),
+            "Expected collection of float type"),
+        arguments(
+            vectorType,
+            Values.of(Values.of(1.0f), Values.of(1.1f), Values.of(1.2f)),
+            "Expected vector of size 4, but received 3"),
+        arguments(
+            vectorType,
+            Values.of(
+                Values.of(1.0f),
+                Values.of(1.1f),
+                Values.of(1.2f),
+                Values.of(1.3f),
+                Values.of(1.4f)),
+            "Expected vector of size 4, but received 5"));
   }
 
   public static Stream<Arguments> setValues() {
