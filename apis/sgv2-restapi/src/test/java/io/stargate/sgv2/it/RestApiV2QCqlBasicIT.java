@@ -17,8 +17,8 @@ import org.junit.jupiter.api.Test;
 /** Integration tests for CQL endpoint (at {@code /v2/cql}) when explicitly enabled. */
 @QuarkusIntegrationTest
 @QuarkusTestResource(StargateTestResource.class)
-@TestProfile(RestApiV2QCqlIT.Profile.class)
-public class RestApiV2QCqlIT extends RestApiV2QIntegrationTestBase {
+@TestProfile(RestApiV2QCqlBasicIT.Profile.class)
+public class RestApiV2QCqlBasicIT extends RestApiV2QIntegrationTestBase {
   // Since /cql endpoint is disabled by default, need to override
   public static class Profile implements QuarkusTestProfile {
     @Override
@@ -27,7 +27,7 @@ public class RestApiV2QCqlIT extends RestApiV2QIntegrationTestBase {
     }
   }
 
-  public RestApiV2QCqlIT() {
+  public RestApiV2QCqlBasicIT() {
     super("cql_ks_", "cql_t_", KeyspaceCreation.NONE);
   }
 
