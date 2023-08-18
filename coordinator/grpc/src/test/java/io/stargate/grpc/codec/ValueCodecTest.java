@@ -440,7 +440,7 @@ public class ValueCodecTest {
         arguments(
             vectorType,
             Values.of(Values.of(1.0f), Values.of(1.1f), Values.of(1.2f)),
-            "Expected vector of 4 size, but received 3"),
+            "Expected vector of size 4, but received 3"),
         arguments(
             vectorType,
             Values.of(
@@ -449,7 +449,7 @@ public class ValueCodecTest {
                 Values.of(1.2f),
                 Values.of(1.3f),
                 Values.of(1.4f)),
-            "Expected vector of 4 size, but received 5"));
+            "Expected vector of size 4, but received 5"));
   }
 
   public static Stream<Arguments> setValues() {
