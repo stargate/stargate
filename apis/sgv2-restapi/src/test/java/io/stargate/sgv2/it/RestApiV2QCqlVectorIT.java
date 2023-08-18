@@ -101,6 +101,7 @@ public class RestApiV2QCqlVectorIT extends RestApiV2QIntegrationTestBase {
         "INSERT into %s.%s (id, embedding) values (2, [1.0, 1.0, 1.0, 1.0, 1.0])"
             .formatted(ks, table));
 
+    // And use Vector search to find them in order
     String resp =
         postCqlQuery(
             "SELECT id FROM %s.%s ORDER BY embedding ANN OF [1,1,1,1,1] LIMIT 10"
@@ -124,8 +125,7 @@ public class RestApiV2QCqlVectorIT extends RestApiV2QIntegrationTestBase {
   }
 
   private void postAndVerifyCqlQuery(String cql, String expResponse) {
-    String response = postCqlQuery(cql);
-    assertThat(response).isEqualTo(expResponse);
+    assertThat(postCqlQuery(cql)).isEqualTo(expResponse);
   }
 
   private String postCqlQuery(String cql) {
