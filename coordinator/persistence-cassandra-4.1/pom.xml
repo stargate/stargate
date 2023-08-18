@@ -19,7 +19,7 @@
       The driver used internally by cassandra-all for UDFs (must match the version declared in
       cassandra-all's POM).
     -->
-    <cassandra.bundled-driver.version>3.11.4</cassandra.bundled-driver.version>
+    <cassandra.bundled-driver.version>3.11.0</cassandra.bundled-driver.version>
   </properties>
   <dependencyManagement>
     <dependencies>
