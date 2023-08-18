@@ -592,7 +592,9 @@ public class WriteBridgeService {
                             .setValue(queriesConfig.consistency().writes())));
     batchQueries.forEach(batch::addQueries);
     Batch batchBuilt = batch.build();
-    logger.debug("Batch payload size : {}", batchBuilt.getSerializedSize());
+    if (logger.isDebugEnabled()) {
+      logger.debug("Batch payload size : {}", batchBuilt.getSerializedSize());
+    }
     return bridge.executeBatch(batchBuilt).map(QueryOuterClass.Response::getResultSet);
   }
 
