@@ -85,6 +85,32 @@ public class RestApiV2QCqlVectorIT extends RestApiV2QIntegrationTestBase {
         .isEqualTo("{\"count\":1,\"data\":[{\"id\":2,\"embedding\":[0.5,0.5,0.75,0.125,0.25]}]}");
   }
 
+  // Actual Vector Search test
+  @Test
+  public void vectorSearch() {
+    final String ks = testKeyspaceName();
+    final String table = testTableName();
+
+    createTableEtc(ks, table);
+
+    // Insert 2 rows
+    postCqlQuery(
+        "INSERT into %s.%s (id, embedding) values (1, [0.25, 0.25, 0.25, 0.25, 0.125])"
+            .formatted(ks, table));
+    postCqlQuery(
+        "INSERT into %s.%s (id, embedding) values (2, [1.0, 1.0, 1.0, 1.0, 1.0])"
+            .formatted(ks, table));
+
+    String resp =
+        postCqlQuery(
+            "SELECT id FROM %s.%s ORDER BY embedding ANN OF [1,1,1,1,1] LIMIT 10"
+                .formatted(ks, table));
+    assertThat(resp)
+        .isEqualTo(
+            "{\"count\":2,\"data\":[{\"id\":2,\"embedding\":[1.0,1.0,1.0,1.0,1.0]},"
+                + "{\"id\":1,\"embedding\":[0.25,0.25,0.25,0.25,0.125]}]}");
+  }
+
   /*
   /////////////////////////////////////////////////////////////////////////
   // Helper methods
