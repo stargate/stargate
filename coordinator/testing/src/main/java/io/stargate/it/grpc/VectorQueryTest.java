@@ -20,14 +20,18 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
+import io.stargate.grpc.Values;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import io.stargate.proto.QueryOuterClass;
 import io.stargate.proto.StargateGrpc;
+import java.util.Arrays;
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
+
+// import java.util.Array;
 
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec
@@ -65,8 +69,16 @@ public class VectorQueryTest extends GrpcIntegrationTest {
     response =
         stub.executeQuery(
             cqlQuery(
-                "INSERT into vector_table (id, embedding) values (2, [1.0, 1.0, 1.0, 1.0, 1.0])",
-                queryParameters(keyspace)));
+                "INSERT into vector_table (id, embedding) values (?, ?)",
+                queryParameters(keyspace),
+                Values.of(2),
+                Values.of(
+                    Arrays.asList(
+                        Values.of(1.5f),
+                        Values.of(1.2f),
+                        Values.of(1.3f),
+                        Values.of(1.4f),
+                        Values.of(1.0f)))));
     assertThat(response).isNotNull();
 
     // Get rows with Vector values
@@ -91,8 +103,16 @@ public class VectorQueryTest extends GrpcIntegrationTest {
     response =
         stub.executeQuery(
             cqlQuery(
-                "INSERT into vector_table (id, embedding) values (2, [1.0, 1.0, 1.0, 1.0, 1.0])",
-                queryParameters(keyspace)));
+                "INSERT into vector_table (id, embedding) values (?, ?)",
+                queryParameters(keyspace),
+                Values.of(2),
+                Values.of(
+                    Arrays.asList(
+                        Values.of(1.0f),
+                        Values.of(1.0f),
+                        Values.of(1.0f),
+                        Values.of(1.0f),
+                        Values.of(1.0f)))));
     assertThat(response).isNotNull();
 
     // vector search
