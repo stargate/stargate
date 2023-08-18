@@ -35,7 +35,7 @@ jobs:
           commit-message: Merging branch main into v2.1
           branch: create-pull-request/merge-main-to-v2.1
           branch-suffix: short-commit-hash
-          base: main
+          base: v2.1
           labels: stargate-v2.1
           title: Merging branch main into v2.1
           body: |
