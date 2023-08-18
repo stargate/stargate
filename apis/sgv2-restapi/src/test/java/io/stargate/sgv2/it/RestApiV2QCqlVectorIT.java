@@ -14,7 +14,7 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
-/** Integration tests for CQL endpoint (at {@code /v2/cql}) when explicitly enabled. */
+/** Integration tests for accessing Vector functionality via CQL endpoint ({@code /v2/cql}) . */
 @QuarkusIntegrationTest
 @QuarkusTestResource(StargateTestResource.class)
 @TestProfile(RestApiV2QCqlVectorIT.Profile.class)
