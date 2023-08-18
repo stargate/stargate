@@ -90,7 +90,7 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                   description = "Whether to 'unwrap' results object (omit wrapper)",
                   required = false,
                   schema = @Schema(implementation = boolean.class)),
-             @Parameter(
+              @Parameter(
                   in = ParameterIn.QUERY,
                   name = RestOpenApiConstants.Parameters.COMPACT_MAP_DATA,
                   description = "Whether to return/expect the map data in compact format",
