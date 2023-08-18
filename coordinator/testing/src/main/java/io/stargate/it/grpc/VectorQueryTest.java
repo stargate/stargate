@@ -119,8 +119,15 @@ public class VectorQueryTest extends GrpcIntegrationTest {
     response =
         stub.executeQuery(
             cqlQuery(
-                "SELECT id FROM vector_table ORDER BY embedding ANN OF [1,1,1,1,1] LIMIT 10",
-                queryParameters(keyspace)));
+                "SELECT id FROM vector_table ORDER BY embedding ANN OF ? LIMIT 10",
+                queryParameters(keyspace),
+                Values.of(
+                    Arrays.asList(
+                        Values.of(1f),
+                        Values.of(1f),
+                        Values.of(1f),
+                        Values.of(1f),
+                        Values.of(1f)))));
     assertThat(response.hasResultSet()).isTrue();
     assertThat(response.getResultSet().getRowsCount()).isEqualTo(2);
     assertThat(response.getResultSet().getRows(0).getValues(0).getInt()).isEqualTo(2);
