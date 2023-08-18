@@ -92,6 +92,12 @@ import org.eclipse.microprofile.openapi.annotations.tags.Tag;
                   schema = @Schema(implementation = boolean.class)),
               @Parameter(
                   in = ParameterIn.QUERY,
+                  name = RestOpenApiConstants.Parameters.COMPACT_MAP_DATA,
+                  description = "Whether to return/expect the map data in compact format",
+                  required = false,
+                  schema = @Schema(implementation = boolean.class)),
+              @Parameter(
+                  in = ParameterIn.QUERY,
                   name = RestOpenApiConstants.Parameters.SORT,
                   description =
                       "JSON Object with key(s) to sort results by as keys and 'ASC' or 'DESC' as value",
