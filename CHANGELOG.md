@@ -18,7 +18,6 @@
 **Merged pull requests:**
 
 - Add ITs for Vector operations via /cql endpoint [\#2740](https://github.com/stargate/stargate/pull/2740) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Merging branch main into v2.1 [\#2739](https://github.com/stargate/stargate/pull/2739) ([github-actions[bot]](https://github.com/apps/github-actions))
 - Need to fix reference to base for PR \(wrt \#2734\) [\#2738](https://github.com/stargate/stargate/pull/2738) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Fix naming of workflow to have .yaml suffix \(not recognized otherwise\) [\#2737](https://github.com/stargate/stargate/pull/2737) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Add new GH workflow action for creating PR to merge main \(v2\) to v2.1… [\#2736](https://github.com/stargate/stargate/pull/2736) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
@@ -29,7 +28,6 @@
 - Error msg vector codec [\#2726](https://github.com/stargate/stargate/pull/2726) ([Yuqi-Du](https://github.com/Yuqi-Du))
 - Jeff/v2.1/system keyspace [\#2725](https://github.com/stargate/stargate/pull/2725) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
 - Add vector support to gRPC API [\#2722](https://github.com/stargate/stargate/pull/2722) ([Hazel-Datastax](https://github.com/Hazel-Datastax))
-- Bumping version for next v2.1 release [\#2719](https://github.com/stargate/stargate/pull/2719) ([github-actions[bot]](https://github.com/apps/github-actions))
 - Fix \#2653: add vector search CRUD support for REST API [\#2706](https://github.com/stargate/stargate/pull/2706) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 
 ## [v2.1.0-ALPHA-6](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-6) (2023-08-08)
@@ -53,7 +51,6 @@
 - Vector size validation [\#2708](https://github.com/stargate/stargate/pull/2708) ([maheshrajamani](https://github.com/maheshrajamani))
 - Add `size\(\)` method for `ColumnType`, implemented by `VectorType` [\#2700](https://github.com/stargate/stargate/pull/2700) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Add Vector-via-cql tests for Coordinator [\#2699](https://github.com/stargate/stargate/pull/2699) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version for next v2.1 release [\#2696](https://github.com/stargate/stargate/pull/2696) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v2.1.0-ALPHA-5](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-5) (2023-07-25)
 
@@ -62,7 +59,6 @@
 **Merged pull requests:**
 
 - Update `dse-db-all` jar to latest as of 2023-07-25 \(4.0.7-336cdd7405ee\) [\#2695](https://github.com/stargate/stargate/pull/2695) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version for next v2.1 release [\#2694](https://github.com/stargate/stargate/pull/2694) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v2.1.0-ALPHA-4](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-4) (2023-07-219)
 
@@ -90,7 +86,6 @@
 - Vector search integration to Stargate bridge  [\#2678](https://github.com/stargate/stargate/pull/2678) ([maheshrajamani](https://github.com/maheshrajamani))
 - Reduce Guava usage/dependencies to help against transitive Guava dep conflicts [\#2677](https://github.com/stargate/stargate/pull/2677) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Fixes \#2674: support microsecond fractions for ISO-8601 date/time for REST API [\#2675](https://github.com/stargate/stargate/pull/2675) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version for next v2.1 release [\#2673](https://github.com/stargate/stargate/pull/2673) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v2.1.0-ALPHA-2](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-2) (2023-07-12)
 
@@ -121,7 +116,6 @@
 - docker image tagging for v2.1 [\#2655](https://github.com/stargate/stargate/pull/2655) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
 - v2.1 release workflow [\#2652](https://github.com/stargate/stargate/pull/2652) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
 - update to Quarkus 3.1.3, sync grpc versions [\#2650](https://github.com/stargate/stargate/pull/2650) ([ivansenic](https://github.com/ivansenic))
-- Bumping version for next v2 release [\#2648](https://github.com/stargate/stargate/pull/2648) ([github-actions[bot]](https://github.com/apps/github-actions))
 - Add JSON as an API option [\#2644](https://github.com/stargate/stargate/pull/2644) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
 - Fix DSE ITs for Java 11 \(second attempt\) [\#2643](https://github.com/stargate/stargate/pull/2643) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
 - Remove rate limiting [\#2641](https://github.com/stargate/stargate/pull/2641) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
