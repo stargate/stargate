@@ -1,4 +1,68 @@
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-ALPHA-4...HEAD)
+# Changelog
+
+## [v2.1.0-ALPHA-7](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-7) (2023-08-21)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-ALPHA-6...v2.1.0-ALPHA-7)
+
+**Closed issues:**
+
+- Add GH workflow for creating PR for merging changes from 2.0 \(`main`\) to 2.1 \(`v2.1`\) [\#2734](https://github.com/stargate/stargate/issues/2734)
+- REST API swagger error reg compactMapData flag [\#2733](https://github.com/stargate/stargate/issues/2733)
+- Log DocsAPI Batch extrapolation size [\#2728](https://github.com/stargate/stargate/issues/2728)
+- Support vector search similarity function in the bridge. [\#2714](https://github.com/stargate/stargate/issues/2714)
+- Add tests for `dse-next` backend to verify basic Vector functionality over gRPC [\#2704](https://github.com/stargate/stargate/issues/2704)
+- Add vector support to gRPC API  [\#2654](https://github.com/stargate/stargate/issues/2654)
+- Add vector CRUD support to REST API, happy path tests [\#2653](https://github.com/stargate/stargate/issues/2653)
+- Separate comparable bytes and resume mode on the bridge [\#1967](https://github.com/stargate/stargate/issues/1967)
+
+**Merged pull requests:**
+
+- Add ITs for Vector operations via /cql endpoint [\#2740](https://github.com/stargate/stargate/pull/2740) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Merging branch main into v2.1 [\#2739](https://github.com/stargate/stargate/pull/2739) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Need to fix reference to base for PR \(wrt \#2734\) [\#2738](https://github.com/stargate/stargate/pull/2738) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix naming of workflow to have .yaml suffix \(not recognized otherwise\) [\#2737](https://github.com/stargate/stargate/pull/2737) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add new GH workflow action for creating PR to merge main \(v2\) to v2.1… [\#2736](https://github.com/stargate/stargate/pull/2736) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- 'compactMapData' param added to the parameters definition [\#2735](https://github.com/stargate/stargate/pull/2735) ([kathirsvn](https://github.com/kathirsvn))
+- Fix `dse-next` persistence backend to return `true` for `supportsSAI\(\)` [\#2732](https://github.com/stargate/stargate/pull/2732) ([Yuqi-Du](https://github.com/Yuqi-Du))
+- DocsAPI: Debug log to log the batch size when a doc is translated  [\#2729](https://github.com/stargate/stargate/pull/2729) ([kathirsvn](https://github.com/kathirsvn))
+- update the protobuf version in the bridge-proto pom file [\#2727](https://github.com/stargate/stargate/pull/2727) ([Yuqi-Du](https://github.com/Yuqi-Du))
+- Error msg vector codec [\#2726](https://github.com/stargate/stargate/pull/2726) ([Yuqi-Du](https://github.com/Yuqi-Du))
+- Jeff/v2.1/system keyspace [\#2725](https://github.com/stargate/stargate/pull/2725) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Add vector support to gRPC API [\#2722](https://github.com/stargate/stargate/pull/2722) ([Hazel-Datastax](https://github.com/Hazel-Datastax))
+- Bumping version for next v2.1 release [\#2719](https://github.com/stargate/stargate/pull/2719) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Fix \#2653: add vector search CRUD support for REST API [\#2706](https://github.com/stargate/stargate/pull/2706) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v2.1.0-ALPHA-6](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-6) (2023-08-08)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-ALPHA-5...v2.1.0-ALPHA-6)
+
+**Closed issues:**
+
+- Quarkus-common library `QueryBuilderImpl` incorrectly quotes size parameter of Vector type [\#2712](https://github.com/stargate/stargate/issues/2712)
+- Add array size validation in bridge vector codec [\#2707](https://github.com/stargate/stargate/issues/2707)
+- Add CQL tests for `dse-next` backend to verify basic Vector functionality over cql [\#2698](https://github.com/stargate/stargate/issues/2698)
+- Ensure `RowDecoratorImpl` for `persistence-dse-next` uses impl compatible with the backend [\#2693](https://github.com/stargate/stargate/issues/2693)
+- Create "DSE next" persistence module  [\#2663](https://github.com/stargate/stargate/issues/2663)
+- Integration test failure in CI due to failure to connect to Docker engine [\#1580](https://github.com/stargate/stargate/issues/1580)
+
+**Merged pull requests:**
+
+- Similarity functions [\#2718](https://github.com/stargate/stargate/pull/2718) ([maheshrajamani](https://github.com/maheshrajamani))
+- cassandra 4.0 docker compose updates [\#2716](https://github.com/stargate/stargate/pull/2716) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Fix \#2712: make QueryBuilder avoid quoting numbers [\#2713](https://github.com/stargate/stargate/pull/2713) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Vector size validation [\#2708](https://github.com/stargate/stargate/pull/2708) ([maheshrajamani](https://github.com/maheshrajamani))
+- Add `size\(\)` method for `ColumnType`, implemented by `VectorType` [\#2700](https://github.com/stargate/stargate/pull/2700) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add Vector-via-cql tests for Coordinator [\#2699](https://github.com/stargate/stargate/pull/2699) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.1 release [\#2696](https://github.com/stargate/stargate/pull/2696) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.1.0-ALPHA-5](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-5) (2023-07-25)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-ALPHA-4...v2.1.0-ALPHA-5)
+
+**Merged pull requests:**
+
+- Update `dse-db-all` jar to latest as of 2023-07-25 \(4.0.7-336cdd7405ee\) [\#2695](https://github.com/stargate/stargate/pull/2695) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.1 release [\#2694](https://github.com/stargate/stargate/pull/2694) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v2.1.0-ALPHA-4](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-4) (2023-07-219)
 
