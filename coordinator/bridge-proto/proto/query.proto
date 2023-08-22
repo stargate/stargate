@@ -301,6 +301,11 @@ message TypeSpec {
     bool frozen = 2;
   }
 
+  message Vector {
+    TypeSpec element = 1;
+    int32 size = 2;
+  }
+
   // A CQL User-Defined type: a collection of named fields.
   message Udt {
     // optional, only required when returned in ResultSet or used in CREATE TYPE,
@@ -325,6 +330,7 @@ message TypeSpec {
     Set set = 4;
     Udt udt = 5;
     Tuple tuple = 6;
+    Vector vector = 7;
   };
 }
 

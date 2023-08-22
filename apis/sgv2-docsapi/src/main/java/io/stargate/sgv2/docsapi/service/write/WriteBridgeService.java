@@ -37,25 +37,17 @@ import io.stargate.sgv2.docsapi.service.JsonShreddedRow;
 import io.stargate.sgv2.docsapi.service.json.DeadLeaf;
 import io.stargate.sgv2.docsapi.service.util.DocsApiUtils;
 import io.stargate.sgv2.docsapi.service.util.TimeSource;
-import io.stargate.sgv2.docsapi.service.write.db.AbstractDeleteQueryBuilder;
-import io.stargate.sgv2.docsapi.service.write.db.DeleteDocumentQueryBuilder;
-import io.stargate.sgv2.docsapi.service.write.db.DeleteSubDocumentArrayQueryBuilder;
-import io.stargate.sgv2.docsapi.service.write.db.DeleteSubDocumentKeysQueryBuilder;
-import io.stargate.sgv2.docsapi.service.write.db.DeleteSubDocumentPathQueryBuilder;
-import io.stargate.sgv2.docsapi.service.write.db.InsertQueryBuilder;
+import io.stargate.sgv2.docsapi.service.write.db.*;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @ApplicationScoped
 public class WriteBridgeService {
-
+  private static final Logger logger = LoggerFactory.getLogger(WriteBridgeService.class);
   // path splitter on dot
   private static final Splitter PATH_SPLITTER = Splitter.on(".");
 
@@ -599,8 +591,11 @@ public class WriteBridgeService {
                         QueryOuterClass.ConsistencyValue.newBuilder()
                             .setValue(queriesConfig.consistency().writes())));
     batchQueries.forEach(batch::addQueries);
-
-    return bridge.executeBatch(batch.build()).map(QueryOuterClass.Response::getResultSet);
+    Batch batchBuilt = batch.build();
+    if (logger.isDebugEnabled()) {
+      logger.debug("Batch payload size : {}", batchBuilt.getSerializedSize());
+    }
+    return bridge.executeBatch(batchBuilt).map(QueryOuterClass.Response::getResultSet);
   }
 
   private Uni<ResultSet> executeSingle(

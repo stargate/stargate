@@ -1,5 +1,4 @@
-# @author Ivan Senic
-name: Merge v1 to v2
+name: Merge v2 to v2.1
 
 # runs on
 # * manual trigger
@@ -14,10 +13,10 @@ jobs:
 
     steps:
 
-      # always checkout main, but fetch complete history
+      # always checkout v2.1, but fetch complete history
       - uses: actions/checkout@v3
         with:
-          ref: main
+          ref: v2.1
           fetch-depth: 0
 
       # run merge without a commit (will be added in final step)
@@ -25,7 +24,7 @@ jobs:
         run: |
           git config user.name github-actions
           git config user.email github-actions@github.com
-          git merge origin/v1
+          git merge origin/main
           git diff --name-only --diff-filter=U | xargs -I@ bash -c "git checkout --ours @ && git add @"
 
       # commit and create pr
@@ -33,17 +32,17 @@ jobs:
         uses: peter-evans/create-pull-request@v5
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: Merging branch v1 into main
-          branch: create-pull-request/merge-main-v1
+          commit-message: Merging branch main into v2.1
+          branch: create-pull-request/merge-main-to-v2.1
           branch-suffix: short-commit-hash
-          base: main
-          labels: stargate-v2
-          title: Merging branch v1 into main
+          base: v2.1
+          labels: stargate-v2.1
+          title: Merging branch main into v2.1
           body: |
-            Automated changes that try to merge v1 into main. Note that all non-resolved conflicts were resolved using the `ours` git strategy. Please review the changes carefully.
+            Automated changes that try to merge main into v2.1. Note that all non-resolved conflicts were resolved using the `ours` git strategy. Please review the changes carefully.
 
             In order to start the CI workflows for this pull request, please:
             * reopen and open the issue in order to trigger GitHub workflows
             * comment `/gcbrun` in order to trigger GCB builds
-            
+
             **IMPORTANT: When merging please use the fast-forward merge and avoid GitHub merge buttons.**

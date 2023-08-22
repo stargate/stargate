@@ -75,6 +75,19 @@ public class BridgeProtoTypeTranslator {
           frozen = udtType.getFrozen();
           break;
         }
+      case VECTOR:
+        {
+          QueryOuterClass.TypeSpec.Vector vectorType = type.getVector();
+          desc =
+              "vector<"
+                  + cqlTypeFromBridgeTypeSpec(vectorType.getElement(), false)
+                  + ", "
+                  + vectorType.getSize()
+                  + ">";
+          frozen = false;
+          break;
+        }
+
       case SPEC_NOT_SET:
       default:
         throw new IllegalArgumentException("Undefined/unrecognized TypeSpec: " + type);
