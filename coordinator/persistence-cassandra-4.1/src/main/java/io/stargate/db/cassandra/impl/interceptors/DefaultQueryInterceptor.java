@@ -6,21 +6,17 @@ import static io.stargate.db.cassandra.impl.StargateSystemKeyspace.isSystemPeers
 
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
 import io.stargate.db.EventListener;
+import io.stargate.db.cassandra.impl.SelectStatementWithRawCql;
 import io.stargate.db.cassandra.impl.StargatePeerInfo;
 import io.stargate.db.cassandra.impl.StargateSystemKeyspace;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.BiConsumer;
-import org.apache.cassandra.cql3.CQLStatement;
-import org.apache.cassandra.cql3.QueryOptions;
-import org.apache.cassandra.cql3.ResultSet;
+import org.apache.cassandra.cql3.*;
 import org.apache.cassandra.cql3.statements.SelectStatement;
 import org.apache.cassandra.db.virtual.VirtualKeyspaceRegistry;
 import org.apache.cassandra.gms.ApplicationState;
@@ -85,18 +81,16 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
           StargateSystemKeyspace.instance
               .metadata()
               .getTableNullable(StargateSystemKeyspace.PEERS_V2_TABLE_NAME);
-    SelectStatement interceptStatement =
-        new SelectStatement(
-            tableMetadata,
-            selectStatement.bindVariables,
-            selectStatement.parameters,
-            selectStatement.getSelection(),
-            selectStatement.getRestrictions(),
-            false,
-            null,
-            null,
-            null,
-            null);
+
+    // Re-parse so that we can intercept and replace the keyspace.
+    SelectStatementWithRawCql selectStatementWithRawCql =
+        (SelectStatementWithRawCql) selectStatement;
+    SelectStatement.RawStatement rawStatement =
+        (SelectStatement.RawStatement)
+            QueryProcessor.parseStatement(selectStatementWithRawCql.getRawCQLStatement());
+
+    rawStatement.setKeyspace(StargateSystemKeyspace.SYSTEM_KEYSPACE_NAME);
+    SelectStatement interceptStatement = rawStatement.prepare(state.getClientState());
 
     ResultMessage.Rows rows = interceptStatement.execute(state, options, queryStartNanoTime);
     return new ResultMessage.Rows(

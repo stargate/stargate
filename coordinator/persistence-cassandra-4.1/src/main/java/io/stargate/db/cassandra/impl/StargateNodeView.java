@@ -10,6 +10,7 @@ public abstract class StargateNodeView extends AbstractVirtualTable {
   }
 
   DataSet completeRow(SimpleDataSet dataset, StargateNodeInfo info) {
+    System.out.println("StargateNodeView.completeRow: info.host_id=" + info.getHostId());
     // + "data_center text,"
     return dataset
         .column("data_center", info.getDataCenter())

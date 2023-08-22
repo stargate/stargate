@@ -130,7 +130,13 @@ public class StargateQueryHandler implements QueryHandler {
 
   @Override
   public CQLStatement parse(String s, QueryState queryState, QueryOptions queryOptions) {
-    return QueryProcessor.instance.parse(s, queryState, queryOptions);
+    CQLStatement statement = QueryProcessor.instance.parse(s, queryState, queryOptions);
+
+    if (statement instanceof SelectStatement
+        && StargateSystemKeyspace.isSystemLocalOrPeers(statement)) {
+      statement = new SelectStatementWithRawCql((SelectStatement) statement, s);
+    }
+    return statement;
   }
 
   @Override

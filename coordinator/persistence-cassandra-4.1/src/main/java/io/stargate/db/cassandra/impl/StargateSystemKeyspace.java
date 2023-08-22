@@ -60,7 +60,7 @@ public class StargateSystemKeyspace extends VirtualKeyspace {
     local.setListenAddress(FBUtilities.getJustLocalAddress());
     local.setNativeAddress(FBUtilities.getJustBroadcastNativeAddress());
     local.setNativePort(DatabaseDescriptor.getNativeTransportPort());
-    local.setHostId(SystemKeyspace.getLocalHostId());
+    local.setHostId(SystemKeyspace.getOrInitializeLocalHostId());
     local.setTokens(
         StargateSystemKeyspace.generateRandomTokens(
             FBUtilities.getBroadcastNativeAddressAndPort(), DatabaseDescriptor.getNumTokens()));
