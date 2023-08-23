@@ -184,13 +184,25 @@ public class StargateQueryHandler implements QueryHandler {
             .orElseGet(() -> QueryProcessor.getStatement(s, clientState));
     boolean idempotent = IdempotencyAnalyzer.isIdempotent(statement);
     boolean useKeyspace = statement instanceof UseStatement;
+
     return new PreparedWithInfo(
         idempotent, useKeyspace, statement.getPartitionKeyBindVariableIndexes(), prepare);
   }
 
   @Override
   public Prepared getPrepared(MD5Digest md5Digest) {
-    return QueryProcessor.instance.getPrepared(md5Digest);
+    Prepared prepared = QueryProcessor.instance.getPrepared(md5Digest);
+
+    if (StargateSystemKeyspace.isSystemLocalOrPeers(prepared.statement)) {
+      prepared =
+          new Prepared(
+              new SelectStatementWithRawCql(
+                  (SelectStatement) prepared.statement, prepared.rawCQLStatement),
+              prepared.rawCQLStatement,
+              prepared.fullyQualified,
+              prepared.keyspace);
+    }
+    return prepared;
   }
 
   @Override
