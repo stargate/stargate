@@ -4,10 +4,10 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.List;
-import java.util.UUID;
 import org.apache.cassandra.cql3.QueryOptions;
 import org.apache.cassandra.transport.Message.Request;
 import org.apache.cassandra.transport.Message.Response;
+import org.apache.cassandra.utils.TimeUUID;
 
 class ReflectionUtils {
 
@@ -83,7 +83,7 @@ class ReflectionUtils {
     invoke(requestSetTracingRequested, request);
   }
 
-  static UUID getTracingId(Response response) {
+  static TimeUUID getTracingId(Response response) {
     return invoke(responseGetTracingId, response);
   }
 

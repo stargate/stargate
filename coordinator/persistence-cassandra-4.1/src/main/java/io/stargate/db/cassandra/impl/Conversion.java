@@ -468,7 +468,7 @@ public class Conversion {
       boolean includeTracingInfo) {
     Result result = toResultInternal(resultMessage, version);
     if (includeTracingInfo) {
-      result.setTracingId(ReflectionUtils.getTracingId(resultMessage));
+      result.setTracingId(ReflectionUtils.getTracingId(resultMessage).asUUID());
     }
     return result;
   }
