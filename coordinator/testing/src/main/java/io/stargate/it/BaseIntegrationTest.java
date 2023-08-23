@@ -54,6 +54,10 @@ public class BaseIntegrationTest {
         && Version.parse(backend.clusterVersion()).nextStable().compareTo(Version.V4_0_0) >= 0;
   }
 
+  public boolean isCassandra41() {
+    return isCassandra4() && Version.parse(backend.clusterVersion()).nextStable().getMinor() >= 1;
+  }
+
   public boolean backendSupportsSAI() {
     return backend.supportsSAI();
   }

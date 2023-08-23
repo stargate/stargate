@@ -136,7 +136,7 @@ public class JwtAuthTest extends BaseIntegrationTest {
       String errorMessage =
           "User web_user has no CREATE permission on <keyspace ks_\\d*_JwtAuthTest> or any of its parents";
 
-      if (backend.isDse()) {
+      if (backend.isDse() || isCassandra41()) {
         errorMessage =
             "User web_user has no CREATE permission on <all tables in ks_\\d*_JwtAuthTest> or any of its parents";
       }
