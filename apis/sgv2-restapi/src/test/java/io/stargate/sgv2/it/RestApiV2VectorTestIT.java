@@ -12,6 +12,7 @@ import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
 import io.stargate.sgv2.restapi.service.models.Sgv2Table;
 import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.apache.http.HttpStatus;
@@ -177,9 +178,37 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
   /////////////////////////////////////////////////////////////////////////
    */
 
-  // TODO: Add test inserting row with wrong number of elements
+  @Test
+  public void insertRowFailForWrongVectorLength() {
+    final String tableName = testTableName();
+    createVectorTable(testKeyspaceName(), tableName, "vector<float, 3>");
 
-  // TODO: Add test inserting row with wrong element value type (strings)
+    Map<String, Object> row = new HashMap<>();
+    row.put("id", 42);
+    row.put("embedding", Arrays.asList(0.0, 0.25, 0.5, 0.75));
+
+    String response =
+        insertRowExpectStatus(testKeyspaceName(), tableName, row, HttpStatus.SC_BAD_REQUEST);
+    ApiError error = readJsonAs(response, ApiError.class);
+    assertThat(error.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(error.description()).contains("Expected vector of size 3, got 4");
+  }
+
+  @Test
+  public void insertRowFailForWrongVectorElementType() {
+    final String tableName = testTableName();
+    createVectorTable(testKeyspaceName(), tableName, "vector<float, 3>");
+
+    Map<String, Object> row = new HashMap<>();
+    row.put("id", 42);
+    row.put("embedding", Arrays.asList("a", "b", "c"));
+
+    String response =
+        insertRowExpectStatus(testKeyspaceName(), tableName, row, HttpStatus.SC_BAD_REQUEST);
+    ApiError error = readJsonAs(response, ApiError.class);
+    assertThat(error.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(error.description()).contains("Cannot coerce String");
+  }
 
   /*
   /////////////////////////////////////////////////////////////////////////
