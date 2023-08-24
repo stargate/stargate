@@ -36,7 +36,7 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
 
   /*
   /////////////////////////////////////////////////////////////////////////
-  // Tests: Create with Vector, index
+  // Tests: Create with Vector+index, happy path
   /////////////////////////////////////////////////////////////////////////
    */
 
@@ -52,8 +52,6 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
   /////////////////////////////////////////////////////////////////////////
    */
 
-  // TODO: Add test trying to create vector column with non-float element
-  //   type like "vector<string, 5>
   @Test
   @Disabled("Dse-next backend does not yet seem to validate vector element type")
   public void tableCreateFailForNonFloatType() {
@@ -76,7 +74,6 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
         .contains("vectors may only use float. given int");
   }
 
-  // TODO: Add test trying to create "too big" vector column
   // 24-Aug-2021, tatu: Current version of dse-next does not have guard rails yet,
   //    cannot yet add test
   @Test
@@ -104,7 +101,7 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
 
   /*
   /////////////////////////////////////////////////////////////////////////
-  // Tests: INSERT, GET Row(s), happy
+  // Tests: INSERT, GET Row(s), happy path
   /////////////////////////////////////////////////////////////////////////
    */
 
@@ -174,12 +171,12 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
 
   /*
   /////////////////////////////////////////////////////////////////////////
-  // Tests: INSERT, GET Row(s), fail
+  // Tests: INSERT, GET Row(s), Fail cases
   /////////////////////////////////////////////////////////////////////////
    */
 
   @Test
-  public void insertRowFailForWrongVectorLength() {
+  public void insertRowFailForVectorWithTooManyEntries() {
     final String tableName = testTableName();
     createVectorTable(testKeyspaceName(), tableName, "vector<float, 3>");
 
@@ -212,11 +209,33 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
 
   /*
   /////////////////////////////////////////////////////////////////////////
-  // Tests: Delete
+  // Tests: Delete, happy path
   /////////////////////////////////////////////////////////////////////////
    */
 
-  // TODO: insert simple row with vector, delete it, check it's gone
+  @Test
+  public void deleteRowWithVectorValue() {
+    final String tableName = testTableName();
+    createVectorTable(testKeyspaceName(), tableName, "vector<float, 3>");
+
+    insertTypedRows(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList(
+            map("id", 1, "embedding", Arrays.asList(0.0, 0.0, 0.25)),
+            map("id", 2, "embedding", Arrays.asList(0.5, 0.5, 0.5)),
+            map("id", 3, "embedding", Arrays.asList(1.0, 1.0, 1.0))));
+    assertThat(findAllRowsAsList(testKeyspaceName(), tableName)).hasSize(3);
+
+    // Then delete one of vector values
+    givenWithAuth()
+        .when()
+        .delete(endpointPathForRowByPK(testKeyspaceName(), tableName, 2))
+        .then()
+        .statusCode(HttpStatus.SC_NO_CONTENT);
+    // And verify we have just 2 left:
+    assertThat(findAllRowsAsList(testKeyspaceName(), tableName)).hasSize(2);
+  }
 
   /*
   /////////////////////////////////////////////////////////////////////////
