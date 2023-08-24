@@ -80,9 +80,49 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
     assertThat(rows.get(0).get("embedding")).isEqualTo(Arrays.asList(0.5, 0.5, 0.5, 0.5, 0.5));
   }
 
-  // TODO: Add test inserting row with no vector value
+  @Test
+  public void insertRowWithoutVectorValue() {
+    final String tableName = testTableName();
+    createVectorTable(testKeyspaceName(), tableName);
+
+    insertTypedRows(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList(
+            map("id", 1, "embedding", Arrays.asList(0.0, 0.0, 0.25, 0.0, 0.0)),
+            map("id", 2),
+            map("id", 3)));
+
+    // And then select one of vector values
+    List<Map<String, Object>> rows = findRowsAsList(testKeyspaceName(), tableName, 3);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.get(0).get("id")).isEqualTo(3);
+    // verify that we get null for the vector value
+    assertThat(rows.get(0)).containsKey("embedding");
+    assertThat(rows.get(0).get("embedding")).isNull();
+  }
 
   // TODO: Add test inserting row with null vector value
+  @Test
+  public void insertRowWithNullVectorValue() {
+    final String tableName = testTableName();
+    createVectorTable(testKeyspaceName(), tableName);
+
+    insertTypedRows(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList(
+            map("id", 1, "embedding", Arrays.asList(0.0, 0.0, 0.25, 0.0, 0.0)),
+            map("id", 5, "embedding", null)));
+
+    // And then select one of vector values
+    List<Map<String, Object>> rows = findRowsAsList(testKeyspaceName(), tableName, 5);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.get(0).get("id")).isEqualTo(5);
+    // verify that we get null for the vector value
+    assertThat(rows.get(0)).containsKey("embedding");
+    assertThat(rows.get(0).get("embedding")).isNull();
+  }
 
   /*
   /////////////////////////////////////////////////////////////////////////

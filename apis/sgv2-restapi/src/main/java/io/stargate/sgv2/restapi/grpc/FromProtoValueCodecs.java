@@ -546,6 +546,10 @@ public class FromProtoValueCodecs {
     public Object fromProtoValue(QueryOuterClass.Value value) {
       QueryOuterClass.Collection coll = value.getCollection();
       final int len = coll.getElementsCount();
+      // Special case: empty Collection needs to be mapped to `null`
+      if (len == 0) {
+        return null;
+      }
       validateSize(len);
       Collection<Object> result = constructCollection(len);
       for (int i = 0; i < len; ++i) {
@@ -557,9 +561,13 @@ public class FromProtoValueCodecs {
     @Override
     public JsonNode jsonNodeFrom(QueryOuterClass.Value value) {
       QueryOuterClass.Collection coll = value.getCollection();
-      ArrayNode result = jsonNodeFactory.arrayNode();
       final int len = coll.getElementsCount();
+      // Special case: empty Collection needs to be mapped to JSON `null`
+      if (len == 0) {
+        return jsonNodeFactory.nullNode();
+      }
       validateSize(len);
+      ArrayNode result = jsonNodeFactory.arrayNode();
       for (int i = 0; i < len; ++i) {
         result.add(elementCodec.jsonNodeFrom(coll.getElements(i)));
       }
