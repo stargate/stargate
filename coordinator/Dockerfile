@@ -44,4 +44,4 @@ FROM base as coordinator-dse-next
 COPY stargate-lib/persistence-api*.jar stargate-lib/persistence-dse-next*.jar stargate-lib/
 
 FROM base as coordinator-dse-68
-COPY stargate-lib/persistence-api*.jar stargate-lib/persistence-dse*.jar stargate-lib/
+COPY stargate-lib/persistence-api*.jar stargate-lib/persistence-dse-6.8*.jar stargate-lib/
