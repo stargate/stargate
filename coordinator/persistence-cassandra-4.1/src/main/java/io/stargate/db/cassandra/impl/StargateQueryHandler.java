@@ -193,7 +193,7 @@ public class StargateQueryHandler implements QueryHandler {
   public Prepared getPrepared(MD5Digest md5Digest) {
     Prepared prepared = QueryProcessor.instance.getPrepared(md5Digest);
 
-    if (StargateSystemKeyspace.isSystemLocalOrPeers(prepared.statement)) {
+    if (prepared != null && StargateSystemKeyspace.isSystemLocalOrPeers(prepared.statement)) {
       prepared =
           new Prepared(
               new SelectStatementWithRawCql(
