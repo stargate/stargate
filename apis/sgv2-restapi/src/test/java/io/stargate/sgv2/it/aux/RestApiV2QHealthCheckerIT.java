@@ -51,4 +51,19 @@ public class RestApiV2QHealthCheckerIT {
     JsonNode json = OBJECT_MAPPER.readTree(response);
     assertThat(json.at("/status").asText()).isEqualTo("UP");
   }
+
+  // We also have legacy health-point added and used by routing logic
+  @Test
+  public void checkLegacyHealth() {
+    String response =
+        given().when().get("/health").then().statusCode(HttpStatus.SC_OK).extract().asString();
+    assertThat(response).startsWith("UP");
+  }
+
+  @Test
+  public void checkLegacyPing() {
+    String response =
+        given().when().get("/ping").then().statusCode(HttpStatus.SC_OK).extract().asString();
+    assertThat(response).startsWith("It's Alive");
+  }
 }

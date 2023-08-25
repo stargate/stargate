@@ -22,13 +22,20 @@ import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 
+/** Legacy Health endpoint used by some routers to check if the service is up and running. */
 @Path("/")
-@Produces(MediaType.APPLICATION_JSON)
+@Produces(MediaType.MEDIA_TYPE_WILDCARD)
 @Singleton
 public class HealthResource {
   @GET
   @Path("/health")
   public Response health() {
-    return Response.status(Response.Status.OK).entity("UP").build();
+    return Response.status(Response.Status.OK).entity("UP [REST]").build();
+  }
+
+  @GET
+  @Path("/ping")
+  public Response ping() {
+    return Response.status(Response.Status.OK).entity("It's Alive [REST]").build();
   }
 }
