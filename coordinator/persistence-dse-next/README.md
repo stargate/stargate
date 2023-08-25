@@ -6,7 +6,7 @@ Note: This persistence backend includes vector search and SAI indexing features 
 
 ## Cassandra version update
 
-The current Cassandra version this module depends on is `4.0.7-0acaae364c19` from [datastax/cassandra:vsearch](https://github.com/datastax/cassandra/tree/vsearch).
+The current Cassandra version this module depends on is `4.0.7-4baff43cf3ae` from [datastax/cassandra:vsearch](https://github.com/datastax/cassandra/tree/vsearch) (released 2023-08-24)
 In order to update to a newer patch version, please follow the guidelines below:
 
 * Update the `cassandra.version` property in the [pom.xml](pom.xml).
@@ -18,4 +18,3 @@ This dependency is set as optional in the `cassandra-all`, but we need it to cor
 * Make sure everything compiles and CI tests are green.
 * Update the [default docker-compose env variables](../docker-compose/dse-next/.env) to reference the new version.
 * Update this `README.md` file with the new or updated instructions.
-
