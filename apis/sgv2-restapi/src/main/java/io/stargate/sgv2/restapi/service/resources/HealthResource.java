@@ -24,7 +24,7 @@ import jakarta.ws.rs.core.Response;
 
 /** Legacy Health endpoint used by some routers to check if the service is up and running. */
 @Path("/")
-@Produces(MediaType.MEDIA_TYPE_WILDCARD)
+@Produces(MediaType.TEXT_PLAIN)
 @Singleton
 public class HealthResource {
   @GET
