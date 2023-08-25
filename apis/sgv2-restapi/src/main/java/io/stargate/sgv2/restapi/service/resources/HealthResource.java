@@ -28,13 +28,13 @@ import jakarta.ws.rs.core.Response;
 @Singleton
 public class HealthResource {
   @GET
-  @Path("/health")
+  @Path("health")
   public Response health() {
     return Response.status(Response.Status.OK).entity("UP [REST]").build();
   }
 
   @GET
-  @Path("/ping")
+  @Path("ping")
   public Response ping() {
     return Response.status(Response.Status.OK).entity("It's Alive [REST]").build();
   }
