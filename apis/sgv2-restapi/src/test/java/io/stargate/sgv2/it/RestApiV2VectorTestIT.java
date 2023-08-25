@@ -53,7 +53,7 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
    */
 
   @Test
-  @Disabled("Dse-next backend does not yet seem to validate vector element type")
+  // @Disabled("Dse-next backend does not yet seem to validate vector element type")
   public void tableCreateFailForNonFloatType() {
     final String keyspace = testKeyspaceName();
     final String tableName = testTableName();
