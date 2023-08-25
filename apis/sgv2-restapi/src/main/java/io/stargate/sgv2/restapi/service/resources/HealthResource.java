@@ -30,7 +30,7 @@ public class HealthResource {
   @GET
   @Path("health")
   public Response health() {
-    return Response.status(Response.Status.OK).entity("UP [REST]").build();
+    return Response.status(Response.Status.OK).entity("UP").build();
   }
 
   @GET
