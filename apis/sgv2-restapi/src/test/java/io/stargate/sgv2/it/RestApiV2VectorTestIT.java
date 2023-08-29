@@ -5,15 +5,19 @@ import static org.assertj.core.api.Assumptions.assumeThat;
 
 import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
+import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.common.IntegrationTestUtils;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.restapi.service.models.Sgv2ColumnDefinition;
 import io.stargate.sgv2.restapi.service.models.Sgv2Table;
 import io.stargate.sgv2.restapi.service.models.Sgv2TableAddRequest;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
@@ -32,14 +36,14 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
 
   /*
   /////////////////////////////////////////////////////////////////////////
-  // Tests: Create with Vector, index
+  // Tests: Create with Vector+index, happy path
   /////////////////////////////////////////////////////////////////////////
    */
 
   @Test
   public void tableCreateWithVectorIndex() {
     final String tableName = testTableName();
-    createVectorTable(testKeyspaceName(), tableName);
+    createVectorTable(testKeyspaceName(), tableName, "vector<float, 5>");
   }
 
   /*
@@ -48,21 +52,62 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
   /////////////////////////////////////////////////////////////////////////
    */
 
-  // TODO: Add test trying to create vector column with non-float element
-  //   type like "vector<string, 5>
+  @Test
+  public void tableCreateFailForNonFloatType() {
+    final String keyspace = testKeyspaceName();
+    final String tableName = testTableName();
 
-  // TODO: Add test trying to create "too big" vector column
+    // Inlined "createVectorTable" so we can modify call appropriately
+    final List<Sgv2ColumnDefinition> columnDefs =
+        Arrays.asList(
+            new Sgv2ColumnDefinition("id", "int", false),
+            new Sgv2ColumnDefinition("embedding", "vector<int, 4>", false));
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey(Arrays.asList("id"), null);
+    final Sgv2TableAddRequest tableAdd =
+        new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);
+    String response = tryCreateTable(keyspace, tableAdd, HttpStatus.SC_BAD_REQUEST);
+    ApiError apiError = readJsonAs(response, ApiError.class);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(apiError.description())
+        .contains("INVALID_ARGUMENT")
+        .contains("vectors may only use float. given int");
+  }
+
+  // 24-Aug-2021, tatu: Current version of dse-next does not have guard rails yet,
+  //    cannot yet add test
+  @Test
+  @Disabled("Cannot test 'too big vector' before dse-next backend version supports it")
+  public void tableCreateFailForTooBigVector() {
+    final String keyspace = testKeyspaceName();
+    final String tableName = testTableName();
+
+    // Inlined "createVectorTable" so we can modify call appropriately
+    final List<Sgv2ColumnDefinition> columnDefs =
+        Arrays.asList(
+            new Sgv2ColumnDefinition("id", "int", false),
+            new Sgv2ColumnDefinition("embedding", "vector<float, 99999>", false));
+    Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey(Arrays.asList("id"), null);
+    final Sgv2TableAddRequest tableAdd =
+        new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);
+    String response = tryCreateTable(keyspace, tableAdd, HttpStatus.SC_BAD_REQUEST);
+    ApiError apiError = readJsonAs(response, ApiError.class);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(apiError.description())
+        .contains("INVALID_ARGUMENT")
+        // TODO: verify actual failure message, this is just a placeholder
+        .contains("exceeds maximum vector length");
+  }
 
   /*
   /////////////////////////////////////////////////////////////////////////
-  // Tests: INSERT, GET Row(s), happy
+  // Tests: INSERT, GET Row(s), happy path
   /////////////////////////////////////////////////////////////////////////
    */
 
   @Test
   public void insertRowWithVectorValue() {
     final String tableName = testTableName();
-    createVectorTable(testKeyspaceName(), tableName);
+    createVectorTable(testKeyspaceName(), tableName, "vector<float, 5>");
 
     insertTypedRows(
         testKeyspaceName(),
@@ -80,27 +125,116 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
     assertThat(rows.get(0).get("embedding")).isEqualTo(Arrays.asList(0.5, 0.5, 0.5, 0.5, 0.5));
   }
 
-  // TODO: Add test inserting row with no vector value
+  @Test
+  public void insertRowWithoutVectorValue() {
+    final String tableName = testTableName();
+    createVectorTable(testKeyspaceName(), tableName, "vector<float, 5>");
 
-  // TODO: Add test inserting row with null vector value
+    insertTypedRows(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList(
+            map("id", 1, "embedding", Arrays.asList(0.0, 0.0, 0.25, 0.0, 0.0)),
+            map("id", 2),
+            map("id", 3)));
+
+    // And then select one of vector values
+    List<Map<String, Object>> rows = findRowsAsList(testKeyspaceName(), tableName, 3);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.get(0).get("id")).isEqualTo(3);
+    // verify that we get null for the vector value
+    assertThat(rows.get(0)).containsKey("embedding");
+    assertThat(rows.get(0).get("embedding")).isNull();
+  }
+
+  @Test
+  public void insertRowWithNullVectorValue() {
+    final String tableName = testTableName();
+    createVectorTable(testKeyspaceName(), tableName, "vector<float, 5>");
+
+    insertTypedRows(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList(
+            map("id", 1, "embedding", Arrays.asList(0.0, 0.0, 0.25, 0.0, 0.0)),
+            map("id", 5, "embedding", null)));
+
+    // And then select one of vector values
+    List<Map<String, Object>> rows = findRowsAsList(testKeyspaceName(), tableName, 5);
+    assertThat(rows).hasSize(1);
+    assertThat(rows.get(0).get("id")).isEqualTo(5);
+    // verify that we get null for the vector value
+    assertThat(rows.get(0)).containsKey("embedding");
+    assertThat(rows.get(0).get("embedding")).isNull();
+  }
 
   /*
   /////////////////////////////////////////////////////////////////////////
-  // Tests: INSERT, GET Row(s), fail
+  // Tests: INSERT, GET Row(s), Fail cases
   /////////////////////////////////////////////////////////////////////////
    */
 
-  // TODO: Add test inserting row with wrong number of elements
+  @Test
+  public void insertRowFailForVectorWithTooManyEntries() {
+    final String tableName = testTableName();
+    createVectorTable(testKeyspaceName(), tableName, "vector<float, 3>");
 
-  // TODO: Add test inserting row with wrong element value type (strings)
+    Map<String, Object> row = new HashMap<>();
+    row.put("id", 42);
+    row.put("embedding", Arrays.asList(0.0, 0.25, 0.5, 0.75));
+
+    String response =
+        insertRowExpectStatus(testKeyspaceName(), tableName, row, HttpStatus.SC_BAD_REQUEST);
+    ApiError error = readJsonAs(response, ApiError.class);
+    assertThat(error.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(error.description()).contains("Expected vector of size 3, got 4");
+  }
+
+  @Test
+  public void insertRowFailForWrongVectorElementType() {
+    final String tableName = testTableName();
+    createVectorTable(testKeyspaceName(), tableName, "vector<float, 3>");
+
+    Map<String, Object> row = new HashMap<>();
+    row.put("id", 42);
+    row.put("embedding", Arrays.asList("a", "b", "c"));
+
+    String response =
+        insertRowExpectStatus(testKeyspaceName(), tableName, row, HttpStatus.SC_BAD_REQUEST);
+    ApiError error = readJsonAs(response, ApiError.class);
+    assertThat(error.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(error.description()).contains("Cannot coerce String");
+  }
 
   /*
   /////////////////////////////////////////////////////////////////////////
-  // Tests: Delete
+  // Tests: Delete, happy path
   /////////////////////////////////////////////////////////////////////////
    */
 
-  // TODO: insert simple row with vector, delete it, check it's gone
+  @Test
+  public void deleteRowWithVectorValue() {
+    final String tableName = testTableName();
+    createVectorTable(testKeyspaceName(), tableName, "vector<float, 3>");
+
+    insertTypedRows(
+        testKeyspaceName(),
+        tableName,
+        Arrays.asList(
+            map("id", 1, "embedding", Arrays.asList(0.0, 0.0, 0.25)),
+            map("id", 2, "embedding", Arrays.asList(0.5, 0.5, 0.5)),
+            map("id", 3, "embedding", Arrays.asList(1.0, 1.0, 1.0))));
+    assertThat(findAllRowsAsList(testKeyspaceName(), tableName)).hasSize(3);
+
+    // Then delete one of vector values
+    givenWithAuth()
+        .when()
+        .delete(endpointPathForRowByPK(testKeyspaceName(), tableName, 2))
+        .then()
+        .statusCode(HttpStatus.SC_NO_CONTENT);
+    // And verify we have just 2 left:
+    assertThat(findAllRowsAsList(testKeyspaceName(), tableName)).hasSize(2);
+  }
 
   /*
   /////////////////////////////////////////////////////////////////////////
@@ -108,11 +242,11 @@ public class RestApiV2VectorTestIT extends RestApiV2QIntegrationTestBase {
   /////////////////////////////////////////////////////////////////////////
    */
 
-  private void createVectorTable(String keyspace, String tableName) {
+  private void createVectorTable(String keyspace, String tableName, String vectorDef) {
     final List<Sgv2ColumnDefinition> columnDefs =
         Arrays.asList(
             new Sgv2ColumnDefinition("id", "int", false),
-            new Sgv2ColumnDefinition("embedding", "vector<float, 5>", false));
+            new Sgv2ColumnDefinition("embedding", vectorDef, false));
     Sgv2Table.PrimaryKey primaryKey = new Sgv2Table.PrimaryKey(Arrays.asList("id"), null);
     final Sgv2TableAddRequest tableAdd =
         new Sgv2TableAddRequest(tableName, primaryKey, columnDefs, false, null);

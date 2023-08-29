@@ -8,10 +8,13 @@ import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
 import io.restassured.http.ContentType;
+import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.common.IntegrationTestUtils;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
 import java.util.Map;
+import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /** Integration tests for accessing Vector functionality via CQL endpoint ({@code /v2/cql}) . */
@@ -40,9 +43,7 @@ public class RestApiV2QCqlVectorIT extends RestApiV2QIntegrationTestBase {
   }
 
   private static final String CREATE_VECTOR_TABLE =
-      "CREATE TABLE IF NOT EXISTS %s.%s ("
-          + "id int PRIMARY KEY, embedding vector<float, 5> "
-          + ")";
+      "CREATE TABLE IF NOT EXISTS %s.%s (" + "id int PRIMARY KEY, embedding %s" + ")";
   private static final String CREATE_VECTOR_INDEX =
       "CREATE CUSTOM INDEX embedding_index_%s "
           + "  ON %s.%s(embedding) USING 'StorageAttachedIndex'";
@@ -57,11 +58,46 @@ public class RestApiV2QCqlVectorIT extends RestApiV2QIntegrationTestBase {
   /////////////////////////////////////////////////////////////////////////
    */
 
-  // Test that we can create a table with a vector column and a vector index
+  // Happy path: test that we can create a table with a vector column and a vector index
   @Test
   public void tableCreateWithVectorIndex() {
-    createTableEtc(testKeyspaceName(), testTableName());
+    createTableEtc(testKeyspaceName(), testTableName(), "vector<float, 100>");
   }
+
+  // Fail: non-float vector column
+  @Test
+  public void tableCreateFailNonFloat() {
+    String q =
+        CREATE_VECTOR_TABLE.formatted(testKeyspaceName(), testTableName(), "vector<int, 100>");
+    String response = postCqlQuery(q, 400);
+    ApiError apiError = readJsonAs(response, ApiError.class);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(apiError.description())
+        .contains("INVALID_ARGUMENT")
+        .contains("vectors may only use float. given int");
+  }
+
+  // Fail: too big vector column
+  // 24-Aug-2021, tatu: Current version of dse-next does not have guard rails yet,
+  //    cannot yet add test
+  @Test
+  @Disabled("Cannot test 'too big vector' before dse-next backend version supports it")
+  public void tableCreateFailTooBigVector() {
+    String q =
+        CREATE_VECTOR_TABLE.formatted(testKeyspaceName(), testTableName(), "vector<float, 99999>");
+    String response = postCqlQuery(q, 400);
+    ApiError apiError = readJsonAs(response, ApiError.class);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(apiError.description())
+        .contains("INVALID_ARGUMENT")
+        .contains("vectors may only use float. given int");
+  }
+
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Tests: Vector value CRUD
+  /////////////////////////////////////////////////////////////////////////
+   */
 
   // Test for basic CRUD on Vector column; no Vector Search
   @Test
@@ -69,7 +105,7 @@ public class RestApiV2QCqlVectorIT extends RestApiV2QIntegrationTestBase {
     final String ks = testKeyspaceName();
     final String table = testTableName();
 
-    createTableEtc(ks, table);
+    createTableEtc(ks, table, "vector<float, 5>");
 
     // Insert 2 rows
     postCqlQuery(
@@ -85,13 +121,19 @@ public class RestApiV2QCqlVectorIT extends RestApiV2QIntegrationTestBase {
         .isEqualTo("{\"count\":1,\"data\":[{\"id\":2,\"embedding\":[0.5,0.5,0.75,0.125,0.25]}]}");
   }
 
+  /*
+  /////////////////////////////////////////////////////////////////////////
+  // Tests: actual Vector Search
+  /////////////////////////////////////////////////////////////////////////
+   */
+
   // Actual Vector Search test
   @Test
   public void vectorSearch() {
     final String ks = testKeyspaceName();
     final String table = testTableName();
 
-    createTableEtc(ks, table);
+    createTableEtc(ks, table, "vector<float, 5>");
 
     // Insert 2 rows
     postCqlQuery(
@@ -118,24 +160,28 @@ public class RestApiV2QCqlVectorIT extends RestApiV2QIntegrationTestBase {
   /////////////////////////////////////////////////////////////////////////
    */
 
-  private void createTableEtc(String ks, String tableName) {
+  private void createTableEtc(String ks, String tableName, String vectorDef) {
     postAndVerifyCqlQuery(DROP_VECTOR_TABLE.formatted(ks, tableName), RESPONSE_EMPTY);
-    postAndVerifyCqlQuery(CREATE_VECTOR_TABLE.formatted(ks, tableName), RESPONSE_EMPTY);
+    postAndVerifyCqlQuery(CREATE_VECTOR_TABLE.formatted(ks, tableName, vectorDef), RESPONSE_EMPTY);
     postAndVerifyCqlQuery(CREATE_VECTOR_INDEX.formatted(tableName, ks, tableName), RESPONSE_EMPTY);
   }
 
   private void postAndVerifyCqlQuery(String cql, String expResponse) {
-    assertThat(postCqlQuery(cql)).isEqualTo(expResponse);
+    assertThat(postCqlQuery(cql, 200)).isEqualTo(expResponse);
   }
 
   private String postCqlQuery(String cql) {
+    return postCqlQuery(cql, 200);
+  }
+
+  private String postCqlQuery(String cql, int expStatus) {
     return givenWithAuth()
         .contentType(ContentType.TEXT)
         .body(cql)
         .when()
         .post(endpointPathForCQL())
         .then()
-        .statusCode(200)
+        .statusCode(expStatus)
         .extract()
         .asString();
   }
