@@ -12,7 +12,6 @@ public class SnappyCompressionTest extends AbstractCompressionTest {
 
   public static void configureSnappy(OptionsMap config) {
     config.put(TypedDriverOption.PROTOCOL_COMPRESSION, "snappy");
-    config.put(TypedDriverOption.PROTOCOL_VERSION, "V4");
   }
 
   @Test

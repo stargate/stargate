@@ -30,7 +30,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 import org.apache.cassandra.stargate.config.Config;
-import org.apache.cassandra.stargate.config.EncryptionOptions;
 import org.apache.cassandra.stargate.metrics.ClientMetrics;
 import org.apache.cassandra.stargate.transport.internal.CBUtil;
 import org.apache.cassandra.stargate.transport.internal.CqlServer;
@@ -80,9 +79,7 @@ public class CqlImpl {
     int nativePort = TransportDescriptor.getNativeTransportPort();
     int nativePortSSL = TransportDescriptor.getNativeTransportPortSSL();
     InetAddress nativeAddr = TransportDescriptor.getRpcAddress();
-    // Cassandra {4.0.10}
-    EncryptionOptions.TlsEncryptionPolicy encryptionPolicy =
-        TransportDescriptor.getNativeProtocolEncryptionOptions().tlsEncryptionPolicy();
+
     CqlServer.Builder builder =
         new CqlServer.Builder(persistence, authentication)
             .withEventLoopGroup(workerGroup)
@@ -97,20 +94,10 @@ public class CqlImpl {
             Collections.unmodifiableList(
                 Arrays.asList(
                     builder.withSSL(false).withPort(nativePort).build(),
-                    builder
-                        .withSSL(true)
-                        .withTlsEncryptionPolicy(encryptionPolicy)
-                        .withPort(nativePortSSL)
-                        .build()));
+                    builder.withSSL(true).withPort(nativePortSSL).build()));
       } else {
         // ssl only mode using configured native port
-        servers =
-            Collections.singleton(
-                builder
-                    .withSSL(true)
-                    .withTlsEncryptionPolicy(encryptionPolicy)
-                    .withPort(nativePort)
-                    .build());
+        servers = Collections.singleton(builder.withSSL(true).withPort(nativePort).build());
       }
     }
 
