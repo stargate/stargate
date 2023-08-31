@@ -482,6 +482,9 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
         cmd.addArgument("-Dcassandra.migration_task_wait_in_seconds=4");
       }
 
+      // Temporary workaround for https://datastax-oss.atlassian.net/browse/JAVA-3106
+      cmd.addArgument("-Dcassandra.allow_new_old_config_keys=true");
+
       addStdOutListener(
           (node, line) -> {
             if (line.contains(readMessage)) {

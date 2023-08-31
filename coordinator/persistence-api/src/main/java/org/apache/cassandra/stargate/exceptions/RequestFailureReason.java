@@ -98,6 +98,12 @@ public enum RequestFailureReason {
   /** The node is still bootstrapping and is therefore not ready to serve read requests. */
   BOOTSTRAPPING,
 
+  /** The read size limit has been exceeded. */
+  READ_SIZE,
+
+  /** Couldn't complete query (typically paxos transaction) due to down node. */
+  NODE_DOWN,
+
   /**
    * Used when receiving a code we do not know to indicate that it is a reason added in newer
    * version than us, but is something somewhat expected by that node from the future (it is not

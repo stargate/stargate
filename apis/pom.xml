@@ -255,6 +255,18 @@
       </properties>
     </profile>
     <profile>
+      <id>cassandra-41</id>
+      <properties>
+        <stargate.int-test.cassandra.image>cassandra</stargate.int-test.cassandra.image>
+        <stargate.int-test.cassandra.image-tag>4.1.3</stargate.int-test.cassandra.image-tag>
+        <stargate.int-test.coordinator.image>stargateio/coordinator-4_1</stargate.int-test.coordinator.image>
+        <stargate.int-test.coordinator.image-tag>v${project.version}</stargate.int-test.coordinator.image-tag>
+        <stargate.int-test.cluster.name>cass-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>
+        <stargate.int-test.cluster.persistence>persistence-cassandra-4.1</stargate.int-test.cluster.persistence>
+        <stargate.int-test.cluster.dse>false</stargate.int-test.cluster.dse>
+      </properties>
+    </profile>
+    <profile>
       <id>dse-next</id>
       <properties>
         <stargate.int-test.cassandra.image>stargateio/dse-next</stargate.int-test.cassandra.image>
