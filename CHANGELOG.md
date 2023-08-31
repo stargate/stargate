@@ -6,13 +6,10 @@
 
 **Closed issues:**
 
-- Add missing \(/api/rest\)`/` "ping" endpoint along with existing \(/api/rest\)`/health` [\#2747](https://github.com/stargate/stargate/issues/2747)
 - Update "dse-next" to latest backing data store version [\#2745](https://github.com/stargate/stargate/issues/2745)
 - Add tests for basic Vector operations via `/cql` endpoint [\#2731](https://github.com/stargate/stargate/issues/2731)
 - Add tests for fail/edge cases of Vector+REST CRUD operations [\#2715](https://github.com/stargate/stargate/issues/2715)
 - Fix ITs for DSE Next Persistence [\#2685](https://github.com/stargate/stargate/issues/2685)
-- Codacy needs coverage report [\#2509](https://github.com/stargate/stargate/issues/2509)
-- Rest API: limit request and parameter sizes [\#62](https://github.com/stargate/stargate/issues/62)
 
 **Merged pull requests:**
 
@@ -20,7 +17,6 @@
 - Bump aws-actions/configure-aws-credentials from 2 to 3 [\#2749](https://github.com/stargate/stargate/pull/2749) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Update `dse-db-all` dependency of `dse-next` backend to latest \(hash 4baff43cf3ae\) [\#2746](https://github.com/stargate/stargate/pull/2746) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Add tests for REST/Vector/CRUD edge cases [\#2744](https://github.com/stargate/stargate/pull/2744) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version for next v2.1 release [\#2741](https://github.com/stargate/stargate/pull/2741) ([github-actions[bot]](https://github.com/apps/github-actions))
 - Cassandra-4.1 backend for SGv 2.1 [\#2711](https://github.com/stargate/stargate/pull/2711) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 
 ## [v2.1.0-ALPHA-7](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-7) (2023-08-21)
