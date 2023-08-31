@@ -58,9 +58,6 @@ public final class ClientMetrics {
   private static final String AUTH_SUCCESS_METRIC;
   private static final String AUTH_FAILURE_METRIC;
   private static final String AUTH_ERROR_METRIC;
-  // Cassandra {4.0.10}
-  private static final String PROTOCOL_EXCEPTION;
-  private static final String UNKNOWN_EXCEPTION;
 
   // init to avoid re-computing on each record
   static {
@@ -69,8 +66,6 @@ public final class ClientMetrics {
     AUTH_SUCCESS_METRIC = metric("AuthSuccess");
     AUTH_FAILURE_METRIC = metric("AuthFailure");
     AUTH_ERROR_METRIC = metric("AuthError");
-    PROTOCOL_EXCEPTION = metric("ProtocolException");
-    UNKNOWN_EXCEPTION = metric("UnknownException");
   }
 
   // initialized state
@@ -85,10 +80,6 @@ public final class ClientMetrics {
 
   // internal initialized meters
   private AtomicInteger pausedConnections;
-
-  // Cassandra {4.0.10} - replaced with Micrometer
-  private Counter protocolException;
-  private Counter unknownException;
   private Counter totalBytesRead;
   private Counter totalBytesWritten;
   private DistributionSummary bytesReceivedPerFrame;
@@ -104,15 +95,6 @@ public final class ClientMetrics {
 
   public void unpauseConnection() {
     pausedConnections.decrementAndGet();
-  }
-
-  // Cassandra {4.0.10} - replaced with Micrometer
-  public void markProtocolException() {
-    protocolException.increment();
-  }
-
-  public void markUnknownException() {
-    unknownException.increment();
   }
 
   public void incrementTotalBytesRead(double value) {
@@ -174,10 +156,6 @@ public final class ClientMetrics {
 
     pausedConnections =
         meterRegistry.gauge(metric("PausedConnections"), Tags.empty(), new AtomicInteger(0));
-
-    this.protocolException = meterRegistry.counter(metric("ProtocolException"));
-
-    this.unknownException = meterRegistry.counter(metric("UnknownException"));
 
     totalBytesRead = meterRegistry.counter(metric("TotalBytesRead"));
     totalBytesWritten = meterRegistry.counter(metric("TotalBytesWritten"));
