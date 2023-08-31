@@ -1,5 +1,14 @@
 # Changelog
 
+## [v2.1.0-ALPHA-9](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-9) (2023-08-31)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-ALPHA-8...v2.1.0-ALPHA-9)
+
+**Merged pull requests:**
+
+- Bumping version to 2.1.0-ALPHA-9-SNAPSHOT [\#2752](https://github.com/stargate/stargate/pull/2752) ([github-actions[bot]](https://github.com/apps/github-actions))
+- revert cql protocol v5 [\#2751](https://github.com/stargate/stargate/pull/2751) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+
 ## [v2.1.0-ALPHA-8](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-8) (2023-08-31)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-ALPHA-7...v2.1.0-ALPHA-8)
