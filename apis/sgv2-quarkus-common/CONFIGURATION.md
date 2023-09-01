@@ -76,7 +76,25 @@
 | `stargate.queries.consistency.schema-changes` | `String` | `LOCAL_QUORUM` | Consistency level to use for C* queries that are performing the schema changes.  |
 | `stargate.queries.consistency.writes`         | `String` | `LOCAL_QUORUM` | Consistency level to use for C* queries that are inserting or updating the data. |
 | `stargate.queries.consistency.reads`          | `String` | `LOCAL_QUORUM` | Consistency level to use for C* queries that are reading the data.               |
-| `stargate.queries.serial-consistency`         | `String` | `SERIAL`      | Serial consistency level to be used for C* queries.                              |
+| `stargate.queries.serial-consistency`         | `String` | `SERIAL`       | Serial consistency level to be used for C* queries.                              |
+
+### Additional Logging Configuration
+*Configuration mapping for the additional logging that are not covered by Quarkus out of the box such as request body, defined by [LoggingConfig.java](src/main/java/io/stargate/sgv2/api/common/config/LoggingConfig.java).*
+
+> NOTE: In order to use these features, you need to set the log level of `io.stargate.sgv2.api.common.logging.LoggingFilter` to `DEBUG` by doing below:
+```shell
+export QUARKUS_LOG_CATEGORY__IO_STARGATE_SGV2_API_COMMON_LOGGING_LOGGINGFILTER__LEVEL=DEBUG
+```
+
+| Property                                            | Type      | Default | Description                                                                                              |
+|-----------------------------------------------------|-----------|---------|----------------------------------------------------------------------------------------------------------|
+| `stargate.api.logging.enabled`                      | `boolean` | `false` | API level request logging is enabled.                                                                    |
+| `stargate.api.logging.enabled-tenants`              | `Set`     | `all`   | If set, only the requests from the tenants listed here will be logged. If empty, all tenants are logged. |
+| `stargate.api.logging.enabled-paths`                | `Set`     | `all`   | If set, only the requests to the paths listed here will be logged. If empty, all paths are logged.       |
+| `stargate.api.logging.enabled-path-prefixes`        | `Set`     | `*`     | If set, only the requests to the paths that start with the prefixes listed here will be logged.          |
+| `stargate.api.logging.enabled-error-codes`          | `Set`     | `all`   | If set, only the requests that return the error codes listed here will be logged.                        |
+| `stargate.api.logging.enabled-methods`              | `Set`     | `all`   | If set, only the requests that use the methods listed here will be logged.                               |
+| `stargate.api.logging.request-body-logging-enabled` | `boolean` | `false` | If the request body logging is enabled.                                                                  |
 
 ## Stargate Development Configuration
 
