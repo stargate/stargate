@@ -17,13 +17,12 @@
 
 package io.stargate.sgv2.api.common.config;
 
+import static io.stargate.sgv2.api.common.config.constants.LoggingConstants.*;
+
 import io.smallrye.config.ConfigMapping;
 import io.smallrye.config.WithDefault;
-
 import java.util.Optional;
 import java.util.Set;
-
-import static io.stargate.sgv2.api.common.config.constants.LoggingConstants.*;
 
 /** Extra, Stargate related configuration for the logging. */
 @ConfigMapping(prefix = "stargate.api.logging")

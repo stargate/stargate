@@ -1,24 +1,23 @@
 package io.stargate.sgv2.api.common.logging;
 
+import static io.stargate.sgv2.api.common.config.constants.LoggingConstants.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.config.LoggingConfig;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerResponseContext;
-import org.junit.jupiter.api.Test;
-import org.testcontainers.shaded.org.bouncycastle.util.Strings;
-
 import java.io.ByteArrayInputStream;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Collections;
 import java.util.Optional;
 import java.util.Set;
-
-import static io.stargate.sgv2.api.common.config.constants.LoggingConstants.*;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.when;
+import org.junit.jupiter.api.Test;
+import org.testcontainers.shaded.org.bouncycastle.util.Strings;
 
 public class LoggingFilterTest {
   private static final String TEST_TENANT = "test-tenant";

@@ -17,6 +17,8 @@
 
 package io.stargate.sgv2.api.common.logging;
 
+import static io.stargate.sgv2.api.common.config.constants.LoggingConstants.*;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.config.LoggingConfig;
@@ -24,15 +26,12 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerResponseContext;
-import org.jboss.resteasy.reactive.server.ServerResponseFilter;
-import org.slf4j.Logger;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collections;
 import java.util.Set;
-
-import static io.stargate.sgv2.api.common.config.constants.LoggingConstants.*;
+import org.jboss.resteasy.reactive.server.ServerResponseFilter;
+import org.slf4j.Logger;
 
 /** The filter for logging requests when required for debugging purposes. */
 @ApplicationScoped
