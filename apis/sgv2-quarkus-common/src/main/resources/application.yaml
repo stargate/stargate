@@ -60,7 +60,7 @@ quarkus:
     # all the clients' setup, only bridge
     clients:
       bridge:
-        host: 127.0.0.2
+        host: localhost
         port: 8091
 
     # force no grpc server start in dev as we have no grpc service
