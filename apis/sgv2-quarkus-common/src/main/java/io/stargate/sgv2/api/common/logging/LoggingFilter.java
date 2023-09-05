@@ -19,7 +19,8 @@ package io.stargate.sgv2.api.common.logging;
 
 import static io.stargate.sgv2.api.common.config.constants.LoggingConstants.*;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.common.base.Charsets;
+import com.google.common.io.CharStreams;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.config.LoggingConfig;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -28,6 +29,7 @@ import jakarta.ws.rs.container.ContainerRequestContext;
 import jakarta.ws.rs.container.ContainerResponseContext;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.util.Collections;
 import java.util.Set;
 import org.jboss.resteasy.reactive.server.ServerResponseFilter;
@@ -38,8 +40,6 @@ import org.slf4j.Logger;
 public class LoggingFilter {
   private static final Logger logger = org.slf4j.LoggerFactory.getLogger(LoggingFilter.class);
 
-  /** The {@link ObjectMapper} to get request body from request. */
-  private final ObjectMapper objectMapper;
   /** The request info bean. */
   private final StargateRequestInfo requestInfo;
   /** The configuration for logging. */
@@ -47,9 +47,7 @@ public class LoggingFilter {
 
   /** Default constructor. */
   @Inject
-  public LoggingFilter(
-      ObjectMapper objectMapper, StargateRequestInfo requestInfo, LoggingConfig loggingConfig) {
-    this.objectMapper = objectMapper;
+  public LoggingFilter(StargateRequestInfo requestInfo, LoggingConfig loggingConfig) {
     this.requestInfo = requestInfo;
     this.loggingConfig = loggingConfig;
   }
@@ -92,7 +90,7 @@ public class LoggingFilter {
         return "";
       }
       inputStream.reset();
-      return objectMapper.readTree(inputStream).toString();
+      return CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
     } catch (IOException e) {
       logger.error("Exception occurred while trying to log request info", e);
       return "";

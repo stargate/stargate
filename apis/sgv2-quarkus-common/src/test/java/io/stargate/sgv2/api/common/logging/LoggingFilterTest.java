@@ -5,7 +5,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
 import io.stargate.sgv2.api.common.config.LoggingConfig;
 import jakarta.ws.rs.container.ContainerRequestContext;
@@ -37,8 +36,7 @@ public class LoggingFilterTest {
     when(requestContext.getMethod()).thenReturn("GET");
     when(responseContext.getStatus()).thenReturn(200);
 
-    LoggingFilter loggingFilter =
-        new LoggingFilter(new ObjectMapper(), stargateRequestInfo, loggingConfig);
+    LoggingFilter loggingFilter = new LoggingFilter(stargateRequestInfo, loggingConfig);
     Method isAllowedMethod =
         loggingFilter
             .getClass()
@@ -64,8 +62,7 @@ public class LoggingFilterTest {
     when(requestContext.getMethod()).thenReturn("GET");
     when(responseContext.getStatus()).thenReturn(200);
 
-    LoggingFilter loggingFilter =
-        new LoggingFilter(new ObjectMapper(), stargateRequestInfo, loggingConfig);
+    LoggingFilter loggingFilter = new LoggingFilter(stargateRequestInfo, loggingConfig);
     Method isAllowedMethod =
         loggingFilter
             .getClass()
@@ -92,8 +89,7 @@ public class LoggingFilterTest {
     when(requestContext.getMethod()).thenReturn("GET");
     when(responseContext.getStatus()).thenReturn(200);
 
-    LoggingFilter loggingFilter =
-        new LoggingFilter(new ObjectMapper(), stargateRequestInfo, loggingConfig);
+    LoggingFilter loggingFilter = new LoggingFilter(stargateRequestInfo, loggingConfig);
     Method isAllowedMethod =
         loggingFilter
             .getClass()
@@ -120,8 +116,7 @@ public class LoggingFilterTest {
     when(requestContext.getMethod()).thenReturn("GET");
     when(responseContext.getStatus()).thenReturn(200);
 
-    LoggingFilter loggingFilter =
-        new LoggingFilter(new ObjectMapper(), stargateRequestInfo, loggingConfig);
+    LoggingFilter loggingFilter = new LoggingFilter(stargateRequestInfo, loggingConfig);
     Method isAllowedMethod =
         loggingFilter
             .getClass()
@@ -148,8 +143,7 @@ public class LoggingFilterTest {
     when(requestContext.getMethod()).thenReturn("GET");
     when(responseContext.getStatus()).thenReturn(200);
 
-    LoggingFilter loggingFilter =
-        new LoggingFilter(new ObjectMapper(), stargateRequestInfo, loggingConfig);
+    LoggingFilter loggingFilter = new LoggingFilter(stargateRequestInfo, loggingConfig);
     Method isAllowedMethod =
         loggingFilter
             .getClass()
@@ -176,8 +170,7 @@ public class LoggingFilterTest {
     when(requestContext.getMethod()).thenReturn("GET");
     when(responseContext.getStatus()).thenReturn(200);
 
-    LoggingFilter loggingFilter =
-        new LoggingFilter(new ObjectMapper(), stargateRequestInfo, loggingConfig);
+    LoggingFilter loggingFilter = new LoggingFilter(stargateRequestInfo, loggingConfig);
     Method isAllowedMethod =
         loggingFilter
             .getClass()
@@ -204,8 +197,7 @@ public class LoggingFilterTest {
     when(requestContext.getMethod()).thenReturn("GET");
     when(responseContext.getStatus()).thenReturn(200);
 
-    LoggingFilter loggingFilter =
-        new LoggingFilter(new ObjectMapper(), stargateRequestInfo, loggingConfig);
+    LoggingFilter loggingFilter = new LoggingFilter(stargateRequestInfo, loggingConfig);
     Method isAllowedMethod =
         loggingFilter
             .getClass()
@@ -231,8 +223,7 @@ public class LoggingFilterTest {
     when(requestContext.getMethod()).thenReturn("GET");
     when(responseContext.getStatus()).thenReturn(200);
 
-    LoggingFilter loggingFilter =
-        new LoggingFilter(new ObjectMapper(), stargateRequestInfo, loggingConfig);
+    LoggingFilter loggingFilter = new LoggingFilter(stargateRequestInfo, loggingConfig);
     Method isAllowedMethod =
         loggingFilter
             .getClass()
@@ -258,8 +249,7 @@ public class LoggingFilterTest {
     when(requestContext.getMethod()).thenReturn("GET");
     when(responseContext.getStatus()).thenReturn(200);
 
-    LoggingFilter loggingFilter =
-        new LoggingFilter(new ObjectMapper(), stargateRequestInfo, loggingConfig);
+    LoggingFilter loggingFilter = new LoggingFilter(stargateRequestInfo, loggingConfig);
     Method isAllowedMethod =
         loggingFilter
             .getClass()
@@ -285,8 +275,7 @@ public class LoggingFilterTest {
     when(requestContext.getMethod()).thenReturn("GET");
     when(responseContext.getStatus()).thenReturn(400);
 
-    LoggingFilter loggingFilter =
-        new LoggingFilter(new ObjectMapper(), stargateRequestInfo, loggingConfig);
+    LoggingFilter loggingFilter = new LoggingFilter(stargateRequestInfo, loggingConfig);
     Method isAllowedMethod =
         loggingFilter
             .getClass()
@@ -312,8 +301,7 @@ public class LoggingFilterTest {
     when(requestContext.getMethod()).thenReturn("GET");
     when(responseContext.getStatus()).thenReturn(200);
 
-    LoggingFilter loggingFilter =
-        new LoggingFilter(new ObjectMapper(), stargateRequestInfo, loggingConfig);
+    LoggingFilter loggingFilter = new LoggingFilter(stargateRequestInfo, loggingConfig);
     Method isAllowedMethod =
         loggingFilter
             .getClass()
@@ -339,8 +327,7 @@ public class LoggingFilterTest {
     when(requestContext.getMethod()).thenReturn("POST");
     when(responseContext.getStatus()).thenReturn(200);
 
-    LoggingFilter loggingFilter =
-        new LoggingFilter(new ObjectMapper(), stargateRequestInfo, loggingConfig);
+    LoggingFilter loggingFilter = new LoggingFilter(stargateRequestInfo, loggingConfig);
     Method isAllowedMethod =
         loggingFilter
             .getClass()
@@ -374,8 +361,7 @@ public class LoggingFilterTest {
     when(requestContext.getMethod()).thenReturn("POST");
     when(responseContext.getStatus()).thenReturn(400);
 
-    LoggingFilter loggingFilter =
-        new LoggingFilter(new ObjectMapper(), stargateRequestInfo, loggingConfig);
+    LoggingFilter loggingFilter = new LoggingFilter(stargateRequestInfo, loggingConfig);
     Method isAllowedMethod =
         loggingFilter
             .getClass()
@@ -432,8 +418,7 @@ public class LoggingFilterTest {
     when(responseContext.getStatus()).thenReturn(400);
     when(responseContext.getStatus()).thenReturn(400);
 
-    LoggingFilter loggingFilter =
-        new LoggingFilter(new ObjectMapper(), stargateRequestInfo, loggingConfig);
+    LoggingFilter loggingFilter = new LoggingFilter(stargateRequestInfo, loggingConfig);
     Method isAllowedMethod =
         loggingFilter
             .getClass()
