@@ -45,7 +45,7 @@ public class LoggingFilterTest {
     isAllowedMethod.setAccessible(true);
     boolean isAllowed =
         (boolean) isAllowedMethod.invoke(loggingFilter, requestContext, responseContext);
-    assert !isAllowed;
+    assertThat(isAllowed).isFalse();
   }
 
   @Test
@@ -71,7 +71,7 @@ public class LoggingFilterTest {
     isAllowedMethod.setAccessible(true);
     boolean isAllowed =
         (boolean) isAllowedMethod.invoke(loggingFilter, requestContext, responseContext);
-    assert isAllowed;
+    assertThat(isAllowed).isTrue();
   }
 
   @Test
@@ -98,7 +98,7 @@ public class LoggingFilterTest {
     isAllowedMethod.setAccessible(true);
     boolean isAllowed =
         (boolean) isAllowedMethod.invoke(loggingFilter, requestContext, responseContext);
-    assert !isAllowed;
+    assertThat(isAllowed).isFalse();
   }
 
   @Test
@@ -125,7 +125,7 @@ public class LoggingFilterTest {
     isAllowedMethod.setAccessible(true);
     boolean isAllowed =
         (boolean) isAllowedMethod.invoke(loggingFilter, requestContext, responseContext);
-    assert isAllowed;
+    assertThat(isAllowed).isTrue();
   }
 
   @Test
@@ -152,7 +152,7 @@ public class LoggingFilterTest {
     isAllowedMethod.setAccessible(true);
     boolean isAllowed =
         (boolean) isAllowedMethod.invoke(loggingFilter, requestContext, responseContext);
-    assert !isAllowed;
+    assertThat(isAllowed).isFalse();
   }
 
   @Test
@@ -179,7 +179,7 @@ public class LoggingFilterTest {
     isAllowedMethod.setAccessible(true);
     boolean isAllowed =
         (boolean) isAllowedMethod.invoke(loggingFilter, requestContext, responseContext);
-    assert isAllowed;
+    assertThat(isAllowed).isTrue();
   }
 
   @Test
@@ -206,7 +206,7 @@ public class LoggingFilterTest {
     isAllowedMethod.setAccessible(true);
     boolean isAllowed =
         (boolean) isAllowedMethod.invoke(loggingFilter, requestContext, responseContext);
-    assert !isAllowed;
+    assertThat(isAllowed).isFalse();
   }
 
   @Test
@@ -232,7 +232,7 @@ public class LoggingFilterTest {
     isAllowedMethod.setAccessible(true);
     boolean isAllowed =
         (boolean) isAllowedMethod.invoke(loggingFilter, requestContext, responseContext);
-    assert isAllowed;
+    assertThat(isAllowed).isTrue();
   }
 
   @Test
@@ -258,7 +258,7 @@ public class LoggingFilterTest {
     isAllowedMethod.setAccessible(true);
     boolean isAllowed =
         (boolean) isAllowedMethod.invoke(loggingFilter, requestContext, responseContext);
-    assert !isAllowed;
+    assertThat(isAllowed).isFalse();
   }
 
   @Test
@@ -284,7 +284,7 @@ public class LoggingFilterTest {
     isAllowedMethod.setAccessible(true);
     boolean isAllowed =
         (boolean) isAllowedMethod.invoke(loggingFilter, requestContext, responseContext);
-    assert isAllowed;
+    assertThat(isAllowed).isTrue();
   }
 
   @Test
@@ -310,7 +310,7 @@ public class LoggingFilterTest {
     isAllowedMethod.setAccessible(true);
     boolean isAllowed =
         (boolean) isAllowedMethod.invoke(loggingFilter, requestContext, responseContext);
-    assert !isAllowed;
+    assertThat(isAllowed).isFalse();
   }
 
   @Test
@@ -336,7 +336,7 @@ public class LoggingFilterTest {
     isAllowedMethod.setAccessible(true);
     boolean isAllowed =
         (boolean) isAllowedMethod.invoke(loggingFilter, requestContext, responseContext);
-    assert isAllowed;
+    assertThat(isAllowed).isTrue();
   }
 
   @Test
@@ -370,7 +370,7 @@ public class LoggingFilterTest {
     isAllowedMethod.setAccessible(true);
     boolean isAllowed =
         (boolean) isAllowedMethod.invoke(loggingFilter, requestContext, responseContext);
-    assert isAllowed;
+    assertThat(isAllowed).isTrue();
 
     Method buildRequestInfoMethod =
         loggingFilter
@@ -427,7 +427,7 @@ public class LoggingFilterTest {
     isAllowedMethod.setAccessible(true);
     boolean isAllowed =
         (boolean) isAllowedMethod.invoke(loggingFilter, requestContext, responseContext);
-    assert isAllowed;
+    assertThat(isAllowed).isTrue();
 
     Method buildRequestInfoMethod =
         loggingFilter
@@ -441,7 +441,6 @@ public class LoggingFilterTest {
     String requestInfo =
         (String)
             buildRequestInfoMethod.invoke(loggingFilter, requestContext, responseContext, true);
-    // assert equals
     String expectedRequestInfo =
         String.format(
             "REQUEST INFO :: %s %s %s %s %s",
