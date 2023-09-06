@@ -86,15 +86,15 @@
 export QUARKUS_LOG_CATEGORY__IO_STARGATE_SGV2_API_COMMON_LOGGING_LOGGINGFILTER__LEVEL=DEBUG
 ```
 
-| Property                                            | Type      | Default | Description                                                                                              |
-|-----------------------------------------------------|-----------|---------|----------------------------------------------------------------------------------------------------------|
-| `stargate.api.logging.enabled`                      | `boolean` | `false` | API level request logging is enabled.                                                                    |
-| `stargate.api.logging.enabled-tenants`              | `Set`     | `all`   | If set, only the requests from the tenants listed here will be logged. If empty, all tenants are logged. |
-| `stargate.api.logging.enabled-paths`                | `Set`     | `all`   | If set, only the requests to the paths listed here will be logged. If empty, all paths are logged.       |
-| `stargate.api.logging.enabled-path-prefixes`        | `Set`     | `*`     | If set, only the requests to the paths that start with the prefixes listed here will be logged.          |
-| `stargate.api.logging.enabled-error-codes`          | `Set`     | `all`   | If set, only the requests that return the error codes listed here will be logged.                        |
-| `stargate.api.logging.enabled-methods`              | `Set`     | `all`   | If set, only the requests that use the methods listed here will be logged.                               |
-| `stargate.api.logging.request-body-logging-enabled` | `boolean` | `false` | If the request body logging is enabled.                                                                  |
+| Property                                            | Type      | Default | Description                                                                                                               |
+|-----------------------------------------------------|-----------|---------|---------------------------------------------------------------------------------------------------------------------------|
+| `stargate.api.logging.enabled`                      | `boolean` | `false` | API level request logging is enabled.                                                                                     |
+| `stargate.api.logging.enabled-tenants`              | `Set`     | `all`   | If set to value other than `all`, only the requests from the tenants listed here will be logged.                          |
+| `stargate.api.logging.enabled-paths`                | `Set`     | `all`   | If set to value other than `all`, only the requests to the paths listed here will be logged.                              |
+| `stargate.api.logging.enabled-path-prefixes`        | `Set`     | `all`   | If set to value other than `all`, only the requests to the paths that start with the prefixes listed here will be logged. |
+| `stargate.api.logging.enabled-error-codes`          | `Set`     | `all`   | If set to value other than `all`, only the requests that return the error codes listed here will be logged.               |
+| `stargate.api.logging.enabled-methods`              | `Set`     | `all`   | If set to value other than `all`, only the requests that use the methods listed here will be logged.                      |
+| `stargate.api.logging.request-body-logging-enabled` | `boolean` | `false` | If the request body logging is enabled.                                                                                   |
 
 ## Stargate Development Configuration
 

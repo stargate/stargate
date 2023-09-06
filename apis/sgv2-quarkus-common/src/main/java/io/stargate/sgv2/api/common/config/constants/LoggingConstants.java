@@ -8,7 +8,7 @@ public interface LoggingConstants {
   /** The default value for the {@link LoggingConfig#enabledPaths()} configuration. */
   public static final String ALL_PATHS = "all";
   /** The default value for the {@link LoggingConfig#enabledPathPrefixes()} configuration. */
-  public static final String ALL_PATH_PREFIXES = "*";
+  public static final String ALL_PATH_PREFIXES = "all";
   /** The default value for the {@link LoggingConfig#enabledErrorCodes()} configuration. */
   public static final String ALL_ERROR_CODES = "all";
   /** The default value for the {@link LoggingConfig#enabledMethods()} configuration. */
