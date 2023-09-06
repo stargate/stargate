@@ -37,7 +37,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up JDK 8
         uses: actions/setup-java@v3
@@ -103,7 +103,7 @@ jobs:
       sha: ${{ steps.resolve.outputs.sha }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
@@ -130,7 +130,7 @@ jobs:
         image: [ coordinator-4_0 , coordinator-3_11, coordinator-dse-68 ]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Cache docker image
         id: cache-docker-image
@@ -186,7 +186,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3
@@ -280,7 +280,7 @@ jobs:
             image: stargateio/coordinator-dse-68:${{ needs.resolve-coordinator-docker.outputs.sha }}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up JDK 17
         uses: actions/setup-java@v3

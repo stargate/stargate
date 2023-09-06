@@ -46,7 +46,7 @@ jobs:
             environment-id: 12949543-2e78cf27-bd8c-43f2-909f-70a2b87d65fe
             service: restapi
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Start Backend
         # Run Stargate coordinator in developer mode to save time / resources, and only the API under test
         run: |
