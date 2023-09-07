@@ -183,7 +183,7 @@ public class ResultMessage extends Message.Response {
                 CBUtil.writeAsciiString(metadata.columns.get(0).table(), dest);
               }
 
-              for (int i = 0 ; i < metadata.columnCount ; i++) {
+              for (int i = 0; i < metadata.columnCount; i++) {
                 if (!globalTablesSpec) {
                   CBUtil.writeAsciiString(metadata.columns.get(i).keyspace(), dest);
                   CBUtil.writeAsciiString(metadata.columns.get(i).table(), dest);
@@ -212,7 +212,7 @@ public class ResultMessage extends Message.Response {
                 size += CBUtil.sizeOfAsciiString(metadata.columns.get(0).table());
               }
 
-              for (int i = 0 ; i < metadata.columnCount ; i++) {
+              for (int i = 0; i < metadata.columnCount; i++) {
                 if (!globalTablesSpec) {
                   size += CBUtil.sizeOfAsciiString(metadata.columns.get(i).keyspace());
                   size += CBUtil.sizeOfAsciiString(metadata.columns.get(i).table());

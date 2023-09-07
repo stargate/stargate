@@ -60,7 +60,8 @@ class PersistenceBackedResultSet implements ResultSet {
     this.statement = statement;
     this.driverProtocolVersion = parameters.protocolVersion().toDriverVersion();
     this.fetchedRows = new ArrayDeque<>(parameters.pageSize().orElse(32));
-    this.columns = processColumns(initialPage.resultMetadata.columnCount, initialPage.resultMetadata.columns);
+    this.columns =
+        processColumns(initialPage.resultMetadata.columnCount, initialPage.resultMetadata.columns);
     this.authzFilter = authzFilter;
     processNewPage(initialPage);
     this.initialPage = initialPage;
