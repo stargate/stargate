@@ -491,7 +491,7 @@ public class Conversion {
     }
 
     MD5Digest resultMetadataId = getResultMetadataId(metadata);
-    return new Result.ResultMetadata(flags, columns, resultMetadataId, pagingState);
+    return new Result.ResultMetadata(flags, metadata.getColumnCount(), columns, resultMetadataId, pagingState);
   }
 
   public static Result.PreparedMetadata toPreparedMetadata(
