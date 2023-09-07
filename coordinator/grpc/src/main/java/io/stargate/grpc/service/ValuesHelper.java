@@ -130,7 +130,7 @@ public class ValuesHelper {
 
   public static ResultSet processResult(Rows rows, boolean skipMetadata) throws StatusException {
     final List<Column> columns = rows.resultMetadata.columns;
-    final int columnCount = columns.size();
+    final int columnCount = rows.resultMetadata.columnCount;
 
     ResultSet.Builder resultSetBuilder = ResultSet.newBuilder();
 

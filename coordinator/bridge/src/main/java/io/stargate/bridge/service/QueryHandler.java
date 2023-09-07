@@ -122,6 +122,7 @@ public class QueryHandler extends MessageHandler<Query, Prepared> {
           Result.Rows rows = (Result.Rows) result;
 
           if (enrichResponse) {
+            // TODO raw use of column. Is this correct?
             RowDecorator rowDecorator =
                 connection.makeRowDecorator(TableName.of(rows.resultMetadata.columns));
             responseBuilder.setResultSet(

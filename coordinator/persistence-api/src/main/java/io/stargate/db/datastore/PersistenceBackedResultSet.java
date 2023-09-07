@@ -60,7 +60,7 @@ class PersistenceBackedResultSet implements ResultSet {
     this.statement = statement;
     this.driverProtocolVersion = parameters.protocolVersion().toDriverVersion();
     this.fetchedRows = new ArrayDeque<>(parameters.pageSize().orElse(32));
-    this.columns = processColumns(initialPage.resultMetadata.columns);
+    this.columns = processColumns(initialPage.resultMetadata.columnCount, initialPage.resultMetadata.columns);
     this.authzFilter = authzFilter;
     processNewPage(initialPage);
     this.initialPage = initialPage;
@@ -98,12 +98,13 @@ class PersistenceBackedResultSet implements ResultSet {
   // equality). See Result.Rows#columns javadoc for details.
   // Here, there is little we can do about non-genuine columns, but we can at least ensure that
   // for genuine columns, the object we use in the result set will full formed.
-  private List<Column> processColumns(List<Column> columns) {
+  // TODO Is this appropriate to fix?
+  private List<Column> processColumns(int columnCount, List<Column> columns) {
     Schema schema = connection.persistence().schema();
     List<Column> processed = new ArrayList<>(columns.size());
-    for (Column c : columns) {
-      Column inSchema = columnInSchema(schema, c);
-      processed.add(inSchema == null ? c : inSchema);
+    for (int i = 0; i < columnCount; i++) {
+      Column inSchema = columnInSchema(schema, columns.get(i));
+      processed.add(inSchema == null ? columns.get(i) : inSchema);
     }
     return processed;
   }
