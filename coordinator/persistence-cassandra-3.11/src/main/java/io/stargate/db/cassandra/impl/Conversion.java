@@ -475,7 +475,7 @@ public class Conversion {
       }
     }
 
-    return new Result.ResultMetadata(flags, columns, null, pagingState);
+    return new Result.ResultMetadata(flags, metadata.getColumnCount(), columns, null, pagingState);
   }
 
   public static Result.PreparedMetadata toPreparedMetadata(
