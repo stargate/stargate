@@ -22,6 +22,7 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.utils.MD5Digest;
@@ -248,7 +249,13 @@ public abstract class Result {
         ByteBuffer pagingState) {
       this.flags = flags;
       this.columnCount = columnCount;
-      this.columns = columns;
+      // The column count indicates the number of columns expected in a result
+      // (see https://github.com/stargate/stargate/pull/2760 for details).
+      // We can (and should) safely drop the remaining columns.
+      this.columns =
+          columns.size() == columnCount
+              ? columns
+              : columns.stream().limit(columnCount).collect(Collectors.toList());
       this.resultMetadataId = resultMetadataId;
       this.pagingState = pagingState;
     }
