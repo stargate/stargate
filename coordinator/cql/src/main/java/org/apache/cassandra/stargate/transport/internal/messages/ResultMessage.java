@@ -183,12 +183,12 @@ public class ResultMessage extends Message.Response {
                 CBUtil.writeAsciiString(metadata.columns.get(0).table(), dest);
               }
 
-              for (int i = 0; i < metadata.columnCount; i++) {
+              for (Column c : metadata.columns) {
                 if (!globalTablesSpec) {
-                  CBUtil.writeAsciiString(metadata.columns.get(i).keyspace(), dest);
-                  CBUtil.writeAsciiString(metadata.columns.get(i).table(), dest);
+                  CBUtil.writeAsciiString(c.keyspace(), dest);
+                  CBUtil.writeAsciiString(c.table(), dest);
                 }
-                ColumnUtils.encodeColumn(metadata.columns.get(i), dest, version);
+                ColumnUtils.encodeColumn(c, dest, version);
               }
             }
           }
@@ -212,12 +212,12 @@ public class ResultMessage extends Message.Response {
                 size += CBUtil.sizeOfAsciiString(metadata.columns.get(0).table());
               }
 
-              for (int i = 0; i < metadata.columnCount; i++) {
+              for (Column c : metadata.columns) {
                 if (!globalTablesSpec) {
-                  size += CBUtil.sizeOfAsciiString(metadata.columns.get(i).keyspace());
-                  size += CBUtil.sizeOfAsciiString(metadata.columns.get(i).table());
+                  size += CBUtil.sizeOfAsciiString(c.keyspace());
+                  size += CBUtil.sizeOfAsciiString(c.table());
                 }
-                ColumnUtils.encodeSizeColumn(metadata.columns.get(i), version);
+                ColumnUtils.encodeSizeColumn(c, version);
               }
             }
             return size;
