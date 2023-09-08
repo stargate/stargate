@@ -1,12 +1,8 @@
 # Changelog
 
-## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
+## [v2.1.0-ALPHA-10](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-10) (2023-09-08)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-ALPHA-9...HEAD)
-
-**Merged pull requests:**
-
-- Bumping version for next v2.1 release [\#2753](https://github.com/stargate/stargate/pull/2753) ([github-actions[bot]](https://github.com/apps/github-actions))
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-ALPHA-9...v2.1.0-ALPHA-10)
 
 ## [v2.1.0-ALPHA-9](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-9) (2023-08-31)
 
