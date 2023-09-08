@@ -249,8 +249,9 @@ public abstract class Result {
         ByteBuffer pagingState) {
       this.flags = flags;
       this.columnCount = columnCount;
-      // The column count indicates the number of columns expected in a result. We can safely drop
-      // the remaining columns.
+      // The column count indicates the number of columns expected in a result
+      // (see https://github.com/stargate/stargate/pull/2760 for details).
+      // We can (and should) safely drop the remaining columns.
       this.columns =
           columns.size() == columnCount
               ? columns
