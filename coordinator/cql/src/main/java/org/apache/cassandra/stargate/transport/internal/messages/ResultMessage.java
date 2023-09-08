@@ -217,7 +217,7 @@ public class ResultMessage extends Message.Response {
                   size += CBUtil.sizeOfAsciiString(c.keyspace());
                   size += CBUtil.sizeOfAsciiString(c.table());
                 }
-                ColumnUtils.encodeSizeColumn(c, version);
+                size += ColumnUtils.encodeSizeColumn(c, version);
               }
             }
             return size;
