@@ -130,7 +130,8 @@ public class ValuesHelper {
 
   public static ResultSet processResult(Rows rows, boolean skipMetadata) throws StatusException {
     final List<Column> columns = rows.resultMetadata.columns;
-    final int columnCount = columns.size();
+    // 08-Sep-2023: As per https://github.com/stargate/stargate/pull/2760 may get extra columns:
+    final int columnCount = rows.resultMetadata.columnCount;
 
     ResultSet.Builder resultSetBuilder = ResultSet.newBuilder();
 

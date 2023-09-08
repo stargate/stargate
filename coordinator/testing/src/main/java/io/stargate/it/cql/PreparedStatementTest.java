@@ -17,6 +17,7 @@ import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import java.nio.ByteBuffer;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -150,6 +151,31 @@ public class PreparedStatementTest extends BaseIntegrationTest {
     assertThat(row.isNull("d")).isTrue();
     assertThat(ps.getResultSetDefinitions()).hasSize(0);
     assertThat(Bytes.toHexString(ps.getResultMetadataId())).isEqualTo(Bytes.toHexString(idBefore));
+  }
+
+  @Test
+  @DisplayName("Should return just one selected column, not more")
+  public void noExtraValuesTest(CqlSession session) {
+    // table with composite key
+    session.execute(
+        "CREATE TABLE IF NOT EXISTS no_extra_values_test (k int, c1 int, c2 int, v int, PRIMARY KEY (k, c1, c2))");
+    try {
+      session.execute("INSERT INTO no_extra_values_test (k, c1, c2, v) VALUES (1, 1, 2, 42)");
+      PreparedStatement ps =
+          session.prepare("SELECT v FROM no_extra_values_test WHERE k IN (1, 0) ORDER BY c1 ");
+      // IMPORTANT! Must prevent paging, otherwise we'll error for other reasons
+      ResultSet resultSet = session.execute(ps.bind().setPageSize(Integer.MAX_VALUE));
+      assertThat(resultSet.getColumnDefinitions().size()).isEqualTo(1);
+      assertThat(resultSet.getColumnDefinitions().get(0).getName().toString()).isEqualTo("v");
+      List<Row> rows = resultSet.all();
+      assertThat(rows).hasSize(1);
+      Row row = rows.get(0);
+      assertThat(row.size()).isEqualTo(1);
+      assertThat(row.getColumnDefinitions()).hasSize(1);
+      assertThat(row.getInt("v")).isEqualTo(42);
+    } finally {
+      session.execute("DROP TABLE IF EXISTS no_extra_values_test");
+    }
   }
 
   private void assertAllColumns(ColumnDefinitions columnDefinitions, CqlIdentifier keyspaceId) {

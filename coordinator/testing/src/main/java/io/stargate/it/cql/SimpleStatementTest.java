@@ -21,6 +21,7 @@ import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateEnvironmentInfo;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -34,6 +35,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k, v))",
       // table with simple primary key, single cell.
       "CREATE TABLE IF NOT EXISTS test2 (k text primary key, v int)",
+      // table with composite key
+      "CREATE TABLE IF NOT EXISTS test3 (k int, c1 int, c2 int, v int, PRIMARY KEY (k, c1, c2))"
     })
 public class SimpleStatementTest extends BaseIntegrationTest {
 
@@ -47,6 +50,7 @@ public class SimpleStatementTest extends BaseIntegrationTest {
   public void cleanupData(CqlSession session) {
     session.execute("TRUNCATE test");
     session.execute("TRUNCATE test2");
+    session.execute("TRUNCATE test3");
     for (int i = 0; i < 100; i++) {
       session.execute("INSERT INTO test (k, v) VALUES (?, ?)", KEY, i);
     }
@@ -206,5 +210,24 @@ public class SimpleStatementTest extends BaseIntegrationTest {
     assertThat(queryTrace.getParameters().get("consistency_level")).isEqualTo("LOCAL_QUORUM");
     assertThat(queryTrace.getParameters().get("serial_consistency_level"))
         .isEqualTo("LOCAL_SERIAL");
+  }
+
+  @Test
+  @DisplayName("Should return just one selected column, not more")
+  public void noExtraValuesTest(CqlSession session) {
+    session.execute("INSERT INTO test3 (k, c1, c2, v) VALUES (1, 1, 2, 42)");
+    SimpleStatement query =
+        SimpleStatement.newInstance("SELECT v FROM test3 WHERE k IN (1, 0) ORDER BY c1 ")
+            // IMPORTANT! Must prevent paging, otherwise we'll error for other reasons
+            .setPageSize(Integer.MAX_VALUE);
+    ResultSet resultSet = session.execute(query);
+    assertThat(resultSet.getColumnDefinitions().size()).isEqualTo(1);
+    assertThat(resultSet.getColumnDefinitions().get(0).getName().toString()).isEqualTo("v");
+    List<Row> rows = resultSet.all();
+    assertThat(rows).hasSize(1);
+    Row row = rows.get(0);
+    assertThat(row.size()).isEqualTo(1);
+    assertThat(row.getColumnDefinitions()).hasSize(1);
+    assertThat(row.getInt("v")).isEqualTo(42);
   }
 }
