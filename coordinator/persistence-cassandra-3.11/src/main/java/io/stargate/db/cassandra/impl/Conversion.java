@@ -475,7 +475,9 @@ public class Conversion {
       }
     }
 
-    return new Result.ResultMetadata(flags, columns, null, pagingState);
+    // 08-Sep-2023: IMPORTANT! must pass column count (2nd arg) explicitly;
+    //    see https://github.com/stargate/stargate/pull/2760 for details
+    return new Result.ResultMetadata(flags, metadata.getColumnCount(), columns, null, pagingState);
   }
 
   public static Result.PreparedMetadata toPreparedMetadata(
