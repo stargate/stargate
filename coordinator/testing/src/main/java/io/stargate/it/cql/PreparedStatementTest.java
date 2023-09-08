@@ -158,10 +158,11 @@ public class PreparedStatementTest extends BaseIntegrationTest {
   public void noExtraValuesTest(CqlSession session) {
     // table with composite key
     session.execute(
-        "CREATE TABLE IF NOT EXISTS noextravaluestest (k int, c1 int, c2 int, v int, PRIMARY KEY (k, c1, c2))");
+        "CREATE TABLE IF NOT EXISTS no_extra_values_test (k int, c1 int, c2 int, v int, PRIMARY KEY (k, c1, c2))");
     try {
-      session.execute("INSERT INTO test3 (k, c1, c2, v) VALUES (1, 1, 2, 42)");
-      PreparedStatement ps = session.prepare("SELECT v FROM test3 WHERE k IN (1, 0) ORDER BY c1 ");
+      session.execute("INSERT INTO no_extra_values_test (k, c1, c2, v) VALUES (1, 1, 2, 42)");
+      PreparedStatement ps =
+          session.prepare("SELECT v FROM no_extra_values_test WHERE k IN (1, 0) ORDER BY c1 ");
       // IMPORTANT! Must prevent paging, otherwise we'll error for other reasons
       ResultSet resultSet = session.execute(ps.bind().setPageSize(Integer.MAX_VALUE));
       assertThat(resultSet.getColumnDefinitions().size()).isEqualTo(1);
@@ -173,7 +174,7 @@ public class PreparedStatementTest extends BaseIntegrationTest {
       assertThat(row.getColumnDefinitions()).hasSize(1);
       assertThat(row.getInt("v")).isEqualTo(42);
     } finally {
-      session.execute("DROP TABLE IF EXISTS noextravaluestest");
+      session.execute("DROP TABLE IF EXISTS no_extra_values_test");
     }
   }
 
