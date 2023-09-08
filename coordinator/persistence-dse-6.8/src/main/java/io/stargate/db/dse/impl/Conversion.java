@@ -491,6 +491,8 @@ public class Conversion {
     }
 
     MD5Digest resultMetadataId = getResultMetadataId(metadata);
+    // 08-Sep-2023: IMPORTANT! must pass column count (2nd arg) explicitly;
+    //    see https://github.com/stargate/stargate/pull/2760 for details
     return new Result.ResultMetadata(
         flags, metadata.getColumnCount(), columns, resultMetadataId, pagingState);
   }
