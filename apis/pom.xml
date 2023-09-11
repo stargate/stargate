@@ -61,6 +61,8 @@
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
     <quarkus.platform.version>3.2.1.Final</quarkus.platform.version>
+    <!-- Cassandra dependencies -->
+    <driver.version>4.17.0</driver.version>
     <!-- Testing -->
     <skipTests>false</skipTests>
     <skipUnitTests>${skipTests}</skipUnitTests>
@@ -114,7 +116,7 @@
       <dependency>
         <groupId>com.datastax.oss</groupId>
         <artifactId>java-driver-core</artifactId>
-        <version>4.14.1</version>
+        <version>${driver.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>

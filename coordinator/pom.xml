@@ -53,7 +53,7 @@
     <!-- Release -->
     <project.scm.id>github</project.scm.id>
     <doclint>none</doclint>
-    <driver.version>4.15.0</driver.version>
+    <driver.version>4.17.0</driver.version>
     <!-- First DropWizard version and things it directly depends on that make sense to sync -->
     <dropwizard.version>2.1.6</dropwizard.version>
     <!--
@@ -720,7 +720,7 @@
         <artifactId>java-driver-core</artifactId>
         <version>${driver.version}</version>
       </dependency>
-      <!-- 14-Jun-2022, tatu: with java-driver-core 4.14.1 this dependency is optional
+      <!-- 14-Jun-2022, tatu: with java-driver-core 4.14+ this dependency is optional
             and not brought as compile-time dependency, so needs to be explicitly added
            (see [stargate#1889] for details). But we better use consistent version
       -->
