@@ -15,6 +15,7 @@
  */
 package io.stargate.sgv2.api.common.cql.builder;
 
+import io.quarkus.logging.Log;
 import io.stargate.bridge.proto.QueryOuterClass.Value;
 import io.stargate.sgv2.api.common.cql.ColumnUtils;
 import java.util.List;
@@ -106,6 +107,8 @@ public interface BuiltCondition {
       @Override
       void appendToBuilder(
           StringBuilder builder, Map<Marker, Value> markers, List<Value> boundValues) {
+        Log.error("111111");
+
         builder.append(ColumnUtils.maybeQuote(columnName));
       }
 
@@ -153,6 +156,8 @@ public interface BuiltCondition {
       @Override
       void appendToBuilder(
           StringBuilder builder, Map<Marker, Value> markers, List<Value> boundValues) {
+        Log.error("??????");
+
         builder
             .append(ColumnUtils.maybeQuote(columnName))
             .append('[')

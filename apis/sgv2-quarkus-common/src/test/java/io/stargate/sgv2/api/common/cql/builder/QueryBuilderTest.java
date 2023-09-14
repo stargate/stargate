@@ -19,6 +19,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import com.bpodgursky.jbool_expressions.Expression;
+import com.bpodgursky.jbool_expressions.Variable;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.BatchQuery;
@@ -422,5 +424,19 @@ public class QueryBuilderTest {
                     .parameters(QueryOuterClass.QueryParameters.newBuilder().build())
                     .buildForBatch())
         .isInstanceOf(IllegalStateException.class);
+  }
+
+  public static void main(String[] args) {
+
+    BuiltCondition condition = BuiltCondition.of("name", Predicate.EQ, Values.of("testname1"));
+    Expression<BuiltCondition> expression = Variable.of(condition);
+    final QueryOuterClass.Query build =
+        new QueryBuilder()
+            .select()
+            .from("testKS", "testCollection")
+            .where(expression)
+            .limit(1)
+            .build();
+    System.out.println(build.getCql());
   }
 }
