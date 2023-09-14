@@ -6,7 +6,7 @@ Note: This persistence backend includes vector search and SAI indexing features 
 
 ## Cassandra version update
 
-The current Cassandra version this module depends on is `4.0.7-e47eb8e14b96` from [datastax/cassandra:vsearch](https://github.com/datastax/cassandra/tree/vsearch) (released 2023-08-28)
+The current Cassandra version this module depends on is `4.0.7-0cf63a3d0b6d` from [datastax/cassandra:vsearch](https://github.com/datastax/cassandra/tree/vsearch) (released 2023-09-14)
 In order to update to a newer patch version, please follow the guidelines below:
 
 * Update the `cassandra.version` property in the [pom.xml](pom.xml).
