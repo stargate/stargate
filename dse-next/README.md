@@ -24,5 +24,5 @@ To publish a new version of `stargateio/dse-next` you need to:
     - need to use JDK 11
 4. Do `docker login`
     - Need to use account with access to `stargateio` at Docker Hub
-5. Run ./build-docker-image.sh -p
+5. Run ./build_docker_image.sh -p
 6. Verify new image at: https://hub.docker.com/r/stargateio/dse-next/tags
