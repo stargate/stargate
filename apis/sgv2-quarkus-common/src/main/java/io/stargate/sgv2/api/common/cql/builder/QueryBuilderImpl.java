@@ -22,7 +22,6 @@ import com.github.misberner.apcommons.util.AFModifier;
 import com.github.misberner.duzzt.annotations.DSLAction;
 import com.github.misberner.duzzt.annotations.GenerateEmbeddedDSL;
 import com.github.misberner.duzzt.annotations.SubExpr;
-import io.quarkus.logging.Log;
 import io.stargate.bridge.proto.QueryOuterClass.BatchQuery;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.QueryOuterClass.QueryParameters;
@@ -532,19 +531,11 @@ public class QueryBuilderImpl {
   }
 
   private void addWhere(BuiltCondition where) {
-    Log.warn("···········addWhere hahaha!!!");
-    Log.warn(where.predicate());
-    Log.warn(where.value());
-    Log.warn(where.lhs());
-    Log.warn(where);
-    Log.warn("···········");
     wheres.add(where);
   }
 
   private void addWhereExpression(Expression<BuiltCondition> whereExpression) {
-    Log.warn("--------addWhereExpression");
     this.whereExpression = whereExpression;
-    Log.warn("--------");
   }
 
   @DSLAction(autoVarArgs = false)
@@ -881,7 +872,6 @@ public class QueryBuilderImpl {
       return deleteQuery();
     }
     if (isSelect) {
-      Log.error("go select");
       return selectQuery();
     }
     if (isOther) {
@@ -1368,22 +1358,12 @@ public class QueryBuilderImpl {
 
     for (BuiltCondition condition : conditions) {
       builder.append(prefix);
-      Log.error("?? " + generatedBoundValues);
-      Log.error("builder " + builder);
-      Log.info("lhs " + condition.lhs());
-      Log.info("lhs " + (condition.lhs() instanceof BuiltCondition.LHS.ColumnName));
-      Log.error("?? " + generatedBoundValues);
       condition.lhs().appendToBuilder(builder, generatedMarkers, generatedBoundValues);
-      Log.error("?? " + generatedBoundValues);
-
-      Log.error("builder " + builder);
       builder
           .append(" ")
           .append(condition.predicate().toString())
           .append(" ")
           .append(formatValue(condition.value()));
-      Log.error("builder " + generatedBoundValues);
-      Log.error("builder " + builder);
       prefix = " AND ";
     }
   }
@@ -1470,7 +1450,6 @@ public class QueryBuilderImpl {
     builder.append(" FROM ").append(maybeQualify(tableName));
 
     appendWheres(builder);
-    Log.error("after append where " + generatedBoundValues + " " + generatedMarkers);
     if (!groupBys.isEmpty()) {
       builder
           .append(" GROUP BY ")
@@ -1506,8 +1485,6 @@ public class QueryBuilderImpl {
     if (allowFiltering) {
       builder.append(" ALLOW FILTERING");
     }
-    Log.error("end of selectQuery " + generatedBoundValues + " " + generatedMarkers);
-    Log.error("end of selectQuery " + builder);
     return builder.toString();
   }
 

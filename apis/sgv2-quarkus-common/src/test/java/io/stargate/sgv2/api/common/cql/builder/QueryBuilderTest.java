@@ -425,18 +425,4 @@ public class QueryBuilderTest {
                     .buildForBatch())
         .isInstanceOf(IllegalStateException.class);
   }
-
-  public static void main(String[] args) {
-
-    BuiltCondition condition = BuiltCondition.of("name", Predicate.EQ, Values.of("testname1"));
-    Expression<BuiltCondition> expression = Variable.of(condition);
-    final QueryOuterClass.Query build =
-        new QueryBuilder()
-            .select()
-            .from("testKS", "testCollection")
-            .where(expression)
-            .limit(1)
-            .build();
-    System.out.println(build.getCql());
-  }
 }
