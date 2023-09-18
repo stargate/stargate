@@ -798,16 +798,11 @@ public class QueryBuilderImpl {
 
   @DSLAction
   public Query build() {
-    Log.error("begin building sql ");
     Query.Builder query = Query.newBuilder().setCql(buildCql());
-    Log.error("begin building sql - query " + query);
     if (!generatedBoundValues.isEmpty()) {
-      Log.error("begin building sql - not empy");
-      Log.error("begin building sql - not empy " + generatedBoundValues);
       query.setValues(Values.newBuilder().addAllValues(generatedBoundValues).build());
     }
     if (parameters != null) {
-      Log.error("pa " + parameters);
       query.setParameters(parameters);
     }
     return query.build();
@@ -1401,9 +1396,7 @@ public class QueryBuilderImpl {
       prefix = " AND ";
     }
     builder.append(initialPrefix); // must have where
-    Log.error("woqu11 " + builder);
     builder.append(addExpressionCql(whereExpression));
-    Log.error("woqu " + builder);
   }
 
   private StringBuilder addExpressionCql(Expression<BuiltCondition> outterExpression) {
@@ -1438,13 +1431,10 @@ public class QueryBuilderImpl {
         Variable<BuiltCondition> variable = (Variable) outterExpression;
         BuiltCondition condition = variable.getValue();
         condition.lhs().appendToBuilder(sb, generatedMarkers, generatedBoundValues);
-        Log.error("woqu " + sb);
         sb.append(" ")
             .append(condition.predicate().toString())
             .append(" ")
             .append(formatValue(condition.value()));
-        Log.error("woqu " + sb);
-
         return sb;
       }
       default -> throw new IllegalArgumentException("Unsupported expression type");
