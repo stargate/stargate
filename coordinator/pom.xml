@@ -103,7 +103,7 @@
     <!-- Basic OSGi dependency, provided by container -->
     <dependency>
       <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.core</artifactId>
+      <artifactId>osgi.core</artifactId>
       <version>8.0.0</version>
       <scope>provided</scope>
     </dependency>
