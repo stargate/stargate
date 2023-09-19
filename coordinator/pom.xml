@@ -487,8 +487,8 @@
             <configuration>
               <rules>
                 <requireJavaVersion>
-                  <version>[11,12)</version>
-                  <message>Project requires JDK 11</message>
+                  <version>[20,)</version>
+                  <message>Project requires JDK 20</message>
                 </requireJavaVersion>
                 <requireUpperBoundDeps>
                   <!-- If specifying includes ONLY those are checked
