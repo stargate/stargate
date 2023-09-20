@@ -25,7 +25,6 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
-import net.nicoulaj.compilecommand.annotations.Inline;
 import sun.misc.Unsafe;
 
 /**
@@ -271,7 +270,6 @@ public class FastByteOperations {
       }
     }
 
-    @Inline
     public static int compareTo(ByteBuffer buffer1, ByteBuffer buffer2) {
       Object obj1;
       long offset1;
@@ -288,7 +286,6 @@ public class FastByteOperations {
       return compareTo(obj1, offset1, length1, buffer2);
     }
 
-    @Inline
     public static int compareTo(Object buffer1, long offset1, int length1, ByteBuffer buffer) {
       Object obj2;
       long offset2;
@@ -321,7 +318,6 @@ public class FastByteOperations {
      * @param length2 How much to compare from the right buffer
      * @return 0 if equal, {@code < 0} if left is less than right, etc.
      */
-    @Inline
     public static int compareTo(
         Object buffer1,
         long memoryOffset1,
