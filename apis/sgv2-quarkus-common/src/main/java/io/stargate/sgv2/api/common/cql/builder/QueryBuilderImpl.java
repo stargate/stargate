@@ -1379,10 +1379,10 @@ public class QueryBuilderImpl {
     builder.append(addExpressionCql(whereExpression));
   }
 
-  private StringBuilder addExpressionCql(Expression<BuiltCondition> outterExpression) {
+  private StringBuilder addExpressionCql(Expression<BuiltCondition> outerExpression) {
     StringBuilder sb = new StringBuilder();
-    List<Expression<BuiltCondition>> innerExpressions = outterExpression.getChildren();
-    switch (outterExpression.getExprType()) {
+    List<Expression<BuiltCondition>> innerExpressions = outerExpression.getChildren();
+    switch (outerExpression.getExprType()) {
       case "and" -> {
         sb.append(" ( ");
         for (int i = 0; i < innerExpressions.size(); i++) {
@@ -1408,7 +1408,7 @@ public class QueryBuilderImpl {
         return sb;
       }
       case "variable" -> {
-        Variable<BuiltCondition> variable = (Variable) outterExpression;
+        Variable<BuiltCondition> variable = (Variable) outerExpression;
         BuiltCondition condition = variable.getValue();
         condition.lhs().appendToBuilder(sb, generatedMarkers, generatedBoundValues);
         sb.append(" ")
@@ -1417,7 +1417,8 @@ public class QueryBuilderImpl {
             .append(formatValue(condition.value()));
         return sb;
       }
-      default -> throw new IllegalArgumentException("Unsupported expression type");
+      default -> throw new IllegalArgumentException(
+          String.format("Unsupported expression type %s", outerExpression.getExprType()));
     }
   }
 
