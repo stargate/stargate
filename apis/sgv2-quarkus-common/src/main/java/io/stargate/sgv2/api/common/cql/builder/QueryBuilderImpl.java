@@ -534,7 +534,7 @@ public class QueryBuilderImpl {
     wheres.add(where);
   }
 
-  private void addWhereExpression(Expression<BuiltCondition> whereExpression) {
+  private void setWhereExpression(Expression<BuiltCondition> whereExpression) {
     this.whereExpression = whereExpression;
   }
 
@@ -555,7 +555,7 @@ public class QueryBuilderImpl {
       whereExpression =
           whereExpression.replaceVars(conditionExpressionMap, new ExprFactory.Default<>());
     }
-    addWhereExpression(whereExpression);
+    setWhereExpression(whereExpression);
   }
 
   public void ifs(String columnName, Predicate predicate, Object value) {
@@ -1376,36 +1376,35 @@ public class QueryBuilderImpl {
       prefix = " AND ";
     }
     builder.append(initialPrefix); // must have where
-    builder.append(addExpressionCql(whereExpression));
+    //    builder.append(addExpressionCql(whereExpression));
+    addExpressionCql(builder, whereExpression);
   }
 
-  private StringBuilder addExpressionCql(Expression<BuiltCondition> outerExpression) {
-    StringBuilder sb = new StringBuilder();
+  private void addExpressionCql(StringBuilder sb, Expression<BuiltCondition> outerExpression) {
+    //    StringBuilder sb = new StringBuilder();
     List<Expression<BuiltCondition>> innerExpressions = outerExpression.getChildren();
     switch (outerExpression.getExprType()) {
       case "and" -> {
-        sb.append(" ( ");
+        sb.append("(");
         for (int i = 0; i < innerExpressions.size(); i++) {
-          sb.append(addExpressionCql(innerExpressions.get(i)));
+          addExpressionCql(sb, innerExpressions.get(i));
           if (i == innerExpressions.size() - 1) {
             break;
           }
           sb.append(" AND ");
         }
-        sb.append(" ) ");
-        return sb;
+        sb.append(")");
       }
       case "or" -> {
-        sb.append(" ( ");
+        sb.append("(");
         for (int i = 0; i < innerExpressions.size(); i++) {
-          sb.append(addExpressionCql(innerExpressions.get(i)));
+          addExpressionCql(sb, innerExpressions.get(i));
           if (i == innerExpressions.size() - 1) {
             break;
           }
           sb.append(" OR ");
         }
-        sb.append(" ) ");
-        return sb;
+        sb.append(")");
       }
       case "variable" -> {
         Variable<BuiltCondition> variable = (Variable) outerExpression;
@@ -1415,7 +1414,6 @@ public class QueryBuilderImpl {
             .append(condition.predicate().toString())
             .append(" ")
             .append(formatValue(condition.value()));
-        return sb;
       }
       default -> throw new IllegalArgumentException(
           String.format("Unsupported expression type %s", outerExpression.getExprType()));

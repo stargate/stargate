@@ -248,8 +248,10 @@ public class QueryBuilderValuesTest {
 
     assertThat(query.getCql())
         .isIn(
-            "SELECT * FROM \"testKS\".\"testCollection\" WHERE  (  ( gender CONTAINS ? OR age = ? )  AND name = ? )  LIMIT 1",
-            "SELECT * FROM \"testKS\".\"testCollection\" WHERE  ( name = ? AND  ( age = ? OR gender CONTAINS ? )  )  LIMIT 1");
+            "SELECT * FROM \"testKS\".\"testCollection\" WHERE (name = ? AND (age = ? OR gender CONTAINS ?)) LIMIT 1",
+            "SELECT * FROM \"testKS\".\"testCollection\" WHERE (name = ? AND (gender CONTAINS ? OR age = ?)) LIMIT 1",
+            "SELECT * FROM \"testKS\".\"testCollection\" WHERE ((age = ? OR gender CONTAINS ?) AND name = ?) LIMIT 1",
+            "SELECT * FROM \"testKS\".\"testCollection\" WHERE ((gender CONTAINS ? OR age = ?) AND name = ?) LIMIT 1");
     assertThat(query.getValues().getValuesList())
         .contains(TEST_NAME_VALUE, TEST_AGE_VALUE, TEST_GENDER_VALUE);
   }
@@ -266,8 +268,11 @@ public class QueryBuilderValuesTest {
 
     assertThat(query.getCql())
         .isIn(
-            "SELECT * FROM \"testKS\".\"testCollection\" WHERE  (  ( name CONTAINS ? OR gender CONTAINS ? )  AND key = ? ) ",
-            "SELECT * FROM \"testKS\".\"testCollection\" WHERE  ( key = ? AND  ( gender CONTAINS ? OR name CONTAINS ? )  ) ");
+            "SELECT * FROM \"testKS\".\"testCollection\" WHERE ((name CONTAINS ? OR gender CONTAINS ?) AND key = ?)",
+            "SELECT * FROM \"testKS\".\"testCollection\" WHERE ((gender CONTAINS ? OR name CONTAINS ?) AND key = ?)",
+            "SELECT * FROM \"testKS\".\"testCollection\" WHERE (key = ? AND (gender CONTAINS ? OR name CONTAINS ?))",
+            "SELECT * FROM \"testKS\".\"testCollection\" WHERE (key = ? AND (name CONTAINS ? OR gender CONTAINS ?))");
+
     assertThat(query.getValues().getValuesList())
         .contains(TEST_KEY_VALUE, TEST_NAME_VALUE, TEST_GENDER_VALUE);
   }
