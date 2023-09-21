@@ -106,6 +106,7 @@ public interface BuiltCondition {
       @Override
       void appendToBuilder(
           StringBuilder builder, Map<Marker, Value> markers, List<Value> boundValues) {
+
         builder.append(ColumnUtils.maybeQuote(columnName));
       }
 
@@ -153,6 +154,7 @@ public interface BuiltCondition {
       @Override
       void appendToBuilder(
           StringBuilder builder, Map<Marker, Value> markers, List<Value> boundValues) {
+
         builder
             .append(ColumnUtils.maybeQuote(columnName))
             .append('[')

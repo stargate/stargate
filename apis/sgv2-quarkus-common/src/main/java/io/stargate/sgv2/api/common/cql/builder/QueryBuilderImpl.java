@@ -15,6 +15,9 @@
  */
 package io.stargate.sgv2.api.common.cql.builder;
 
+import com.bpodgursky.jbool_expressions.Expression;
+import com.bpodgursky.jbool_expressions.Variable;
+import com.bpodgursky.jbool_expressions.util.ExprFactory;
 import com.github.misberner.apcommons.util.AFModifier;
 import com.github.misberner.duzzt.annotations.DSLAction;
 import com.github.misberner.duzzt.annotations.GenerateEmbeddedDSL;
@@ -27,14 +30,7 @@ import io.stargate.bridge.proto.QueryOuterClass.Values;
 import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.cql.ColumnUtils;
 import io.stargate.sgv2.api.common.cql.CqlStrings;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -131,6 +127,9 @@ public class QueryBuilderImpl {
 
   /** The where conditions for a SELECT or UPDATE. */
   private final List<BuiltCondition> wheres = new ArrayList<>();
+
+  /** The where expression which contains conditions and logic operation for a SELECT or UPDATE. */
+  private Expression<BuiltCondition> whereExpression = null;
 
   /** The IFs conditions for a conditional UPDATE or DELETE. */
   private final List<BuiltCondition> ifs = new ArrayList<>();
@@ -535,11 +534,28 @@ public class QueryBuilderImpl {
     wheres.add(where);
   }
 
+  private void setWhereExpression(Expression<BuiltCondition> whereExpression) {
+    this.whereExpression = whereExpression;
+  }
+
   @DSLAction(autoVarArgs = false)
   public void where(Collection<? extends BuiltCondition> where) {
     for (BuiltCondition condition : where) {
       where(condition);
     }
+  }
+
+  @DSLAction(autoVarArgs = false)
+  public void where(Expression<BuiltCondition> whereExpression) {
+    Set<BuiltCondition> conditions = whereExpression.getAllK();
+    for (BuiltCondition condition : conditions) {
+      Variable<BuiltCondition> newConditionExpression = Variable.of(bindGrpcValues(condition));
+      Map<BuiltCondition, Expression<BuiltCondition>> conditionExpressionMap =
+          Collections.singletonMap(condition, newConditionExpression);
+      whereExpression =
+          whereExpression.replaceVars(conditionExpressionMap, new ExprFactory.Default<>());
+    }
+    setWhereExpression(whereExpression);
   }
 
   public void ifs(String columnName, Predicate predicate, Object value) {
@@ -1320,6 +1336,10 @@ public class QueryBuilderImpl {
   }
 
   private void appendWheres(StringBuilder builder) {
+    if (this.whereExpression != null) {
+      appendConditions(this.whereExpression, " WHERE ", builder);
+      return;
+    }
     appendConditions(this.wheres, " WHERE ", builder);
   }
 
@@ -1329,11 +1349,13 @@ public class QueryBuilderImpl {
 
   private void appendConditions(
       List<BuiltCondition> conditions, String initialPrefix, StringBuilder builder) {
+
     String prefix = initialPrefix;
     if (initialPrefix.contains("IF") && ifExists) {
       builder.append(prefix).append("EXISTS");
       prefix = " AND ";
     }
+
     for (BuiltCondition condition : conditions) {
       builder.append(prefix);
       condition.lhs().appendToBuilder(builder, generatedMarkers, generatedBoundValues);
@@ -1343,6 +1365,58 @@ public class QueryBuilderImpl {
           .append(" ")
           .append(formatValue(condition.value()));
       prefix = " AND ";
+    }
+  }
+
+  private void appendConditions(
+      Expression<BuiltCondition> whereExpression, String initialPrefix, StringBuilder builder) {
+    String prefix = initialPrefix;
+    if (initialPrefix.contains("IF") && ifExists) {
+      builder.append(prefix).append("EXISTS");
+      prefix = " AND ";
+    }
+    builder.append(initialPrefix); // must have where
+    //    builder.append(addExpressionCql(whereExpression));
+    addExpressionCql(builder, whereExpression);
+  }
+
+  private void addExpressionCql(StringBuilder sb, Expression<BuiltCondition> outerExpression) {
+    //    StringBuilder sb = new StringBuilder();
+    List<Expression<BuiltCondition>> innerExpressions = outerExpression.getChildren();
+    switch (outerExpression.getExprType()) {
+      case "and" -> {
+        sb.append("(");
+        for (int i = 0; i < innerExpressions.size(); i++) {
+          addExpressionCql(sb, innerExpressions.get(i));
+          if (i == innerExpressions.size() - 1) {
+            break;
+          }
+          sb.append(" AND ");
+        }
+        sb.append(")");
+      }
+      case "or" -> {
+        sb.append("(");
+        for (int i = 0; i < innerExpressions.size(); i++) {
+          addExpressionCql(sb, innerExpressions.get(i));
+          if (i == innerExpressions.size() - 1) {
+            break;
+          }
+          sb.append(" OR ");
+        }
+        sb.append(")");
+      }
+      case "variable" -> {
+        Variable<BuiltCondition> variable = (Variable) outerExpression;
+        BuiltCondition condition = variable.getValue();
+        condition.lhs().appendToBuilder(sb, generatedMarkers, generatedBoundValues);
+        sb.append(" ")
+            .append(condition.predicate().toString())
+            .append(" ")
+            .append(formatValue(condition.value()));
+      }
+      default -> throw new IllegalArgumentException(
+          String.format("Unsupported expression type %s", outerExpression.getExprType()));
     }
   }
 
@@ -1375,7 +1449,6 @@ public class QueryBuilderImpl {
     builder.append(" FROM ").append(maybeQualify(tableName));
 
     appendWheres(builder);
-
     if (!groupBys.isEmpty()) {
       builder
           .append(" GROUP BY ")
@@ -1411,7 +1484,6 @@ public class QueryBuilderImpl {
     if (allowFiltering) {
       builder.append(" ALLOW FILTERING");
     }
-
     return builder.toString();
   }
 

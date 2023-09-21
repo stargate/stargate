@@ -18,6 +18,10 @@ package io.stargate.sgv2.api.common.cql.builder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.bpodgursky.jbool_expressions.And;
+import com.bpodgursky.jbool_expressions.Expression;
+import com.bpodgursky.jbool_expressions.Or;
+import com.bpodgursky.jbool_expressions.Variable;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.QueryOuterClass.Value;
@@ -30,6 +34,11 @@ public class QueryBuilderValuesTest {
   public static final Value INT_VALUE1 = Values.of(1);
   public static final Value INT_VALUE2 = Values.of(10);
   public static final Value TEXT_VALUE = Values.of("a");
+
+  public static final Value TEST_NAME_VALUE = Values.of("tim");
+  public static final Value TEST_AGE_VALUE = Values.of(25);
+  public static final Value TEST_GENDER_VALUE = Values.of("male");
+  public static final Value TEST_KEY_VALUE = Values.of("(1,'1')");
 
   @Test
   public void shouldBindDirectInsertValues() {
@@ -224,5 +233,47 @@ public class QueryBuilderValuesTest {
   public void shouldAllowCQLStatement() {
     Query query = new QueryBuilder().cql("SELECT * from system.local").build();
     assertThat(query.getCql()).isEqualTo("SELECT * from system.local");
+  }
+
+  @Test
+  public void expressionQueryBuilderTest() {
+    BuiltCondition name = BuiltCondition.of("name", Predicate.EQ, TEST_NAME_VALUE);
+    BuiltCondition age = BuiltCondition.of("age", Predicate.EQ, TEST_AGE_VALUE);
+    BuiltCondition gender = BuiltCondition.of("gender", Predicate.CONTAINS, TEST_GENDER_VALUE);
+
+    Expression<BuiltCondition> expr =
+        And.of(Variable.of(name), Or.of(Variable.of(age), Variable.of(gender)));
+    Query query =
+        new QueryBuilder().select().from("testKS", "testCollection").where(expr).limit(1).build();
+
+    assertThat(query.getCql())
+        .isIn(
+            "SELECT * FROM \"testKS\".\"testCollection\" WHERE (name = ? AND (age = ? OR gender CONTAINS ?)) LIMIT 1",
+            "SELECT * FROM \"testKS\".\"testCollection\" WHERE (name = ? AND (gender CONTAINS ? OR age = ?)) LIMIT 1",
+            "SELECT * FROM \"testKS\".\"testCollection\" WHERE ((age = ? OR gender CONTAINS ?) AND name = ?) LIMIT 1",
+            "SELECT * FROM \"testKS\".\"testCollection\" WHERE ((gender CONTAINS ? OR age = ?) AND name = ?) LIMIT 1");
+    assertThat(query.getValues().getValuesList())
+        .contains(TEST_NAME_VALUE, TEST_AGE_VALUE, TEST_GENDER_VALUE);
+  }
+
+  @Test
+  public void expressionQueryBuilderKeyTest() {
+    BuiltCondition key = BuiltCondition.of("key", Predicate.EQ, TEST_KEY_VALUE);
+    BuiltCondition name = BuiltCondition.of("name", Predicate.CONTAINS, TEST_NAME_VALUE);
+    BuiltCondition gender = BuiltCondition.of("gender", Predicate.CONTAINS, TEST_GENDER_VALUE);
+
+    Expression<BuiltCondition> expr =
+        And.of(Variable.of(key), Or.of(Variable.of(name), Variable.of(gender)));
+    Query query = new QueryBuilder().select().from("testKS", "testCollection").where(expr).build();
+
+    assertThat(query.getCql())
+        .isIn(
+            "SELECT * FROM \"testKS\".\"testCollection\" WHERE ((name CONTAINS ? OR gender CONTAINS ?) AND key = ?)",
+            "SELECT * FROM \"testKS\".\"testCollection\" WHERE ((gender CONTAINS ? OR name CONTAINS ?) AND key = ?)",
+            "SELECT * FROM \"testKS\".\"testCollection\" WHERE (key = ? AND (gender CONTAINS ? OR name CONTAINS ?))",
+            "SELECT * FROM \"testKS\".\"testCollection\" WHERE (key = ? AND (name CONTAINS ? OR gender CONTAINS ?))");
+
+    assertThat(query.getValues().getValuesList())
+        .contains(TEST_KEY_VALUE, TEST_NAME_VALUE, TEST_GENDER_VALUE);
   }
 }
