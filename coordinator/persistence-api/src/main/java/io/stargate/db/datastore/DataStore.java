@@ -20,7 +20,7 @@ import io.stargate.db.query.AsyncQueryExecutor;
 import io.stargate.db.query.BoundQuery;
 import io.stargate.db.query.Query;
 import io.stargate.db.query.TypedValue;
-import io.stargate.db.query.builder.QueryBuilder;
+import io.stargate.db.query.builder.QueryBuilderImpl;
 import io.stargate.db.schema.Schema;
 import java.util.concurrent.CompletableFuture;
 
@@ -36,8 +36,8 @@ public interface DataStore extends AsyncQueryExecutor {
   TypedValue.Codec valueCodec();
 
   /** Create a query using the DSL builder. */
-  default QueryBuilder queryBuilder() {
-    return new QueryBuilder(schema(), valueCodec(), this);
+  default QueryBuilderImpl queryBuilder() {
+    return new QueryBuilderImpl(schema(), valueCodec(), this);
   }
 
   <B extends BoundQuery> CompletableFuture<Query<B>> prepare(Query<B> query);

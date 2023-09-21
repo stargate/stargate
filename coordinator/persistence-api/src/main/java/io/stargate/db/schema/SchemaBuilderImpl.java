@@ -19,9 +19,6 @@ import com.datastax.oss.driver.shaded.guava.common.base.Preconditions;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableList;
 import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableSet;
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
-import com.github.misberner.duzzt.annotations.DSLAction;
-import com.github.misberner.duzzt.annotations.GenerateEmbeddedDSL;
-import com.github.misberner.duzzt.annotations.SubExpr;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -34,23 +31,7 @@ import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 /** Convenience builder for creating schema. */
-@GenerateEmbeddedDSL(
-    autoVarArgs = false,
-    name = "SchemaBuilder",
-    syntax = "<keyspace>* build",
-    where = {
-      @SubExpr(
-          name = "keyspace",
-          definedAs = "keyspace ((withReplication? andDurableWrites?) <type>* <table>*)"),
-      @SubExpr(
-          name = "table",
-          definedAs =
-              "table (column)+ (secondaryIndex column (indexKeys|indexValues|indexEntries|indexFull)? (indexClass indexOptions?)?)* <materializedView>*"),
-      @SubExpr(name = "materializedView", definedAs = "materializedView (column)+"),
-      @SubExpr(name = "type", definedAs = "type (column)+"),
-    })
 public class SchemaBuilderImpl {
-
   private Set<Keyspace> keyspaces = new LinkedHashSet<>();
   private Set<Table> tables = new LinkedHashSet<>();
   private Set<Column> columns = new LinkedHashSet<>();
@@ -79,8 +60,7 @@ public class SchemaBuilderImpl {
     this.callback = callback;
   }
 
-  @DSLAction
-  public void keyspace(String name) {
+  public SchemaBuilderImpl keyspace(String name) {
     if (keyspaceName != null) {
       table(null);
 
@@ -92,12 +72,13 @@ public class SchemaBuilderImpl {
       durableWrites = Optional.empty();
     }
     keyspaceName = name;
+    return this;
   }
 
-  @DSLAction
-  public void type(String typeName) {
+  public SchemaBuilderImpl type(String typeName) {
     finishLast();
     this.udtTypeName = typeName;
+    return this;
   }
 
   private void finishLastUDT() {
@@ -127,8 +108,7 @@ public class SchemaBuilderImpl {
     return ImmutableKeyspace.builder().name(keyspaceName).userDefinedTypes(udts).build();
   }
 
-  @DSLAction
-  public void table(String name) {
+  public SchemaBuilderImpl table(String name) {
     finishLast();
     if (tableName != null) {
       Table table =
@@ -146,6 +126,7 @@ public class SchemaBuilderImpl {
       columns.clear();
     }
     tableName = name;
+    return this;
   }
 
   private boolean finishingLast = false;
@@ -163,13 +144,12 @@ public class SchemaBuilderImpl {
     }
   }
 
-  @DSLAction
-  public void column(String name, Column.ColumnType type, Column.Kind kind) {
-    column(name, type, kind, kind == Column.Kind.Clustering ? Column.Order.ASC : null);
+  public SchemaBuilderImpl column(String name, Column.ColumnType type, Column.Kind kind) {
+    return column(name, type, kind, kind == Column.Kind.Clustering ? Column.Order.ASC : null);
   }
 
-  @DSLAction
-  public void column(String name, Column.ColumnType type, Column.Kind kind, Column.Order order) {
+  public SchemaBuilderImpl column(
+      String name, Column.ColumnType type, Column.Kind kind, Column.Order order) {
     checkIndexOnColumn(name);
     checkMvOnColumn(name);
 
@@ -182,15 +162,14 @@ public class SchemaBuilderImpl {
             .kind(kind)
             .order(order)
             .build());
+    return this;
   }
 
-  @DSLAction
-  public void column(String name, Class type, Column.Kind kind) {
-    column(name, type, kind, kind == Column.Kind.Clustering ? Column.Order.ASC : null);
+  public SchemaBuilderImpl column(String name, Class type, Column.Kind kind) {
+    return column(name, type, kind, kind == Column.Kind.Clustering ? Column.Order.ASC : null);
   }
 
-  @DSLAction
-  public void column(String name, Class type, Column.Kind kind, Column.Order order) {
+  public SchemaBuilderImpl column(String name, Class type, Column.Kind kind, Column.Order order) {
     checkIndexOnColumn(name);
     checkMvOnColumn(name);
 
@@ -203,10 +182,10 @@ public class SchemaBuilderImpl {
             .kind(kind)
             .order(order)
             .build());
+    return this;
   }
 
-  @DSLAction
-  public void column(String name, Column.Kind kind) {
+  public SchemaBuilderImpl column(String name, Column.Kind kind) {
     checkIndexOnColumn(name);
 
     Preconditions.checkState(
@@ -221,10 +200,10 @@ public class SchemaBuilderImpl {
             .kind(kind)
             .order(order)
             .build());
+    return this;
   }
 
-  @DSLAction
-  public void column(String name, Column.Kind kind, Column.Order order) {
+  public SchemaBuilderImpl column(String name, Column.Kind kind, Column.Order order) {
     checkIndexOnColumn(name);
 
     Preconditions.checkState(
@@ -241,10 +220,10 @@ public class SchemaBuilderImpl {
             .kind(kind)
             .order(order)
             .build());
+    return this;
   }
 
-  @DSLAction
-  public void column(String name, Column.ColumnType type) {
+  public SchemaBuilderImpl column(String name, Column.ColumnType type) {
     checkIndexOnColumn(name);
     checkMvOnColumn(name);
     if (type.isUserDefined()) {
@@ -266,10 +245,10 @@ public class SchemaBuilderImpl {
             .type(type.dereference(udtKeyspace()))
             .kind(Column.Kind.Regular)
             .build());
+    return this;
   }
 
-  @DSLAction
-  public void column(String name, Class<?> type) {
+  public SchemaBuilderImpl column(String name, Class<?> type) {
     checkIndexOnColumn(name);
     checkMvOnColumn(name);
 
@@ -284,10 +263,10 @@ public class SchemaBuilderImpl {
             .type(type)
             .kind(Column.Kind.Regular)
             .build());
+    return this;
   }
 
-  @DSLAction
-  public void column(String name) {
+  public SchemaBuilderImpl column(String name) {
     Preconditions.checkState(
         materializedViewName != null || secondaryIndexName != null,
         "This overload of 'column' can only be used with materialized views or secondary indexes");
@@ -302,91 +281,94 @@ public class SchemaBuilderImpl {
               .kind(Column.Kind.Regular)
               .build());
     }
+    return this;
   }
 
-  @DSLAction
-  public void secondaryIndex(String name) {
+  public SchemaBuilderImpl secondaryIndex(String name) {
     finishLast();
     secondaryIndexColumn = null;
     secondaryIndexName = name;
+    return this;
   }
 
-  @DSLAction
-  public void materializedView(String name) {
+  public SchemaBuilderImpl materializedView(String name) {
     finishLast();
     materializedViewName = name;
+    return this;
   }
 
-  @DSLAction
-  public void indexKeys() {
+  public SchemaBuilderImpl indexKeys() {
     indexKeys = true;
+    return this;
   }
 
-  @DSLAction
-  public void indexValues() {
+  public SchemaBuilderImpl indexValues() {
     indexValues = true;
+    return this;
   }
 
-  @DSLAction
-  public void indexEntries() {
+  public SchemaBuilderImpl indexEntries() {
     indexEntries = true;
+    return this;
   }
 
-  @DSLAction
-  public void indexFull() {
+  public SchemaBuilderImpl indexFull() {
     indexFull = true;
+    return this;
   }
 
-  @DSLAction
-  public void indexClass(String name) {
+  public SchemaBuilderImpl indexClass(String name) {
     indexClass = name;
+    return this;
   }
 
-  @DSLAction
-  public void indexOptions(Map<String, String> options) {
+  public SchemaBuilderImpl indexOptions(Map<String, String> options) {
     indexOptions = options;
+    return this;
   }
 
-  @DSLAction
-  public void from(String fromVertex) {}
+  public SchemaBuilderImpl from(String fromVertex) {
+    return this;
+  }
 
-  @DSLAction
-  public void to(String toVertex) {}
+  public SchemaBuilderImpl to(String toVertex) {
+    return this;
+  }
 
-  @DSLAction
-  public void fromColumn(String... columns) {
+  public SchemaBuilderImpl fromColumn(String... columns) {
     for (String column : columns) {
       fromColumns.add(
           ImmutableColumn.builder().from(columnExistsAndIsPrimaryKey(column).get()).build());
     }
+    return this;
   }
 
-  @DSLAction
-  public void toColumn(String... columns) {
+  public SchemaBuilderImpl toColumn(String... columns) {
     for (String column : columns) {
       toColumns.add(
           ImmutableColumn.builder().from(columnExistsAndIsPrimaryKey(column).get()).build());
     }
+    return this;
   }
 
-  @DSLAction
-  public void fromColumn(List<String> columns) {
+  public SchemaBuilderImpl fromColumn(List<String> columns) {
     fromColumn(columns.toArray(new String[0]));
+    return this;
   }
 
-  @DSLAction
-  public void toColumn(List<String> columns) {
+  public SchemaBuilderImpl toColumn(List<String> columns) {
     toColumn(columns.toArray(new String[0]));
+    return this;
   }
 
-  @DSLAction
-  public void withReplication(Map<String, String> replication) {
+  public SchemaBuilderImpl withReplication(Map<String, String> replication) {
     this.replication = replication;
+    return this;
   }
 
-  @DSLAction
-  public void andDurableWrites(boolean durableWrites) {
+  public SchemaBuilderImpl andDurableWrites(boolean durableWrites) {
     this.durableWrites = Optional.of(durableWrites);
+    return this;
   }
 
   private Optional<Column> columnExistsAndIsPrimaryKey(String name) {
@@ -533,7 +515,6 @@ public class SchemaBuilderImpl {
     }
   }
 
-  @DSLAction
   public Schema build() {
     finishLastUDT();
     keyspace(null);
