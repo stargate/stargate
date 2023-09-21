@@ -50,8 +50,13 @@
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <!-- OSGi -->
     <osgi.bundle.version>${project.version}</osgi.bundle.version>
-    <!-- JDK 11 settings -->
-    <jdk11.module-exports>--add-exports java.base/jdk.internal.ref=ALL-UNNAMED --add-exports java.base/jdk.internal.misc=ALL-UNNAMED</jdk11.module-exports>
+    <!-- JDK 9+ JPMS settings -->
+    <jdk11.module-exports>
+      --add-exports java.base/jdk.internal.ref=ALL-UNNAMED
+      --add-exports java.base/jdk.internal.misc=ALL-UNNAMED
+      --add-opens java.base/java.io=ALL-UNNAMED
+      --add-opens java.base/sun.nio.ch=ALL-UNNAMED
+    </jdk11.module-exports>
     <!-- Release -->
     <project.scm.id>github</project.scm.id>
     <doclint>none</doclint>
