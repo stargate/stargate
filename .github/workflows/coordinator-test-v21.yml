@@ -61,7 +61,7 @@ jobs:
         name: Setup Java JDK
         with:
           distribution: 'temurin'
-          java-version: 17
+          java-version: 20
           cache: 'maven'
 
       - name: Setup Maven
@@ -154,7 +154,7 @@ jobs:
         name: Setup Java JDK
         with:
           distribution: 'temurin'
-          java-version: 17
+          java-version: 20
           cache: 'maven'
 
       - name: Setup Maven
