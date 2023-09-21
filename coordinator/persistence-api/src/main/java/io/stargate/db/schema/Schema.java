@@ -17,9 +17,7 @@ package io.stargate.db.schema;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import org.immutables.value.Value;
@@ -49,14 +47,6 @@ public abstract class Schema {
 
   public static Schema create(Iterable<Keyspace> keyspaces) {
     return ImmutableSchema.builder().addAllKeyspaces(keyspaces).build();
-  }
-
-  public static SchemaBuilder build() {
-    return new SchemaBuilder(Optional.empty());
-  }
-
-  public static SchemaBuilder build(Consumer<Schema> callback) {
-    return new SchemaBuilder(Optional.of(callback));
   }
 
   @Override

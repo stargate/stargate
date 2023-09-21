@@ -76,12 +76,6 @@
       <version>1.2.3</version>
     </dependency>
     <dependency>
-      <groupId>com.github.misberner.duzzt</groupId>
-      <artifactId>duzzt-processor</artifactId>
-      <version>0.1.0</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>org.javatuples</groupId>
       <artifactId>javatuples</artifactId>
     </dependency>
