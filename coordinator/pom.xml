@@ -95,9 +95,9 @@
     <netty-boringssl.version>2.0.51.Final</netty-boringssl.version>
     <jacoco.version>0.8.8</jacoco.version>
     <junit.version>5.8.2</junit.version>
-    <mockito.version>3.12.4</mockito.version>
-    <assertj.version>3.21.0</assertj.version>
-    <awaitility.version>4.1.1</awaitility.version>
+    <mockito.version>5.2.0</mockito.version>
+    <assertj.version>3.24.2</assertj.version>
+    <awaitility.version>4.2.0</awaitility.version>
   </properties>
   <dependencies>
     <!-- Basic OSGi dependency, provided by container -->
@@ -522,8 +522,8 @@
           <artifactId>maven-compiler-plugin</artifactId>
           <version>3.11.0</version>
           <configuration>
-            <source>11</source>
-            <target>11</target>
+            <source>20</source>
+            <target>20</target>
             <showWarnings>true</showWarnings>
             <failOnWarning>false</failOnWarning>
           </configuration>
