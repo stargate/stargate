@@ -16,10 +16,8 @@ public class BuiltAlterTest extends BuiltDMLTest<BoundDelete> {
 
     @Test
     public void withComment() {
-      QueryBuilder builder = newBuilder();
-
       BuiltQuery<?> query =
-          builder.alter().table(KS_NAME, "t1").withComment("Special Ivan's comment.").build();
+          newBuilder().alter().table(KS_NAME, "t1").withComment("Special Ivan's comment.").build();
 
       assertBuiltQuery(query, "ALTER TABLE ks.t1 WITH comment = 'Special Ivan''s comment.'");
     }

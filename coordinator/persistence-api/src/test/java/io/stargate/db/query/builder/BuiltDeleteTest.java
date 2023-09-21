@@ -25,10 +25,8 @@ public class BuiltDeleteTest extends BuiltDMLTest<BoundDelete> {
 
   @Test
   public void testDeleteColumnNoMarkers() {
-    QueryBuilder builder = newBuilder();
-
     BuiltQuery<?> query =
-        builder
+        newBuilder()
             .delete()
             .column("v2")
             .from(KS_NAME, "t1")
@@ -45,10 +43,8 @@ public class BuiltDeleteTest extends BuiltDMLTest<BoundDelete> {
 
   @Test
   public void testDeleteIfExists() {
-    QueryBuilder builder = newBuilder();
-
     BuiltQuery<?> query =
-        builder
+        newBuilder()
             .delete()
             .column("v2")
             .from(KS_NAME, "t1")
@@ -74,10 +70,8 @@ public class BuiltDeleteTest extends BuiltDMLTest<BoundDelete> {
   }
 
   private BuiltQuery<?> startTestDeleteWithMarkers() {
-    QueryBuilder builder = newBuilder();
-
     BuiltQuery<?> query =
-        builder
+        newBuilder()
             .delete()
             .column("v2")
             .from(KS_NAME, "t1")
@@ -117,10 +111,8 @@ public class BuiltDeleteTest extends BuiltDMLTest<BoundDelete> {
 
   @Test
   public void testDeleteWithIN() {
-    QueryBuilder builder = newBuilder();
-
     BuiltQuery<?> query =
-        builder
+        newBuilder()
             .delete()
             .column("v2")
             .from(KS_NAME, "t1")
@@ -166,10 +158,9 @@ public class BuiltDeleteTest extends BuiltDMLTest<BoundDelete> {
 
   @Test
   public void testDeleteUnknownColumnThrows() {
-    QueryBuilder builder = newBuilder();
     assertThatThrownBy(
             () ->
-                builder
+                newBuilder()
                     .delete()
                     .column("v1")
                     .column("random_name")
@@ -183,10 +174,9 @@ public class BuiltDeleteTest extends BuiltDMLTest<BoundDelete> {
 
   @Test
   public void testDeleteIncompatibleValueThrows() {
-    QueryBuilder builder = newBuilder();
     assertThatThrownBy(
             () ->
-                builder
+                newBuilder()
                     .delete()
                     .column("v2")
                     .from(KS_NAME, "t1")
@@ -350,8 +340,7 @@ public class BuiltDeleteTest extends BuiltDMLTest<BoundDelete> {
   }
 
   private BuiltQuery<?> queryWithCondition(BuiltCondition condition) {
-    QueryBuilder builder = newBuilder();
-    return builder
+    return newBuilder()
         .delete()
         .from(KS_NAME, "t1")
         .where("k1", Predicate.EQ, "foo")

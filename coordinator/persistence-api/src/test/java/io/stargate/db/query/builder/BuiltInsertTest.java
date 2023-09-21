@@ -19,10 +19,8 @@ class BuiltInsertTest extends BuiltDMLTest<BoundInsert> {
 
   @Test
   public void testInsertNoMarkers() {
-    QueryBuilder builder = newBuilder();
-
     BuiltQuery<?> query =
-        builder
+        newBuilder()
             .insertInto(KS_NAME, "t1")
             .value("k1", "foo")
             .value("k2", 42)
@@ -49,10 +47,8 @@ class BuiltInsertTest extends BuiltDMLTest<BoundInsert> {
 
   @Test
   public void testInsertIfNotExists() {
-    QueryBuilder builder = newBuilder();
-
     BuiltQuery<?> query =
-        builder
+        newBuilder()
             .insertInto(KS_NAME, "t1")
             .value("k1", "foo")
             .value("k2", 42)
@@ -77,10 +73,8 @@ class BuiltInsertTest extends BuiltDMLTest<BoundInsert> {
   }
 
   private BuiltQuery<?> startTestInsertWithMarkers() {
-    QueryBuilder builder = newBuilder();
-
     BuiltQuery<?> query =
-        builder
+        newBuilder()
             .insertInto(KS_NAME, "t1")
             .value("k1")
             .value("k2", 42)
@@ -143,10 +137,9 @@ class BuiltInsertTest extends BuiltDMLTest<BoundInsert> {
 
   @Test
   public void testInsertUnknownColumnThrows() {
-    QueryBuilder builder = newBuilder();
     assertThatThrownBy(
             () ->
-                builder
+                newBuilder()
                     .insertInto(KS_NAME, "t1")
                     .value("k1", "foo")
                     .value("random_name", 42)
@@ -159,10 +152,9 @@ class BuiltInsertTest extends BuiltDMLTest<BoundInsert> {
 
   @Test
   public void testInsertIncompatibleValueThrows() {
-    QueryBuilder builder = newBuilder();
     assertThatThrownBy(
             () ->
-                builder
+                newBuilder()
                     .insertInto(KS_NAME, "t1")
                     .value("k1", "foo")
                     .value("k2", 42)
