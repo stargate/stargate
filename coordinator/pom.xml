@@ -95,6 +95,9 @@
     <netty-boringssl.version>2.0.51.Final</netty-boringssl.version>
     <jacoco.version>0.8.10</jacoco.version>
     <junit.version>5.8.2</junit.version>
+    <!-- 22-Sep-20232, tatu: Looks like later (5.x) versions are stricter
+       about some mocking, so need to stay within 4.x series for now
+      -->
     <mockito.version>4.11.0</mockito.version>
     <assertj.version>3.24.2</assertj.version>
     <awaitility.version>4.2.0</awaitility.version>
