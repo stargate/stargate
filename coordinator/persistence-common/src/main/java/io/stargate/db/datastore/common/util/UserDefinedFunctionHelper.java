@@ -16,6 +16,7 @@
 package io.stargate.db.datastore.common.util;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 
 public class UserDefinedFunctionHelper {
@@ -39,18 +40,32 @@ public class UserDefinedFunctionHelper {
       Class<?> targetClass =
           Class.forName("org.apache.cassandra.cql3.functions.UDFunction$UDFClassLoader");
       Field targetField = targetClass.getDeclaredField("insecureClassLoader");
-      targetField.setAccessible(true);
 
-      Field modifiers = Field.class.getDeclaredField("modifiers");
-      modifiers.setAccessible(true);
-      modifiers.setInt(targetField, targetField.getModifiers() & ~Modifier.FINAL);
-
-      targetField.set(null, targetClass.getClassLoader());
+      // As per https://stackoverflow.com/questions/74723932/java-17-reflection-issue
+      // we must use more complicated handling on JDK 12+
+      setFinalStatic(targetField, targetClass.getClassLoader());
     } catch (Exception e) {
       throw new RuntimeException(
           "Error during initialization of the persistence layer: some "
               + "reflection-based accesses cannot be setup.",
           e);
     }
+  }
+
+  public static void setFinalStatic(Field field, Object newValue) throws Exception {
+    field.setAccessible(true);
+    Method getDeclaredFields0 = Class.class.getDeclaredMethod("getDeclaredFields0", boolean.class);
+    getDeclaredFields0.setAccessible(true);
+    Field[] fields = (Field[]) getDeclaredFields0.invoke(Field.class, false);
+    Field modifiersField = null;
+    for (Field each : fields) {
+      if ("modifiers".equals(each.getName())) {
+        modifiersField = each;
+        break;
+      }
+    }
+    modifiersField.setAccessible(true);
+    modifiersField.setInt(field, field.getModifiers() & ~Modifier.FINAL);
+    field.set(null, newValue);
   }
 }
