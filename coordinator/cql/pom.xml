@@ -169,8 +169,14 @@
           <outputDirectory>${project.basedir}/../stargate-lib</outputDirectory>
         </configuration>
       </plugin>
+      <!-- 22-Sep-2023, tatu: Need to open up access to "java.io.FileDescriptor.fd"
+             for some reason
+        -->
       <plugin>
         <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <argLine>${jdk11.module-exports}</argLine>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
