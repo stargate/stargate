@@ -395,10 +395,29 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
       cmd.addArgument("-Dstargate.bundle.cache.dir=" + cacheDir.getAbsolutePath());
 
       // Java 11+ requires these flags to allow reflection to work
+
+      cmd.addArgument("--add-opens");
+      cmd.addArgument("java.base/java.io=ALL-UNNAMED");
+      cmd.addArgument("--add-opens");
+      cmd.addArgument("java.base/java.nio.file.spi=ALL-UNNAMED");
+      cmd.addArgument("--add-opens");
+      cmd.addArgument("java.base/java.lang=ALL-UNNAMED");
+      cmd.addArgument("--add-opens");
+      cmd.addArgument("java.base/java.nio=ALL-UNNAMED");
+      cmd.addArgument("--add-opens");
+      cmd.addArgument("java.base/java.util=ALL-UNNAMED");
+      cmd.addArgument("--add-opens");
+      cmd.addArgument("java.base/java.util.concurrent=ALL-UNNAMED");
+      cmd.addArgument("--add-opens");
+      cmd.addArgument("java.base/java.util.concurrent.atomic=ALL-UNNAMED");
+
       cmd.addArgument("--add-exports");
       cmd.addArgument("java.base/jdk.internal.ref=ALL-UNNAMED");
       cmd.addArgument("--add-exports");
       cmd.addArgument("java.base/jdk.internal.misc=ALL-UNNAMED");
+
+      cmd.addArgument("--add-opens");
+      cmd.addArgument("java.base/sun.nio.ch=ALL-UNNAMED");
 
       if (backend.isDse()) {
         cmd.addArgument("-Dstargate.request_timeout_in_ms=60000");
