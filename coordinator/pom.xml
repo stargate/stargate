@@ -95,7 +95,7 @@
     <netty-boringssl.version>2.0.51.Final</netty-boringssl.version>
     <jacoco.version>0.8.10</jacoco.version>
     <junit.version>5.8.2</junit.version>
-    <mockito.version>5.5.0</mockito.version>
+    <mockito.version>4.11.0</mockito.version>
     <assertj.version>3.24.2</assertj.version>
     <awaitility.version>4.2.0</awaitility.version>
   </properties>
