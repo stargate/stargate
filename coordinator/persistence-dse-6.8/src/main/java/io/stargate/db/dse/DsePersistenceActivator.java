@@ -7,7 +7,6 @@ import io.stargate.auth.AuthorizationService;
 import io.stargate.core.activator.BaseActivator;
 import io.stargate.core.metrics.api.Metrics;
 import io.stargate.db.Persistence;
-import io.stargate.db.datastore.common.util.UserDefinedFunctionHelper;
 import io.stargate.db.dse.impl.DelegatingAuthorizer;
 import io.stargate.db.dse.impl.DsePersistence;
 import io.stargate.db.dse.impl.StargateConfigSnitch;
@@ -38,7 +37,9 @@ import org.apache.commons.io.FileUtils;
 public class DsePersistenceActivator extends BaseActivator {
 
   static {
-    UserDefinedFunctionHelper.fixCompilerClassLoader();
+    // 22-Sep-2023, tatu: This won't work on JDK 12+, not sure if it was
+    //   really needed any more, but for now let's just disable it
+    // UserDefinedFunctionHelper.fixCompilerClassLoader();
   }
 
   private static final String AUTHZ_PROCESSOR_ID =
