@@ -2,7 +2,7 @@
 # Dockerfile for building coordinator node images
 #
 
-FROM openjdk:20-jdk as base
+FROM eclipse-temurin:20-jdk as base
 
 RUN apt update -qq \
     && apt install iproute2 libaio1 libjemalloc2 -y \
