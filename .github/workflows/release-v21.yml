@@ -376,6 +376,8 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
+        with:
+          mask-password: 'true'
 
       - name: Build and push (coordinator, Amazon ECR)
         if: ${{ !inputs.skipPublish }}
@@ -460,6 +462,8 @@ jobs:
       - name: Login to Amazon ECR
         id: login-ecr
         uses: aws-actions/amazon-ecr-login@v1
+        with:
+          mask-password: 'true'
 
       # we need to sign also images created by additional tags
       # in this case v2 tag
