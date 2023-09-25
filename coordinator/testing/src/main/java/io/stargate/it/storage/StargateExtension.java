@@ -421,6 +421,7 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
       cmd.addArgument("--add-opens");
       cmd.addArgument("java.rmi/sun.rmi.registry=ALL-UNNAMED");
 
+      cmd.addArgument("-Dio.netty.tryReflectionSetAccessible=true");
       cmd.addArgument("-Djava.security.manager=allow");
 
       if (backend.isDse()) {
