@@ -124,6 +124,7 @@ eval declare -a JAVA_OPTS=("$JAVA_OPTS")
 
 JAVA_OPTS+=(-Dstargate.libdir="$STARGATE_HOME")
 JAVA_OPTS+=(-Djava.awt.headless=true)
+JAVA_OPTS+=(-Djava.security.manager=allow)
 JAVA_OPTS+=(--add-exports)
 JAVA_OPTS+=(java.base/jdk.internal.ref=ALL-UNNAMED)
 JAVA_OPTS+=(--add-exports)
@@ -138,6 +139,8 @@ JAVA_OPTS+=(--add-exports)
 JAVA_OPTS+=( java.base/java.util=ALL-UNNAMED)
 JAVA_OPTS+=(--add-exports)
 JAVA_OPTS+=(java.base/sun.nio.ch=ALL-UNNAMED)
+JAVA_OPTS+=(--add-exports)
+JAVA_OPTS+=(java.rmi/sun.rmi.registry=ALL-UNNAMED)
 
 declare -a STARGATE_ARGS=("$@")
 
