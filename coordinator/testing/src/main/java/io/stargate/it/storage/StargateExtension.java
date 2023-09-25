@@ -418,6 +418,8 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
 
       cmd.addArgument("--add-opens");
       cmd.addArgument("java.base/sun.nio.ch=ALL-UNNAMED");
+      cmd.addArgument("--add-opens");
+      cmd.addArgument("java.base/sun.rmi.registry=ALL-UNNAMED");
 
       if (backend.isDse()) {
         cmd.addArgument("-Dstargate.request_timeout_in_ms=60000");
