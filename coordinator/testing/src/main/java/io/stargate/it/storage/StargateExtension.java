@@ -421,6 +421,8 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
       cmd.addArgument("--add-opens");
       cmd.addArgument("java.rmi/sun.rmi.registry=ALL-UNNAMED");
 
+      cmd.addArgument("-Djava.security.manager=allow");
+
       if (backend.isDse()) {
         cmd.addArgument("-Dstargate.request_timeout_in_ms=60000");
         cmd.addArgument("-Dstargate.write_request_timeout_in_ms=60000");
