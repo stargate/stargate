@@ -17,10 +17,8 @@ public class BuiltCreateTest extends BuiltDMLTest<BoundDelete> {
 
     @Test
     public void withComment() {
-      QueryBuilder builder = newBuilder();
-
       BuiltQuery<?> query =
-          builder
+          newBuilder()
               .create()
               .table(KS_NAME, "new_table")
               .column(Column.create("key", Column.Kind.PartitionKey, Column.Type.Text))

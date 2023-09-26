@@ -22,10 +22,8 @@ public class BuiltUpdateTest extends BuiltDMLTest<BoundUpdate> {
 
   @Test
   public void testUpdateNoMarkers() {
-    QueryBuilder builder = newBuilder();
-
     BuiltQuery<?> query =
-        builder
+        newBuilder()
             .update(KS_NAME, "t1")
             .ttl(42)
             .timestamp(1L)
@@ -47,10 +45,8 @@ public class BuiltUpdateTest extends BuiltDMLTest<BoundUpdate> {
 
   @Test
   public void testUpdateIfExists() {
-    QueryBuilder builder = newBuilder();
-
     BuiltQuery<?> query =
-        builder
+        newBuilder()
             .update(KS_NAME, "t1")
             .value("v1", "foo_value")
             .value("v2", 1)
@@ -84,10 +80,8 @@ public class BuiltUpdateTest extends BuiltDMLTest<BoundUpdate> {
   }
 
   private BuiltQuery<?> startTestUpdateWithMarkers() {
-    QueryBuilder builder = newBuilder();
-
     BuiltQuery<?> query =
-        builder
+        newBuilder()
             .update(KS_NAME, "t1")
             .ttl()
             .timestamp()
@@ -182,10 +176,9 @@ public class BuiltUpdateTest extends BuiltDMLTest<BoundUpdate> {
 
   @Test
   public void testUpdateUnknownColumnThrows() {
-    QueryBuilder builder = newBuilder();
     assertThatThrownBy(
             () ->
-                builder
+                newBuilder()
                     .update(KS_NAME, "t1")
                     .value("v1", "foo_value")
                     .value("v2", 1)
@@ -198,10 +191,9 @@ public class BuiltUpdateTest extends BuiltDMLTest<BoundUpdate> {
 
   @Test
   public void testUpdateIncompatibleValueThrows() {
-    QueryBuilder builder = newBuilder();
     assertThatThrownBy(
             () ->
-                builder
+                newBuilder()
                     .update(KS_NAME, "t1")
                     .value("v1", "foo_value")
                     .value("v2", 1)

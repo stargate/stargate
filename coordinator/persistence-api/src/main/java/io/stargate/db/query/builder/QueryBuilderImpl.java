@@ -23,10 +23,6 @@ import static java.util.stream.Collectors.toSet;
 
 import com.datastax.oss.driver.internal.core.util.Strings;
 import com.datastax.oss.driver.shaded.guava.common.collect.Sets;
-import com.github.misberner.apcommons.util.AFModifier;
-import com.github.misberner.duzzt.annotations.DSLAction;
-import com.github.misberner.duzzt.annotations.GenerateEmbeddedDSL;
-import com.github.misberner.duzzt.annotations.SubExpr;
 import io.stargate.db.query.AsyncQueryExecutor;
 import io.stargate.db.query.BindMarker;
 import io.stargate.db.query.Modification.Operation;
@@ -58,43 +54,6 @@ import javax.annotation.Nullable;
 import org.javatuples.Pair;
 
 /** Convenience builder for creating queries. */
-@GenerateEmbeddedDSL(
-    modifier = AFModifier.DEFAULT,
-    autoVarArgs = false,
-    name = "QueryBuilder",
-    syntax = "(<keyspace>|<table>|<insert>|<update>|<delete>|<select>|<index>|<type>) build",
-    where = {
-      @SubExpr(
-          name = "keyspace",
-          definedAs = "<keyspaceCreate> | <keyspaceAlter> | (drop keyspace ifExists?)"),
-      @SubExpr(
-          name = "keyspaceCreate",
-          definedAs = "(create keyspace ifNotExists? withReplication andDurableWrites?)"),
-      @SubExpr(
-          name = "keyspaceAlter",
-          definedAs = "(alter keyspace (withReplication andDurableWrites?)?)"),
-      @SubExpr(
-          name = "table",
-          definedAs =
-              "(create table ifNotExists? column+ withComment? withDefaultTTL?) | (alter table (((addColumn+)? | (dropColumn+)? | (renameColumn+)?) | (withComment? withDefaultTTL?))) | (drop table ifExists?) | (truncate table)"),
-      @SubExpr(
-          name = "type",
-          definedAs =
-              "(create type ifNotExists?) | (drop type ifExists?) | (alter type (addColumn+ | renameColumn+))"),
-      @SubExpr(name = "insert", definedAs = "insertInto value+ ifNotExists? ttl? timestamp?"),
-      @SubExpr(name = "update", definedAs = "update ttl? timestamp? value+ where+ ifs* ifExists?"),
-      @SubExpr(name = "delete", definedAs = "delete column* from timestamp? where+ ifs* ifExists?"),
-      @SubExpr(
-          name = "select",
-          definedAs =
-              "select star? column* function* ((count|min|max|avg|sum|writeTimeColumn) as?)* "
-                  + "from (where* perPartitionLimit? limit? groupBy* orderBy*) allowFiltering?"),
-      @SubExpr(
-          name = "index",
-          definedAs =
-              "(drop ((materializedView|index) ifExists?)) | (create ((materializedView ifNotExists? asSelect (column+) from withComment?)"
-                  + " | (index ifNotExists? on column (indexKeys|indexValues|indexEntries|indexFull|indexingType)? (custom options?)?)))"),
-    })
 public class QueryBuilderImpl {
   private final Schema schema;
   private final Codec valueCodec;
@@ -180,85 +139,85 @@ public class QueryBuilderImpl {
     }
   }
 
-  @DSLAction
-  public void create() {
+  public QueryBuilderImpl create() {
     isCreate = true;
+    return this;
   }
 
-  @DSLAction
-  public void alter() {
+  public QueryBuilderImpl alter() {
     isAlter = true;
+    return this;
   }
 
-  @DSLAction
-  public void drop() {
+  public QueryBuilderImpl drop() {
     isDrop = true;
+    return this;
   }
 
-  @DSLAction
-  public void truncate() {
+  public QueryBuilderImpl truncate() {
     isTruncate = true;
+    return this;
   }
 
-  @DSLAction
-  public void keyspace(String keyspace) {
+  public QueryBuilderImpl keyspace(String keyspace) {
     this.keyspaceName = keyspace;
     this.isKeyspace = true;
+    return this;
   }
 
-  @DSLAction
-  public void table(String keyspace, String table) {
+  public QueryBuilderImpl table(String keyspace, String table) {
     this.keyspaceName = keyspace;
     table(table);
+    return this;
   }
 
-  @DSLAction
-  public void table(String table) {
+  public QueryBuilderImpl table(String table) {
     checkArgument(keyspaceName != null, "Keyspace must be specified");
     this.tableName = table;
     this.isTable = true;
+    return this;
   }
 
-  @DSLAction
-  public void withReplication(Replication replication) {
+  public QueryBuilderImpl withReplication(Replication replication) {
     this.replication = replication;
+    return this;
   }
 
-  @DSLAction
-  public void andDurableWrites(boolean durableWrites) {
+  public QueryBuilderImpl andDurableWrites(boolean durableWrites) {
     this.durableWrites = durableWrites;
+    return this;
   }
 
-  @DSLAction
-  public void ifNotExists() {
-    ifNotExists(true);
+  public QueryBuilderImpl ifNotExists() {
+    return ifNotExists(true);
   }
 
-  public void ifNotExists(boolean ifNotExists) {
+  public QueryBuilderImpl ifNotExists(boolean ifNotExists) {
     this.ifNotExists = ifNotExists;
+    return this;
   }
 
-  @DSLAction
-  public void ifExists() {
+  public QueryBuilderImpl ifExists() {
     ifExists(true);
+    return this;
   }
 
-  public void ifExists(boolean ifExists) {
+  public QueryBuilderImpl ifExists(boolean ifExists) {
     this.ifExists = ifExists;
+    return this;
   }
 
-  @DSLAction
-  public void withComment(String comment) {
+  public QueryBuilderImpl withComment(String comment) {
     this.comment = comment;
+    return this;
   }
 
-  @DSLAction
-  public void withDefaultTTL(int defaultTTL) {
+  public QueryBuilderImpl withDefaultTTL(int defaultTTL) {
     this.defaultTTL = defaultTTL;
+    return this;
   }
 
-  @DSLAction
-  public void column(String column) {
+  public QueryBuilderImpl column(String column) {
     if (isCreate) {
       checkArgument(
           !isTable, "Column '%s' type must be specified for table '%s'", column, tableName);
@@ -279,15 +238,17 @@ public class QueryBuilderImpl {
       // We should haven't other case where this can be called ...
       throw new AssertionError("This shouldn't have been called");
     }
+    return this;
   }
 
-  public void column(String... columns) {
+  public QueryBuilderImpl column(String... columns) {
     for (String c : columns) {
       column(c);
     }
+    return this;
   }
 
-  public void column(Column column) {
+  public QueryBuilderImpl column(Column column) {
     checkMaterializedViewColumn(column);
     checkTableColumn(column);
     if (isCreate && (isTable || isMaterializedView)) {
@@ -295,50 +256,54 @@ public class QueryBuilderImpl {
     } else {
       column(column.name());
     }
+    return this;
   }
 
-  public void column(Collection<Column> columns) {
+  public QueryBuilderImpl column(Collection<Column> columns) {
     for (Column c : columns) {
       column(c);
     }
+    return this;
   }
 
-  @DSLAction
-  public void column(String column, Column.ColumnType type, Column.Kind kind) {
+  public QueryBuilderImpl column(String column, Column.ColumnType type, Column.Kind kind) {
     column(ImmutableColumn.builder().name(column).type(type).kind(kind).build());
+    return this;
   }
 
-  @DSLAction
-  public void column(String column, Column.ColumnType type, Column.Kind kind, Column.Order order) {
+  public QueryBuilderImpl column(
+      String column, Column.ColumnType type, Column.Kind kind, Column.Order order) {
     column(ImmutableColumn.builder().name(column).type(type).kind(kind).order(order).build());
+    return this;
   }
 
-  @DSLAction
-  public void column(String column, Class<?> type, Column.Kind kind) {
+  public QueryBuilderImpl column(String column, Class<?> type, Column.Kind kind) {
     column(ImmutableColumn.builder().name(column).type(type).kind(kind).build());
+    return this;
   }
 
-  @DSLAction
-  public void column(String column, Class<?> type, Column.Kind kind, Column.Order order) {
+  public QueryBuilderImpl column(
+      String column, Class<?> type, Column.Kind kind, Column.Order order) {
     column(ImmutableColumn.builder().name(column).type(type).kind(kind).order(order).build());
+    return this;
   }
 
-  @DSLAction
-  public void column(String column, Column.Kind kind) {
+  public QueryBuilderImpl column(String column, Column.Kind kind) {
     column(ImmutableColumn.builder().name(column).kind(kind).build());
+    return this;
   }
 
-  @DSLAction
-  public void column(String column, Column.Kind kind, Column.Order order) {
+  public QueryBuilderImpl column(String column, Column.Kind kind, Column.Order order) {
     column(ImmutableColumn.builder().name(column).kind(kind).order(order).build());
+    return this;
   }
 
-  @DSLAction
-  public void column(String column, Column.ColumnType type) {
+  public QueryBuilderImpl column(String column, Column.ColumnType type) {
     column(column, type, Column.Kind.Regular);
+    return this;
   }
 
-  public void as(String alias) {
+  public QueryBuilderImpl as(String alias) {
     if (functionCalls.isEmpty()) {
       throw new IllegalStateException(
           "The as() method cannot be called without a preceding function call.");
@@ -346,63 +311,78 @@ public class QueryBuilderImpl {
     // the alias is set for the last function call
     FunctionCall functionCall = functionCalls.get(functionCalls.size() - 1);
     functionCall.setAlias(alias);
+    return this;
   }
 
-  public void writeTimeColumn(String columnName) {
+  public QueryBuilderImpl writeTimeColumn(String columnName) {
     functionCalls.add(FunctionCall.writeTime(columnName));
+    return this;
   }
 
-  public void writeTimeColumn(Column columnName) {
+  public QueryBuilderImpl writeTimeColumn(Column columnName) {
     writeTimeColumn(columnName.name());
+    return this;
   }
 
-  public void count(String columnName) {
+  public QueryBuilderImpl count(String columnName) {
     functionCalls.add(FunctionCall.count(columnName));
+    return this;
   }
 
-  public void count(Column columnName) {
+  public QueryBuilderImpl count(Column columnName) {
     count(columnName.name());
+    return this;
   }
 
-  public void max(String maxColumnName) {
+  public QueryBuilderImpl max(String maxColumnName) {
     functionCalls.add(FunctionCall.max(maxColumnName));
+    return this;
   }
 
-  public void max(Column maxColumnName) {
+  public QueryBuilderImpl max(Column maxColumnName) {
     max(maxColumnName.name());
+    return this;
   }
 
-  public void min(String minColumnName) {
+  public QueryBuilderImpl min(String minColumnName) {
     functionCalls.add(FunctionCall.min(minColumnName));
+    return this;
   }
 
-  public void min(Column minColumnName) {
+  public QueryBuilderImpl min(Column minColumnName) {
     min(minColumnName.name());
+    return this;
   }
 
-  public void sum(String sumColumnName) {
+  public QueryBuilderImpl sum(String sumColumnName) {
     functionCalls.add(FunctionCall.sum(sumColumnName));
+    return this;
   }
 
-  public void sum(Column sumColumnName) {
+  public QueryBuilderImpl sum(Column sumColumnName) {
     sum(sumColumnName.name());
+    return this;
   }
 
-  public void avg(String avgColumnName) {
+  public QueryBuilderImpl avg(String avgColumnName) {
     functionCalls.add(FunctionCall.avg(avgColumnName));
+    return this;
   }
 
-  public void avg(Column avgColumnName) {
+  public QueryBuilderImpl avg(Column avgColumnName) {
     avg(avgColumnName.name());
+    return this;
   }
 
-  public void function(Collection<FunctionCall> calls) {
+  public QueryBuilderImpl function(Collection<FunctionCall> calls) {
     functionCalls.addAll(calls);
+    return this;
   }
 
-  public void star() {
+  public QueryBuilderImpl star() {
     // This can be called to be explicit, but is the default when no columns are selected
     checkArgument(this.selection.isEmpty(), "Cannot use * when other columns are selected");
+    return this;
   }
 
   private void checkMaterializedViewColumn(Column column) {
@@ -421,245 +401,249 @@ public class QueryBuilderImpl {
         tableName != null ? tableName : "");
   }
 
-  @DSLAction
-  public void column(String column, Class<?> type) {
+  public QueryBuilderImpl column(String column, Class<?> type) {
     column(column, type, Column.Kind.Regular);
+    return this;
   }
 
-  @DSLAction
-  public void addColumn(String column, Column.ColumnType type) {
+  public QueryBuilderImpl addColumn(String column, Column.ColumnType type) {
     addColumn(ImmutableColumn.builder().name(column).type(type).kind(Column.Kind.Regular).build());
+    return this;
   }
 
-  public void addColumn(Column column) {
+  public QueryBuilderImpl addColumn(Column column) {
     addColumns.add(column);
+    return this;
   }
 
-  public void addColumn(Collection<Column> columns) {
+  public QueryBuilderImpl addColumn(Collection<Column> columns) {
     for (Column column : columns) {
       addColumn(column);
     }
+    return this;
   }
 
-  @DSLAction
-  public void dropColumn(String column) {
+  public QueryBuilderImpl dropColumn(String column) {
     dropColumns.add(column);
+    return this;
   }
 
-  public void dropColumn(Collection<String> columns) {
+  public QueryBuilderImpl dropColumn(Collection<String> columns) {
     for (String column : columns) {
       dropColumn(column);
     }
+    return this;
   }
 
-  public void dropColumn(Column column) {
+  public QueryBuilderImpl dropColumn(Column column) {
     dropColumn(column.name());
+    return this;
   }
 
-  @DSLAction
-  public void renameColumn(String from, String to) {
+  public QueryBuilderImpl renameColumn(String from, String to) {
     columnRenames.add(Pair.with(from, to));
+    return this;
   }
 
-  public void renameColumn(List<Pair<String, String>> columnRenames) {
+  public QueryBuilderImpl renameColumn(List<Pair<String, String>> columnRenames) {
     this.columnRenames.addAll(columnRenames);
+    return this;
   }
 
-  @DSLAction
-  public void insertInto(String keyspace, String table) {
+  public QueryBuilderImpl insertInto(String keyspace, String table) {
     this.keyspaceName = keyspace;
     this.tableName = table;
     this.isInsert = true;
+    return this;
   }
 
-  public void insertInto(Table table) {
+  public QueryBuilderImpl insertInto(Table table) {
     insertInto(table.keyspace(), table.name());
+    return this;
   }
 
-  @DSLAction
-  public void update(String keyspace, String table) {
+  public QueryBuilderImpl update(String keyspace, String table) {
     this.keyspaceName = keyspace;
     this.tableName = table;
     this.isUpdate = true;
+    return this;
   }
 
-  public void update(Table table) {
+  public QueryBuilderImpl update(Table table) {
     update(table.keyspace(), table.name());
+    return this;
   }
 
-  @DSLAction
-  public void delete() {
+  public QueryBuilderImpl delete() {
     this.isDelete = true;
+    return this;
   }
 
-  @DSLAction
-  public void select() {
+  public QueryBuilderImpl select() {
     this.isSelect = true;
+    return this;
   }
 
-  @DSLAction
-  public void from(String keyspace, String table) {
+  public QueryBuilderImpl from(String keyspace, String table) {
     this.keyspaceName = keyspace;
-    from(table);
+    return from(table);
   }
 
-  @DSLAction
-  public void from(String table) {
+  public QueryBuilderImpl from(String table) {
     checkArgument(keyspaceName != null, "Keyspace must be specified");
     this.tableName = table;
+    return this;
   }
 
-  public void from(AbstractTable table) {
-    from(table.keyspace(), table.name());
+  public QueryBuilderImpl from(AbstractTable table) {
+    return from(table.keyspace(), table.name());
   }
 
-  @DSLAction
-  public void value(String column, Object value) {
-    value(ValueModifier.set(column, value));
+  public QueryBuilderImpl value(String column, Object value) {
+    return value(ValueModifier.set(column, value));
   }
 
-  @DSLAction
-  public void value(String column) {
-    value(ValueModifier.marker(column));
+  public QueryBuilderImpl value(String column) {
+    return value(ValueModifier.marker(column));
   }
 
-  public void value(Column column) {
-    value(column.name());
+  public QueryBuilderImpl value(Column column) {
+    return value(column.name());
   }
 
-  public void value(Column column, Object value) {
-    value(column.name(), value);
+  public QueryBuilderImpl value(Column column, Object value) {
+    return value(column.name(), value);
   }
 
-  public void value(ValueModifier modifier) {
+  public QueryBuilderImpl value(ValueModifier modifier) {
     preprocessValue(modifier.target().mapKey());
     preprocessValue(modifier.value());
     dmlModifications.add(modifier);
+    return this;
   }
 
-  public void value(Collection<ValueModifier> setters) {
+  public QueryBuilderImpl value(Collection<ValueModifier> setters) {
     for (ValueModifier setter : setters) {
       value(setter);
     }
+    return this;
   }
 
-  public void where(Column column, Predicate predicate, Object value) {
-    where(column.name(), predicate, value);
+  public QueryBuilderImpl where(Column column, Predicate predicate, Object value) {
+    return where(column.name(), predicate, value);
   }
 
-  public void where(Column column, Predicate predicate) {
-    where(column.name(), predicate);
+  public QueryBuilderImpl where(Column column, Predicate predicate) {
+    return where(column.name(), predicate);
   }
 
-  public void where(String columnName, Predicate predicate, Object value) {
-    where(BuiltCondition.of(columnName, predicate, value));
+  public QueryBuilderImpl where(String columnName, Predicate predicate, Object value) {
+    return where(BuiltCondition.of(columnName, predicate, value));
   }
 
-  public void where(String columnName, Predicate predicate) {
-    where(BuiltCondition.ofMarker(columnName, predicate));
+  public QueryBuilderImpl where(String columnName, Predicate predicate) {
+    return where(BuiltCondition.ofMarker(columnName, predicate));
   }
 
-  public void where(BuiltCondition where) {
+  public QueryBuilderImpl where(BuiltCondition where) {
     where.lhs().value().ifPresent(this::preprocessValue);
     preprocessValue(where.value());
     wheres.add(where);
+    return this;
   }
 
-  @DSLAction(autoVarArgs = false)
-  public void where(Collection<? extends BuiltCondition> where) {
+  public QueryBuilderImpl where(Collection<? extends BuiltCondition> where) {
     for (BuiltCondition condition : where) {
       where(condition);
     }
+    return this;
   }
 
-  public void ifs(String columnName, Predicate predicate, Object value) {
-    ifs(BuiltCondition.of(columnName, predicate, value));
+  public QueryBuilderImpl ifs(String columnName, Predicate predicate, Object value) {
+    return ifs(BuiltCondition.of(columnName, predicate, value));
   }
 
-  public void ifs(String columnName, Predicate predicate) {
-    ifs(BuiltCondition.ofMarker(columnName, predicate));
+  public QueryBuilderImpl ifs(String columnName, Predicate predicate) {
+    return ifs(BuiltCondition.ofMarker(columnName, predicate));
   }
 
-  public void ifs(BuiltCondition condition) {
+  public QueryBuilderImpl ifs(BuiltCondition condition) {
     condition.lhs().value().ifPresent(this::preprocessValue);
     preprocessValue(condition.value());
     ifs.add(condition);
+    return this;
   }
 
-  @DSLAction(autoVarArgs = false)
-  public void ifs(Collection<? extends BuiltCondition> conditions) {
+  public QueryBuilderImpl ifs(Collection<? extends BuiltCondition> conditions) {
     for (BuiltCondition condition : conditions) {
       ifs(condition);
     }
+    return this;
   }
 
-  @DSLAction
-  public void materializedView(String keyspace, String name) {
+  public QueryBuilderImpl materializedView(String keyspace, String name) {
     this.keyspaceName = keyspace;
     materializedView(name);
+    return this;
   }
 
-  @DSLAction
-  public void materializedView(String name) {
+  public QueryBuilderImpl materializedView(String name) {
     checkArgument(keyspaceName != null, "Keyspace must be specified");
     // Note that we use the index to store the MV name, because the table variable will be used
     // to store the base table name.
     this.indexName = name;
     this.isMaterializedView = true;
+    return this;
   }
 
-  public void materializedView(Keyspace keyspace, String name) {
-    materializedView(keyspace.name(), name);
+  public QueryBuilderImpl materializedView(Keyspace keyspace, String name) {
+    return materializedView(keyspace.name(), name);
   }
 
-  @DSLAction
-  public void asSelect() {
+  public QueryBuilderImpl asSelect() {
     // This method is just so the builder flows better
+    return this;
   }
 
-  @DSLAction
-  public void on(String keyspace, String table) {
+  public QueryBuilderImpl on(String keyspace, String table) {
     this.keyspaceName = keyspace;
-    on(table);
+    return on(table);
   }
 
-  @DSLAction
-  public void on(String table) {
+  public QueryBuilderImpl on(String table) {
     checkArgument(keyspaceName != null, "Keyspace must be specified");
     this.tableName = table;
+    return this;
   }
 
-  public void on(Table table) {
-    on(table.keyspace(), table.name());
+  public QueryBuilderImpl on(Table table) {
+    return on(table.keyspace(), table.name());
   }
 
-  @DSLAction
-  public void index(String index) {
+  public QueryBuilderImpl index(String index) {
     this.indexName = index;
     this.isIndex = true;
+    return this;
   }
 
-  @DSLAction
-  public void index() {
-    index((String) null);
+  public QueryBuilderImpl index() {
+    return index((String) null);
   }
 
-  public void index(SecondaryIndex index) {
-    index(index.name());
+  public QueryBuilderImpl index(SecondaryIndex index) {
+    return index(index.name());
   }
 
-  @DSLAction
-  public void index(String keyspace, String index) {
+  public QueryBuilderImpl index(String keyspace, String index) {
     this.keyspaceName = keyspace;
-    index(index);
+    return index(index);
   }
 
-  public void index(Keyspace keyspace, SecondaryIndex index) {
-    index(keyspace.name(), index.name());
+  public QueryBuilderImpl index(Keyspace keyspace, SecondaryIndex index) {
+    return index(keyspace.name(), index.name());
   }
 
-  @DSLAction
-  public void indexingType(CollectionIndexingType indexingType) {
+  public QueryBuilderImpl indexingType(CollectionIndexingType indexingType) {
     if (indexingType.indexEntries()) {
       indexEntries();
     } else if (indexingType.indexFull()) {
@@ -669,158 +653,162 @@ public class QueryBuilderImpl {
     } else if (indexingType.indexValues()) {
       indexValues();
     }
+    return this;
   }
 
-  @DSLAction
-  public void indexKeys() {
+  public QueryBuilderImpl indexKeys() {
     indexKeys = true;
+    return this;
   }
 
-  @DSLAction
-  public void indexValues() {
+  public QueryBuilderImpl indexValues() {
     indexValues = true;
+    return this;
   }
 
-  @DSLAction
-  public void indexEntries() {
+  public QueryBuilderImpl indexEntries() {
     indexEntries = true;
+    return this;
   }
 
-  @DSLAction
-  public void indexFull() {
+  public QueryBuilderImpl indexFull() {
     indexFull = true;
+    return this;
   }
 
-  @DSLAction
-  public void custom(String customIndexClass) {
+  public QueryBuilderImpl custom(String customIndexClass) {
     this.customIndexClass = customIndexClass;
+    return this;
   }
 
-  @DSLAction
-  public void custom(String customIndexClass, Map<String, String> customIndexOptions) {
+  public QueryBuilderImpl custom(String customIndexClass, Map<String, String> customIndexOptions) {
     custom(customIndexClass);
     this.customIndexOptions = customIndexOptions;
+    return this;
   }
 
-  @DSLAction
-  public void options(Map<String, String> customIndexOptions) {
+  public QueryBuilderImpl options(Map<String, String> customIndexOptions) {
     this.customIndexOptions = customIndexOptions;
+    return this;
   }
 
-  @DSLAction
-  public void type(String keyspace, UserDefinedType type) {
+  public QueryBuilderImpl type(String keyspace, UserDefinedType type) {
     this.keyspaceName = keyspace;
     this.type = type;
     this.isType = true;
+    return this;
   }
 
-  @DSLAction
-  public void limit() {
+  public QueryBuilderImpl limit() {
     this.limit = Value.marker();
     preprocessValue(this.limit);
+    return this;
   }
 
-  @DSLAction
-  public void limit(Integer limit) {
+  public QueryBuilderImpl limit(Integer limit) {
     if (limit != null) {
       this.limit = Value.of(limit);
     }
+    return this;
   }
 
-  @DSLAction
-  public void perPartitionLimit() {
+  public QueryBuilderImpl perPartitionLimit() {
     this.perPartitionLimit = Value.marker();
     preprocessValue(this.perPartitionLimit);
+    return this;
   }
 
-  @DSLAction
-  public void perPartitionLimit(Integer limit) {
+  public QueryBuilderImpl perPartitionLimit(Integer limit) {
     if (limit != null) {
       this.perPartitionLimit = Value.of(limit);
     }
+    return this;
   }
 
-  @DSLAction
-  public void groupBy(Column column) {
+  public QueryBuilderImpl groupBy(Column column) {
     groupBys.add(column);
+    return this;
   }
 
-  @DSLAction
-  public void groupBy(String name) {
+  public QueryBuilderImpl groupBy(String name) {
     groupBy(Column.reference(name));
+    return this;
   }
 
-  @DSLAction
-  public void groupBy(Iterable<Column> columns) {
+  public QueryBuilderImpl groupBy(Iterable<Column> columns) {
     columns.forEach(this::groupBy);
+    return this;
   }
 
-  @DSLAction
-  public void groupBy(Column... columns) {
+  public QueryBuilderImpl groupBy(Column... columns) {
     for (Column column : columns) {
       groupBy(column);
     }
+    return this;
   }
 
-  public void orderBy(Column column, Column.Order order) {
-    orderBy(column.name(), order);
+  public QueryBuilderImpl orderBy(Column column, Column.Order order) {
+    return orderBy(column.name(), order);
   }
 
-  public void orderBy(ColumnOrder... orders) {
+  public QueryBuilderImpl orderBy(ColumnOrder... orders) {
     Collections.addAll(this.orders, orders);
+    return this;
   }
 
-  public void orderBy(List<ColumnOrder> orders) {
+  public QueryBuilderImpl orderBy(List<ColumnOrder> orders) {
     this.orders = orders;
+    return this;
   }
 
-  public void orderBy(String column, Column.Order order) {
-    orderBy(ColumnOrder.of(column, order));
+  public QueryBuilderImpl orderBy(String column, Column.Order order) {
+    return orderBy(ColumnOrder.of(column, order));
   }
 
-  public void orderBy(String column) {
-    orderBy(column, Column.Order.ASC);
+  public QueryBuilderImpl orderBy(String column) {
+    return orderBy(column, Column.Order.ASC);
   }
 
-  public void orderBy(Column column) {
-    orderBy(column, Column.Order.ASC);
+  public QueryBuilderImpl orderBy(Column column) {
+    return orderBy(column, Column.Order.ASC);
   }
 
-  public void allowFiltering() {
+  public QueryBuilderImpl allowFiltering() {
     this.allowFiltering = true;
+    return this;
   }
 
-  public void allowFiltering(boolean allowFiltering) {
+  public QueryBuilderImpl allowFiltering(boolean allowFiltering) {
     this.allowFiltering = allowFiltering;
+    return this;
   }
 
-  @DSLAction
-  public void ttl() {
+  public QueryBuilderImpl ttl() {
     this.ttl = Value.marker();
     preprocessValue(this.ttl);
+    return this;
   }
 
-  @DSLAction
-  public void ttl(Integer ttl) {
+  public QueryBuilderImpl ttl(Integer ttl) {
     if (ttl != null) {
       this.ttl = Value.of(ttl);
     }
+    return this;
   }
 
-  @DSLAction
-  public void timestamp() {
+  public QueryBuilderImpl timestamp() {
     this.timestamp = Value.marker();
     preprocessValue(this.timestamp);
+    return this;
   }
 
-  @DSLAction
-  public void timestamp(Long timestamp) {
+  public QueryBuilderImpl timestamp(Long timestamp) {
     if (timestamp != null) {
       this.timestamp = Value.of(timestamp);
     }
+    return this;
   }
 
-  @DSLAction
   public BuiltQuery<?> build() {
     if (isKeyspace && isCreate) {
       return createKeyspace();
@@ -1699,8 +1687,9 @@ public class QueryBuilderImpl {
       return function(columnName, alias, "WRITETIME");
     }
 
-    public void setAlias(String alias) {
+    public FunctionCall setAlias(String alias) {
       this.alias = alias;
+      return this;
     }
 
     public String getColumnName() {

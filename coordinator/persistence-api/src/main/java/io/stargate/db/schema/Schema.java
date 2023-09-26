@@ -51,12 +51,12 @@ public abstract class Schema {
     return ImmutableSchema.builder().addAllKeyspaces(keyspaces).build();
   }
 
-  public static SchemaBuilder build() {
-    return new SchemaBuilder(Optional.empty());
+  public static SchemaBuilderImpl build() {
+    return new SchemaBuilderImpl(Optional.empty());
   }
 
-  public static SchemaBuilder build(Consumer<Schema> callback) {
-    return new SchemaBuilder(Optional.of(callback));
+  public static SchemaBuilderImpl build(Consumer<Schema> callback) {
+    return new SchemaBuilderImpl(Optional.of(callback));
   }
 
   @Override
