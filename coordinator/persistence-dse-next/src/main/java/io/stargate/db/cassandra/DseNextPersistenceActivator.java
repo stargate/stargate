@@ -12,6 +12,7 @@ import io.stargate.db.cassandra.impl.DelegatingAuthorizer;
 import io.stargate.db.cassandra.impl.DseNextPersistence;
 import io.stargate.db.cassandra.impl.StargateConfigSnitch;
 import io.stargate.db.cassandra.impl.StargateSeedProvider;
+import io.stargate.db.datastore.common.util.UserDefinedFunctionHelper;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
@@ -37,7 +38,7 @@ public class DseNextPersistenceActivator extends BaseActivator {
   static {
     // 22-Sep-2023, tatu: This won't work on JDK 12+, not sure if it was
     //   really needed any more, but for now let's just disable it
-    // UserDefinedFunctionHelper.fixCompilerClassLoader();
+    UserDefinedFunctionHelper.fixCompilerClassLoader();
   }
 
   private static final Logger logger = LoggerFactory.getLogger(DseNextPersistenceActivator.class);
