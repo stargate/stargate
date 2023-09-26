@@ -54,8 +54,8 @@ public abstract class BuiltQueryTest {
     return valueCodec;
   }
 
-  protected static QueryBuilder newBuilder() {
-    return new QueryBuilder(schema, valueCodec, null);
+  protected static QueryBuilderImpl newBuilder() {
+    return new QueryBuilderImpl(schema, valueCodec, null);
   }
 
   protected List<Object> toJava(List<TypedValue> values) {

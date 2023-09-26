@@ -93,11 +93,11 @@
       -->
     <netty.version>4.1.75.Final</netty.version>
     <netty-boringssl.version>2.0.51.Final</netty-boringssl.version>
-    <jacoco.version>0.8.8</jacoco.version>
+    <jacoco.version>0.8.10</jacoco.version>
     <junit.version>5.8.2</junit.version>
-    <mockito.version>3.12.4</mockito.version>
-    <assertj.version>3.21.0</assertj.version>
-    <awaitility.version>4.1.1</awaitility.version>
+    <mockito.version>4.11.0</mockito.version>
+    <assertj.version>3.24.2</assertj.version>
+    <awaitility.version>4.2.0</awaitility.version>
   </properties>
   <dependencies>
     <!-- Basic OSGi dependency, provided by container -->
@@ -379,7 +379,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>3.0.0-M3</version>
+        <version>3.1.2</version>
         <configuration>
           <forkCount>1</forkCount>
           <reuseForks>false</reuseForks>
@@ -522,8 +522,8 @@
           <artifactId>maven-compiler-plugin</artifactId>
           <version>3.11.0</version>
           <configuration>
-            <source>11</source>
-            <target>11</target>
+            <source>${maven.compiler.source}</source>
+            <target>${maven.compiler.target}</target>
             <showWarnings>true</showWarnings>
             <failOnWarning>false</failOnWarning>
           </configuration>
