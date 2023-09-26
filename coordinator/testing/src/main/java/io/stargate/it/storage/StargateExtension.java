@@ -438,6 +438,7 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
 
       cmd.addArgument("-Dio.netty.tryReflectionSetAccessible=true");
       cmd.addArgument("-Djava.security.manager=allow");
+      cmd.addArgument("-Djdk.reflect.useDirectMethodHandle=false");
 
       if (backend.isDse()) {
         cmd.addArgument("-Dstargate.request_timeout_in_ms=60000");
