@@ -43,6 +43,8 @@ public class UserDefinedFunctionHelper {
 
       // As per https://stackoverflow.com/questions/74723932/java-17-reflection-issue
       // we must use more complicated handling on JDK 12+
+      //
+      // Plus: need to add "-Djdk.reflect.useDirectMethodHandle=false" to JVM args
       setFinalStatic(targetField, targetClass.getClassLoader());
     } catch (Exception e) {
       throw new RuntimeException(
