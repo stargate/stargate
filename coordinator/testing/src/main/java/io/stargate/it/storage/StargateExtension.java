@@ -403,6 +403,8 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
       cmd.addArgument("--add-opens");
       cmd.addArgument("java.base/java.lang.module=ALL-UNNAMED");
       cmd.addArgument("--add-opens");
+      cmd.addArgument("java.base/java.lang.reflect=ALL-UNNAMED");
+      cmd.addArgument("--add-opens");
       cmd.addArgument("java.base/java.net=ALL-UNNAMED");
       cmd.addArgument("--add-opens");
       cmd.addArgument("java.base/java.nio=ALL-UNNAMED");
