@@ -36,8 +36,9 @@ import org.slf4j.LoggerFactory;
 public class Cassandra41PersistenceActivator extends BaseActivator {
 
   static {
-    // 22-Sep-2023, tatu: This won't work on JDK 12+, not sure if it was
-    //   really needed any more, but for now let's just disable it
+    // 28-Sep-2023, tatu: This is problematic JDK 12+, but fortunately
+    //   no longer needed for Cassandra 4.1 and above (fixed via CASSANDRA-17013
+    //   https://issues.apache.org/jira/browse/CASSANDRA-17013 )
     // UserDefinedFunctionHelper.fixCompilerClassLoader();
   }
 
