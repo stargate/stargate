@@ -17,11 +17,13 @@
  */
 package org.apache.cassandra.stargate.config;
 
+import com.datastax.oss.driver.shaded.guava.common.base.Suppliers;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.Supplier;
 import org.apache.cassandra.stargate.security.SSLFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -216,8 +218,8 @@ public class EncryptionOptions {
   /* This list is substituted in configurations that have explicitly specified the original "TLS" default,
    * by extracting it from the default "TLS" SSL Context instance
    */
-  private static final List<String> TLS_PROTOCOL_SUBSTITUTION =
-      SSLFactory.tlsInstanceProtocolSubstitution();
+  private static final Supplier<List<String>> TLS_PROTOCOL_SUBSTITUTION =
+      Suppliers.memoize(SSLFactory::tlsInstanceProtocolSubstitution);
 
   /**
    * Combine the pre-4.0 protocol field with the accepted_protocols list, substituting a list of
@@ -235,7 +237,7 @@ public class EncryptionOptions {
       // can speak some of the TLS protocols.  It is not supported by SSLEngine.setAcceptedProtocols
       // so substitute if the user hasn't provided an accepted protocol configuration
       else if (protocol.equalsIgnoreCase("TLS")) {
-        return TLS_PROTOCOL_SUBSTITUTION;
+        return TLS_PROTOCOL_SUBSTITUTION.get();
       } else // the user was trying to limit to a single specific protocol, so try that
       {
         return Arrays.asList(protocol);
