@@ -869,13 +869,6 @@
         <artifactId>nimbus-jose-jwt</artifactId>
         <version>9.21</version>
       </dependency>
-      <!-- 28-Sep-2023, tatu: Need latest JAMM for JDK 20
-        -->
-      <dependency>
-        <groupId>com.github.jbellis</groupId>
-        <artifactId>jamm</artifactId>
-        <version>0.3.3</version>
-      </dependency>
     </dependencies>
   </dependencyManagement>
 </project>

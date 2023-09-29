@@ -12,6 +12,7 @@ import io.stargate.db.cassandra.impl.Cassandra40Persistence;
 import io.stargate.db.cassandra.impl.DelegatingAuthorizer;
 import io.stargate.db.cassandra.impl.StargateConfigSnitch;
 import io.stargate.db.cassandra.impl.StargateSeedProvider;
+import io.stargate.db.datastore.common.util.UserDefinedFunctionHelper;
 import java.io.File;
 import java.io.IOError;
 import java.io.IOException;
@@ -36,9 +37,10 @@ import org.slf4j.LoggerFactory;
 public class Cassandra40PersistenceActivator extends BaseActivator {
 
   static {
-    // 22-Sep-2023, tatu: This won't work on JDK 12+, not sure if it was
-    //   really needed any more, but for now let's just disable it
-    // UserDefinedFunctionHelper.fixCompilerClassLoader();
+    // 28-Sep-2023, tatu: Fix needed pre C*4.1 (fixed via CASSANDRA-17013
+    //   https://issues.apache.org/jira/browse/CASSANDRA-17013).
+    //  Problematic with JDK 12+ but possible to force with JDK params
+    UserDefinedFunctionHelper.fixCompilerClassLoader();
   }
 
   private static final Logger logger =
