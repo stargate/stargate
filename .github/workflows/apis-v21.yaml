@@ -156,7 +156,7 @@ jobs:
 
       - name: Set up QEMU
         if: steps.cache-docker-image.outputs.cache-hit != 'true'
-        uses: docker/setup-qemu-action@v2
+        uses: docker/setup-qemu-action@v3
 
       - name: Set up Docker Buildx
         if: steps.cache-docker-image.outputs.cache-hit != 'true'
