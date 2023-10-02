@@ -1,5 +1,34 @@
 # Changelog
 
+## [v2.0.20](https://github.com/stargate/stargate/tree/v2.0.20) (2023-10-02)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.19...v2.0.20)
+
+**Closed issues:**
+
+- Update `grpc-core` dependency from 1.55.1 to 1.57.2 [\#2798](https://github.com/stargate/stargate/issues/2798)
+- Update API base image from `ubi8/openjdk-17:1.15` to latest \(`ubi8/openjdk-17:1.17`\) [\#2795](https://github.com/stargate/stargate/issues/2795)
+- Remove use of Duzzt-library as a pre-cursor to JDK 20 \(runtime\) upgrade [\#2781](https://github.com/stargate/stargate/issues/2781)
+- Implement REST API changes needed for Vector Search \(ORDER BY ... ANN OF ... \) [\#2705](https://github.com/stargate/stargate/issues/2705)
+- Spec API changes needed to support Vector search for REST API [\#2697](https://github.com/stargate/stargate/issues/2697)
+- GraphQL integration tests fail locally on time zone not being UTC [\#2591](https://github.com/stargate/stargate/issues/2591)
+
+**Merged pull requests:**
+
+- Fixes \#2798: update grpc-core dep to 1.57.2 [\#2799](https://github.com/stargate/stargate/pull/2799) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fixes \#2795: update Docker base image versions for Docs/GraphQL/REST API [\#2796](https://github.com/stargate/stargate/pull/2796) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump org.xerial.snappy:snappy-java from 1.1.10.1 to 1.1.10.4 in /coordinator [\#2786](https://github.com/stargate/stargate/pull/2786) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ensure password is masked on ecr login [\#2785](https://github.com/stargate/stargate/pull/2785) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Bump docker/setup-buildx-action from 2 to 3 [\#2776](https://github.com/stargate/stargate/pull/2776) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump docker/login-action from 2 to 3 [\#2775](https://github.com/stargate/stargate/pull/2775) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump docker/setup-qemu-action from 2 to 3 [\#2774](https://github.com/stargate/stargate/pull/2774) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump aws-actions/configure-aws-credentials from 3 to 4 [\#2773](https://github.com/stargate/stargate/pull/2773) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Update DSE to 6.8.38 [\#2772](https://github.com/stargate/stargate/pull/2772) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump org.eclipse.jetty:jetty-servlets from 9.4.51.v20230217 to 9.4.52.v20230823 in /coordinator [\#2769](https://github.com/stargate/stargate/pull/2769) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Fix \#2765: update java-driver-core to latest [\#2766](https://github.com/stargate/stargate/pull/2766) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix toResultMetadata conversion; only store first columnCount columns in list [\#2760](https://github.com/stargate/stargate/pull/2760) ([michaeljmarshall](https://github.com/michaeljmarshall))
+- API controlled logging changes [\#2754](https://github.com/stargate/stargate/pull/2754) ([kathirsvn](https://github.com/kathirsvn))
+
 ## [v2.0.19](https://github.com/stargate/stargate/tree/v2.0.18) (2023-09-06)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.18...v2.0.19)
