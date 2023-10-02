@@ -160,7 +160,7 @@ jobs:
 
       - name: Set up Docker Buildx
         if: steps.cache-docker-image.outputs.cache-hit != 'true'
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       # same as in build_docker_images.sh
       # just builds a single image
@@ -334,7 +334,7 @@ jobs:
           EOF
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       - name: Restore docker image
         uses: actions/cache@v3
