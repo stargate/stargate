@@ -1,17 +1,3 @@
-# Changelog
-
-## [v2.0.21](https://github.com/stargate/stargate/tree/v2.0.21) (2023-10-03)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.20...v2.0.21)
-
-**Closed issues:**
-
-- Update Quarkus from 3.2.1 to 3.3.6, align `grpc-core` version to `1.56.1` [\#2802](https://github.com/stargate/stargate/issues/2802)
-
-**Merged pull requests:**
-
-- Fix \#2802: upgrade Quarkus dep to 3.2.6 \(gRPC to 1.56.x\) [\#2803](https://github.com/stargate/stargate/pull/2803) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-
 ## [v2.0.20](https://github.com/stargate/stargate/tree/v2.0.20) (2023-10-02)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.19...v2.0.20)
