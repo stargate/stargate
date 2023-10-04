@@ -1,5 +1,64 @@
 # Changelog
 
+## [v2.1.0-BETA-1](https://github.com/stargate/stargate/tree/v2.1.0-BETA-1) (2023-10-03)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.21...v2.1.0-BETA-1)
+
+**Closed issues:**
+
+- Update Quarkus from 3.2.1 to 3.3.6, align `grpc-core` version to `1.56.1` [\#2802](https://github.com/stargate/stargate/issues/2802)
+
+**Merged pull requests:**
+
+- Merging branch main into v2.1 [\#2805](https://github.com/stargate/stargate/pull/2805) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Bump version to 2.0.22-SNAPSHOT [\#2804](https://github.com/stargate/stargate/pull/2804) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Merging branch main into v2.1 [\#2800](https://github.com/stargate/stargate/pull/2800) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Merging branch main into v2.1 [\#2797](https://github.com/stargate/stargate/pull/2797) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Merge fix from C-4 EncyptionOptions to Stargate cql module, to remove eager fail [\#2793](https://github.com/stargate/stargate/pull/2793) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Remove unnecessary UserDefinedFunctionHelper.fixCompilerClassLoader\(\) from C-4.1 backend [\#2792](https://github.com/stargate/stargate/pull/2792) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update 2.1 branch from ALPHA to BETA [\#2791](https://github.com/stargate/stargate/pull/2791) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update dse-next/dse-db-all to latest as of 2023-09-27: 4.0.11-669ae5e3994d [\#2790](https://github.com/stargate/stargate/pull/2790) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fixes \#2781: remove Duzzt-library/processor, to allow for easier upgrade from JDK 11 [\#2787](https://github.com/stargate/stargate/pull/2787) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.1 release [\#2784](https://github.com/stargate/stargate/pull/2784) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.0.21](https://github.com/stargate/stargate/tree/v2.0.21) (2023-10-03)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.20...v2.0.21)
+
+**Merged pull requests:**
+
+- Fix \#2802: upgrade Quarkus dep to 3.2.6 \(gRPC to 1.56.x\) [\#2803](https://github.com/stargate/stargate/pull/2803) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.0 release [\#2801](https://github.com/stargate/stargate/pull/2801) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.0.20](https://github.com/stargate/stargate/tree/v2.0.20) (2023-10-02)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-ALPHA-11...v2.0.20)
+
+**Closed issues:**
+
+- Update `grpc-core` dependency from 1.55.1 to 1.57.2 [\#2798](https://github.com/stargate/stargate/issues/2798)
+- Update API base image from `ubi8/openjdk-17:1.15` to latest \(`ubi8/openjdk-17:1.17`\) [\#2795](https://github.com/stargate/stargate/issues/2795)
+- Remove use of Duzzt-library as a pre-cursor to JDK 20 \(runtime\) upgrade [\#2781](https://github.com/stargate/stargate/issues/2781)
+- Implement REST API changes needed for Vector Search \(ORDER BY ... ANN OF ... \) [\#2705](https://github.com/stargate/stargate/issues/2705)
+- Spec API changes needed to support Vector search for REST API [\#2697](https://github.com/stargate/stargate/issues/2697)
+- GraphQL integration tests fail locally on time zone not being UTC [\#2591](https://github.com/stargate/stargate/issues/2591)
+
+**Merged pull requests:**
+
+- Fixes \#2798: update grpc-core dep to 1.57.2 [\#2799](https://github.com/stargate/stargate/pull/2799) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fixes \#2795: update Docker base image versions for Docs/GraphQL/REST API [\#2796](https://github.com/stargate/stargate/pull/2796) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump org.xerial.snappy:snappy-java from 1.1.10.1 to 1.1.10.4 in /coordinator [\#2786](https://github.com/stargate/stargate/pull/2786) ([dependabot[bot]](https://github.com/apps/dependabot))
+- ensure password is masked on ecr login [\#2785](https://github.com/stargate/stargate/pull/2785) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Bump docker/setup-buildx-action from 2 to 3 [\#2776](https://github.com/stargate/stargate/pull/2776) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump docker/login-action from 2 to 3 [\#2775](https://github.com/stargate/stargate/pull/2775) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump docker/setup-qemu-action from 2 to 3 [\#2774](https://github.com/stargate/stargate/pull/2774) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump aws-actions/configure-aws-credentials from 3 to 4 [\#2773](https://github.com/stargate/stargate/pull/2773) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Update DSE to 6.8.38 [\#2772](https://github.com/stargate/stargate/pull/2772) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump org.eclipse.jetty:jetty-servlets from 9.4.51.v20230217 to 9.4.52.v20230823 in /coordinator [\#2769](https://github.com/stargate/stargate/pull/2769) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Fix \#2765: update java-driver-core to latest [\#2766](https://github.com/stargate/stargate/pull/2766) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix toResultMetadata conversion; only store first columnCount columns in list [\#2760](https://github.com/stargate/stargate/pull/2760) ([michaeljmarshall](https://github.com/michaeljmarshall))
+- API controlled logging changes [\#2754](https://github.com/stargate/stargate/pull/2754) ([kathirsvn](https://github.com/kathirsvn))
+
 ## [v2.1.0-ALPHA-11](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-11) (2023-09-21)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-ALPHA-10...v2.1.0-ALPHA-11)
