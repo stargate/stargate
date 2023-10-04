@@ -1,5 +1,20 @@
 # Changelog
 
+## [v2.1.0-BETA-1](https://github.com/stargate/stargate/tree/v2.1.0-BETA-1) (2023-10-03)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-ALPHA-11...v2.1.0-BETA-1)
+
+**Closed issues:**
+
+- Update Quarkus from 3.2.1 to 3.3.6, align `grpc-core` version to `1.56.1` [\#2802](https://github.com/stargate/stargate/issues/2802)
+
+**Merged pull requests:**
+
+- Merge fix from C-4 EncyptionOptions to Stargate cql module, to remove eager fail [\#2793](https://github.com/stargate/stargate/pull/2793) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Remove unnecessary UserDefinedFunctionHelper.fixCompilerClassLoader\(\) from C-4.1 backend [\#2792](https://github.com/stargate/stargate/pull/2792) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update dse-next/dse-db-all to latest as of 2023-09-27: 4.0.11-669ae5e3994d [\#2790](https://github.com/stargate/stargate/pull/2790) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fixes \#2781: remove Duzzt-library/processor, to allow for easier upgrade from JDK 11 [\#2787](https://github.com/stargate/stargate/pull/2787) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v2.1.0-ALPHA-11](https://github.com/stargate/stargate/tree/v2.1.0-ALPHA-11) (2023-09-21)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-ALPHA-10...v2.1.0-ALPHA-11)
