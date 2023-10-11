@@ -18,13 +18,13 @@ package io.stargate.sgv2.api.common.cql.builder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.bpodgursky.jbool_expressions.And;
-import com.bpodgursky.jbool_expressions.Expression;
-import com.bpodgursky.jbool_expressions.Or;
-import com.bpodgursky.jbool_expressions.Variable;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.QueryOuterClass.Value;
+import io.stargate.sgv2.api.common.cql.Expression.And;
+import io.stargate.sgv2.api.common.cql.Expression.Expression;
+import io.stargate.sgv2.api.common.cql.Expression.Or;
+import io.stargate.sgv2.api.common.cql.Expression.Variable;
 import io.stargate.sgv2.api.common.cql.builder.BuiltCondition.LHS;
 import java.util.List;
 import org.junit.jupiter.api.Test;

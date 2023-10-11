@@ -15,13 +15,11 @@
  */
 package io.stargate.sgv2.api.common.cql.builder;
 
-import com.bpodgursky.jbool_expressions.Expression;
-import com.bpodgursky.jbool_expressions.Variable;
-import com.bpodgursky.jbool_expressions.util.ExprFactory;
 import com.github.misberner.apcommons.util.AFModifier;
 import com.github.misberner.duzzt.annotations.DSLAction;
 import com.github.misberner.duzzt.annotations.GenerateEmbeddedDSL;
 import com.github.misberner.duzzt.annotations.SubExpr;
+import io.quarkus.logging.Log;
 import io.stargate.bridge.proto.QueryOuterClass.BatchQuery;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.QueryOuterClass.QueryParameters;
@@ -30,6 +28,8 @@ import io.stargate.bridge.proto.QueryOuterClass.Values;
 import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.cql.ColumnUtils;
 import io.stargate.sgv2.api.common.cql.CqlStrings;
+import io.stargate.sgv2.api.common.cql.Expression.Expression;
+import io.stargate.sgv2.api.common.cql.Expression.Variable;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -547,13 +547,8 @@ public class QueryBuilderImpl {
 
   @DSLAction(autoVarArgs = false)
   public void where(Expression<BuiltCondition> whereExpression) {
-    Set<BuiltCondition> conditions = whereExpression.getAllK();
-    for (BuiltCondition condition : conditions) {
-      Variable<BuiltCondition> newConditionExpression = Variable.of(bindGrpcValues(condition));
-      Map<BuiltCondition, Expression<BuiltCondition>> conditionExpressionMap =
-          Collections.singletonMap(condition, newConditionExpression);
-      whereExpression =
-          whereExpression.replaceVars(conditionExpressionMap, new ExprFactory.Default<>());
+    if (whereExpression == null) {
+      return;
     }
     setWhereExpression(whereExpression);
   }
@@ -793,6 +788,8 @@ public class QueryBuilderImpl {
     if (!generatedBoundValues.isEmpty()) {
       query.setValues(Values.newBuilder().addAllValues(generatedBoundValues).build());
     }
+    Log.info("select cql from QueryBuilder: " + query.getCql() + "/n" + query.getValues());
+
     if (parameters != null) {
       query.setParameters(parameters);
     }
@@ -1376,16 +1373,17 @@ public class QueryBuilderImpl {
       prefix = " AND ";
     }
     builder.append(initialPrefix); // must have where
-    //    builder.append(addExpressionCql(whereExpression));
     addExpressionCql(builder, whereExpression);
   }
 
   private void addExpressionCql(StringBuilder sb, Expression<BuiltCondition> outerExpression) {
-    //    StringBuilder sb = new StringBuilder();
     List<Expression<BuiltCondition>> innerExpressions = outerExpression.getChildren();
     switch (outerExpression.getExprType()) {
       case "and" -> {
-        sb.append("(");
+        // have parenthesis only when having more than one innerExpression
+        if (innerExpressions.size() > 1) {
+          sb.append("(");
+        }
         for (int i = 0; i < innerExpressions.size(); i++) {
           addExpressionCql(sb, innerExpressions.get(i));
           if (i == innerExpressions.size() - 1) {
@@ -1393,10 +1391,15 @@ public class QueryBuilderImpl {
           }
           sb.append(" AND ");
         }
-        sb.append(")");
+        if (innerExpressions.size() > 1) {
+          sb.append(")");
+        }
       }
       case "or" -> {
-        sb.append("(");
+        // have parenthesis only when having more than one innerExpression
+        if (innerExpressions.size() > 1) {
+          sb.append("(");
+        }
         for (int i = 0; i < innerExpressions.size(); i++) {
           addExpressionCql(sb, innerExpressions.get(i));
           if (i == innerExpressions.size() - 1) {
@@ -1404,11 +1407,13 @@ public class QueryBuilderImpl {
           }
           sb.append(" OR ");
         }
-        sb.append(")");
+        if (innerExpressions.size() > 1) {
+          sb.append(")");
+        }
       }
       case "variable" -> {
         Variable<BuiltCondition> variable = (Variable) outerExpression;
-        BuiltCondition condition = variable.getValue();
+        BuiltCondition condition = bindGrpcValues(variable.getValue());
         condition.lhs().appendToBuilder(sb, generatedMarkers, generatedBoundValues);
         sb.append(" ")
             .append(condition.predicate().toString())
