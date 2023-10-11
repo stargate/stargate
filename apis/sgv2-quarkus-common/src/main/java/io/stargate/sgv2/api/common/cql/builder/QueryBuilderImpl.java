@@ -1333,11 +1333,11 @@ public class QueryBuilderImpl {
   }
 
   private void appendWheres(StringBuilder builder) {
+    // fully relly on Expression<BuildCondition> instead of List<BuildCondition>
     if (this.whereExpression != null) {
       appendConditions(this.whereExpression, " WHERE ", builder);
-      return;
     }
-    appendConditions(this.wheres, " WHERE ", builder);
+    // appendConditions(this.wheres, " WHERE ", builder);
   }
 
   private void appendIfs(StringBuilder builder) {
