@@ -15,6 +15,8 @@
  */
 package io.stargate.sgv2.api.common.cql.builder;
 
+import com.bpodgursky.jbool_expressions.Expression;
+import com.bpodgursky.jbool_expressions.Variable;
 import com.github.misberner.apcommons.util.AFModifier;
 import com.github.misberner.duzzt.annotations.DSLAction;
 import com.github.misberner.duzzt.annotations.GenerateEmbeddedDSL;
@@ -28,8 +30,6 @@ import io.stargate.bridge.proto.QueryOuterClass.Values;
 import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.cql.ColumnUtils;
 import io.stargate.sgv2.api.common.cql.CqlStrings;
-import io.stargate.sgv2.api.common.cql.Expression.Expression;
-import io.stargate.sgv2.api.common.cql.Expression.Variable;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;

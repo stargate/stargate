@@ -18,13 +18,13 @@ package io.stargate.sgv2.api.common.cql.builder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import com.bpodgursky.jbool_expressions.Expression;
+import com.bpodgursky.jbool_expressions.Or;
+import com.bpodgursky.jbool_expressions.Variable;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.QueryOuterClass.Value;
-import io.stargate.sgv2.api.common.cql.Expression.And;
-import io.stargate.sgv2.api.common.cql.Expression.Expression;
-import io.stargate.sgv2.api.common.cql.Expression.Or;
-import io.stargate.sgv2.api.common.cql.Expression.Variable;
+import io.stargate.sgv2.api.common.cql.ExpressionUtils;
 import io.stargate.sgv2.api.common.cql.builder.BuiltCondition.LHS;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -134,7 +134,7 @@ public class QueryBuilderValuesTest {
   @Test
   public void shouldBindDirectWhereValues() {
     Expression<BuiltCondition> expression =
-        And.of(
+        ExpressionUtils.OrderedAndOf(
             Variable.of(BuiltCondition.of("c1", Predicate.EQ, INT_VALUE1)),
             Variable.of(BuiltCondition.of("c2", Predicate.EQ, TEXT_VALUE)));
 
@@ -147,7 +147,7 @@ public class QueryBuilderValuesTest {
   @Test
   public void shouldBindBuiltConditionsInWhere() {
     Expression<BuiltCondition> expression =
-        And.of(
+        ExpressionUtils.OrderedAndOf(
             Variable.of(BuiltCondition.of("c1", Predicate.EQ, INT_VALUE1)),
             Variable.of(
                 BuiltCondition.of(LHS.mapAccess("c2", TEXT_VALUE), Predicate.GT, INT_VALUE2)));
@@ -199,7 +199,7 @@ public class QueryBuilderValuesTest {
   @Test
   public void shouldGenerateUniqueMarkerNames() {
     Expression<BuiltCondition> expression =
-        And.of(
+        ExpressionUtils.OrderedAndOf(
             Variable.of(BuiltCondition.of("k", Predicate.GT, INT_VALUE1)),
             Variable.of(BuiltCondition.of("k", Predicate.LTE, INT_VALUE2)));
 
@@ -250,7 +250,8 @@ public class QueryBuilderValuesTest {
     BuiltCondition gender = BuiltCondition.of("gender", Predicate.CONTAINS, TEST_GENDER_VALUE);
 
     Expression<BuiltCondition> expr =
-        And.of(Variable.of(name), Or.of(Variable.of(age), Variable.of(gender)));
+        ExpressionUtils.OrderedAndOf(
+            Variable.of(name), ExpressionUtils.OrderedOrOf(Variable.of(age), Variable.of(gender)));
     Query query =
         new QueryBuilder().select().from("testKS", "testCollection").where(expr).limit(1).build();
 
@@ -271,7 +272,8 @@ public class QueryBuilderValuesTest {
     BuiltCondition gender = BuiltCondition.of("gender", Predicate.CONTAINS, TEST_GENDER_VALUE);
 
     Expression<BuiltCondition> expr =
-        And.of(Variable.of(key), Or.of(Variable.of(name), Variable.of(gender)));
+        ExpressionUtils.OrderedAndOf(
+            Variable.of(key), Or.of(Variable.of(name), Variable.of(gender)));
     Query query = new QueryBuilder().select().from("testKS", "testCollection").where(expr).build();
 
     assertThat(query.getCql())

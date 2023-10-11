@@ -19,12 +19,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.params.provider.Arguments.arguments;
 
+import com.bpodgursky.jbool_expressions.Expression;
+import com.bpodgursky.jbool_expressions.Variable;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.QueryOuterClass.BatchQuery;
-import io.stargate.sgv2.api.common.cql.Expression.And;
-import io.stargate.sgv2.api.common.cql.Expression.Expression;
-import io.stargate.sgv2.api.common.cql.Expression.Variable;
+import io.stargate.sgv2.api.common.cql.ExpressionUtils;
 import java.util.LinkedHashMap;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
@@ -406,7 +406,8 @@ public class QueryBuilderTest {
   @Test
   public void generateBatchQuery() {
     Expression<BuiltCondition> expression =
-        And.of(Variable.of(BuiltCondition.of("id", Predicate.EQ, Values.of(1))));
+        ExpressionUtils.OrderedAndOf(
+            Variable.of(BuiltCondition.of("id", Predicate.EQ, Values.of(1))));
     BatchQuery batchQuery =
         new QueryBuilder().select().from("ks", "tbl").where(expression).buildForBatch();
     assertThat(batchQuery.getCql()).isEqualTo("SELECT * FROM ks.tbl WHERE id = ?");
