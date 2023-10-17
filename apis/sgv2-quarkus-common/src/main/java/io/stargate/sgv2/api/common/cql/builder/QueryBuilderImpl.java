@@ -788,8 +788,6 @@ public class QueryBuilderImpl {
     if (!generatedBoundValues.isEmpty()) {
       query.setValues(Values.newBuilder().addAllValues(generatedBoundValues).build());
     }
-    Log.info("select cql from QueryBuilder: " + query.getCql() + "/n" + query.getValues());
-
     if (parameters != null) {
       query.setParameters(parameters);
     }
