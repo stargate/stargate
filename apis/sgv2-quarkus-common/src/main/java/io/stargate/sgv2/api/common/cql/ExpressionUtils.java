@@ -25,7 +25,7 @@ import java.util.List;
  *
  * <p>when construct jbool expression without specifying a comparator, it will use hashComparator by
  * default which will cause the order of expression indeterminate, and cause JSONAPI unit tests
- * failure By using this ExpressionUtils class, we pass a default comparator to make expression
+ * failure By using this ExpressionUtils class, we pass a default comparator to keep expression
  * order as it is
  */
 public class ExpressionUtils<K> {

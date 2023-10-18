@@ -1335,7 +1335,7 @@ public class QueryBuilderImpl {
       return;
     }
 
-    // keep wheres, since Docs API still use it, although in deprecate plan
+    // keep wheres, since Docs API still use it
     appendConditions(this.wheres, " WHERE ", builder);
   }
 
