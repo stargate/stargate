@@ -28,6 +28,7 @@ import io.stargate.sgv2.api.common.cql.ExpressionUtils;
 import java.util.LinkedHashMap;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -406,8 +407,7 @@ public class QueryBuilderTest {
   @Test
   public void generateBatchQuery() {
     Expression<BuiltCondition> expression =
-        ExpressionUtils.OrderedAndOf(
-            Variable.of(BuiltCondition.of("id", Predicate.EQ, Values.of(1))));
+        ExpressionUtils.andOf(Variable.of(BuiltCondition.of("id", Predicate.EQ, Values.of(1))));
     BatchQuery batchQuery =
         new QueryBuilder().select().from("ks", "tbl").where(expression).buildForBatch();
     assertThat(batchQuery.getCql()).isEqualTo("SELECT * FROM ks.tbl WHERE id = ?");
@@ -424,5 +424,75 @@ public class QueryBuilderTest {
                     .parameters(QueryOuterClass.QueryParameters.newBuilder().build())
                     .buildForBatch())
         .isInstanceOf(IllegalStateException.class);
+  }
+
+  @Nested
+  public class expressionToCqlBuilderTest {
+    @Test
+    public void simpleAnd() {
+      Expression<BuiltCondition> expression =
+          ExpressionUtils.andOf(
+              Variable.of(BuiltCondition.of("name", Predicate.EQ, Values.of("testName"))),
+              Variable.of(BuiltCondition.of("age", Predicate.EQ, Values.of("testAge"))));
+      QueryOuterClass.Query query =
+          new QueryBuilder().select().from("ks", "tbl").where(expression).build();
+      assertThat(query.getCql()).isEqualTo("SELECT * FROM ks.tbl WHERE (name = ? AND age = ?)");
+      assertThat(query.getValues().getValuesList())
+          .contains(Values.of("testName"), Values.of("testAge"));
+    }
+
+    @Test
+    public void simpleOr() {
+      Expression<BuiltCondition> expression =
+          ExpressionUtils.orOf(
+              Variable.of(BuiltCondition.of("name", Predicate.EQ, Values.of("testName"))),
+              Variable.of(BuiltCondition.of("age", Predicate.EQ, Values.of("testAge"))));
+      QueryOuterClass.Query query =
+          new QueryBuilder().select().from("ks", "tbl").where(expression).build();
+      assertThat(query.getCql()).isEqualTo("SELECT * FROM ks.tbl WHERE (name = ? OR age = ?)");
+      assertThat(query.getValues().getValuesList())
+          .contains(Values.of("testName"), Values.of("testAge"));
+    }
+
+    @Test
+    public void singleVariableWithoutParenthesis() {
+      Expression<BuiltCondition> expression1 =
+          ExpressionUtils.andOf(
+              Variable.of(BuiltCondition.of("name", Predicate.EQ, Values.of("testName"))));
+      QueryOuterClass.Query query1 =
+          new QueryBuilder().select().from("ks", "tbl").where(expression1).build();
+      assertThat(query1.getCql()).isEqualTo("SELECT * FROM ks.tbl WHERE name = ?");
+      assertThat(query1.getValues().getValuesList()).containsOnly(Values.of("testName"));
+    }
+
+    @Test
+    public void nestedAndOr() {
+      Expression<BuiltCondition> expression2 =
+          ExpressionUtils.orOf(
+              Variable.of(BuiltCondition.of("address", Predicate.EQ, Values.of("testAddress"))),
+              ExpressionUtils.andOf(
+                  Variable.of(BuiltCondition.of("name", Predicate.EQ, Values.of("testName"))),
+                  Variable.of(BuiltCondition.of("age", Predicate.EQ, Values.of("testAge")))));
+      QueryOuterClass.Query query2 =
+          new QueryBuilder().select().from("ks", "tbl").where(expression2).build();
+      assertThat(query2.getCql())
+          .isEqualTo("SELECT * FROM ks.tbl WHERE (address = ? OR (name = ? AND age = ?))");
+      assertThat(query2.getValues().getValuesList())
+          .contains(Values.of("testName"), Values.of("testAge"), Values.of("testAddress"));
+    }
+
+    @Test
+    public void singleVariableExpression() {
+      Expression<BuiltCondition> expression2 =
+          ExpressionUtils.orOf(
+              Variable.of(BuiltCondition.of("address", Predicate.EQ, Values.of("testAddress"))),
+              ExpressionUtils.andOf(
+                  Variable.of(BuiltCondition.of("age", Predicate.EQ, Values.of("testAge")))));
+      QueryOuterClass.Query query2 =
+          new QueryBuilder().select().from("ks", "tbl").where(expression2).build();
+      assertThat(query2.getCql()).isEqualTo("SELECT * FROM ks.tbl WHERE (address = ? OR age = ?)");
+      assertThat(query2.getValues().getValuesList())
+          .contains(Values.of("testAge"), Values.of("testAddress"));
+    }
   }
 }

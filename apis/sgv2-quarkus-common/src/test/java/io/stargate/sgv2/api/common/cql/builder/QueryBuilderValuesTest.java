@@ -134,12 +134,11 @@ public class QueryBuilderValuesTest {
   @Test
   public void shouldBindDirectWhereValues() {
     Expression<BuiltCondition> expression =
-        ExpressionUtils.OrderedAndOf(
+        ExpressionUtils.andOf(
             Variable.of(BuiltCondition.of("c1", Predicate.EQ, INT_VALUE1)),
             Variable.of(BuiltCondition.of("c2", Predicate.EQ, TEXT_VALUE)));
 
     Query query = new QueryBuilder().select().from("ks", "tbl").where(expression).build();
-
     assertThat(query.getCql()).isEqualTo("SELECT * FROM ks.tbl WHERE (c1 = ? AND c2 = ?)");
     assertThat(query.getValues().getValuesList()).containsExactly(INT_VALUE1, TEXT_VALUE);
   }
@@ -147,7 +146,7 @@ public class QueryBuilderValuesTest {
   @Test
   public void shouldBindBuiltConditionsInWhere() {
     Expression<BuiltCondition> expression =
-        ExpressionUtils.OrderedAndOf(
+        ExpressionUtils.andOf(
             Variable.of(BuiltCondition.of("c1", Predicate.EQ, INT_VALUE1)),
             Variable.of(
                 BuiltCondition.of(LHS.mapAccess("c2", TEXT_VALUE), Predicate.GT, INT_VALUE2)));
@@ -199,7 +198,7 @@ public class QueryBuilderValuesTest {
   @Test
   public void shouldGenerateUniqueMarkerNames() {
     Expression<BuiltCondition> expression =
-        ExpressionUtils.OrderedAndOf(
+        ExpressionUtils.andOf(
             Variable.of(BuiltCondition.of("k", Predicate.GT, INT_VALUE1)),
             Variable.of(BuiltCondition.of("k", Predicate.LTE, INT_VALUE2)));
 
@@ -250,8 +249,8 @@ public class QueryBuilderValuesTest {
     BuiltCondition gender = BuiltCondition.of("gender", Predicate.CONTAINS, TEST_GENDER_VALUE);
 
     Expression<BuiltCondition> expr =
-        ExpressionUtils.OrderedAndOf(
-            Variable.of(name), ExpressionUtils.OrderedOrOf(Variable.of(age), Variable.of(gender)));
+        ExpressionUtils.andOf(
+            Variable.of(name), ExpressionUtils.orOf(Variable.of(age), Variable.of(gender)));
     Query query =
         new QueryBuilder().select().from("testKS", "testCollection").where(expr).limit(1).build();
 
@@ -272,8 +271,7 @@ public class QueryBuilderValuesTest {
     BuiltCondition gender = BuiltCondition.of("gender", Predicate.CONTAINS, TEST_GENDER_VALUE);
 
     Expression<BuiltCondition> expr =
-        ExpressionUtils.OrderedAndOf(
-            Variable.of(key), Or.of(Variable.of(name), Variable.of(gender)));
+        ExpressionUtils.andOf(Variable.of(key), Or.of(Variable.of(name), Variable.of(gender)));
     Query query = new QueryBuilder().select().from("testKS", "testCollection").where(expr).build();
 
     assertThat(query.getCql())

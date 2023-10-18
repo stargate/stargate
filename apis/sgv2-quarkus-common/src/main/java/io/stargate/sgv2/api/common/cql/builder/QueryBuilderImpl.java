@@ -21,7 +21,6 @@ import com.github.misberner.apcommons.util.AFModifier;
 import com.github.misberner.duzzt.annotations.DSLAction;
 import com.github.misberner.duzzt.annotations.GenerateEmbeddedDSL;
 import com.github.misberner.duzzt.annotations.SubExpr;
-import io.quarkus.logging.Log;
 import io.stargate.bridge.proto.QueryOuterClass.BatchQuery;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.QueryOuterClass.QueryParameters;
@@ -547,10 +546,9 @@ public class QueryBuilderImpl {
 
   @DSLAction(autoVarArgs = false)
   public void where(Expression<BuiltCondition> whereExpression) {
-    if (whereExpression == null) {
-      return;
+    if (whereExpression != null) {
+      setWhereExpression(whereExpression);
     }
-    setWhereExpression(whereExpression);
   }
 
   public void ifs(String columnName, Predicate predicate, Object value) {
@@ -1331,7 +1329,7 @@ public class QueryBuilderImpl {
   }
 
   private void appendWheres(StringBuilder builder) {
-    // JSON API fully relly on Expression<BuildCondition> instead of List<BuildCondition>
+    // JSON API fully rely on Expression<BuildCondition> instead of List<BuildCondition>
     if (this.whereExpression != null) {
       appendConditions(this.whereExpression, " WHERE ", builder);
       return;
