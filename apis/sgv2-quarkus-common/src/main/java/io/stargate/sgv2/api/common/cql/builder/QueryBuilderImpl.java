@@ -17,7 +17,6 @@ package io.stargate.sgv2.api.common.cql.builder;
 
 import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.Variable;
-import com.bpodgursky.jbool_expressions.util.ExprFactory;
 import com.github.misberner.apcommons.util.AFModifier;
 import com.github.misberner.duzzt.annotations.DSLAction;
 import com.github.misberner.duzzt.annotations.GenerateEmbeddedDSL;
@@ -547,15 +546,9 @@ public class QueryBuilderImpl {
 
   @DSLAction(autoVarArgs = false)
   public void where(Expression<BuiltCondition> whereExpression) {
-    Set<BuiltCondition> conditions = whereExpression.getAllK();
-    for (BuiltCondition condition : conditions) {
-      Variable<BuiltCondition> newConditionExpression = Variable.of(bindGrpcValues(condition));
-      Map<BuiltCondition, Expression<BuiltCondition>> conditionExpressionMap =
-          Collections.singletonMap(condition, newConditionExpression);
-      whereExpression =
-          whereExpression.replaceVars(conditionExpressionMap, new ExprFactory.Default<>());
+    if (whereExpression != null) {
+      setWhereExpression(whereExpression);
     }
-    setWhereExpression(whereExpression);
   }
 
   public void ifs(String columnName, Predicate predicate, Object value) {
@@ -1336,10 +1329,13 @@ public class QueryBuilderImpl {
   }
 
   private void appendWheres(StringBuilder builder) {
+    // JSON API fully rely on Expression<BuildCondition> instead of List<BuildCondition>
     if (this.whereExpression != null) {
       appendConditions(this.whereExpression, " WHERE ", builder);
       return;
     }
+
+    // keep wheres, since Docs API still use it
     appendConditions(this.wheres, " WHERE ", builder);
   }
 
@@ -1376,16 +1372,17 @@ public class QueryBuilderImpl {
       prefix = " AND ";
     }
     builder.append(initialPrefix); // must have where
-    //    builder.append(addExpressionCql(whereExpression));
     addExpressionCql(builder, whereExpression);
   }
 
   private void addExpressionCql(StringBuilder sb, Expression<BuiltCondition> outerExpression) {
-    //    StringBuilder sb = new StringBuilder();
     List<Expression<BuiltCondition>> innerExpressions = outerExpression.getChildren();
     switch (outerExpression.getExprType()) {
       case "and" -> {
-        sb.append("(");
+        // have parenthesis only when having more than one innerExpression
+        if (innerExpressions.size() > 1) {
+          sb.append("(");
+        }
         for (int i = 0; i < innerExpressions.size(); i++) {
           addExpressionCql(sb, innerExpressions.get(i));
           if (i == innerExpressions.size() - 1) {
@@ -1393,10 +1390,15 @@ public class QueryBuilderImpl {
           }
           sb.append(" AND ");
         }
-        sb.append(")");
+        if (innerExpressions.size() > 1) {
+          sb.append(")");
+        }
       }
       case "or" -> {
-        sb.append("(");
+        // have parenthesis only when having more than one innerExpression
+        if (innerExpressions.size() > 1) {
+          sb.append("(");
+        }
         for (int i = 0; i < innerExpressions.size(); i++) {
           addExpressionCql(sb, innerExpressions.get(i));
           if (i == innerExpressions.size() - 1) {
@@ -1404,11 +1406,13 @@ public class QueryBuilderImpl {
           }
           sb.append(" OR ");
         }
-        sb.append(")");
+        if (innerExpressions.size() > 1) {
+          sb.append(")");
+        }
       }
       case "variable" -> {
         Variable<BuiltCondition> variable = (Variable) outerExpression;
-        BuiltCondition condition = variable.getValue();
+        BuiltCondition condition = bindGrpcValues(variable.getValue());
         condition.lhs().appendToBuilder(sb, generatedMarkers, generatedBoundValues);
         sb.append(" ")
             .append(condition.predicate().toString())

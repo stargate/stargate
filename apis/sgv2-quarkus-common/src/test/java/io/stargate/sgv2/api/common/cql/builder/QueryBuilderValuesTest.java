@@ -18,13 +18,13 @@ package io.stargate.sgv2.api.common.cql.builder;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import com.bpodgursky.jbool_expressions.And;
 import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.Or;
 import com.bpodgursky.jbool_expressions.Variable;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.bridge.proto.QueryOuterClass.Query;
 import io.stargate.bridge.proto.QueryOuterClass.Value;
+import io.stargate.sgv2.api.common.cql.ExpressionUtils;
 import io.stargate.sgv2.api.common.cql.builder.BuiltCondition.LHS;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -112,6 +112,8 @@ public class QueryBuilderValuesTest {
 
   @Test
   public void shouldBindValueModifiers() {
+    Expression<BuiltCondition> expression =
+        Variable.of(BuiltCondition.of("k", Predicate.EQ, INT_VALUE1));
     Query query =
         new QueryBuilder()
             .update("ks", "tbl")
@@ -121,7 +123,7 @@ public class QueryBuilderValuesTest {
                     ValueModifier.Target.mapValue("c2", Term.of(TEXT_VALUE)),
                     ValueModifier.Operation.APPEND,
                     INT_VALUE2))
-            .where("k", Predicate.EQ, INT_VALUE1)
+            .where(expression)
             .build();
 
     assertThat(query.getCql()).isEqualTo("UPDATE ks.tbl SET c1 = ?, c2[?] += ? WHERE k = ?");
@@ -131,40 +133,40 @@ public class QueryBuilderValuesTest {
 
   @Test
   public void shouldBindDirectWhereValues() {
-    Query query =
-        new QueryBuilder()
-            .select()
-            .from("ks", "tbl")
-            .where("c1", Predicate.EQ, INT_VALUE1)
-            .where("c2", Predicate.EQ, TEXT_VALUE)
-            .build();
+    Expression<BuiltCondition> expression =
+        ExpressionUtils.andOf(
+            Variable.of(BuiltCondition.of("c1", Predicate.EQ, INT_VALUE1)),
+            Variable.of(BuiltCondition.of("c2", Predicate.EQ, TEXT_VALUE)));
 
-    assertThat(query.getCql()).isEqualTo("SELECT * FROM ks.tbl WHERE c1 = ? AND c2 = ?");
+    Query query = new QueryBuilder().select().from("ks", "tbl").where(expression).build();
+    assertThat(query.getCql()).isEqualTo("SELECT * FROM ks.tbl WHERE (c1 = ? AND c2 = ?)");
     assertThat(query.getValues().getValuesList()).containsExactly(INT_VALUE1, TEXT_VALUE);
   }
 
   @Test
   public void shouldBindBuiltConditionsInWhere() {
-    Query query =
-        new QueryBuilder()
-            .select()
-            .from("ks", "tbl")
-            .where(BuiltCondition.of("c1", Predicate.EQ, INT_VALUE1))
-            .where(BuiltCondition.of(LHS.mapAccess("c2", TEXT_VALUE), Predicate.GT, INT_VALUE2))
-            .build();
+    Expression<BuiltCondition> expression =
+        ExpressionUtils.andOf(
+            Variable.of(BuiltCondition.of("c1", Predicate.EQ, INT_VALUE1)),
+            Variable.of(
+                BuiltCondition.of(LHS.mapAccess("c2", TEXT_VALUE), Predicate.GT, INT_VALUE2)));
 
-    assertThat(query.getCql()).isEqualTo("SELECT * FROM ks.tbl WHERE c1 = ? AND c2[?] > ?");
+    Query query = new QueryBuilder().select().from("ks", "tbl").where(expression).build();
+
+    assertThat(query.getCql()).isEqualTo("SELECT * FROM ks.tbl WHERE (c1 = ? AND c2[?] > ?)");
     assertThat(query.getValues().getValuesList())
         .containsExactly(INT_VALUE1, TEXT_VALUE, INT_VALUE2);
   }
 
   @Test
   public void shouldBindDirectIfValues() {
+    Expression<BuiltCondition> expression =
+        Variable.of(BuiltCondition.of("k", Predicate.EQ, INT_VALUE1));
     Query query =
         new QueryBuilder()
             .delete()
             .from("ks", "tbl")
-            .where("k", Predicate.EQ, INT_VALUE1)
+            .where(expression)
             .ifs("c1", Predicate.EQ, INT_VALUE2)
             .ifs("c2", Predicate.EQ, TEXT_VALUE)
             .build();
@@ -176,11 +178,14 @@ public class QueryBuilderValuesTest {
 
   @Test
   public void shouldBindBuiltConditionsInIfs() {
+    Expression<BuiltCondition> expression =
+        Variable.of(BuiltCondition.of("k", Predicate.EQ, INT_VALUE1));
+
     Query query =
         new QueryBuilder()
             .delete()
             .from("ks", "tbl")
-            .where("k", Predicate.EQ, INT_VALUE1)
+            .where(expression)
             .ifs(BuiltCondition.of("c1", Predicate.EQ, INT_VALUE2))
             .ifs(BuiltCondition.of(LHS.mapAccess("c2", TEXT_VALUE), Predicate.GT, INT_VALUE1))
             .build();
@@ -192,25 +197,27 @@ public class QueryBuilderValuesTest {
 
   @Test
   public void shouldGenerateUniqueMarkerNames() {
-    Query query =
-        new QueryBuilder()
-            .delete()
-            .from("ks", "tbl")
-            .where("k", Predicate.GT, INT_VALUE1)
-            .where("k", Predicate.LTE, INT_VALUE2)
-            .build();
+    Expression<BuiltCondition> expression =
+        ExpressionUtils.andOf(
+            Variable.of(BuiltCondition.of("k", Predicate.GT, INT_VALUE1)),
+            Variable.of(BuiltCondition.of("k", Predicate.LTE, INT_VALUE2)));
 
-    assertThat(query.getCql()).isEqualTo("DELETE FROM ks.tbl WHERE k > ? AND k <= ?");
+    Query query = new QueryBuilder().delete().from("ks", "tbl").where(expression).build();
+
+    assertThat(query.getCql()).isEqualTo("DELETE FROM ks.tbl WHERE (k > ? AND k <= ?)");
     assertThat(query.getValues().getValuesList()).containsExactly(INT_VALUE1, INT_VALUE2);
   }
 
   @Test
   public void shouldBindValuesInQueryOrder() {
+    Expression<BuiltCondition> expression =
+        Variable.of(BuiltCondition.of("c1", Predicate.EQ, INT_VALUE1));
+
     // This is a bit contrived, client code should not explicitly depend on generated classes like
     // this:
     QueryBuilder.QueryBuilder__23 select = new QueryBuilder().select().from("ks", "tbl");
     select.limit(INT_VALUE2);
-    select.where(BuiltCondition.of("c1", Predicate.EQ, INT_VALUE1));
+    select.where(expression);
     Query query = select.build();
 
     assertThat(query.getCql()).isEqualTo("SELECT * FROM ks.tbl WHERE c1 = ? LIMIT ?");
@@ -242,7 +249,8 @@ public class QueryBuilderValuesTest {
     BuiltCondition gender = BuiltCondition.of("gender", Predicate.CONTAINS, TEST_GENDER_VALUE);
 
     Expression<BuiltCondition> expr =
-        And.of(Variable.of(name), Or.of(Variable.of(age), Variable.of(gender)));
+        ExpressionUtils.andOf(
+            Variable.of(name), ExpressionUtils.orOf(Variable.of(age), Variable.of(gender)));
     Query query =
         new QueryBuilder().select().from("testKS", "testCollection").where(expr).limit(1).build();
 
@@ -263,7 +271,7 @@ public class QueryBuilderValuesTest {
     BuiltCondition gender = BuiltCondition.of("gender", Predicate.CONTAINS, TEST_GENDER_VALUE);
 
     Expression<BuiltCondition> expr =
-        And.of(Variable.of(key), Or.of(Variable.of(name), Variable.of(gender)));
+        ExpressionUtils.andOf(Variable.of(key), Or.of(Variable.of(name), Variable.of(gender)));
     Query query = new QueryBuilder().select().from("testKS", "testCollection").where(expr).build();
 
     assertThat(query.getCql())

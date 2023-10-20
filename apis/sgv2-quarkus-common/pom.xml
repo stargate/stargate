@@ -65,14 +65,14 @@
       <artifactId>quarkus-opentelemetry</artifactId>
     </dependency>
     <dependency>
-      <groupId>com.bpodgursky</groupId>
-      <artifactId>jbool_expressions</artifactId>
-      <version>1.24</version>
-    </dependency>
-    <dependency>
       <groupId>com.github.misberner.duzzt</groupId>
       <artifactId>duzzt-processor</artifactId>
       <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.bpodgursky</groupId>
+      <artifactId>jbool_expressions</artifactId>
+      <version>1.24</version>
     </dependency>
     <dependency>
       <groupId>org.immutables</groupId>
