@@ -6,7 +6,7 @@ Note: This persistence backend includes vector search and SAI indexing features 
 
 ## Cassandra version update
 
-The current Cassandra version this module depends on is `4.0.11-669ae5e3994d` from [datastax/cassandra:vsearch](https://github.com/datastax/cassandra/tree/vsearch) (released 2023-09-27)
+The current Cassandra version this module depends on is `4.0.11-45d4657e507e` from [datastax/cassandra:vsearch](https://github.com/datastax/cassandra/tree/vsearch) (released 2023-10-23)
 In order to update to a newer patch version, please follow the guidelines below:
 
 * Update the `cassandra.version` property in the [pom.xml](pom.xml).
@@ -14,7 +14,7 @@ In order to update to a newer patch version, please follow the guidelines below:
 * Check the transitive dependencies of the `org.apache.cassandra:cassandra-all` for the new version.
 Make sure that the version of the `com.datastax.cassandra:cassandra-driver-core` that `cassandra-all` depends on, is same as in the `cassandra.bundled-driver.version` property in the [pom.xml](pom.xml).
 This dependency is set as optional in the `cassandra-all`, but we need it to correctly handle UDFs.
-* Create a separate PR for bumping the DSE version in the Quarkus-based API integration tests on the `v2.1` branch. Test profiles are defined in the `apis/pom.xml`.
+* Update version defined in the `apis/pom.xml`.
 * Make sure everything compiles and CI tests are green.
 * Update the [default docker-compose env variables](../docker-compose/dse-next/.env) to reference the new version.
 * Update this `README.md` file with the new or updated instructions.
