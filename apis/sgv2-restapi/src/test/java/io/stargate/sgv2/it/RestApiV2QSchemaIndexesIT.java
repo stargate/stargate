@@ -12,6 +12,7 @@ import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.restapi.service.models.Sgv2IndexAddRequest;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -146,6 +147,16 @@ public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
     apiError = readJsonAs(response, ApiError.class);
     assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
     assertThat(apiError.description()).contains("Cannot create entries() index on firstName");
+
+    // [stargate#282]: Can't pass "options" without custom index name
+    indexAdd.setColumn("email");
+    indexAdd.setKind(CollectionIndexingType.VALUES);
+    indexAdd.setOptions(Collections.singletonMap("case_sensitive", "false"));
+    response = tryCreateIndex(testKeyspaceName(), tableName, indexAdd, HttpStatus.SC_BAD_REQUEST);
+    apiError = readJsonAs(response, ApiError.class);
+    assertThat(apiError.code()).isEqualTo(HttpStatus.SC_BAD_REQUEST);
+    assertThat(apiError.description())
+        .contains("Index 'type' must be specified if 'options' are specified");
   }
 
   @Test
