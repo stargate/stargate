@@ -60,6 +60,18 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
   public Uni<RestResponse<Map<String, Object>>> addIndex(
       final String keyspaceName, final String tableName, final Sgv2IndexAddRequest indexAdd) {
     final String columnName = indexAdd.getColumn();
+
+    // [stargate#282]: Must pass non-null type if non-empty "options":
+    final Map<String, String> options = indexAdd.getOptions();
+    final String indexType = indexAdd.getType();
+    if ((options != null) && !options.isEmpty()) {
+      if ((indexType == null) || indexType.isEmpty()) {
+        throw new WebApplicationException(
+            "Index 'type' must be specified if 'options' are specified",
+            Response.Status.BAD_REQUEST);
+      }
+    }
+
     return getTableAsyncCheckExistence(keyspaceName, tableName, true, Response.Status.BAD_REQUEST)
         .flatMap(
             table -> {
@@ -76,7 +88,7 @@ public class Sgv2IndexesResourceImpl extends RestResourceBase implements Sgv2Ind
                       .on(keyspaceName, tableName)
                       .column(columnName)
                       .indexingType(indexAdd.getKind())
-                      .custom(indexAdd.getType(), indexAdd.getOptions())
+                      .custom(indexType, options)
                       .build());
             })
         .map(any -> RestResponse.status(Status.CREATED, Collections.singletonMap("success", true)));
