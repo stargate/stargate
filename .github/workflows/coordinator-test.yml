@@ -55,7 +55,7 @@ jobs:
 
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - uses: actions/setup-java@v3
         name: Setup Java JDK
@@ -87,7 +87,8 @@ jobs:
       #  all unit tests should run without storage
       - name: Install CCM
         run: |
-          python -m pip install --upgrade pip ccm
+          python -m pip install --upgrade pip setuptools
+          python -m pip install ccm
           ccm list
 
       - name: Run unit tests
@@ -139,7 +140,7 @@ jobs:
 
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.x'
+          python-version: '3.12'
 
       - uses: actions/setup-java@v3
         name: Setup Java JDK
@@ -170,7 +171,8 @@ jobs:
 
       - name: Install CCM
         run: |
-          python -m pip install --upgrade pip ccm
+          python -m pip install --upgrade pip setuptools
+          python -m pip install ccm
           ccm list
 
       - name: Run Integration Tests
