@@ -1,5 +1,133 @@
 # Changelog
 
+## [v2.0.22](https://github.com/stargate/stargate/tree/v2.0.22) (2023-10-30)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-2...v2.0.22)
+
+**Closed issues:**
+
+- Index creation via REST API does not apply passed-in `options` [\#2821](https://github.com/stargate/stargate/issues/2821)
+- Update "dse-next" to latest version from `cndb/vsearch` [\#2819](https://github.com/stargate/stargate/issues/2819)
+- Null handling for where\(Expression\<BuildCondition\>\) [\#2789](https://github.com/stargate/stargate/issues/2789)
+- Delay event dispatch from release workflows until assets available in maven [\#2721](https://github.com/stargate/stargate/issues/2721)
+
+**Merged pull requests:**
+
+- ensure JVM heap memory settings applied in API images [\#2826](https://github.com/stargate/stargate/pull/2826) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Bump org.json:json from 20230227 to 20231013 in /coordinator/auth-jwt-service [\#2823](https://github.com/stargate/stargate/pull/2823) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Fix \#2821: add validation of index options coming with index type [\#2822](https://github.com/stargate/stargate/pull/2822) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- revert obsolete exclusion [\#2816](https://github.com/stargate/stargate/pull/2816) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Bump org.eclipse.jetty:jetty-http from 9.4.52.v20230823 to 9.4.53.v20231009 in /coordinator [\#2813](https://github.com/stargate/stargate/pull/2813) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [v2.1.0-BETA-2](https://github.com/stargate/stargate/tree/v2.1.0-BETA-2) (2023-10-20)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-1...v2.1.0-BETA-2)
+
+**Implemented enhancements:**
+
+- Add helper method for logging in Starter.java [\#1303](https://github.com/stargate/stargate/issues/1303)
+- Introduce a schema migration feature for Stargate [\#1295](https://github.com/stargate/stargate/issues/1295)
+- Array-based filter path.\[\*\] returns empty data [\#1247](https://github.com/stargate/stargate/issues/1247)
+- Support `$exists` for the object nodes, not only leaves [\#1133](https://github.com/stargate/stargate/issues/1133)
+- Optionally provide further info about query execution in REST API [\#823](https://github.com/stargate/stargate/issues/823)
+
+**Closed issues:**
+
+- add our own logic expression classes [\#2812](https://github.com/stargate/stargate/issues/2812)
+- Create v2.1 changelog [\#2720](https://github.com/stargate/stargate/issues/2720)
+- Revisit memory allocation in docker compose scripts [\#2607](https://github.com/stargate/stargate/issues/2607)
+- How does CQL respond when there is an error on gRPC interaction? [\#2452](https://github.com/stargate/stargate/issues/2452)
+- Fix changelog generation [\#2435](https://github.com/stargate/stargate/issues/2435)
+- Document how to enable SSL on Stargate v2 APIs [\#2381](https://github.com/stargate/stargate/issues/2381)
+- Remove broadcast\_rpc\_address from sample cql.yaml [\#2180](https://github.com/stargate/stargate/issues/2180)
+- Native image for GraphQL API Service native image [\#2156](https://github.com/stargate/stargate/issues/2156)
+- Native image for REST API Service native image [\#2155](https://github.com/stargate/stargate/issues/2155)
+- Add `JAVA\_OPTS\_APPEND` \(or similar\) env variable for docker-compose scripts to pass to services [\#2154](https://github.com/stargate/stargate/issues/2154)
+- Stargate bibtex for citation [\#2057](https://github.com/stargate/stargate/issues/2057)
+- Define maximum `page-size` in `stargate\_claims` in JWT [\#2049](https://github.com/stargate/stargate/issues/2049)
+- Optimistic schema for the Docs API V2 [\#2007](https://github.com/stargate/stargate/issues/2007)
+- gRPC Dart client [\#2005](https://github.com/stargate/stargate/issues/2005)
+- Add `ttlAuto` for the `$push` and `$pop` functions [\#1974](https://github.com/stargate/stargate/issues/1974)
+- Add support for retires in Docs API V2 [\#1971](https://github.com/stargate/stargate/issues/1971)
+- Improve `WriteDocumentsServiceTest` by decreasing mocks [\#1956](https://github.com/stargate/stargate/issues/1956)
+- Native image and end-to-end test support in Document V2 [\#1955](https://github.com/stargate/stargate/issues/1955)
+- Allow multiple field matching for a single document [\#1935](https://github.com/stargate/stargate/issues/1935)
+- Make materialized views active by default or expose control in envrionment variable [\#1925](https://github.com/stargate/stargate/issues/1925)
+- Integration test `it.test=io.stargate.it.bridge.SchemaTest\#describeKeyspace` can fail the `isCustom\(\)` index check [\#1919](https://github.com/stargate/stargate/issues/1919)
+- Revisit timestamp generation in Documents v2 API [\#1850](https://github.com/stargate/stargate/issues/1850)
+- HTTP APIs should report `RequestTimeoutException` as `504 Gateway Timeout` [\#1667](https://github.com/stargate/stargate/issues/1667)
+- Submit CSV to CQL [\#1512](https://github.com/stargate/stargate/issues/1512)
+- Pre-process DML data before binding the values [\#1494](https://github.com/stargate/stargate/issues/1494)
+- Upgrade test infra to allow custom storage configuration [\#1356](https://github.com/stargate/stargate/issues/1356)
+- Refactor private copies of `slf4j-api`, `logback` from bundles into shared OSGi context [\#1345](https://github.com/stargate/stargate/issues/1345)
+- Add missing unit tests for the `QueryBuilderImpl` [\#1296](https://github.com/stargate/stargate/issues/1296)
+- Backport `NonBlockingRateLimiter` to the CQL module [\#1254](https://github.com/stargate/stargate/issues/1254)
+- Bulk update and delete mutations in GraphQL API [\#1223](https://github.com/stargate/stargate/issues/1223)
+- REST API and DocsAPI should both handle `fields` param in the same way [\#1213](https://github.com/stargate/stargate/issues/1213)
+- Retrofit CQL-first mappers to use MutationPayload [\#1207](https://github.com/stargate/stargate/issues/1207)
+- Add a new parameter `sort` in the `searchDoc` method in order to sort the results [\#1205](https://github.com/stargate/stargate/issues/1205)
+- Refactor CQL-first schema builders to avoid deprecated method [\#1201](https://github.com/stargate/stargate/issues/1201)
+- Revert azure-storage-blob exclusion [\#1200](https://github.com/stargate/stargate/issues/1200)
+- Ability to batch-upload a document array with heterogeneous idPath [\#1191](https://github.com/stargate/stargate/issues/1191)
+- Add support for merging AND queries [\#1184](https://github.com/stargate/stargate/issues/1184)
+- Create expression rule for catching impossible filters to avoid any reads [\#1182](https://github.com/stargate/stargate/issues/1182)
+- Simplify single value `$in` to `$eq` [\#1181](https://github.com/stargate/stargate/issues/1181)
+- Add OpenRPC / JSON-RPC 2.0 Endpoints [\#1177](https://github.com/stargate/stargate/issues/1177)
+- Documents API support for specifying additional partition / clustered keys [\#1169](https://github.com/stargate/stargate/issues/1169)
+- Allow setting operators that cause ALLOW FILTERING as unsafe/disabled [\#1168](https://github.com/stargate/stargate/issues/1168)
+- GraphQL schema-first: don't require authentication for custom directives reference [\#1167](https://github.com/stargate/stargate/issues/1167)
+- Support expression simplification with predicate-specifc knowledge [\#1165](https://github.com/stargate/stargate/issues/1165)
+- Add a DELETE call that uses a WHERE clause [\#1135](https://github.com/stargate/stargate/issues/1135)
+- Explore moving from playground to graphiql [\#1129](https://github.com/stargate/stargate/issues/1129)
+- Add comments to playground tabs [\#1128](https://github.com/stargate/stargate/issues/1128)
+- GraphQL schema-first: add permission check for Federation's `\_service` query [\#1126](https://github.com/stargate/stargate/issues/1126)
+- Return DocumentSearchResponseWrapper from searchDoc [\#1121](https://github.com/stargate/stargate/issues/1121)
+- 404 error if send request to subdocument with "fields" but without "where". [\#1107](https://github.com/stargate/stargate/issues/1107)
+- Count of the number of documents in the collection and subdocuments [\#1098](https://github.com/stargate/stargate/issues/1098)
+- Spoof table `system.peer\_v2` [\#1097](https://github.com/stargate/stargate/issues/1097)
+- Support native\_transport\_max\_negotiable\_protocol\_version in CQL service [\#1096](https://github.com/stargate/stargate/issues/1096)
+- API Contract Testing [\#1081](https://github.com/stargate/stargate/issues/1081)
+- Remove transitional base64 parameter decoding code [\#1044](https://github.com/stargate/stargate/issues/1044)
+- Query executor should record execution context on the execute method [\#1025](https://github.com/stargate/stargate/issues/1025)
+- Cache prepared statement in stargate [\#931](https://github.com/stargate/stargate/issues/931)
+- Use AuthenticationService to control cache duration in Db.java [\#915](https://github.com/stargate/stargate/issues/915)
+- Provide helper scripts / maven commands for building with local DSE jars [\#899](https://github.com/stargate/stargate/issues/899)
+- Rest API should include count\(\*\)/total record count for a given query  [\#870](https://github.com/stargate/stargate/issues/870)
+- Log warnings for default config not suitable for production use cases [\#801](https://github.com/stargate/stargate/issues/801)
+- Add new options for selecting persistence module to load [\#780](https://github.com/stargate/stargate/issues/780)
+- Add additional system properties to support other keyspace settings for tablebased token keyspace [\#739](https://github.com/stargate/stargate/issues/739)
+- Expose the client metrics from `StorageProxy` in the persistence backends though Stargate metrics [\#637](https://github.com/stargate/stargate/issues/637)
+
+**Merged pull requests:**
+
+- Merging branch main into v2.1 [\#2817](https://github.com/stargate/stargate/pull/2817) ([github-actions[bot]](https://github.com/apps/github-actions))
+- querybuilder and, or support  [\#2815](https://github.com/stargate/stargate/pull/2815) ([Yuqi-Du](https://github.com/Yuqi-Du))
+- Merging branch main into v2.1 [\#2814](https://github.com/stargate/stargate/pull/2814) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Bump aws-actions/amazon-ecr-login from 1 to 2 [\#2811](https://github.com/stargate/stargate/pull/2811) ([dependabot[bot]](https://github.com/apps/dependabot))
+- use openjdk runtime images [\#2809](https://github.com/stargate/stargate/pull/2809) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Bump version to 2.1.0-BETA-2-SNAPSHOT [\#2808](https://github.com/stargate/stargate/pull/2808) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.1.0-BETA-1](https://github.com/stargate/stargate/tree/v2.1.0-BETA-1) (2023-10-03)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.21...v2.1.0-BETA-1)
+
+**Closed issues:**
+
+- Update Quarkus from 3.2.1 to 3.3.6, align `grpc-core` version to `1.56.1` [\#2802](https://github.com/stargate/stargate/issues/2802)
+
+**Merged pull requests:**
+
+- Merging branch main into v2.1 [\#2805](https://github.com/stargate/stargate/pull/2805) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Bump version to 2.0.22-SNAPSHOT [\#2804](https://github.com/stargate/stargate/pull/2804) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Merging branch main into v2.1 [\#2800](https://github.com/stargate/stargate/pull/2800) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Merging branch main into v2.1 [\#2797](https://github.com/stargate/stargate/pull/2797) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Merge fix from C-4 EncyptionOptions to Stargate cql module, to remove eager fail [\#2793](https://github.com/stargate/stargate/pull/2793) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Remove unnecessary UserDefinedFunctionHelper.fixCompilerClassLoader\(\) from C-4.1 backend [\#2792](https://github.com/stargate/stargate/pull/2792) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update 2.1 branch from ALPHA to BETA [\#2791](https://github.com/stargate/stargate/pull/2791) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update dse-next/dse-db-all to latest as of 2023-09-27: 4.0.11-669ae5e3994d [\#2790](https://github.com/stargate/stargate/pull/2790) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fixes \#2781: remove Duzzt-library/processor, to allow for easier upgrade from JDK 11 [\#2787](https://github.com/stargate/stargate/pull/2787) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.1 release [\#2784](https://github.com/stargate/stargate/pull/2784) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.0.21](https://github.com/stargate/stargate/tree/v2.0.21) (2023-10-03)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.20...v2.0.21)
