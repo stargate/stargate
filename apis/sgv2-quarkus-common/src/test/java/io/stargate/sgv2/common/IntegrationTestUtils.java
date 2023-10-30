@@ -10,6 +10,8 @@ public final class IntegrationTestUtils {
   public static final String AUTH_TOKEN_PROP = "stargate.int-test.auth-token";
   public static final String CASSANDRA_HOST_PROP = "stargate.int-test.cassandra.host";
   public static final String CASSANDRA_CQL_PORT_PROP = "stargate.int-test.cassandra.cql-port";
+
+  public static final String STARGATE_CQL_PORT_PROP = "stargate.int-test.coordinator.cql-port";
   public static final String CASSANDRA_AUTH_ENABLED_PROP =
       "stargate.int-test.cassandra.auth-enabled";
   public static final String CASSANDRA_USERNAME_PROP = "stargate.int-test.cassandra.username";

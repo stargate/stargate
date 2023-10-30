@@ -155,6 +155,9 @@ public class StargateTestResource
         IntegrationTestUtils.CASSANDRA_CQL_PORT_PROP,
         cassandraContainer.getMappedPort(9042).toString());
 
+    String cqlPort = this.stargateContainer.getMappedPort(9042).toString();
+    propsBuilder.put(IntegrationTestUtils.STARGATE_CQL_PORT_PROP, cqlPort);
+
     // Some Integration tests need to know backend storage version, to work around
     // discrepancies between Cassandra/DSE versions
     propsBuilder.put(IntegrationTestUtils.PERSISTENCE_MODULE_PROP, getPersistenceModule());
@@ -263,8 +266,8 @@ public class StargateTestResource
             .withEnv("CLUSTER_NAME", getClusterName())
             .withEnv("SIMPLE_SNITCH", "true")
             .withEnv("ENABLE_AUTH", "true")
-            .withNetworkAliases("coordinator")
-            .withExposedPorts(8091, 8081, 8084)
+            .withNetworkAliases(new String[] {"coordinator"})
+            .withExposedPorts(new Integer[] {8091, 8081, 8084, 9042})
             .withLogConsumer(
                 new Slf4jLogConsumer(LoggerFactory.getLogger("coordinator-docker"))
                     .withPrefix("COORDINATOR"))
