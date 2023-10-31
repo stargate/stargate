@@ -1,5 +1,23 @@
 # Changelog
 
+## [v2.0.22](https://github.com/stargate/stargate/tree/v2.0.22) (2023-10-30)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.21...v2.0.22)
+
+**Closed issues:**
+
+- Index creation via REST API does not apply passed-in `options` [\#2821](https://github.com/stargate/stargate/issues/2821)
+- Null handling for where\(Expression\<BuildCondition\>\) [\#2789](https://github.com/stargate/stargate/issues/2789)
+- Delay event dispatch from release workflows until assets available in maven [\#2721](https://github.com/stargate/stargate/issues/2721)
+
+**Merged pull requests:**
+
+- ensure JVM heap memory settings applied in API images [\#2826](https://github.com/stargate/stargate/pull/2826) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Bump org.json:json from 20230227 to 20231013 in /coordinator/auth-jwt-service [\#2823](https://github.com/stargate/stargate/pull/2823) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Fix \#2821: add validation of index options coming with index type [\#2822](https://github.com/stargate/stargate/pull/2822) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- revert obsolete exclusion [\#2816](https://github.com/stargate/stargate/pull/2816) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Bump org.eclipse.jetty:jetty-http from 9.4.52.v20230823 to 9.4.53.v20231009 in /coordinator [\#2813](https://github.com/stargate/stargate/pull/2813) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [v2.0.21](https://github.com/stargate/stargate/tree/v2.0.21) (2023-10-03)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.20...v2.0.21)
