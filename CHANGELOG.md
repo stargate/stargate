@@ -2,12 +2,11 @@
 
 ## [v2.0.22](https://github.com/stargate/stargate/tree/v2.0.22) (2023-10-30)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-2...v2.0.22)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.21...v2.0.22)
 
 **Closed issues:**
 
 - Index creation via REST API does not apply passed-in `options` [\#2821](https://github.com/stargate/stargate/issues/2821)
-- Update "dse-next" to latest version from `cndb/vsearch` [\#2819](https://github.com/stargate/stargate/issues/2819)
 - Null handling for where\(Expression\<BuildCondition\>\) [\#2789](https://github.com/stargate/stargate/issues/2789)
 - Delay event dispatch from release workflows until assets available in maven [\#2721](https://github.com/stargate/stargate/issues/2721)
 
