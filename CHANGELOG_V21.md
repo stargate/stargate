@@ -1,5 +1,43 @@
 # Changelog
 
+## [v2.1.0-BETA-3](https://github.com/stargate/stargate/tree/v2.1.0-BETA-3) (2023-10-31)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.22...v2.1.0-BETA-3)
+
+**Closed issues:**
+
+- Update to DSE 6.8.39 [\#2810](https://github.com/stargate/stargate/issues/2810)
+
+**Merged pull requests:**
+
+- Fix Python 3.12/ccm/CI issue [\#2831](https://github.com/stargate/stargate/pull/2831) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.0 release [\#2830](https://github.com/stargate/stargate/pull/2830) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Fix \#2810: update DSE-6.8 backed to 6.8.39 [\#2829](https://github.com/stargate/stargate/pull/2829) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Merging branch main into v2.1 [\#2828](https://github.com/stargate/stargate/pull/2828) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Added stargate cql port to properties exported [\#2827](https://github.com/stargate/stargate/pull/2827) ([maheshrajamani](https://github.com/maheshrajamani))
+- Merging branch main into v2.1 [\#2824](https://github.com/stargate/stargate/pull/2824) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Update to dse-db-all 4.0.11-45d4657e507e \(2023-10-23\) [\#2820](https://github.com/stargate/stargate/pull/2820) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.1 release [\#2818](https://github.com/stargate/stargate/pull/2818) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.0.22](https://github.com/stargate/stargate/tree/v2.0.22) (2023-10-30)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-2...v2.0.22)
+
+**Closed issues:**
+
+- Index creation via REST API does not apply passed-in `options` [\#2821](https://github.com/stargate/stargate/issues/2821)
+- Update "dse-next" to latest version from `cndb/vsearch` [\#2819](https://github.com/stargate/stargate/issues/2819)
+- Null handling for where\(Expression\<BuildCondition\>\) [\#2789](https://github.com/stargate/stargate/issues/2789)
+- Delay event dispatch from release workflows until assets available in maven [\#2721](https://github.com/stargate/stargate/issues/2721)
+
+**Merged pull requests:**
+
+- ensure JVM heap memory settings applied in API images [\#2826](https://github.com/stargate/stargate/pull/2826) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Bump org.json:json from 20230227 to 20231013 in /coordinator/auth-jwt-service [\#2823](https://github.com/stargate/stargate/pull/2823) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Fix \#2821: add validation of index options coming with index type [\#2822](https://github.com/stargate/stargate/pull/2822) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- revert obsolete exclusion [\#2816](https://github.com/stargate/stargate/pull/2816) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+- Bump org.eclipse.jetty:jetty-http from 9.4.52.v20230823 to 9.4.53.v20231009 in /coordinator [\#2813](https://github.com/stargate/stargate/pull/2813) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [v2.1.0-BETA-2](https://github.com/stargate/stargate/tree/v2.1.0-BETA-2) (2023-10-20)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-1...v2.1.0-BETA-2)
