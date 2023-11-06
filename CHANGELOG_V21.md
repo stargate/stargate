@@ -1,5 +1,25 @@
 # Changelog
 
+## [v2.1.0-BETA-3](https://github.com/stargate/stargate/tree/v2.1.0-BETA-3) (2023-11-06)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.22...v2.1.0-BETA-3)
+
+**Closed issues:**
+
+- Update to DSE 6.8.39 [\#2810](https://github.com/stargate/stargate/issues/2810)
+
+**Merged pull requests:**
+
+- Fix Python 3.12/ccm/CI issue [\#2831](https://github.com/stargate/stargate/pull/2831) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.0 release [\#2830](https://github.com/stargate/stargate/pull/2830) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Fix \#2810: update DSE-6.8 backed to 6.8.39 [\#2829](https://github.com/stargate/stargate/pull/2829) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Merging branch main into v2.1 [\#2828](https://github.com/stargate/stargate/pull/2828) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Added stargate cql port to properties exported [\#2827](https://github.com/stargate/stargate/pull/2827) ([maheshrajamani](https://github.com/maheshrajamani))
+- Merging branch main into v2.1 [\#2824](https://github.com/stargate/stargate/pull/2824) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Update to dse-db-all 4.0.11-45d4657e507e \(2023-10-23\) [\#2820](https://github.com/stargate/stargate/pull/2820) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.1 release [\#2818](https://github.com/stargate/stargate/pull/2818) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+
 ## [v2.1.0-BETA-2](https://github.com/stargate/stargate/tree/v2.1.0-BETA-2) (2023-10-20)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-1...v2.1.0-BETA-2)
