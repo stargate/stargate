@@ -100,7 +100,7 @@ public class StargateTestResource
 
   private Map<String, String> initArgs;
 
-  private Optional<String> containerNetworkId;
+  protected Optional<String> containerNetworkId;
 
   private Network network;
 
@@ -211,7 +211,10 @@ public class StargateTestResource
 
     // stargate
     stargateContainer = baseCoordinatorContainer(reuse);
-    stargateContainer.withNetworkMode(networkId).withEnv("SEED", cassandraHost);
+    stargateContainer
+        .withNetworkMode(networkId)
+        .withEnv("BIND_TO_LISTEN_ADDRESS", "true")
+        .withEnv("SEED", cassandraHost);
     stargateContainer.start();
     String stargateHost = stargateContainer.getCurrentContainerInfo().getConfig().getHostName();
 
