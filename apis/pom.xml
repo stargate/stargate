@@ -272,7 +272,7 @@
       <id>dse-next</id>
       <properties>
         <stargate.int-test.cassandra.image>stargateio/dse-next</stargate.int-test.cassandra.image>
-        <stargate.int-test.cassandra.image-tag>4.0.11-49a1eecaf3e4</stargate.int-test.cassandra.image-tag>
+        <stargate.int-test.cassandra.image-tag>4.0.11-a09f8c1431ab</stargate.int-test.cassandra.image-tag>
         <stargate.int-test.coordinator.image>stargateio/dse-next</stargate.int-test.coordinator.image>
         <stargate.int-test.coordinator.image-tag>v${project.version}</stargate.int-test.coordinator.image-tag>
         <stargate.int-test.cluster.name>cass-${stargate.int-test.cassandra.image-tag}-cluster</stargate.int-test.cluster.name>
