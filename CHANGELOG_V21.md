@@ -1,5 +1,35 @@
 # Changelog
 
+## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-4...HEAD)
+
+**Closed issues:**
+
+- Update "dse-next" to latest version from `cndb/vsearch` \(2023-12-01\) [\#2846](https://github.com/stargate/stargate/issues/2846)
+
+## [v2.1.0-BETA-4](https://github.com/stargate/stargate/tree/v2.1.0-BETA-4) (2023-12-01)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-3...v2.1.0-BETA-4)
+
+**Closed issues:**
+
+- Update "dse-next" to latest version from `cndb/vsearch` \(2023-11-13\) [\#2834](https://github.com/stargate/stargate/issues/2834)
+- Update to DSE 6.8.40 [\#2833](https://github.com/stargate/stargate/issues/2833)
+- Update logback to `1.3.0` [\#1281](https://github.com/stargate/stargate/issues/1281)
+
+**Merged pull requests:**
+
+- Fix \#2846: import latest "dse-db-all" for `dse-next` backend [\#2847](https://github.com/stargate/stargate/pull/2847) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump ch.qos.logback:logback-classic from 1.3.11 to 1.3.13 in /coordinator [\#2845](https://github.com/stargate/stargate/pull/2845) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Merging branch main into v2.1 [\#2842](https://github.com/stargate/stargate/pull/2842) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Bump com.squareup.okio:okio-jvm from 3.0.0 to 3.4.0 in /coordinator/testing [\#2841](https://github.com/stargate/stargate/pull/2841) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Merging branch main into v2.1 [\#2840](https://github.com/stargate/stargate/pull/2840) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Fix \#1281: update to Logback 1.3.x \(from 1.2.x\); slf4j-api to 2.0 \(from 1.3\) [\#2839](https://github.com/stargate/stargate/pull/2839) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update DSE-6.8 backed to 6.8.40 [\#2837](https://github.com/stargate/stargate/pull/2837) ([Hazel-Datastax](https://github.com/Hazel-Datastax))
+- Update dse-db-all dep by dse-next to "4.0.11-49a1eecaf3e4" [\#2835](https://github.com/stargate/stargate/pull/2835) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.1 release [\#2832](https://github.com/stargate/stargate/pull/2832) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.1.0-BETA-3](https://github.com/stargate/stargate/tree/v2.1.0-BETA-3) (2023-11-06)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.22...v2.1.0-BETA-3)
