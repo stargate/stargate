@@ -14,15 +14,15 @@ To publish a new version of `stargateio/dse-next` you need to:
 
 0. Figure out hash version to use (f.ex `<dse.version>` in `pom.xml` of CNDB `vsearch` branch)
 1. Update hash version in 4 places of Stargate/v2.1 repo:
-    - apis/pom.xml
-    - coordinator/persistence-dse-next/pom.xml
-    - coordinator/persistence-dse-next/README.md
-    - docker-compose/dse-next/.env
-2. Go to /dse-next
-3. Run ./download-cassandra.sh
+    - `apis/pom.xml`
+    - `coordinator/persistence-dse-next/pom.xml`
+    - `coordinator/persistence-dse-next/README.md`
+    - `docker-compose/dse-next/.env`
+2. Go to `/dse-next` (at root of this Github repo)
+3. Run `./download_cassandra.sh`
     - may need to `rm -rf ./cassandra` first
-    - need to use JDK 11
+    - need to use JDK 11 for build
 4. Do `docker login`
     - Need to use account with access to `stargateio` at Docker Hub
-5. Run ./build_docker_image.sh -p
+5. Run `./build_docker_image.sh -p`
 6. Verify new image at: https://hub.docker.com/r/stargateio/dse-next/tags
