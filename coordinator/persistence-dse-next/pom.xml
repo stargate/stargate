@@ -14,11 +14,10 @@
   <properties>
     <!-- If you update this, make sure to keep `cassandra.bundled-driver.version` in sync -->
     <!-- Latest as of 2023-09-14: 4.0.7-0cf63a3d0b6d -->
-    <!-- Latest as of 2023-09-27: 4.0.11-669ae5e3994d -->
-    <!-- Latest as of 2023-10-23: 4.0.11-45d4657e507e -->
     <!-- Latest as of 2023-11-13: 4.0.11-49a1eecaf3e4 -->
     <!-- Latest as of 2023-12-01: 4.0.11-a09f8c1431ab -->
-    <cassandra.version>4.0.11-a09f8c1431ab</cassandra.version>
+    <!-- Latest as of 2023-12-04: 4.0.11-7202bd32beef -->
+    <cassandra.version>4.0.11-7202bd32beef</cassandra.version>
     <!--
       The driver used internally by cassandra-all for UDFs (must match the version declared in
       cassandra-all's POM).
