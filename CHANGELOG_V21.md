@@ -1,25 +1,16 @@
 # Changelog
 
-## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-5...HEAD)
-
-**Closed issues:**
-
-- Update "dse-next" to latest available version `4.0.11-7202bd32beef` \(2023-12-04\) [\#2850](https://github.com/stargate/stargate/issues/2850)
-
 ## [v2.1.0-BETA-5](https://github.com/stargate/stargate/tree/v2.1.0-BETA-5) (2023-12-04)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-4...v2.1.0-BETA-5)
 
 **Closed issues:**
 
-- Update "dse-next" to latest version from `cndb/vsearch` \(2023-12-01\) [\#2846](https://github.com/stargate/stargate/issues/2846)
+- Update "dse-next" to latest available version `4.0.11-7202bd32beef` \(2023-12-04\) [\#2850](https://github.com/stargate/stargate/issues/2850)
 
 **Merged pull requests:**
 
 - Fix \#2850: dse-next to `4.0.11-7202bd32beef` [\#2852](https://github.com/stargate/stargate/pull/2852) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version for next v2.1 release [\#2848](https://github.com/stargate/stargate/pull/2848) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v2.1.0-BETA-4](https://github.com/stargate/stargate/tree/v2.1.0-BETA-4) (2023-12-01)
 
