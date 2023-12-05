@@ -461,6 +461,7 @@ public class ErrorMessage extends Message.Response {
         ProtocolVersion forcedProtocolVersion = ((ProtocolException) e).getForcedProtocolVersion();
         if (forcedProtocolVersion != null) message.forcedProtocolVersion = forcedProtocolVersion;
       }
+      message.tracingId = ((PersistenceException) e).tracingId();
       return message;
     }
 
