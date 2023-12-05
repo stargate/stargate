@@ -1,5 +1,21 @@
 # Changelog
 
+## [v2.1.0-BETA-6](https://github.com/stargate/stargate/tree/v2.1.0-BETA-6) (2023-12-05)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-5...v2.1.0-BETA-6)
+
+**Closed issues:**
+
+- Update "dse-next" to latest available version `4.0.11-b259738f492f` \(2023-12-05\) \(to get Range queries\) [\#2855](https://github.com/stargate/stargate/issues/2855)
+- Update "dse-next" to latest available version `4.0.11-7202bd32beef` \(2023-12-04\) [\#2850](https://github.com/stargate/stargate/issues/2850)
+
+**Merged pull requests:**
+
+- Add TracingId handling for C-4.1 backend [\#2857](https://github.com/stargate/stargate/pull/2857) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#2855: build docker image for `dse-db-all` version `4.0.11-b259738f492f` [\#2856](https://github.com/stargate/stargate/pull/2856) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Setting tracingId in PersistenceException [\#2854](https://github.com/stargate/stargate/pull/2854) ([kathirsvn](https://github.com/kathirsvn))
+- Bumping version for next v2.1 release [\#2853](https://github.com/stargate/stargate/pull/2853) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.1.0-BETA-5](https://github.com/stargate/stargate/tree/v2.1.0-BETA-5) (2023-12-04)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-4...v2.1.0-BETA-5)
