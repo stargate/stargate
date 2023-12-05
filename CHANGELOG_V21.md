@@ -14,7 +14,6 @@
 - Add TracingId handling for C-4.1 backend [\#2857](https://github.com/stargate/stargate/pull/2857) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Fix \#2855: build docker image for `dse-db-all` version `4.0.11-b259738f492f` [\#2856](https://github.com/stargate/stargate/pull/2856) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Setting tracingId in PersistenceException [\#2854](https://github.com/stargate/stargate/pull/2854) ([kathirsvn](https://github.com/kathirsvn))
-- Bumping version for next v2.1 release [\#2853](https://github.com/stargate/stargate/pull/2853) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v2.1.0-BETA-5](https://github.com/stargate/stargate/tree/v2.1.0-BETA-5) (2023-12-04)
 
