@@ -569,8 +569,11 @@ public class DsePersistence
                       // There is only 2 types of response that can come out: either a
                       // ResultMessage (which itself can of different kind), or an ErrorMessage.
                       if (response instanceof ErrorMessage) {
-                        throw convertExceptionWithWarnings(
-                            (Throwable) ((ErrorMessage) response).error);
+                        PersistenceException pe =
+                            convertExceptionWithWarnings(
+                                (Throwable) ((ErrorMessage) response).error);
+                        pe.setTracingId(response.getTracingId());
+                        throw pe;
                       }
 
                       @SuppressWarnings("unchecked")

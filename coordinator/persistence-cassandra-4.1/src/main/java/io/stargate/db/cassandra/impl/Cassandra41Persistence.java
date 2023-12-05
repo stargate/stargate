@@ -460,8 +460,10 @@ public class Cassandra41Persistence
               // Note that we convert in runOnExecutor (to handle exceptions coming from other
               // parts of this method), but we need an unchecked exception here anyway, so
               // we convert, and runOnExecutor will detect it's already converted.
-              throw Conversion.convertInternalException(
-                  (Throwable) ((ErrorMessage) response).error);
+              PersistenceException pe =
+                  Conversion.convertInternalException((Throwable) ((ErrorMessage) response).error);
+              pe.setTracingId(response.getTracingId());
+              throw pe;
             }
 
             @SuppressWarnings("unchecked")

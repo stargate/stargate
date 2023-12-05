@@ -19,11 +19,14 @@ package org.apache.cassandra.stargate.exceptions;
 
 import com.datastax.oss.driver.shaded.guava.common.base.Preconditions;
 import java.util.List;
+import java.util.UUID;
 import javax.annotation.Nullable;
 
 public abstract class PersistenceException extends RuntimeException {
   private final ExceptionCode code;
   private volatile List<String> warnings;
+
+  private UUID tracingId;
 
   protected PersistenceException(ExceptionCode code, String msg) {
     super(msg);
@@ -47,5 +50,14 @@ public abstract class PersistenceException extends RuntimeException {
 
   public @Nullable List<String> warnings() {
     return this.warnings;
+  }
+
+  public PersistenceException setTracingId(UUID tracingId) {
+    this.tracingId = tracingId;
+    return this;
+  }
+
+  public @Nullable UUID tracingId() {
+    return tracingId;
   }
 }
