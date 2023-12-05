@@ -565,8 +565,9 @@ public class DsePersistence
                       // There is only 2 types of response that can come out: either a
                       // ResultMessage (which itself can of different kind), or an ErrorMessage.
                       if (response instanceof ErrorMessage) {
-                        PersistenceException pe = convertExceptionWithWarnings(
-                            (Throwable) ((ErrorMessage) response).error);
+                        PersistenceException pe =
+                            convertExceptionWithWarnings(
+                                (Throwable) ((ErrorMessage) response).error);
                         pe.setTracingId(MessageHandler.getTracingId(response));
                         throw pe;
                       }
