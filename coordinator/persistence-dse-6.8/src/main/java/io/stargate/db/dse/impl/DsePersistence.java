@@ -93,7 +93,6 @@ import org.apache.cassandra.service.StorageService;
 import org.apache.cassandra.stargate.exceptions.PersistenceException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.transport.Message.Request;
-import org.apache.cassandra.transport.MessageHandler;
 import org.apache.cassandra.transport.ServerConnection;
 import org.apache.cassandra.transport.messages.BatchMessage;
 import org.apache.cassandra.transport.messages.ErrorMessage;
@@ -568,7 +567,7 @@ public class DsePersistence
                         PersistenceException pe =
                             convertExceptionWithWarnings(
                                 (Throwable) ((ErrorMessage) response).error);
-                        pe.setTracingId(MessageHandler.getTracingId(response));
+                        pe.setTracingId(response.getTracingId());
                         throw pe;
                       }
 

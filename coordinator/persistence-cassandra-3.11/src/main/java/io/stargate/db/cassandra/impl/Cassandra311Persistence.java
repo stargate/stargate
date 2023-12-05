@@ -89,7 +89,6 @@ import org.apache.cassandra.stargate.exceptions.PersistenceException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.transport.Message;
 import org.apache.cassandra.transport.Message.Request;
-import org.apache.cassandra.transport.MessageHandler;
 import org.apache.cassandra.transport.messages.BatchMessage;
 import org.apache.cassandra.transport.messages.ErrorMessage;
 import org.apache.cassandra.transport.messages.ExecuteMessage;
@@ -489,7 +488,7 @@ public class Cassandra311Persistence
               // we convert, and runOnExecutor will detect it's already converted.
               PersistenceException pe =
                   Conversion.convertInternalException((Throwable) ((ErrorMessage) response).error);
-              pe.setTracingId(MessageHandler.getTracingId(response));
+              pe.setTracingId(response.getTracingId());
               throw pe;
             }
             @SuppressWarnings("unchecked")
