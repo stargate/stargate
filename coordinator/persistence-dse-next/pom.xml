@@ -17,7 +17,8 @@
     <!-- Latest as of 2023-11-13: 4.0.11-49a1eecaf3e4 -->
     <!-- Latest as of 2023-12-01: 4.0.11-a09f8c1431ab -->
     <!-- Latest as of 2023-12-04: 4.0.11-7202bd32beef -->
-    <cassandra.version>4.0.11-7202bd32beef</cassandra.version>
+    <!-- Latest as of 2023-12-05: 4.0.11-b259738f492f -->
+    <cassandra.version>4.0.11-b259738f492f</cassandra.version>
     <!--
       The driver used internally by cassandra-all for UDFs (must match the version declared in
       cassandra-all's POM).
