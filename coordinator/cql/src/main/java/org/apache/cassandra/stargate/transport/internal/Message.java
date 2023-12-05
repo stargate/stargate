@@ -290,7 +290,7 @@ public abstract class Message {
       if (type.direction != Direction.RESPONSE) throw new IllegalArgumentException();
     }
 
-    Message setTracingId(UUID tracingId) {
+    public Message setTracingId(UUID tracingId) {
       this.tracingId = tracingId;
       return this;
     }
