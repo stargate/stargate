@@ -57,7 +57,7 @@ jobs:
         with:
           python-version: '3.12'
 
-      - uses: actions/setup-java@v3
+      - uses: actions/setup-java@v4
         name: Setup Java JDK
         with:
           distribution: 'temurin'
@@ -142,7 +142,7 @@ jobs:
         with:
           python-version: '3.12'
 
-      - uses: actions/setup-java@v3
+      - uses: actions/setup-java@v4
         name: Setup Java JDK
         with:
           distribution: 'temurin'
