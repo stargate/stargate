@@ -24,6 +24,7 @@ public enum Predicate {
   GTE(">="),
   IN("IN"),
   CONTAINS("CONTAINS"),
+  NOT_CONTAINS("NOT CONTAINS"),
   CONTAINS_KEY("CONTAINS KEY"),
   ;
 
