@@ -3,3 +3,12 @@
 stargate:
   data-store:
     ignore-bridge: true
+
+"%test":
+  quarkus:
+    # properties for the gRPC clients
+    grpc:
+      # all the clients' setup, only bridge
+      clients:
+        bridge:
+          port: 9001
