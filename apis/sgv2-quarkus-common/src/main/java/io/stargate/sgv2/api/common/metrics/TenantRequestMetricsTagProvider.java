@@ -10,6 +10,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.util.regex.Pattern;
 
+/** Tags provider for http request metrics. It provides tenant id and user agent as tags. */
 @ApplicationScoped
 public class TenantRequestMetricsTagProvider implements HttpServerMetricsTagsContributor {
 
@@ -32,7 +33,7 @@ public class TenantRequestMetricsTagProvider implements HttpServerMetricsTagsCon
   private final Tag errorFalse;
 
   /** The tag for tenant being unknown, created only once. */
-  Tag tenantUnknown;
+  private final Tag tenantUnknown;
 
   /** Default constructor. */
   @Inject
@@ -45,6 +46,7 @@ public class TenantRequestMetricsTagProvider implements HttpServerMetricsTagsCon
     tenantUnknown = Tag.of(config.tenantTag(), UNKNOWN_VALUE);
   }
 
+  @Override
   public Tags contribute(Context context) {
     // resolve tenant
     Tag tenantTag =
