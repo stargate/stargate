@@ -11,6 +11,15 @@ quarkus:
         host: localhost
         port: 8091
 
+"%test":
+  quarkus:
+    # properties for the gRPC clients
+    grpc:
+      # all the clients' setup, only bridge
+      clients:
+        bridge:
+          port: 9001
+
 io:
   stargate:
     sgv2:
