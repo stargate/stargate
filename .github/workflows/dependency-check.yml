@@ -49,7 +49,7 @@ jobs:
           mvn -B -ntp versions:display-dependency-updates -Dversions.outputFile=target/dependency-updates-report.txt
 
       - name: Archive dependency update results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dependency-update-report
           path: coordinator/target/dependency-updates-report.txt
@@ -96,7 +96,7 @@ jobs:
           mvn -B -ntp dependency-check:aggregate
 
       - name: Archive vulnerability results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: dependency-check-report
           path: coordinator/target/dependency-check-report.html
