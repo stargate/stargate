@@ -1,5 +1,21 @@
 # Changelog
 
+## [v2.0.23](https://github.com/stargate/stargate/tree/v2.0.23) (2024-01-05)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.22...v2.0.23)
+
+**Closed issues:**
+
+- Setting tracingId in PersistenceException [\#2854](https://github.com/stargate/stargate/pull/2854)
+
+**Merged pull requests:**
+
+- Bump actions/upload-artifact from 3 to 4 [\#2867](https://github.com/stargate/stargate/pull/2867) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/setup-python from 4 to 5 [\#2862](https://github.com/stargate/stargate/pull/2862) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump ch.qos.logback:logback-core from 1.3.13 to 1.3.14 in /coordinator [\#2859](https://github.com/stargate/stargate/pull/2859) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/setup-java from 3 to 4 [\#2849](https://github.com/stargate/stargate/pull/2849) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Change Github workflow according to Postman change [\#2756](https://github.com/stargate/stargate/pull/2756) ([Hazel-Datastax](https://github.com/Hazel-Datastax))
+
 ## [v2.0.22](https://github.com/stargate/stargate/tree/v2.0.22) (2023-10-30)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.21...v2.0.22)
