@@ -1,5 +1,33 @@
 # Changelog
 
+## [v2.1.0-BETA-8](https://github.com/stargate/stargate/tree/v2.1.0-BETA-8) (2024-01-05)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.23...v2.1.0-BETA-8)
+
+**Merged pull requests:**
+
+- Bumping version for next v2.0 release [\#2869](https://github.com/stargate/stargate/pull/2869) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Upgraded quarkus to 3.6.1 and add tenant to http request metrics [\#2866](https://github.com/stargate/stargate/pull/2866) ([maheshrajamani](https://github.com/maheshrajamani))
+- Bumping version for next v2.1 release [\#2864](https://github.com/stargate/stargate/pull/2864) ([github-actions[bot]](https://github.com/apps/github-actions))
+- IT CQL port bound to container ip address [\#2836](https://github.com/stargate/stargate/pull/2836) ([maheshrajamani](https://github.com/maheshrajamani))
+
+## [v2.0.23](https://github.com/stargate/stargate/tree/v2.0.23) (2024-01-05)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-7...v2.0.23)
+
+**Closed issues:**
+
+- stargate tmp hints disk full [\#2838](https://github.com/stargate/stargate/issues/2838)
+- Support specifying LIMIT via REST API [\#2743](https://github.com/stargate/stargate/issues/2743)
+
+**Merged pull requests:**
+
+- Bump actions/upload-artifact from 3 to 4 [\#2867](https://github.com/stargate/stargate/pull/2867) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/setup-python from 4 to 5 [\#2862](https://github.com/stargate/stargate/pull/2862) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump ch.qos.logback:logback-core from 1.3.13 to 1.3.14 in /coordinator [\#2859](https://github.com/stargate/stargate/pull/2859) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/setup-java from 3 to 4 [\#2849](https://github.com/stargate/stargate/pull/2849) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Change Github workflow according to Postman change [\#2756](https://github.com/stargate/stargate/pull/2756) ([Hazel-Datastax](https://github.com/Hazel-Datastax))
+
 ## [v2.1.0-BETA-7](https://github.com/stargate/stargate/tree/v2.1.0-BETA-7) (2023-12-11)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-6...v2.1.0-BETA-7)
