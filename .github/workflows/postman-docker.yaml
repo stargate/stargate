@@ -60,7 +60,8 @@ jobs:
           postman login --with-api-key ${{ secrets.POSTMAN_API_KEY }}
       - name: Run API test
         run: |
-          postman collection run ${{ matrix.collection-id }} -e ${{ matrix.environment-id }} --verbose
+          postman collection run ${{ matrix.collection-id }} -e ${{ matrix.environment-id }} \
+          --env-var POSTMAN_API_KEY=${{ secrets.POSTMAN_API_KEY }} --verbose
       - name: Stop Backend
         if: always()
         run: |
