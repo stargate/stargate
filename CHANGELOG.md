@@ -6,6 +6,8 @@
 
 **Closed issues:**
 
+- Setting tracingId in PersistenceException [\#2854](https://github.com/stargate/stargate/pull/2854)
+
 **Merged pull requests:**
 
 - Bump actions/upload-artifact from 3 to 4 [\#2867](https://github.com/stargate/stargate/pull/2867) ([dependabot[bot]](https://github.com/apps/dependabot))
