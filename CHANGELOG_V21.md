@@ -1,5 +1,14 @@
 # Changelog
 
+## [v2.1.0-BETA-8](https://github.com/stargate/stargate/tree/v2.1.0-BETA-8) (2024-01-05)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-7...v2.1.0-BETA-8)
+
+**Merged pull requests:**
+
+- Upgraded quarkus to 3.6.1 and add tenant to http request metrics [\#2866](https://github.com/stargate/stargate/pull/2866) ([maheshrajamani](https://github.com/maheshrajamani))
+- IT CQL port bound to container ip address [\#2836](https://github.com/stargate/stargate/pull/2836) ([maheshrajamani](https://github.com/maheshrajamani))
+
 ## [v2.1.0-BETA-7](https://github.com/stargate/stargate/tree/v2.1.0-BETA-7) (2023-12-11)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-6...v2.1.0-BETA-7)
@@ -7,8 +16,6 @@
 **Merged pull requests:**
 
 - NOT CONTAINS [\#2863](https://github.com/stargate/stargate/pull/2863) ([Yuqi-Du](https://github.com/Yuqi-Du))
-- Merging branch main into v2.1 [\#2860](https://github.com/stargate/stargate/pull/2860) ([github-actions[bot]](https://github.com/apps/github-actions))
-- Bumping version for next v2.1 release [\#2858](https://github.com/stargate/stargate/pull/2858) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v2.1.0-BETA-6](https://github.com/stargate/stargate/tree/v2.1.0-BETA-6) (2023-12-05)
 
