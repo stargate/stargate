@@ -53,11 +53,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - uses: actions/setup-java@v3
+      - uses: actions/setup-java@v4
         name: Setup Java JDK
         with:
           distribution: 'temurin'
@@ -147,11 +147,11 @@ jobs:
 
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
-      - uses: actions/setup-java@v3
+      - uses: actions/setup-java@v4
         name: Setup Java JDK
         with:
           distribution: 'temurin'
