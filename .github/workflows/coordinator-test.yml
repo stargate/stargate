@@ -21,6 +21,7 @@ on:
       - '.github/workflows/coordinator-test.yml'
 
   pull_request:
+    branches: [ "main", "v1" ]
     paths:
       - 'coordinator/**pom.xml'
       - 'coordinator/**/src/**'
@@ -46,17 +47,17 @@ jobs:
     name: Coordinator unit tests
     runs-on: ubuntu-latest
 
-    # max run time 30 minutes
-    timeout-minutes: 30
+    # max run time 45 minutes
+    timeout-minutes: 45
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: '3.12'
 
-      - uses: actions/setup-java@v3
+      - uses: actions/setup-java@v4
         name: Setup Java JDK
         with:
           distribution: 'temurin'
@@ -83,11 +84,11 @@ jobs:
           </settings>
           EOF
 
-      # TODO: get rid of the CCM in the unit tests
       #  all unit tests should run without storage
       - name: Install CCM
         run: |
-          python -m pip install --upgrade pip ccm
+          python -m pip install --upgrade pip setuptools
+          python -m pip install ccm
           ccm list
 
       - name: Run unit tests
@@ -135,13 +136,13 @@ jobs:
           sudo killall mono
           sudo lsof -iTCP -n -P | sort -k1
 
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: '3.12'
 
-      - uses: actions/setup-java@v3
+      - uses: actions/setup-java@v4
         name: Setup Java JDK
         with:
           distribution: 'temurin'
@@ -170,7 +171,8 @@ jobs:
 
       - name: Install CCM
         run: |
-          python -m pip install --upgrade pip ccm
+          python -m pip install --upgrade pip setuptools
+          python -m pip install ccm
           ccm list
 
       - name: Run Integration Tests
