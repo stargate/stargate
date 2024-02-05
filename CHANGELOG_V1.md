@@ -2,7 +2,7 @@
 
 ## [v1.0.78](https://github.com/stargate/stargate/tree/v1.0.78) (2024-02-05)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-8...v1.0.78)
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.77...v1.0.78)
 
 **Closed issues:**
 
@@ -11,10 +11,9 @@
 
 **Merged pull requests:**
 
-- Baclport \#2539 in `v1` to upgrade DSE 6.8.33 -\> 6.8.34 [\#2882](https://github.com/stargate/stargate/pull/2882) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Backport \#2539 in `v1` to upgrade DSE 6.8.33 -\> 6.8.34 [\#2882](https://github.com/stargate/stargate/pull/2882) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Fix Stargate V1 CI wrt ccm failure \(backport from v2\) [\#2881](https://github.com/stargate/stargate/pull/2881) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Fixes \#2868: update DSE backend from 6.8.33 to 6.8.41 [\#2879](https://github.com/stargate/stargate/pull/2879) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version to 1.0.78-SNAPSHOT [\#2635](https://github.com/stargate/stargate/pull/2635) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v1.0.77](https://github.com/stargate/stargate/tree/v1.0.77) (2023-06-20)
 
