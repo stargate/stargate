@@ -5,7 +5,7 @@
   <parent>
     <artifactId>stargate</artifactId>
     <groupId>io.stargate</groupId>
-    <version>1.0.78-SNAPSHOT</version>
+    <version>1.0.79-SNAPSHOT</version>
   </parent>
   <!-- Artifact props -->
   <groupId>io.stargate.config-store</groupId>
