@@ -70,7 +70,7 @@ jobs:
 
       # ensure snapshots from this build are used in next jobs
       - name: Cache Snapshots
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: cache-coordinator-snapshots
         env:
           cache-name: cache-coordinator-snapshots
@@ -82,7 +82,7 @@ jobs:
 
       - name: Cache Libs
         if: steps.cache-coordinator-snapshots.outputs.cache-hit != 'true'
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: cache-coordinator-libs
         env:
           cache-name: cache-coordinator-libs
@@ -134,14 +134,14 @@ jobs:
 
       - name: Cache docker image
         id: cache-docker-image
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ matrix.image }}-${{ needs.resolve-coordinator-docker.outputs.sha }}.tar
           key: docker-${{ matrix.image }}-${{ needs.resolve-coordinator-docker.outputs.sha }}
 
       - name: Restore Libs
         if: steps.cache-docker-image.outputs.cache-hit != 'true'
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: cache-coordinator-libs
         env:
           cache-name: cache-coordinator-libs
@@ -219,7 +219,7 @@ jobs:
           EOF
 
       - name: Restore Snapshots
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: restore-coordinator-snapshots
         env:
           cache-name: cache-coordinator-snapshots
@@ -316,7 +316,7 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Restore docker image
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ${{ matrix.image-file }}
           key: ${{ matrix.image-cache-key }}
@@ -326,7 +326,7 @@ jobs:
         run: docker load --input ${{ matrix.image-file }}
 
       - name: Restore Snapshots
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         id: restore-coordinator-snapshots
         env:
           cache-name: cache-coordinator-snapshots
