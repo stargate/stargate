@@ -1,8 +1,17 @@
 # Changelog
 
+## [v1.0.77](https://github.com/stargate/stargate/tree/v1.0.77) (2023-06-20)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.76...v1.0.77)
+
+**Merged pull requests:**
+
+- closes \#2623: extend prepared with info with var indexes [\#2631](https://github.com/stargate/stargate/pull/2631) ([ivansenic](https://github.com/ivansenic))
+- Backport org.json upgrade from SGv2 \(issue \#2543, PR \#2544\) into v1 b… [\#2567](https://github.com/stargate/stargate/pull/2567) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v1.0.76](https://github.com/stargate/stargate/tree/v1.0.76) (2023-04-26)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.74.1...v1.0.76)
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.75...v1.0.76)
 
 **Merged pull requests:**
 
