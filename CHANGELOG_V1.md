@@ -12,7 +12,6 @@
 
 - Update dependencies to be compatible with DSE-6.8.41 \(SG/v1\) [\#2889](https://github.com/stargate/stargate/pull/2889) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Update `coordinator/pom.xml` with version updates from main \(v2\) [\#2887](https://github.com/stargate/stargate/pull/2887) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version to `1.0.79-SNAPSHOT` after 1.0.78 release [\#2885](https://github.com/stargate/stargate/pull/2885) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v1.0.78](https://github.com/stargate/stargate/tree/v1.0.78) (2024-02-05)
 
