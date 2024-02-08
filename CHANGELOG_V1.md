@@ -1,5 +1,18 @@
 # Changelog
 
+## [v1.0.79](https://github.com/stargate/stargate/tree/v1.0.79) (2024-02-06)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.78...v1.0.79)
+
+**Closed issues:**
+
+- Update to DSE 6.8.41 [\#2868](https://github.com/stargate/stargate/issues/2868)
+
+**Merged pull requests:**
+
+- Update dependencies to be compatible with DSE-6.8.41 \(SG/v1\) [\#2889](https://github.com/stargate/stargate/pull/2889) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update `coordinator/pom.xml` with version updates from main \(v2\) [\#2887](https://github.com/stargate/stargate/pull/2887) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v1.0.78](https://github.com/stargate/stargate/tree/v1.0.78) (2024-02-05)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.77...v1.0.78)
