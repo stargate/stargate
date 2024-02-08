@@ -1,5 +1,17 @@
 # Changelog
 
+## [v2.0.24](https://github.com/stargate/stargate/tree/v2.0.24) (2024-02-08)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.23...v2.0.24)
+
+**Merged pull requests:**
+
+- Update dependencies to be compatible with DSE-6.8.41 \(SG/v2\) [\#2890](https://github.com/stargate/stargate/pull/2890) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump peter-evans/repository-dispatch from 2 to 3 [\#2878](https://github.com/stargate/stargate/pull/2878) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump com.jayway.jsonpath:json-path from 2.7.0 to 2.9.0 in /coordinator/testing [\#2874](https://github.com/stargate/stargate/pull/2874) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump com.jayway.jsonpath:json-path from 2.5.0 to 2.9.0 in /apis/sgv2-graphqlapi [\#2873](https://github.com/stargate/stargate/pull/2873) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump actions/cache from 3 to 4 [\#2872](https://github.com/stargate/stargate/pull/2872) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [v2.0.23](https://github.com/stargate/stargate/tree/v2.0.23) (2024-01-05)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.22...v2.0.23)
