@@ -2,28 +2,15 @@
 
 ## [v2.0.24](https://github.com/stargate/stargate/tree/v2.0.24) (2024-02-08)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.79...v2.0.24)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.23...v2.0.24)
 
 **Merged pull requests:**
 
 - Update dependencies to be compatible with DSE-6.8.41 \(SG/v2\) [\#2890](https://github.com/stargate/stargate/pull/2890) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Merge \#2868 changes \(DSE-6.8.41\) to `v2` \(main\) [\#2883](https://github.com/stargate/stargate/pull/2883) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Merge v1-\>v2 [\#2880](https://github.com/stargate/stargate/pull/2880) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Bump peter-evans/repository-dispatch from 2 to 3 [\#2878](https://github.com/stargate/stargate/pull/2878) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Bump com.jayway.jsonpath:json-path from 2.7.0 to 2.9.0 in /coordinator/testing [\#2874](https://github.com/stargate/stargate/pull/2874) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Bump com.jayway.jsonpath:json-path from 2.5.0 to 2.9.0 in /apis/sgv2-graphqlapi [\#2873](https://github.com/stargate/stargate/pull/2873) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Bump actions/cache from 3 to 4 [\#2872](https://github.com/stargate/stargate/pull/2872) ([dependabot[bot]](https://github.com/apps/dependabot))
-
-## [v2.1.0-BETA-8](https://github.com/stargate/stargate/tree/v2.1.0-BETA-8) (2024-01-05)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.23...v2.1.0-BETA-8)
-
-**Merged pull requests:**
-
-- Bumping version for next v2.0 release [\#2869](https://github.com/stargate/stargate/pull/2869) ([github-actions[bot]](https://github.com/apps/github-actions))
-- Upgraded quarkus to 3.6.1 and add tenant to http request metrics [\#2866](https://github.com/stargate/stargate/pull/2866) ([maheshrajamani](https://github.com/maheshrajamani))
-- Bumping version for next v2.1 release [\#2864](https://github.com/stargate/stargate/pull/2864) ([github-actions[bot]](https://github.com/apps/github-actions))
-- IT CQL port bound to container ip address [\#2836](https://github.com/stargate/stargate/pull/2836) ([maheshrajamani](https://github.com/maheshrajamani))
 
 ## [v2.0.23](https://github.com/stargate/stargate/tree/v2.0.23) (2024-01-05)
 
