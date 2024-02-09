@@ -541,7 +541,7 @@ jobs:
 
       - name: Rev Version
         if: success()
-        uses: peter-evans/create-pull-request@v5
+        uses: peter-evans/create-pull-request@v6
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "Bumping version for next v2.1 release"
