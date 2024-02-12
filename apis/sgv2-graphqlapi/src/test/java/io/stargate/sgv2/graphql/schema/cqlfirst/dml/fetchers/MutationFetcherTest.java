@@ -1,7 +1,6 @@
 package io.stargate.sgv2.graphql.schema.cqlfirst.dml.fetchers;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.Assert.assertFalse;
 
 import com.google.common.collect.ImmutableList;
 import graphql.ExecutionResult;
@@ -201,8 +200,8 @@ public class MutationFetcherTest extends DmlTestBase {
 
     // Batch timestamp and nowInSeconds parameters should be unset to avoid using them in
     // BatchHandler's `makeParameters`
-    assertFalse(batch.getParameters().hasTimestamp());
-    assertFalse(batch.getParameters().hasNowInSeconds());
+    assertThat(batch.getParameters().hasTimestamp()).isFalse();
+    assertThat(batch.getParameters().hasNowInSeconds()).isFalse();
   }
 
   static Stream<String> provideTTLOptions() {
