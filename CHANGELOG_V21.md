@@ -1,5 +1,14 @@
 # Changelog
 
+## [v2.1.0-BETA-9](https://github.com/stargate/stargate/tree/v2.1.0-BETA-9) (2024-02-12)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-8...v2.1.0-BETA-9)
+
+**Merged pull requests:**
+
+- Update dependencies to be compatible with DSE-6.8.41 \(SG/v2\) [\#2890](https://github.com/stargate/stargate/pull/2890) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Merge \#2868 changes \(DSE-6.8.41\) to `v2` \(main\) [\#2883](https://github.com/stargate/stargate/pull/2883) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v2.1.0-BETA-8](https://github.com/stargate/stargate/tree/v2.1.0-BETA-8) (2024-01-05)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-7...v2.1.0-BETA-8)
