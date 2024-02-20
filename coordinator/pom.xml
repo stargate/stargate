@@ -45,13 +45,14 @@
     <!-- Compiler -->
     <maven.compiler.source>11</maven.compiler.source>
     <maven.compiler.target>11</maven.compiler.target>
+    <maven.compiler.release>11</maven.compiler.release>
     <!-- Encoding -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <!-- OSGi -->
     <osgi.bundle.version>${project.version}</osgi.bundle.version>
-    <!-- JDK 11 settings -->
-    <jdk11.module-exports>--add-exports java.base/jdk.internal.ref=ALL-UNNAMED --add-exports java.base/jdk.internal.misc=ALL-UNNAMED</jdk11.module-exports>
+    <!-- JDK 9+ JPMS settings -->
+    <jdk11.module-exports>-Djdk.reflect.useDirectMethodHandle=false --add-opens java.base/java.io=ALL-UNNAMED --add-opens java.base/java.lang=ALL-UNNAMED --add-opens java.base/java.lang.reflect=ALL-UNNAMED --add-opens java.base/java.net=ALL-UNNAMED --add-opens java.base/java.nio=ALL-UNNAMED --add-opens java.base/java.nio.file.spi=ALL-UNNAMED --add-opens java.base/java.util=ALL-UNNAMED --add-opens java.base/java.util.concurrent=ALL-UNNAMED --add-opens java.base/java.util.concurrent.atomic=ALL-UNNAMED --add-opens java.base/jdk.internal.ref=ALL-UNNAMED --add-opens java.base/jdk.internal.misc=ALL-UNNAMED --add-opens java.base/sun.nio.ch=ALL-UNNAMED --add-opens java.rmi/sun.rmi.registry=ALL-UNNAMED</jdk11.module-exports>
     <!-- Release -->
     <project.scm.id>github</project.scm.id>
     <doclint>none</doclint>
@@ -95,6 +96,9 @@
     <netty-boringssl.version>2.0.51.Final</netty-boringssl.version>
     <jacoco.version>0.8.10</jacoco.version>
     <junit.version>5.8.2</junit.version>
+    <!-- 22-Sep-20232, tatu: Looks like later (5.x) versions are stricter
+       about some mocking, so need to stay within 4.x series for now
+      -->
     <mockito.version>4.11.0</mockito.version>
     <assertj.version>3.24.2</assertj.version>
     <awaitility.version>4.2.0</awaitility.version>
@@ -487,8 +491,8 @@
             <configuration>
               <rules>
                 <requireJavaVersion>
-                  <version>[11,12)</version>
-                  <message>Project requires JDK 11</message>
+                  <version>[11,21)</version>
+                  <message>Project requires JDK 11 or higher</message>
                 </requireJavaVersion>
                 <requireUpperBoundDeps>
                   <!-- If specifying includes ONLY those are checked
