@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  This only controls logging from the test code.
+  For the Stargate code, use stargate-lib/logback.xml.
+-->
+<configuration>
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%-5level [%thread] %date{ISO8601} %F:%L - %msg%n</pattern>
+    </encoder>
+  </appender>
+  <root level="${stargate.logging.level.root:-INFO}">
+    <appender-ref ref="STDOUT"/>
+  </root>
+  <logger name="org.apache.cassandra" level="${stargate.logging.level.cassandra:-INFO}"/>
+  <logger name="com.datastax.bdp.db" level="${stargate.logging.level.dse:-INFO}"/>
+</configuration>

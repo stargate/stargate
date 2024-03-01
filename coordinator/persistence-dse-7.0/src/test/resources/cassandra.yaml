@@ -1,0 +1,21 @@
+# Cassandra configuration for tests
+
+cluster_name: 'Test Cluster'
+
+endpoint_snitch: org.apache.cassandra.locator.SimpleSnitch
+partitioner: org.apache.cassandra.dht.Murmur3Partitioner
+commitlog_sync: batch
+data_file_directories:
+  - target/test/cassandra/data
+commitlog_directory: target/test/cassandra/commitlog
+metadata_directory: target/test/cassandra/metadata
+cdc_raw_directory: target/test/cassandra/cdc_raw
+hints_directory: target/test/cassandra/hints
+saved_caches_directory: target/test/cassandra/caches
+
+seed_provider:
+  - class_name: org.apache.cassandra.locator.SimpleSeedProvider
+    parameters:
+      - seeds: "127.0.0.1"
+
+row_cache_size_in_mb: 1024

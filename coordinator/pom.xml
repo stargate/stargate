@@ -260,6 +260,7 @@
         <module>persistence-cassandra-4.0</module>
         <module>persistence-cassandra-4.1</module>
         <module>persistence-dse-6.8</module>
+        <module>persistence-dse-7.0</module>
         <module>bridge</module>
         <module>cql</module>
         <module>auth-api</module>
@@ -294,6 +295,7 @@
         <module>persistence-cassandra-4.1</module>
         <module>persistence-dse-next</module>
         <module>persistence-dse-6.8</module>
+        <module>persistence-dse-7.0</module>
         <module>bridge</module>
         <module>cql</module>
         <module>auth-api</module>
