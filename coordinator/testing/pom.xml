@@ -445,6 +445,40 @@
       </build>
     </profile>
     <profile>
+      <id>it-dse-7.0</id>
+      <activation>
+        <activeByDefault>false</activeByDefault>
+      </activation>
+      <build>
+        <plugins>
+          <plugin>
+            <artifactId>maven-failsafe-plugin</artifactId>
+            <executions>
+              <execution>
+                <id>dse-7.0</id>
+                <goals>
+                  <goal>integration-test</goal>
+                  <goal>verify</goal>
+                </goals>
+                <configuration>
+                  <systemPropertyVariables>
+                    <ccm.dse>true</ccm.dse>
+                    <ccm.version>7.0.0-ALPHA-3</ccm.version>
+                    <stargate.test.persistence.module>persistence-dse-7.0</stargate.test.persistence.module>
+                    <stargate.test.nodes>1</stargate.test.nodes>
+                    <stargate.test.backend.vsearch>false</stargate.test.backend.vsearch>
+                  </systemPropertyVariables>
+                  <failIfNoTests>true</failIfNoTests>
+                  <reportsDirectory>target/failsafe-reports/dse-7.0</reportsDirectory>
+                  <summaryFile>target/failsafe-reports/summary-dse-7.0.xml</summaryFile>
+                </configuration>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
       <id>it-dse-next</id>
       <activation>
         <activeByDefault>true</activeByDefault>
