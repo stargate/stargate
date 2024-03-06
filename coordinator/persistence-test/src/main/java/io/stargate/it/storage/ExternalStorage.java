@@ -460,11 +460,11 @@ public class ExternalStorage extends ExternalResource<ClusterSpec, ExternalStora
       logDir = new File(nodeDir, "logs");
       binDir = new File(nodeDir, "bin");
       File startScript;
+      readMessage = "Starting listening for CQL clients";
+
       if (cluster.isDse()) {
-        readMessage = "DSE startup complete";
         startScript = new File(binDir, "dse");
       } else {
-        readMessage = "Starting listening for CQL clients";
         startScript = new File(binDir, "cassandra");
       }
 
