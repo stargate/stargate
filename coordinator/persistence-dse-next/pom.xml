@@ -18,21 +18,13 @@
     <!-- Latest as of 2023-12-05: 4.0.11-b259738f492f -->
     <!-- Latest as of 2024-01-24: 4.0.11-0248d170a615 -->
     <cassandra.version>4.0.11-0248d170a615</cassandra.version>
+    <dse.version>7.0.0-alpha.4</dse.version>
     <!--
       The driver used internally by cassandra-all for UDFs (must match the version declared in
       cassandra-all's POM).
     -->
     <cassandra.bundled-driver.version>3.11.3</cassandra.bundled-driver.version>
-    <!--
-      Path to where you have downloaded and compiled datastax/cassandra
-    -->
-    <ccm.directory>${project.basedir}/../../dse-next/cassandra</ccm.directory>
-    <!--
-      This actually doesn't affect behavior if ccm.directory is set, but is helpful so that
-      log messages aren't misleading. (Otherwise defaults to value set in
-      io.stargate.it.storage.ExternalStorage)
-    -->
-    <ccm.version>dse-next</ccm.version>
+    <ccm.version>${dse.version}</ccm.version>
   </properties>
   <repositories>
     <repository>
@@ -186,7 +178,7 @@
           <forkCount>1</forkCount>
           <systemPropertyVariables>
             <ccm.version>${ccm.version}</ccm.version>
-            <ccm.directory>${ccm.directory}</ccm.directory>
+            <ccm.dse>true</ccm.dse>
           </systemPropertyVariables>
         </configuration>
       </plugin>
