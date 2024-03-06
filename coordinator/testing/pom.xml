@@ -462,10 +462,8 @@
                 </goals>
                 <configuration>
                   <systemPropertyVariables>
-                    <!-- The ccm.version is just for display purposes,
-                     the ccm.directory determines the actual distribution used -->
-                    <ccm.version>4.0.7</ccm.version>
-                    <ccm.directory>${project.basedir}/../../dse-next/cassandra</ccm.directory>
+                    <ccm.version>7.0.0-alpha.4</ccm.version>
+                    <ccm.dse>true</ccm.dse>
                     <stargate.test.persistence.module>persistence-dse-next</stargate.test.persistence.module>
                     <stargate.test.nodes>1</stargate.test.nodes>
                     <stargate.test.backend.vsearch>true</stargate.test.backend.vsearch>
