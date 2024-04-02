@@ -1,5 +1,60 @@
 # Changelog
 
+## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-10...HEAD)
+
+**Closed issues:**
+
+- Support DSE 7 persistence [\#2861](https://github.com/stargate/stargate/issues/2861)
+
+## [v2.1.0-BETA-10](https://github.com/stargate/stargate/tree/v2.1.0-BETA-10) (2024-03-22)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.25...v2.1.0-BETA-10)
+
+**Merged pull requests:**
+
+- Merge main \(v2\) to v2.1; nimbus-jose-jwt upgrade [\#2907](https://github.com/stargate/stargate/pull/2907) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Manual merge from 'main' to 'v2.1', mostly to get DSE-6.8.43 upgrade [\#2906](https://github.com/stargate/stargate/pull/2906) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Merging branch main into v2.1 [\#2897](https://github.com/stargate/stargate/pull/2897) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Bumping version for next v2.1 release [\#2894](https://github.com/stargate/stargate/pull/2894) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.0.25](https://github.com/stargate/stargate/tree/v2.0.25) (2024-03-22)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-9...v2.0.25)
+
+**Fixed bugs:**
+
+- Number of rows returned from HTTP-based APIs is less than page size \(there are a sufficient number of rows at the current position\) [\#1544](https://github.com/stargate/stargate/issues/1544)
+- Creating a new document collection in parallel fails [\#1045](https://github.com/stargate/stargate/issues/1045)
+
+**Closed issues:**
+
+- Update to DSE 6.8.43 [\#2903](https://github.com/stargate/stargate/issues/2903)
+- Clarity around Stargate v1 and EOL [\#2898](https://github.com/stargate/stargate/issues/2898)
+- Update to DSE 6.8.42 [\#2888](https://github.com/stargate/stargate/issues/2888)
+- Remove dependency check GH workflow [\#2532](https://github.com/stargate/stargate/issues/2532)
+- Support Cassandra 4.1 as a persistence backend [\#2311](https://github.com/stargate/stargate/issues/2311)
+- CI build issue for external contributors: inability to access `dse-core`, failing build [\#2129](https://github.com/stargate/stargate/issues/2129)
+- Add and enforce configurable limit for REST API `page-size` [\#2042](https://github.com/stargate/stargate/issues/2042)
+- Revisit `ClientMetrics` in CQL module [\#2016](https://github.com/stargate/stargate/issues/2016)
+- Add tests for REST API to verify correct handling of `OverloadedException` [\#1978](https://github.com/stargate/stargate/issues/1978)
+- Named values are not supported by batches \(gRPC\) [\#1901](https://github.com/stargate/stargate/issues/1901)
+- Add bridge interceptor that adds gRPC request details to the tracing span [\#1845](https://github.com/stargate/stargate/issues/1845)
+- Simplify proto handling in REST API sgv2 by using new `TypeSpecs` helper [\#1795](https://github.com/stargate/stargate/issues/1795)
+- Add Docs as source API in V2 [\#1786](https://github.com/stargate/stargate/issues/1786)
+- Support extra HTTP metrics features in V2 [\#1782](https://github.com/stargate/stargate/issues/1782)
+- Support GraphQL queries without primary key\(s\) [\#1525](https://github.com/stargate/stargate/issues/1525)
+- GraphQL: add a metric for errors [\#1114](https://github.com/stargate/stargate/issues/1114)
+- Include schema agreement into readiness probe [\#1051](https://github.com/stargate/stargate/issues/1051)
+
+**Merged pull requests:**
+
+- Fix \#2903: upgrade to DSE-6.8.43 [\#2905](https://github.com/stargate/stargate/pull/2905) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump com.nimbusds:nimbus-jose-jwt from 9.21 to 9.37.3 in /coordinator [\#2904](https://github.com/stargate/stargate/pull/2904) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump softprops/action-gh-release from 1 to 2 [\#2902](https://github.com/stargate/stargate/pull/2902) ([dependabot[bot]](https://github.com/apps/dependabot))
+- update org.testcontainers version [\#2896](https://github.com/stargate/stargate/pull/2896) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
+
 ## [v2.1.0-BETA-9](https://github.com/stargate/stargate/tree/v2.1.0-BETA-9) (2024-02-12)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-8...v2.1.0-BETA-9)
