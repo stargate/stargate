@@ -237,6 +237,39 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
     assertThat(fieldNames).isEqualTo(Arrays.asList("age", "firstname"));
   }
 
+  // Externally reported issued
+  @Test
+  public void udtUpdateAddTwoFields() {
+    final String typeName = "udt_add_two_fields";
+    // create UDT to update
+    String createUDT =
+        "{\"name\": \""
+            + typeName
+            + "\", \"fields\":["
+            + "{\"name\":\"phone_number\",\"typeDefinition\":\"text\"},"
+            + "{\"name\":\"email\",\"typeDefinition\":\"text\"}"
+            + "]}";
+    tryCreateUDT(testKeyspaceName(), createUDT, HttpStatus.SC_CREATED);
+
+    String updateUDT =
+        "{\"name\": \""
+            + typeName
+            + "\", \"addFields\":["
+            + "{\"name\":\"country_code\",\"typeDefinition\":\"text\"},"
+            + "{\"name\":\"cou\",\"typeDefinition\":\"text\"}"
+            + "]}";
+    String response = tryUpdateUDT(testKeyspaceName(), updateUDT, HttpStatus.SC_OK);
+
+    // Verify changes
+    Sgv2UDT udt = findOneUDT(testKeyspaceName(), typeName, true);
+    assertThat(udt.name()).isEqualTo(typeName);
+    List<Sgv2UDT.UDTField> fields = udt.fields();
+    assertThat(fields).hasSize(4);
+
+    List<String> fieldNames = fields.stream().map(f -> f.name()).toList();
+    assertThat(fieldNames).isEqualTo(Arrays.asList("phone_number", "email", "country_code", "cou"));
+  }
+
   @Test
   public void udtUpdateInvalid() {
     final String typeName = "udt_update_invalid";
