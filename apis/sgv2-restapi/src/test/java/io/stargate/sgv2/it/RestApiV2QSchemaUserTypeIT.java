@@ -237,7 +237,7 @@ public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
     assertThat(fieldNames).isEqualTo(Arrays.asList("age", "firstname"));
   }
 
-  // Externally reported issued
+  // Reproduction of Externally reported issue
   @Test
   public void udtUpdateAddTwoFields() {
     final String typeName = "udt_add_two_fields";
