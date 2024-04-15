@@ -161,15 +161,16 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
           Response.Status.BAD_REQUEST);
     }
 
-    final QueryOuterClass.Query addQuery =
-        hasAddFields
-            ? new QueryBuilder()
-                .alter()
-                .type(keyspaceName, typeName)
-                .addColumn(columns2columns(addFields))
-                .build()
-            : null;
-
+    List<QueryOuterClass.Query> queries = new ArrayList<>();
+    if (hasAddFields) {
+      // 15-Apr-2024, tatu: Attempts to add multiple columns fail with CQL Syntax error
+      //   even though some docs suggests it should work. So split these up to multiple
+      //   queries
+      for (Column column : columns2columns(addFields)) {
+        queries.add(
+            new QueryBuilder().alter().type(keyspaceName, typeName).addColumn(column).build());
+      }
+    }
     if (hasRenameFields) {
       final Map<String, String> columnRenames =
           renameFields.stream()
@@ -183,16 +184,20 @@ public class Sgv2UDTsResourceImpl extends RestResourceBase implements Sgv2UDTsRe
               .type(keyspaceName, typeName)
               .renameColumn(columnRenames)
               .build();
-      if (addQuery != null) {
-        return executeQueryAsync(addQuery)
-            .chain(any -> executeQueryAsync(renameQuery))
-            .map(any -> RestResponse.ok());
-      }
-      return executeQueryAsync(renameQuery).map(any -> RestResponse.ok());
+      queries.add(renameQuery);
     }
 
-    // Must still have add-columns
-    return executeQueryAsync(addQuery).map(any -> RestResponse.ok());
+    // Minor optimization: single operation case
+    if (queries.size() == 1) {
+      return executeQueryAsync(queries.get(0)).map(any -> RestResponse.ok());
+    }
+
+    Uni<QueryOuterClass.Response> chain = executeQueryAsync(queries.get(0));
+    for (int i = 1; i < queries.size(); i++) {
+      final QueryOuterClass.Query q = queries.get(i);
+      chain = chain.chain(any -> executeQueryAsync(q));
+    }
+    return chain.map(any -> RestResponse.ok());
   }
 
   @Override
