@@ -1,6 +1,8 @@
-## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
+# Changelog
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.25...HEAD)
+## [v2.0.26](https://github.com/stargate/stargate/tree/v2.0.26) (2024-04-16)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.25...v2.0.26)
 
 **Closed issues:**
 
@@ -8,7 +10,7 @@
 
 ## [v2.0.25](https://github.com/stargate/stargate/tree/v2.0.25) (2024-03-22)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-9...v2.0.25)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.24...v2.0.25)
 
 **Fixed bugs:**
 
@@ -41,18 +43,6 @@
 - Bump com.nimbusds:nimbus-jose-jwt from 9.21 to 9.37.3 in /coordinator [\#2904](https://github.com/stargate/stargate/pull/2904) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Bump softprops/action-gh-release from 1 to 2 [\#2902](https://github.com/stargate/stargate/pull/2902) ([dependabot[bot]](https://github.com/apps/dependabot))
 - update org.testcontainers version [\#2896](https://github.com/stargate/stargate/pull/2896) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
-
-## [v2.1.0-BETA-9](https://github.com/stargate/stargate/tree/v2.1.0-BETA-9) (2024-02-12)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.24...v2.1.0-BETA-9)
-
-**Merged pull requests:**
-
-- Bumping version to 2.0.25-SNAPSHOT [\#2892](https://github.com/stargate/stargate/pull/2892) ([github-actions[bot]](https://github.com/apps/github-actions))
-- Merge v2 changes to v2.1 \(esp. DSE 6.8.41 upgrade\) [\#2886](https://github.com/stargate/stargate/pull/2886) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bump peter-evans/create-pull-request from 5 to 6 [\#2884](https://github.com/stargate/stargate/pull/2884) ([dependabot[bot]](https://github.com/apps/dependabot))
-- Fix \#2876: build one more dse-next image \(`4.0.11-0248d170a615`\) [\#2877](https://github.com/stargate/stargate/pull/2877) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version for next v2.1 release [\#2870](https://github.com/stargate/stargate/pull/2870) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v2.0.24](https://github.com/stargate/stargate/tree/v2.0.24) (2024-02-08)
 
