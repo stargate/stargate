@@ -1,5 +1,3 @@
-# Changelog
-
 ## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.25...HEAD)
