@@ -30,7 +30,9 @@ import java.util.stream.Collectors;
 /** Configuration of all {@link MeterFilter}s used. */
 public class MicrometerConfiguration {
 
-  /** @return Produces meter filter that takes care of the global tags */
+  /**
+   * @return Produces meter filter that takes care of the global tags
+   */
   @Produces
   @Singleton
   public MeterFilter globalTagsMeterFilter(MetricsConfig config) {

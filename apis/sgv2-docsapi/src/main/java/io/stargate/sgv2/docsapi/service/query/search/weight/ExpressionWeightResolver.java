@@ -63,7 +63,9 @@ public interface ExpressionWeightResolver<T extends FilterExpression> {
     return result;
   }
 
-  /** @return Returns expression that should be executed first from two. */
+  /**
+   * @return Returns expression that should be executed first from two.
+   */
   default BiFunction<T, T, T> single() {
     return (e1, e2) -> {
       int compare = compare(e1, e2);
@@ -71,7 +73,9 @@ public interface ExpressionWeightResolver<T extends FilterExpression> {
     };
   }
 
-  /** @return Returns collection of expression that should be executed first from two. */
+  /**
+   * @return Returns collection of expression that should be executed first from two.
+   */
   default BiFunction<Collection<T>, Collection<T>, Collection<T>> collection() {
     return (c1, c2) -> {
       int compare = compare(c1, c2);

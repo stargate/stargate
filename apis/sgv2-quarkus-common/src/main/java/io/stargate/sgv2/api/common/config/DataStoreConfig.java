@@ -29,7 +29,9 @@ import io.stargate.sgv2.api.common.properties.datastore.DataStoreProperties;
 @ConfigMapping(prefix = "stargate.data-store")
 public interface DataStoreConfig {
 
-  /** @return If the data store config should not be read from the bridge. */
+  /**
+   * @return If the data store config should not be read from the bridge.
+   */
   @WithDefault("${stargate.multi-tenancy.enabled}")
   boolean ignoreBridge();
 
@@ -40,15 +42,21 @@ public interface DataStoreConfig {
   @WithDefault("false")
   boolean bridgeFallbackEnabled();
 
-  /** @return If the secondary indexes are enabled, defaults to <code>true</code>. */
+  /**
+   * @return If the secondary indexes are enabled, defaults to <code>true</code>.
+   */
   @WithDefault("true")
   boolean secondaryIndexesEnabled();
 
-  /** @return If storage attached indexes are enabled, defaults to <code>false</code>. */
+  /**
+   * @return If storage attached indexes are enabled, defaults to <code>false</code>.
+   */
   @WithDefault("false")
   boolean saiEnabled();
 
-  /** @return If logged batches are enabled, defaults to <code>true</code>. */
+  /**
+   * @return If logged batches are enabled, defaults to <code>true</code>.
+   */
   @WithDefault("true")
   boolean loggedBatchesEnabled();
 }

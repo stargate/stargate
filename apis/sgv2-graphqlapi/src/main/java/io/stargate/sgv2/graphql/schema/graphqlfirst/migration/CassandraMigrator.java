@@ -54,7 +54,9 @@ public class CassandraMigrator {
     this.isPersisted = isPersisted;
   }
 
-  /** @throws GraphqlErrorException if the CQL data model can't be migrated */
+  /**
+   * @throws GraphqlErrorException if the CQL data model can't be migrated
+   */
   public List<MigrationQuery> compute(MappingModel mappingModel, CqlKeyspaceDescribe keyspace) {
     List<MigrationQuery> queries = new ArrayList<>();
     List<String> errors = new ArrayList<>();

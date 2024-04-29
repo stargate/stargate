@@ -29,19 +29,27 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface RawDocument {
 
-  /** @return The id of the document. */
+  /**
+   * @return The id of the document.
+   */
   @Value.Parameter
   String id();
 
-  /** @return The keys being considered when creating a document. */
+  /**
+   * @return The keys being considered when creating a document.
+   */
   @Value.Parameter
   List<String> documentKeys();
 
-  /** @return The page state supplier to use. */
+  /**
+   * @return The page state supplier to use.
+   */
   @Value.Parameter
   PagingStateSupplier pagingState();
 
-  /** @return List of rows belonging to this document. */
+  /**
+   * @return List of rows belonging to this document.
+   */
   @Value.Parameter
   List<RowWrapper> rows();
 
@@ -90,12 +98,16 @@ public interface RawDocument {
     return ImmutableRawDocument.of(id(), documentKeys(), pagingState(), newRows);
   }
 
-  /** @return If the document has paging state. */
+  /**
+   * @return If the document has paging state.
+   */
   default boolean hasPagingState() {
     return makePagingState() != null;
   }
 
-  /** @return The paging state of the document. */
+  /**
+   * @return The paging state of the document.
+   */
   default ByteBuffer makePagingState() {
     return pagingState().makePagingState();
   }

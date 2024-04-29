@@ -27,7 +27,9 @@ import org.immutables.value.Value;
 @Value.Immutable(singleton = true)
 public abstract class LteFilterOperation extends NotNullValueFilterOperation {
 
-  /** @return Singleton instance */
+  /**
+   * @return Singleton instance
+   */
   public static LteFilterOperation of() {
     return ImmutableLteFilterOperation.of();
   }

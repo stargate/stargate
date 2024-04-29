@@ -319,7 +319,9 @@ public class StargateTestResource
     return "true".equals(dse);
   }
 
-  /** @return Time to wait for the Cassandra container to start up before failing */
+  /**
+   * @return Time to wait for the Cassandra container to start up before failing
+   */
   private Duration getCassandraStartupTimeout() {
     long cassandraStartupTimeout =
         Long.getLong(
@@ -327,7 +329,9 @@ public class StargateTestResource
     return Duration.ofMinutes(cassandraStartupTimeout);
   }
 
-  /** @return Time to wait for the Coordinator container to start up before failing */
+  /**
+   * @return Time to wait for the Coordinator container to start up before failing
+   */
   private Duration getCoordinatorStartupTimeout() {
     // 13-Sep-2022, tatu: Earlier baseline of 2 minutes was somehow slightly too low for
     //    REST API on local system (Macbook): 3 minutes appears to work much more reliably

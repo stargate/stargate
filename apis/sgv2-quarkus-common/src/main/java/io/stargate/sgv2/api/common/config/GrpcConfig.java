@@ -33,18 +33,24 @@ import java.util.Set;
 @ConfigMapping(prefix = "stargate.grpc")
 public interface GrpcConfig {
 
-  /** @return Optional deadline duration for the each RPC to the bridge. Defaults to 30 seconds. */
+  /**
+   * @return Optional deadline duration for the each RPC to the bridge. Defaults to 30 seconds.
+   */
   @WithDefault("PT30S")
   Optional<Duration> callDeadline();
 
-  /** @return Defines retry strategy for bridge calls when using {@link RetriableStargateBridge}. */
+  /**
+   * @return Defines retry strategy for bridge calls when using {@link RetriableStargateBridge}.
+   */
   @Valid
   @NotNull
   Retries retries();
 
   interface Retries {
 
-    /** @return If call retries are enabled. */
+    /**
+     * @return If call retries are enabled.
+     */
     @WithDefault("true")
     boolean enabled();
 
@@ -76,7 +82,9 @@ public interface GrpcConfig {
     @NotNull
     Set<Status.Code> statusCodes();
 
-    /** @return Maximum amount of retry attempts. */
+    /**
+     * @return Maximum amount of retry attempts.
+     */
     @WithDefault("1")
     @Positive
     int maxAttempts();

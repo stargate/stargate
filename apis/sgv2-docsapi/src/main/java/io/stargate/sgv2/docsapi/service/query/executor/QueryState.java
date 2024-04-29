@@ -28,7 +28,9 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface QueryState {
 
-  /** @return Current page size to be used with the query. */
+  /**
+   * @return Current page size to be used with the query.
+   */
   @Value.Parameter
   int pageSize();
 

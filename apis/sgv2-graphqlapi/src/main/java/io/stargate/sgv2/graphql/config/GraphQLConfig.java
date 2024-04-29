@@ -21,14 +21,18 @@ public interface GraphQLConfig {
   @WithDefault("true")
   boolean enableDefaultKeyspace();
 
-  /** @return Configuration for the GraphQL Playground. */
+  /**
+   * @return Configuration for the GraphQL Playground.
+   */
   @NotNull
   @Valid
   PlaygroundConfig playground();
 
   interface PlaygroundConfig {
 
-    /** @return Whether to expose the GraphQL Playground at /playground. */
+    /**
+     * @return Whether to expose the GraphQL Playground at /playground.
+     */
     @WithDefault("true")
     boolean enabled();
 

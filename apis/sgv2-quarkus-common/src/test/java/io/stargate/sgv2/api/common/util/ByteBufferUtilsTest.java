@@ -23,7 +23,9 @@ import java.nio.ByteBuffer;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-/** @author Dmitri Bourlatchkov */
+/**
+ * @author Dmitri Bourlatchkov
+ */
 class ByteBufferUtilsTest {
 
   @Nested

@@ -20,22 +20,34 @@ package io.stargate.sgv2.docsapi.api.properties.document;
 /** General document-related properties. */
 public interface DocumentProperties {
 
-  /** @return Defines the maximum depth of the JSON document. */
+  /**
+   * @return Defines the maximum depth of the JSON document.
+   */
   int maxDepth();
 
-  /** @return Defines the maximum array length in a JSON field. */
+  /**
+   * @return Defines the maximum array length in a JSON field.
+   */
   int maxArrayLength();
 
-  /** @return Defines the maximum document page size. */
+  /**
+   * @return Defines the maximum document page size.
+   */
   int maxPageSize();
 
-  /** @return Defines the Cassandra search page size when fetching documents. */
+  /**
+   * @return Defines the Cassandra search page size when fetching documents.
+   */
   int maxSearchPageSize();
 
-  /** @return Properties for a table where documents are stored. */
+  /**
+   * @return Properties for a table where documents are stored.
+   */
   DocumentTableProperties tableProperties();
 
-  /** @return The helper for resolving column names in a document table. */
+  /**
+   * @return The helper for resolving column names in a document table.
+   */
   DocumentTableColumns tableColumns();
 
   /**

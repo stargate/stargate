@@ -43,6 +43,7 @@ public record Sgv2TableAddRequest(
     this.ifNotExists = ifNotExists;
     this.tableOptions = (tableOptions == null) ? new Sgv2Table.TableOptions() : tableOptions;
   }
+
   //  Sgv2Table.TableOptions tableOptions = new Sgv2Table.TableOptions();
 
   // // // Convenience access

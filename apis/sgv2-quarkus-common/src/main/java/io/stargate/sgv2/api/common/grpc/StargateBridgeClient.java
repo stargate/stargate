@@ -60,12 +60,16 @@ public interface StargateBridgeClient {
   CompletionStage<Response> executeQueryAsync(
       String keyspaceName, String tableName, Function<Optional<CqlTable>, Query> queryProducer);
 
-  /** @see #executeQueryAsync(Query) */
+  /**
+   * @see #executeQueryAsync(Query)
+   */
   default Response executeQuery(Query query) {
     return Futures.getUninterruptibly(executeQueryAsync(query));
   }
 
-  /** @see #executeQueryAsync(String, String, Function) */
+  /**
+   * @see #executeQueryAsync(String, String, Function)
+   */
   default Response executeQuery(
       String keyspaceName, String tableName, Function<Optional<CqlTable>, Query> queryProducer) {
     return Futures.getUninterruptibly(executeQueryAsync(keyspaceName, tableName, queryProducer));
@@ -78,7 +82,9 @@ public interface StargateBridgeClient {
    */
   CompletionStage<Response> executeBatchAsync(Batch batch);
 
-  /** @see #executeBatchAsync(Batch) */
+  /**
+   * @see #executeBatchAsync(Batch)
+   */
   default Response executeBatch(Batch batch) {
     return Futures.getUninterruptibly(executeBatchAsync(batch));
   }
@@ -101,7 +107,9 @@ public interface StargateBridgeClient {
   CompletionStage<Optional<CqlKeyspaceDescribe>> getKeyspaceAsync(
       String keyspaceName, boolean checkIfAuthorized);
 
-  /** @see #getKeyspaceAsync(String, boolean) */
+  /**
+   * @see #getKeyspaceAsync(String, boolean)
+   */
   default Optional<CqlKeyspaceDescribe> getKeyspace(String keyspaceName, boolean checkIfAuthorized)
       throws UnauthorizedKeyspaceException {
     return Futures.getUninterruptibly(getKeyspaceAsync(keyspaceName, checkIfAuthorized));
@@ -116,7 +124,9 @@ public interface StargateBridgeClient {
    */
   CompletionStage<List<CqlKeyspaceDescribe>> getAllKeyspacesAsync();
 
-  /** @see #getAllKeyspacesAsync() */
+  /**
+   * @see #getAllKeyspacesAsync()
+   */
   default List<CqlKeyspaceDescribe> getAllKeyspaces() {
     return Futures.getUninterruptibly(getAllKeyspacesAsync());
   }
@@ -138,7 +148,9 @@ public interface StargateBridgeClient {
   CompletionStage<Optional<CqlTable>> getTableAsync(
       String keyspaceName, String tableName, boolean checkIfAuthorized);
 
-  /** @see #getTableAsync(String, String, boolean) */
+  /**
+   * @see #getTableAsync(String, String, boolean)
+   */
   default Optional<CqlTable> getTable(
       String keyspaceName, String tableName, boolean checkIfAuthorized)
       throws UnauthorizedTableException {
@@ -153,7 +165,9 @@ public interface StargateBridgeClient {
    */
   CompletionStage<List<CqlTable>> getTablesAsync(String keyspaceName);
 
-  /** @see #getTableAsync(String, String, boolean) */
+  /**
+   * @see #getTableAsync(String, String, boolean)
+   */
   default List<CqlTable> getTables(String keyspaceName) {
     return Futures.getUninterruptibly(getTablesAsync(keyspaceName));
   }
@@ -195,7 +209,9 @@ public interface StargateBridgeClient {
   /** Checks which features are supported by the persistence backend. */
   CompletionStage<SupportedFeaturesResponse> getSupportedFeaturesAsync();
 
-  /** @see #getSupportedFeaturesAsync() */
+  /**
+   * @see #getSupportedFeaturesAsync()
+   */
   default SupportedFeaturesResponse getSupportedFeatures() {
     return Futures.getUninterruptibly(getSupportedFeaturesAsync());
   }

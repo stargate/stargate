@@ -28,31 +28,45 @@ import java.util.Set;
 @ConfigMapping(prefix = "stargate.api.logging")
 public interface LoggingConfig {
 
-  /** @return If request info logging is enabled. */
+  /**
+   * @return If request info logging is enabled.
+   */
   @WithDefault(REQUEST_INFO_LOGGING_ENABLED)
   boolean enabled();
 
-  /** @return Set of tenants for which the request info should be logged. */
+  /**
+   * @return Set of tenants for which the request info should be logged.
+   */
   @WithDefault(ALL_TENANTS)
   Optional<Set<String>> enabledTenants();
 
-  /** @return Set of paths for which the request info should be logged. */
+  /**
+   * @return Set of paths for which the request info should be logged.
+   */
   @WithDefault(ALL_PATHS)
   Optional<Set<String>> enabledPaths();
 
-  /** @return Set of path prefixes for which the request info should be logged. */
+  /**
+   * @return Set of path prefixes for which the request info should be logged.
+   */
   @WithDefault(ALL_PATH_PREFIXES)
   Optional<Set<String>> enabledPathPrefixes();
 
-  /** @return Set of error codes for which the request info should be logged. */
+  /**
+   * @return Set of error codes for which the request info should be logged.
+   */
   @WithDefault(ALL_ERROR_CODES)
   Optional<Set<String>> enabledErrorCodes();
 
-  /** @return Set of methods for which the request info should be logged. */
+  /**
+   * @return Set of methods for which the request info should be logged.
+   */
   @WithDefault(ALL_METHODS)
   Optional<Set<String>> enabledMethods();
 
-  /** @return If request body logging is enabled. */
+  /**
+   * @return If request body logging is enabled.
+   */
   @WithDefault(REQUEST_BODY_LOGGING_ENABLED)
   boolean requestBodyLoggingEnabled();
 }

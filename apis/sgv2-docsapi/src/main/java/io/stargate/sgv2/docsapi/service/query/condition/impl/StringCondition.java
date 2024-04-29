@@ -33,15 +33,21 @@ import org.immutables.value.Value;
 @Value.Immutable
 public abstract class StringCondition implements BaseCondition {
 
-  /** @return Predicate for the condition. */
+  /**
+   * @return Predicate for the condition.
+   */
   @Value.Parameter
   public abstract ValueFilterOperation getFilterOperation();
 
-  /** @return Filter query value. */
+  /**
+   * @return Filter query value.
+   */
   @Value.Parameter
   public abstract String getQueryValue();
 
-  /** @return The reference to DocumentProperties */
+  /**
+   * @return The reference to DocumentProperties
+   */
   @Value.Parameter
   public abstract DocumentProperties documentProperties();
 

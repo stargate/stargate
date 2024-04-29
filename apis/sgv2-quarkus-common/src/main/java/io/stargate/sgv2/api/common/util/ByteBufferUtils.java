@@ -19,7 +19,9 @@ import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Base64;
 
-/** @author Dmitri Bourlatchkov */
+/**
+ * @author Dmitri Bourlatchkov
+ */
 public class ByteBufferUtils {
 
   private ByteBufferUtils() {}
