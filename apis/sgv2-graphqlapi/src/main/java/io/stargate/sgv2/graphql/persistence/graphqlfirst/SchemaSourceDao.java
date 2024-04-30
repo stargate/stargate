@@ -161,7 +161,9 @@ public class SchemaSourceDao {
         .build();
   }
 
-  /** @return the new version */
+  /**
+   * @return the new version
+   */
   public SchemaSource insert(String keyspace, String newContents) {
 
     UUID newVersion = Uuids.timeBased();

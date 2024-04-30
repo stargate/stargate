@@ -34,7 +34,9 @@ public final class IntegrationTestUtils {
     return System.getProperty(AUTH_TOKEN_PROP, defaultIfMissing);
   }
 
-  /** @return the CQL address of the Cassandra backend. */
+  /**
+   * @return the CQL address of the Cassandra backend.
+   */
   public static InetSocketAddress getCassandraCqlAddress() {
     String host =
         Objects.requireNonNull(
@@ -48,22 +50,30 @@ public final class IntegrationTestUtils {
     return new InetSocketAddress(host, port);
   }
 
-  /** @return If Cassandra auth is enabled */
+  /**
+   * @return If Cassandra auth is enabled
+   */
   public static boolean isCassandraAuthEnabled() {
     return Boolean.parseBoolean(System.getProperty(CASSANDRA_AUTH_ENABLED_PROP, "false"));
   }
 
-  /** @return Cassandra username, only meaningful if Cassandra auth is enabled */
+  /**
+   * @return Cassandra username, only meaningful if Cassandra auth is enabled
+   */
   public static String getCassandraUsername() {
     return System.getProperty(CASSANDRA_USERNAME_PROP, "cassandra");
   }
 
-  /** @return Cassandra password, only meaningful if Cassandra auth is enabled */
+  /**
+   * @return Cassandra password, only meaningful if Cassandra auth is enabled
+   */
   public static String getCassandraPassword() {
     return System.getProperty(CASSANDRA_PASSWORD_PROP, "cassandra");
   }
 
-  /** @return Returns the cluster version (3.11, 4.0, 6.8 (== DSE)) specified for the coordinator */
+  /**
+   * @return Returns the cluster version (3.11, 4.0, 6.8 (== DSE)) specified for the coordinator
+   */
   public static String getClusterVersion() {
     return System.getProperty(CLUSTER_VERSION_PROP, "");
   }
@@ -76,12 +86,16 @@ public final class IntegrationTestUtils {
     return "6.8".equals(getClusterVersion());
   }
 
-  /** @return True if the backend cluster is Cassandra 4.0; false otherwise (DSE, C-3.11) */
+  /**
+   * @return True if the backend cluster is Cassandra 4.0; false otherwise (DSE, C-3.11)
+   */
   public static boolean isCassandra40() {
     return "4.0".equals(getClusterVersion());
   }
 
-  /** @return Returns the port where the application to test runs. */
+  /**
+   * @return Returns the port where the application to test runs.
+   */
   public static int getTestPort() {
     try {
       return ConfigProvider.getConfig().getValue("quarkus.http.test-port", Integer.class);

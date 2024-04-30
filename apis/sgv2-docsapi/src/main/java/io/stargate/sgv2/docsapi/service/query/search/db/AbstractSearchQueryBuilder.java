@@ -42,7 +42,9 @@ public abstract class AbstractSearchQueryBuilder {
    */
   protected abstract List<BuiltCondition> getPredicates();
 
-  /** @return Predicates that depends on the binding value. */
+  /**
+   * @return Predicates that depends on the binding value.
+   */
   protected abstract List<BuiltCondition> getBindPredicates();
 
   /**
@@ -52,7 +54,9 @@ public abstract class AbstractSearchQueryBuilder {
    */
   protected abstract List<QueryOuterClass.Value> getValues();
 
-  /** @return Should <code>ALLOW FILTERING</code> be used. */
+  /**
+   * @return Should <code>ALLOW FILTERING</code> be used.
+   */
   protected abstract boolean allowFiltering();
 
   /**

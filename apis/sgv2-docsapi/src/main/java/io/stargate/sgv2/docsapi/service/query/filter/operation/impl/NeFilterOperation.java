@@ -28,7 +28,9 @@ import org.immutables.value.Value;
 @Value.Immutable(singleton = true)
 public abstract class NeFilterOperation implements ComparingValueFilterOperation {
 
-  /** @return Singleton instance */
+  /**
+   * @return Singleton instance
+   */
   public static NeFilterOperation of() {
     return ImmutableNeFilterOperation.of();
   }

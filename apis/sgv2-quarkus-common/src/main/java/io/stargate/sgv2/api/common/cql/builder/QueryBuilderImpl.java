@@ -1432,7 +1432,9 @@ public class QueryBuilderImpl {
     return termFor(v);
   }
 
-  /** @see #bindGrpcValues(Term) */
+  /**
+   * @see #bindGrpcValues(Term)
+   */
   private ValueModifier.Target bindGrpcValues(ValueModifier.Target t) {
     Term mapKey = t.mapKey();
     if (mapKey == null) {
@@ -1445,7 +1447,9 @@ public class QueryBuilderImpl {
     return ValueModifier.Target.mapValue(t.columnName(), termFor(v));
   }
 
-  /** @see #bindGrpcValues(Term) */
+  /**
+   * @see #bindGrpcValues(Term)
+   */
   private BuiltCondition.LHS bindGrpcValues(BuiltCondition.LHS lhs) {
     return lhs.value()
         .filter(v -> v instanceof Literal)
@@ -1458,7 +1462,9 @@ public class QueryBuilderImpl {
         .orElse(lhs);
   }
 
-  /** @see #bindGrpcValues(Term) */
+  /**
+   * @see #bindGrpcValues(Term)
+   */
   private BuiltCondition bindGrpcValues(BuiltCondition where) {
     BuiltCondition.LHS newLhs = bindGrpcValues(where.lhs());
 

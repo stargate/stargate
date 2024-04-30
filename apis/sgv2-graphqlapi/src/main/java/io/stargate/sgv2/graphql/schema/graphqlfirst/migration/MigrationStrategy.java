@@ -17,7 +17,9 @@ package io.stargate.sgv2.graphql.schema.graphqlfirst.migration;
 
 import io.stargate.sgv2.graphql.schema.graphqlfirst.AdminSchemaBuilder;
 
-/** @see AdminSchemaBuilder#MIGRATION_STRATEGY_ENUM */
+/**
+ * @see AdminSchemaBuilder#MIGRATION_STRATEGY_ENUM
+ */
 public enum MigrationStrategy {
   USE_EXISTING,
   ADD_MISSING_TABLES,

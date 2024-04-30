@@ -239,7 +239,8 @@ class JsonSchemaManagerTest extends BridgeTest {
   }
 
   private String testJsonSchema() {
-    return """
+    return
+    """
             {"schema": {
               "$schema": "http://json-schema.org/draft-04/schema#",
               "title": "Product",

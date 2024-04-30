@@ -680,7 +680,9 @@ public abstract class RestApiV2QIntegrationTestBase {
   /////////////////////////////////////////////////////////////////////////
    */
 
-  /** @return Partition key of the first row */
+  /**
+   * @return Partition key of the first row
+   */
   protected Integer setupClusteringTestCase(String keyspaceName, String tableName) {
     List<Sgv2ColumnDefinition> columnDefs =
         Arrays.asList(
