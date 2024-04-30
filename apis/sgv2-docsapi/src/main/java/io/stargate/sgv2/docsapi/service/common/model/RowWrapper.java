@@ -49,19 +49,27 @@ public interface RowWrapper {
     return row -> ImmutableRowWrapper.of(columns, columnIndexMap, row);
   }
 
-  /** @return The list of {@link ColumnSpec} for the row. */
+  /**
+   * @return The list of {@link ColumnSpec} for the row.
+   */
   @org.immutables.value.Value.Parameter
   List<ColumnSpec> columns();
 
-  /** @return The column name to index map. */
+  /**
+   * @return The column name to index map.
+   */
   @org.immutables.value.Value.Parameter
   Map<String, Integer> columnIndexMap();
 
-  /** @return The actual row. */
+  /**
+   * @return The actual row.
+   */
   @org.immutables.value.Value.Parameter
   Row row();
 
-  /** @return If column exists in the row. */
+  /**
+   * @return If column exists in the row.
+   */
   default boolean columnExists(String columnName) {
     return firstIndexOf(columnName) >= 0;
   }
@@ -122,7 +130,9 @@ public interface RowWrapper {
     return row().getValues(i);
   }
 
-  /** @return the index, or <0 if the column does not exist. */
+  /**
+   * @return the index, or <0 if the column does not exist.
+   */
   private int firstIndexOf(String columnName) {
     Integer index = columnIndexMap().get(columnName);
     return index != null ? index : -1;

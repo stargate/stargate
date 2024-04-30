@@ -56,7 +56,7 @@ public abstract class DocsApiIntegrationTest {
         .ifPresent(
             namespace -> {
               String json =
-                  """
+                      """
                   {
                     "name": "%s"
                   }
@@ -77,7 +77,7 @@ public abstract class DocsApiIntegrationTest {
                   .ifPresent(
                       collection -> {
                         String collectionJson =
-                            """
+                                """
                             {
                               "name": "%s"
                             }

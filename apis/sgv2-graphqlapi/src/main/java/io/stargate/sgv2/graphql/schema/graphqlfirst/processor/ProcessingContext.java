@@ -64,7 +64,9 @@ class ProcessingContext {
     return bridge;
   }
 
-  /** @see SchemaProcessor#SchemaProcessor(Persistence, boolean) */
+  /**
+   * @see SchemaProcessor#SchemaProcessor(Persistence, boolean)
+   */
   public boolean isPersisted() {
     return isPersisted;
   }

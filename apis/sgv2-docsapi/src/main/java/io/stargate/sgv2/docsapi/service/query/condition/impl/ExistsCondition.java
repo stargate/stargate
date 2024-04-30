@@ -34,11 +34,15 @@ import org.immutables.value.Value;
 @Value.Immutable
 public abstract class ExistsCondition implements BaseCondition {
 
-  /** @return Filter query value. */
+  /**
+   * @return Filter query value.
+   */
   @Value.Parameter
   public abstract Boolean getQueryValue();
 
-  /** @return The reference to DocumentProperties */
+  /**
+   * @return The reference to DocumentProperties
+   */
   @Value.Parameter
   public abstract DocumentProperties documentProperties();
 

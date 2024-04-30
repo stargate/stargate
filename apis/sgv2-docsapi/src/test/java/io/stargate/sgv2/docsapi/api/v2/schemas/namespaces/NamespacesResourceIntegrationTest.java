@@ -123,11 +123,12 @@ class NamespacesResourceIntegrationTest {
     public void happyPath() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String json =
-          """
+              """
           {
               "name": "%s"
           }
-          """.formatted(namespace);
+          """
+              .formatted(namespace);
 
       // create
       given()
@@ -155,7 +156,7 @@ class NamespacesResourceIntegrationTest {
     public void happyPathWithReplicas() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String json =
-          """
+              """
           {
               "name": "%s",
               "replicas": 3
@@ -194,11 +195,12 @@ class NamespacesResourceIntegrationTest {
     public void happyPath() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String json =
-          """
+              """
           {
               "name": "%s"
           }
-          """.formatted(namespace);
+          """
+              .formatted(namespace);
 
       // create
       given()

@@ -31,7 +31,9 @@ import java.util.Objects;
 
 public class CassandraSchemaHelper {
 
-  /** @return a list of differences, or empty if the tables match. */
+  /**
+   * @return a list of differences, or empty if the tables match.
+   */
   public static List<Difference> compare(CqlTable expectedTable, CqlTable actualTable) {
     String tableName = expectedTable.getName();
 
@@ -223,7 +225,9 @@ public class CassandraSchemaHelper {
     }
   }
 
-  /** @return a list of differences, or empty if the UDTs match. */
+  /**
+   * @return a list of differences, or empty if the UDTs match.
+   */
   public static List<Difference> compare(Udt expectedUdt, Udt actualUdt) {
     String typeName = expectedUdt.getName();
 

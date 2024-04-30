@@ -31,7 +31,9 @@ import org.immutables.value.Value;
 @Value.Immutable(singleton = true)
 public abstract class InFilterOperation implements GenericFilterOperation<List<?>> {
 
-  /** @return Singleton instance */
+  /**
+   * @return Singleton instance
+   */
   public static InFilterOperation of() {
     return ImmutableInFilterOperation.of();
   }

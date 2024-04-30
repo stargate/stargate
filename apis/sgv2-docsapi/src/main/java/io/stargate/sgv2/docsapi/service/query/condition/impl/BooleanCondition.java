@@ -34,11 +34,15 @@ import org.immutables.value.Value;
 @Value.Immutable
 public abstract class BooleanCondition implements BaseCondition {
 
-  /** @return Filter operation for the condition. */
+  /**
+   * @return Filter operation for the condition.
+   */
   @Value.Parameter
   public abstract ValueFilterOperation getFilterOperation();
 
-  /** @return Filter query value. */
+  /**
+   * @return Filter query value.
+   */
   @Value.Parameter
   public abstract Boolean getQueryValue();
 
@@ -47,11 +51,15 @@ public abstract class BooleanCondition implements BaseCondition {
     return Boolean.class;
   }
 
-  /** @return The reference to DocumentProperties */
+  /**
+   * @return The reference to DocumentProperties
+   */
   @Value.Parameter
   public abstract DocumentProperties documentProperties();
 
-  /** @return If booleans should be considered as numeric values. */
+  /**
+   * @return If booleans should be considered as numeric values.
+   */
   @Value.Parameter
   public abstract boolean isNumericBooleans();
 

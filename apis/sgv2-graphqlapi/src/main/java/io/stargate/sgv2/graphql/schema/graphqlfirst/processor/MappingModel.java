@@ -74,7 +74,9 @@ public class MappingModel {
     return hasUserQueries;
   }
 
-  /** @throws GraphqlErrorException if the model contains mapping errors */
+  /**
+   * @throws GraphqlErrorException if the model contains mapping errors
+   */
   static MappingModel build(TypeDefinitionRegistry registry, ProcessingContext context) {
 
     Optional<ObjectTypeDefinition> maybeQueryType = getOperationType(registry, "query", "Query");

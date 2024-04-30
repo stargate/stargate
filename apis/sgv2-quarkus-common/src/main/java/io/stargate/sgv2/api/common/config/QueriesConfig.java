@@ -26,11 +26,15 @@ import jakarta.validation.constraints.NotNull;
 @ConfigMapping(prefix = "stargate.queries")
 public interface QueriesConfig {
 
-  /** @return Settings for the consistency level. */
+  /**
+   * @return Settings for the consistency level.
+   */
   @Valid
   QueriesConfig.ConsistencyConfig consistency();
 
-  /** @return Serial Consistency for queries. */
+  /**
+   * @return Serial Consistency for queries.
+   */
   @WithDefault("SERIAL")
   @SerialConsistencyValid(
       anyOf = {QueryOuterClass.Consistency.SERIAL, QueryOuterClass.Consistency.LOCAL_SERIAL})
@@ -38,17 +42,23 @@ public interface QueriesConfig {
 
   interface ConsistencyConfig {
 
-    /** @return Consistency for queries making schema changes. */
+    /**
+     * @return Consistency for queries making schema changes.
+     */
     @WithDefault("LOCAL_QUORUM")
     @NotNull
     QueryOuterClass.Consistency schemaChanges();
 
-    /** @return Consistency for queries writing the data. */
+    /**
+     * @return Consistency for queries writing the data.
+     */
     @WithDefault("LOCAL_QUORUM")
     @NotNull
     QueryOuterClass.Consistency writes();
 
-    /** @return Consistency for queries reading the data. */
+    /**
+     * @return Consistency for queries reading the data.
+     */
     @WithDefault("LOCAL_QUORUM")
     @NotNull
     QueryOuterClass.Consistency reads();

@@ -31,7 +31,9 @@ import org.immutables.value.Value;
 @Value.Immutable(singleton = true)
 public abstract class NotInFilterOperation extends InFilterOperation {
 
-  /** @return Singleton instance */
+  /**
+   * @return Singleton instance
+   */
   public static NotInFilterOperation of() {
     return ImmutableNotInFilterOperation.of();
   }

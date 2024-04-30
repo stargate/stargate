@@ -42,6 +42,7 @@ public class LoggingFilter {
 
   /** The request info bean. */
   private final StargateRequestInfo requestInfo;
+
   /** The configuration for logging. */
   private final LoggingConfig loggingConfig;
 

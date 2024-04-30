@@ -27,7 +27,9 @@ import org.immutables.value.Value;
 @Value.Immutable(singleton = true)
 public abstract class EqFilterOperation extends NotNullValueFilterOperation {
 
-  /** @return Singleton instance */
+  /**
+   * @return Singleton instance
+   */
   public static EqFilterOperation of() {
     return ImmutableEqFilterOperation.of();
   }

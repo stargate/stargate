@@ -43,15 +43,21 @@ public abstract class FilterExpression extends Expression<FilterExpression>
   /** Type of the expression. */
   public static final String EXPR_TYPE = "filter";
 
-  /** @return {@link FilterPath} for this expression */
+  /**
+   * @return {@link FilterPath} for this expression
+   */
   @Value.Parameter
   public abstract FilterPath getFilterPath();
 
-  /** @return {@link BaseCondition} for this expression */
+  /**
+   * @return {@link BaseCondition} for this expression
+   */
   @Value.Parameter
   public abstract BaseCondition getCondition();
 
-  /** @return Returns the order index of this filter expression given by the user. */
+  /**
+   * @return Returns the order index of this filter expression given by the user.
+   */
   @Value.Parameter
   public abstract int getOrderIndex();
 
@@ -94,7 +100,9 @@ public abstract class FilterExpression extends Expression<FilterExpression>
         .build();
   }
 
-  /** @return Returns human-readable description of this expression. */
+  /**
+   * @return Returns human-readable description of this expression.
+   */
   public String getDescription() {
     BaseCondition condition = getCondition();
     return getFilterPath().getPathString()

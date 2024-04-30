@@ -27,7 +27,9 @@ import org.immutables.value.Value;
 @Value.Immutable(singleton = true)
 public abstract class GtFilterOperation extends NotNullValueFilterOperation {
 
-  /** @return Singleton instance */
+  /**
+   * @return Singleton instance
+   */
   public static GtFilterOperation of() {
     return ImmutableGtFilterOperation.of();
   }

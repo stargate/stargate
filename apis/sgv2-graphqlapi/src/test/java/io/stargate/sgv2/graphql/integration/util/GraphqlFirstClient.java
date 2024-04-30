@@ -88,7 +88,9 @@ public class GraphqlFirstClient extends GraphqlClient {
     return getDeploySchemaError(keyspace, expectedVersion, false, contents);
   }
 
-  /** @see #getDeploySchemaError(String, String, String) */
+  /**
+   * @see #getDeploySchemaError(String, String, String)
+   */
   public String getDeploySchemaError(
       String keyspace, String expectedVersion, boolean force, String contents) {
     return getGraphqlError(

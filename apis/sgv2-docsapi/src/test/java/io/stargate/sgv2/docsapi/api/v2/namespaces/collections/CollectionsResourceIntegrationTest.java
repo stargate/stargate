@@ -62,7 +62,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
     @Order(1)
     public void happyPath() {
       String body =
-          """
+              """
           {
               "name": "%s"
           }
@@ -87,7 +87,7 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
     @Order(2)
     public void tableExists() {
       String body =
-          """
+              """
           {
               "name": "%s"
           }
@@ -112,11 +112,12 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
       String collection = RandomStringUtils.randomAlphanumeric(16);
       String body =
-          """
+              """
           {
             "name": "%s"
           }
-          """.formatted(collection);
+          """
+              .formatted(collection);
 
       given()
           .contentType(ContentType.JSON)
@@ -150,7 +151,8 @@ public class CollectionsResourceIntegrationTest extends DocsApiIntegrationTest {
     @Test
     public void malformedPayload() {
       String namespace = RandomStringUtils.randomAlphanumeric(16);
-      String body = """
+      String body =
+          """
           {
             "malformed":
           }

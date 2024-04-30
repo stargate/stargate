@@ -44,7 +44,9 @@ public class PathSearchQueryBuilder extends AbstractSearchQueryBuilder {
   private final List<String> path;
   private Pair<List<BuiltCondition>, List<QueryOuterClass.Value>> conditionsAndValues;
 
-  /** @param path Path to match. */
+  /**
+   * @param path Path to match.
+   */
   public PathSearchQueryBuilder(DocumentProperties documentProperties, List<String> path) {
     super(documentProperties);
     this.path = path;

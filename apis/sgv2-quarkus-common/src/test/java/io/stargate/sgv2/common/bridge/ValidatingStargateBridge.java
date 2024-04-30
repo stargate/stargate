@@ -124,9 +124,10 @@ public class ValidatingStargateBridge implements StargateBridge {
 
   public QueryExpectation withAnySelectFrom(String keyspace, String table) {
     String regex =
-        """
+            """
         SELECT.*FROM.*\\"%s\\"\\.\\"%s\\".*
-        """.formatted(keyspace, table);
+        """
+            .formatted(keyspace, table);
 
     return add(new QueryExpectation(regex, Collections.emptyList()));
   }

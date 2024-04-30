@@ -33,15 +33,21 @@ import org.immutables.value.Value;
 @Value.Immutable
 public abstract class NumberCondition implements BaseCondition {
 
-  /** @return Filter operation for the condition. */
+  /**
+   * @return Filter operation for the condition.
+   */
   @Value.Parameter
   public abstract ValueFilterOperation getFilterOperation();
 
-  /** @return Filter query value. */
+  /**
+   * @return Filter query value.
+   */
   @Value.Parameter
   public abstract Number getQueryValue();
 
-  /** @return The reference to DocumentProperties */
+  /**
+   * @return The reference to DocumentProperties
+   */
   @Value.Parameter
   public abstract DocumentProperties documentProperties();
 

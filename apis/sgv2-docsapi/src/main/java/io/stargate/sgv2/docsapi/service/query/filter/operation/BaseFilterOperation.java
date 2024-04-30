@@ -22,10 +22,14 @@ import java.util.Optional;
 /** Base predicate that can be used in the filter expression. */
 public interface BaseFilterOperation {
 
-  /** @return Returns a {@link FilterOperationCode}. */
+  /**
+   * @return Returns a {@link FilterOperationCode}.
+   */
   FilterOperationCode getOpCode();
 
-  /** @return Mirrored persistence predicate, if one exists. */
+  /**
+   * @return Mirrored persistence predicate, if one exists.
+   */
   Optional<Predicate> getQueryPredicate();
 
   /**
