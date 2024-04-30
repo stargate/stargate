@@ -29,7 +29,9 @@ import java.util.List;
  */
 public interface BuiltInFunction {
 
-  /** @return Returns the operation, for example <code>$push</code>. */
+  /**
+   * @return Returns the operation, for example <code>$push</code>.
+   */
   String getOperation();
 
   /**

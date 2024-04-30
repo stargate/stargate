@@ -25,19 +25,29 @@ import java.util.stream.Stream;
 /** Helper for understanding the available document table columns. */
 public interface DocumentTableColumns {
 
-  /** @return All columns as the {@link ImmutableColumn} representation. */
+  /**
+   * @return All columns as the {@link ImmutableColumn} representation.
+   */
   List<Column> allColumns();
 
-  /** @return All names of columns in an array, ordered in same way as {@link #allColumns()} */
+  /**
+   * @return All names of columns in an array, ordered in same way as {@link #allColumns()}
+   */
   String[] allColumnNamesArray();
 
-  /** @return Value columns, including the leaf, as {@link Set}. */
+  /**
+   * @return Value columns, including the leaf, as {@link Set}.
+   */
   Set<String> valueColumnNames();
 
-  /** @return All the JSON path columns based on the max depth as {@link Set}. */
+  /**
+   * @return All the JSON path columns based on the max depth as {@link Set}.
+   */
   Set<String> pathColumnNames();
 
-  /** @return All the JSON path columns based on the max depth as ordered {@link List}. */
+  /**
+   * @return All the JSON path columns based on the max depth as ordered {@link List}.
+   */
   List<String> pathColumnNamesList();
 
   /**

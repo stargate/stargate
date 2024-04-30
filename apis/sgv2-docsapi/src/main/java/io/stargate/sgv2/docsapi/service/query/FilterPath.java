@@ -26,7 +26,9 @@ import org.immutables.value.Value;
 @Value.Immutable
 public interface FilterPath {
 
-  /** @return The complete path to the field, including the field name as the last element. */
+  /**
+   * @return The complete path to the field, including the field name as the last element.
+   */
   @Value.Parameter
   List<String> getPath();
 
@@ -50,14 +52,18 @@ public interface FilterPath {
                     || Objects.equals(p, Constants.GLOB_ARRAY_VALUE));
   }
 
-  /** @return The name of the field. Effectively, the last element of {@link #getPath()}. */
+  /**
+   * @return The name of the field. Effectively, the last element of {@link #getPath()}.
+   */
   default String getField() {
     List<String> path = getPath();
     int length = path.size();
     return path.get(length - 1);
   }
 
-  /** @return The parent path without the field. */
+  /**
+   * @return The parent path without the field.
+   */
   default List<String> getParentPath() {
     List<String> path = getPath();
     if (path.size() > 1) {
@@ -75,7 +81,9 @@ public interface FilterPath {
     return String.join(".", getParentPath());
   }
 
-  /** @return Returns complete JSON path as String to the field, including the field. */
+  /**
+   * @return Returns complete JSON path as String to the field, including the field.
+   */
   default String getPathString() {
     return String.join(".", getPath());
   }

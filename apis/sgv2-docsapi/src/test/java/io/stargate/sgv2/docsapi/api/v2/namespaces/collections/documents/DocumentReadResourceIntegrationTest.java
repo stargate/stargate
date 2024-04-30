@@ -231,7 +231,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       try {
         // assert
         String expected =
-            """
+                """
             {
               "%s":{"value":"a"},
               "%s":{"value":"b"}
@@ -262,7 +262,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       try {
         // assert
         String expected =
-            """
+                """
             {
               "%s":{"value":"a"},
               "%s":{"value":"b"}
@@ -373,7 +373,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       try {
         // assert
         String expected =
-            """
+                """
             {
               "%s":{"n":{"value":5}},
               "%s":{"m":{"value":8}}
@@ -600,7 +600,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       try {
         // assert
         String expected =
-            """
+                """
             {
               "%s":{"value":[{"n":{"value":5}},{"n":{"value":8}}]},
               "%s":{"value":[{"n":{"value":10}},{"n":{"value":3}}]}
@@ -793,7 +793,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       try {
         // assert
         String expected =
-            """
+                """
             {
               "%s":{"value":"a"},
               "%s":{"value":"b"}
@@ -826,7 +826,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       try {
         // assert
         String expected =
-            """
+                """
             {
               "%s":{"value":"a"},
               "%s":{"value":"b"}
@@ -859,7 +859,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       try {
         // assert
         String expected =
-            """
+                """
             {
               "%s":{"value":"a"},
               "%s":{"value":"b"}
@@ -943,7 +943,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       try {
         // assert
         String expected =
-            """
+                """
             {
               "%s":{"value":"a","count": 1},
               "%s":{"value":"b","count": 2}
@@ -979,7 +979,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       try {
         // assert
         String expected =
-            """
+                """
             {
               "%s":{"value":"a","count": 1},
               "%s":{"value":"b","count": 2}
@@ -1012,7 +1012,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       try {
         // assert
         String expected =
-            """
+                """
             {
               "%s":{"value":"a"},
               "%s":{"other":"b"}
@@ -1045,7 +1045,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       try {
         // assert
         String expected =
-            """
+                """
             {
               "%s":{"value":"a"},
               "%s":{"other":"b"}
@@ -1081,7 +1081,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       try {
         // assert
         String expected =
-            """
+                """
             {
               "%s":{"value":[{"n":{"value":5}},{"m":{"value":8}}]},
               "%s":{"value":[{"x":{"value":10}},{"y":{"value":20}}]}
@@ -1222,7 +1222,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       try {
         // assert
         String expected =
-            """
+                """
             {
               "%s":{"value": "b"},
               "%s":{"value": "b", "someStuff": {"1": {"first": "a"}, "2": {"second": "b"}}}
@@ -1256,7 +1256,7 @@ class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
       try {
         // assert
         String expected =
-            """
+                """
             {
               "%s":{"value": "b"},
               "%s":{"value": "b", "someStuff": {"1": {"first": "a"}, "2": {"second": "b"}}}

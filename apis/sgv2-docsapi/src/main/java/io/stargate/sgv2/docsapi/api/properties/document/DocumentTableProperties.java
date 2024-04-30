@@ -20,22 +20,34 @@ package io.stargate.sgv2.docsapi.api.properties.document;
 /** Properties of a document table. */
 public interface DocumentTableProperties {
 
-  /** @return The name of the column where a document key is stored. */
+  /**
+   * @return The name of the column where a document key is stored.
+   */
   String keyColumnName();
 
-  /** @return The name of the column where a leaf name is stored. */
+  /**
+   * @return The name of the column where a leaf name is stored.
+   */
   String leafColumnName();
 
-  /** @return The name of the column where a string value is stored. */
+  /**
+   * @return The name of the column where a string value is stored.
+   */
   String stringValueColumnName();
 
-  /** @return The name of the column where a double value is stored. */
+  /**
+   * @return The name of the column where a double value is stored.
+   */
   String doubleValueColumnName();
 
-  /** @return The name of the column where a boolean value is stored. */
+  /**
+   * @return The name of the column where a boolean value is stored.
+   */
   String booleanValueColumnName();
 
-  /** @return The prefix of the column where JSON path part is saved. */
+  /**
+   * @return The prefix of the column where JSON path part is saved.
+   */
   String pathColumnPrefix();
 
   /**
@@ -50,7 +62,9 @@ public interface DocumentTableProperties {
     return pathColumnPrefix() + index;
   }
 
-  /** @return The name of the column for the writetime of a row */
+  /**
+   * @return The name of the column for the writetime of a row
+   */
   default String writetimeColumnName() {
     return "writetime(" + leafColumnName() + ")";
   }

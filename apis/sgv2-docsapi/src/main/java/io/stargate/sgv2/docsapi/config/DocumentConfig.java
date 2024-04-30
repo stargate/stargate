@@ -33,19 +33,25 @@ import jakarta.validation.constraints.Positive;
 @ConfigMapping(prefix = "stargate.document")
 public interface DocumentConfig {
 
-  /** @return Defines the maximum depth of the JSON document, defaults to <code>64</code>. */
+  /**
+   * @return Defines the maximum depth of the JSON document, defaults to <code>64</code>.
+   */
   @Max(64)
   @Positive
   @WithDefault("64")
   int maxDepth();
 
-  /** @return Defines the maximum array length in a JSON field, defaults to <code>1000000</code>. */
+  /**
+   * @return Defines the maximum array length in a JSON field, defaults to <code>1000000</code>.
+   */
   @Max(1000000)
   @Positive
   @WithDefault("1000000")
   int maxArrayLength();
 
-  /** @return Defines the maximum document page size, defaults to <code>20</code>. */
+  /**
+   * @return Defines the maximum document page size, defaults to <code>20</code>.
+   */
   @Max(50)
   @Positive
   @WithDefault("20")
@@ -66,32 +72,44 @@ public interface DocumentConfig {
 
   interface DocumentTableConfig {
 
-    /** @return The name of the column where a document key is stored. */
+    /**
+     * @return The name of the column where a document key is stored.
+     */
     @NotBlank
     @WithDefault(Constants.KEY_COLUMN_NAME)
     String keyColumnName();
 
-    /** @return The name of the column where a leaf name is stored. */
+    /**
+     * @return The name of the column where a leaf name is stored.
+     */
     @NotBlank
     @WithDefault(Constants.LEAF_COLUMN_NAME)
     String leafColumnName();
 
-    /** @return The name of the column where a string value is stored. */
+    /**
+     * @return The name of the column where a string value is stored.
+     */
     @NotBlank
     @WithDefault(Constants.STRING_VALUE_COLUMN_NAME)
     String stringValueColumnName();
 
-    /** @return The name of the column where a double value is stored. */
+    /**
+     * @return The name of the column where a double value is stored.
+     */
     @NotBlank
     @WithDefault(Constants.DOUBLE_VALUE_COLUMN_NAME)
     String doubleValueColumnName();
 
-    /** @return The name of the column where a boolean value is stored. */
+    /**
+     * @return The name of the column where a boolean value is stored.
+     */
     @NotBlank
     @WithDefault(Constants.BOOLEAN_VALUE_COLUMN_NAME)
     String booleanValueColumnName();
 
-    /** @return The prefix of the column where JSON path part is saved. */
+    /**
+     * @return The prefix of the column where JSON path part is saved.
+     */
     @NotBlank
     @WithDefault(Constants.PATH_COLUMN_PREFIX)
     String pathColumnPrefix();

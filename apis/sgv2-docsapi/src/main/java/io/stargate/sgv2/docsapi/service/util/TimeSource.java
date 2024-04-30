@@ -23,6 +23,8 @@ public interface TimeSource {
   /** Microseconds since {@link System#currentTimeMillis() epoch}. */
   long currentTimeMicros();
 
-  /** @return the current time in milliseconds */
+  /**
+   * @return the current time in milliseconds
+   */
   long currentTimeMillis();
 }

@@ -48,13 +48,19 @@ public interface BaseCondition extends Predicate<RowWrapper> {
    */
   Optional<Pair<BuiltCondition, QueryOuterClass.Value>> getBuiltCondition();
 
-  /** @return Returns filter operation code used by this condition. */
+  /**
+   * @return Returns filter operation code used by this condition.
+   */
   FilterOperationCode getFilterOperationCode();
 
-  /** @return Returns the query value. */
+  /**
+   * @return Returns the query value.
+   */
   Object getQueryValue();
 
-  /** @return Reference to the document properties. */
+  /**
+   * @return Reference to the document properties.
+   */
   DocumentProperties documentProperties();
 
   /**
@@ -69,7 +75,9 @@ public interface BaseCondition extends Predicate<RowWrapper> {
     return Object.class;
   }
 
-  /** @return if condition evaluates on the missing fields */
+  /**
+   * @return if condition evaluates on the missing fields
+   */
   boolean isEvaluateOnMissingFields();
 
   /**

@@ -39,6 +39,7 @@ public class DirectedGraph<VertexT> {
 
   /** How many predecessors each vertex has. */
   private final Map<VertexT, Integer> predecessorCounts;
+
   /** The list successors of each vertex. */
   private final Multimap<VertexT, VertexT> adjacencyList;
 

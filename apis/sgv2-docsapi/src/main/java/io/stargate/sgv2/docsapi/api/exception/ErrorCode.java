@@ -167,7 +167,9 @@ public enum ErrorCode {
     this.defaultMessage = defaultMessage;
   }
 
-  /** @return Returns {@link Response} using the ErrorCode default message. */
+  /**
+   * @return Returns {@link Response} using the ErrorCode default message.
+   */
   public RestResponse<ApiError> toResponse() {
     return toResponse(defaultMessage);
   }

@@ -37,7 +37,9 @@ public final class IntegrationTestUtils {
     return System.getProperty(AUTH_TOKEN_PROP, defaultIfMissing);
   }
 
-  /** @return the CQL address of the Cassandra backend. */
+  /**
+   * @return the CQL address of the Cassandra backend.
+   */
   public static InetSocketAddress getCassandraCqlAddress() {
     String host =
         Objects.requireNonNull(
@@ -51,17 +53,23 @@ public final class IntegrationTestUtils {
     return new InetSocketAddress(host, port);
   }
 
-  /** @return If Cassandra auth is enabled */
+  /**
+   * @return If Cassandra auth is enabled
+   */
   public static boolean isCassandraAuthEnabled() {
     return Boolean.parseBoolean(System.getProperty(CASSANDRA_AUTH_ENABLED_PROP, "false"));
   }
 
-  /** @return Cassandra username, only meaningful if Cassandra auth is enabled */
+  /**
+   * @return Cassandra username, only meaningful if Cassandra auth is enabled
+   */
   public static String getCassandraUsername() {
     return System.getProperty(CASSANDRA_USERNAME_PROP, "cassandra");
   }
 
-  /** @return Cassandra password, only meaningful if Cassandra auth is enabled */
+  /**
+   * @return Cassandra password, only meaningful if Cassandra auth is enabled
+   */
   public static String getCassandraPassword() {
     return System.getProperty(CASSANDRA_PASSWORD_PROP, "cassandra");
   }
@@ -102,7 +110,9 @@ public final class IntegrationTestUtils {
     return Boolean.parseBoolean(System.getProperty(PERSISTENCE_SUPPORTS_VSEARCH, "false"));
   }
 
-  /** @return Returns the port where the application to test runs. */
+  /**
+   * @return Returns the port where the application to test runs.
+   */
   public static int getTestPort() {
     try {
       return ConfigProvider.getConfig().getValue("quarkus.http.test-port", Integer.class);

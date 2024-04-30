@@ -32,7 +32,9 @@ import org.apache.commons.lang3.tuple.Pair;
 
 public abstract class AbstractFiltersResolver implements DocumentsResolver {
 
-  /** @return Resolver used to fetch candidates. */
+  /**
+   * @return Resolver used to fetch candidates.
+   */
   protected abstract DocumentsResolver getCandidatesResolver();
 
   /**

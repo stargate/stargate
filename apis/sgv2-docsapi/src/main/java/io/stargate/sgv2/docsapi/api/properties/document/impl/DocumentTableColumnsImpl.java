@@ -48,7 +48,9 @@ public interface DocumentTableColumnsImpl extends DocumentTableColumns {
   @Value.Parameter
   boolean numericBooleans();
 
-  /** @return Value columns, including the leaf, as {@link Set}. */
+  /**
+   * @return Value columns, including the leaf, as {@link Set}.
+   */
   @Value.Derived
   @Override
   default Set<String> valueColumnNames() {
@@ -61,7 +63,9 @@ public interface DocumentTableColumnsImpl extends DocumentTableColumns {
         .build();
   }
 
-  /** @return All the JSON path columns based on the max depth as ordered {@link List}. */
+  /**
+   * @return All the JSON path columns based on the max depth as ordered {@link List}.
+   */
   @Value.Derived
   @Override
   default List<String> pathColumnNamesList() {
@@ -71,7 +75,9 @@ public interface DocumentTableColumnsImpl extends DocumentTableColumns {
     return IntStream.range(0, depth).mapToObj(i -> table.pathColumnPrefix() + i).toList();
   }
 
-  /** @return All the JSON path columns based on the max depth as {@link Set}. */
+  /**
+   * @return All the JSON path columns based on the max depth as {@link Set}.
+   */
   @Value.Derived
   @Override
   default Set<String> pathColumnNames() {
@@ -79,7 +85,9 @@ public interface DocumentTableColumnsImpl extends DocumentTableColumns {
     return Set.copyOf(columns);
   }
 
-  /** @return All columns as the {@link ImmutableColumn} representation. */
+  /**
+   * @return All columns as the {@link ImmutableColumn} representation.
+   */
   @Value.Derived
   @Override
   default List<Column> allColumns() {
@@ -156,7 +164,9 @@ public interface DocumentTableColumnsImpl extends DocumentTableColumns {
     return Collections.unmodifiableList(result);
   }
 
-  /** @return all column names */
+  /**
+   * @return all column names
+   */
   @Value.Derived
   @Override
   default String[] allColumnNamesArray() {
