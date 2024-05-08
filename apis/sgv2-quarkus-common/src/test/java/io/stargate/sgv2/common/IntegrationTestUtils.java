@@ -18,6 +18,7 @@ public final class IntegrationTestUtils {
   public static final String CASSANDRA_PASSWORD_PROP = "stargate.int-test.cassandra.password";
   public static final String PERSISTENCE_MODULE_PROP = "stargate.int-test.cluster.persistence";
   public static final String PERSISTENCE_SUPPORTS_VSEARCH = "stargate.int-test.feature.vsearch";
+  public static final String CLUSTER_VERSION_PROP = "stargate.int-test.cluster-version";
 
   private IntegrationTestUtils() {}
 
@@ -81,6 +82,12 @@ public final class IntegrationTestUtils {
   public static String getPersistenceModule() {
     return System.getProperty(PERSISTENCE_MODULE_PROP, "");
   }
+    /*
+   * @return Returns the cluster version (3.11, 4.0, 6.8 (== DSE)) specified for the coordinator
+   */
+  public static String getClusterVersion() {
+    return System.getProperty(CLUSTER_VERSION_PROP, "");
+  }
 
   /**
    * @return True if the backend cluster is DSE-based (including C2 and CNDB), false if OSS
@@ -107,7 +114,14 @@ public final class IntegrationTestUtils {
   }
 
   public static boolean supportsVSearch() {
-    return Boolean.parseBoolean(System.getProperty(PERSISTENCE_SUPPORTS_VSEARCH, "false"));
+      return Boolean.parseBoolean(System.getProperty(PERSISTENCE_SUPPORTS_VSEARCH, "false"));
+    }
+
+   /*
+   * @return True if the backend cluster is Cassandra 4.0; false otherwise (DSE, C-3.11)
+   */
+  public static boolean isCassandra40() {
+    return "4.0".equals(getClusterVersion());
   }
 
   /**
