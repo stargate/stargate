@@ -3,3 +3,13 @@
 stargate:
   data-store:
     ignore-bridge: true
+
+# The test profile to override the port is needed because with quarkus upgrade this is defaulted to 9001
+"%test":
+  quarkus:
+    # properties for the gRPC clients
+    grpc:
+      # all the clients' setup, only bridge
+      clients:
+        bridge:
+          port: 9001

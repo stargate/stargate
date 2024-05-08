@@ -11,6 +11,17 @@ quarkus:
         host: localhost
         port: 8091
 
+# The test profile to override the port is needed because with quarkus upgrade this is defaulted to 9001
+# https://github.com/quarkusio/quarkus/issues/15934
+"%test":
+  quarkus:
+    # properties for the gRPC clients
+    grpc:
+      # all the clients' setup, only bridge
+      clients:
+        bridge:
+          port: 9001
+
 io:
   stargate:
     sgv2:
