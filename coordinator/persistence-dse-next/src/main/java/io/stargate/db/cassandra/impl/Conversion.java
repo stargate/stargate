@@ -566,7 +566,7 @@ public class Conversion {
       TupleType tupleType = ((TupleType) abstractType);
       return Column.Type.Tuple.of(
               ((TupleType) abstractType)
-                  .allTypes().stream()
+                  .subTypes().stream()
                       .map(t -> getTypeFromInternal(t))
                       .toArray(Column.ColumnType[]::new))
           .frozen(!tupleType.isMultiCell());
