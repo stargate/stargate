@@ -27,15 +27,6 @@
 - Fix \#2920: update to newer Maven format plugin [\#2921](https://github.com/stargate/stargate/pull/2921) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Bumping version for next v2.0 release [\#2913](https://github.com/stargate/stargate/pull/2913) ([github-actions[bot]](https://github.com/apps/github-actions))
 
-## [v2.1.0-BETA-11](https://github.com/stargate/stargate/tree/v2.1.0-BETA-11) (2024-04-15)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.26...v2.1.0-BETA-11)
-
-**Merged pull requests:**
-
-- Merge main \(v2\) to v2.1 [\#2912](https://github.com/stargate/stargate/pull/2912) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version for next v2.1 release [\#2909](https://github.com/stargate/stargate/pull/2909) ([github-actions[bot]](https://github.com/apps/github-actions))
-
 ## [v2.0.26](https://github.com/stargate/stargate/tree/v2.0.26) (2024-04-16)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.25...v2.0.26)
