@@ -15,25 +15,6 @@
 - Merge from main to v2.1 after release [\#2915](https://github.com/stargate/stargate/pull/2915) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Bumping version to V2.1.0-BETA-12-SNAPSHOT [\#2914](https://github.com/stargate/stargate/pull/2914) ([github-actions[bot]](https://github.com/apps/github-actions))
 
-## [v2.0.27](https://github.com/stargate/stargate/tree/v2.0.27) (2024-05-08)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-11...v2.0.27)
-
-**Closed issues:**
-
-- Upgrade "com.coveo:fmt-maven-plugin" to "com.spotify.fmt:fmt-maven-plugin" [\#2920](https://github.com/stargate/stargate/issues/2920)
-- Update to DSE 6.8.46 [\#2918](https://github.com/stargate/stargate/issues/2918)
-- Update to DSE 6.8.45 [\#2917](https://github.com/stargate/stargate/issues/2917)
-- Scylla support [\#2916](https://github.com/stargate/stargate/issues/2916)
-- Update to DSE 6.8.44 [\#2910](https://github.com/stargate/stargate/issues/2910)
-- Request for API to Verify Token in Stargate Coordinator [\#2535](https://github.com/stargate/stargate/issues/2535)
-
-**Merged pull requests:**
-
-- Backport: Upgraded quarkus to 3.6.1 and add tenant to http request metrics \(\#2866\) [\#2923](https://github.com/stargate/stargate/pull/2923) ([jeffreyscarpenter](https://github.com/jeffreyscarpenter))
-- Fix \#2920: update to newer Maven format plugin [\#2921](https://github.com/stargate/stargate/pull/2921) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version for next v2.0 release [\#2913](https://github.com/stargate/stargate/pull/2913) ([github-actions[bot]](https://github.com/apps/github-actions))
-
 ## [v2.1.0-BETA-11](https://github.com/stargate/stargate/tree/v2.1.0-BETA-11) (2024-04-16)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-10...v2.1.0-BETA-11)
