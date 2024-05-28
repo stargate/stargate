@@ -599,8 +599,7 @@ public class WriteBridgeService {
           requestInfo.getTenantId().orElse(null),
           batchBuilt.getSerializedSize(),
           batchBuilt.getQueriesCount());
-    }
-    if (logger.isDebugEnabled()) {
+    } else if (logger.isDebugEnabled()) {
       logger.debug(
           "Tenant: {}, Batch payload size : {} in bytes, Number of CQL Statements : {}",
           requestInfo.getTenantId().orElse(null),
