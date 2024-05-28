@@ -593,9 +593,10 @@ public class WriteBridgeService {
                             .setValue(queriesConfig.consistency().writes())));
     batchQueries.forEach(batch::addQueries);
     Batch batchBuilt = batch.build();
-    if (batchBuilt.getSerializedSize() >= BATCH_PAYLOAD_SIZE_LIMIT) {
+    if (batchBuilt.getSerializedSize() > BATCH_PAYLOAD_SIZE_LIMIT) {
       logger.warn(
-          "Tenant: {}, Batch payload size : {} in bytes, Number of CQL Statements : {}",
+          "Batch too large, exceeding the limit {}, Tenant: {}, Batch payload size : {} in bytes, Number of CQL Statements : {}",
+          BATCH_PAYLOAD_SIZE_LIMIT,
           requestInfo.getTenantId().orElse(null),
           batchBuilt.getSerializedSize(),
           batchBuilt.getQueriesCount());
