@@ -18,6 +18,9 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 import org.apache.cassandra.cql3.CQLStatement;
 import org.apache.cassandra.cql3.ColumnIdentifier;
@@ -46,6 +49,10 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
   private static final Logger logger = LoggerFactory.getLogger(DefaultQueryInterceptor.class);
   private static final ColumnIdentifier NATIVE_TRANSPORT_PORT_ID =
       new ColumnIdentifier("native_transport_port", false);
+  private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+
+  public static final long JOIN_NOTIFY_DELAY_SECS =
+      Long.getLong("stargate.join_notify_delay_secs", 60);
 
   private final List<EventListener> listeners = new CopyOnWriteArrayList<>();
   private final Set<InetAddress> liveStargateNodes = Sets.newConcurrentHashSet();
@@ -192,10 +199,17 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
   }
 
   private void notifyJoinCluster(InetAddress endpoint) {
+
     InetAddress nativeAddress = getNativeAddress(endpoint);
-    for (EventListener listener : listeners) {
-      listener.onJoinCluster(nativeAddress, EventListener.NO_PORT);
-    }
+
+    scheduler.schedule(
+        () -> {
+          for (EventListener listener : listeners) {
+            listener.onJoinCluster(nativeAddress, EventListener.NO_PORT);
+          }
+        },
+        JOIN_NOTIFY_DELAY_SECS,
+        TimeUnit.SECONDS);
   }
 
   private void notifyRpcChange(InetAddress endpoint, boolean isReady) {

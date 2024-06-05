@@ -20,13 +20,17 @@
       <url>https://repo.maven.apache.org/maven2</url>
     </repository>
     <repository>
+      <id>artifactory</id>
+      <url>https://repo.datastax.com/dse</url>
+    </repository>
+    <!--<repository>
       <id>artifactory-snapshots</id>
       <url>https://repo.datastax.com/datastax-snapshots-local</url>
     </repository>
     <repository>
       <id>artifactory-releases</id>
       <url>https://repo.datastax.com/datastax-releases-local</url>
-    </repository>
+    </repository>-->
   </repositories>
   <dependencyManagement>
     <dependencies>
