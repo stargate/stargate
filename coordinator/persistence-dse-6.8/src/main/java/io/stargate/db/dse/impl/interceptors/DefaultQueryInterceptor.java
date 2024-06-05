@@ -52,7 +52,7 @@ public class DefaultQueryInterceptor implements QueryInterceptor, IEndpointState
   private static final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
   public static final long JOIN_NOTIFY_DELAY_SECS =
-      Long.getLong("stargate.join_notify_delay_secs", 60);
+      Long.getLong("stargate.join_notify_delay_secs", 5);
 
   private final List<EventListener> listeners = new CopyOnWriteArrayList<>();
   private final Set<InetAddress> liveStargateNodes = Sets.newConcurrentHashSet();
