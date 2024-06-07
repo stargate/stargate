@@ -146,7 +146,7 @@ public abstract class BaseActivator implements BundleActivator {
       stopService();
       deregisterService();
     }
-    tracker.close();
+    if (tracker != null) tracker.close();
   }
 
   private void deregisterService() {
