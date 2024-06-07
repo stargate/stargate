@@ -1,5 +1,14 @@
 # Changelog
 
+## [v1.0.83](https://github.com/stargate/stargate/tree/v1.0.83) (2024-06-07)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.82...v1.0.83)
+
+**Merged pull requests:**
+
+- RM the shutdown hooks [\#2942](https://github.com/stargate/stargate/pull/2942) ([tjake](https://github.com/tjake))
+- Bumping version for next release [\#2941](https://github.com/stargate/stargate/pull/2941) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v1.0.82](https://github.com/stargate/stargate/tree/v1.0.82) (2024-06-07)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.81...v1.0.82)
