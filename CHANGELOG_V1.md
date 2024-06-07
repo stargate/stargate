@@ -2,21 +2,12 @@
 
 ## [v1.0.81](https://github.com/stargate/stargate/tree/v1.0.81) (2024-06-07)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.79.1...v1.0.81)
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.80...v1.0.81)
 
 **Merged pull requests:**
 
 - Drain messaging service and stop gossip on shutdown [\#2938](https://github.com/stargate/stargate/pull/2938) ([tjake](https://github.com/tjake))
 - Bumping version for next release [\#2937](https://github.com/stargate/stargate/pull/2937) ([github-actions[bot]](https://github.com/apps/github-actions))
-
-## [v1.0.79.1](https://github.com/stargate/stargate/tree/v1.0.79.1) (2024-06-05)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.80...v1.0.79.1)
-
-**Merged pull requests:**
-
-- Add delay for NEW\_NODE notification to allow time for k8s service setup [\#2935](https://github.com/stargate/stargate/pull/2935) ([tjake](https://github.com/tjake))
-- Bumping version to 1.0.80-SNAPSHOT [\#2891](https://github.com/stargate/stargate/pull/2891) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v1.0.80](https://github.com/stargate/stargate/tree/v1.0.80) (2024-06-05)
 
