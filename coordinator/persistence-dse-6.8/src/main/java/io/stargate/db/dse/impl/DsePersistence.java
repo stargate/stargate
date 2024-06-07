@@ -268,6 +268,7 @@ public class DsePersistence
   @Override
   protected void destroyPersistence() {
     if (cassandraDaemon != null) {
+      logger.info("Shutting down DSE persistence layer");
       MessagingService.instance()
           .send(
               Verbs.GOSSIP.SHUTDOWN.newDispatcher(
