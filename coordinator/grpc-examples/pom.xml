@@ -5,7 +5,7 @@
   <parent>
     <artifactId>stargate</artifactId>
     <groupId>io.stargate</groupId>
-    <version>1.0.82-SNAPSHOT</version>
+    <version>1.0.83-SNAPSHOT</version>
   </parent>
   <!-- Artifact props -->
   <artifactId>grpc-examples</artifactId>
