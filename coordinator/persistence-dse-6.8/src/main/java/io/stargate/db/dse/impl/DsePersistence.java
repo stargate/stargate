@@ -106,6 +106,7 @@ import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.transport.messages.StartupMessage;
 import org.apache.cassandra.utils.ByteBufferUtil;
 import org.apache.cassandra.utils.FBUtilities;
+import org.apache.cassandra.utils.JVMStabilityInspector;
 import org.apache.cassandra.utils.MD5Digest;
 import org.apache.cassandra.utils.flow.RxThreads;
 import org.slf4j.Logger;
@@ -238,7 +239,6 @@ public class DsePersistence
             throwableFromMainThread.set(t);
           }
         });
-
     cassandraDaemon.activate(false);
     Throwable t = throwableFromMainThread.get();
     if (t != null) {
@@ -260,18 +260,20 @@ public class DsePersistence
     stargateHandler().setAuthorizationService(this.authorizationService);
 
     authenticator = new AuthenticatorWrapper(DatabaseDescriptor.getAuthenticator());
+
+    // Finally remove any DSE shutdown hooks so we can manage the shutdown
+    JVMStabilityInspector.removeShutdownHooks();
   }
 
   @Override
   protected void destroyPersistence() {
     if (cassandraDaemon != null) {
-      Gossiper.instance.stopPermanently();
       MessagingService.instance()
           .send(
               Verbs.GOSSIP.SHUTDOWN.newDispatcher(
                   Gossiper.instance.getLiveMembers(), EmptyPayload.instance));
-      MessagingService.instance().shutdown();
       cassandraDaemon.deactivate();
+      StorageService.instance.stopClient();
       cassandraDaemon = null;
     }
   }
