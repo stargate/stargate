@@ -1,5 +1,14 @@
 # Changelog
 
+## [v1.0.82](https://github.com/stargate/stargate/tree/v1.0.82) (2024-06-07)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.81...v1.0.82)
+
+**Merged pull requests:**
+
+- Force shutdown message since fatClients usually cant [\#2940](https://github.com/stargate/stargate/pull/2940) ([tjake](https://github.com/tjake))
+- Bumping version for next release [\#2939](https://github.com/stargate/stargate/pull/2939) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v1.0.81](https://github.com/stargate/stargate/tree/v1.0.81) (2024-06-07)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.80...v1.0.81)
