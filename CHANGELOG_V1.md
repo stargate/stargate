@@ -1,6 +1,6 @@
 # Changelog
 
-## [v1.0.79.1](https://github.com/stargate/stargate/tree/v1.0.79.1) (2024-06-05)
+## [v1.0.80](https://github.com/stargate/stargate/tree/v1.0.79.1) (2024-06-05)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-12...v1.0.79.1)
 
