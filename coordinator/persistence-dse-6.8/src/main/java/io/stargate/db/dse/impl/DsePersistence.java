@@ -77,6 +77,7 @@ import org.apache.cassandra.exceptions.AuthenticationException;
 import org.apache.cassandra.gms.ApplicationState;
 import org.apache.cassandra.gms.EndpointState;
 import org.apache.cassandra.gms.Gossiper;
+import org.apache.cassandra.net.MessagingService;
 import org.apache.cassandra.schema.ColumnMetadata;
 import org.apache.cassandra.schema.IndexMetadata;
 import org.apache.cassandra.schema.KeyspaceMetadata;
@@ -262,6 +263,8 @@ public class DsePersistence
   @Override
   protected void destroyPersistence() {
     if (cassandraDaemon != null) {
+      Gossiper.instance.stop();
+      MessagingService.instance().shutdown();
       cassandraDaemon.deactivate();
       cassandraDaemon = null;
     }
