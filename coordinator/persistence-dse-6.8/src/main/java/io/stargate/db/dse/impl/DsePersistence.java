@@ -76,7 +76,6 @@ import org.apache.cassandra.db.marshal.UserType;
 import org.apache.cassandra.exceptions.AuthenticationException;
 import org.apache.cassandra.gms.ApplicationState;
 import org.apache.cassandra.gms.EndpointState;
-import org.apache.cassandra.gms.FailureDetector;
 import org.apache.cassandra.gms.Gossiper;
 import org.apache.cassandra.net.MessagingService;
 import org.apache.cassandra.schema.ColumnMetadata;
