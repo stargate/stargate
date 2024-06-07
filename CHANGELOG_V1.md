@@ -1,5 +1,14 @@
 # Changelog
 
+## [v1.0.81](https://github.com/stargate/stargate/tree/v1.0.81) (2024-06-07)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.80...v1.0.81)
+
+**Merged pull requests:**
+
+- Drain messaging service and stop gossip on shutdown [\#2938](https://github.com/stargate/stargate/pull/2938) ([tjake](https://github.com/tjake))
+- Bumping version for next release [\#2937](https://github.com/stargate/stargate/pull/2937) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v1.0.80](https://github.com/stargate/stargate/tree/v1.0.80) (2024-06-05)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.79...v1.0.80)
