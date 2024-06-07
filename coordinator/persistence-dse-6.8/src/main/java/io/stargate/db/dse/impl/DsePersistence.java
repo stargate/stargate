@@ -263,8 +263,8 @@ public class DsePersistence
   @Override
   protected void destroyPersistence() {
     if (cassandraDaemon != null) {
-      MessagingService.instance().shutdown();
       Gossiper.instance.stop();
+      MessagingService.instance().shutdown();
       cassandraDaemon.deactivate();
       cassandraDaemon = null;
     }
