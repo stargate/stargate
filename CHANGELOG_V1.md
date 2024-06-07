@@ -1,5 +1,19 @@
 # Changelog
 
+## [v1.0.80](https://github.com/stargate/stargate/tree/v1.0.80) (2024-06-05)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.79...v1.0.80)
+
+**Closed issues:**
+
+- Update to DSE 6.8.48 [\#2931](https://github.com/stargate/stargate/issues/2931)
+- Update to DSE 6.8.47 [\#2919](https://github.com/stargate/stargate/issues/2919)
+
+**Merged pull requests:**
+
+- Add delay for NEW\_NODE notification to allow time for k8s service setup [\#2935](https://github.com/stargate/stargate/pull/2935) ([tjake](https://github.com/tjake))
+- Bumping version to 1.0.80-SNAPSHOT [\#2891](https://github.com/stargate/stargate/pull/2891) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v1.0.79](https://github.com/stargate/stargate/tree/v1.0.79) (2024-02-06)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.78...v1.0.79)
