@@ -5,7 +5,7 @@
   <groupId>io.stargate</groupId>
   <artifactId>stargate</artifactId>
   <name>Stargate - Coordinator Parent pom</name>
-  <version>1.0.84-SNAPSHOT</version>
+  <version>1.0.85-SNAPSHOT</version>
   <packaging>pom</packaging>
   <!-- Description -->
   <description>Stargate - An open source data API gateway</description>
