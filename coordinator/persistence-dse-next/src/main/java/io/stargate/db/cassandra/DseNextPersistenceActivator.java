@@ -36,6 +36,10 @@ import org.slf4j.LoggerFactory;
 public class DseNextPersistenceActivator extends BaseActivator {
 
   static {
+    // 28-Sep-2023, tatu: Fix needed pre C*4.1 (fixed via CASSANDRA-17013
+    //   https://issues.apache.org/jira/browse/CASSANDRA-17013).
+    //  Problematic with JDK 12+ but possible to force with JDK param:
+    //  "-Djdk.reflect.useDirectMethodHandle=false"
     UserDefinedFunctionHelper.fixCompilerClassLoader();
   }
 
