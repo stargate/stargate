@@ -34,12 +34,14 @@ import java.util.Optional;
 public enum ProtocolVersion implements Comparable<ProtocolVersion> {
   // The order is important as it defines the chronological history of versions, which is used
   // to determine if a feature is supported or some serdes formats
+
   V1(1, "v1", false), // no longer supported
   V2(2, "v2", false), // no longer supported
   V3(3, "v3", false),
   V4(4, "v4", false),
-  V5(5, "v5-beta", true);
-
+  // Cassandra {4.0.10} {ProtocolException}
+  V5(5, "v5", false),
+  V6(6, "v6-beta", true);
   /** The version number */
   private final int num;
 
@@ -59,7 +61,8 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
    * The supported versions stored as an array, these should be private and are required for fast
    * decoding
    */
-  private static final ProtocolVersion[] SUPPORTED_VERSIONS = new ProtocolVersion[] {V3, V4, V5};
+  private static final ProtocolVersion[] SUPPORTED_VERSIONS =
+      new ProtocolVersion[] {V3, V4, V5, V6};
 
   static final ProtocolVersion MIN_SUPPORTED_VERSION = SUPPORTED_VERSIONS[0];
   static final ProtocolVersion MAX_SUPPORTED_VERSION =
@@ -73,9 +76,9 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
   public static final EnumSet<ProtocolVersion> UNSUPPORTED = EnumSet.complementOf(SUPPORTED);
 
   /** The preferred versions */
-  public static final ProtocolVersion CURRENT = V4;
+  public static final ProtocolVersion CURRENT = V5;
 
-  public static final Optional<ProtocolVersion> BETA = Optional.of(V5);
+  public static final Optional<ProtocolVersion> BETA = Optional.of(V6);
 
   public static List<String> supportedVersions() {
     List<String> ret = new ArrayList<>(SUPPORTED.size());
@@ -177,6 +180,8 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
         return com.datastax.oss.driver.api.core.ProtocolVersion.V4;
       case V5:
         return com.datastax.oss.driver.api.core.ProtocolVersion.V5;
+      case V6:
+        return com.datastax.oss.driver.api.core.ProtocolVersion.V6;
       default:
         throw new AssertionError("Unhandled protocol version: " + this);
     }
