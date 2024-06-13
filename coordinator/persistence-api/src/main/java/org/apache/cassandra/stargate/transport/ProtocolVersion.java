@@ -195,6 +195,10 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
         return com.datastax.oss.driver.api.core.ProtocolVersion.V4;
       case V5:
         return com.datastax.oss.driver.api.core.ProtocolVersion.V5;
+      case DSE_V1:
+        return com.datastax.oss.driver.api.core.ProtocolVersion.DSE_V1;
+      case DSE_V2:
+        return com.datastax.oss.driver.api.core.ProtocolVersion.DSE_V2;
       default:
         throw new AssertionError("Unhandled protocol version: " + this);
     }
