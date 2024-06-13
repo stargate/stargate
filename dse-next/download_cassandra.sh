@@ -6,7 +6,7 @@ set -euo pipefail
 # via the Cassandra Enhancement Proposal (CEP) process.
 #
 
-git clone -b vsearch https://github.com/datastax/cassandra.git cassandra
+git clone https://github.com/datastax/cassandra.git cassandra
 
 cd cassandra/
 ant -Duse.jdk11=true
