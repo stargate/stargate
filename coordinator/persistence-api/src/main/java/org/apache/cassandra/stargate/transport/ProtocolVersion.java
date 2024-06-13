@@ -109,8 +109,8 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
 
   public static ProtocolVersion decode(int versionNum, boolean allowOlderProtocols) {
     ProtocolVersion ret = null;
-    boolean isDse = isDse(versionNum);
-    if (isDse) { // DSE version
+    boolean isDseNumber = isDse(versionNum);
+    if (isDse && isDseNumber) { // DSE version
       if (versionNum >= MIN_DSE_VERSION.num && versionNum <= MAX_DSE_VERSION.num)
         ret = DSE_VERSIONS[versionNum - MIN_DSE_VERSION.num];
     } else { // OS version
@@ -136,10 +136,6 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
           String.format("Rejecting Protocol Version %s < %s.", ret, ProtocolVersion.CURRENT));
     }
     return ret;
-  }
-
-  public boolean isDse() {
-    return isDse(num);
   }
 
   private static boolean isDse(int num) {
