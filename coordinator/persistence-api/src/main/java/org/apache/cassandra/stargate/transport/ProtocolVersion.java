@@ -130,13 +130,11 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
       // If the version is invalid reply with the highest version of the same kind that we support
       throw new ProtocolException(
           invalidVersionMessage(versionNum), isDse ? MAX_DSE_VERSION : MAX_OS_VERSION);
-
-      if (!allowOlderProtocols && ret.isSmallerThan(CURRENT)) {
-        throw new ProtocolException(
-            String.format("Rejecting Protocol Version %s < %s.", ret, ProtocolVersion.CURRENT));
-      }
     }
-
+    if (!allowOlderProtocols && ret.isSmallerThan(CURRENT)) {
+      throw new ProtocolException(
+          String.format("Rejecting Protocol Version %s < %s.", ret, ProtocolVersion.CURRENT));
+    }
     return ret;
   }
 
