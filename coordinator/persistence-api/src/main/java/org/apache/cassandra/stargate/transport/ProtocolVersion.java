@@ -74,12 +74,13 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
 
   static final ProtocolVersion MIN_DSE_VERSION = DSE_VERSIONS[0];
   static final ProtocolVersion MAX_DSE_VERSION = DSE_VERSIONS[DSE_VERSIONS.length - 1];
-  private static boolean isDse =
-      "DsePersistence".equals(System.getProperty("stargate.persistence_id"));
+  private static boolean supportDseProtocol =
+      "DsePersistence".equals(System.getProperty("stargate.persistence_id"))
+          || "CndbPersistence".equals(System.getProperty("stargate.persistence_id"));
 
   /** All supported versions */
   public static final EnumSet<ProtocolVersion> SUPPORTED =
-      isDse ? EnumSet.of(V3, V4, V5, DSE_V1, DSE_V2) : EnumSet.of(V3, V4, V5);
+      supportDseProtocol ? EnumSet.of(V3, V4, V5, DSE_V1, DSE_V2) : EnumSet.of(V3, V4, V5);
 
   public static final List<String> SUPPORTED_VERSION_NAMES =
       SUPPORTED.stream().map(ProtocolVersion::toString).collect(Collectors.toList());
@@ -88,9 +89,9 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
   public static final EnumSet<ProtocolVersion> UNSUPPORTED = EnumSet.complementOf(SUPPORTED);
 
   /** The preferred versions */
-  public static final ProtocolVersion CURRENT = isDse ? DSE_V2 : V4;
+  public static final ProtocolVersion CURRENT = supportDseProtocol ? DSE_V2 : V4;
 
-  public static final Optional<ProtocolVersion> BETA = isDse ? Optional.empty() : Optional.of(V5);
+  public static final Optional<ProtocolVersion> BETA = Optional.of(V5);
 
   public static List<String> supportedVersions() {
     return SUPPORTED_VERSION_NAMES;
@@ -110,7 +111,7 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
   public static ProtocolVersion decode(int versionNum, boolean allowOlderProtocols) {
     ProtocolVersion ret = null;
     boolean isDseNumber = isDse(versionNum);
-    if (isDse && isDseNumber) { // DSE version
+    if (supportDseProtocol && isDseNumber) { // DSE version
       if (versionNum >= MIN_DSE_VERSION.num && versionNum <= MAX_DSE_VERSION.num)
         ret = DSE_VERSIONS[versionNum - MIN_DSE_VERSION.num];
     } else { // OS version
@@ -129,7 +130,7 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
 
       // If the version is invalid reply with the highest version of the same kind that we support
       throw new ProtocolException(
-          invalidVersionMessage(versionNum), isDse ? MAX_DSE_VERSION : MAX_OS_VERSION);
+          invalidVersionMessage(versionNum), supportDseProtocol ? MAX_DSE_VERSION : MAX_OS_VERSION);
     }
     if (!allowOlderProtocols && ret.isSmallerThan(CURRENT)) {
       throw new ProtocolException(

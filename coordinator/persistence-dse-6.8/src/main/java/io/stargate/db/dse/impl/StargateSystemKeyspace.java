@@ -41,6 +41,10 @@ public class StargateSystemKeyspace {
     return peers;
   }
 
+  private static boolean supportDseProtocol =
+      "DsePersistence".equals(System.getProperty("stargate.persistence_id"))
+          || "CndbPersistence".equals(System.getProperty("stargate.persistence_id"));
+
   public StargateLocalInfo getLocal() {
     return local;
   }
@@ -52,7 +56,7 @@ public class StargateSystemKeyspace {
     local.setNativeProtocolVersion(String.valueOf(ProtocolVersion.CURRENT.asInt()));
     local.setDataCenter(DatabaseDescriptor.getLocalDataCenter());
     local.setRack(DatabaseDescriptor.getLocalRack());
-    local.setDseVersion(ProductVersion.getDSEVersion().toString());
+    if (supportDseProtocol) local.setDseVersion(ProductVersion.getDSEVersion().toString());
     local.setPartitioner(DatabaseDescriptor.getPartitioner().getClass().getName());
     local.setBroadcastAddress(FBUtilities.getBroadcastAddress());
     local.setListenAddress(FBUtilities.getLocalAddress());
