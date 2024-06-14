@@ -52,6 +52,7 @@ public class StargateSystemKeyspace {
     local.setNativeProtocolVersion(String.valueOf(ProtocolVersion.CURRENT.asInt()));
     local.setDataCenter(DatabaseDescriptor.getLocalDataCenter());
     local.setRack(DatabaseDescriptor.getLocalRack());
+    local.setDseVersion(ProductVersion.getDSEVersion().toString());
     local.setPartitioner(DatabaseDescriptor.getPartitioner().getClass().getName());
     local.setBroadcastAddress(FBUtilities.getBroadcastAddress());
     local.setListenAddress(FBUtilities.getLocalAddress());

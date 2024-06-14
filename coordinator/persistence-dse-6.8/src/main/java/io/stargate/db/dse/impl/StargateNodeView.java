@@ -17,6 +17,9 @@ public abstract class StargateNodeView extends AbstractVirtualTable {
         .addColumn("native_transport_address", info::getNativeAddress)
         // + "data_center text,"
         .addColumn("data_center", info::getDataCenter)
+
+        // + "data_center text,"
+        .addColumn("dse_version", info::getDseVersion)
         // + "host_id uuid,"
         .addColumn("host_id", info::getHostId)
         // + "rack text,"
@@ -40,7 +43,7 @@ public abstract class StargateNodeView extends AbstractVirtualTable {
         // + "dse_version text,"
         // This is set to null, otherwise the java-driver, and maybe other drivers, will attempt to
         // connect using the DSE_V1 and DSE_V2 protocols.
-        .addColumn("dse_version", () -> null)
+        // .addColumn("dse_version", () -> null)
         // + "graph boolean,"
         .addColumn("graph", () -> false)
         // + "server_id text,"
