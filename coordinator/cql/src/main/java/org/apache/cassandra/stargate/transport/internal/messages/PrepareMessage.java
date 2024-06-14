@@ -83,7 +83,7 @@ public class PrepareMessage extends Message.Request {
   @Override
   protected CompletableFuture<? extends Response> execute(long queryStartNanoTime) {
     CompletableFuture<Result.Prepared> future =
-        persistenceConnection().prepare(query, makeParameters());
+        persistenceConnection().prepare(query, makeParameters(keyspace));
     return future.thenApply(ResultMessage::new);
   }
 
