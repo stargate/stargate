@@ -15,7 +15,6 @@
  */
 package io.stargate.bridge.codec;
 
-import com.datastax.oss.driver.api.core.DefaultProtocolVersion;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.bridge.grpc.Values;
