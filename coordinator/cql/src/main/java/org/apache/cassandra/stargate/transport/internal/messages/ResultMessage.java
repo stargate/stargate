@@ -367,7 +367,7 @@ public class ResultMessage extends Message.Response {
     public Result decode(ByteBuf body, ProtocolVersion version) {
       MD5Digest id = MD5Digest.wrap(CBUtil.readBytes(body));
       MD5Digest resultMetadataId = null;
-      if (version.isGreaterOrEqualTo(ProtocolVersion.V5))
+      if (version.isGreaterOrEqualTo(ProtocolVersion.V5, ProtocolVersion.DSE_V2))
         resultMetadataId = MD5Digest.wrap(CBUtil.readBytes(body));
       Result.PreparedMetadata metadata = METADATA_CODEC.decode(body, version);
 
@@ -389,7 +389,7 @@ public class ResultMessage extends Message.Response {
       assert prepared.statementId != null;
 
       CBUtil.writeBytes(prepared.statementId.bytes, dest);
-      if (version.isGreaterOrEqualTo(ProtocolVersion.V5))
+      if (version.isGreaterOrEqualTo(ProtocolVersion.V5, ProtocolVersion.DSE_V2))
         CBUtil.writeBytes(prepared.resultMetadataId.bytes, dest);
 
       METADATA_CODEC.encode(prepared.metadata, dest, version);

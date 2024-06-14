@@ -138,6 +138,10 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
     return ret;
   }
 
+  public boolean isDse() {
+    return isDse(num);
+  }
+
   private static boolean isDse(int num) {
     return (num & DSE_VERSION_BIT) == DSE_VERSION_BIT;
   }
@@ -169,6 +173,17 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
 
   public final boolean isGreaterThan(ProtocolVersion other) {
     return num > other.num;
+  }
+  /**
+   * Return true if this is an OSS version greater or equal to the specified OSS version or if this
+   * is a DSE version greater or equal to the specified DSE version.
+   *
+   * @param ossVersion - the OSS version to compare this to, if this is a OSS version
+   * @param dseVersion - the DSE version to compare this to, if this is a DSE version
+   * @return true if this version is greater or equal to the matching version, as described above
+   */
+  public final boolean isGreaterOrEqualTo(ProtocolVersion ossVersion, ProtocolVersion dseVersion) {
+    return ordinal() >= (isDse() ? dseVersion.ordinal() : ossVersion.ordinal());
   }
 
   public final boolean isGreaterOrEqualTo(ProtocolVersion other) {
