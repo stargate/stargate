@@ -57,7 +57,8 @@ public class StargateSystemKeyspace {
     local.setDataCenter(DatabaseDescriptor.getLocalDataCenter());
     local.setRack(DatabaseDescriptor.getLocalRack());
     logger.info(
-        "Starting with protocol default protocol version as {}", ProtocolVersion.CURRENT.name());
+        "Starting with protocol default protocol version as {}",
+        org.apache.cassandra.stargate.transport.ProtocolVersion.CURRENT.name());
     if (org.apache.cassandra.stargate.transport.ProtocolVersion.supportDseProtocol)
       local.setDseVersion(ProductVersion.getDSEVersion().toString());
     local.setPartitioner(DatabaseDescriptor.getPartitioner().getClass().getName());

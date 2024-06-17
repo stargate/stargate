@@ -433,6 +433,7 @@
                     <stargate.test.persistence.module>persistence-dse-6.8</stargate.test.persistence.module>
                     <stargate.test.nodes>1</stargate.test.nodes>
                     <stargate.test.backend.vsearch>false</stargate.test.backend.vsearch>
+                    <stargate.enable.dsev2>true</stargate.enable.dsev2>
                   </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>
                   <reportsDirectory>target/failsafe-reports/dse-6.8</reportsDirectory>
@@ -445,7 +446,7 @@
       </build>
     </profile>
     <profile>
-      <id>it-dse-v2-6.8</id>
+      <id>it-dse-v4-6.8</id>
       <activation>
         <activeByDefault>false</activeByDefault>
       </activation>
@@ -467,7 +468,7 @@
                     <stargate.test.persistence.module>persistence-dse-6.8</stargate.test.persistence.module>
                     <stargate.test.nodes>1</stargate.test.nodes>
                     <stargate.test.backend.vsearch>false</stargate.test.backend.vsearch>
-                    <stargate.enable.dsev2>true</stargate.enable.dsev2>
+                    <stargate.enable.dsev2>false</stargate.enable.dsev2>
                   </systemPropertyVariables>
                   <failIfNoTests>true</failIfNoTests>
                   <reportsDirectory>target/failsafe-reports/dse-6.8</reportsDirectory>

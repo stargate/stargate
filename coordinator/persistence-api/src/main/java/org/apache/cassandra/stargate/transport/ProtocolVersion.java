@@ -74,6 +74,9 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
 
   static final ProtocolVersion MIN_DSE_VERSION = DSE_VERSIONS[0];
   static final ProtocolVersion MAX_DSE_VERSION = DSE_VERSIONS[DSE_VERSIONS.length - 1];
+
+  // This flag is a hack to enable dse protocol support only in case of dse persistence and
+  // explicitly enabled with a system property flag `stargate.enable_dse_protocol_v2`.
   public static boolean supportDseProtocol =
       ("DsePersistence".equals(System.getProperty("stargate.persistence_id"))
               || "CndbPersistence".equals(System.getProperty("stargate.persistence_id")))
