@@ -25,8 +25,12 @@ import org.apache.cassandra.schema.TableMetadata;
 import org.apache.cassandra.transport.ProtocolVersion;
 import org.apache.cassandra.utils.FBUtilities;
 import org.apache.cassandra.utils.MurmurHash;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class StargateSystemKeyspace {
+
+  private static Logger logger = LoggerFactory.getLogger(StargateSystemKeyspace.class);
   public static final String SYSTEM_KEYSPACE_NAME = "stargate_system";
   public static final String LOCAL_TABLE_NAME = "local";
   public static final String PEERS_TABLE_NAME = "peers";
@@ -41,10 +45,6 @@ public class StargateSystemKeyspace {
     return peers;
   }
 
-  private static boolean supportDseProtocol =
-      "DsePersistence".equals(System.getProperty("stargate.persistence_id"))
-          || "CndbPersistence".equals(System.getProperty("stargate.persistence_id"));
-
   public StargateLocalInfo getLocal() {
     return local;
   }
@@ -56,7 +56,10 @@ public class StargateSystemKeyspace {
     local.setNativeProtocolVersion(String.valueOf(ProtocolVersion.CURRENT.asInt()));
     local.setDataCenter(DatabaseDescriptor.getLocalDataCenter());
     local.setRack(DatabaseDescriptor.getLocalRack());
-    if (supportDseProtocol) local.setDseVersion(ProductVersion.getDSEVersion().toString());
+    logger.info(
+        "Starting with protocol default protocol version as {}", ProtocolVersion.CURRENT.name());
+    if (org.apache.cassandra.stargate.transport.ProtocolVersion.supportDseProtocol)
+      local.setDseVersion(ProductVersion.getDSEVersion().toString());
     local.setPartitioner(DatabaseDescriptor.getPartitioner().getClass().getName());
     local.setBroadcastAddress(FBUtilities.getBroadcastAddress());
     local.setListenAddress(FBUtilities.getLocalAddress());

@@ -25,6 +25,7 @@ import java.util.concurrent.CompletionStage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
@@ -41,6 +42,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
     initQueries = {
       "CREATE KEYSPACE IF NOT EXISTS dse_v2 WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':'1'}"
     })
+@EnabledIfSystemProperty(named = "stargate.enable.dsev2", matches = "true")
 public class Dsev2Test extends BaseIntegrationTest {
 
   @BeforeEach

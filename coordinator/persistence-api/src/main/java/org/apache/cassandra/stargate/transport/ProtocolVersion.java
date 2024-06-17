@@ -74,9 +74,10 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
 
   static final ProtocolVersion MIN_DSE_VERSION = DSE_VERSIONS[0];
   static final ProtocolVersion MAX_DSE_VERSION = DSE_VERSIONS[DSE_VERSIONS.length - 1];
-  private static boolean supportDseProtocol =
-      "DsePersistence".equals(System.getProperty("stargate.persistence_id"))
-          || "CndbPersistence".equals(System.getProperty("stargate.persistence_id"));
+  public static boolean supportDseProtocol =
+      ("DsePersistence".equals(System.getProperty("stargate.persistence_id"))
+              || "CndbPersistence".equals(System.getProperty("stargate.persistence_id")))
+          && Boolean.parseBoolean(System.getProperty("stargate.enable_dse_protocol_v2", "false"));
 
   /** All supported versions */
   public static final EnumSet<ProtocolVersion> SUPPORTED =
