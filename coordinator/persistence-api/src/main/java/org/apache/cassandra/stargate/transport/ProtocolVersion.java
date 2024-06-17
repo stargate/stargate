@@ -19,10 +19,10 @@
 package org.apache.cassandra.stargate.transport;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * The native (CQL binary) protocol version.
@@ -38,7 +38,9 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
   V2(2, "v2", false), // no longer supported
   V3(3, "v3", false),
   V4(4, "v4", false),
-  V5(5, "v5-beta", true);
+  V5(5, "v5-beta", true),
+  DSE_V1(0x40 | 1, "dse-v1", false),
+  DSE_V2(0x40 | 2, "dse-v2", false);
 
   /** The version number */
   private final int num;
@@ -55,40 +57,54 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
     this.beta = beta;
   }
 
+  /** Some utility constants for decoding DSE versions */
+  private static final byte DSE_VERSION_BIT = 0x40; // 0100 0000
+
   /**
    * The supported versions stored as an array, these should be private and are required for fast
    * decoding
    */
-  private static final ProtocolVersion[] SUPPORTED_VERSIONS = new ProtocolVersion[] {V3, V4, V5};
+  private static final ProtocolVersion[] OS_VERSIONS = new ProtocolVersion[] {V3, V4, V5};
 
-  static final ProtocolVersion MIN_SUPPORTED_VERSION = SUPPORTED_VERSIONS[0];
-  static final ProtocolVersion MAX_SUPPORTED_VERSION =
-      SUPPORTED_VERSIONS[SUPPORTED_VERSIONS.length - 1];
+  static final ProtocolVersion MIN_OS_VERSION = OS_VERSIONS[0];
+  static final ProtocolVersion MAX_OS_VERSION = OS_VERSIONS[OS_VERSIONS.length - 1];
 
-  /** All supported versions, published as an enumset */
+  /** The supported DSE versions */
+  static final ProtocolVersion[] DSE_VERSIONS = new ProtocolVersion[] {DSE_V1, DSE_V2};
+
+  static final ProtocolVersion MIN_DSE_VERSION = DSE_VERSIONS[0];
+  static final ProtocolVersion MAX_DSE_VERSION = DSE_VERSIONS[DSE_VERSIONS.length - 1];
+
+  // This flag is a hack to enable dse protocol support only in case of dse persistence and
+  // explicitly enabled with a system property flag `stargate.enable_dse_protocol_v2`.
+  public static boolean supportDseProtocol =
+      ("DsePersistence".equals(System.getProperty("stargate.persistence_id"))
+              || "CndbPersistence".equals(System.getProperty("stargate.persistence_id")))
+          && Boolean.parseBoolean(System.getProperty("stargate.enable_dse_protocol_v2", "false"));
+
+  /** All supported versions */
   public static final EnumSet<ProtocolVersion> SUPPORTED =
-      EnumSet.copyOf(Arrays.asList(SUPPORTED_VERSIONS));
+      supportDseProtocol ? EnumSet.of(V3, V4, V5, DSE_V1, DSE_V2) : EnumSet.of(V3, V4, V5);
+
+  public static final List<String> SUPPORTED_VERSION_NAMES =
+      SUPPORTED.stream().map(ProtocolVersion::toString).collect(Collectors.toList());
 
   /** Old unsupported versions, this is OK as long as we never add newer unsupported versions */
   public static final EnumSet<ProtocolVersion> UNSUPPORTED = EnumSet.complementOf(SUPPORTED);
 
   /** The preferred versions */
-  public static final ProtocolVersion CURRENT = V4;
+  public static final ProtocolVersion CURRENT = supportDseProtocol ? DSE_V2 : V4;
 
   public static final Optional<ProtocolVersion> BETA = Optional.of(V5);
 
   public static List<String> supportedVersions() {
-    List<String> ret = new ArrayList<>(SUPPORTED.size());
-    for (ProtocolVersion version : SUPPORTED) {
-      ret.add(version.toString());
-    }
-    return ret;
+    return SUPPORTED_VERSION_NAMES;
   }
 
   public static List<ProtocolVersion> supportedVersionsStartingWith(
       ProtocolVersion smallestVersion) {
-    ArrayList<ProtocolVersion> versions = new ArrayList<>(SUPPORTED_VERSIONS.length);
-    for (ProtocolVersion version : SUPPORTED_VERSIONS) {
+    ArrayList<ProtocolVersion> versions = new ArrayList<>(SUPPORTED.size());
+    for (ProtocolVersion version : SUPPORTED) {
       if (version.isGreaterOrEqualTo(smallestVersion)) {
         versions.add(version);
       }
@@ -97,31 +113,42 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
   }
 
   public static ProtocolVersion decode(int versionNum, boolean allowOlderProtocols) {
-    ProtocolVersion ret =
-        versionNum >= MIN_SUPPORTED_VERSION.num && versionNum <= MAX_SUPPORTED_VERSION.num
-            ? SUPPORTED_VERSIONS[versionNum - MIN_SUPPORTED_VERSION.num]
-            : null;
+    ProtocolVersion ret = null;
+    boolean isDseNumber = isDse(versionNum);
+    if (supportDseProtocol && isDseNumber) { // DSE version
+      if (versionNum >= MIN_DSE_VERSION.num && versionNum <= MAX_DSE_VERSION.num)
+        ret = DSE_VERSIONS[versionNum - MIN_DSE_VERSION.num];
+    } else { // OS version
+      if (versionNum >= MIN_OS_VERSION.num && versionNum <= MAX_OS_VERSION.num)
+        ret = OS_VERSIONS[versionNum - MIN_OS_VERSION.num];
+    }
 
     if (ret == null) {
       // if this is not a supported version check the old versions
       for (ProtocolVersion version : UNSUPPORTED) {
-        // if it is an old version that is no longer supported this ensures that we respond
+        // if it is an old version that is no longer supported this ensures that we reply
         // with that same version
-        if (version.num == versionNum) {
+        if (version.num == versionNum)
           throw new ProtocolException(ProtocolVersion.invalidVersionMessage(versionNum), version);
-        }
       }
 
-      // If the version is invalid response with the highest version that we support
-      throw new ProtocolException(invalidVersionMessage(versionNum), MAX_SUPPORTED_VERSION);
+      // If the version is invalid reply with the highest version of the same kind that we support
+      throw new ProtocolException(
+          invalidVersionMessage(versionNum), supportDseProtocol ? MAX_DSE_VERSION : MAX_OS_VERSION);
     }
-
     if (!allowOlderProtocols && ret.isSmallerThan(CURRENT)) {
       throw new ProtocolException(
           String.format("Rejecting Protocol Version %s < %s.", ret, ProtocolVersion.CURRENT));
     }
-
     return ret;
+  }
+
+  public boolean isDse() {
+    return isDse(num);
+  }
+
+  private static boolean isDse(int num) {
+    return (num & DSE_VERSION_BIT) == DSE_VERSION_BIT;
   }
 
   public boolean isBeta() {
@@ -152,6 +179,17 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
   public final boolean isGreaterThan(ProtocolVersion other) {
     return num > other.num;
   }
+  /**
+   * Return true if this is an OSS version greater or equal to the specified OSS version or if this
+   * is a DSE version greater or equal to the specified DSE version.
+   *
+   * @param ossVersion - the OSS version to compare this to, if this is a OSS version
+   * @param dseVersion - the DSE version to compare this to, if this is a DSE version
+   * @return true if this version is greater or equal to the matching version, as described above
+   */
+  public final boolean isGreaterOrEqualTo(ProtocolVersion ossVersion, ProtocolVersion dseVersion) {
+    return ordinal() >= (isDse() ? dseVersion.ordinal() : ossVersion.ordinal());
+  }
 
   public final boolean isGreaterOrEqualTo(ProtocolVersion other) {
     return num >= other.num;
@@ -177,6 +215,10 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
         return com.datastax.oss.driver.api.core.ProtocolVersion.V4;
       case V5:
         return com.datastax.oss.driver.api.core.ProtocolVersion.V5;
+      case DSE_V1:
+        return com.datastax.oss.driver.api.core.ProtocolVersion.DSE_V1;
+      case DSE_V2:
+        return com.datastax.oss.driver.api.core.ProtocolVersion.DSE_V2;
       default:
         throw new AssertionError("Unhandled protocol version: " + this);
     }

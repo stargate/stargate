@@ -7,6 +7,8 @@ import java.util.UUID;
 public abstract class StargateNodeInfo implements Cloneable {
   private volatile UUID hostId;
   private volatile String dataCenter;
+
+  private volatile String dseVersion;
   private volatile String rack;
   private volatile String releaseVersion;
   private volatile InetAddress nativeAddress;
@@ -31,6 +33,14 @@ public abstract class StargateNodeInfo implements Cloneable {
 
   public void setDataCenter(String dataCenter) {
     this.dataCenter = dataCenter;
+  }
+
+  public String getDseVersion() {
+    return dseVersion;
+  }
+
+  public void setDseVersion(String dseVersion) {
+    this.dseVersion = dseVersion;
   }
 
   public String getRack() {

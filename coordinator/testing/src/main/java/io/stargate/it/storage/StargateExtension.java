@@ -18,7 +18,6 @@ package io.stargate.it.storage;
 import static io.stargate.starter.Starter.STARTED_MESSAGE;
 import static java.lang.management.ManagementFactory.getRuntimeMXBean;
 
-import com.datastax.oss.driver.api.core.Version;
 import com.datastax.oss.driver.shaded.guava.common.io.Resources;
 import io.stargate.it.exec.OutputListener;
 import io.stargate.it.exec.ProcessRunner;
@@ -77,6 +76,12 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
 
   private static final String ARGS_PROVIDER_CLASS_NAME =
       System.getProperty("stargate.test.args.provider.class", ArgumentProviderImpl.class.getName());
+
+  private static final String PERSISTENCE_MODULE =
+      System.getProperty("stargate.test.persistence.module");
+
+  private static final boolean ENABLE_DSE_V2_PROTOCOL = Boolean.getBoolean("stargate.enable.dsev2");
+
   public static final File LIB_DIR = initLibDir();
   private static final int MAX_NODES = 20;
 
@@ -392,10 +397,19 @@ public class StargateExtension extends ExternalResource<StargateSpec, StargateEx
       cmd.addArgument("-Dstargate.libdir=" + LIB_DIR.getAbsolutePath());
       cmd.addArgument("-Dstargate.bundle.cache.dir=" + cacheDir.getAbsolutePath());
 
+      // Java 11+ requires these flags to allow reflection to work
+      cmd.addArgument("--add-exports");
+      cmd.addArgument("java.base/jdk.internal.ref=ALL-UNNAMED");
+      cmd.addArgument("--add-exports");
+      cmd.addArgument("java.base/jdk.internal.misc=ALL-UNNAMED");
+
       if (backend.isDse()) {
         cmd.addArgument("-Dstargate.request_timeout_in_ms=60000");
         cmd.addArgument("-Dstargate.write_request_timeout_in_ms=60000");
         cmd.addArgument("-Dstargate.read_request_timeout_in_ms=60000");
+        if (ENABLE_DSE_V2_PROTOCOL) {
+          cmd.addArgument("-Dstargate.enable_dse_protocol_v2=true");
+        }
       }
 
       cmd.addArgument("-Dstargate.enable_user_defined_functions=true");
