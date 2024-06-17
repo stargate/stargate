@@ -18,6 +18,7 @@ package io.stargate.it.storage;
 import static io.stargate.starter.Starter.STARTED_MESSAGE;
 import static java.lang.management.ManagementFactory.getRuntimeMXBean;
 
+import com.datastax.oss.driver.api.core.Version;
 import com.datastax.oss.driver.shaded.guava.common.io.Resources;
 import io.stargate.it.exec.OutputListener;
 import io.stargate.it.exec.ProcessRunner;
