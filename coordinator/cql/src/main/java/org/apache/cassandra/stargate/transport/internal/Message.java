@@ -272,10 +272,11 @@ public abstract class Message {
           .build();
     }
 
-    protected Parameters makeParameters() {
+    protected Parameters makeParameters(String keyspace) {
       return ImmutableParameters.builder()
           .customPayload(Optional.ofNullable(getCustomPayload()))
           .tracingRequested(isTracingRequested())
+          .defaultKeyspace(Optional.ofNullable(keyspace))
           .build();
     }
   }
