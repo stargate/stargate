@@ -36,7 +36,7 @@ public class ExecuteMessage extends Message.Request {
           MD5Digest statementId = MD5Digest.wrap(CBUtil.readBytes(body));
 
           MD5Digest resultMetadataId = null;
-          if (version.isGreaterOrEqualTo(ProtocolVersion.V5))
+          if (version.isGreaterOrEqualTo(ProtocolVersion.V5, ProtocolVersion.DSE_V2))
             resultMetadataId = MD5Digest.wrap(CBUtil.readBytes(body));
 
           return new ExecuteMessage(
@@ -47,7 +47,7 @@ public class ExecuteMessage extends Message.Request {
         public void encode(ExecuteMessage msg, ByteBuf dest, ProtocolVersion version) {
           CBUtil.writeBytes(msg.statementId.bytes, dest);
 
-          if (version.isGreaterOrEqualTo(ProtocolVersion.V5))
+          if (version.isGreaterOrEqualTo(ProtocolVersion.V5, ProtocolVersion.DSE_V2))
             CBUtil.writeBytes(msg.resultMetadataId.bytes, dest);
 
           if (version == ProtocolVersion.V1) {

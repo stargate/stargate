@@ -31,7 +31,7 @@ public class PrepareMessage extends Message.Request {
         public PrepareMessage decode(ByteBuf body, ProtocolVersion version) {
           String query = CBUtil.readLongString(body);
           String keyspace = null;
-          if (version.isGreaterOrEqualTo(ProtocolVersion.V5)) {
+          if (version.isGreaterOrEqualTo(ProtocolVersion.V5, ProtocolVersion.DSE_V2)) {
             // If flags grows, we may want to consider creating a PrepareOptions class with an
             // internal codec
             // class that handles flags and options of the prepare message. Since there's only one
@@ -47,7 +47,7 @@ public class PrepareMessage extends Message.Request {
         @Override
         public void encode(PrepareMessage msg, ByteBuf dest, ProtocolVersion version) {
           CBUtil.writeLongString(msg.query, dest);
-          if (version.isGreaterOrEqualTo(ProtocolVersion.V5)) {
+          if (version.isGreaterOrEqualTo(ProtocolVersion.V5, ProtocolVersion.DSE_V2)) {
             // If we have no keyspace, write out a 0-valued flag field.
             if (msg.keyspace == null) dest.writeInt(0x0);
             else {
@@ -60,7 +60,7 @@ public class PrepareMessage extends Message.Request {
         @Override
         public int encodedSize(PrepareMessage msg, ProtocolVersion version) {
           int size = CBUtil.sizeOfLongString(msg.query);
-          if (version.isGreaterOrEqualTo(ProtocolVersion.V5)) {
+          if (version.isGreaterOrEqualTo(ProtocolVersion.V5, ProtocolVersion.DSE_V2)) {
             // We always emit a flags int
             size += 4;
 
@@ -83,7 +83,7 @@ public class PrepareMessage extends Message.Request {
   @Override
   protected CompletableFuture<? extends Response> execute(long queryStartNanoTime) {
     CompletableFuture<Result.Prepared> future =
-        persistenceConnection().prepare(query, makeParameters());
+        persistenceConnection().prepare(query, makeParameters(keyspace));
     return future.thenApply(ResultMessage::new);
   }
 

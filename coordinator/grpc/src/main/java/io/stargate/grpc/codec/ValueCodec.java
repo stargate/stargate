@@ -15,7 +15,6 @@
  */
 package io.stargate.grpc.codec;
 
-import com.datastax.oss.driver.api.core.DefaultProtocolVersion;
 import com.datastax.oss.driver.api.core.ProtocolVersion;
 import edu.umd.cs.findbugs.annotations.NonNull;
 import io.stargate.db.schema.Column.ColumnType;
@@ -70,12 +69,6 @@ public interface ValueCodec {
    * @return The default protocol version supported by Stargate.
    */
   static ProtocolVersion defaultProtocolVersion() {
-    final int current = org.apache.cassandra.stargate.transport.ProtocolVersion.CURRENT.asInt();
-    for (ProtocolVersion version : DefaultProtocolVersion.values()) {
-      if (version.getCode() == current) {
-        return version;
-      }
-    }
-    throw new AssertionError("No matching protocol version");
+    return org.apache.cassandra.stargate.transport.ProtocolVersion.CURRENT.toDriverVersion();
   }
 }

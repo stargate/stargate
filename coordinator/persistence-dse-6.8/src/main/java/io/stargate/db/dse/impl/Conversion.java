@@ -679,10 +679,27 @@ public class Conversion {
     return Conversion.toExternal(metadata.getResultMetadataId());
   }
 
+  // Dse and stargate enums are different
+  private static final Map<Integer, Result.Flag> globalTablesSpec =
+      new HashMap<Integer, Result.Flag>() {
+        {
+          put(ResultSet.ResultSetFlag.GLOBAL_TABLES_SPEC, Result.Flag.GLOBAL_TABLES_SPEC);
+          put(ResultSet.ResultSetFlag.HAS_MORE_PAGES, Result.Flag.HAS_MORE_PAGES);
+          put(ResultSet.ResultSetFlag.METADATA_CHANGED, Result.Flag.METADATA_CHANGED);
+        }
+      };
+
   private static void addFlagIfContains(
       EnumSet<Result.Flag> flags, ResultSet.ResultMetadata metadata, int flag) {
     if (Flags.contains(metadata.getFlags(), flag)) {
-      flags.add(Result.Flag.fromId(flag));
+      try {
+        Result.Flag resultFlag = globalTablesSpec.get(flag);
+        if (resultFlag == null) resultFlag = Result.Flag.fromId(flag);
+        flags.add(resultFlag);
+      } catch (Exception e) {
+        logger.error("Unknown flag {} {}", flag, globalTablesSpec);
+        throw e;
+      }
     }
   }
 }
