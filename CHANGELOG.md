@@ -1,4 +1,10 @@
-# Changelog
+## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.27...HEAD)
+
+**Closed issues:**
+
+- Backport Quarkus upgrade and improved HTTP metrics tagging to main [\#2871](https://github.com/stargate/stargate/issues/2871)
 
 ## [v2.0.27](https://github.com/stargate/stargate/tree/v2.0.27) (2024-05-08)
 

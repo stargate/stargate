@@ -58,6 +58,7 @@ public class WriteBridgeService {
   private final boolean treatBooleansAsNumeric;
   private final DocumentProperties documentProperties;
   private final QueriesConfig queriesConfig;
+  private static final long BATCH_PAYLOAD_SIZE_LIMIT = 4 * 1024 * 1024;
 
   @Inject
   public WriteBridgeService(
@@ -592,8 +593,19 @@ public class WriteBridgeService {
                             .setValue(queriesConfig.consistency().writes())));
     batchQueries.forEach(batch::addQueries);
     Batch batchBuilt = batch.build();
-    if (logger.isDebugEnabled()) {
-      logger.debug("Batch payload size : {}", batchBuilt.getSerializedSize());
+    if (batchBuilt.getSerializedSize() > BATCH_PAYLOAD_SIZE_LIMIT) {
+      logger.warn(
+          "Batch too large, exceeding the limit {}, Tenant: {}, Batch payload size : {} in bytes, Number of CQL Statements : {}",
+          BATCH_PAYLOAD_SIZE_LIMIT,
+          requestInfo.getTenantId().orElse(null),
+          batchBuilt.getSerializedSize(),
+          batchBuilt.getQueriesCount());
+    } else if (logger.isDebugEnabled()) {
+      logger.debug(
+          "Tenant: {}, Batch payload size : {} in bytes, Number of CQL Statements : {}",
+          requestInfo.getTenantId().orElse(null),
+          batchBuilt.getSerializedSize(),
+          batchBuilt.getQueriesCount());
     }
     return bridge.executeBatch(batchBuilt).map(QueryOuterClass.Response::getResultSet);
   }
