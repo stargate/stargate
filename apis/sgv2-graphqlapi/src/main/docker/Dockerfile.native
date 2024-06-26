@@ -14,7 +14,7 @@
 # docker run -i --rm -p 8080:8080 quarkus/sgv2-graphqlapi-quarkus
 #
 ###
-FROM registry.access.redhat.com/ubi8/ubi-minimal:8.8
+FROM registry.access.redhat.com/ubi8/openjdk-17-runtime:1.17
 WORKDIR /work/
 RUN chown 1001 /work \
     && chmod "g+rwX" /work \
