@@ -36,7 +36,7 @@ import org.jboss.resteasy.reactive.RestResponse;
 @SecurityRequirement(name = RestOpenApiConstants.SecuritySchemes.TOKEN)
 @Tag(ref = RestOpenApiConstants.Tags.DATA)
 @EndpointDisabled(
-    name = "stargate.rest.cql.disabled",
+    name = "stargate.rest.cql-disabled",
     stringValue = "true",
     disableIfMissing = true)
 public class CQLResource {

@@ -3,9 +3,8 @@
 
 stargate:
   rest:
-    cql:
-      # By default CQL endpoint (/v2/cql) is disabled: change to false to enable
-      disabled: true
+    # By default CQL endpoint (/v2/cql) is disabled: change to false to enable
+    cql-disabled: true
 
   # metrics properties
   # see io.stargate.sgv2.api.common.config.MetricsConfig for all config properties and options
