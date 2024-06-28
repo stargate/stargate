@@ -15,6 +15,7 @@
  */
 package io.stargate.cql.impl;
 
+import com.datastax.oss.driver.shaded.guava.common.util.concurrent.Uninterruptibles;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.Epoll;
 import io.netty.channel.epoll.EpollEventLoopGroup;
@@ -28,6 +29,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import org.apache.cassandra.stargate.config.Config;
 import org.apache.cassandra.stargate.metrics.ClientMetrics;
@@ -146,6 +148,7 @@ public class CqlImpl {
 
   public void stop() {
     persistence.setRpcReady(false);
+    Uninterruptibles.sleepUninterruptibly(3, TimeUnit.SECONDS);
     servers.forEach(CqlServer::stop);
     ClientMetrics.instance.shutdown();
   }

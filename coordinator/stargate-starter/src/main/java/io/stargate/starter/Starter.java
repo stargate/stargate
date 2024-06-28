@@ -473,6 +473,17 @@ public class Starter {
 
     log(STARTED_MESSAGE, Level.INFO);
 
+    Runtime.getRuntime()
+        .addShutdownHook(
+            new Thread(
+                () -> {
+                  try {
+                    stop();
+                  } catch (InterruptedException | BundleException e) {
+                    logerr("Error stopping bundles: " + e.getMessage(), Level.SEVERE);
+                  }
+                }));
+
     if (watchBundles && !disableBundlesWatch) {
       watchJarDirectory(JAR_DIRECTORY);
     }
