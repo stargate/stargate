@@ -60,13 +60,13 @@
     <!-- Quarkus -->
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-    <quarkus.platform.version>3.6.1</quarkus.platform.version>
+    <quarkus.platform.version>3.11.3</quarkus.platform.version>
     <!-- Cassandra dependencies -->
     <driver.version>4.17.0</driver.version>
     <!-- Testing -->
     <skipTests>false</skipTests>
     <skipUnitTests>${skipTests}</skipUnitTests>
-    <surefire-plugin.version>3.1.2</surefire-plugin.version>
+    <surefire-plugin.version>3.3.0</surefire-plugin.version>
     <!--
       Integration test properties, defaults to cassandra-40
       Please maintain default values for int-test in sync with io.stargate.sgv2.docsapi.testresource.StargateTestResource.Defaults
