@@ -23,7 +23,7 @@ public class RestApiV2QCqlIT extends RestApiV2QIntegrationTestBase {
   public static class Profile implements QuarkusTestProfile {
     @Override
     public Map<String, String> getConfigOverrides() {
-      return Map.of("stargate.rest.cql.disabled", "false");
+      return Map.of("stargate.rest.cql-disabled", "false");
     }
   }
 
