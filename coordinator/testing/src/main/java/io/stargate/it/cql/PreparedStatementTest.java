@@ -1,30 +1,29 @@
 package io.stargate.it.cql;
 
+import static io.stargate.it.cql.SetKeyspaceTestUtil.testSetKeyspace;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.datastax.oss.driver.api.core.CqlIdentifier;
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.cql.ColumnDefinition;
-import com.datastax.oss.driver.api.core.cql.ColumnDefinitions;
-import com.datastax.oss.driver.api.core.cql.PreparedStatement;
-import com.datastax.oss.driver.api.core.cql.ResultSet;
-import com.datastax.oss.driver.api.core.cql.Row;
+import com.datastax.oss.driver.api.core.cql.*;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import com.datastax.oss.driver.api.core.type.DataTypes;
 import com.datastax.oss.protocol.internal.util.Bytes;
 import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.driver.WithProtocolVersion;
 import java.nio.ByteBuffer;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
-public class PreparedStatementTest extends BaseIntegrationTest {
+public abstract class PreparedStatementTest extends BaseIntegrationTest {
 
   @BeforeEach
   public void createSchema(CqlSession session) {
@@ -195,5 +194,45 @@ public class PreparedStatementTest extends BaseIntegrationTest {
     assertThat(column3.getTable().asInternal()).isEqualTo("prepared_statement_test");
     assertThat(column3.getName().asInternal()).isEqualTo("c");
     assertThat(column3.getType()).isEqualTo(DataTypes.INT);
+  }
+
+  @WithProtocolVersion("V4")
+  public static class WithV4ProtocolVersionTest extends PreparedStatementTest {}
+
+  @WithProtocolVersion("V5")
+  public static class WithV5ProtocolVersionTest extends PreparedStatementTest {
+
+    @Test
+    @DisplayName("Should be able to set keyspace in prepare statement")
+    public void setKeyspaceTest(CqlSession session, TestInfo testInfo) {
+      testSetKeyspace(
+          session,
+          testInfo,
+          1,
+          (ks1, ks2) -> {
+            // Prepare statements
+            session.execute("USE " + ks1);
+            BoundStatement stmt =
+                session.prepare("INSERT INTO tab (k, v) VALUES (?, ?)").bind(1, 1);
+            session.execute(stmt);
+
+            stmt =
+                session
+                    .prepare(
+                        SimpleStatement.newInstance("INSERT INTO tab (k, v) VALUES (?, ?)")
+                            .setKeyspace(ks2))
+                    .bind(2, 2);
+            session.execute(stmt);
+          });
+    }
+
+    @Test
+    public void resultSetMetadataIdTest(CqlSession session) {
+      PreparedStatement prepared =
+          session.prepare("INSERT INTO prepared_statement_test (a, b, c) VALUES (1, 1, 1)");
+      ByteBuffer id = prepared.getResultMetadataId();
+      assertThat(id).isNotNull();
+      assertThat(id.hasRemaining()).isTrue();
+    }
   }
 }

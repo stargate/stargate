@@ -187,6 +187,14 @@ public class TransportDescriptor {
     return conf.native_transport_max_concurrent_connections_per_ip;
   }
 
+  public static int getNativeTransportReceiveQueueCapacityInBytes() {
+    return conf.native_transport_receive_queue_capacity_in_bytes;
+  }
+
+  public static void setNativeTransportReceiveQueueCapacityInBytes(int queueSize) {
+    conf.native_transport_receive_queue_capacity_in_bytes = queueSize;
+  }
+
   public static long nativeTransportIdleTimeout() {
     return conf.native_transport_idle_timeout_in_ms;
   }
@@ -207,6 +215,31 @@ public class TransportDescriptor {
 
   public static boolean getNativeTransportAllowOlderProtocols() {
     return conf.native_transport_allow_older_protocols;
+  }
+
+  public static int getConsecutiveMessageErrorsThreshold() {
+    return conf.consecutive_message_errors_threshold;
+  }
+
+  public static void setConsecutiveMessageErrorsThreshold(int value) {
+    conf.consecutive_message_errors_threshold = value;
+  }
+
+  // Cassandra {4.0.10} {DatabaseDescriptor}
+  public static int getFileCacheSizeInMB() {
+    if (conf.file_cache_size_in_mb == null) {
+      return 0;
+    } else {
+      return conf.file_cache_size_in_mb;
+    }
+  }
+
+  public static int getNetworkingCacheSizeInMB() {
+    if (conf.networking_cache_size_in_mb == null) {
+      return 0;
+    } else {
+      return conf.networking_cache_size_in_mb;
+    }
   }
 
   private static InetAddress getNetworkInterfaceAddress(

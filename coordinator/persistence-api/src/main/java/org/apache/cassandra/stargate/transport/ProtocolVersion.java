@@ -34,14 +34,15 @@ import java.util.stream.Collectors;
 public enum ProtocolVersion implements Comparable<ProtocolVersion> {
   // The order is important as it defines the chronological history of versions, which is used
   // to determine if a feature is supported or some serdes formats
+
   V1(1, "v1", false), // no longer supported
   V2(2, "v2", false), // no longer supported
   V3(3, "v3", false),
   V4(4, "v4", false),
-  V5(5, "v5-beta", true),
+  V5(5, "v5", false),
+  V6(6, "v6-beta", true),
   DSE_V1(0x40 | 1, "dse-v1", false),
   DSE_V2(0x40 | 2, "dse-v2", false);
-
   /** The version number */
   private final int num;
 
@@ -64,7 +65,7 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
    * The supported versions stored as an array, these should be private and are required for fast
    * decoding
    */
-  private static final ProtocolVersion[] OS_VERSIONS = new ProtocolVersion[] {V3, V4, V5};
+  private static final ProtocolVersion[] OS_VERSIONS = new ProtocolVersion[] {V3, V4, V5, V6};
 
   static final ProtocolVersion MIN_OS_VERSION = OS_VERSIONS[0];
   static final ProtocolVersion MAX_OS_VERSION = OS_VERSIONS[OS_VERSIONS.length - 1];
@@ -93,9 +94,9 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
   public static final EnumSet<ProtocolVersion> UNSUPPORTED = EnumSet.complementOf(SUPPORTED);
 
   /** The preferred versions */
-  public static final ProtocolVersion CURRENT = supportDseProtocol ? DSE_V2 : V4;
+  public static final ProtocolVersion CURRENT = supportDseProtocol ? DSE_V2 : V5;
 
-  public static final Optional<ProtocolVersion> BETA = Optional.of(V5);
+  public static final Optional<ProtocolVersion> BETA = Optional.of(V6);
 
   public static List<String> supportedVersions() {
     return SUPPORTED_VERSION_NAMES;
@@ -165,10 +166,6 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
     return num;
   }
 
-  public boolean supportsChecksums() {
-    return num >= V5.asInt();
-  }
-
   @Override
   public String toString() {
     // This format is mandated by the protocl specs for the SUPPORTED message, see OptionsMessage
@@ -215,6 +212,8 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
         return com.datastax.oss.driver.api.core.ProtocolVersion.V4;
       case V5:
         return com.datastax.oss.driver.api.core.ProtocolVersion.V5;
+      case V6:
+        return com.datastax.oss.driver.api.core.ProtocolVersion.V6;
       case DSE_V1:
         return com.datastax.oss.driver.api.core.ProtocolVersion.DSE_V1;
       case DSE_V2:

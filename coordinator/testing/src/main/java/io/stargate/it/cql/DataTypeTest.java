@@ -29,6 +29,7 @@ import com.datastax.oss.protocol.internal.util.Bytes;
 import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.driver.WithProtocolVersion;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.net.InetAddress;
@@ -48,7 +49,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
 
 @ExtendWith(CqlSessionExtension.class)
-public class DataTypeTest extends BaseIntegrationTest {
+public abstract class DataTypeTest extends BaseIntegrationTest {
 
   private static List<TypeSample<?>> allTypes;
 
@@ -163,4 +164,10 @@ public class DataTypeTest extends BaseIntegrationTest {
     }
     return address;
   }
+
+  @WithProtocolVersion("V4")
+  public static class WithV4ProtocolVersionTest extends DataTypeTest {}
+
+  @WithProtocolVersion("V5")
+  public static class WithV5ProtocolVersionTest extends DataTypeTest {}
 }

@@ -16,6 +16,8 @@
 package io.stargate.it;
 
 import com.datastax.oss.driver.api.core.Version;
+import com.datastax.oss.driver.api.core.config.OptionsMap;
+import com.datastax.oss.driver.api.core.config.TypedDriverOption;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import io.stargate.it.storage.ClusterSpec;
 import io.stargate.it.storage.StargateSpec;
@@ -65,5 +67,15 @@ public class BaseIntegrationTest {
   public static Instant now() {
     // Avoid using Instants with nanosecond precision as nanos may be lost on the server side
     return Instant.ofEpochMilli(System.currentTimeMillis());
+  }
+
+  public static OptionsMap withProtocolV5(OptionsMap config) {
+    config.put(TypedDriverOption.PROTOCOL_VERSION, "V5");
+    return config;
+  }
+
+  public static OptionsMap withProtocolV4(OptionsMap config) {
+    config.put(TypedDriverOption.PROTOCOL_VERSION, "V4");
+    return config;
   }
 }

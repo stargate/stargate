@@ -151,6 +151,7 @@ public class CqlSessionExtension
 
   private volatile StargateEnvironmentInfo stargate;
   private volatile CqlSessionSpec cqlSessionSpec;
+  private volatile WithProtocolVersion withProtocolVersion;
   private volatile CqlIdentifier keyspaceId;
   private volatile CqlSession session;
   private volatile List<InetSocketAddress> contactPoints;
@@ -244,6 +245,7 @@ public class CqlSessionExtension
     }
 
     cqlSessionSpec = getCqlSessionSpec(context);
+    withProtocolVersion = getWithProtocolVersion(context);
 
     try {
       contactPoints =
@@ -314,9 +316,24 @@ public class CqlSessionExtension
     return maybeSpec.orElse(DefaultCqlSessionSpec.INSTANCE);
   }
 
+  private WithProtocolVersion getWithProtocolVersion(ExtensionContext context) {
+    AnnotatedElement element =
+        context
+            .getElement()
+            .orElseThrow(() -> new IllegalStateException("Expected to have an element"));
+    Optional<WithProtocolVersion> maybeWithProtocolVersion =
+        AnnotationSupport.findAnnotation(element, WithProtocolVersion.class);
+    if (!maybeWithProtocolVersion.isPresent() && element instanceof Method) {
+      maybeWithProtocolVersion =
+          AnnotationSupport.findAnnotation(
+              ((Method) element).getDeclaringClass(), WithProtocolVersion.class);
+    }
+    return maybeWithProtocolVersion.orElse(null);
+  }
+
   private CqlSessionBuilder newSessionBuilder(ExtensionContext context) {
     OptionsMap options = defaultConfig();
-    maybeCustomizeOptions(options, cqlSessionSpec, context);
+    maybeCustomizeOptions(options, cqlSessionSpec, withProtocolVersion, context);
     CqlSessionBuilder builder = CqlSession.builder().withAuthCredentials("cassandra", "cassandra");
     builder = maybeCustomizeBuilder(builder, cqlSessionSpec, context);
     builder.withConfigLoader(DriverConfigLoader.fromMap(options)).addContactPoints(contactPoints);
@@ -345,7 +362,10 @@ public class CqlSessionExtension
   }
 
   private void maybeCustomizeOptions(
-      OptionsMap options, CqlSessionSpec cqlSessionSpec, ExtensionContext context) {
+      OptionsMap options,
+      CqlSessionSpec cqlSessionSpec,
+      WithProtocolVersion withProtocolVersion,
+      ExtensionContext context) {
     String methodName = cqlSessionSpec.customOptions().trim();
     if (!methodName.isEmpty()) {
       Method method =
@@ -353,6 +373,11 @@ public class CqlSessionExtension
               context.getRequiredTestClass(), methodName, OptionsMap.class);
       Object testInstance = context.getTestInstance().orElse(null);
       ReflectionUtils.invokeMethod(method, testInstance, options);
+    }
+    if (withProtocolVersion != null
+        && withProtocolVersion.value() != null
+        && !withProtocolVersion.value().isBlank()) {
+      options.put(TypedDriverOption.PROTOCOL_VERSION, withProtocolVersion.value().trim());
     }
   }
 

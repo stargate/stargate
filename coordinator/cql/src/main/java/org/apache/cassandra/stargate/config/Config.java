@@ -45,8 +45,15 @@ public class Config {
   public volatile long native_transport_max_concurrent_requests_in_bytes_per_ip = -1L;
   public volatile long native_transport_max_concurrent_requests_in_bytes = -1L;
 
+  public int native_transport_receive_queue_capacity_in_bytes = 1048576;
+  public volatile int consecutive_message_errors_threshold = 1;
+
   public long native_transport_idle_timeout_in_ms = 0L;
 
   @JsonSetter(nulls = Nulls.FAIL)
   public EncryptionOptions client_encryption_options = new EncryptionOptions();
+
+  public Integer networking_cache_size_in_mb;
+
+  public Integer file_cache_size_in_mb;
 }
