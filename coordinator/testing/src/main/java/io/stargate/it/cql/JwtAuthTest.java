@@ -18,6 +18,7 @@ import io.stargate.it.TestOrder;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.driver.WithProtocolVersion;
 import io.stargate.it.storage.StargateParameters;
 import io.stargate.it.storage.StargateSpec;
 import java.io.IOException;
@@ -44,7 +45,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
     })
 @Testcontainers(disabledWithoutDocker = true)
 @Order(TestOrder.LAST)
-public class JwtAuthTest extends BaseIntegrationTest {
+public abstract class JwtAuthTest extends BaseIntegrationTest {
 
   private final String keyspaceName = "store2";
   private final String tableName = "shopping_cart";
@@ -347,4 +348,10 @@ public class JwtAuthTest extends BaseIntegrationTest {
     assertThat(session.getMetadata().getKeyspace(keyspaceId))
         .hasValueSatisfying(ks -> assertThat(ks.getTable("foo")).isEmpty());
   }
+
+  @WithProtocolVersion("V4")
+  public static class WithV4ProtocolVersionTest extends JwtAuthTest {}
+
+  @WithProtocolVersion("V5")
+  public static class WithV5ProtocolVersionTest extends JwtAuthTest {}
 }

@@ -9,6 +9,7 @@ import com.datastax.oss.driver.api.core.data.CqlVector;
 import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
+import io.stargate.it.driver.WithProtocolVersion;
 import io.stargate.it.storage.ClusterConnectionInfo;
 import java.util.List;
 import org.junit.jupiter.api.BeforeAll;
@@ -19,7 +20,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec
-public class VectorTypeTest extends BaseIntegrationTest {
+public abstract class VectorTypeTest extends BaseIntegrationTest {
   private static final String CREATE_VECTOR_TABLE =
       "CREATE TABLE IF NOT EXISTS vector_table ("
           + "id int PRIMARY KEY, embedding vector<float, 5> "
@@ -75,4 +76,10 @@ public class VectorTypeTest extends BaseIntegrationTest {
     assertThat(rows.get(0).getInt(0)).isEqualTo(456);
     assertThat(rows.get(1).getInt(0)).isEqualTo(123);
   }
+
+  @WithProtocolVersion("V4")
+  public static class WithV4ProtocolVersionTest extends VectorTypeTest {}
+
+  @WithProtocolVersion("V5")
+  public static class WithV5ProtocolVersionTest extends VectorTypeTest {}
 }

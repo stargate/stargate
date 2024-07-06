@@ -1,28 +1,23 @@
 package io.stargate.it.cql;
 
+import static io.stargate.it.cql.NowInSecondsTestUtil.testNowInSeconds;
+import static io.stargate.it.cql.SetKeyspaceTestUtil.testSetKeyspace;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
 
 import com.datastax.oss.driver.api.core.CqlSession;
-import com.datastax.oss.driver.api.core.cql.BatchStatement;
-import com.datastax.oss.driver.api.core.cql.BatchStatementBuilder;
-import com.datastax.oss.driver.api.core.cql.BoundStatement;
-import com.datastax.oss.driver.api.core.cql.DefaultBatchType;
-import com.datastax.oss.driver.api.core.cql.PreparedStatement;
-import com.datastax.oss.driver.api.core.cql.QueryTrace;
-import com.datastax.oss.driver.api.core.cql.ResultSet;
-import com.datastax.oss.driver.api.core.cql.Row;
-import com.datastax.oss.driver.api.core.cql.SimpleStatement;
-import com.datastax.oss.driver.api.core.cql.Statement;
+import com.datastax.oss.driver.api.core.cql.*;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
+import io.stargate.it.driver.WithProtocolVersion;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateEnvironmentInfo;
 import java.util.Iterator;
 import java.util.List;
+import java.util.stream.IntStream;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInfo;
@@ -36,7 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE TABLE counter2 (k0 text PRIMARY KEY, c counter)",
       "CREATE TABLE counter3 (k0 text PRIMARY KEY, c counter)",
     })
-public class BatchStatementTest extends BaseIntegrationTest {
+public abstract class BatchStatementTest extends BaseIntegrationTest {
 
   private static final int batchCount = 100;
 
@@ -361,5 +356,47 @@ public class BatchStatementTest extends BaseIntegrationTest {
         .contains(queryTrace.getCoordinatorAddress().getAddress().getHostAddress());
     assertThat(queryTrace.getRequestType()).isEqualTo("Execute batch of CQL3 queries");
     assertThat(queryTrace.getEvents()).isNotEmpty();
+  }
+
+  @WithProtocolVersion("V4")
+  public static class WithV4ProtocolVersionTest extends BatchStatementTest {}
+
+  @WithProtocolVersion("V5")
+  public static class WithV5ProtocolVersionTest extends BatchStatementTest {
+
+    @Test
+    @DisplayName("Should use setKeyspace() with batch statement")
+    public void setKeyspaceTest(CqlSession session, TestInfo testInfo) {
+      testSetKeyspace(
+          session,
+          testInfo,
+          10,
+          (ks1, ks2) -> {
+            // Create a batch statement
+            BatchStatementBuilder batch = BatchStatement.builder(DefaultBatchType.UNLOGGED);
+            IntStream.range(0, 10)
+                .forEachOrdered(
+                    i ->
+                        batch.addStatement(
+                            SimpleStatement.newInstance(
+                                "INSERT INTO tab (k, v) VALUES (?, ?)", i, i)));
+            BatchStatement stmt1 = batch.build();
+            session.execute("USE " + ks1);
+            session.execute(stmt1);
+
+            batch.setKeyspace(ks2);
+            session.execute(batch.build());
+          });
+    }
+
+    @Test
+    @DisplayName("Should use setNowInSeconds() with batch statement")
+    public void batchStatementTest(CqlSession session) {
+      testNowInSeconds(
+          queryString ->
+              BatchStatement.newInstance(
+                  BatchType.LOGGED, SimpleStatement.newInstance(queryString)),
+          session);
+    }
   }
 }

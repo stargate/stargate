@@ -8,6 +8,7 @@ import com.datastax.oss.driver.api.core.cql.SimpleStatement;
 import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
+import io.stargate.it.driver.WithProtocolVersion;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,7 +25,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE KEYSPACE IF NOT EXISTS dynamic_comp_ks WITH REPLICATION = {'class':'SimpleStrategy', 'replication_factor':'1'}"
     })
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-public class DynamicCompositeTypeTest extends BaseIntegrationTest {
+public abstract class DynamicCompositeTypeTest extends BaseIntegrationTest {
   @BeforeEach
   public void initTable(CqlSession session) {
     session.execute(
@@ -85,4 +86,10 @@ public class DynamicCompositeTypeTest extends BaseIntegrationTest {
     assertThat(row.getString("stuff")).isEqualTo("something");
     assertThat(row.isNull("dct")).isTrue();
   }
+
+  @WithProtocolVersion("V4")
+  public static class WithV4ProtocolVersionTest extends DynamicCompositeTypeTest {}
+
+  @WithProtocolVersion("V5")
+  public static class WithV5ProtocolVersionTest extends DynamicCompositeTypeTest {}
 }

@@ -1,5 +1,6 @@
 package io.stargate.it.cql;
 
+import static io.stargate.it.cql.NowInSecondsTestUtil.testNowInSeconds;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -18,6 +19,7 @@ import com.datastax.oss.driver.api.core.servererrors.ProtocolError;
 import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
+import io.stargate.it.driver.WithProtocolVersion;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateEnvironmentInfo;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,7 +40,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       // table with composite partition key
       "CREATE TABLE IF NOT EXISTS test3 (pk1 int, pk2 int, v int, PRIMARY KEY ((pk1, pk2)))",
     })
-public class BoundStatementTest extends BaseIntegrationTest {
+public abstract class BoundStatementTest extends BaseIntegrationTest {
 
   private static final String KEY = "test";
   private static final int VALUE = 7;
@@ -205,5 +207,22 @@ public class BoundStatementTest extends BaseIntegrationTest {
     assertThat(queryTrace.getParameters().get("consistency_level")).isEqualTo("LOCAL_QUORUM");
     assertThat(queryTrace.getParameters().get("serial_consistency_level"))
         .isEqualTo("LOCAL_SERIAL");
+  }
+
+  @WithProtocolVersion("V4")
+  public static class WithV4ProtocolVersionTest extends BoundStatementTest {}
+
+  @WithProtocolVersion("V5")
+  public static class WithV5ProtocolVersionTest extends BoundStatementTest {
+    @Test
+    @DisplayName("Should use setNowInSeconds() with bound statement")
+    public void nowInSecondsTest(CqlSession session) {
+      testNowInSeconds(
+          queryString -> {
+            PreparedStatement preparedStatement = session.prepare(queryString);
+            return preparedStatement.bind();
+          },
+          session);
+    }
   }
 }

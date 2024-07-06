@@ -8,12 +8,13 @@ import com.datastax.oss.driver.api.core.cql.Row;
 import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.driver.WithProtocolVersion;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
-public class UdfTest extends BaseIntegrationTest {
+public abstract class UdfTest extends BaseIntegrationTest {
 
   @Test
   @DisplayName("Should create and invoke User-Defined Function")
@@ -31,4 +32,10 @@ public class UdfTest extends BaseIntegrationTest {
             .one();
     assertThat(row.getInt(0)).isEqualTo(1);
   }
+
+  @WithProtocolVersion("V4")
+  public static class WithV4ProtocolVersionTest extends UdfTest {}
+
+  @WithProtocolVersion("V5")
+  public static class WithV5ProtocolVersionTest extends UdfTest {}
 }

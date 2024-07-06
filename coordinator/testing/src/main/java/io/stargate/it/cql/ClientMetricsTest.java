@@ -26,6 +26,7 @@ import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.TestOrder;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
+import io.stargate.it.driver.WithProtocolVersion;
 import io.stargate.it.http.RestUtils;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateParameters;
@@ -48,7 +49,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @CqlSessionSpec(initQueries = {"CREATE TABLE IF NOT EXISTS test (k text, v int, PRIMARY KEY(k))"})
 @StargateSpec(parametersCustomizer = "buildParameters")
 @Order(TestOrder.LAST)
-public class ClientMetricsTest extends BaseIntegrationTest {
+public abstract class ClientMetricsTest extends BaseIntegrationTest {
   private static final Pattern MEMORY_HEAP_USAGE_REGEXP =
       Pattern.compile("(jvm_memory_heap_used\\s*)(\\d+.\\d+)");
 
@@ -160,4 +161,10 @@ public class ClientMetricsTest extends BaseIntegrationTest {
             .replace("}", "\\}");
     return getMetricValueOptional(body, metric, Pattern.compile(regex));
   }
+
+  @WithProtocolVersion("V4")
+  public static class WithV4ProtocolVersionTest extends ClientMetricsTest {}
+
+  @WithProtocolVersion("V5")
+  public static class WithV5ProtocolVersionTest extends ClientMetricsTest {}
 }
