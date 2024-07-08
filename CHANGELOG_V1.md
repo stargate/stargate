@@ -1,5 +1,83 @@
 # Changelog
 
+## [v1.0.84](https://github.com/stargate/stargate/tree/v1.0.84) (2024-06-07)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.83...v1.0.84)
+
+**Merged pull requests:**
+
+- Use a shutdown hook to unload bundles correctly [\#2944](https://github.com/stargate/stargate/pull/2944) ([tjake](https://github.com/tjake))
+- Bumping version for next release [\#2943](https://github.com/stargate/stargate/pull/2943) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v1.0.83](https://github.com/stargate/stargate/tree/v1.0.83) (2024-06-07)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.82...v1.0.83)
+
+**Merged pull requests:**
+
+- RM the shutdown hooks [\#2942](https://github.com/stargate/stargate/pull/2942) ([tjake](https://github.com/tjake))
+- Bumping version for next release [\#2941](https://github.com/stargate/stargate/pull/2941) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v1.0.82](https://github.com/stargate/stargate/tree/v1.0.82) (2024-06-07)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.81...v1.0.82)
+
+**Merged pull requests:**
+
+- Force shutdown message since fatClients usually cant [\#2940](https://github.com/stargate/stargate/pull/2940) ([tjake](https://github.com/tjake))
+- Bumping version for next release [\#2939](https://github.com/stargate/stargate/pull/2939) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v1.0.81](https://github.com/stargate/stargate/tree/v1.0.81) (2024-06-07)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.80...v1.0.81)
+
+**Merged pull requests:**
+
+- Drain messaging service and stop gossip on shutdown [\#2938](https://github.com/stargate/stargate/pull/2938) ([tjake](https://github.com/tjake))
+- Bumping version for next release [\#2937](https://github.com/stargate/stargate/pull/2937) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v1.0.80](https://github.com/stargate/stargate/tree/v1.0.80) (2024-06-05)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.79...v1.0.80)
+
+**Closed issues:**
+
+- Update to DSE 6.8.48 [\#2931](https://github.com/stargate/stargate/issues/2931)
+- Update to DSE 6.8.47 [\#2919](https://github.com/stargate/stargate/issues/2919)
+
+**Merged pull requests:**
+
+- Add delay for NEW\_NODE notification to allow time for k8s service setup [\#2935](https://github.com/stargate/stargate/pull/2935) ([tjake](https://github.com/tjake))
+- Bumping version to 1.0.80-SNAPSHOT [\#2891](https://github.com/stargate/stargate/pull/2891) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v1.0.79](https://github.com/stargate/stargate/tree/v1.0.79) (2024-02-06)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.78...v1.0.79)
+
+**Closed issues:**
+
+- Update to DSE 6.8.41 [\#2868](https://github.com/stargate/stargate/issues/2868)
+
+**Merged pull requests:**
+
+- Update dependencies to be compatible with DSE-6.8.41 \(SG/v1\) [\#2889](https://github.com/stargate/stargate/pull/2889) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update `coordinator/pom.xml` with version updates from main \(v2\) [\#2887](https://github.com/stargate/stargate/pull/2887) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v1.0.78](https://github.com/stargate/stargate/tree/v1.0.78) (2024-02-05)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.77...v1.0.78)
+
+**Closed issues:**
+
+- Update "dse-next" to latest available version 4.0.11-0248d170a615 \(2024-01-24\) [\#2876](https://github.com/stargate/stargate/issues/2876)
+- Support tagging all http.server metrics by tenant [\#2843](https://github.com/stargate/stargate/issues/2843)
+
+**Merged pull requests:**
+
+- Backport \#2539 in `v1` to upgrade DSE 6.8.33 -\> 6.8.34 [\#2882](https://github.com/stargate/stargate/pull/2882) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix Stargate V1 CI wrt ccm failure \(backport from v2\) [\#2881](https://github.com/stargate/stargate/pull/2881) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fixes \#2868: update DSE backend from 6.8.33 to 6.8.41 [\#2879](https://github.com/stargate/stargate/pull/2879) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v1.0.77](https://github.com/stargate/stargate/tree/v1.0.77) (2023-06-20)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.76...v1.0.77)
@@ -11,7 +89,7 @@
 
 ## [v1.0.76](https://github.com/stargate/stargate/tree/v1.0.76) (2023-04-26)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.75...v1.0.76)
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.74.1...v1.0.76)
 
 **Merged pull requests:**
 
