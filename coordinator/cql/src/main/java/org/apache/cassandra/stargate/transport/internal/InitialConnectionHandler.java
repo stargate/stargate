@@ -32,8 +32,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.ExecutionException;
 import org.apache.cassandra.net.AsyncChannelPromise;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
@@ -41,6 +39,7 @@ import org.apache.cassandra.stargate.transport.ServerError;
 import org.apache.cassandra.stargate.transport.internal.messages.ErrorMessage;
 import org.apache.cassandra.stargate.transport.internal.messages.StartupMessage;
 import org.apache.cassandra.stargate.transport.internal.messages.SupportedMessage;
+import org.apache.cassandra.utils.Throwables;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -165,14 +164,9 @@ public class InitialConnectionHandler extends ByteToMessageDecoder {
               (res, error) -> {
                 Envelope outboundInternal;
                 if (error != null) {
-                  if (error instanceof ExecutionException) error = error.getCause();
-                  if (error instanceof CompletionException) error = error.getCause();
+                  logger.trace("Error processing STARTUP message", error);
                   ErrorMessage errorMessage =
-                      ErrorMessage.fromException(
-                          new ProtocolException(
-                              String.format(
-                                  "Unexpected message %s, expecting STARTUP or OPTIONS",
-                                  inbound.header.type)));
+                      ErrorMessage.fromException(Throwables.unwrapped(error));
                   outboundInternal = errorMessage.encode(inbound.header.version);
                   ctx.writeAndFlush(outboundInternal);
                 } else {

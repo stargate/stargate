@@ -651,7 +651,13 @@ public class DsePersistence
               org.apache.cassandra.utils.MD5Digest id =
                   Conversion.toInternal(((BoundStatement) statement).preparedId());
               // The 'resultMetadataId' is a protocol v5 feature we don't yet support
-              return new ExecuteMessage(id, null, options);
+              return new ExecuteMessage(
+                  id,
+                  parameters
+                      .resultSetMetadataId()
+                      .map(md5 -> MD5Digest.wrap(md5.bytes))
+                      .orElse(null),
+                  options);
             }
           });
     }
