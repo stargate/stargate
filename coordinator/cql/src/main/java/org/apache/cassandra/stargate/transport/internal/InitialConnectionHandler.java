@@ -117,7 +117,8 @@ public class InitialConnectionHandler extends ByteToMessageDecoder {
               ClientResourceLimits.getAllocatorForEndpoint(remoteAddress);
 
           ChannelPromise promise;
-          if (inbound.header.version.isGreaterOrEqualTo(ProtocolVersion.V5)) {
+          if (inbound.header.version.isGreaterOrEqualTo(ProtocolVersion.V5)
+              && !inbound.header.version.isDse()) {
             // in this case we need to defer configuring the pipeline until after the response
             // has been sent, as the frame encoding specified in v5 should not be applied to
             // the STARTUP response.

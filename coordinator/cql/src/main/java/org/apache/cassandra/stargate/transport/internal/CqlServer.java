@@ -247,10 +247,11 @@ public class CqlServer {
     private static final ChannelMatcher PRE_V5_CHANNEL =
         channel ->
             channel
-                .attr(Connection.attributeKey)
-                .get()
-                .getVersion()
-                .isSmallerThan(ProtocolVersion.V5);
+                    .attr(Connection.attributeKey)
+                    .get()
+                    .getVersion()
+                    .isSmallerThan(ProtocolVersion.V5)
+                || channel.attr(Connection.attributeKey).get().getVersion().isDse();
     public final ChannelGroup allChannels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
     private final EnumMap<Event.Type, ChannelGroup> groups = new EnumMap<>(Event.Type.class);
     private final ProtocolVersionTracker protocolVersionTracker = new ProtocolVersionTracker();
