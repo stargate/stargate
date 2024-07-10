@@ -22,6 +22,9 @@ import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.graphql.integration.util.CqlFirstIntegrationTest;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -33,6 +36,9 @@ import org.junit.jupiter.api.TestInstance;
 @QuarkusTestResource(StargateTestResource.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class AtomicBatchIntegrationTest extends CqlFirstIntegrationTest {
+  private static final String ONE_DAY_TTL = "86400";
+  private static final String TTL_FUNCTION_NAME = "ttl";
+  private static final String WRITETIME_FUNCTION_NAME = "writetime";
 
   @BeforeAll
   public void createSchema() {
@@ -266,5 +272,85 @@ public class AtomicBatchIntegrationTest extends CqlFirstIntegrationTest {
     assertThat(JsonPath.<Integer>read(response, "$.bulkInsertfoo[1].value.k")).isEqualTo(1);
     assertThat(JsonPath.<Integer>read(response, "$.bulkInsertfoo[1].value.cc")).isEqualTo(4);
     assertThat(JsonPath.<Integer>read(response, "$.bulkInsertfoo[1].value.v")).isEqualTo(4);
+  }
+
+  @Test
+  @DisplayName("Should set correct write timestamp and TTL")
+  public void successfulBatchWithTTL() {
+    // Get current micros since epoch to compare the write timestamp with
+    long microsSinceEpoch = ChronoUnit.MICROS.between(Instant.EPOCH, Instant.now());
+
+    // Given
+    String query =
+        "mutation @atomic {\n"
+            + "  update1: updatefoo(value: { k: 1, cc: 1, v: 3 }, options: { ttl: 86400 }) {\n"
+            + "    applied, value { k, cc, v}\n"
+            + "  }\n"
+            + "  update2: updatefoo(value: { k: 1, cc: 2, v: 4 }, options: { ttl: 86400 }) {\n"
+            + "    applied, value { k, cc, v}\n"
+            + "  }\n"
+            + "}";
+
+    // When
+    Map<String, Object> response = client.executeDmlQuery(keyspaceId.asInternal(), query);
+
+    // Then
+    assertThat(JsonPath.<Boolean>read(response, "$.update1.applied")).isTrue();
+    assertThat(JsonPath.<Integer>read(response, "$.update1.value.k")).isEqualTo(1);
+    assertThat(JsonPath.<Integer>read(response, "$.update1.value.cc")).isEqualTo(1);
+    assertThat(JsonPath.<Integer>read(response, "$.update1.value.v")).isEqualTo(3);
+
+    assertThat(JsonPath.<Boolean>read(response, "$.update2.applied")).isTrue();
+    assertThat(JsonPath.<Integer>read(response, "$.update2.value.k")).isEqualTo(1);
+    assertThat(JsonPath.<Integer>read(response, "$.update2.value.cc")).isEqualTo(2);
+    assertThat(JsonPath.<Integer>read(response, "$.update2.value.v")).isEqualTo(4);
+
+    // Verify column and writetime values
+    String getQueryTemplate =
+        "query getAll {\n"
+            + "  foo {\n"
+            + "    values {\n"
+            + "      k\n"
+            + "      cc\n"
+            + "      v\n"
+            + "      v_%s: _bigint_function(name:\"%s\", args: [\"v\"])\n"
+            + "    }\n"
+            + "  }\n"
+            + "}";
+
+    response =
+        client.executeDmlQuery(
+            keyspaceId.asInternal(),
+            String.format(getQueryTemplate, WRITETIME_FUNCTION_NAME, WRITETIME_FUNCTION_NAME));
+
+    Map<String, Map<String, List<Map<String, Object>>>> row =
+        JsonPath.read(response, "$.foo.values[0]");
+
+    assertThat(JsonPath.<Integer>read(row, "k")).isEqualTo(1);
+    assertThat(JsonPath.<Integer>read(row, "cc")).isEqualTo(1);
+    assertThat(JsonPath.<Integer>read(row, "v")).isEqualTo(3);
+    String vWriteTime = JsonPath.<String>read(row, "v_writetime");
+    assertThat(Long.valueOf(vWriteTime)).isGreaterThanOrEqualTo(microsSinceEpoch);
+
+    row = JsonPath.read(response, "$.foo.values[1]");
+    assertThat(JsonPath.<Integer>read(row, "k")).isEqualTo(1);
+    assertThat(JsonPath.<Integer>read(row, "cc")).isEqualTo(2);
+    assertThat(JsonPath.<Integer>read(row, "v")).isEqualTo(4);
+    vWriteTime = JsonPath.<String>read(row, "v_writetime");
+    assertThat(Long.valueOf(vWriteTime)).isGreaterThanOrEqualTo(microsSinceEpoch);
+
+    // Issue a separate query to check TTL due to aggregate functions overwriting each other
+    // https://github.com/stargate/stargate/issues/1682
+    response =
+        client.executeDmlQuery(
+            keyspaceId.asInternal(),
+            String.format(getQueryTemplate, TTL_FUNCTION_NAME, TTL_FUNCTION_NAME));
+
+    for (int i = 0; i <= 1; i++) {
+      row = JsonPath.read(response, String.format("$.foo.values[%d]", i));
+      String vTtl = JsonPath.<String>read(row, "v_ttl");
+      // The TTL value will be slightly smaller than ONE_DAY_TTL
+      assertThat(Long.valueOf(vTtl)).isBetween(0L, Long.valueOf(ONE_DAY_TTL));
+    }
   }
 }
