@@ -1,5 +1,18 @@
 # Changelog
 
+## [v1.0.85](https://github.com/stargate/stargate/tree/v1.0.85) (2024-07-10)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-13...v1.0.85)
+
+**Closed issues:**
+
+- Update to DSE 6.8.49 [\#2947](https://github.com/stargate/stargate/issues/2947)
+
+**Merged pull requests:**
+
+- Update DSE from 6.8.41 to 6.8.50 [\#2974](https://github.com/stargate/stargate/pull/2974) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release [\#2945](https://github.com/stargate/stargate/pull/2945) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v1.0.84](https://github.com/stargate/stargate/tree/v1.0.84) (2024-06-07)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.83...v1.0.84)
