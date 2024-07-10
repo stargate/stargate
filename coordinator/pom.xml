@@ -723,7 +723,7 @@
       <!-- 14-Jun-2022, tatu: with java-driver-core 4.14+ this dependency is optional
             and not brought as compile-time dependency, so needs to be explicitly added
            (see [stargate#1889] for details). But we better use consistent version
-      -->
+        -->
       <!-- 13-Apr-2023, tatu: And now DSE-6.8.34 upgraded version to 2.2.4 (from 1.2.1)
 	     let's hope things still work
 	-->
