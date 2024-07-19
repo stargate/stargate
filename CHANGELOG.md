@@ -45,6 +45,8 @@
 - Removed v2.1.0 updates [\#2927](https://github.com/stargate/stargate/pull/2927) ([kathirsvn](https://github.com/kathirsvn))
 - Bumping version for next v2.0 release [\#2925](https://github.com/stargate/stargate/pull/2925) ([github-actions[bot]](https://github.com/apps/github-actions))
 
+## [v2.0.27](https://github.com/stargate/stargate/tree/v2.0.27) (2024-05-08)
+
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.26...v2.0.27)
 
 **Closed issues:**
