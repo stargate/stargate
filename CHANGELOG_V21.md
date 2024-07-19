@@ -1,8 +1,24 @@
 # Changelog
 
+## [v2.1.0-BETA-13](https://github.com/stargate/stargate/tree/v2.1.0-BETA-13) (2024-07-09)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-12...v2.1.0-BETA-13)
+
+**Merged pull requests:**
+
+- Merge from main to v21 [\#2971](https://github.com/stargate/stargate/pull/2971) ([kathirsvn](https://github.com/kathirsvn))
+- Merge changes from main branch \(v2.0.30-SNAPSHOT\) [\#2965](https://github.com/stargate/stargate/pull/2965) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Merge main \(v2.0\) to v2.1 [\#2962](https://github.com/stargate/stargate/pull/2962) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Merge main \(v2.0\) changes to v2.1 [\#2957](https://github.com/stargate/stargate/pull/2957) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Dse v2 protocol support [\#2952](https://github.com/stargate/stargate/pull/2952) ([maheshrajamani](https://github.com/maheshrajamani))
+- Merge DSE 6.8.48 upgrade from main to v2.1 [\#2934](https://github.com/stargate/stargate/pull/2934) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Manual merge of DSE-6.8.47 upgrade from v2.0.x [\#2930](https://github.com/stargate/stargate/pull/2930) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Merge main to v2.1 [\#2928](https://github.com/stargate/stargate/pull/2928) ([kathirsvn](https://github.com/kathirsvn))
+- Bumping version for next v2.1 release [\#2926](https://github.com/stargate/stargate/pull/2926) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.1.0-BETA-12](https://github.com/stargate/stargate/tree/v2.1.0-BETA-12) (2024-05-08)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.27...v2.1.0-BETA-12)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-11...v2.1.0-BETA-12)
 
 **Closed issues:**
 
