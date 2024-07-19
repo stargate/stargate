@@ -33,6 +33,7 @@
 
 **Closed issues:**
 
+- Backport Quarkus upgrade and improved HTTP metrics tagging to main
 - Can't clone repo on Windows [\#2946](https://github.com/stargate/stargate/issues/2946)
 
 **Merged pull requests:**
