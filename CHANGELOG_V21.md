@@ -2,7 +2,7 @@
 
 ## [v2.1.0-BETA-13](https://github.com/stargate/stargate/tree/v2.1.0-BETA-13) (2024-07-09)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.30...v2.1.0-BETA-13)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-12...v2.1.0-BETA-13)
 
 **Merged pull requests:**
 
@@ -16,54 +16,9 @@
 - Merge main to v2.1 [\#2928](https://github.com/stargate/stargate/pull/2928) ([kathirsvn](https://github.com/kathirsvn))
 - Bumping version for next v2.1 release [\#2926](https://github.com/stargate/stargate/pull/2926) ([github-actions[bot]](https://github.com/apps/github-actions))
 
-## [v2.0.30](https://github.com/stargate/stargate/tree/v2.0.30) (2024-07-08)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.29...v2.0.30)
-
-**Closed issues:**
-
-- Update Quarkus from 3.6 to 3.12 to resolve CVEs [\#2963](https://github.com/stargate/stargate/issues/2963)
-- Update Stargate API base image from /ubi8/openjdk-17-runtime:1.17 to /ubi8/openjdk-17-runtime:1.20 [\#2960](https://github.com/stargate/stargate/issues/2960)
-- scylladb stargate intigration problem problem [\#2959](https://github.com/stargate/stargate/issues/2959)
-- Update Stargate 2.0/2.1 API native base images from `redhat/ubi8-mnimal:8.8` to `redhat/ubi8/openjdk-17-runtime:1.17` [\#2956](https://github.com/stargate/stargate/issues/2956)
-
-**Merged pull requests:**
-
-- Merge from v1 [\#2966](https://github.com/stargate/stargate/pull/2966) ([kathirsvn](https://github.com/kathirsvn))
-- Fixes \#2963: upgrade Quarkus from 3.6.1 to the latest \(3.12.0\) version to resolve CVEs [\#2964](https://github.com/stargate/stargate/pull/2964) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Fixes \#2960: updates API Docker base images to latest [\#2961](https://github.com/stargate/stargate/pull/2961) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Fix \#2956: change Docker base images for API/native \(to resolve CVEs\) [\#2958](https://github.com/stargate/stargate/pull/2958) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version for next v2.0 release [\#2955](https://github.com/stargate/stargate/pull/2955) ([github-actions[bot]](https://github.com/apps/github-actions))
-
-## [v2.0.29](https://github.com/stargate/stargate/tree/v2.0.29) (2024-06-17)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.28...v2.0.29)
-
-**Merged pull requests:**
-
-- Bumping version for next v2.0 release [\#2954](https://github.com/stargate/stargate/pull/2954) ([github-actions[bot]](https://github.com/apps/github-actions))
-
-## [v2.0.28](https://github.com/stargate/stargate/tree/v2.0.28) (2024-06-17)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.84...v2.0.28)
-
-**Closed issues:**
-
-- Can't clone repo on Windows [\#2946](https://github.com/stargate/stargate/issues/2946)
-
-**Merged pull requests:**
-
-- Cherry Dse-v2 PR to main \(Stargate 2.0\) [\#2953](https://github.com/stargate/stargate/pull/2953) ([maheshrajamani](https://github.com/maheshrajamani))
-- fix windows reserved word 'aux' [\#2948](https://github.com/stargate/stargate/pull/2948) ([Yuqi-Du](https://github.com/Yuqi-Du))
-- Update to DSE 6.8.48 [\#2933](https://github.com/stargate/stargate/pull/2933) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Added DocsAPI Batch statements warning log message. [\#2932](https://github.com/stargate/stargate/pull/2932) ([kathirsvn](https://github.com/kathirsvn))
-- Fix \#2919: update to DSE-6.8.47 [\#2929](https://github.com/stargate/stargate/pull/2929) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Removed v2.1.0 updates [\#2927](https://github.com/stargate/stargate/pull/2927) ([kathirsvn](https://github.com/kathirsvn))
-- Bumping version for next v2.0 release [\#2925](https://github.com/stargate/stargate/pull/2925) ([github-actions[bot]](https://github.com/apps/github-actions))
-
 ## [v2.1.0-BETA-12](https://github.com/stargate/stargate/tree/v2.1.0-BETA-12) (2024-05-08)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.27...v2.1.0-BETA-12)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-11...v2.1.0-BETA-12)
 
 **Closed issues:**
 
