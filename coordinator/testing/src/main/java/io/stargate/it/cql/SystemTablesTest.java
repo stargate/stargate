@@ -12,6 +12,7 @@ import com.datastax.oss.driver.shaded.guava.common.collect.Streams;
 import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.TestOrder;
 import io.stargate.it.driver.CqlSessionExtension;
+import io.stargate.it.driver.WithProtocolVersion;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateEnvironmentInfo;
 import io.stargate.it.storage.StargateSpec;
@@ -30,7 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @StargateSpec(nodes = 2, shared = false)
 @ExtendWith(CqlSessionExtension.class)
 @Order(TestOrder.LAST)
-class SystemTablesTest extends BaseIntegrationTest {
+public abstract class SystemTablesTest extends BaseIntegrationTest {
   @Test
   @DisplayName("Should expose Stargate addresses in system.local and system.peers")
   public void querySystemLocalAndPeers(CqlSession session) {
@@ -106,4 +107,10 @@ class SystemTablesTest extends BaseIntegrationTest {
         .map(l -> l.getAddress())
         .orElse(node.getBroadcastRpcAddress().map(b -> b.getAddress()).orElse(null));
   }
+
+  @WithProtocolVersion("V4")
+  public static class WithV4ProtocolVersionTest extends SystemTablesTest {}
+
+  @WithProtocolVersion("V5")
+  public static class WithV5ProtocolVersionTest extends SystemTablesTest {}
 }

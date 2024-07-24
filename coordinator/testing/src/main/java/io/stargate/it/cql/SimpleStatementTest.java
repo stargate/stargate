@@ -1,5 +1,7 @@
 package io.stargate.it.cql;
 
+import static io.stargate.it.cql.NowInSecondsTestUtil.testNowInSeconds;
+import static io.stargate.it.cql.SetKeyspaceTestUtil.testSetKeyspace;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -7,11 +9,7 @@ import com.datastax.oss.driver.api.core.ConsistencyLevel;
 import com.datastax.oss.driver.api.core.CqlSession;
 import com.datastax.oss.driver.api.core.config.OptionsMap;
 import com.datastax.oss.driver.api.core.config.TypedDriverOption;
-import com.datastax.oss.driver.api.core.cql.ExecutionInfo;
-import com.datastax.oss.driver.api.core.cql.QueryTrace;
-import com.datastax.oss.driver.api.core.cql.ResultSet;
-import com.datastax.oss.driver.api.core.cql.Row;
-import com.datastax.oss.driver.api.core.cql.SimpleStatement;
+import com.datastax.oss.driver.api.core.cql.*;
 import com.datastax.oss.driver.api.core.data.ByteUtils;
 import com.datastax.oss.driver.api.core.servererrors.InvalidQueryException;
 import com.datastax.oss.driver.api.core.servererrors.ProtocolError;
@@ -19,12 +17,14 @@ import com.datastax.oss.driver.shaded.guava.common.collect.ImmutableMap;
 import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
+import io.stargate.it.driver.WithProtocolVersion;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateEnvironmentInfo;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInfo;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
@@ -38,7 +38,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       // table with composite key
       "CREATE TABLE IF NOT EXISTS test3 (k int, c1 int, c2 int, v int, PRIMARY KEY (k, c1, c2))"
     })
-public class SimpleStatementTest extends BaseIntegrationTest {
+public abstract class SimpleStatementTest extends BaseIntegrationTest {
 
   private static final String KEY = "test";
 
@@ -229,5 +229,35 @@ public class SimpleStatementTest extends BaseIntegrationTest {
     assertThat(row.size()).isEqualTo(1);
     assertThat(row.getColumnDefinitions()).hasSize(1);
     assertThat(row.getInt("v")).isEqualTo(42);
+  }
+
+  @WithProtocolVersion("V4")
+  public static class WithV4ProtocolVersionTest extends SimpleStatementTest {}
+
+  @WithProtocolVersion("V5")
+  public static class WithV5ProtocolVersionTest extends SimpleStatementTest {
+    @Test
+    @DisplayName("Should use setKeyspace() with simple statement")
+    public void setKeyspaceTest(CqlSession session, TestInfo testInfo) {
+      testSetKeyspace(
+          session,
+          testInfo,
+          1,
+          (ks1, ks2) -> {
+            // Prepare statements
+            session.execute("USE " + ks1);
+            session.execute(SimpleStatement.newInstance("INSERT INTO tab (k, v) VALUES (1, 1)"));
+
+            session.execute(
+                SimpleStatement.newInstance("INSERT INTO tab (k, v) VALUES (2, 2)")
+                    .setKeyspace(ks2));
+          });
+    }
+
+    @Test
+    @DisplayName("Should use setNowInSeconds() with simple statement")
+    public void nowInSecondsTest(CqlSession session) {
+      testNowInSeconds(SimpleStatement::newInstance, session);
+    }
   }
 }

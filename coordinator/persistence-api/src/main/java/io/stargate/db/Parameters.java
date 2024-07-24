@@ -27,6 +27,7 @@ import java.util.OptionalLong;
 import javax.annotation.Nonnull;
 import org.apache.cassandra.stargate.db.ConsistencyLevel;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
+import org.apache.cassandra.stargate.utils.MD5Digest;
 import org.immutables.value.Value;
 
 /** Parameters for the execution of requests in the {@link Persistence} API. */
@@ -70,6 +71,8 @@ public abstract class Parameters {
 
   /** The optional paging state to request the subsequent pages of a paged request. */
   public abstract Optional<ByteBuffer> pagingState();
+
+  public abstract Optional<MD5Digest> resultSetMetadataId();
 
   /** The consistency level for the request. Defaults to ONE. */
   @Value.Default
@@ -139,6 +142,11 @@ public abstract class Parameters {
   /** Copy these parameters but with {@link #skipMetadataInResult()} set. */
   public Parameters withoutMetadataInResult() {
     return toBuilder().skipMetadataInResult(true).build();
+  }
+
+  /** Copy these parameters but with {@link #resultSetMetadataId()} set. */
+  public Parameters withResultSetMetadataId(MD5Digest resultSetMetadataId) {
+    return toBuilder().resultSetMetadataId(resultSetMetadataId).build();
   }
 
   /** Creates a new parameters builder filled with the values of this builder. */

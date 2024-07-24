@@ -13,6 +13,7 @@ import com.datastax.oss.driver.api.core.cql.Statement;
 import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
+import io.stargate.it.driver.WithProtocolVersion;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -26,7 +27,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(customOptions = "customizePageSize")
-public class PaginationTest extends BaseIntegrationTest {
+public abstract class PaginationTest extends BaseIntegrationTest {
 
   private static final String QUERY = "SELECT v FROM test WHERE k = ?";
   private static final String KEY = "test";
@@ -109,4 +110,10 @@ public class PaginationTest extends BaseIntegrationTest {
           .thenCompose(rs -> assertResultsPaginated(rs, expectedPage + 1, expectedPageSize));
     }
   }
+
+  @WithProtocolVersion("V4")
+  public static class WithV4ProtocolVersionTest extends PaginationTest {}
+
+  @WithProtocolVersion("V5")
+  public static class WithV5ProtocolVersionTest extends PaginationTest {}
 }

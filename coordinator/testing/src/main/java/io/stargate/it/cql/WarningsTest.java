@@ -7,6 +7,7 @@ import com.datastax.oss.driver.api.core.cql.ResultSet;
 import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
+import io.stargate.it.driver.WithProtocolVersion;
 import java.util.List;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -15,7 +16,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(
     initQueries = "CREATE TABLE test_warnings (k0 text, k1 int, v int, PRIMARY KEY (k0, k1))")
-public class WarningsTest extends BaseIntegrationTest {
+public abstract class WarningsTest extends BaseIntegrationTest {
 
   @Test
   @DisplayName("Should surface query warnings")
@@ -25,4 +26,10 @@ public class WarningsTest extends BaseIntegrationTest {
 
     assertThat(warnings).containsExactly("Aggregation query used without partition key");
   }
+
+  @WithProtocolVersion("V4")
+  public static class WithV4ProtocolVersionTest extends WarningsTest {}
+
+  @WithProtocolVersion("V5")
+  public static class WithV5ProtocolVersionTest extends WarningsTest {}
 }

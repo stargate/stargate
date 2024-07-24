@@ -12,6 +12,7 @@ import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.TestOrder;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.driver.WithProtocolVersion;
 import io.stargate.it.storage.StargateEnvironmentInfo;
 import io.stargate.it.storage.StargateSpec;
 import java.util.Collection;
@@ -26,7 +27,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 @StargateSpec(nodes = 3)
 @ExtendWith(CqlSessionExtension.class)
 @Order(TestOrder.LAST)
-public class TokenAwareTest extends BaseIntegrationTest {
+public abstract class TokenAwareTest extends BaseIntegrationTest {
   @Test
   @DisplayName("Should use all Stargate addresses when using token-aware load balancing")
   public void testTokenMapDistribution(
@@ -49,4 +50,10 @@ public class TokenAwareTest extends BaseIntegrationTest {
 
     assertThat(allReplicasTried).containsExactlyInAnyOrderElementsOf(expectedReplicasTried);
   }
+
+  @WithProtocolVersion("V4")
+  public static class WithV4ProtocolVersionTest extends TokenAwareTest {}
+
+  @WithProtocolVersion("V5")
+  public static class WithV5ProtocolVersionTest extends TokenAwareTest {}
 }

@@ -93,7 +93,11 @@ public class ExecuteMessage extends Message.Request {
     BoundStatement statement =
         new BoundStatement(statementId, options.getValues(), options.getNames());
     CompletableFuture<? extends Result> future =
-        persistenceConnection().execute(statement, makeParameters(options), queryStartNanoTime);
+        persistenceConnection()
+            .execute(
+                statement,
+                makeParameters(options).withResultSetMetadataId(resultMetadataId),
+                queryStartNanoTime);
     return SchemaAgreement.maybeWaitForAgreement(future, persistenceConnection())
         .thenApply(ResultMessage::new);
   }

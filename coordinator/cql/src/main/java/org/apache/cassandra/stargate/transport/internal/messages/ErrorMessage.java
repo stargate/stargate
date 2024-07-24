@@ -115,7 +115,7 @@ public class ErrorMessage extends Message.Response {
                 Map<InetAddressAndPort, RequestFailureReason> failureReasonByEndpoint;
                 if (version.isGreaterOrEqualTo(ProtocolVersion.V5)) {
                   ImmutableMap.Builder<InetAddressAndPort, RequestFailureReason> builder =
-                      ImmutableMap.builder();
+                      ImmutableMap.builderWithExpectedSize(failure);
                   for (int i = 0; i < failure; i++) {
                     InetAddress endpoint = CBUtil.readInetAddr(body);
                     RequestFailureReason failureReason =

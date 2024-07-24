@@ -18,32 +18,26 @@ import com.datastax.oss.protocol.internal.util.Bytes;
 import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
+import io.stargate.it.driver.WithProtocolVersion;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.concurrent.CompletionStage;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIf;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 /**
  * Covers the behavior of prepared statements when a table is altered (CASSANDRA-10786).
  *
- * <p>This test covers protocol-v5-specific features. However driver 4.9.0 is currently incompatible
- * with Cassandra 4.0 betas when forcing that version: the driver uses the new framing format from
- * CASSANDRA-15299, but that ticket is not merged yet on the server-side.
- *
- * <p>TODO reenable when CASSANDRA-15299 is merged
+ * <p>This test covers protocol-v5-specific features.
  */
-@Disabled("Requires CASSANDRA-15299 on the backend")
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(customOptions = "customizeOptions")
+@WithProtocolVersion("V5")
 public class PreparedStatementAlterTableTest extends BaseIntegrationTest {
 
   public static void customizeOptions(OptionsMap config) {
-    config.put(TypedDriverOption.PROTOCOL_VERSION, "V5");
     config.put(TypedDriverOption.REQUEST_PAGE_SIZE, 2);
   }
 
@@ -61,7 +55,6 @@ public class PreparedStatementAlterTableTest extends BaseIntegrationTest {
   @Test
   @DisplayName(
       "Should update prepared `SELECT *` metadata when table schema changes across executions")
-  @EnabledIf("isCassandra4")
   public void changeBetweenExecutionsTest(CqlSession session) {
     // Given
     PreparedStatement ps = session.prepare("SELECT * FROM prepared_statement_test WHERE a = ?");
@@ -87,7 +80,6 @@ public class PreparedStatementAlterTableTest extends BaseIntegrationTest {
 
   @Test
   @DisplayName("Should update prepared `SELECT *` metadata when table schema changes across pages")
-  @EnabledIf("isCassandra4")
   public void changeBetweenPagesTest(CqlSession session) {
     // Given
     PreparedStatement ps = session.prepare("SELECT * FROM prepared_statement_test");

@@ -15,6 +15,7 @@ import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.driver.WithProtocolVersion;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -26,7 +27,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 @ExtendWith(MockitoExtension.class)
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(customBuilder = "registerListener")
-public class SchemaChangesTest extends BaseIntegrationTest {
+public abstract class SchemaChangesTest extends BaseIntegrationTest {
 
   private static SchemaChangeListener schemaChanges;
   @Captor ArgumentCaptor<TableMetadata> tableCaptor;
@@ -96,4 +97,10 @@ public class SchemaChangesTest extends BaseIntegrationTest {
         .hasMessageContaining("A user type ")
         .hasMessageContaining("already exists");
   }
+
+  @WithProtocolVersion("V4")
+  public static class WithV4ProtocolVersionTest extends SchemaChangesTest {}
+
+  @WithProtocolVersion("V5")
+  public static class WithV5ProtocolVersionTest extends SchemaChangesTest {}
 }

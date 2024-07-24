@@ -12,13 +12,14 @@ import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.TestKeyspace;
+import io.stargate.it.driver.WithProtocolVersion;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 
 @ExtendWith(CqlSessionExtension.class)
 @CqlSessionSpec(initQueries = "CREATE TABLE IF NOT EXISTS test (k INT PRIMARY KEY)")
-public class UseKeyspaceTest extends BaseIntegrationTest {
+public abstract class UseKeyspaceTest extends BaseIntegrationTest {
 
   @Test
   @DisplayName("Should fail unqualified query if not logged into any keyspace")
@@ -35,4 +36,10 @@ public class UseKeyspaceTest extends BaseIntegrationTest {
     assertThat(row).isNull();
     unloggedSession.close();
   }
+
+  @WithProtocolVersion("V4")
+  public static class WithV4ProtocolVersionTest extends UseKeyspaceTest {}
+
+  @WithProtocolVersion("V5")
+  public static class WithV5ProtocolVersionTest extends UseKeyspaceTest {}
 }
