@@ -1,5 +1,23 @@
 # Changelog
 
+## [v2.1.0-BETA-14](https://github.com/stargate/stargate/tree/v2.1.0-BETA-14) (2024-07-24)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-13...v2.1.0-BETA-14)
+
+**Closed issues:**
+
+- Update to DSE 6.8.50 [\#2970](https://github.com/stargate/stargate/issues/2970)
+
+**Merged pull requests:**
+
+- Fixed v2.1 changelog [\#2982](https://github.com/stargate/stargate/pull/2982) ([kathirsvn](https://github.com/kathirsvn))
+- Apply Quarkus 3.9 package renames from https://github.com/quarkusio/quarkus/wiki/Migration-Guide-3.9 [\#2979](https://github.com/stargate/stargate/pull/2979) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Merge DSE-6.8.59 dep change from main \(v2\) into v2.1 [\#2977](https://github.com/stargate/stargate/pull/2977) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Merge v1 changes to main \(v2\) -- wrt DSE-6.8.50 \(see \#2970\) [\#2976](https://github.com/stargate/stargate/pull/2976) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.1 release [\#2973](https://github.com/stargate/stargate/pull/2973) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Bumping version for next v2.0 release [\#2972](https://github.com/stargate/stargate/pull/2972) ([github-actions[bot]](https://github.com/apps/github-actions))
+- V5 [\#2969](https://github.com/stargate/stargate/pull/2969) ([jacek-lewandowski](https://github.com/jacek-lewandowski))
+
 ## [v2.1.0-BETA-13](https://github.com/stargate/stargate/tree/v2.1.0-BETA-13) (2024-07-09)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-12...v2.1.0-BETA-13)
