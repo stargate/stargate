@@ -2,7 +2,7 @@
 
 ## [v2.1.0-BETA-14](https://github.com/stargate/stargate/tree/v2.1.0-BETA-14) (2024-07-24)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.85...v2.1.0-BETA-14)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-13...v2.1.0-BETA-14)
 
 **Closed issues:**
 
