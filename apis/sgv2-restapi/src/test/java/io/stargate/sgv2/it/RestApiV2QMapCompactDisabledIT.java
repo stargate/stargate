@@ -1,6 +1,6 @@
 package io.stargate.sgv2.it;
 
-import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.WithTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
@@ -9,7 +9,7 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
-@QuarkusTestResource(StargateTestResource.class)
+@WithTestResource(StargateTestResource.class)
 @TestProfile(RestApiV2QMapCompactDisabledIT.Profile.class)
 public class RestApiV2QMapCompactDisabledIT extends RestApiV2QIntegrationTestBase
     implements RestApiV2QMapTests {

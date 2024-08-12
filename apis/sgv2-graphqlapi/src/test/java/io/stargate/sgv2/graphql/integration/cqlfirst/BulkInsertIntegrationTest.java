@@ -11,7 +11,7 @@ import com.example.graphql.client.betterbotz.products.BulkInsertProductsMutation
 import com.example.graphql.client.betterbotz.products.GetProductsWithFilterQuery;
 import com.example.graphql.client.betterbotz.type.OrdersInput;
 import com.example.graphql.client.betterbotz.type.ProductsInput;
-import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.WithTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
 import io.stargate.sgv2.graphql.integration.util.ApolloIntegrationTestBase;
@@ -29,7 +29,7 @@ import org.junit.jupiter.api.TestInstance;
  * ApolloIntegrationTestBase}.
  */
 @QuarkusIntegrationTest
-@QuarkusTestResource(StargateTestResource.class)
+@WithTestResource(StargateTestResource.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class BulkInsertIntegrationTest extends ApolloIntegrationTestBase {
 

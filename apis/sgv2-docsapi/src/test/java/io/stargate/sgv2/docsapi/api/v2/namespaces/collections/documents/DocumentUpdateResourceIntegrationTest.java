@@ -26,7 +26,7 @@ import static org.hamcrest.Matchers.notNullValue;
 import static org.testcontainers.shaded.org.awaitility.Awaitility.await;
 
 import com.google.common.io.CharStreams;
-import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.WithTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
@@ -42,7 +42,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 @QuarkusIntegrationTest
-@QuarkusTestResource(StargateTestResource.class)
+@WithTestResource(StargateTestResource.class)
 class DocumentUpdateResourceIntegrationTest extends DocsApiIntegrationTest {
 
   public static final String BASE_PATH =
