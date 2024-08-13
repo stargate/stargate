@@ -19,7 +19,7 @@ package io.stargate.sgv2.docsapi.service.query;
 
 import com.bpodgursky.jbool_expressions.Expression;
 import com.bpodgursky.jbool_expressions.Literal;
-import io.opentelemetry.extension.annotations.WithSpan;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import io.smallrye.mutiny.Multi;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.grpc.Values;

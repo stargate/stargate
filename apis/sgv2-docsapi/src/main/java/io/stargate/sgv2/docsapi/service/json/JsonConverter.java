@@ -25,7 +25,7 @@ import com.fasterxml.jackson.databind.node.LongNode;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.fasterxml.jackson.databind.node.TextNode;
-import io.opentelemetry.extension.annotations.WithSpan;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import io.stargate.sgv2.docsapi.api.properties.document.DocumentProperties;
 import io.stargate.sgv2.docsapi.config.constants.Constants;
 import io.stargate.sgv2.docsapi.service.common.model.RowWrapper;
