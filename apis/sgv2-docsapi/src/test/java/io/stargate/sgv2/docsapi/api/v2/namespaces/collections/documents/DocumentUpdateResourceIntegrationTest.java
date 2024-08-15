@@ -42,7 +42,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 @QuarkusIntegrationTest
-@WithTestResource(StargateTestResource.class)
+@WithTestResource(value = StargateTestResource.class, restrictToAnnotatedClass = false)
 class DocumentUpdateResourceIntegrationTest extends DocsApiIntegrationTest {
 
   public static final String BASE_PATH =

@@ -40,7 +40,7 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 @QuarkusIntegrationTest
-@WithTestResource(StargateTestResource.class)
+@WithTestResource(value = StargateTestResource.class, restrictToAnnotatedClass = false)
 class DocumentPatchResourceIntegrationTest extends DocsApiIntegrationTest {
 
   public static final String BASE_PATH =
