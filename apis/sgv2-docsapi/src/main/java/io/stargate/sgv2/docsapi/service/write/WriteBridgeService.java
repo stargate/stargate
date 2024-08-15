@@ -19,7 +19,7 @@ package io.stargate.sgv2.docsapi.service.write;
 
 import com.google.common.base.Splitter;
 import io.grpc.Metadata;
-import io.opentelemetry.extension.annotations.WithSpan;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import io.quarkus.grpc.GrpcClientUtils;
 import io.smallrye.mutiny.Uni;
 import io.stargate.bridge.proto.QueryOuterClass;

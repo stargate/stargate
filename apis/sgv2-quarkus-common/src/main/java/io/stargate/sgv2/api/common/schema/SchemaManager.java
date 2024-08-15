@@ -21,7 +21,7 @@ import com.google.protobuf.BytesValue;
 import com.google.protobuf.Int32Value;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
-import io.opentelemetry.extension.annotations.WithSpan;
+import io.opentelemetry.instrumentation.annotations.WithSpan;
 import io.quarkus.cache.Cache;
 import io.quarkus.cache.CacheInvalidate;
 import io.quarkus.cache.CacheKey;
