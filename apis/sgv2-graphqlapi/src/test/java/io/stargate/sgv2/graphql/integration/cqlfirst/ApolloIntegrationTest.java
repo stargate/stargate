@@ -68,7 +68,7 @@ import org.junit.jupiter.api.TestInstance;
  * </ul>
  */
 @QuarkusIntegrationTest
-@WithTestResource(StargateTestResource.class)
+@WithTestResource(value = StargateTestResource.class, restrictToAnnotatedClass = false)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class ApolloIntegrationTest extends ApolloIntegrationTestBase {
 

@@ -32,7 +32,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 
 @QuarkusIntegrationTest
-@WithTestResource(StargateTestResource.class)
+@WithTestResource(value = StargateTestResource.class, restrictToAnnotatedClass = false)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class CreateIndexIntegrationTest extends GraphqlFirstIntegrationTest {
 

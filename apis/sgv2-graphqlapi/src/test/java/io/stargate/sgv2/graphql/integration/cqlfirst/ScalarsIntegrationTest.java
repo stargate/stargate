@@ -39,7 +39,7 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 @QuarkusIntegrationTest
-@WithTestResource(StargateTestResource.class)
+@WithTestResource(value = StargateTestResource.class, restrictToAnnotatedClass = false)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class ScalarsIntegrationTest extends CqlFirstIntegrationTest {
 
