@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.startsWith;
 
-import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.WithTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
@@ -21,7 +21,7 @@ import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
-@QuarkusTestResource(StargateTestResource.class)
+@WithTestResource(StargateTestResource.class)
 public class RestApiV2QSchemaIndexesIT extends RestApiV2QIntegrationTestBase {
   public RestApiV2QSchemaIndexesIT() {
     super("idx_ks_", "idx_t_", KeyspaceCreation.PER_CLASS);
