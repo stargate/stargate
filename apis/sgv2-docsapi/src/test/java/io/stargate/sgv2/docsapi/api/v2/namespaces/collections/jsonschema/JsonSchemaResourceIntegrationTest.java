@@ -20,7 +20,7 @@ package io.stargate.sgv2.docsapi.api.v2.namespaces.collections.jsonschema;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.is;
 
-import io.quarkus.test.common.QuarkusTestResource;
+import io.quarkus.test.common.WithTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
@@ -37,7 +37,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 
 @QuarkusIntegrationTest
-@QuarkusTestResource(StargateTestResource.class)
+@WithTestResource(value = StargateTestResource.class, restrictToAnnotatedClass = false)
 public class JsonSchemaResourceIntegrationTest extends DocsApiIntegrationTest {
 
   // base path for the test
