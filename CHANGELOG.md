@@ -1,6 +1,5 @@
 # Changelog
 
-
 ## [v2.0.30](https://github.com/stargate/stargate/tree/v2.0.30) (2024-07-08)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.29...v2.0.30)
