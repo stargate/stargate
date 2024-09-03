@@ -233,6 +233,9 @@ public abstract class Message {
       CompletableFuture<? extends Response> response;
       try {
         response = execute(queryStartNanoTime);
+      } catch (RuntimeException | Error e) {
+        logger.trace("Failed to execute request: {}", this, e);
+        throw e;
       } finally {
         if (shouldTrace) Tracing.instance.stopSession();
       }

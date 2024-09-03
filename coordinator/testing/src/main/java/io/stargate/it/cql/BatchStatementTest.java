@@ -13,6 +13,7 @@ import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.WithProtocolVersion;
+import io.stargate.it.storage.SkipWhenDse;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateEnvironmentInfo;
 import java.util.Iterator;
@@ -30,6 +31,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE TABLE counter1 (k0 text PRIMARY KEY, c counter)",
       "CREATE TABLE counter2 (k0 text PRIMARY KEY, c counter)",
       "CREATE TABLE counter3 (k0 text PRIMARY KEY, c counter)",
+      NowInSecondsTestUtil.SCHEMA,
     })
 public abstract class BatchStatementTest extends BaseIntegrationTest {
 
@@ -391,7 +393,8 @@ public abstract class BatchStatementTest extends BaseIntegrationTest {
 
     @Test
     @DisplayName("Should use setNowInSeconds() with batch statement")
-    public void batchStatementTest(CqlSession session) {
+    @SkipWhenDse
+    public void nowInSecondsTest(CqlSession session) {
       testNowInSeconds(
           queryString ->
               BatchStatement.newInstance(

@@ -19,6 +19,7 @@ package org.apache.cassandra.stargate.transport.internal.messages;
 
 import io.netty.buffer.ByteBuf;
 import io.stargate.db.BoundStatement;
+import io.stargate.db.Parameters;
 import io.stargate.db.Result;
 import java.util.concurrent.CompletableFuture;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
@@ -92,12 +93,11 @@ public class ExecuteMessage extends Message.Request {
 
     BoundStatement statement =
         new BoundStatement(statementId, options.getValues(), options.getNames());
+
+    Parameters params = makeParameters(options);
+    if (resultMetadataId != null) params = params.withResultSetMetadataId(resultMetadataId);
     CompletableFuture<? extends Result> future =
-        persistenceConnection()
-            .execute(
-                statement,
-                makeParameters(options).withResultSetMetadataId(resultMetadataId),
-                queryStartNanoTime);
+        persistenceConnection().execute(statement, params, queryStartNanoTime);
     return SchemaAgreement.maybeWaitForAgreement(future, persistenceConnection())
         .thenApply(ResultMessage::new);
   }

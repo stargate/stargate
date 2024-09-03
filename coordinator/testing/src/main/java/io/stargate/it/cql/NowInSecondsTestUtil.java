@@ -10,13 +10,19 @@ import java.util.function.Function;
 
 /** This test covers protocol-v5-specific features. */
 public class NowInSecondsTestUtil {
+
+  public static final String TABLE_NAME = "test_now_in_seconds";
+  public static final String SCHEMA =
+      "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " (k text primary key, v int)";
+
   static <StatementT extends Statement<StatementT>> void testNowInSeconds(
       Function<String, StatementT> buildWriteStatement, CqlSession session) {
     // Given
     StatementT writeStatement =
-        buildWriteStatement.apply("INSERT INTO test (k,v) VALUES (1,1) USING TTL 20");
+        buildWriteStatement.apply(
+            "INSERT INTO " + TABLE_NAME + " (k, v) VALUES ('1', 1) USING TTL 20");
     SimpleStatement readStatement =
-        SimpleStatement.newInstance("SELECT TTL(v) FROM test WHERE k = 1");
+        SimpleStatement.newInstance("SELECT TTL(v) FROM " + TABLE_NAME + " WHERE k = '1'");
 
     // When
     // insert at t = 0 with TTL 20

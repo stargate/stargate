@@ -20,6 +20,7 @@ import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.WithProtocolVersion;
+import io.stargate.it.storage.SkipWhenDse;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateEnvironmentInfo;
 import org.junit.jupiter.api.BeforeEach;
@@ -39,6 +40,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
       "CREATE TABLE IF NOT EXISTS test2 (k text primary key, v0 int)",
       // table with composite partition key
       "CREATE TABLE IF NOT EXISTS test3 (pk1 int, pk2 int, v int, PRIMARY KEY ((pk1, pk2)))",
+      NowInSecondsTestUtil.SCHEMA,
     })
 public abstract class BoundStatementTest extends BaseIntegrationTest {
 
@@ -50,6 +52,7 @@ public abstract class BoundStatementTest extends BaseIntegrationTest {
     session.execute("TRUNCATE test");
     session.execute("TRUNCATE test2");
     session.execute("TRUNCATE test3");
+    session.execute("TRUNCATE " + NowInSecondsTestUtil.TABLE_NAME);
 
     for (int i = 0; i < 100; i++) {
       session.execute(
@@ -216,6 +219,7 @@ public abstract class BoundStatementTest extends BaseIntegrationTest {
   public static class WithV5ProtocolVersionTest extends BoundStatementTest {
     @Test
     @DisplayName("Should use setNowInSeconds() with bound statement")
+    @SkipWhenDse
     public void nowInSecondsTest(CqlSession session) {
       testNowInSeconds(
           queryString -> {
