@@ -272,7 +272,7 @@ public class CqlServer {
               .get()
               .getVersion()
               .isSmallerThan(ProtocolVersion.V5)
-              || channel.attr(Connection.attributeKey).get().getVersion().isDse();
+          || channel.attr(Connection.attributeKey).get().getVersion().isDse();
     }
 
     private static boolean checkHeaderFilter(Channel channel, Event event) {
@@ -280,7 +280,7 @@ public class CqlServer {
 
       ProxyInfo proxyInfo = channel.attr(ProxyInfo.attributeKey).get();
       Map<String, String> headers =
-              proxyInfo != null ? proxyInfo.toHeaders() : Collections.emptyMap();
+          proxyInfo != null ? proxyInfo.toHeaders() : Collections.emptyMap();
 
       return event.headerFilter.test(headers);
     }
@@ -289,11 +289,15 @@ public class CqlServer {
       EventMessage message = new EventMessage(event);
 
       // Deliver event to pre-v5 channels
-      groups.get(event.type).writeAndFlush(message, channel -> isPreV5Channel(channel) && checkHeaderFilter(channel, event));
+      groups
+          .get(event.type)
+          .writeAndFlush(
+              message, channel -> isPreV5Channel(channel) && checkHeaderFilter(channel, event));
 
       // Deliver event to post-v5 channels
       for (Channel c : groups.get(event.type))
-        if (!isPreV5Channel(c) && checkHeaderFilter(c, event)) c.attr(Dispatcher.EVENT_DISPATCHER).get().accept(message);
+        if (!isPreV5Channel(c) && checkHeaderFilter(c, event))
+          c.attr(Dispatcher.EVENT_DISPATCHER).get().accept(message);
     }
 
     void closeAll() {
