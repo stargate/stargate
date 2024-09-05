@@ -24,7 +24,6 @@ import io.netty.channel.ChannelOutboundInvoker;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.epoll.EpollEventLoopGroup;
 import io.netty.channel.group.ChannelGroup;
-import io.netty.channel.group.ChannelMatcher;
 import io.netty.channel.group.DefaultChannelGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.util.concurrent.GlobalEventExecutor;
@@ -244,14 +243,7 @@ public class CqlServer {
 
   public static class ConnectionTracker implements Connection.Tracker {
     // TODO: should we be using the GlobalEventExecutor or defining our own?
-    private static final ChannelMatcher PRE_V5_CHANNEL =
-        channel ->
-            channel
-                    .attr(Connection.attributeKey)
-                    .get()
-                    .getVersion()
-                    .isSmallerThan(ProtocolVersion.V5)
-                || channel.attr(Connection.attributeKey).get().getVersion().isDse();
+
     public final ChannelGroup allChannels = new DefaultChannelGroup(GlobalEventExecutor.INSTANCE);
     private final EnumMap<Event.Type, ChannelGroup> groups = new EnumMap<>(Event.Type.class);
     private final ProtocolVersionTracker protocolVersionTracker = new ProtocolVersionTracker();
@@ -274,11 +266,34 @@ public class CqlServer {
       groups.get(type).add(ch);
     }
 
+    private static boolean isPreV5Channel(Channel channel) {
+      return channel
+              .attr(Connection.attributeKey)
+              .get()
+              .getVersion()
+              .isSmallerThan(ProtocolVersion.V5)
+              || channel.attr(Connection.attributeKey).get().getVersion().isDse();
+    }
+
+    private static boolean checkHeaderFilter(Channel channel, Event event) {
+      if (event.headerFilter == null) return true;
+
+      ProxyInfo proxyInfo = channel.attr(ProxyInfo.attributeKey).get();
+      Map<String, String> headers =
+              proxyInfo != null ? proxyInfo.toHeaders() : Collections.emptyMap();
+
+      return event.headerFilter.test(headers);
+    }
+
     public void send(Event event) {
       EventMessage message = new EventMessage(event);
-      groups.get(event.type).writeAndFlush(message, PRE_V5_CHANNEL);
+
+      // Deliver event to pre-v5 channels
+      groups.get(event.type).writeAndFlush(message, channel -> isPreV5Channel(channel) && checkHeaderFilter(channel, event));
+
+      // Deliver event to post-v5 channels
       for (Channel c : groups.get(event.type))
-        if (!PRE_V5_CHANNEL.matches(c)) c.attr(Dispatcher.EVENT_DISPATCHER).get().accept(message);
+        if (!isPreV5Channel(c) && checkHeaderFilter(c, event)) c.attr(Dispatcher.EVENT_DISPATCHER).get().accept(message);
     }
 
     void closeAll() {
