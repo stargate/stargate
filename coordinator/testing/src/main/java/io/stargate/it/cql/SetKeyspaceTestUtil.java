@@ -18,6 +18,8 @@ public class SetKeyspaceTestUtil {
 
     String ks1 = ksPrefix + "_v5_set_ks1";
     String ks2 = ksPrefix + "_v5_set_ks2";
+    session.execute("DROP KEYSPACE IF EXISTS " + ks1);
+    session.execute("DROP KEYSPACE IF EXISTS " + ks2);
     session.execute(
         "CREATE KEYSPACE "
             + ks1

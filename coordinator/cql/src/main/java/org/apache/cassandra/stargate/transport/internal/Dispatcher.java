@@ -33,6 +33,8 @@ import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.Flusher.FlushItem;
 import org.apache.cassandra.stargate.transport.internal.messages.ErrorMessage;
 import org.apache.cassandra.stargate.transport.internal.messages.EventMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class Dispatcher {
   // Cassandra {4.0.10} Call processRequest directly
@@ -42,6 +44,8 @@ public class Dispatcher {
       TransportDescriptor::setNativeTransportMaxThreads,
       "transport",
       "Native-Transport-Requests");*/
+
+  private static final Logger logger = LoggerFactory.getLogger(Dispatcher.class);
 
   private static final ConcurrentMap<EventLoop, Flusher> flusherLookup = new ConcurrentHashMap<>();
   private final boolean useLegacyFlusher;
@@ -80,16 +84,21 @@ public class Dispatcher {
 
     Message.logger.trace("Received: {}, v={}", request, connection.getVersion());
     connection.requests.inc();
-    CompletableFuture<? extends Message.Response> res = request.execute(queryStartNanoTime);
-    return res.thenApply(
-        response -> {
-          // Cassandra {4.0.10} Added metrics
-          connection.getConnectionMetrics().markRequestProcessed();
-          response.setStreamId(request.getStreamId());
-          response.attach(connection);
-          connection.applyStateTransition(request.type, response.type);
-          return response;
-        });
+    try {
+      CompletableFuture<? extends Message.Response> res = request.execute(queryStartNanoTime);
+      return res.thenApply(
+          response -> {
+            // Cassandra {4.0.10} Added metrics
+            connection.getConnectionMetrics().markRequestProcessed();
+            response.setStreamId(request.getStreamId());
+            response.attach(connection);
+            connection.applyStateTransition(request.type, response.type);
+            return response;
+          });
+    } catch (RuntimeException | Error e) {
+      logger.trace("Unexpected error while processing request", e);
+      throw e;
+    }
   }
 
   /** Note: this method is not expected to execute on the netty event loop. */

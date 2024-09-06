@@ -18,6 +18,7 @@ import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.CqlSessionSpec;
 import io.stargate.it.driver.WithProtocolVersion;
+import io.stargate.it.storage.SkipWhenDse;
 import io.stargate.it.storage.StargateConnectionInfo;
 import io.stargate.it.storage.StargateEnvironmentInfo;
 import java.util.List;
@@ -36,7 +37,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
       // table with simple primary key, single cell.
       "CREATE TABLE IF NOT EXISTS test2 (k text primary key, v int)",
       // table with composite key
-      "CREATE TABLE IF NOT EXISTS test3 (k int, c1 int, c2 int, v int, PRIMARY KEY (k, c1, c2))"
+      "CREATE TABLE IF NOT EXISTS test3 (k int, c1 int, c2 int, v int, PRIMARY KEY (k, c1, c2))",
+      NowInSecondsTestUtil.SCHEMA,
     })
 public abstract class SimpleStatementTest extends BaseIntegrationTest {
 
@@ -51,6 +53,7 @@ public abstract class SimpleStatementTest extends BaseIntegrationTest {
     session.execute("TRUNCATE test");
     session.execute("TRUNCATE test2");
     session.execute("TRUNCATE test3");
+    session.execute("TRUNCATE " + NowInSecondsTestUtil.TABLE_NAME);
     for (int i = 0; i < 100; i++) {
       session.execute("INSERT INTO test (k, v) VALUES (?, ?)", KEY, i);
     }
@@ -256,6 +259,7 @@ public abstract class SimpleStatementTest extends BaseIntegrationTest {
 
     @Test
     @DisplayName("Should use setNowInSeconds() with simple statement")
+    @SkipWhenDse
     public void nowInSecondsTest(CqlSession session) {
       testNowInSeconds(SimpleStatement::newInstance, session);
     }

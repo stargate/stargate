@@ -215,6 +215,12 @@
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>org.junit.platform</groupId>
+      <artifactId>junit-platform-launcher</artifactId>
+      <version>1.8.2</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
@@ -248,8 +254,11 @@
           </systemPropertyVariables>
           <argLine>${failsafe.jacoco.args}</argLine>
           <includes>
-            <include>io.stargate.it.**</include>
+            <include>io/stargate/it/**</include>
           </includes>
+          <excludes>
+            <exclude/>
+          </excludes>
         </configuration>
       </plugin>
       <plugin>

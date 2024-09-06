@@ -131,11 +131,11 @@ public abstract class JwtAuthTest extends BaseIntegrationTest {
     try (CqlSession tokenSession = builder.withAuthCredentials("token", authToken).build()) {
 
       String errorMessage =
-          "User web_user has no CREATE permission on <keyspace ks_\\d*_JwtAuthTest> or any of its parents";
+          "User web_user has no CREATE permission on <keyspace ks_\\d*_.*?> or any of its parents";
 
       if (backend.isDse() || isCassandra41()) {
         errorMessage =
-            "User web_user has no CREATE permission on <all tables in ks_\\d*_JwtAuthTest> or any of its parents";
+            "User web_user has no CREATE permission on <all tables in ks_\\d*_.*?> or any of its parents";
       }
 
       assertThatThrownBy(
@@ -185,11 +185,11 @@ public abstract class JwtAuthTest extends BaseIntegrationTest {
                   "INSERT INTO %s.jwt_auth_test (k, v) VALUES (?, ?)", keyspaceId.asCql(false)));
 
       String errorMessage =
-          "User web_user has no MODIFY permission on <table ks_\\d*_JwtAuthTest.jwt_auth_test> or any of its parents";
+          "User web_user has no MODIFY permission on <table ks_\\d*_.*?\\.jwt_auth_test> or any of its parents";
 
       if (backend.isDse()) {
         errorMessage =
-            "User web_user has no UPDATE permission on <table ks_\\d*_JwtAuthTest.jwt_auth_test> or any of its parents";
+            "User web_user has no UPDATE permission on <table ks_\\d*_.*?\\.jwt_auth_test> or any of its parents";
       }
 
       assertThatThrownBy(() -> tokenSession.execute(prepared.bind("foo", "bar")))
@@ -230,11 +230,11 @@ public abstract class JwtAuthTest extends BaseIntegrationTest {
     try (CqlSession tokenSession = builder.withAuthCredentials("token", authToken).build()) {
 
       String errorMessage =
-          "User web_user has no MODIFY permission on <table ks_\\d*_JwtAuthTest.jwt_auth_test> or any of its parents";
+          "User web_user has no MODIFY permission on <table ks_\\d*_.*?\\.jwt_auth_test> or any of its parents";
 
       if (backend.isDse()) {
         errorMessage =
-            "User web_user has no UPDATE permission on <table ks_\\d*_JwtAuthTest.jwt_auth_test> or any of its parents";
+            "User web_user has no UPDATE permission on <table ks_\\d*_.*?\\.jwt_auth_test> or any of its parents";
       }
 
       assertThatThrownBy(
@@ -262,7 +262,7 @@ public abstract class JwtAuthTest extends BaseIntegrationTest {
                       .one())
           .isInstanceOf(UnauthorizedException.class)
           .hasMessageMatching(
-              "User web_user has no SELECT permission on <table ks_\\d*_JwtAuthTest.jwt_auth_test> or any of its parents");
+              "User web_user has no SELECT permission on <table ks_\\d*_.*?\\.jwt_auth_test> or any of its parents");
     }
   }
 
@@ -306,11 +306,11 @@ public abstract class JwtAuthTest extends BaseIntegrationTest {
     try (CqlSession tokenSession = builder.withAuthCredentials("token", authToken).build()) {
 
       String errorMessage =
-          "User web_user has no MODIFY permission on <table ks_\\d*_JwtAuthTest.jwt_auth_test> or any of its parents";
+          "User web_user has no MODIFY permission on <table ks_\\d*_.*?\\.jwt_auth_test> or any of its parents";
 
       if (backend.isDse()) {
         errorMessage =
-            "User web_user has no UPDATE permission on <table ks_\\d*_JwtAuthTest.jwt_auth_test> or any of its parents";
+            "User web_user has no UPDATE permission on <table ks_\\d*_.*?\\.jwt_auth_test> or any of its parents";
       }
 
       assertThatThrownBy(
