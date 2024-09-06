@@ -1,5 +1,23 @@
 # Changelog
 
+## [v2.1.0-BETA-15](https://github.com/stargate/stargate/tree/v2.1.0-BETA-15) (2024-09-06)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-14...v2.1.0-BETA-15)
+
+**Closed issues:**
+
+- Update to DSE 6.9.0 [\#2978](https://github.com/stargate/stargate/issues/2978)
+- Update to Quarkus 3.13.x when released to get `@WithTestResource` \(deprecates `@QuarkusTestResource`\) [\#2968](https://github.com/stargate/stargate/issues/2968)
+
+**Merged pull requests:**
+
+- Check header filter when sending CQL protocol events  [\#2994](https://github.com/stargate/stargate/pull/2994) ([mpenick](https://github.com/mpenick))
+- CNDB-9895: Fix the issue with execute statement in V4 protocol [\#2992](https://github.com/stargate/stargate/pull/2992) ([jacek-lewandowski](https://github.com/jacek-lewandowski))
+- Merge C\* 4.0.13 upgrade from v2/main [\#2991](https://github.com/stargate/stargate/pull/2991) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Merge Quarkus upgrade changes from v2 \(main\) [\#2988](https://github.com/stargate/stargate/pull/2988) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.1 release [\#2985](https://github.com/stargate/stargate/pull/2985) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Merge from main to v21 [\#2984](https://github.com/stargate/stargate/pull/2984) ([kathirsvn](https://github.com/kathirsvn))
+
 ## [v2.1.0-BETA-14](https://github.com/stargate/stargate/tree/v2.1.0-BETA-14) (2024-07-24)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-13...v2.1.0-BETA-14)
