@@ -36,6 +36,8 @@ import java.net.InetSocketAddress;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.function.IntPredicate;
+import java.util.function.Supplier;
 import org.apache.cassandra.net.*;
 import org.apache.cassandra.stargate.config.EncryptionOptions;
 import org.apache.cassandra.stargate.security.SSLFactory;
@@ -94,16 +96,19 @@ public class PipelineConfigurator {
   private final boolean keepAlive;
   private final EncryptionOptions.TlsEncryptionPolicy tlsEncryptionPolicy;
   private final Dispatcher dispatcher;
+  private final Supplier<IntPredicate> protocolFilterSupplier;
 
   public PipelineConfigurator(
       boolean epoll,
       boolean keepAlive,
       boolean legacyFlusher,
-      EncryptionOptions.TlsEncryptionPolicy encryptionPolicy) {
+      EncryptionOptions.TlsEncryptionPolicy encryptionPolicy,
+      Supplier<IntPredicate> protocolFilterSupplier) {
     this.epoll = epoll;
     this.keepAlive = keepAlive;
     this.tlsEncryptionPolicy = encryptionPolicy;
     this.dispatcher = dispatcher(legacyFlusher);
+    this.protocolFilterSupplier = protocolFilterSupplier;
   }
 
   public ChannelFuture initializeChannel(
@@ -140,7 +145,7 @@ public class PipelineConfigurator {
     final EncryptionConfig encryptionConfig = encryptionConfig();
     return new ChannelInitializer<Channel>() {
       protected void initChannel(Channel channel) throws Exception {
-        configureInitialPipeline(channel, connectionFactory);
+        configureInitialPipeline(channel, connectionFactory, protocolFilterSupplier.get());
         encryptionConfig.applyTo(channel);
       }
     };
@@ -220,7 +225,8 @@ public class PipelineConfigurator {
     }
   }
 
-  public void configureInitialPipeline(Channel channel, Connection.Factory connectionFactory) {
+  public void configureInitialPipeline(
+      Channel channel, Connection.Factory connectionFactory, IntPredicate protocolFilter) {
     ChannelPipeline pipeline = channel.pipeline();
 
     // Add the ConnectionLimitHandler to the pipeline if configured to do so.
@@ -255,7 +261,8 @@ public class PipelineConfigurator {
     pipeline.addLast(ENVELOPE_ENCODER, Envelope.Encoder.instance);
     pipeline.addLast(
         INITIAL_HANDLER,
-        new InitialConnectionHandler(new Envelope.Decoder(), connectionFactory, this));
+        new InitialConnectionHandler(
+            new Envelope.Decoder(protocolFilter), connectionFactory, this));
     // The exceptionHandler will take care of handling exceptionCaught(...) events while still
     // running
     // on the same EventLoop as all previous added handlers in the pipeline. This is important as
@@ -287,7 +294,10 @@ public class PipelineConfigurator {
 
     // CQL level encoders/decoders
     Message.Decoder<Message.Request> messageDecoder = messageDecoder();
-    Envelope.Decoder envelopeDecoder = new Envelope.Decoder();
+    Envelope.Decoder envelopeDecoder =
+        new Envelope.Decoder(
+            ProtocolVersion
+                .ALLOW_ALL_FILTER); // at this point, the protocol version is already selected
 
     // Any non-fatal errors caught in CQLMessageHandler propagate back to the client
     // via the pipeline. Firing the exceptionCaught event on an inbound handler context
@@ -373,7 +383,12 @@ public class PipelineConfigurator {
   public void configureLegacyPipeline(
       ChannelHandlerContext ctx, ClientResourceLimits.Allocator limits) {
     ChannelPipeline pipeline = ctx.channel().pipeline();
-    pipeline.addBefore(ENVELOPE_ENCODER, ENVELOPE_DECODER, new Envelope.Decoder());
+    pipeline.addBefore(
+        ENVELOPE_ENCODER,
+        ENVELOPE_DECODER,
+        new Envelope.Decoder(
+            ProtocolVersion
+                .ALLOW_ALL_FILTER)); // at this point, the protocol version is already selected
     pipeline.addBefore(INITIAL_HANDLER, MESSAGE_DECOMPRESSOR, Envelope.Decompressor.instance);
     pipeline.addBefore(INITIAL_HANDLER, MESSAGE_COMPRESSOR, Envelope.Compressor.instance);
     pipeline.addBefore(INITIAL_HANDLER, MESSAGE_DECODER, PreV5Handlers.ProtocolDecoder.instance);

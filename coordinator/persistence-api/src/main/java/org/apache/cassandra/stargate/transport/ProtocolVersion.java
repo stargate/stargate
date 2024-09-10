@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.function.IntPredicate;
 import java.util.stream.Collectors;
 
 /**
@@ -51,6 +52,8 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
 
   /** Set this to true for beta versions */
   private final boolean beta;
+
+  public static final IntPredicate ALLOW_ALL_FILTER = v -> true;
 
   ProtocolVersion(int num, String descr, boolean beta) {
     this.num = num;
@@ -102,6 +105,13 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
     return SUPPORTED_VERSION_NAMES;
   }
 
+  public static List<String> supportedVersions(IntPredicate protocolFilter) {
+    return SUPPORTED.stream()
+        .filter(v -> protocolFilter.test(v.num))
+        .map(ProtocolVersion::toString)
+        .collect(Collectors.toList());
+  }
+
   public static List<ProtocolVersion> supportedVersionsStartingWith(
       ProtocolVersion smallestVersion) {
     ArrayList<ProtocolVersion> versions = new ArrayList<>(SUPPORTED.size());
@@ -114,6 +124,11 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
   }
 
   public static ProtocolVersion decode(int versionNum, boolean allowOlderProtocols) {
+    return decode(versionNum, allowOlderProtocols, ALLOW_ALL_FILTER);
+  }
+
+  public static ProtocolVersion decode(
+      int versionNum, boolean allowOlderProtocols, IntPredicate protocolFilter) {
     ProtocolVersion ret = null;
     boolean isDseNumber = isDse(versionNum);
     if (supportDseProtocol && isDseNumber) { // DSE version
@@ -130,17 +145,24 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
         // if it is an old version that is no longer supported this ensures that we reply
         // with that same version
         if (version.num == versionNum)
-          throw new ProtocolException(ProtocolVersion.invalidVersionMessage(versionNum), version);
+          throw new ProtocolException(
+              ProtocolVersion.invalidVersionMessage(versionNum, protocolFilter), version);
       }
 
       // If the version is invalid reply with the highest version of the same kind that we support
       throw new ProtocolException(
           invalidVersionMessage(versionNum), supportDseProtocol ? MAX_DSE_VERSION : MAX_OS_VERSION);
     }
+
     if (!allowOlderProtocols && ret.isSmallerThan(CURRENT)) {
       throw new ProtocolException(
           String.format("Rejecting Protocol Version %s < %s.", ret, ProtocolVersion.CURRENT));
     }
+
+    if (!protocolFilter.test(ret.num)) {
+      throw new ProtocolException(invalidVersionMessage(ret.num, protocolFilter));
+    }
+
     return ret;
   }
 
@@ -157,9 +179,18 @@ public enum ProtocolVersion implements Comparable<ProtocolVersion> {
   }
 
   public static String invalidVersionMessage(int version) {
+    return invalidVersionMessage(version, ALLOW_ALL_FILTER);
+  }
+
+  public static String invalidVersionMessage(int version, IntPredicate protocolFilter) {
     return String.format(
         "Invalid or unsupported protocol version (%d); supported versions are (%s)",
-        version, String.join(", ", ProtocolVersion.supportedVersions()));
+        version,
+        String.join(
+            ", ",
+            protocolFilter == ALLOW_ALL_FILTER
+                ? supportedVersions()
+                : supportedVersions(protocolFilter)));
   }
 
   public int asInt() {

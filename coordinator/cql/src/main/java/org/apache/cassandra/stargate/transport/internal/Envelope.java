@@ -31,6 +31,7 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.function.IntPredicate;
 import org.apache.cassandra.exceptions.InvalidRequestException;
 import org.apache.cassandra.metrics.ClientMessageSizeMetrics;
 import org.apache.cassandra.stargate.transport.ProtocolException;
@@ -180,6 +181,11 @@ public class Envelope {
     private long tooLongTotalLength;
     private long bytesToDiscard;
     private int tooLongStreamId;
+    private final IntPredicate protocolFilter;
+
+    public Decoder(IntPredicate protocolFilter) {
+      this.protocolFilter = protocolFilter;
+    }
 
     /**
      * Used by protocol V5 and later to extract a CQL message header from the buffer containing it,
@@ -233,7 +239,9 @@ public class Envelope {
         // the opcode is unknown or invalid flags are set for the version
         version =
             ProtocolVersion.decode(
-                versionNum, TransportDescriptor.getNativeTransportAllowOlderProtocols());
+                versionNum,
+                TransportDescriptor.getNativeTransportAllowOlderProtocols(),
+                protocolFilter);
         decodedFlags = decodeFlags(version, flags);
         type = Message.Type.fromOpcode(opcode, direction);
         return new HeaderExtractionResult.Success(
@@ -247,6 +255,10 @@ public class Envelope {
         // cause the channel to be closed.
         return new HeaderExtractionResult.Error(e, streamId, bodyLength);
       }
+    }
+
+    public List<String> supportedProtcolVersions() {
+      return ProtocolVersion.supportedVersions(protocolFilter);
     }
 
     public abstract static class HeaderExtractionResult {
@@ -338,7 +350,9 @@ public class Envelope {
       int versionNum = firstByte & PROTOCOL_VERSION_MASK;
       ProtocolVersion version =
           ProtocolVersion.decode(
-              versionNum, TransportDescriptor.getNativeTransportAllowOlderProtocols());
+              versionNum,
+              TransportDescriptor.getNativeTransportAllowOlderProtocols(),
+              protocolFilter);
 
       // Wait until we have the complete header
       if (readableBytes < Header.LENGTH) return null;

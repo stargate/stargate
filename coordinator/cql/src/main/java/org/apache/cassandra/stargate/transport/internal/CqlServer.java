@@ -105,13 +105,12 @@ public class CqlServer {
     }
     InitialConnectionHandler.setPersistence(persistence);
     pipelineConfigurator =
-        builder.pipelineConfigurator != null
-            ? builder.pipelineConfigurator
-            : new PipelineConfigurator(
-                useEpoll,
-                TransportDescriptor.getRpcKeepAlive(),
-                TransportDescriptor.useNativeTransportLegacyFlusher(),
-                builder.tlsEncryptionPolicy);
+        new PipelineConfigurator(
+            useEpoll,
+            TransportDescriptor.getRpcKeepAlive(),
+            TransportDescriptor.useNativeTransportLegacyFlusher(),
+            builder.tlsEncryptionPolicy,
+            () -> persistence.protocolFilter());
     this.persistence.registerEventListener(new EventNotifier(this));
   }
 
@@ -187,8 +186,6 @@ public class CqlServer {
     private int port = -1;
     private InetSocketAddress socket;
 
-    // Added as part of Cassandra {4.0.10} upgrade
-    private PipelineConfigurator pipelineConfigurator;
     private EncryptionOptions.TlsEncryptionPolicy tlsEncryptionPolicy =
         EncryptionOptions.TlsEncryptionPolicy.UNENCRYPTED;
 

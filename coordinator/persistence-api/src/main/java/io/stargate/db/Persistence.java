@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.IntPredicate;
 import org.apache.cassandra.stargate.exceptions.AuthenticationException;
 
 /**
@@ -133,6 +134,18 @@ public interface Persistence extends SchemaAgreementChecker {
   default String decorateKeyspaceName(
       String keyspaceName, Map<String, String> connectionProperties) {
     return keyspaceName;
+  }
+
+  /**
+   * Returns a client protocol filter which allows disabling certain protocol versions. By default,
+   * it accepts all supported protocols.
+   *
+   * <p>Note that the returned filter should be pure, i.e. it should not have side effects and
+   * should not depend on any external state. If the filter needs to be changed, a new instance
+   * should be returned.
+   */
+  default IntPredicate protocolFilter() {
+    return protocolVersionNum -> true;
   }
 
   /**
