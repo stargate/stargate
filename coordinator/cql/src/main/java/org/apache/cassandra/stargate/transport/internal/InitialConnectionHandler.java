@@ -91,7 +91,7 @@ public class InitialConnectionHandler extends ByteToMessageDecoder {
           assert supportedOptions.containsKey(StartupMessage.CQL_VERSION);
           supportedOptions.put(StartupMessage.COMPRESSION, compressions);
           supportedOptions.put(
-              StartupMessage.PROTOCOL_VERSIONS, ProtocolVersion.supportedVersions());
+              StartupMessage.PROTOCOL_VERSIONS, decoder.supportedProtcolVersions());
           SupportedMessage supported = new SupportedMessage(supportedOptions);
           supported.setStreamId(inbound.header.streamId);
           outbound = supported.encode(inbound.header.version);
