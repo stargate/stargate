@@ -1,5 +1,14 @@
 # Changelog
 
+## [v2.1.0-BETA-16](https://github.com/stargate/stargate/tree/v2.1.0-BETA-16) (2024-09-12)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-15...v2.1.0-BETA-16)
+
+**Merged pull requests:**
+
+- CNDB-9895: Allow excluding protocol versions from supported versions advertised to the client [\#2998](https://github.com/stargate/stargate/pull/2998) ([jacek-lewandowski](https://github.com/jacek-lewandowski))
+- Bumping version for next v2.1 release [\#2995](https://github.com/stargate/stargate/pull/2995) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.1.0-BETA-15](https://github.com/stargate/stargate/tree/v2.1.0-BETA-15) (2024-09-06)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-14...v2.1.0-BETA-15)
