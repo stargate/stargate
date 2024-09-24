@@ -17,6 +17,8 @@
  */
 package io.stargate.db.dse.impl;
 
+import com.codahale.metrics.Histogram;
+import com.codahale.metrics.Snapshot;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import io.reactivex.Single;
 import io.stargate.auth.AuthenticationSubject;
@@ -38,11 +40,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import javax.validation.constraints.NotNull;
 import org.apache.cassandra.auth.IResource;
 import org.apache.cassandra.auth.RoleResource;
-import org.apache.cassandra.cql3.BatchQueryOptions;
-import org.apache.cassandra.cql3.CQLStatement;
-import org.apache.cassandra.cql3.QueryHandler;
-import org.apache.cassandra.cql3.QueryOptions;
-import org.apache.cassandra.cql3.QueryProcessor;
+import org.apache.cassandra.cql3.*;
 import org.apache.cassandra.cql3.statements.AlterRoleStatement;
 import org.apache.cassandra.cql3.statements.AuthenticationStatement;
 import org.apache.cassandra.cql3.statements.AuthorizationStatement;
@@ -85,6 +83,7 @@ import org.apache.cassandra.cql3.statements.schema.DropTriggerStatement;
 import org.apache.cassandra.cql3.statements.schema.DropTypeStatement;
 import org.apache.cassandra.cql3.statements.schema.DropViewStatement;
 import org.apache.cassandra.exceptions.UnauthorizedException;
+import org.apache.cassandra.metrics.CassandraMetricsRegistry;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.utils.MD5Digest;
@@ -96,18 +95,20 @@ public class StargateQueryHandler implements QueryHandler {
   private static final Logger logger = LoggerFactory.getLogger(StargateQueryHandler.class);
   private final List<QueryInterceptor> interceptors = new CopyOnWriteArrayList<>();
   private AtomicReference<AuthorizationService> authorizationService;
+  private final Histogram metricReadSizehistogram = CassandraMetricsRegistry.actualRegistry.histogram("org.apache.cassandra.metrics.client_request.read_size.histogram");
 
   public void register(QueryInterceptor interceptor) {
     this.interceptors.add(interceptor);
   }
 
+
   @Override
   public Single<ResultMessage> process(
-      String query,
-      QueryState queryState,
-      QueryOptions options,
-      Map<String, ByteBuffer> customPayload,
-      long queryStartNanoTime) {
+          String query,
+          QueryState queryState,
+          QueryOptions options,
+          Map<String, ByteBuffer> customPayload,
+          long queryStartNanoTime) {
 
     QueryState state = queryState.cloneWithKeyspaceIfSet(options.getKeyspace());
     CQLStatement statement;
@@ -168,8 +169,35 @@ public class StargateQueryHandler implements QueryHandler {
       authorizeByToken(customPayload, statement);
     }
 
+    //return QueryProcessor.instance.processStatement(
+    //   statement, queryState, options, customPayload, queryStartNanoTime);
+
     return QueryProcessor.instance.processStatement(
-        statement, queryState, options, customPayload, queryStartNanoTime);
+            statement, queryState, options, customPayload, queryStartNanoTime).doOnSuccess(t -> {
+      if (statement instanceof SelectStatement) {
+        System.out.println("select statement. success.");
+
+        long encodedSize = t.kind.subcodec.encodedSize(t, org.apache.cassandra.transport.ProtocolVersion.CURRENT);
+
+                /*
+                OR
+                assert t instanceof ResultMessage.Rows;
+                ResultMessage.Rows rowMsg = (ResultMessage.Rows)t;
+                long encodedSize = ResultSet.codec.encodedSize(rowMsg.result, org.apache.cassandra.transport.ProtocolVersion.CURRENT);
+                System.out.println("encodedsize:" + encodedSize);
+               */
+
+        System.out.println("encodedsize internal msg:" + encodedSize);
+
+        metricReadSizehistogram.update(encodedSize);
+
+        System.out.println(metricReadSizehistogram.getCount());
+        Snapshot snapshot = metricReadSizehistogram.getSnapshot();
+        System.out.println("median:"+snapshot.getMedian());
+
+      }
+
+    });
   }
 
   @Override
@@ -556,12 +584,12 @@ public class StargateQueryHandler implements QueryHandler {
 
     try {
       authorization.authorizeSchemaWrite(
-          authenticationSubject, keyspaceName, tableName, scope, sourceApi, resource);
+              authenticationSubject, keyspaceName, tableName, scope, sourceApi, resource);
     } catch (io.stargate.auth.UnauthorizedException e) {
       String msg =
-          String.format(
-              "Missing correct permission on %s.%s",
-              keyspaceName, (tableName == null ? "" : tableName));
+              String.format(
+                      "Missing correct permission on %s.%s",
+                      keyspaceName, (tableName == null ? "" : tableName));
       if (e.getMessage() != null) {
         msg += ": " + e.getMessage();
       }
