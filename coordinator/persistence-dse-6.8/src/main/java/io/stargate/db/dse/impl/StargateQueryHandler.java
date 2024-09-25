@@ -99,8 +99,7 @@ public class StargateQueryHandler implements QueryHandler {
   public void register(QueryInterceptor interceptor) {
     this.interceptors.add(interceptor);
   }
-
-
+  
   @Override
   public Single<ResultMessage> process(
       String query,
@@ -566,8 +565,8 @@ public class StargateQueryHandler implements QueryHandler {
     } catch (io.stargate.auth.UnauthorizedException e) {
       String msg =
           String.format(
-               "Missing correct permission on %s.%s",
-               keyspaceName, (tableName == null ? "" : tableName));
+              "Missing correct permission on %s.%s",
+              keyspaceName, (tableName == null ? "" : tableName));
       if (e.getMessage() != null) {
         msg += ": " + e.getMessage();
       }
