@@ -18,7 +18,6 @@
 package io.stargate.db.dse.impl;
 
 import com.codahale.metrics.Histogram;
-import com.codahale.metrics.Snapshot;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import io.reactivex.Single;
 import io.stargate.auth.AuthenticationSubject;
@@ -169,35 +168,14 @@ public class StargateQueryHandler implements QueryHandler {
       authorizeByToken(customPayload, statement);
     }
 
-    //return QueryProcessor.instance.processStatement(
-    //   statement, queryState, options, customPayload, queryStartNanoTime);
-
     return QueryProcessor.instance.processStatement(
-            statement, queryState, options, customPayload, queryStartNanoTime).doOnSuccess(t -> {
-      if (statement instanceof SelectStatement) {
-        System.out.println("select statement. success.");
-
-        long encodedSize = t.kind.subcodec.encodedSize(t, org.apache.cassandra.transport.ProtocolVersion.CURRENT);
-
-                /*
-                OR
-                assert t instanceof ResultMessage.Rows;
-                ResultMessage.Rows rowMsg = (ResultMessage.Rows)t;
-                long encodedSize = ResultSet.codec.encodedSize(rowMsg.result, org.apache.cassandra.transport.ProtocolVersion.CURRENT);
-                System.out.println("encodedsize:" + encodedSize);
-               */
-
-        System.out.println("encodedsize internal msg:" + encodedSize);
-
-        metricReadSizehistogram.update(encodedSize);
-
-        System.out.println(metricReadSizehistogram.getCount());
-        Snapshot snapshot = metricReadSizehistogram.getSnapshot();
-        System.out.println("median:"+snapshot.getMedian());
-
-      }
-
-    });
+            statement, queryState, options, customPayload, queryStartNanoTime)
+            .doOnSuccess(resultMessage -> {
+              if (statement instanceof SelectStatement){
+                long encodedSize = resultMessage.kind.subcodec.encodedSize(resultMessage, org.apache.cassandra.transport.ProtocolVersion.CURRENT);
+                metricReadSizehistogram.update(encodedSize);
+              }
+            });
   }
 
   @Override
