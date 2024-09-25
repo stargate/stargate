@@ -103,11 +103,11 @@ public class StargateQueryHandler implements QueryHandler {
 
   @Override
   public Single<ResultMessage> process(
-          String query,
-          QueryState queryState,
-          QueryOptions options,
-          Map<String, ByteBuffer> customPayload,
-          long queryStartNanoTime) {
+      String query,
+      QueryState queryState,
+      QueryOptions options,
+      Map<String, ByteBuffer> customPayload,
+      long queryStartNanoTime) {
 
     QueryState state = queryState.cloneWithKeyspaceIfSet(options.getKeyspace());
     CQLStatement statement;
@@ -562,12 +562,12 @@ public class StargateQueryHandler implements QueryHandler {
 
     try {
       authorization.authorizeSchemaWrite(
-              authenticationSubject, keyspaceName, tableName, scope, sourceApi, resource);
+          authenticationSubject, keyspaceName, tableName, scope, sourceApi, resource);
     } catch (io.stargate.auth.UnauthorizedException e) {
       String msg =
-              String.format(
-                      "Missing correct permission on %s.%s",
-                      keyspaceName, (tableName == null ? "" : tableName));
+          String.format(
+               "Missing correct permission on %s.%s",
+               keyspaceName, (tableName == null ? "" : tableName));
       if (e.getMessage() != null) {
         msg += ": " + e.getMessage();
       }
