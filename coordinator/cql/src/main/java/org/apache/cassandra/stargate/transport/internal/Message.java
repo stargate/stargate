@@ -174,7 +174,7 @@ public abstract class Message {
   protected Connection connection;
   private int streamId;
   private long sourceFrameBodySizeInBytes;
-  private Map<String, ByteBuffer> customPayload;
+  protected Map<String, ByteBuffer> customPayload;
   protected ProtocolVersion forcedProtocolVersion = null;
 
   protected Message(Type type) {
@@ -320,9 +320,9 @@ public abstract class Message {
       boolean hasWarning = frame.header.flags.contains(Frame.Header.Flag.WARNING);
 
       UUID tracingId = isRequest || !isTracing ? null : CBUtil.readUUID(frame.body);
-      List<String> warnings = isRequest || !hasWarning ? null : CBUtil.readStringList(frame.body);
       Map<String, ByteBuffer> customPayload =
           !isCustomPayload ? null : CBUtil.readBytesMap(frame.body);
+      List<String> warnings = isRequest || !hasWarning ? null : CBUtil.readStringList(frame.body);
 
       try {
         if (isCustomPayload && frame.header.version.isSmallerThan(ProtocolVersion.V4))
@@ -415,13 +415,13 @@ public abstract class Message {
             CBUtil.writeUUID(tracingId, body);
             flags.add(Frame.Header.Flag.TRACING);
           }
-          if (warnings != null) {
-            CBUtil.writeStringList(warnings, body);
-            flags.add(Frame.Header.Flag.WARNING);
-          }
           if (customPayload != null) {
             CBUtil.writeBytesMap(customPayload, body);
             flags.add(Frame.Header.Flag.CUSTOM_PAYLOAD);
+          }
+          if (warnings != null) {
+            CBUtil.writeStringList(warnings, body);
+            flags.add(Frame.Header.Flag.WARNING);
           }
         } else {
           assert message instanceof Request;
