@@ -17,6 +17,7 @@
 package io.stargate.it.http;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assumptions.assumeThat;
 import static org.awaitility.Awaitility.await;
 
 import io.stargate.it.BaseIntegrationTest;
@@ -564,6 +565,26 @@ public class MetricsTest extends BaseIntegrationTest {
     List<String> lines =
         Arrays.stream(result.split(System.getProperty("line.separator")))
             .filter(line -> line.startsWith(expectedPrefix))
+            .collect(Collectors.toList());
+
+    assertThat(lines).isNotEmpty();
+  }
+
+  @Test
+  public void dropwizardMetricReadSizeIsPresent() throws IOException {
+
+    assumeThat(backend.isDse())
+        .as("Disabled because this metric does not exists for Cassandra 4 backend")
+        .isTrue();
+
+    String expectedMetric =
+        "persistence_dse_"
+            + StringUtils.remove(backend.clusterVersion(), '.').substring(0, 2)
+            + "_org_apache_cassandra_metrics_ClientRequest_read_size_histogram{";
+    String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+    List<String> lines =
+        Arrays.stream(result.split(System.getProperty("line.separator")))
+            .filter(line -> line.startsWith(expectedMetric))
             .collect(Collectors.toList());
 
     assertThat(lines).isNotEmpty();
