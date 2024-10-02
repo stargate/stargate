@@ -43,8 +43,8 @@
   <!-- Shared properties -->
   <properties>
     <!-- Compiler -->
-    <maven.compiler.source>22</maven.compiler.source>
-    <maven.compiler.target>22</maven.compiler.target>
+    <maven.compiler.source>17</maven.compiler.source>
+    <maven.compiler.target>17</maven.compiler.target>
     <!-- Encoding -->
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
@@ -489,8 +489,8 @@
             <configuration>
               <rules>
                 <requireJavaVersion>
-                  <version>[22,23)</version>
-                  <message>Project requires JDK 22</message>
+                  <version>[17,23)</version>
+                  <message>Project requires JDK 17</message>
                 </requireJavaVersion>
                 <requireUpperBoundDeps>
                   <!-- If specifying includes ONLY those are checked
