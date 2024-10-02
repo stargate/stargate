@@ -17,7 +17,6 @@
 - Fixes \#2963: upgrade Quarkus from 3.6.1 to the latest \(3.12.0\) version to resolve CVEs [\#2964](https://github.com/stargate/stargate/pull/2964) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Fixes \#2960: updates API Docker base images to latest [\#2961](https://github.com/stargate/stargate/pull/2961) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Fix \#2956: change Docker base images for API/native \(to resolve CVEs\) [\#2958](https://github.com/stargate/stargate/pull/2958) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version for next v2.0 release [\#2955](https://github.com/stargate/stargate/pull/2955) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v2.0.29](https://github.com/stargate/stargate/tree/v2.0.29) (2024-06-17)
 
