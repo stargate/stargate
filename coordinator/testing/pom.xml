@@ -443,7 +443,7 @@
                 <configuration>
                   <systemPropertyVariables>
                     <ccm.dse>true</ccm.dse>
-                    <ccm.version>6.8.50</ccm.version>
+                    <ccm.version>6.8.51</ccm.version>
                     <stargate.test.nodes>1</stargate.test.nodes>
                     <stargate.enable.dsev2>true</stargate.enable.dsev2>
                   </systemPropertyVariables>
@@ -476,7 +476,7 @@
                 <configuration>
                   <systemPropertyVariables>
                     <ccm.dse>true</ccm.dse>
-                    <ccm.version>6.8.50</ccm.version>
+                    <ccm.version>6.8.51</ccm.version>
                     <stargate.test.nodes>1</stargate.test.nodes>
                     <stargate.enable.dsev2>false</stargate.enable.dsev2>
                   </systemPropertyVariables>
