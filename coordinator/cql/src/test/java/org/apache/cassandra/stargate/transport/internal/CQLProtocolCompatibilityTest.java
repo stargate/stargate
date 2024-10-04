@@ -1,7 +1,6 @@
 package org.apache.cassandra.stargate.transport.internal;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
-import static org.mockito.Mockito.mock;
 
 import com.datastax.oss.driver.internal.core.protocol.ByteBufPrimitiveCodec;
 import com.datastax.oss.protocol.internal.Compressor;
@@ -9,28 +8,19 @@ import com.datastax.oss.protocol.internal.FrameCodec;
 import com.datastax.oss.protocol.internal.NoopCompressor;
 import com.datastax.oss.protocol.internal.PrimitiveCodec;
 import com.datastax.oss.protocol.internal.ProtocolConstants;
-import com.datastax.oss.protocol.internal.response.result.Void;
 import com.google.common.collect.ImmutableList;
-import io.micrometer.core.instrument.MeterRegistry;
-import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.UnpooledByteBufAllocator;
-import io.netty.channel.embedded.EmbeddedChannel;
 import io.stargate.db.Result;
-import io.stargate.db.metrics.api.ClientInfoMetricsTagProvider;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import org.apache.cassandra.stargate.metrics.ClientMetrics;
+import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.messages.ResultMessage;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 /**
  * The purpose of this test is to ensure that the Stargate CQL protocol codec is compatible with the
@@ -45,42 +35,18 @@ public class CQLProtocolCompatibilityTest {
       Collections.singletonMap("test-key", ByteBuffer.wrap("test-value".getBytes()));
   private static final List<String> WARNINGS = ImmutableList.of("warning1");
 
-  private EmbeddedChannel channel;
-
-  @BeforeAll
-  public static void initClientMetrics() {
-    ClientInfoMetricsTagProvider clientTagProvider = mock(ClientInfoMetricsTagProvider.class);
-    CqlServer server1 = mock(CqlServer.class);
-    List<CqlServer> servers = Arrays.asList(server1);
-    MeterRegistry meterRegistry = new SimpleMeterRegistry();
-    ClientMetrics.instance.init(servers, meterRegistry, clientTagProvider, 0d);
-  }
-
-  @BeforeEach
-  public void initChannel() {
-    channel = new EmbeddedChannel();
-  }
-
-  @AfterEach
-  public void closeChannel() {
-    channel.close();
-  }
-
   @Test
   public void encoderCompatibleWithNativeProtocolDecoder() {
     // Prepare a ResultMessage with custom payload, warnings and tracingId
     ResultMessage resultMessage = new MockingResultMessage(TRACING_ID, CUSTOM_PAYLOAD, WARNINGS);
 
-    channel.pipeline().addLast(new Frame.Encoder());
-    channel.pipeline().addLast(new Frame.OutboundBodyTransformer());
-    channel.pipeline().addLast(new Message.ProtocolEncoder());
-
     // Encode the ResultMessage via the Stargate CQL protocol encoder
-    channel.writeOutbound(resultMessage);
-    channel.finish();
+    Envelope envelope = resultMessage.encode(ProtocolVersion.V4);
+    List<Object> result = new ArrayList<>();
+    Envelope.Encoder.instance.encode(null, envelope, result);
 
-    ByteBuf header = channel.readOutbound();
-    ByteBuf body = channel.readOutbound();
+    ByteBuf header = (ByteBuf) result.get(0);
+    ByteBuf body = (ByteBuf) result.get(1);
 
     int messageSize = header.readableBytes() + body.readableBytes();
     ByteBuf headerAndBody = CBUtil.allocator.buffer(messageSize);
@@ -97,7 +63,8 @@ public class CQLProtocolCompatibilityTest {
     assertThat(decodedFrame.tracingId).isEqualTo(TRACING_ID);
     assertThat(decodedFrame.customPayload).isEqualTo(CUSTOM_PAYLOAD);
     assertThat(decodedFrame.warnings).isEqualTo(WARNINGS);
-    assertThat(decodedFrame.message).isInstanceOf(Void.class);
+    assertThat(decodedFrame.message)
+        .isInstanceOf(com.datastax.oss.protocol.internal.response.result.Void.class);
   }
 
   @Test
@@ -131,17 +98,13 @@ public class CQLProtocolCompatibilityTest {
     // Encode via native protocol encoder
     ByteBuf encodedFrame = frameCodec.encode(frame);
 
-    // Write the encoded frame to the channel, that will invoke the Stargate CQL protocol decoder
-    EmbeddedChannel channel = new EmbeddedChannel();
-    Connection.Factory connectionFactory = Mockito.mock(Connection.Factory.class);
-    channel.pipeline().addLast(new Frame.Decoder(connectionFactory));
-    channel.pipeline().addLast(new Frame.InboundBodyTransformer());
-    channel.pipeline().addLast(new Message.ProtocolDecoder());
-
-    channel.writeInbound(encodedFrame);
-    channel.finish();
-
-    ResultMessage decodedResult = channel.readInbound();
+    // Decode the encoded frame via the Stargate CQL protocol decoder
+    Envelope.Decoder decoder = new Envelope.Decoder(v -> v >= 4);
+    List<Object> results = new ArrayList<>();
+    decoder.decode(null, encodedFrame, results);
+    Envelope decodedEnvelope = (Envelope) results.get(0);
+    ResultMessage decodedResult =
+        (ResultMessage) Message.responseDecoder().decode(null, decodedEnvelope);
 
     assertThat(decodedResult).isNotNull();
     assertThat(decodedResult.tracingId).isEqualTo(TRACING_ID);

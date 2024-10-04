@@ -396,9 +396,9 @@ public abstract class Message {
       boolean hasWarning = inbound.header.flags.contains(Envelope.Header.Flag.WARNING);
 
       UUID tracingId = isRequest || !isTracing ? null : CBUtil.readUUID(inbound.body);
-      List<String> warnings = isRequest || !hasWarning ? null : CBUtil.readStringList(inbound.body);
       Map<String, ByteBuffer> customPayload =
           !isCustomPayload ? null : CBUtil.readBytesMap(inbound.body);
+      List<String> warnings = isRequest || !hasWarning ? null : CBUtil.readStringList(inbound.body);
 
       if (isCustomPayload && inbound.header.version.isSmallerThan(ProtocolVersion.V4))
         throw new ProtocolException(
