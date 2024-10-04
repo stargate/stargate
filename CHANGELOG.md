@@ -21,7 +21,6 @@
 - Update to Quarkus 3.13.2 \(but not to new test resource annotation\) [\#2987](https://github.com/stargate/stargate/pull/2987) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Update to Quarkus 3.13.2, use `@WithTestResource` \(over deprecated `@QuarkusTestResource`\) [\#2986](https://github.com/stargate/stargate/pull/2986) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Bump dnsjava:dnsjava from 2.1.8 to 3.6.0 in /coordinator/persistence-dse-6.8 [\#2983](https://github.com/stargate/stargate/pull/2983) ([dependabot[bot]](https://github.com/apps/dependabot))
-- Fix v2 changelog [\#2981](https://github.com/stargate/stargate/pull/2981) ([kathirsvn](https://github.com/kathirsvn))
 
 ## [v2.0.30](https://github.com/stargate/stargate/tree/v2.0.30) (2024-07-08)
 
