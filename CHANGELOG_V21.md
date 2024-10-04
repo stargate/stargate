@@ -1,5 +1,14 @@
 # Changelog
 
+## [v2.1.0-BETA-17](https://github.com/stargate/stargate/tree/v2.1.0-BETA-17) (2024-10-04)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-16...v2.1.0-BETA-17)
+
+**Merged pull requests:**
+
+- Manually merge DSE-6.8.51 upgrade from main [\#3017](https://github.com/stargate/stargate/pull/3017) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Minor updates to deps: jacoco and shade plugins [\#3007](https://github.com/stargate/stargate/pull/3007) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v2.1.0-BETA-16](https://github.com/stargate/stargate/tree/v2.1.0-BETA-16) (2024-09-12)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-15...v2.1.0-BETA-16)
