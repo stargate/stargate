@@ -136,7 +136,7 @@ public abstract class Message {
   protected Connection connection;
   private int streamId;
   private Envelope source;
-  private Map<String, ByteBuffer> customPayload;
+  protected Map<String, ByteBuffer> customPayload;
   protected ProtocolVersion forcedProtocolVersion = null;
 
   protected Message(Type type) {
@@ -347,13 +347,13 @@ public abstract class Message {
           CBUtil.writeUUID(tracingId, body);
           flags.add(Envelope.Header.Flag.TRACING);
         }
-        if (warnings != null) {
-          CBUtil.writeStringList(warnings, body);
-          flags.add(Envelope.Header.Flag.WARNING);
-        }
         if (customPayload != null) {
           CBUtil.writeBytesMap(customPayload, body);
           flags.add(Envelope.Header.Flag.CUSTOM_PAYLOAD);
+        }
+        if (warnings != null) {
+          CBUtil.writeStringList(warnings, body);
+          flags.add(Envelope.Header.Flag.WARNING);
         }
       } else {
         assert this instanceof Request;

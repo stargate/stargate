@@ -21,6 +21,7 @@ import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 import javax.annotation.Nullable;
@@ -52,6 +53,7 @@ public abstract class Result {
   public final Kind kind;
   private UUID tracingId;
   private @Nullable List<String> warnings;
+  private Map<String, ByteBuffer> customPayload;
 
   private Result(Kind kind) {
     this.kind = kind;
@@ -68,12 +70,21 @@ public abstract class Result {
     return this;
   }
 
+  public Result setCustomPayload(Map<String, ByteBuffer> customPayload) {
+    this.customPayload = customPayload;
+    return this;
+  }
+
   public UUID getTracingId() {
     return tracingId;
   }
 
   public @Nullable List<String> getWarnings() {
     return warnings;
+  }
+
+  public Map<String, ByteBuffer> getCustomPayload() {
+    return customPayload;
   }
 
   public static class Rows extends Result {
