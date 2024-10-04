@@ -2,7 +2,7 @@
 
 ## [v2.0.31](https://github.com/stargate/stargate/tree/v2.0.31) (2024-10-03)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-16...v2.0.31)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.30...v2.0.31)
 
 **Closed issues:**
 
@@ -22,67 +22,6 @@
 - Update to Quarkus 3.13.2, use `@WithTestResource` \(over deprecated `@QuarkusTestResource`\) [\#2986](https://github.com/stargate/stargate/pull/2986) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
 - Bump dnsjava:dnsjava from 2.1.8 to 3.6.0 in /coordinator/persistence-dse-6.8 [\#2983](https://github.com/stargate/stargate/pull/2983) ([dependabot[bot]](https://github.com/apps/dependabot))
 - Fix v2 changelog [\#2981](https://github.com/stargate/stargate/pull/2981) ([kathirsvn](https://github.com/kathirsvn))
-
-## [v2.1.0-BETA-16](https://github.com/stargate/stargate/tree/v2.1.0-BETA-16) (2024-09-12)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-15...v2.1.0-BETA-16)
-
-**Merged pull requests:**
-
-- CNDB-9895: Allow excluding protocol versions from supported versions advertised to the client [\#2998](https://github.com/stargate/stargate/pull/2998) ([jacek-lewandowski](https://github.com/jacek-lewandowski))
-- Bumping version for next v2.1 release [\#2995](https://github.com/stargate/stargate/pull/2995) ([github-actions[bot]](https://github.com/apps/github-actions))
-
-## [v2.1.0-BETA-15](https://github.com/stargate/stargate/tree/v2.1.0-BETA-15) (2024-09-06)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-14...v2.1.0-BETA-15)
-
-**Closed issues:**
-
-- Update to DSE 6.9.0 [\#2978](https://github.com/stargate/stargate/issues/2978)
-- Update to Quarkus 3.13.x when released to get `@WithTestResource` \(deprecates `@QuarkusTestResource`\) [\#2968](https://github.com/stargate/stargate/issues/2968)
-
-**Merged pull requests:**
-
-- Check header filter when sending CQL protocol events  [\#2994](https://github.com/stargate/stargate/pull/2994) ([mpenick](https://github.com/mpenick))
-- CNDB-9895: Fix the issue with execute statement in V4 protocol [\#2992](https://github.com/stargate/stargate/pull/2992) ([jacek-lewandowski](https://github.com/jacek-lewandowski))
-- Merge C\* 4.0.13 upgrade from v2/main [\#2991](https://github.com/stargate/stargate/pull/2991) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Merge Quarkus upgrade changes from v2 \(main\) [\#2988](https://github.com/stargate/stargate/pull/2988) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version for next v2.1 release [\#2985](https://github.com/stargate/stargate/pull/2985) ([github-actions[bot]](https://github.com/apps/github-actions))
-- Merge from main to v21 [\#2984](https://github.com/stargate/stargate/pull/2984) ([kathirsvn](https://github.com/kathirsvn))
-
-## [v2.1.0-BETA-14](https://github.com/stargate/stargate/tree/v2.1.0-BETA-14) (2024-07-24)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.85...v2.1.0-BETA-14)
-
-**Closed issues:**
-
-- Update to DSE 6.8.50 [\#2970](https://github.com/stargate/stargate/issues/2970)
-
-**Merged pull requests:**
-
-- Fixed v2.1 changelog [\#2982](https://github.com/stargate/stargate/pull/2982) ([kathirsvn](https://github.com/kathirsvn))
-- Apply Quarkus 3.9 package renames from https://github.com/quarkusio/quarkus/wiki/Migration-Guide-3.9 [\#2979](https://github.com/stargate/stargate/pull/2979) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Merge DSE-6.8.59 dep change from main \(v2\) into v2.1 [\#2977](https://github.com/stargate/stargate/pull/2977) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Merge v1 changes to main \(v2\) -- wrt DSE-6.8.50 \(see \#2970\) [\#2976](https://github.com/stargate/stargate/pull/2976) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version for next v2.1 release [\#2973](https://github.com/stargate/stargate/pull/2973) ([github-actions[bot]](https://github.com/apps/github-actions))
-- Bumping version for next v2.0 release [\#2972](https://github.com/stargate/stargate/pull/2972) ([github-actions[bot]](https://github.com/apps/github-actions))
-- V5 [\#2969](https://github.com/stargate/stargate/pull/2969) ([jacek-lewandowski](https://github.com/jacek-lewandowski))
-
-## [v2.1.0-BETA-13](https://github.com/stargate/stargate/tree/v2.1.0-BETA-13) (2024-07-09)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.30...v2.1.0-BETA-13)
-
-**Merged pull requests:**
-
-- Merge from main to v21 [\#2971](https://github.com/stargate/stargate/pull/2971) ([kathirsvn](https://github.com/kathirsvn))
-- Merge changes from main branch \(v2.0.30-SNAPSHOT\) [\#2965](https://github.com/stargate/stargate/pull/2965) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Merge main \(v2.0\) to v2.1 [\#2962](https://github.com/stargate/stargate/pull/2962) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Merge main \(v2.0\) changes to v2.1 [\#2957](https://github.com/stargate/stargate/pull/2957) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Dse v2 protocol support [\#2952](https://github.com/stargate/stargate/pull/2952) ([maheshrajamani](https://github.com/maheshrajamani))
-- Merge DSE 6.8.48 upgrade from main to v2.1 [\#2934](https://github.com/stargate/stargate/pull/2934) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Manual merge of DSE-6.8.47 upgrade from v2.0.x [\#2930](https://github.com/stargate/stargate/pull/2930) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Merge main to v2.1 [\#2928](https://github.com/stargate/stargate/pull/2928) ([kathirsvn](https://github.com/kathirsvn))
-- Bumping version for next v2.1 release [\#2926](https://github.com/stargate/stargate/pull/2926) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v2.0.30](https://github.com/stargate/stargate/tree/v2.0.30) (2024-07-08)
 
