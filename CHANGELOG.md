@@ -1,5 +1,27 @@
 # Changelog
 
+## [v2.0.31](https://github.com/stargate/stargate/tree/v2.0.31) (2024-10-03)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.30...v2.0.31)
+
+**Closed issues:**
+
+- CQL ProtocolDecoder/ProtocolEecoder doesn't adhere to native protocol specs when it comes to frame header flags ordering.   [\#3003](https://github.com/stargate/stargate/issues/3003)
+- Update to DSE 6.8.51 [\#2996](https://github.com/stargate/stargate/issues/2996)
+
+**Merged pull requests:**
+
+- Fix \#2996: upgrade DSE to 6.8.51 \(from 6.8.50\) [\#3015](https://github.com/stargate/stargate/pull/3015) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Minor dep update for Jackson 2.14-\>2.15 \(for CVE in jackson-core\) [\#3013](https://github.com/stargate/stargate/pull/3013) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump commons-io:commons-io from 2.7 to 2.14.0 in /coordinator [\#3012](https://github.com/stargate/stargate/pull/3012) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Fix \#3003 \(by re-doing \#3004 but with different submitter to avoid bogus CI failure\) [\#3009](https://github.com/stargate/stargate/pull/3009) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Upgrade jacoco plugin to 0.8.12 \(testing\) [\#3008](https://github.com/stargate/stargate/pull/3008) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump peter-evans/create-pull-request from 6 to 7 [\#2997](https://github.com/stargate/stargate/pull/2997) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Manual merge \(v1-\>v2.0\) of \#2980 fix \(C4.0.13 upgrade\) [\#2990](https://github.com/stargate/stargate/pull/2990) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update to Quarkus 3.13.2 \(but not to new test resource annotation\) [\#2987](https://github.com/stargate/stargate/pull/2987) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update to Quarkus 3.13.2, use `@WithTestResource` \(over deprecated `@QuarkusTestResource`\) [\#2986](https://github.com/stargate/stargate/pull/2986) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump dnsjava:dnsjava from 2.1.8 to 3.6.0 in /coordinator/persistence-dse-6.8 [\#2983](https://github.com/stargate/stargate/pull/2983) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [v2.0.30](https://github.com/stargate/stargate/tree/v2.0.30) (2024-07-08)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.29...v2.0.30)
