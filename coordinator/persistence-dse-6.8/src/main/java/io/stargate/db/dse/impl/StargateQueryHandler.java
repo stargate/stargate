@@ -17,6 +17,7 @@
  */
 package io.stargate.db.dse.impl;
 
+import com.codahale.metrics.Histogram;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import io.reactivex.Single;
 import io.stargate.auth.AuthenticationSubject;
@@ -85,6 +86,7 @@ import org.apache.cassandra.cql3.statements.schema.DropTriggerStatement;
 import org.apache.cassandra.cql3.statements.schema.DropTypeStatement;
 import org.apache.cassandra.cql3.statements.schema.DropViewStatement;
 import org.apache.cassandra.exceptions.UnauthorizedException;
+import org.apache.cassandra.metrics.CassandraMetricsRegistry;
 import org.apache.cassandra.service.QueryState;
 import org.apache.cassandra.transport.messages.ResultMessage;
 import org.apache.cassandra.utils.MD5Digest;
@@ -96,6 +98,9 @@ public class StargateQueryHandler implements QueryHandler {
   private static final Logger logger = LoggerFactory.getLogger(StargateQueryHandler.class);
   private final List<QueryInterceptor> interceptors = new CopyOnWriteArrayList<>();
   private AtomicReference<AuthorizationService> authorizationService;
+  private final Histogram metricReadSizehistogram =
+      CassandraMetricsRegistry.actualRegistry.histogram(
+          "org.apache.cassandra.metrics.ClientRequest.read_size.histogram");
 
   public void register(QueryInterceptor interceptor) {
     this.interceptors.add(interceptor);
@@ -168,8 +173,17 @@ public class StargateQueryHandler implements QueryHandler {
       authorizeByToken(customPayload, statement);
     }
 
-    return QueryProcessor.instance.processStatement(
-        statement, queryState, options, customPayload, queryStartNanoTime);
+    return QueryProcessor.instance
+        .processStatement(statement, queryState, options, customPayload, queryStartNanoTime)
+        .doOnSuccess(
+            resultMessage -> {
+              if (statement instanceof SelectStatement) {
+                long encodedSize =
+                    resultMessage.kind.subcodec.encodedSize(
+                        resultMessage, org.apache.cassandra.transport.ProtocolVersion.CURRENT);
+                metricReadSizehistogram.update(encodedSize);
+              }
+            });
   }
 
   @Override
