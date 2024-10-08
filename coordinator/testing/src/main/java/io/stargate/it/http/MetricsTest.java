@@ -570,25 +570,25 @@ public class MetricsTest extends BaseIntegrationTest {
     assertThat(lines).isNotEmpty();
   }
 
-    @Test
-    public void dropwizardMetricReadSizeIsPresent() throws IOException {
+  @Test
+  public void dropwizardMetricReadSizeIsPresent() throws IOException {
 
-        assumeThat(backend.isDse())
-                .as("Disabled because this metric does not exists for Cassandra 4 backend")
-                .isTrue();
+    assumeThat(backend.isDse())
+        .as("Disabled because this metric does not exists for Cassandra 4 backend")
+        .isTrue();
 
-        String expectedMetric =
-                "persistence_dse_"
-                        + StringUtils.remove(backend.clusterVersion(), '.').substring(0, 2)
-                        + "_org_apache_cassandra_metrics_ClientRequest_read_size_histogram{";
-        String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
-        List<String> lines =
-                Arrays.stream(result.split(System.getProperty("line.separator")))
-                        .filter(line -> line.startsWith(expectedMetric))
-                        .collect(Collectors.toList());
+    String expectedMetric =
+        "persistence_dse_"
+            + StringUtils.remove(backend.clusterVersion(), '.').substring(0, 2)
+            + "_org_apache_cassandra_metrics_ClientRequest_read_size_histogram{";
+    String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+    List<String> lines =
+        Arrays.stream(result.split(System.getProperty("line.separator")))
+            .filter(line -> line.startsWith(expectedMetric))
+            .collect(Collectors.toList());
 
-        assertThat(lines).isNotEmpty();
-    }
+    assertThat(lines).isNotEmpty();
+  }
 
   private int execute(OkHttpClient client, Request request) throws IOException {
     try (Response execute = client.newCall(request).execute()) {

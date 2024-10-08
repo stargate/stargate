@@ -99,8 +99,8 @@ public class StargateQueryHandler implements QueryHandler {
   private final List<QueryInterceptor> interceptors = new CopyOnWriteArrayList<>();
   private AtomicReference<AuthorizationService> authorizationService;
   private final Histogram metricReadSizehistogram =
-          CassandraMetricsRegistry.actualRegistry.histogram(
-                  "org.apache.cassandra.metrics.ClientRequest.read_size.histogram");
+      CassandraMetricsRegistry.actualRegistry.histogram(
+          "org.apache.cassandra.metrics.ClientRequest.read_size.histogram");
 
   public void register(QueryInterceptor interceptor) {
     this.interceptors.add(interceptor);
@@ -174,16 +174,16 @@ public class StargateQueryHandler implements QueryHandler {
     }
 
     return QueryProcessor.instance
-            .processStatement(statement, queryState, options, customPayload, queryStartNanoTime)
-            .doOnSuccess(
-                    resultMessage -> {
-                      if (statement instanceof SelectStatement) {
-                        long encodedSize =
-                                resultMessage.kind.subcodec.encodedSize(
-                                        resultMessage, org.apache.cassandra.transport.ProtocolVersion.CURRENT);
-                        metricReadSizehistogram.update(encodedSize);
-                      }
-                    });
+        .processStatement(statement, queryState, options, customPayload, queryStartNanoTime)
+        .doOnSuccess(
+            resultMessage -> {
+              if (statement instanceof SelectStatement) {
+                long encodedSize =
+                    resultMessage.kind.subcodec.encodedSize(
+                        resultMessage, org.apache.cassandra.transport.ProtocolVersion.CURRENT);
+                metricReadSizehistogram.update(encodedSize);
+              }
+            });
   }
 
   @Override
