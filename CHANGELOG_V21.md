@@ -1,5 +1,17 @@
 # Changelog
 
+## [v2.1.0-BETA-18](https://github.com/stargate/stargate/tree/v2.1.0-BETA-18) (2024-10-05)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-17...v2.1.0-BETA-18)
+
+**Closed issues:**
+
+- Update expired `OSSRH\_GPG\_SECRET\_KEY` secret [\#3019](https://github.com/stargate/stargate/issues/3019)
+
+**Merged pull requests:**
+
+- Try merging \#3009 fix from "main" \(v2.0\) to v2.1 branch [\#3020](https://github.com/stargate/stargate/pull/3020) ([aymkhalil](https://github.com/aymkhalil))
+
 ## [v2.1.0-BETA-17](https://github.com/stargate/stargate/tree/v2.1.0-BETA-17) (2024-10-04)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-16...v2.1.0-BETA-17)
