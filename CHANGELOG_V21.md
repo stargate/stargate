@@ -11,8 +11,6 @@
 **Merged pull requests:**
 
 - Try merging \#3009 fix from "main" \(v2.0\) to v2.1 branch [\#3020](https://github.com/stargate/stargate/pull/3020) ([aymkhalil](https://github.com/aymkhalil))
-- Bumping version for next v2.1 release [\#3018](https://github.com/stargate/stargate/pull/3018) ([github-actions[bot]](https://github.com/apps/github-actions))
-- Bumping version for next v2.0 release [\#3016](https://github.com/stargate/stargate/pull/3016) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v2.1.0-BETA-17](https://github.com/stargate/stargate/tree/v2.1.0-BETA-17) (2024-10-04)
 
