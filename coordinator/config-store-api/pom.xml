@@ -57,6 +57,15 @@
           <outputDirectory>${project.basedir}/../stargate-lib</outputDirectory>
         </configuration>
       </plugin>
+      <!-- 22-Sep-2023, tatu: Need to add various "- -add-exports"/"- -add-opens" as some
+            tests force changes to ENV variables
+        -->
+      <plugin>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <configuration>
+          <argLine>${jdk11.module-exports}</argLine>
+        </configuration>
+      </plugin>
     </plugins>
   </build>
 </project>
