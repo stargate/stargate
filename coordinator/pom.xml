@@ -65,7 +65,7 @@
       Note that this is currently aligned with the Jetty version that DropWizard transitively depends on.
       It's probably a good idea to keep the two versions in sync (or close)
     -->
-    <jetty.version>9.4.53.v20231009</jetty.version>
+    <jetty.version>9.4.55.v20240627</jetty.version>
     <!-- Logging framework likewise in sync -->
     <slf4j.version>2.0.11</slf4j.version>
     <logback.version>1.3.14</logback.version>
