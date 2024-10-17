@@ -17,7 +17,6 @@ package io.stargate.bridge.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 
 import io.grpc.ManagedChannel;
 import io.grpc.Server;
@@ -49,7 +48,7 @@ public class BaseBridgeTest {
   protected @Mock Persistence persistence;
   protected @Mock AuthorizationService authorizationService;
 
-  protected Connection connection = spy(mock(Connection.class));
+  protected Connection connection = mock(Connection.class);
 
   private ScheduledExecutorService executor;
 
