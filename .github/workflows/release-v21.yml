@@ -77,7 +77,7 @@ jobs:
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
-          java-version: '17'
+          java-version: '11'
           cache: maven
 
       - name: Setup Maven
@@ -133,12 +133,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # install both Java 11 & Java 17, keep paths in vars
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          cache: maven
+      - run: echo "JAVA_11=$JAVA_HOME" >> $GITHUB_ENV
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
           cache: maven
+      - run: echo "JAVA_17=$JAVA_HOME" >> $GITHUB_ENV
 
       - name: Setup Maven
         run: |
@@ -169,14 +179,14 @@ jobs:
         if: ${{ !inputs.skipPublish }}
         run: |
           cd coordinator/
-          ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
-          ./mvnw -B -ntp clean install -DskipTests -pl bridge-proto -am
+          JAVA_HOME=$JAVA_11 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          JAVA_HOME=$JAVA_11 ./mvnw -B -ntp clean install -DskipTests -pl bridge-proto -am
 
       - name: Build APIs with Maven
         run: |
           cd apis/
-          ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
-          ./mvnw -B -ntp clean package -Dquarkus.package.type=uber-jar -DskipTests
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -Dquarkus.package.type=uber-jar -DskipTests
 
       - name: Zip-up APIs
         run: |
@@ -198,12 +208,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # install both Java 11 & Java 17, keep paths in vars
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          cache: maven
+      - run: echo "JAVA_11=$JAVA_HOME" >> $GITHUB_ENV
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
           cache: maven
+      - run: echo "JAVA_17=$JAVA_HOME" >> $GITHUB_ENV
 
       - name: Setup Maven
         env:
@@ -250,16 +270,16 @@ jobs:
         continue-on-error: true
         run: |
           cd coordinator/
-          ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
-          ./mvnw -B -ntp -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,all
+          JAVA_HOME=$JAVA_11 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          JAVA_HOME=$JAVA_11 ./mvnw -B -ntp -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy,all
 
       # explicitly only -pl sgv2-quarkus-common
       - name: Publish Quarkus Common JAR
         if: ${{ !inputs.skipPublish }}
         run: |
           cd apis/
-          ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
-          ./mvnw -B -ntp -pl sgv2-quarkus-common -am -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp -pl sgv2-quarkus-common -am -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy
 
   # publishes the docker images for the coordinator and the APIs
   publish-docker:
@@ -269,12 +289,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # install both Java 11 & Java 17, keep paths in vars
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '11'
+          cache: maven
+      - run: echo "JAVA_11=$JAVA_HOME" >> $GITHUB_ENV
+
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
           distribution: 'temurin'
           java-version: '17'
           cache: maven
+      - run: echo "JAVA_17=$JAVA_HOME" >> $GITHUB_ENV
 
       - name: Setup Maven
         run: |
@@ -304,14 +334,14 @@ jobs:
       - name: Install coordinator
         run: |
           cd coordinator/
-          ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
-          ./mvnw -B -ntp clean install -P all -DskipTests 
+          JAVA_HOME=$JAVA_11 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          JAVA_HOME=$JAVA_11 ./mvnw -B -ntp clean install -P all -DskipTests 
 
       # only set version here
       - name: Install APIs
         run: |
           cd apis/
-          ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
           cd ../
 
       - name: Set up Docker QEMU
@@ -345,14 +375,14 @@ jobs:
         if: ${{ !inputs.skipPublish }}
         run: |
           cd apis/
-          ./mvnw -B -ntp clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
           cd ../
 
       - name: Build without push (apis, DockerHub)
         if: ${{ inputs.skipPublish }}
         run: |
           cd apis/
-          ./mvnw -B -ntp clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
           cd ../
 
       # repeat the same for the AWS ECR
@@ -390,7 +420,7 @@ jobs:
           QUARKUS_APPLICATION_NAME: 'Astra DB GraphQL API'
         run: |
           cd apis/
-          ./mvnw -B -ntp clean package -pl sgv2-graphqlapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-graphqlapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
 
       - name: Build and push (docsapi, Amazon ECR)
         if: ${{ !inputs.skipPublish }}
@@ -404,7 +434,7 @@ jobs:
           QUARKUS_SMALLRYE_OPENAPI_INFO_LICENSE_URL: ''
         run: |
           cd apis/
-          ./mvnw -B -ntp clean package -pl sgv2-docsapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-docsapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
 
       - name: Build and push (restapi, Amazon ECR)
         if: ${{ !inputs.skipPublish }}
@@ -418,7 +448,7 @@ jobs:
           QUARKUS_SMALLRYE_OPENAPI_INFO_LICENSE_URL: ''
         run: |
           cd apis/
-          ./mvnw -B -ntp clean package -pl sgv2-restapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-restapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
 
   # signs all docker images with cosign
   # skip whole job if we did not push images
@@ -536,7 +566,7 @@ jobs:
 
       - name: Rev Version
         if: success()
-        uses: peter-evans/create-pull-request@v6
+        uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "Bumping version for next v2.1 release"
