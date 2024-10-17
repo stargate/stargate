@@ -143,7 +143,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: maven
-      - run: echo "JAVA_17=$JAVA_HOME" >> $GITHUB_ENV
 
       - name: Setup Maven
         run: |
@@ -175,8 +174,8 @@ jobs:
       - name: Build APIs with Maven
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
-          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -Dquarkus.package.type=uber-jar -DskipTests
+          ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          ./mvnw -B -ntp clean package -Dquarkus.package.type=uber-jar -DskipTests
 
       - name: Zip-up APIs
         run: |
@@ -213,7 +212,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: maven
-      - run: echo "JAVA_17=$JAVA_HOME" >> $GITHUB_ENV
 
       - name: Setup Maven
         env:
@@ -263,8 +261,8 @@ jobs:
         if: ${{ !inputs.skipPublish }}
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
-          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp -pl sgv2-quarkus-common -am -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy
+          ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          ./mvnw -B -ntp -pl sgv2-quarkus-common -am -Dgpg.passphrase=${{ secrets.OSSRH_GPG_SECRET_KEY_PASSWORD }} clean deploy -DskipTests -P deploy
 
   # publishes the docker images for the coordinator and the APIs
   publish-docker:
@@ -289,7 +287,6 @@ jobs:
           distribution: 'temurin'
           java-version: '17'
           cache: maven
-      - run: echo "JAVA_17=$JAVA_HOME" >> $GITHUB_ENV
 
       - name: Setup Maven
         run: |
@@ -321,7 +318,7 @@ jobs:
       - name: Install APIs
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
           cd ../
 
       - name: Set up Docker QEMU
@@ -355,14 +352,14 @@ jobs:
         if: ${{ !inputs.skipPublish }}
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          ./mvnw -B -ntp clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
           cd ../
 
       - name: Build without push (apis, DockerHub)
         if: ${{ inputs.skipPublish }}
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          ./mvnw -B -ntp clean package -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
           cd ../
 
       # repeat the same for the AWS ECR
@@ -400,7 +397,7 @@ jobs:
           QUARKUS_APPLICATION_NAME: 'Astra DB GraphQL API'
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-graphqlapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          ./mvnw -B -ntp clean package -pl sgv2-graphqlapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
 
       - name: Build and push (docsapi, Amazon ECR)
         if: ${{ !inputs.skipPublish }}
@@ -414,7 +411,7 @@ jobs:
           QUARKUS_SMALLRYE_OPENAPI_INFO_LICENSE_URL: ''
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-docsapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          ./mvnw -B -ntp clean package -pl sgv2-docsapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
 
       - name: Build and push (restapi, Amazon ECR)
         if: ${{ !inputs.skipPublish }}
@@ -428,7 +425,7 @@ jobs:
           QUARKUS_SMALLRYE_OPENAPI_INFO_LICENSE_URL: ''
         run: |
           cd apis/
-          JAVA_HOME=$JAVA_17 ./mvnw -B -ntp clean package -pl sgv2-restapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
+          ./mvnw -B -ntp clean package -pl sgv2-restapi -am -DskipTests -Dquarkus.container-image.build=true -Dquarkus.docker.buildx.platform=linux/amd64,linux/arm64 -Dquarkus.container-image.push=true -Dquarkus.container-image.registry=${{ secrets.ECR_REPOSITORY }} -Dquarkus.container-image.tag=${{needs.resolve-tag.outputs.release-tag}}
 
   # signs all docker images with cosign
   # skip whole job if we did not push images
