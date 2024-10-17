@@ -95,7 +95,9 @@
     <netty-boringssl.version>2.0.51.Final</netty-boringssl.version>
     <jacoco.version>0.8.12</jacoco.version>
     <junit.version>5.8.2</junit.version>
-    <mockito.version>4.11.0</mockito.version>
+    <!-- 01-Oct-2024, tatu: Beyond mockito 5.2.0 needs to remove mockito-inline ref
+      -->
+    <mockito.version>5.11.0</mockito.version>
     <assertj.version>3.24.2</assertj.version>
     <awaitility.version>4.2.0</awaitility.version>
   </properties>
@@ -103,8 +105,8 @@
     <!-- Basic OSGi dependency, provided by container -->
     <dependency>
       <groupId>org.osgi</groupId>
-      <artifactId>org.osgi.core</artifactId>
-      <version>6.0.0</version>
+      <artifactId>osgi.core</artifactId>
+      <version>8.0.0</version>
       <scope>provided</scope>
     </dependency>
     <!-- Shared test dependencies -->
@@ -487,7 +489,7 @@
             <configuration>
               <rules>
                 <requireJavaVersion>
-                  <version>[11,12)</version>
+                  <version>[11,23)</version>
                   <message>Project requires JDK 11</message>
                 </requireJavaVersion>
                 <requireUpperBoundDeps>
@@ -809,11 +811,13 @@
         <artifactId>junit-jupiter-params</artifactId>
         <version>${junit.version}</version>
       </dependency>
+      <!-- 01-Oct-2024, tatu: post Mockito 5.2, no more inline: 
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-inline</artifactId>
         <version>${mockito.version}</version>
       </dependency>
+      -->
       <dependency>
         <groupId>org.mockito</groupId>
         <artifactId>mockito-core</artifactId>
