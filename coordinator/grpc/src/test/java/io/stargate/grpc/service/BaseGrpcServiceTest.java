@@ -17,7 +17,6 @@ package io.stargate.grpc.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.spy;
 
 import io.grpc.CallOptions;
 import io.grpc.Channel;
@@ -70,7 +69,7 @@ public class BaseGrpcServiceTest {
 
   protected @Mock Persistence persistence;
 
-  protected Connection connection = spy(mock(Connection.class));
+  protected Connection connection = mock(Connection.class);
 
   private ScheduledExecutorService executor;
 
