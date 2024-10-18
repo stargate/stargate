@@ -6,7 +6,6 @@
 
 **Merged pull requests:**
 
-- Bumping version for next v2.1 release [\#3021](https://github.com/stargate/stargate/pull/3021) ([github-actions[bot]](https://github.com/apps/github-actions))
 - CNDB-11144 Allow to run on JDK22+ \(update OSGI runtime\) [\#3011](https://github.com/stargate/stargate/pull/3011) ([jacek-lewandowski](https://github.com/jacek-lewandowski))
 
 ## [v2.1.0-BETA-18](https://github.com/stargate/stargate/tree/v2.1.0-BETA-18) (2024-10-05)
