@@ -1,5 +1,13 @@
 # Changelog
 
+## [v2.1.0-BETA-19](https://github.com/stargate/stargate/tree/v2.1.0-BETA-19) (2024-10-17)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-18...v2.1.0-BETA-19)
+
+**Merged pull requests:**
+
+- CNDB-11144 Allow to run on JDK22+ \(update OSGI runtime\) [\#3011](https://github.com/stargate/stargate/pull/3011) ([jacek-lewandowski](https://github.com/jacek-lewandowski))
+
 ## [v2.1.0-BETA-18](https://github.com/stargate/stargate/tree/v2.1.0-BETA-18) (2024-10-05)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-17...v2.1.0-BETA-18)
