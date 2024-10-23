@@ -55,17 +55,17 @@
     <doclint>none</doclint>
     <driver.version>4.17.0</driver.version>
     <!-- First DropWizard version and things it directly depends on that make sense to sync -->
-    <dropwizard.version>2.1.6</dropwizard.version>
+    <dropwizard.version>2.1.12</dropwizard.version>
     <!--
       Note that this is currently aligned with the metrics version that DropWizard transitively depends on.
       It's probably a good idea to keep the two versions in sync.
     -->
-    <dropwizard.metrics.version>4.2.18</dropwizard.metrics.version>
+    <dropwizard.metrics.version>4.2.25</dropwizard.metrics.version>
     <!--
       Note that this is currently aligned with the Jetty version that DropWizard transitively depends on.
       It's probably a good idea to keep the two versions in sync (or close)
     -->
-    <jetty.version>9.4.53.v20231009</jetty.version>
+    <jetty.version>9.4.56.v20240826</jetty.version>
     <!-- Logging framework likewise in sync -->
     <slf4j.version>2.0.11</slf4j.version>
     <logback.version>1.3.14</logback.version>
