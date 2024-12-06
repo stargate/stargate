@@ -20,13 +20,19 @@ package org.apache.cassandra.stargate.exceptions;
 import static java.lang.Math.max;
 
 public enum RequestFailureReason {
+  // We have codes assigned for all reasons that exist in Apache Cassandra && HCD
+  // Reasons that exist only in HCD have codes starting from 500 up to avoid future
+  // conflicts
   UNKNOWN(0),
   READ_TOO_MANY_TOMBSTONES(1),
   TIMEOUT(2),
   INCOMPATIBLE_SCHEMA(3),
+  READ_SIZE(4),
+  NODE_DOWN(5),
 
   /** The request queried an index but that index wasn't build on the data node. */
-  INDEX_NOT_AVAILABLE,
+  INDEX_NOT_AVAILABLE(6),
+  READ_TOO_MANY_INDEXES(7),
 
   /**
    * The request was writing some data on a CDC enabled table but the CDC commit log segment doesn't
@@ -46,7 +52,7 @@ public enum RequestFailureReason {
    * between the operation and either creation or drop of the table (or, possibly, of the keyspace
    * containing that table, see comment on {@link #UNKNOWN_KEYSPACE}).
    */
-  UNKNOWN_TABLE,
+  UNKNOWN_TABLE(501),
 
   /**
    * We didn't find the keyspace for an operation on a replica. This almost surely implies a race
@@ -61,7 +67,7 @@ public enum RequestFailureReason {
    * We didn't find a column for an operation on a replica. This almost surely implies a race
    * between the operation and either creation or drop of the column.
    */
-  UNKNOWN_COLUMN,
+  UNKNOWN_COLUMN(500),
 
   /** NodeSync service is not running. */
   NODESYNC_NOT_RUNNING,
@@ -93,7 +99,7 @@ public enum RequestFailureReason {
   BACKUP_SERVICE_NOT_RUNNING,
 
   /** The file could not be uploaded or downloaded from remote storage. */
-  REMOTE_STORAGE_FAILURE,
+  REMOTE_STORAGE_FAILURE(502),
 
   /** The node is still bootstrapping and is therefore not ready to serve read requests. */
   BOOTSTRAPPING,
