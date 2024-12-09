@@ -27,8 +27,6 @@ public enum RequestFailureReason {
   READ_TOO_MANY_TOMBSTONES(1),
   TIMEOUT(2),
   INCOMPATIBLE_SCHEMA(3),
-  READ_SIZE(4),
-  NODE_DOWN(5),
 
   /** The request queried an index but that index wasn't build on the data node. */
   INDEX_NOT_AVAILABLE(6),
@@ -105,10 +103,10 @@ public enum RequestFailureReason {
   BOOTSTRAPPING,
 
   /** The read size limit has been exceeded. */
-  READ_SIZE,
+  READ_SIZE(4),
 
   /** Couldn't complete query (typically paxos transaction) due to down node. */
-  NODE_DOWN,
+  NODE_DOWN(5),
 
   /**
    * Used when receiving a code we do not know to indicate that it is a reason added in newer
