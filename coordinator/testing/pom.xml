@@ -438,7 +438,7 @@
                 <configuration>
                   <systemPropertyVariables>
                     <ccm.dse>true</ccm.dse>
-                    <ccm.version>6.8.51</ccm.version>
+                    <ccm.version>6.8.53</ccm.version>
                     <stargate.test.persistence.module>persistence-dse-6.8</stargate.test.persistence.module>
                     <stargate.test.nodes>1</stargate.test.nodes>
                     <stargate.test.backend.vsearch>false</stargate.test.backend.vsearch>
