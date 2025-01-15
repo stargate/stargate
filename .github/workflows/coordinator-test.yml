@@ -131,9 +131,10 @@ jobs:
       #     sudo systemctl stop mono-xsp4.service || true
       #   neither does uninstalling mono:
       #     sudo apt-get purge --auto-remove ubuntu-mono mono-runtime
+      # NOTE: -q used so this won't fail if "mono" doesn't exist
       - name: Disable Mono
         run: |
-          sudo killall mono
+          sudo killall -q mono
           sudo lsof -iTCP -n -P | sort -k1
 
       - uses: actions/checkout@v4
