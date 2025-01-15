@@ -124,19 +124,6 @@ jobs:
 
     steps:
 
-      # Kill unused mono process that uses port 8084 starting on Ubuntu 20.04 GitHub runner
-      # This is brute force but other attempts did not work
-      #   see: https://github.com/actions/runner-images/issues/2821
-      #   this doesn't seem to stop the process:
-      #     sudo systemctl stop mono-xsp4.service || true
-      #   neither does uninstalling mono:
-      #     sudo apt-get purge --auto-remove ubuntu-mono mono-runtime
-      # NOTE: -q used so this won't fail if "mono" doesn't exist
-      - name: Disable Mono
-        run: |
-          sudo killall -q mono
-          sudo lsof -iTCP -n -P | sort -k1
-
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5
