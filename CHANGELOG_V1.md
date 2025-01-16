@@ -1,96 +1,24 @@
 # Changelog
 
-## [v1.0.88](https://github.com/stargate/stargate/tree/v1.0.88) (2025-01-16)
+## [v1.0.88](https://github.com/stargate/stargate/tree/v1.0.88) (2025-01-15)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-19...v1.0.88)
-
-**Implemented enhancements:**
-
-- Support appending and deleting values from collections in GraphQL CQL-first API [\#1522](https://github.com/stargate/stargate/issues/1522)
-- Add support for additional option on Create Table API operation [\#1440](https://github.com/stargate/stargate/issues/1440)
-- TimeUUID in DocumentAPI [\#1033](https://github.com/stargate/stargate/issues/1033)
-- Configuration options around auth [\#792](https://github.com/stargate/stargate/issues/792)
-
-**Fixed bugs:**
-
-- swagger.json bug from `openapi-generator` [\#2445](https://github.com/stargate/stargate/issues/2445)
-- Invalid JSON in query variables results in unexpected response format [\#1470](https://github.com/stargate/stargate/issues/1470)
-- Document insert prepare query not found [\#1437](https://github.com/stargate/stargate/issues/1437)
-- `ByteBuf` leak in `HAProxyMessageDecoder` \(proxy protocol handling?\) [\#1397](https://github.com/stargate/stargate/issues/1397)
-- Resource `json-schema` appears not functional in Astra [\#1352](https://github.com/stargate/stargate/issues/1352)
-- Wrong column type expected after dropping a keyspace and recreating it with different schema [\#1313](https://github.com/stargate/stargate/issues/1313)
-- Malformed URL causing socket hang up [\#1226](https://github.com/stargate/stargate/issues/1226)
-- gRPC: Fix response type for batches to support LWTs [\#1111](https://github.com/stargate/stargate/issues/1111)
-
-**Closed issues:**
-
-- Update to DSE 6.8.53 [\#3040](https://github.com/stargate/stargate/issues/3040)
-- When will Cassandra 5.0 be supported [\#3038](https://github.com/stargate/stargate/issues/3038)
-- Update to DSE 6.8.52 [\#3032](https://github.com/stargate/stargate/issues/3032)
-- Update Jetty dep from 9.4.53.v20231009 to 9.4.56.v20240826 \(latest as of now\) [\#3029](https://github.com/stargate/stargate/issues/3029)
-- When will Cassandra 5.0 images be supported [\#3024](https://github.com/stargate/stargate/issues/3024)
-- Stargate v1 instance fails to shutdown even if persistence module startup fails [\#2936](https://github.com/stargate/stargate/issues/2936)
-- Add option to include profiling tools in API Docker images [\#2901](https://github.com/stargate/stargate/issues/2901)
-- GraphQL mutations with @atomic directive and TTL are not persisted [\#2875](https://github.com/stargate/stargate/issues/2875)
-- Unable to specify Cassandra BroadcastAddress [\#2825](https://github.com/stargate/stargate/issues/2825)
-- Investigate flaky AdditionalPortsTest [\#2794](https://github.com/stargate/stargate/issues/2794)
-- Add support for CQL analyzers [\#2763](https://github.com/stargate/stargate/issues/2763)
-- UDT schema change causes incorrect CQL queries in CQL-first GraphQL API [\#2723](https://github.com/stargate/stargate/issues/2723)
-- Postman tests fail with compactMapData flag [\#2702](https://github.com/stargate/stargate/issues/2702)
-- FEATURE REQUEST - Support CDC integration [\#2587](https://github.com/stargate/stargate/issues/2587)
-- Readiness check reports ready before superuser is available [\#2586](https://github.com/stargate/stargate/issues/2586)
-- Avoid using profiles in REST integration tests [\#2440](https://github.com/stargate/stargate/issues/2440)
-- Fix flaky StargateBridgeInterceptorDeadlineTest [\#2433](https://github.com/stargate/stargate/issues/2433)
-- Timestamp types cause "failed to execute query" error on ExecuteBatch of gRPC API [\#1895](https://github.com/stargate/stargate/issues/1895)
-- `--emulate-dbaas-defaults` overrides any guardrail settings provided by a cassandra yaml [\#1799](https://github.com/stargate/stargate/issues/1799)
-- GraphQL function calls can overwrite eachother [\#1682](https://github.com/stargate/stargate/issues/1682)
-- Always require a `ClientInfo` with a `AuthenticatedUser` \(no user present should fail authz\) [\#1673](https://github.com/stargate/stargate/issues/1673)
-- Batching statement authorization improvements [\#1587](https://github.com/stargate/stargate/issues/1587)
-- How to run a query \(REST or GraphQL\) with ALLOW FILTERING clause [\#1513](https://github.com/stargate/stargate/issues/1513)
-- Add `timestamp\(\)` method to `io.stargate.grpc.Values` helper class [\#1487](https://github.com/stargate/stargate/issues/1487)
-- Document API support for geospatial querying using solr\_query [\#1455](https://github.com/stargate/stargate/issues/1455)
-- Return value for column ordering from REST API inconsistent: "asc"/"desc" vs "ASC"/"DESC" [\#1446](https://github.com/stargate/stargate/issues/1446)
-- Consistency with environment variables between Cassandra 3.11 and Stargate 3.11 [\#1406](https://github.com/stargate/stargate/issues/1406)
-- Altering keyspaces is impossible with Cassandra 4.0 and Stargate [\#1274](https://github.com/stargate/stargate/issues/1274)
-- Cache tokens in the `AuthnTableBasedService` [\#1251](https://github.com/stargate/stargate/issues/1251)
-- Add metrics to our `LoadingCache` instances [\#1249](https://github.com/stargate/stargate/issues/1249)
-- Issues when using Stargate in multi-datacenter environments [\#1203](https://github.com/stargate/stargate/issues/1203)
-- Use bound port in `system.peers\_v2` for C\* 4.0 persistence  [\#1119](https://github.com/stargate/stargate/issues/1119)
-- Add possibility to disable parallel filtering during document search [\#1029](https://github.com/stargate/stargate/issues/1029)
-- GraphQL endpoints are slowed down by reading system\_auth.roles [\#1021](https://github.com/stargate/stargate/issues/1021)
-- Stargate doesn't pull large schema correctly from Cassandra nodes [\#1017](https://github.com/stargate/stargate/issues/1017)
-- REST GET call with compound primary key does not work in Swagger UI [\#1004](https://github.com/stargate/stargate/issues/1004)
-- Add tests to validate status/topology/schema events are generated [\#999](https://github.com/stargate/stargate/issues/999)
-- The REST API seems do not support updating a single specific value within the map. [\#951](https://github.com/stargate/stargate/issues/951)
-- The bundle state liveness check should return "OK" unless there are errors [\#934](https://github.com/stargate/stargate/issues/934)
-- Possibly add an `applied` flag to `Result` for LWTs over gRPC [\#930](https://github.com/stargate/stargate/issues/930)
-- Add tracing support for the Stargate [\#883](https://github.com/stargate/stargate/issues/883)
-- Date only timestamp works for CQL but not REST [\#839](https://github.com/stargate/stargate/issues/839)
-- Remove stargate.persistence\_id since it's no longer needed [\#779](https://github.com/stargate/stargate/issues/779)
-- Ensure metric is reported for unexpected exceptions during auth [\#759](https://github.com/stargate/stargate/issues/759)
-- Rest API: allow specifying client side CL [\#61](https://github.com/stargate/stargate/issues/61)
-
-**Merged pull requests:**
-
-- Sync versions after failed release attempt [\#3043](https://github.com/stargate/stargate/pull/3043) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-
-## [v1.0.86](https://github.com/stargate/stargate/tree/v1.0.86) (2024-10-08)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.87...v1.0.86)
-
-## [v1.0.87](https://github.com/stargate/stargate/tree/v1.0.87) (2024-10-08)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-18...v1.0.87)
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.87...v1.0.88)
 
 **Merged pull requests:**
 
 - amc-844 usage of Histogram Metric to measure Reads Size with SelectStatements [\#3023](https://github.com/stargate/stargate/pull/3023) ([maxospiquante](https://github.com/maxospiquante))
-- Fix \#2980: update C\*4.0 dep to 4.0.13 \(latest\) [\#2989](https://github.com/stargate/stargate/pull/2989) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version for next release [\#2975](https://github.com/stargate/stargate/pull/2975) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v1.0.87](https://github.com/stargate/stargate/tree/v1.0.87) (2025-01-15)
+
+* Failed release
+
+## [v1.0.86](https://github.com/stargate/stargate/tree/v1.0.86) (2025-01-14)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.85...v1.0.86)
 
 ## [v1.0.85](https://github.com/stargate/stargate/tree/v1.0.85) (2024-07-10)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-13...v1.0.85)
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.84...v1.0.85)
 
 **Closed issues:**
 
