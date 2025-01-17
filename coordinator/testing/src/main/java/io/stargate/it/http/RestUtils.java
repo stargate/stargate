@@ -177,6 +177,7 @@ public class RestUtils {
     }
 
     Response response = client.newCall(request).execute();
+
     assertStatusCode(response, expectedStatusCode);
 
     ResponseBody body = response.body();
@@ -271,12 +272,17 @@ public class RestUtils {
     return response.body() != null ? response.body().string() : null;
   }
 
-  public static void assertStatusCode(Response response, int statusCode) throws IOException {
+  public static void assertStatusCode(Response response, int expectedStatusCode)
+      throws IOException {
     try {
-      assertThat(response.code()).isEqualTo(statusCode);
+      assertThat(response.code()).isEqualTo(expectedStatusCode);
     } catch (AssertionError e) {
       if (response.body() != null) {
-        logger.error(response.body().string());
+        logger.error(
+            "Wrong status code (expected: {}, actual: {}), response: {}",
+            expectedStatusCode,
+            response.code(),
+            response.body().string());
       }
       throw e;
     }

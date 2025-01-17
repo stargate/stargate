@@ -1503,8 +1503,8 @@ public class RestApiv2SchemaTest extends BaseIntegrationTest {
     // update UDT: add and rename field
     udtString =
         "{\"name\": \"udt2\","
-            + "\"addFields\":[{\"name\":\"name\",\"typeDefinition\":\"text\"}]},"
-            + "\"renameFields\": [{\"from\": \"name\", \"to\": \"firstname\"}";
+            + "\"addFields\":[{\"name\":\"name\",\"typeDefinition\":\"text\"}],"
+            + "\"renameFields\": [{\"from\": \"name\", \"to\": \"firstname\"}]}";
 
     RestUtils.put(
         authToken,
