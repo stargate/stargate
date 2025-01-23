@@ -17,11 +17,12 @@
  */
 package org.apache.cassandra.stargate.exceptions;
 
-import static java.lang.Math.max;
+import java.util.HashMap;
+import java.util.Map;
 
 public enum RequestFailureReason {
-  // We have codes assigned for all reasons that exist in Apache Cassandra && HCD
-  // Reasons that exist only in HCD have codes starting from 500 up to avoid future
+  // We have codes assigned for all reasons that exist in Apache Cassandra && DataStax HCD
+  // Reasons that exist only in DataStax HCD have codes starting from 500 up to avoid future
   // conflicts
   UNKNOWN(0),
   READ_TOO_MANY_TOMBSTONES(1),
@@ -134,31 +135,21 @@ public enum RequestFailureReason {
     this.hasProtocolSupport = false;
   }
 
-  private static final RequestFailureReason[] codeToReasonMap;
+  private static final Map<Integer, RequestFailureReason> codeToReasonMap = new HashMap<>();
 
   static {
     RequestFailureReason[] reasons = values();
-
-    int max = -1;
-    for (RequestFailureReason r : reasons) {
-      max = max(r.code, max);
-    }
-
-    RequestFailureReason[] codeMap = new RequestFailureReason[max + 1];
 
     for (RequestFailureReason reason : reasons) {
       if (!reason.hasProtocolSupport) {
         continue;
       }
 
-      if (codeMap[reason.code] != null) {
+      if (codeToReasonMap.put(reason.code, reason) != null) {
         throw new RuntimeException(
             "Two RequestFailureReason-s that map to the same code: " + reason.code);
       }
-      codeMap[reason.code] = reason;
     }
-
-    codeToReasonMap = codeMap;
   }
 
   public static RequestFailureReason fromCode(int code) {
@@ -168,6 +159,6 @@ public enum RequestFailureReason {
     }
 
     // be forgiving and return UNKNOWN if we aren't aware of the code - for forward compatibility
-    return code < codeToReasonMap.length ? codeToReasonMap[code] : UNKNOWN;
+    return codeToReasonMap.getOrDefault(code, UNKNOWN);
   }
 }
