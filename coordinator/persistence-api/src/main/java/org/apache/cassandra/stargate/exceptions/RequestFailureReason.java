@@ -109,6 +109,9 @@ public enum RequestFailureReason {
   /** Couldn't complete query (typically paxos transaction) due to down node. */
   NODE_DOWN(5),
 
+  /** The request queried an index but that index is still building. */
+  INDEX_BUILD_IN_PROGRESS(503),
+
   /**
    * Used when receiving a code we do not know to indicate that it is a reason added in newer
    * version than us, but is something somewhat expected by that node from the future (it is not
