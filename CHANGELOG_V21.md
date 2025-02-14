@@ -1,5 +1,24 @@
 # Changelog
 
+## [v2.1.0-BETA-21](https://github.com/stargate/stargate/tree/v2.1.0-BETA-21) (2025-02-14)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.88...v2.1.0-BETA-21)
+
+**Closed issues:**
+
+- Update to DSE 6.8.54 [\#3052](https://github.com/stargate/stargate/issues/3052)
+
+**Merged pull requests:**
+
+- Fix version for next release [\#3055](https://github.com/stargate/stargate/pull/3055) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update to DSE-6.8.54 \(from 6.8.53\) [\#3054](https://github.com/stargate/stargate/pull/3054) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Remove now unnecessary \(and failing\) GH action step that kills "mono" process [\#3044](https://github.com/stargate/stargate/pull/3044) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#3040: upgrade DSE to 6.8.53 \(from 6.8.51\) [\#3041](https://github.com/stargate/stargate/pull/3041) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump ch.qos.logback:logback-core from 1.3.14 to 1.3.15 in /coordinator [\#3039](https://github.com/stargate/stargate/pull/3039) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Merge jetty 9.4.56 update from main \(v2\) [\#3031](https://github.com/stargate/stargate/pull/3031) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update Jetty version to latest \(9.4.56.x\) [\#3030](https://github.com/stargate/stargate/pull/3030) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.1 release [\#3028](https://github.com/stargate/stargate/pull/3028) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.1.0-BETA-19](https://github.com/stargate/stargate/tree/v2.1.0-BETA-19) (2024-10-17)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-18...v2.1.0-BETA-19)
