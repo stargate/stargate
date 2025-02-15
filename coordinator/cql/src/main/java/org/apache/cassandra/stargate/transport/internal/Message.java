@@ -28,6 +28,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.nio.ByteBuffer;
 import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -413,6 +414,21 @@ public abstract class Message {
         assert message instanceof Request;
         Request req = (Request) message;
         Connection connection = channel.attr(Connection.attributeKey).get();
+
+        if (connection != null
+            && ((ServerConnection) connection).clientInfo() != null
+            && ((ServerConnection) connection).clientInfo().getAuthenticatedUser() != null) {
+          ClientInfo clientInfo = ((ServerConnection) connection).clientInfo();
+
+          if (customPayload != null) {
+            clientInfo.storeAuthenticationData(customPayload);
+          } else {
+            Map<String, ByteBuffer> payload = new HashMap<>();
+            clientInfo.storeAuthenticationData(payload);
+            message.setCustomPayload(payload);
+          }
+        }
+
         req.attach(connection);
         if (isTracing) req.setTracingRequested();
       } else {
