@@ -1,5 +1,3 @@
-# Changelog
-
 ## [v2.1.0-BETA-21](https://github.com/stargate/stargate/tree/v2.1.0-BETA-21) (2025-02-14)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-19...v2.1.0-BETA-21)
