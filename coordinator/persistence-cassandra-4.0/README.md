@@ -12,7 +12,7 @@ In order to update to a newer patch version, please follow the guidelines below:
 * Check the transitive dependencies of the `org.apache.cassandra:cassandra-all` for the new version.
 Make sure that the version of the `com.datastax.cassandra:cassandra-driver-core` that `cassandra-all` depends on, is same as in the `cassandra.bundled-driver.version` property in the [pom.xml](pom.xml).
 This dependency is set as optional in the `cassandra-all`, but we need it to correctly handle UDFs.
-Note that transitive dependencies can be seen on [mvnrepository.com](https://mvnrepository.com/artifact/org.apache.cassandra/cassandra-all/4.0.13).
+Note that transitive dependencies can be seen on [mvnrepository.com](https://mvnrepository.com/artifact/org.apache.cassandra/cassandra-all/4.0.17).
 * Create a separate PR for bumping the Cassandra 4 version in the Quarkus-based API integration tests on the `v2.0.0` branch. Test profiles are defined in the `apis/pom.xml`.
 * Make sure everything compiles and CI tests are green.
 * Update the [default docker-compose env variables](../../docker-compose/cassandra-4.0/.env) to reference the new version.
