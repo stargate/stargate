@@ -4,7 +4,7 @@ This module represents the implementation of the [persistence-api](../persistenc
 
 ## Cassandra version update
 
-The current Cassandra version this module depends on is `4.0.13`.
+The current Cassandra version this module depends on is `4.0.17`.
 In order to update to a newer patch version, please follow the guidelines below:
 
 * Update the `cassandra.version` property in the [pom.xml](pom.xml).
@@ -20,6 +20,7 @@ Note that transitive dependencies can be seen on [mvnrepository.com](https://mvn
 
 It's always good to validate your work against the pull requests that bumped the version in the past:
 
+* `4.0.10` -> `4.0.13` [stargate/stargate#2989](https://github.com/stargate/stargate/pull/2989)
 * `4.0.9` -> `4.0.10` [stargate/stargate#2602](https://github.com/stargate/stargate/pull/2602)
 * `4.0.1` -> `4.0.3` [stargate/stargate#1647](https://github.com/stargate/stargate/pull/1647)
 * `4.0.4` -> `4.0.7` [stargate/stargate#2329](https://github.com/stargate/stargate/pull/2329)
