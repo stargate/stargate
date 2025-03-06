@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>2.1-CNDB-12620-v2.1-SNAPSHOT</version>
+    <version>2.1-CNDB-7343-v2.1-SNAPSHOT</version>
   </parent>
   <!-- Artifact props -->
   <groupId>io.stargate.grpc</groupId>
