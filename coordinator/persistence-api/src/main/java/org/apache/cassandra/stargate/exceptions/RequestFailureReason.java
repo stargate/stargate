@@ -17,16 +17,21 @@
  */
 package org.apache.cassandra.stargate.exceptions;
 
-import static java.lang.Math.max;
+import java.util.HashMap;
+import java.util.Map;
 
 public enum RequestFailureReason {
+  // We have codes assigned for all reasons that exist in Apache Cassandra && DataStax HCD
+  // Reasons that exist only in DataStax HCD have codes starting from 500 up to avoid future
+  // conflicts
   UNKNOWN(0),
   READ_TOO_MANY_TOMBSTONES(1),
   TIMEOUT(2),
   INCOMPATIBLE_SCHEMA(3),
 
   /** The request queried an index but that index wasn't build on the data node. */
-  INDEX_NOT_AVAILABLE,
+  INDEX_NOT_AVAILABLE(6),
+  READ_TOO_MANY_INDEXES(7),
 
   /**
    * The request was writing some data on a CDC enabled table but the CDC commit log segment doesn't
@@ -46,7 +51,7 @@ public enum RequestFailureReason {
    * between the operation and either creation or drop of the table (or, possibly, of the keyspace
    * containing that table, see comment on {@link #UNKNOWN_KEYSPACE}).
    */
-  UNKNOWN_TABLE,
+  UNKNOWN_TABLE(501),
 
   /**
    * We didn't find the keyspace for an operation on a replica. This almost surely implies a race
@@ -61,7 +66,7 @@ public enum RequestFailureReason {
    * We didn't find a column for an operation on a replica. This almost surely implies a race
    * between the operation and either creation or drop of the column.
    */
-  UNKNOWN_COLUMN,
+  UNKNOWN_COLUMN(500),
 
   /** NodeSync service is not running. */
   NODESYNC_NOT_RUNNING,
@@ -93,16 +98,19 @@ public enum RequestFailureReason {
   BACKUP_SERVICE_NOT_RUNNING,
 
   /** The file could not be uploaded or downloaded from remote storage. */
-  REMOTE_STORAGE_FAILURE,
+  REMOTE_STORAGE_FAILURE(502),
 
   /** The node is still bootstrapping and is therefore not ready to serve read requests. */
   BOOTSTRAPPING,
 
   /** The read size limit has been exceeded. */
-  READ_SIZE,
+  READ_SIZE(4),
 
   /** Couldn't complete query (typically paxos transaction) due to down node. */
-  NODE_DOWN,
+  NODE_DOWN(5),
+
+  /** The request queried an index but that index is still building. */
+  INDEX_BUILD_IN_PROGRESS(503),
 
   /**
    * Used when receiving a code we do not know to indicate that it is a reason added in newer
@@ -130,31 +138,21 @@ public enum RequestFailureReason {
     this.hasProtocolSupport = false;
   }
 
-  private static final RequestFailureReason[] codeToReasonMap;
+  private static final Map<Integer, RequestFailureReason> codeToReasonMap = new HashMap<>();
 
   static {
     RequestFailureReason[] reasons = values();
-
-    int max = -1;
-    for (RequestFailureReason r : reasons) {
-      max = max(r.code, max);
-    }
-
-    RequestFailureReason[] codeMap = new RequestFailureReason[max + 1];
 
     for (RequestFailureReason reason : reasons) {
       if (!reason.hasProtocolSupport) {
         continue;
       }
 
-      if (codeMap[reason.code] != null) {
+      if (codeToReasonMap.put(reason.code, reason) != null) {
         throw new RuntimeException(
             "Two RequestFailureReason-s that map to the same code: " + reason.code);
       }
-      codeMap[reason.code] = reason;
     }
-
-    codeToReasonMap = codeMap;
   }
 
   public static RequestFailureReason fromCode(int code) {
@@ -164,6 +162,6 @@ public enum RequestFailureReason {
     }
 
     // be forgiving and return UNKNOWN if we aren't aware of the code - for forward compatibility
-    return code < codeToReasonMap.length ? codeToReasonMap[code] : UNKNOWN;
+    return codeToReasonMap.getOrDefault(code, UNKNOWN);
   }
 }
