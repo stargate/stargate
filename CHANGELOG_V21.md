@@ -20,7 +20,6 @@
 **Merged pull requests:**
 
 - cndb-main-release-202501: fix missing auth data in payload [\#3057](https://github.com/stargate/stargate/pull/3057) ([jacek-lewandowski](https://github.com/jacek-lewandowski))
-- Bumping version for next v2.1 release [\#3056](https://github.com/stargate/stargate/pull/3056) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-19...v2.1.0-BETA-21)
 
