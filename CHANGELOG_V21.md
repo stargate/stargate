@@ -1,4 +1,25 @@
-## [v2.1.0-BETA-21](https://github.com/stargate/stargate/tree/v2.1.0-BETA-21) (2025-02-14)
+# Changelog
+
+## [v2.1.0-BETA-23](https://github.com/stargate/stargate/tree/v2.1.0-BETA-23) (2025-03-06)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-22...v2.1.0-BETA-23)
+
+**Closed issues:**
+
+- Add reason INDEX_BUILD_IN_PROGRESS to RequestFailureReason [\#3049](https://github.com/stargate/stargate/issues/3049)
+- Update C\* 4.0 to latest \(4.0.13 -\> 4.0.17\) [\#3059](https://github.com/stargate/stargate/issues/3059)
+
+**Merged pull requests:**
+
+- \#3049 - CNDB-12620 v2.1 [\#3050](https://github.com/stargate/stargate/pull/3050) ([ekaterinadimitrova2](https://github.com/ekaterinadimitrova2))
+
+## [v2.1.0-BETA-22](https://github.com/stargate/stargate/tree/v2.1.0-BETA-22) (2025-02-15)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-21...v2.1.0-BETA-22)
+
+**Merged pull requests:**
+
+- cndb-main-release-202501: fix missing auth data in payload [\#3057](https://github.com/stargate/stargate/pull/3057) ([jacek-lewandowski](https://github.com/jacek-lewandowski))
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-19...v2.1.0-BETA-21)
 
