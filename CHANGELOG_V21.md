@@ -6,13 +6,11 @@
 
 **Closed issues:**
 
+- Add reason INDEX_BUILD_IN_PROGRESS to RequestFailureReason [\#3049](https://github.com/stargate/stargate/issues/3049)
 - Update C\* 4.0 to latest \(4.0.13 -\> 4.0.17\) [\#3059](https://github.com/stargate/stargate/issues/3059)
 
 **Merged pull requests:**
 
-- Merge \#3061 from main to v2.1 [\#3064](https://github.com/stargate/stargate/pull/3064) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Merge \#3059 fix \(C\*4.0.17 from 4.0.13\) from main to v2.1 [\#3062](https://github.com/stargate/stargate/pull/3062) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version for next v2.1 release [\#3058](https://github.com/stargate/stargate/pull/3058) ([github-actions[bot]](https://github.com/apps/github-actions))
 - \#3049 - CNDB-12620 v2.1 [\#3050](https://github.com/stargate/stargate/pull/3050) ([ekaterinadimitrova2](https://github.com/ekaterinadimitrova2))
 
 ## [v2.1.0-BETA-22](https://github.com/stargate/stargate/tree/v2.1.0-BETA-22) (2025-02-15)
