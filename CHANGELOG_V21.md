@@ -4,6 +4,9 @@
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-22...v2.1.0-BETA-23)
 
+
+
+
 **Closed issues:**
 
 - Add reason INDEX_BUILD_IN_PROGRESS to RequestFailureReason [\#3049](https://github.com/stargate/stargate/issues/3049)
