@@ -17,6 +17,7 @@
  */
 package io.stargate.db.dse.impl;
 
+import com.codahale.metrics.Counter;
 import com.codahale.metrics.Histogram;
 import com.datastax.oss.driver.shaded.guava.common.annotations.VisibleForTesting;
 import io.reactivex.Single;
@@ -102,6 +103,14 @@ public class StargateQueryHandler implements QueryHandler {
       CassandraMetricsRegistry.actualRegistry.histogram(
           "org.apache.cassandra.metrics.ClientRequest.read_size.histogram");
 
+  private final Counter deleteStatementSuccessCounter =
+      CassandraMetricsRegistry.actualRegistry.counter(
+          "org.apache.cassandra.metrics.ClientRequest.delete_statements_success.count");
+
+  private final Counter deleteStatementErrorCounter =
+      CassandraMetricsRegistry.actualRegistry.counter(
+          "org.apache.cassandra.metrics.ClientRequest.delete_statements_error.count");
+
   public void register(QueryInterceptor interceptor) {
     this.interceptors.add(interceptor);
   }
@@ -173,6 +182,19 @@ public class StargateQueryHandler implements QueryHandler {
       authorizeByToken(customPayload, statement);
     }
 
+    //    ResultMessage processStatementMessage =
+    //        QueryProcessor.instance.processStatement(
+    //            statement, queryState, options, customPayload, queryStartNanoTime);
+    //    return processStatementMessage.doOnSuccess(
+    //        resultMessage -> {
+    //          if (statement instanceof SelectStatement) {
+    //            long encodedSize =
+    //                resultMessage.kind.subcodec.encodedSize(
+    //                    resultMessage, org.apache.cassandra.transport.ProtocolVersion.CURRENT);
+    //            metricReadSizehistogram.update(encodedSize);
+    //          }
+    //        });
+
     return QueryProcessor.instance
         .processStatement(statement, queryState, options, customPayload, queryStartNanoTime)
         .doOnSuccess(
@@ -182,6 +204,15 @@ public class StargateQueryHandler implements QueryHandler {
                     resultMessage.kind.subcodec.encodedSize(
                         resultMessage, org.apache.cassandra.transport.ProtocolVersion.CURRENT);
                 metricReadSizehistogram.update(encodedSize);
+              } else if (statement instanceof DeleteStatement) {
+                // add metric
+                deleteStatementSuccessCounter.inc();
+              }
+            })
+        .doOnError(
+            resultMessage -> {
+              if (statement instanceof DeleteStatement) {
+                deleteStatementErrorCounter.inc();
               }
             });
   }
