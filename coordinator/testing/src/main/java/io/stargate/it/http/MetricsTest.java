@@ -600,12 +600,14 @@ public class MetricsTest extends BaseIntegrationTest {
     String expectedMetricSuccess =
         "persistence_dse_"
             + StringUtils.remove(backend.clusterVersion(), '.').substring(0, 2)
-            + "_org_apache_cassandra_metrics_ClientRequest_delete_statements_success_counter{";
+            + "_org.apache.cassandra.metrics.ClientRequest.delete_statements_success.count{";
     String expectedMetricError =
         "persistence_dse_"
             + StringUtils.remove(backend.clusterVersion(), '.').substring(0, 2)
-            + "_org_apache_cassandra_metrics_ClientRequest_delete_statements_error_counter{";
+            + "_org.apache.cassandra.metrics.ClientRequest.delete_statements_error.count{";
+    System.out.printf("%s:8084/metrics\n", host);
     String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+    System.out.printf(result);
     List<String> lines =
         Arrays.stream(result.split(System.lineSeparator()))
             .filter(line -> line.startsWith(expectedMetricSuccess))
