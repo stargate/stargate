@@ -182,19 +182,6 @@ public class StargateQueryHandler implements QueryHandler {
       authorizeByToken(customPayload, statement);
     }
 
-    //    ResultMessage processStatementMessage =
-    //        QueryProcessor.instance.processStatement(
-    //            statement, queryState, options, customPayload, queryStartNanoTime);
-    //    return processStatementMessage.doOnSuccess(
-    //        resultMessage -> {
-    //          if (statement instanceof SelectStatement) {
-    //            long encodedSize =
-    //                resultMessage.kind.subcodec.encodedSize(
-    //                    resultMessage, org.apache.cassandra.transport.ProtocolVersion.CURRENT);
-    //            metricReadSizehistogram.update(encodedSize);
-    //          }
-    //        });
-
     return QueryProcessor.instance
         .processStatement(statement, queryState, options, customPayload, queryStartNanoTime)
         .doOnSuccess(
