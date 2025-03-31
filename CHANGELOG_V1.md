@@ -1,5 +1,14 @@
 # Changelog
 
+## [v1.0.90](https://github.com/stargate/stargate/tree/v1.0.90) (2025-03-31)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.89...v1.0.90)
+
+**Merged pull requests:**
+
+- Fix \(somehow\) broken release CI workflow for v1 \(Maven-antrun upgrade?\) [\#3072](https://github.com/stargate/stargate/pull/3072) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next release [\#3071](https://github.com/stargate/stargate/pull/3071) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v1.0.89](https://github.com/stargate/stargate/tree/v1.0.89) (2025-03-31)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.88...v1.0.89)
