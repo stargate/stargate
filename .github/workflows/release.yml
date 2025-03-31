@@ -96,8 +96,8 @@ jobs:
       - name: Build with Maven
         run: |
           cd coordinator/
-          mvn -B -ntp versions:set -DremoveSnapshot versions:commit
-          mvn -P dse -B -ntp -q -ff clean package -DskipTests
+          ./mvnw -B -ntp versions:set -DremoveSnapshot versions:commit
+          ./mvnw -P dse -B -ntp -q -ff clean package -DskipTests
 
       - name: Zip-up `stargate-lib`
         run: |
