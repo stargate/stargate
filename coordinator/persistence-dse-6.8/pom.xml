@@ -272,7 +272,7 @@
               <goal>run</goal>
             </goals>
             <configuration>
-              <tasks>
+              <target>
                 <!-- Remove root package classes -->
                 <delete>
                   <fileset dir="${project.build.directory}/sjk-core/" includes="*.class"/>
@@ -281,7 +281,7 @@
                   <fileset dir="${project.build.directory}/sjk-core"/>
                 </jar>
                 <delete dir="${project.build.directory}/sjk-core"/>
-              </tasks>
+              </target>
             </configuration>
           </execution>
           <execution>
@@ -291,7 +291,7 @@
               <goal>run</goal>
             </goals>
             <configuration>
-              <tasks>
+              <target>
                 <!-- Remove root package classes -->
                 <delete>
                   <fileset dir="${project.build.directory}/dnsjava/" includes="*.class"/>
@@ -300,7 +300,7 @@
                   <fileset dir="${project.build.directory}/dnsjava"/>
                 </jar>
                 <delete dir="${project.build.directory}/dnsjava"/>
-              </tasks>
+              </target>
             </configuration>
           </execution>
         </executions>
