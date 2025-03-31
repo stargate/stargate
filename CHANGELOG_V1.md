@@ -1,5 +1,16 @@
 # Changelog
 
+## [v1.0.89](https://github.com/stargate/stargate/tree/v1.0.89) (2025-03-31)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.88...v1.0.89)
+
+**Closed issues:**
+
+**Merged pull requests:**
+
+- \[AMC-994\] add metrics for delete statements [\#3068](https://github.com/stargate/stargate/pull/3068) ([vincentcreusot](https://github.com/vincentcreusot))
+- Fix Stargate V1 Snyk issue by Jackson upgrade from 2.14.3 to 2.15.4 \(v2 already upgraded\) [\#3046](https://github.com/stargate/stargate/pull/3046) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v1.0.88](https://github.com/stargate/stargate/tree/v1.0.88) (2025-01-15)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v1.0.87...v1.0.88)
