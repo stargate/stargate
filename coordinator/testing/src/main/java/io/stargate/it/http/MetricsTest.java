@@ -590,6 +590,34 @@ public class MetricsTest extends BaseIntegrationTest {
     assertThat(lines).isNotEmpty();
   }
 
+  @Test
+  public void dropwizardMetricsDeleteCounterArePresent() throws IOException {
+
+    assumeThat(backend.isDse())
+        .as("Disabled because this metric does not exists for Cassandra 4 backend")
+        .isTrue();
+
+    String expectedMetricSuccess =
+        "persistence_dse_"
+            + StringUtils.remove(backend.clusterVersion(), '.').substring(0, 2)
+            + "_org_apache_cassandra_metrics_ClientRequest_delete_statements_success_count";
+    String expectedMetricError =
+        "persistence_dse_"
+            + StringUtils.remove(backend.clusterVersion(), '.').substring(0, 2)
+            + "_org_apache_cassandra_metrics_ClientRequest_delete_statements_error_count";
+    String result = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+    List<String> lines =
+        Arrays.stream(result.split(System.lineSeparator()))
+            .filter(line -> line.startsWith(expectedMetricSuccess))
+            .collect(Collectors.toList());
+    assertThat(lines).isNotEmpty();
+    lines =
+        Arrays.stream(result.split(System.lineSeparator()))
+            .filter(line -> line.startsWith(expectedMetricError))
+            .collect(Collectors.toList());
+    assertThat(lines).isNotEmpty();
+  }
+
   private int execute(OkHttpClient client, Request request) throws IOException {
     try (Response execute = client.newCall(request).execute()) {
       assertThat(execute.body()).isNotNull();
