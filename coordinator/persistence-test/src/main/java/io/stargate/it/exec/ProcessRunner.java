@@ -159,7 +159,7 @@ public class ProcessRunner {
 
     @Override
     public void onProcessFailed(ExecuteException e) {
-      LOG.info("{} process {}/{} failed with exception: {}", kind, generation, node, e);
+      LOG.info("{} process {}/{} failed with exception: {}", kind, generation, node, String.valueOf(e));
       cleanup();
       ready.completeExceptionally(e);
       exit.countDown();
