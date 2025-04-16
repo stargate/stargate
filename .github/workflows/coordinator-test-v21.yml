@@ -18,7 +18,7 @@ on:
       - 'coordinator/**pom.xml'
       - 'coordinator/**/src/**'
       - 'coordinator/**mvn**'
-      - '.github/workflows/coordinator-test.yml'
+      - '.github/workflows/coordinator*'
 
   pull_request:
     branches: [ "v2.1" ]
