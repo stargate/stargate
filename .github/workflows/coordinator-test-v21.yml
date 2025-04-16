@@ -103,7 +103,9 @@ jobs:
 
   integration-test:
     name: Integration tests
-    runs-on: ubuntu-latest
+    # 16-Apr-2025, tatu: For reasons unknown, dse-next ITs fail with 24.04; broke some time
+    #   after October 2024
+    runs-on: ubuntu-22.04
 
     # max run time 120 minutes
     timeout-minutes: 120
