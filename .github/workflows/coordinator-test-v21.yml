@@ -114,7 +114,7 @@ jobs:
       fail-fast: false
       matrix:
         # 17-Apr-2025, tatu: failed to start dse-next tests, must disable
-        #backend: [ cassandra-40, cassandra-41, dse-next, dse-68, dse-v4-68 ]
+        # backend: [ cassandra-40, cassandra-41, dse-next, dse-68, dse-v4-68 ]
         backend: [ cassandra-40, cassandra-41, dse-68, dse-v4-68 ]
         include:
           - backend: cassandra-40
@@ -133,9 +133,9 @@ jobs:
             build-profile: -P dse
             test-profile: -P dse,it-dse-v4-6.8
 
-          - backend: dse-next
-            build-profile: -P dse-next
-            test-profile: -P dse-next,it-dse-next
+#          - backend: dse-next
+#            build-profile: -P dse-next
+#            test-profile: -P dse-next,it-dse-next
 
     steps:
 
