@@ -150,7 +150,7 @@
                             io.micrometer.core.*,
                             com.datastax.oss.driver.shaded.guava.common.*,
                         ]]></Import-Package>
-            <Export-Package>!*</Export-Package>
+            <Export-Package>org.apache.cassandra.stargate.metrics</Export-Package>
             <Embed-Dependency>*;scope=compile|runtime</Embed-Dependency>
             <Embed-Transitive>true</Embed-Transitive>
           </instructions>

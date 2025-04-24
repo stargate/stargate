@@ -131,6 +131,26 @@ public final class ClientMetrics {
     bytesTransmittedPerFrame.record(value);
   }
 
+  public int pausedConnections() {
+    return pausedConnections.get();
+  }
+
+  public long connectedNativeClients() {
+    long count = 0;
+    for (CqlServer server : servers) {
+      count += server.countConnectedClients();
+    }
+    return count;
+  }
+
+  public long protocolExceptions() {
+    return (long) protocolException.count();
+  }
+
+  public long unknownExceptions() {
+    return (long) unknownException.count();
+  }
+
   public ConnectionMetrics connectionMetrics(ClientInfo clientInfo) {
     if (!initialized) {
       throw new IllegalStateException("Client metrics not initialized yet.");
