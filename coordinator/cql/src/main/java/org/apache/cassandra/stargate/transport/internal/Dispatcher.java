@@ -128,6 +128,7 @@ public class Dispatcher {
           });
       Message.logger.trace("Responding: {}, v={}", response, connection.getVersion());
     } catch (Throwable t) {
+      Message.logger.error("Exception thrown when processing request? This may leak resources... ", t);
       // Cassandra {4.0.10} Patched as per stargate
       // JVMStabilityInspector.inspectThrowable(t);
     } finally {
