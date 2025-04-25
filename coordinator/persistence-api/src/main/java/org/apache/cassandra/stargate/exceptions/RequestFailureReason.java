@@ -113,6 +113,12 @@ public enum RequestFailureReason {
   INDEX_BUILD_IN_PROGRESS(503),
 
   /**
+   * The request queried an index using an on-disk index format version that doesn't support the
+   * query. Supporting the query would require rebuilding the index.
+   */
+  FEATURE_NEEDS_INDEX_REBUILD(504),
+
+  /**
    * Used when receiving a code we do not know to indicate that it is a reason added in newer
    * version than us, but is something somewhat expected by that node from the future (it is not
    * {@link #UNKNOWN}).
