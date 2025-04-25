@@ -1,5 +1,22 @@
 # Changelog
 
+## [v2.1.0-BETA-24](https://github.com/stargate/stargate/tree/v2.1.0-BETA-24) (2025-04-25)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-23...v2.1.0-BETA-24)
+
+**Closed issues:**
+
+- Update to DSE 6.8.55 [\#3076](https://github.com/stargate/stargate/issues/3076)
+
+**Merged pull requests:**
+
+- Update DSE-6.8 dep to 6.8.55 \(from 6.8.54\) [\#3084](https://github.com/stargate/stargate/pull/3084) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Disabling dse-next Coordinator tests \(failing with 2h timeout\) [\#3083](https://github.com/stargate/stargate/pull/3083) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Try to fix CI problems [\#3080](https://github.com/stargate/stargate/pull/3080) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- CNDB-13534: Add RequestFailureReason. FEATURE\_NEEDS\_INDEX\_REBUILD [\#3078](https://github.com/stargate/stargate/pull/3078) ([adelapena](https://github.com/adelapena))
+- Fix \#3061: upgrade C\*3.11 to 3.11.19 from 3.11.5 [\#3063](https://github.com/stargate/stargate/pull/3063) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#3059: update to C\* 4.0.17 \(from 4.0.13\) [\#3060](https://github.com/stargate/stargate/pull/3060) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v2.1.0-BETA-23](https://github.com/stargate/stargate/tree/v2.1.0-BETA-23) (2025-03-06)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-22...v2.1.0-BETA-23)
