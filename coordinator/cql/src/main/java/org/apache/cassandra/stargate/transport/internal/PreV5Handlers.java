@@ -151,9 +151,12 @@ public class PreV5Handlers {
         } else {
           // set backpressure on the channel, and handle the request
           endpointPayloadTracker.allocate(requestSize);
-          ctx.channel().config().setAutoRead(false);
-          ClientMetrics.instance.pauseConnection();
-          paused = true;
+          // avoid double-pausing if we read multiple requests
+          if (!paused) {
+            ctx.channel().config().setAutoRead(false);
+            ClientMetrics.instance.pauseConnection();
+            paused = true;
+          }
         }
       }
 
