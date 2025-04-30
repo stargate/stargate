@@ -29,8 +29,6 @@ import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.exceptions.OverloadedException;
-import org.apache.cassandra.metrics.ClientMessageSizeMetrics;
-import org.apache.cassandra.metrics.ClientMetrics;
 import org.apache.cassandra.net.AbstractMessageHandler;
 import org.apache.cassandra.net.FrameDecoder;
 import org.apache.cassandra.net.FrameDecoder.IntactFrame;
@@ -38,6 +36,8 @@ import org.apache.cassandra.net.FrameEncoder;
 import org.apache.cassandra.net.ResourceLimits;
 import org.apache.cassandra.net.ResourceLimits.Limit;
 import org.apache.cassandra.net.ShareableBytes;
+import org.apache.cassandra.stargate.metrics.ClientMetrics;
+import org.apache.cassandra.stargate.metrics.ConnectionMetrics;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.Flusher.FlushItem.Framed;
@@ -87,6 +87,7 @@ public class CQLMessageHandler<M extends Message> extends AbstractMessageHandler
   private final ErrorHandler errorHandler;
   private final boolean throwOnOverload;
   private final ProtocolVersion version;
+  private final ConnectionMetrics connectionMetrics;
 
   long channelPayloadBytesInFlight;
   private int consecutiveMessageErrors = 0;
@@ -129,6 +130,8 @@ public class CQLMessageHandler<M extends Message> extends AbstractMessageHandler
     this.errorHandler = errorHandler;
     this.throwOnOverload = throwOnOverload;
     this.version = version;
+    // definitionally, we've received a STARTUP message, so we know Connection.attributeKey is set
+    this.connectionMetrics = channel.attr(Connection.attributeKey).get().getConnectionMetrics();
   }
 
   @Override
@@ -162,7 +165,7 @@ public class CQLMessageHandler<M extends Message> extends AbstractMessageHandler
     if (throwOnOverload) {
       if (!acquireCapacity(header, endpointReserve, globalReserve)) {
         // discard the request and throw an exception
-        ClientMetrics.instance.markRequestDiscarded();
+        connectionMetrics.markRequestDiscarded();
         logger.trace(
             "Discarded request of size: {}. InflightChannelRequestPayload: {}, "
                 + "InflightEndpointRequestPayload: {}, InflightOverallRequestPayload: {}, Header: {}",
@@ -228,9 +231,10 @@ public class CQLMessageHandler<M extends Message> extends AbstractMessageHandler
 
   private void incrementReceivedMessageMetrics(int messageSize) {
     receivedCount++;
-    receivedBytes += messageSize + Envelope.Header.LENGTH;
-    ClientMessageSizeMetrics.bytesReceived.inc(messageSize + Envelope.Header.LENGTH);
-    ClientMessageSizeMetrics.bytesReceivedPerRequest.update(messageSize + Envelope.Header.LENGTH);
+    int totalSize = messageSize + Envelope.Header.LENGTH;
+    receivedBytes += totalSize;
+    ClientMetrics.instance.recordBytesReceivedPerMessage(totalSize);
+    ClientMetrics.instance.incrementTotalBytesRead(totalSize);
   }
 
   private Envelope composeRequest(Envelope.Header header, ShareableBytes bytes) {
@@ -339,8 +343,8 @@ public class CQLMessageHandler<M extends Message> extends AbstractMessageHandler
 
     Envelope responseFrame = response.encode(request.getSource().header.version);
     int responseSize = envelopeSize(responseFrame.header);
-    ClientMessageSizeMetrics.bytesSent.inc(responseSize);
-    ClientMessageSizeMetrics.bytesSentPerResponse.update(responseSize);
+    ClientMetrics.instance.incrementTotalBytesWritten(responseSize);
+    ClientMetrics.instance.recordBytesTransmittedPerMessage(responseSize);
 
     return new Framed(channel, responseFrame, request.getSource(), payloadAllocator, this::release);
   }
@@ -394,7 +398,7 @@ public class CQLMessageHandler<M extends Message> extends AbstractMessageHandler
         // concurrently.
         if (throwOnOverload) {
           // discard the request and throw an exception
-          ClientMetrics.instance.markRequestDiscarded();
+          connectionMetrics.markRequestDiscarded();
           logger.trace(
               "Discarded request of size: {}. InflightChannelRequestPayload: {}, "
                   + "InflightEndpointRequestPayload: {}, InflightOverallRequestPayload: {}, Header: {}",

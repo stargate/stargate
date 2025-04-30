@@ -33,7 +33,7 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.function.IntPredicate;
 import org.apache.cassandra.exceptions.InvalidRequestException;
-import org.apache.cassandra.metrics.ClientMessageSizeMetrics;
+import org.apache.cassandra.stargate.metrics.ClientMetrics;
 import org.apache.cassandra.stargate.transport.ProtocolException;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.messages.ErrorMessage;
@@ -292,7 +292,7 @@ public class Envelope {
       Header header() {
         throw new IllegalStateException(
             String.format("Unable to provide header from extraction result : %s", outcome));
-      };
+      }
 
       ProtocolException error() {
         throw new IllegalStateException(
@@ -387,8 +387,8 @@ public class Envelope {
 
       if (buffer.readableBytes() < totalLength) return null;
 
-      ClientMessageSizeMetrics.bytesReceived.inc(totalLength);
-      ClientMessageSizeMetrics.bytesReceivedPerRequest.update(totalLength);
+      ClientMetrics.instance.incrementTotalBytesRead(totalLength);
+      ClientMetrics.instance.recordBytesReceivedPerMessage(totalLength);
 
       // extract body
       ByteBuf body = buffer.slice(idx, (int) bodyLength);
@@ -448,8 +448,8 @@ public class Envelope {
     public void encode(ChannelHandlerContext ctx, Envelope source, List<Object> results) {
       ByteBuf serializedHeader = source.encodeHeader();
       int messageSize = serializedHeader.readableBytes() + source.body.readableBytes();
-      ClientMessageSizeMetrics.bytesSent.inc(messageSize);
-      ClientMessageSizeMetrics.bytesSentPerResponse.update(messageSize);
+      ClientMetrics.instance.incrementTotalBytesWritten(messageSize);
+      ClientMetrics.instance.recordBytesTransmittedPerMessage(messageSize);
 
       results.add(serializedHeader);
       results.add(source.body);
