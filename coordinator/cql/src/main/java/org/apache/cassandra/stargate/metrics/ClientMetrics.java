@@ -91,8 +91,8 @@ public final class ClientMetrics {
   private Counter unknownException;
   private Counter totalBytesRead;
   private Counter totalBytesWritten;
-  private DistributionSummary bytesReceivedPerFrame;
-  private DistributionSummary bytesTransmittedPerFrame;
+  private DistributionSummary bytesReceivedPerMessage;
+  private DistributionSummary bytesTransmittedPerMessage;
   private MultiGauge connectedNativeClients;
   private MultiGauge connectedNativeClientsByUser;
 
@@ -123,12 +123,12 @@ public final class ClientMetrics {
     totalBytesWritten.increment(value);
   }
 
-  public void recordBytesReceivedPerFrame(double value) {
-    bytesReceivedPerFrame.record(value);
+  public void recordBytesReceivedPerMessage(double value) {
+    bytesReceivedPerMessage.record(value);
   }
 
-  public void recordBytesTransmittedPerFrame(double value) {
-    bytesTransmittedPerFrame.record(value);
+  public void recordBytesTransmittedPerMessage(double value) {
+    bytesTransmittedPerMessage.record(value);
   }
 
   public ConnectionMetrics connectionMetrics(ClientInfo clientInfo) {
@@ -182,8 +182,8 @@ public final class ClientMetrics {
     totalBytesRead = meterRegistry.counter(metric("TotalBytesRead"));
     totalBytesWritten = meterRegistry.counter(metric("TotalBytesWritten"));
 
-    bytesReceivedPerFrame = meterRegistry.summary(metric("BytesReceivedPerFrame"));
-    bytesTransmittedPerFrame = meterRegistry.summary(metric("BytesTransmittedPerFrame"));
+    bytesReceivedPerMessage = meterRegistry.summary(metric("BytesReceivedPerMessage"));
+    bytesTransmittedPerMessage = meterRegistry.summary(metric("BytesTransmittedPerMessage"));
 
     initialized = true;
 

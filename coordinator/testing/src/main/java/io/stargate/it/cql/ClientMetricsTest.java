@@ -145,6 +145,73 @@ public abstract class ClientMetricsTest extends BaseIntegrationTest {
             });
   }
 
+  @Test
+  public void totalBytesReadMetric(CqlSession session) throws IOException {
+    // given
+    SimpleStatement statement = SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY);
+    ResultSet resultSet = session.execute(statement);
+    assertThat(resultSet).hasSize(1);
+
+    // when
+    String body = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+
+    // then
+    String totalBytesReadMetric = "cql_org_apache_cassandra_metrics_Client_TotalBytesRead_total";
+    Optional<Double> totalBytesRead = getCqlMetric(body, totalBytesReadMetric);
+    assertThat(totalBytesRead).hasValueSatisfying(v -> assertThat(v).isGreaterThan(0d));
+  }
+
+  @Test
+  public void totalBytesWrittenMetric(CqlSession session) throws IOException {
+    // given
+    SimpleStatement statement = SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY);
+    ResultSet resultSet = session.execute(statement);
+    assertThat(resultSet).hasSize(1);
+
+    // when
+    String body = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+
+    // then
+    String totalBytesWrittenMetric =
+        "cql_org_apache_cassandra_metrics_Client_TotalBytesWritten_total";
+    Optional<Double> totalBytesWritten = getCqlMetric(body, totalBytesWrittenMetric);
+    assertThat(totalBytesWritten).hasValueSatisfying(v -> assertThat(v).isGreaterThan(0d));
+  }
+
+  @Test
+  public void bytesReceivedPerMessageMetric(CqlSession session) throws IOException {
+    // given
+    SimpleStatement statement = SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY);
+    ResultSet resultSet = session.execute(statement);
+    assertThat(resultSet).hasSize(1);
+
+    // when
+    String body = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+
+    // then
+    String bytesReceivedMetric =
+        "cql_org_apache_cassandra_metrics_Client_BytesReceivedPerMessage_count";
+    Optional<Double> bytesReceived = getCqlMetric(body, bytesReceivedMetric);
+    assertThat(bytesReceived).hasValueSatisfying(v -> assertThat(v).isGreaterThan(0d));
+  }
+
+  @Test
+  public void bytesTransmittedPerMessageMetric(CqlSession session) throws IOException {
+    // given
+    SimpleStatement statement = SimpleStatement.newInstance("SELECT v FROM test WHERE k=?", KEY);
+    ResultSet resultSet = session.execute(statement);
+    assertThat(resultSet).hasSize(1);
+
+    // when
+    String body = RestUtils.get("", String.format("%s:8084/metrics", host), HttpStatus.SC_OK);
+
+    // then
+    String bytesTransmittedMetric =
+        "cql_org_apache_cassandra_metrics_Client_BytesTransmittedPerMessage_count";
+    Optional<Double> bytesTransmitted = getCqlMetric(body, bytesTransmittedMetric);
+    assertThat(bytesTransmitted).hasValueSatisfying(v -> assertThat(v).isGreaterThan(0d));
+  }
+
   private double getOnHeapMemoryUsed(String body) {
     return getMetricValue(body, "jvm_memory_heap_used", MEMORY_HEAP_USAGE_REGEXP);
   }

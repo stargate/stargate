@@ -276,16 +276,16 @@ class ClientMetricsTest {
   }
 
   @Nested
-  class RecordBytesReceivedPerFrame {
+  class RecordBytesReceivedPerMessage {
 
     @Test
     public void happyPath() {
-      clientMetrics.recordBytesReceivedPerFrame(11);
-      clientMetrics.recordBytesReceivedPerFrame(33);
+      clientMetrics.recordBytesReceivedPerMessage(11);
+      clientMetrics.recordBytesReceivedPerMessage(33);
 
       DistributionSummary summary =
           meterRegistry
-              .get("cql.org.apache.cassandra.metrics.Client.BytesReceivedPerFrame")
+              .get("cql.org.apache.cassandra.metrics.Client.BytesReceivedPerMessage")
               .summary();
 
       assertThat(summary.count()).isEqualTo(2);
@@ -294,16 +294,16 @@ class ClientMetricsTest {
   }
 
   @Nested
-  class RecordBytesTransmittedPerFrame {
+  class RecordBytesTransmittedPerMessage {
 
     @Test
     public void happyPath() {
-      clientMetrics.recordBytesTransmittedPerFrame(22);
-      clientMetrics.recordBytesTransmittedPerFrame(44);
+      clientMetrics.recordBytesTransmittedPerMessage(22);
+      clientMetrics.recordBytesTransmittedPerMessage(44);
 
       DistributionSummary summary =
           meterRegistry
-              .get("cql.org.apache.cassandra.metrics.Client.BytesTransmittedPerFrame")
+              .get("cql.org.apache.cassandra.metrics.Client.BytesTransmittedPerMessage")
               .summary();
 
       assertThat(summary.count()).isEqualTo(2);
@@ -464,6 +464,37 @@ class ClientMetricsTest {
                       .gauge());
 
       assertThat(throwable).isInstanceOf(MeterNotFoundException.class);
+    }
+  }
+
+  @Nested
+  class MarkProtocolException {
+
+    @Test
+    public void happyPath() {
+      clientMetrics.markProtocolException();
+      clientMetrics.markProtocolException();
+
+      Counter counter =
+          meterRegistry.get("cql.org.apache.cassandra.metrics.Client.ProtocolException").counter();
+
+      assertThat(counter.count()).isEqualTo(2d);
+    }
+  }
+
+  @Nested
+  class MarkUnknownException {
+
+    @Test
+    public void happyPath() {
+      clientMetrics.markUnknownException();
+      clientMetrics.markUnknownException();
+      clientMetrics.markUnknownException();
+
+      Counter counter =
+          meterRegistry.get("cql.org.apache.cassandra.metrics.Client.UnknownException").counter();
+
+      assertThat(counter.count()).isEqualTo(3d);
     }
   }
 

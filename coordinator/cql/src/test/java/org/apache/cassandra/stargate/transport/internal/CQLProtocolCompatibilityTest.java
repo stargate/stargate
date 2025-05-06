@@ -11,6 +11,8 @@ import com.datastax.oss.protocol.internal.ProtocolConstants;
 import com.google.common.collect.ImmutableList;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.UnpooledByteBufAllocator;
+import io.stargate.core.metrics.api.Metrics;
+import io.stargate.core.metrics.impl.MetricsImpl;
 import io.stargate.db.Result;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
@@ -18,8 +20,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import org.apache.cassandra.stargate.metrics.ClientMetrics;
 import org.apache.cassandra.stargate.transport.ProtocolVersion;
 import org.apache.cassandra.stargate.transport.internal.messages.ResultMessage;
+import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -34,6 +38,12 @@ public class CQLProtocolCompatibilityTest {
   private static final Map<String, ByteBuffer> CUSTOM_PAYLOAD =
       Collections.singletonMap("test-key", ByteBuffer.wrap("test-value".getBytes()));
   private static final List<String> WARNINGS = ImmutableList.of("warning1");
+
+  @BeforeAll
+  public static void setup() {
+    Metrics metrics = new MetricsImpl();
+    ClientMetrics.instance.init(Collections.emptyList(), metrics.getMeterRegistry(), null, 0);
+  }
 
   @Test
   public void encoderCompatibleWithNativeProtocolDecoder() {
