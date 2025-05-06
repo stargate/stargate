@@ -1,5 +1,23 @@
 # Changelog
 
+## [v2.1.0-BETA-25](https://github.com/stargate/stargate/tree/v2.1.0-BETA-25) (2025-05-06)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-24...v2.1.0-BETA-25)
+
+**Closed issues:**
+
+- n/a [\#3090](https://github.com/stargate/stargate/issues/3090)
+- n/a [\#3089](https://github.com/stargate/stargate/issues/3089)
+- n/a [\#3088](https://github.com/stargate/stargate/issues/3088)
+- n/a [\#3087](https://github.com/stargate/stargate/issues/3087)
+- n/a [\#3086](https://github.com/stargate/stargate/issues/3086)
+- Add reason INDEX\_VERSION\_TOO\_OLD to RequestFailureReason [\#3079](https://github.com/stargate/stargate/issues/3079)
+
+**Merged pull requests:**
+
+- Fix several issues with CQL ClientMetrics [\#3091](https://github.com/stargate/stargate/pull/3091) ([jkni](https://github.com/jkni))
+- Bumping version for next v2.1 release [\#3085](https://github.com/stargate/stargate/pull/3085) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.1.0-BETA-24](https://github.com/stargate/stargate/tree/v2.1.0-BETA-24) (2025-04-25)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-23...v2.1.0-BETA-24)
