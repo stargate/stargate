@@ -1,5 +1,129 @@
 # Changelog
 
+## [v2.1.0-BETA-25](https://github.com/stargate/stargate/tree/v2.1.0-BETA-25) (2025-05-06)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-24...v2.1.0-BETA-25)
+
+**Closed issues:**
+
+- n/a [\#3090](https://github.com/stargate/stargate/issues/3090)
+- n/a [\#3089](https://github.com/stargate/stargate/issues/3089)
+- n/a [\#3088](https://github.com/stargate/stargate/issues/3088)
+- n/a [\#3087](https://github.com/stargate/stargate/issues/3087)
+- n/a [\#3086](https://github.com/stargate/stargate/issues/3086)
+- Add reason INDEX\_VERSION\_TOO\_OLD to RequestFailureReason [\#3079](https://github.com/stargate/stargate/issues/3079)
+
+**Merged pull requests:**
+
+- Fix several issues with CQL ClientMetrics [\#3091](https://github.com/stargate/stargate/pull/3091) ([jkni](https://github.com/jkni))
+- Bumping version for next v2.1 release [\#3085](https://github.com/stargate/stargate/pull/3085) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.1.0-BETA-24](https://github.com/stargate/stargate/tree/v2.1.0-BETA-24) (2025-04-25)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.32...v2.1.0-BETA-24)
+
+**Closed issues:**
+
+- Update to DSE 6.8.55 [\#3076](https://github.com/stargate/stargate/issues/3076)
+
+**Merged pull requests:**
+
+- Disabling dse-next Coordinator tests \(failing with 2h timeout\) [\#3083](https://github.com/stargate/stargate/pull/3083) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Try to fix CI problems [\#3080](https://github.com/stargate/stargate/pull/3080) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- CNDB-13534: Add RequestFailureReason. FEATURE\_NEEDS\_INDEX\_REBUILD [\#3078](https://github.com/stargate/stargate/pull/3078) ([adelapena](https://github.com/adelapena))
+- Bumping version for next v2.1 release [\#3065](https://github.com/stargate/stargate/pull/3065) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.0.32](https://github.com/stargate/stargate/tree/v2.0.32) (2025-04-22)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.90...v2.0.32)
+
+**Closed issues:**
+
+- Automation analysis [\#3075](https://github.com/stargate/stargate/issues/3075)
+- Fix CNDB GH Action for updating Stargate v2.1.x version \(`stargate-update-version.yaml`\) [\#2999](https://github.com/stargate/stargate/issues/2999)
+
+**Merged pull requests:**
+
+- Update DSE-6.8 dep to 6.8.55 \(from 6.8.54\) [\#3084](https://github.com/stargate/stargate/pull/3084) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#3061: upgrade C\*3.11 to 3.11.19 from 3.11.5 [\#3063](https://github.com/stargate/stargate/pull/3063) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#3059: update to C\* 4.0.17 \(from 4.0.13\) [\#3060](https://github.com/stargate/stargate/pull/3060) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v2.1.0-BETA-23](https://github.com/stargate/stargate/tree/v2.1.0-BETA-23) (2025-03-06)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-22...v2.1.0-BETA-23)
+
+**Closed issues:**
+
+- Update C\* 4.0 to latest \(4.0.13 -\> 4.0.17\) [\#3059](https://github.com/stargate/stargate/issues/3059)
+
+**Merged pull requests:**
+
+- Merge \#3061 from main to v2.1 [\#3064](https://github.com/stargate/stargate/pull/3064) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Merge \#3059 fix \(C\*4.0.17 from 4.0.13\) from main to v2.1 [\#3062](https://github.com/stargate/stargate/pull/3062) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.1 release [\#3058](https://github.com/stargate/stargate/pull/3058) ([github-actions[bot]](https://github.com/apps/github-actions))
+- \#3049 - CNDB-12620 v2.1 [\#3050](https://github.com/stargate/stargate/pull/3050) ([ekaterinadimitrova2](https://github.com/ekaterinadimitrova2))
+
+## [v2.1.0-BETA-22](https://github.com/stargate/stargate/tree/v2.1.0-BETA-22) (2025-02-15)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-21...v2.1.0-BETA-22)
+
+**Merged pull requests:**
+
+- cndb-main-release-202501: fix missing auth data in payload [\#3057](https://github.com/stargate/stargate/pull/3057) ([jacek-lewandowski](https://github.com/jacek-lewandowski))
+- Bumping version for next v2.1 release [\#3056](https://github.com/stargate/stargate/pull/3056) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.1.0-BETA-21](https://github.com/stargate/stargate/tree/v2.1.0-BETA-21) (2025-02-14)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.88...v2.1.0-BETA-21)
+
+**Closed issues:**
+
+- Update to DSE 6.8.54 [\#3052](https://github.com/stargate/stargate/issues/3052)
+
+**Merged pull requests:**
+
+- Fix version for next release [\#3055](https://github.com/stargate/stargate/pull/3055) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update to DSE-6.8.54 \(from 6.8.53\) [\#3054](https://github.com/stargate/stargate/pull/3054) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Remove now unnecessary \(and failing\) GH action step that kills "mono" process [\#3044](https://github.com/stargate/stargate/pull/3044) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#3040: upgrade DSE to 6.8.53 \(from 6.8.51\) [\#3041](https://github.com/stargate/stargate/pull/3041) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump ch.qos.logback:logback-core from 1.3.14 to 1.3.15 in /coordinator [\#3039](https://github.com/stargate/stargate/pull/3039) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Merge jetty 9.4.56 update from main \(v2\) [\#3031](https://github.com/stargate/stargate/pull/3031) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Update Jetty version to latest \(9.4.56.x\) [\#3030](https://github.com/stargate/stargate/pull/3030) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.1 release [\#3028](https://github.com/stargate/stargate/pull/3028) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.1.0-BETA-19](https://github.com/stargate/stargate/tree/v2.1.0-BETA-19) (2024-10-17)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v1.0.86...v2.1.0-BETA-19)
+
+**Merged pull requests:**
+
+- Bumping version for next v2.1 release [\#3021](https://github.com/stargate/stargate/pull/3021) ([github-actions[bot]](https://github.com/apps/github-actions))
+- CNDB-11144 Allow to run on JDK22+ \(update OSGI runtime\) [\#3011](https://github.com/stargate/stargate/pull/3011) ([jacek-lewandowski](https://github.com/jacek-lewandowski))
+
+## [v2.1.0-BETA-18](https://github.com/stargate/stargate/tree/v2.1.0-BETA-18) (2024-10-05)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-17...v2.1.0-BETA-18)
+
+**Closed issues:**
+
+- Update expired `OSSRH\_GPG\_SECRET\_KEY` secret [\#3019](https://github.com/stargate/stargate/issues/3019)
+
+**Merged pull requests:**
+
+- Try merging \#3009 fix from "main" \(v2.0\) to v2.1 branch [\#3020](https://github.com/stargate/stargate/pull/3020) ([aymkhalil](https://github.com/aymkhalil))
+- Bumping version for next v2.1 release [\#3018](https://github.com/stargate/stargate/pull/3018) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Bumping version for next v2.0 release [\#3016](https://github.com/stargate/stargate/pull/3016) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.1.0-BETA-17](https://github.com/stargate/stargate/tree/v2.1.0-BETA-17) (2024-10-04)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.31...v2.1.0-BETA-17)
+
+**Merged pull requests:**
+
+- Manually merge DSE-6.8.51 upgrade from main [\#3017](https://github.com/stargate/stargate/pull/3017) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Minor updates to deps: jacoco and shade plugins [\#3007](https://github.com/stargate/stargate/pull/3007) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.1 release [\#3000](https://github.com/stargate/stargate/pull/3000) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.0.31](https://github.com/stargate/stargate/tree/v2.0.31) (2024-10-03)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.30...v2.0.31)
