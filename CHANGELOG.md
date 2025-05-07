@@ -1,5 +1,20 @@
 # Changelog
 
+## [v2.0.32](https://github.com/stargate/stargate/tree/v2.0.32) (2025-04-22)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.31...v2.0.32)
+
+**Closed issues:**
+
+- Automation analysis [\#3075](https://github.com/stargate/stargate/issues/3075)
+- Fix CNDB GH Action for updating Stargate v2.1.x version \(`stargate-update-version.yaml`\) [\#2999](https://github.com/stargate/stargate/issues/2999)
+
+**Merged pull requests:**
+
+- Update DSE-6.8 dep to 6.8.55 \(from 6.8.54\) [\#3084](https://github.com/stargate/stargate/pull/3084) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#3061: upgrade C\*3.11 to 3.11.19 from 3.11.5 [\#3063](https://github.com/stargate/stargate/pull/3063) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#3059: update to C\* 4.0.17 \(from 4.0.13\) [\#3060](https://github.com/stargate/stargate/pull/3060) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v2.0.31](https://github.com/stargate/stargate/tree/v2.0.31) (2024-10-03)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.30...v2.0.31)
