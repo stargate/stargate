@@ -1,5 +1,37 @@
 # Changelog
 
+## [v2.0.33](https://github.com/stargate/stargate/tree/v2.0.33) (2025-05-07)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.32...v2.0.33)
+
+## [v2.1.0-BETA-25](https://github.com/stargate/stargate/tree/v2.1.0-BETA-25) (2025-05-06)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-24...v2.1.0-BETA-25)
+
+**Closed issues:**
+
+- Add reason INDEX\_VERSION\_TOO\_OLD to RequestFailureReason [\#3079](https://github.com/stargate/stargate/issues/3079)
+
+**Merged pull requests:**
+
+- Fix several issues with CQL ClientMetrics [\#3091](https://github.com/stargate/stargate/pull/3091) ([jkni](https://github.com/jkni))
+- Bumping version for next v2.1 release [\#3085](https://github.com/stargate/stargate/pull/3085) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.1.0-BETA-24](https://github.com/stargate/stargate/tree/v2.1.0-BETA-24) (2025-04-25)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.32...v2.1.0-BETA-24)
+
+**Closed issues:**
+
+- Update to DSE 6.8.55 [\#3076](https://github.com/stargate/stargate/issues/3076)
+
+**Merged pull requests:**
+
+- Disabling dse-next Coordinator tests \(failing with 2h timeout\) [\#3083](https://github.com/stargate/stargate/pull/3083) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Try to fix CI problems [\#3080](https://github.com/stargate/stargate/pull/3080) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- CNDB-13534: Add RequestFailureReason. FEATURE\_NEEDS\_INDEX\_REBUILD [\#3078](https://github.com/stargate/stargate/pull/3078) ([adelapena](https://github.com/adelapena))
+- Bumping version for next v2.1 release [\#3065](https://github.com/stargate/stargate/pull/3065) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.0.32](https://github.com/stargate/stargate/tree/v2.0.32) (2025-04-22)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.31...v2.0.32)
