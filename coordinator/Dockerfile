@@ -3,7 +3,7 @@
 #
 
 # 22-Jul-2025, tatu: OpenJDK archived, switch to Temurin
-FROM eclipse-temurin:11-jre AS c2-6_8
+FROM eclipse-temurin:11-jre AS base
 
 RUN apt update -qq \
     && apt install iproute2 libjemalloc2 -y \
