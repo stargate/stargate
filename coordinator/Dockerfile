@@ -6,7 +6,7 @@
 FROM eclipse-temurin:11-jre AS c2-6_8
 
 RUN apt update -qq \
-    && apt install iproute2 libaio1 libjemalloc2 -y \
+    && apt install iproute2 libjemalloc2 -y \
     && apt autoremove --yes \
     && apt clean all \
     && rm -rf /var/lib/apt/lists/*
@@ -35,14 +35,14 @@ COPY ${LIBDIR} stargate-lib/
 COPY ./starctl ./starctl
 ENTRYPOINT ["./starctl"]
 
-FROM base as coordinator-4_0
+FROM base AS coordinator-4_0
 COPY stargate-lib/persistence-api*.jar stargate-lib/persistence-cassandra-4.0*.jar stargate-lib/
 
-FROM base as coordinator-4_1
+FROM base AS coordinator-4_1
 COPY stargate-lib/persistence-api*.jar stargate-lib/persistence-cassandra-4.1*.jar stargate-lib/
 
-FROM base as coordinator-dse-next
+FROM base AS coordinator-dse-next
 COPY stargate-lib/persistence-api*.jar stargate-lib/persistence-dse-next*.jar stargate-lib/
 
-FROM base as coordinator-dse-68
+FROM base AS coordinator-dse-68
 COPY stargate-lib/persistence-api*.jar stargate-lib/persistence-dse-6.8*.jar stargate-lib/
