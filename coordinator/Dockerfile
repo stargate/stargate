@@ -2,7 +2,8 @@
 # Dockerfile for building coordinator node images
 #
 
-FROM adoptopenjdk/openjdk11:jre-11.0.19_7-debian as base
+# 22-Jul-2025, tatu: OpenJDK archived, switch to Temurin
+FROM eclipse-temurin:11-jre AS c2-6_8
 
 RUN apt update -qq \
     && apt install iproute2 libaio1 libjemalloc2 -y \
