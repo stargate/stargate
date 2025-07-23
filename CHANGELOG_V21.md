@@ -1,5 +1,14 @@
 # Changelog
 
+## [v2.1.0-BETA-27](https://github.com/stargate/stargate/tree/v2.1.0-BETA-27) (2025-07-23)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-26...v2.1.0-BETA-27)
+
+**Merged pull requests:**
+
+- Fix Docker build failure: switch from OpenJDK11/debian to Temurin11 [\#3109](https://github.com/stargate/stargate/pull/3109) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.1 release [\#3108](https://github.com/stargate/stargate/pull/3108) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.1.0-BETA-26](https://github.com/stargate/stargate/tree/v2.1.0-BETA-26) (2025-07-22)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.35...v2.1.0-BETA-26)
