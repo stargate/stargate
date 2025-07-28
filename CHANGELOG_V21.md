@@ -7,45 +7,14 @@
 **Merged pull requests:**
 
 - Fix Docker build failure: switch from OpenJDK11/debian to Temurin11 [\#3109](https://github.com/stargate/stargate/pull/3109) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version for next v2.1 release [\#3108](https://github.com/stargate/stargate/pull/3108) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v2.1.0-BETA-26](https://github.com/stargate/stargate/tree/v2.1.0-BETA-26) (2025-07-22)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.35...v2.1.0-BETA-26)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-25...v2.1.0-BETA-26)
 
 **Merged pull requests:**
 
-- Bumping version for next v2.1 release [\#3093](https://github.com/stargate/stargate/pull/3093) ([github-actions[bot]](https://github.com/apps/github-actions))
-
-## [v2.0.35](https://github.com/stargate/stargate/tree/v2.0.35) (2025-07-22)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.34...v2.0.35)
-
-**Closed issues:**
-
-- Update Stargate API base image from /ubi8/openjdk-17-runtime:1.20 to /ubi8/openjdk-17-runtime:1.21 [\#3103](https://github.com/stargate/stargate/issues/3103)
-
-**Merged pull requests:**
-
-- Upgrade cosign GH action version; pre-2.0 now disabled [\#3106](https://github.com/stargate/stargate/pull/3106) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version for next v2.0 release [\#3105](https://github.com/stargate/stargate/pull/3105) ([github-actions[bot]](https://github.com/apps/github-actions))
-
-## [v2.0.34](https://github.com/stargate/stargate/tree/v2.0.34) (2025-07-22)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.33...v2.0.34)
-
-**Merged pull requests:**
-
-- Fix \#3103: update API JDK base image [\#3104](https://github.com/stargate/stargate/pull/3104) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
-- Bumping version for next v2.0 release [\#3096](https://github.com/stargate/stargate/pull/3096) ([github-actions[bot]](https://github.com/apps/github-actions))
-
-## [v2.0.33](https://github.com/stargate/stargate/tree/v2.0.33) (2025-05-07)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-25...v2.0.33)
-
-**Merged pull requests:**
-
-- Bumping version for next v2.0 release [\#3094](https://github.com/stargate/stargate/pull/3094) ([github-actions[bot]](https://github.com/apps/github-actions))
+-
 
 ## [v2.1.0-BETA-25](https://github.com/stargate/stargate/tree/v2.1.0-BETA-25) (2025-05-06)
 
