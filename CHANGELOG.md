@@ -1,4 +1,19 @@
-# Changelog
+## [Unreleased](https://github.com/stargate/stargate/tree/HEAD)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.34...HEAD)
+
+**Closed issues:**
+
+- Update Stargate API base image from /ubi8/openjdk-17-runtime:1.20 to /ubi8/openjdk-17-runtime:1.21 [\#3103](https://github.com/stargate/stargate/issues/3103)
+
+## [v2.0.34](https://github.com/stargate/stargate/tree/v2.0.34) (2025-07-22)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.33...v2.0.34)
+
+**Merged pull requests:**
+
+- Fix \#3103: update API JDK base image [\#3104](https://github.com/stargate/stargate/pull/3104) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.0 release [\#3096](https://github.com/stargate/stargate/pull/3096) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v2.0.33](https://github.com/stargate/stargate/tree/v2.0.33) (2025-05-07)
 
