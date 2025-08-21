@@ -371,7 +371,7 @@
                 </goals>
                 <configuration>
                   <systemPropertyVariables>
-                    <ccm.version>4.0.17</ccm.version>
+                    <ccm.version>4.0.18</ccm.version>
                     <stargate.test.nodes>1</stargate.test.nodes>
                     <stargate.test.persistence.module>persistence-cassandra-4.0</stargate.test.persistence.module>
                     <stargate.test.backend.vsearch>false</stargate.test.backend.vsearch>

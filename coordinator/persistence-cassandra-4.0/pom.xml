@@ -13,8 +13,8 @@
   <name>Stargate - Coordinator - Persistence C* 4.0</name>
   <properties>
     <!-- If you update this, make sure to keep `cassandra.bundled-driver.version` in sync -->
-    <!-- 4.0.17 depends on 3.11.x: https://mvnrepository.com/artifact/org.apache.cassandra/cassandra-all/4.0.17 -->
-    <cassandra.version>4.0.17</cassandra.version>
+    <!-- 4.0.18 depends on 3.11.x: https://mvnrepository.com/artifact/org.apache.cassandra/cassandra-all/4.0.18 -->
+    <cassandra.version>4.0.18</cassandra.version>
     <ccm.version>${cassandra.version}</ccm.version>
     <!--
       The driver used internally by cassandra-all for UDFs (must match the version declared in
