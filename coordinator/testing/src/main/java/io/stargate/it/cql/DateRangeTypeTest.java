@@ -27,9 +27,11 @@ import io.stargate.it.BaseIntegrationTest;
 import io.stargate.it.driver.CqlSessionExtension;
 import io.stargate.it.driver.TestKeyspace;
 import io.stargate.it.driver.WithProtocolVersion;
+import io.stargate.it.storage.ClusterConnectionInfo;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -40,6 +42,11 @@ import org.junit.jupiter.params.provider.MethodSource;
 public abstract class DateRangeTypeTest extends BaseIntegrationTest {
 
   private static List<TypeSample<?>> allTypes;
+
+  @BeforeAll
+  public static void validateAssumptions(ClusterConnectionInfo backend) {
+    Assumptions.assumeTrue(backend.isDse(), "Test disabled when not running on DSE");
+  }
 
   @BeforeAll
   public static void createSchema(CqlSession session, @TestKeyspace CqlIdentifier keyspaceId)
