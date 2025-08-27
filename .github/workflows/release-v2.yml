@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       skipPublish:
-        description: 'Skip publishing docker images and JARs to OSSRH?'
+        description: 'Skip publishing docker images and JARs to Central Portal?'
         required: true
         default: true
         type: boolean
@@ -33,7 +33,7 @@ jobs:
     outputs:
       release-tag: ${{ steps.resolve_tag.outputs.tag }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set reference
         id: vars
@@ -71,10 +71,10 @@ jobs:
     needs: create-release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Set up JDK 8
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '8'
@@ -126,11 +126,11 @@ jobs:
     needs: create-release
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # install both Java 8 & Java 17, keep paths in vars
       - name: Set up JDK 8
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '8'
@@ -138,7 +138,7 @@ jobs:
       - run: echo "JAVA_8=$JAVA_HOME" >> $GITHUB_ENV
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -191,16 +191,16 @@ jobs:
           upload_url: ${{needs.create-release.outputs.release-upload-url}}
           asset_path: stargate-*api.zip
 
-  # publish coordinator and sgv2-quarkus-common JARs to the OSSRH
-  publish-ossrh:
-    name: Publish to OSSRH
+  # publish coordinator and sgv2-quarkus-common JARs to the Central Portal
+  publish-central:
+    name: Publish to Central Portal
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # install both Java 8 & Java 17, keep paths in vars
       - name: Set up JDK 8
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '8'
@@ -208,7 +208,7 @@ jobs:
       - run: echo "JAVA_8=$JAVA_HOME" >> $GITHUB_ENV
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -217,17 +217,17 @@ jobs:
 
       - name: Setup Maven
         env:
-          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          OSSRH_TOKEN: ${{ secrets.OSSRH_TOKEN }}
+          SONATYPE_CENTRAL_USERNAME: ${{ secrets.SONATYPE_CENTRAL_USERNAME }}
+          SONATYPE_CENTRAL_TOKEN: ${{ secrets.SONATYPE_CENTRAL_TOKEN }}
         run: |
           mkdir -p ~/.m2
           cat <<EOF > ~/.m2/settings.xml
           <settings>
             <servers>
               <server>
-                <id>ossrh</id>
-                <username>${OSSRH_USERNAME}</username>
-                <password>${OSSRH_TOKEN}</password>
+                <id>central</id>
+                <username>${SONATYPE_CENTRAL_USERNAME}</username>
+                <password>${SONATYPE_CENTRAL_TOKEN}</password>
               </server>
               <server>
                 <id>artifactory-snapshots</id>
@@ -272,11 +272,11 @@ jobs:
     needs: resolve-tag
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # install both Java 8 & Java 17, keep paths in vars
       - name: Set up JDK 8
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '8'
@@ -284,7 +284,7 @@ jobs:
       - run: echo "JAVA_8=$JAVA_HOME" >> $GITHUB_ENV
 
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -492,11 +492,11 @@ jobs:
     needs: [create-release]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       # since we only bump the versions, Java 17 only is fine here
       - name: Set up JDK 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: 'temurin'
           java-version: '17'
@@ -554,7 +554,7 @@ jobs:
   # dispatch release event
   dispatch:
     name: Dispatch release event
-    needs: [ 'resolve-tag', 'build', 'publish-ossrh', 'publish-docker']
+    needs: [ 'resolve-tag', 'build', 'publish-central', 'publish-docker']
     if: ${{ always() }}
     continue-on-error: true
     runs-on: ubuntu-latest
