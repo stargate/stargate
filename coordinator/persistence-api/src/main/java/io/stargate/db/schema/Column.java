@@ -611,7 +611,15 @@ public abstract class Column implements SchemaEntity, Comparable<Column> {
         "org.apache.cassandra.db.marshal.VectorType",
         true,
         null,
-        "Experimental vector value type");
+        "Experimental vector value type"),
+
+    DateRange(
+        0, // custom type
+        io.stargate.db.schema.DateRange.class,
+        "org.apache.cassandra.db.marshal.DateRangeType",
+        true,
+        null,
+        "Date range C* type with lower and upper bounds represented as timestamps with a millisecond precision");
 
     private final int id;
     private final String usage;
