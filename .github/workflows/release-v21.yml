@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       skipPublish:
-        description: 'Skip publishing docker images and JARs to OSSRH?'
+        description: 'Skip publishing docker images and JARs to Central Portal?'
         required: true
         default: true
         type: boolean
@@ -201,9 +201,9 @@ jobs:
           upload_url: ${{needs.create-release.outputs.release-upload-url}}
           asset_path: stargate-*api.zip
 
-  # publish coordinator and sgv2-quarkus-common JARs to the OSSRH
-  publish-ossrh:
-    name: Publish to OSSRH
+  # publish coordinator and sgv2-quarkus-common JARs to the Central Portal
+  publish-central:
+    name: Publish to Central Portal
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -227,17 +227,17 @@ jobs:
 
       - name: Setup Maven
         env:
-          OSSRH_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          OSSRH_TOKEN: ${{ secrets.OSSRH_TOKEN }}
+          SONATYPE_CENTRAL_USERNAME: ${{ secrets.SONATYPE_CENTRAL_USERNAME }}
+          SONATYPE_CENTRAL_TOKEN: ${{ secrets.SONATYPE_CENTRAL_TOKEN }}
         run: |
           mkdir -p ~/.m2
           cat <<EOF > ~/.m2/settings.xml
           <settings>
             <servers>
               <server>
-                <id>ossrh</id>
-                <username>${OSSRH_USERNAME}</username>
-                <password>${OSSRH_TOKEN}</password>
+                <id>central</id>
+                <username>${SONATYPE_CENTRAL_USERNAME}</username>
+                <password>${SONATYPE_CENTRAL_TOKEN}</password>
               </server>
               <server>
                 <id>artifactory-snapshots</id>
@@ -579,7 +579,7 @@ jobs:
   # dispatch release event
   dispatch:
     name: Dispatch release event
-    needs: [ 'resolve-tag', 'build', 'publish-ossrh', 'publish-docker']
+    needs: [ 'resolve-tag', 'build', 'publish-central', 'publish-docker']
     if: ${{ always() }}
     continue-on-error: true
     runs-on: ubuntu-latest

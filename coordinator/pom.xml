@@ -335,6 +335,8 @@
         </configuration>
       </plugin>
       <!-- Nexus Staging Plugin -->
+      <!-- 27-Aug-2025, tatu: [stargate#3120] Migrate to Central portal -->
+      <!--
       <plugin>
         <groupId>org.sonatype.plugins</groupId>
         <artifactId>nexus-staging-maven-plugin</artifactId>
@@ -344,6 +346,18 @@
           <serverId>ossrh</serverId>
           <nexusUrl>https://oss.sonatype.org/</nexusUrl>
           <autoReleaseAfterClose>true</autoReleaseAfterClose>
+        </configuration>
+      </plugin>
+      -->
+      <plugin>
+        <groupId>org.sonatype.central</groupId>
+        <artifactId>central-publishing-maven-plugin</artifactId>
+        <version>0.8.0</version>
+        <extensions>true</extensions>
+        <configuration>
+          <publishingServerId>central</publishingServerId>
+          <autoPublish>true</autoPublish>
+          <waitUntil>published</waitUntil>
         </configuration>
       </plugin>
       <plugin>
@@ -490,7 +504,7 @@
               <rules>
                 <requireJavaVersion>
                   <version>[11,23)</version>
-                  <message>Project requires JDK 11</message>
+                  <message>Project requires JDK 11 or above</message>
                 </requireJavaVersion>
                 <requireUpperBoundDeps>
                   <!-- If specifying includes ONLY those are checked
