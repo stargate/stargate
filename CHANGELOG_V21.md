@@ -1,5 +1,36 @@
 # Changelog
 
+## [v2.1.0-BETA-28](https://github.com/stargate/stargate/tree/v2.1.0-BETA-28) (2025-08-27)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.36...v2.1.0-BETA-28)
+
+**Closed issues:**
+
+- Update publishing from Sonatype OSSRH to Central Portal [\#3120](https://github.com/stargate/stargate/issues/3120)
+
+**Merged pull requests:**
+
+- Bumping version for next v2.1 release [\#3110](https://github.com/stargate/stargate/pull/3110) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.0.36](https://github.com/stargate/stargate/tree/v2.0.36) (2025-08-27)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-27...v2.0.36)
+
+**Closed issues:**
+
+- Update C\* 4.0 to latest \(4.0.18\) [\#3116](https://github.com/stargate/stargate/issues/3116)
+- Enabling `/cql` REST API endpoint [\#3111](https://github.com/stargate/stargate/issues/3111)
+
+**Merged pull requests:**
+
+- Fix \#3120: switch Maven publish to Central Portal [\#3121](https://github.com/stargate/stargate/pull/3121) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump actions/setup-java from 4 to 5 [\#3118](https://github.com/stargate/stargate/pull/3118) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Fix \#3116: upgrade to C\* 4.0.18 [\#3117](https://github.com/stargate/stargate/pull/3117) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump actions/checkout from 4 to 5 [\#3113](https://github.com/stargate/stargate/pull/3113) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Fix typo in CONFIGURATION.md [\#3112](https://github.com/stargate/stargate/pull/3112) ([n-elia](https://github.com/n-elia))
+- Bumping version for next v2.0 release [\#3107](https://github.com/stargate/stargate/pull/3107) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Bump org.apache.commons:commons-lang3 from 3.11 to 3.18.0 in /coordinator/testing [\#3102](https://github.com/stargate/stargate/pull/3102) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [v2.1.0-BETA-27](https://github.com/stargate/stargate/tree/v2.1.0-BETA-27) (2025-07-23)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-26...v2.1.0-BETA-27)
