@@ -386,11 +386,10 @@ jobs:
           cd ../
 
       # repeat the same for the AWS ECR
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.ECR_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.ECR_SECRET_KEY }}
+          role-to-assume: ${{ secrets.ECR_FEDERATED_ROLE }}
           aws-region: us-east-1
 
       - name: Login to Amazon ECR
@@ -473,11 +472,10 @@ jobs:
         with:
           cosign-release: ${COSIGN_VERSION}
 
-      - name: Configure AWS credentials
+      - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          aws-access-key-id: ${{ secrets.ECR_ACCESS_KEY }}
-          aws-secret-access-key: ${{ secrets.ECR_SECRET_KEY }}
+          role-to-assume: ${{ secrets.ECR_FEDERATED_ROLE }}
           aws-region: us-east-1
 
       - name: Login to Amazon ECR
