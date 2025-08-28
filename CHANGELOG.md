@@ -1,5 +1,37 @@
 # Changelog
 
+## [v2.0.37](https://github.com/stargate/stargate/tree/v2.0.37) (2025-08-28)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-28...v2.0.37)
+
+**Closed issues:**
+
+- Upgrade Quarkus from 3.13\(.2\) to latest patch of next Long-Term Support \(LTS\) version: 3.15\(.6.1\) [\#3124](https://github.com/stargate/stargate/issues/3124)
+- Add DynamoDB API compatibility [\#3099](https://github.com/stargate/stargate/issues/3099)
+- Update to DSE 6.8.58 [\#3098](https://github.com/stargate/stargate/issues/3098)
+- Update to DSE 6.8.57 [\#3097](https://github.com/stargate/stargate/issues/3097)
+- Update to DSE 6.8.56 [\#3092](https://github.com/stargate/stargate/issues/3092)
+
+**Merged pull requests:**
+
+- ECR login changed to federated [\#3126](https://github.com/stargate/stargate/pull/3126) ([Yuqi-Du](https://github.com/Yuqi-Du))
+- Fix \#3124: Quarkus upgrade to LTS [\#3125](https://github.com/stargate/stargate/pull/3125) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.0 release [\#3122](https://github.com/stargate/stargate/pull/3122) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Bump org.apache.commons:commons-lang3 from 3.12.0 to 3.18.0 in /coordinator/cql [\#3115](https://github.com/stargate/stargate/pull/3115) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump com.nimbusds:nimbus-jose-jwt from 9.37.3 to 9.37.4 in /coordinator [\#3114](https://github.com/stargate/stargate/pull/3114) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [v2.1.0-BETA-28](https://github.com/stargate/stargate/tree/v2.1.0-BETA-28) (2025-08-27)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.36...v2.1.0-BETA-28)
+
+**Closed issues:**
+
+- Update publishing from Sonatype OSSRH to Central Portal [\#3120](https://github.com/stargate/stargate/issues/3120)
+
+**Merged pull requests:**
+
+- Bumping version for next v2.1 release [\#3110](https://github.com/stargate/stargate/pull/3110) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.0.36](https://github.com/stargate/stargate/tree/v2.0.36) (2025-08-27)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.34...v2.0.36)
