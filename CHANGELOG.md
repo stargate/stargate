@@ -1,3 +1,5 @@
+# Changelog
+
 ## [v2.0.36](https://github.com/stargate/stargate/tree/v2.0.36) (2025-08-27)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.34...v2.0.36)
