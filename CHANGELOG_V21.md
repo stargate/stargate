@@ -1,5 +1,13 @@
 # Changelog
 
+## [v2.1.0-BETA-28](https://github.com/stargate/stargate/tree/v2.1.0-BETA-28) (2025-08-27)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-27...v2.1.0-BETA-28)
+
+**Closed issues:**
+
+- Update publishing from Sonatype OSSRH to Central Portal [\#3120](https://github.com/stargate/stargate/issues/3120)
+
 ## [v2.1.0-BETA-27](https://github.com/stargate/stargate/tree/v2.1.0-BETA-27) (2025-07-23)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-26...v2.1.0-BETA-27)
