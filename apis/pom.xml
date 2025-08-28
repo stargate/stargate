@@ -5,7 +5,7 @@
   <groupId>io.stargate</groupId>
   <artifactId>sgv2-api-parent</artifactId>
   <name>Stargate - V2 API Parent pom</name>
-  <version>2.0.36-SNAPSHOT</version>
+  <version>2.0.37-SNAPSHOT</version>
   <packaging>pom</packaging>
   <!-- Description -->
   <description>Stargate - An open source data API gateway</description>
@@ -275,8 +275,9 @@
       <id>deploy</id>
       <distributionManagement>
         <repository>
-          <id>ossrh</id>
-          <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+          <id>central</id>
+          <name>Sonatype Central Portal Repository (releases)</name>
+          <url>https://central.sonatype.com/api/v1/publisher</url>
         </repository>
       </distributionManagement>
       <build>
@@ -341,6 +342,8 @@
               <outputDirectory>${project.basedir}/target</outputDirectory>
             </configuration>
           </plugin>
+          <!-- 27-Aug-2025, tatu: [stargate#3120] Migrate to Central portal -->
+          <!--
           <plugin>
             <groupId>org.sonatype.plugins</groupId>
             <artifactId>nexus-staging-maven-plugin</artifactId>
@@ -350,6 +353,18 @@
               <serverId>ossrh</serverId>
               <nexusUrl>https://oss.sonatype.org/</nexusUrl>
               <autoReleaseAfterClose>true</autoReleaseAfterClose>
+            </configuration>
+          </plugin>
+          -->
+          <plugin>
+            <groupId>org.sonatype.central</groupId>
+            <artifactId>central-publishing-maven-plugin</artifactId>
+            <version>0.8.0</version>
+            <extensions>true</extensions>
+            <configuration>
+              <publishingServerId>central</publishingServerId>
+              <autoPublish>true</autoPublish>
+              <waitUntil>published</waitUntil>
             </configuration>
           </plugin>
         </plugins>
