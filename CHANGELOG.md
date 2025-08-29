@@ -1,5 +1,20 @@
 # Changelog
 
+## [v2.0.37](https://github.com/stargate/stargate/tree/v2.0.37) (2025-08-28)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.36...v2.0.37)
+
+**Closed issues:**
+
+- Upgrade Quarkus from 3.13\(.2\) to latest patch of next Long-Term Support \(LTS\) version: 3.15\(.6.1\) [\#3124](https://github.com/stargate/stargate/issues/3124)
+
+**Merged pull requests:**
+
+- ECR login changed to federated [\#3126](https://github.com/stargate/stargate/pull/3126) ([Yuqi-Du](https://github.com/Yuqi-Du))
+- Fix \#3124: Quarkus upgrade to LTS [\#3125](https://github.com/stargate/stargate/pull/3125) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump org.apache.commons:commons-lang3 from 3.12.0 to 3.18.0 in /coordinator/cql [\#3115](https://github.com/stargate/stargate/pull/3115) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump com.nimbusds:nimbus-jose-jwt from 9.37.3 to 9.37.4 in /coordinator [\#3114](https://github.com/stargate/stargate/pull/3114) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [v2.0.36](https://github.com/stargate/stargate/tree/v2.0.36) (2025-08-27)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.34...v2.0.36)

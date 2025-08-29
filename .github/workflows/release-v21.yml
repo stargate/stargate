@@ -20,7 +20,8 @@ on:
 # needed when a workflow wants to use OIDC (OpenID Connect) to authenticate to cloud
 permissions:
   id-token: write
-  contents: read
+  contents: write
+  packages: write
 
 # global env vars, available in all jobs and steps
 env:
