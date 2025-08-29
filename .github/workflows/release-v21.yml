@@ -17,6 +17,11 @@ on:
         required: true
         type: string
 
+# needed when a workflow wants to use OIDC (OpenID Connect) to authenticate to cloud
+permissions:
+  id-token: write
+  contents: read
+
 # global env vars, available in all jobs and steps
 env:
   ARTIFACTORY_USERNAME: ${{ secrets.ARTIFACTORY_USERNAME }}
