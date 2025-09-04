@@ -127,7 +127,7 @@
       <groupId>io.netty</groupId>
       <artifactId>netty-codec</artifactId>
       <!-- Updated on DSE 6.8.40: -->
-      <version>4.1.100.1.dse</version>
+      <version>4.1.125.Final</version>
     </dependency>
     <!-- 3rd party dependencies -->
     <dependency>
