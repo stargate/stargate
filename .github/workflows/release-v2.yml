@@ -22,6 +22,7 @@ permissions:
   id-token: write
   contents: write
   packages: write
+  pull-requests: write
 
 # global env vars, available in all jobs and steps
 env:
