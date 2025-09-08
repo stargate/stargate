@@ -1,5 +1,69 @@
 # Changelog
 
+## [v2.1.0-BETA-31](https://github.com/stargate/stargate/tree/v2.1.0-BETA-31) (2025-09-08)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.40...v2.1.0-BETA-31)
+
+**Merged pull requests:**
+
+- Bump version to 2.1.0-BETA-31-SNAPSHOT [\#3137](https://github.com/stargate/stargate/pull/3137) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v2.0.40](https://github.com/stargate/stargate/tree/v2.0.40) (2025-09-08)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-30...v2.0.40)
+
+**Merged pull requests:**
+
+- Bump version to 2.0.40-SNAPSHOT manually \(failed pr\) [\#3136](https://github.com/stargate/stargate/pull/3136) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add permissions for "create PR for version update" action to work [\#3135](https://github.com/stargate/stargate/pull/3135) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump aws-actions/configure-aws-credentials from 4 to 5 [\#3133](https://github.com/stargate/stargate/pull/3133) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [v2.1.0-BETA-30](https://github.com/stargate/stargate/tree/v2.1.0-BETA-30) (2025-08-29)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.39...v2.1.0-BETA-30)
+
+**Merged pull requests:**
+
+- Manual bump to skip failed version publish [\#3131](https://github.com/stargate/stargate/pull/3131) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v2.0.39](https://github.com/stargate/stargate/tree/v2.0.39) (2025-08-29)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-29...v2.0.39)
+
+**Merged pull requests:**
+
+- Manual bump of versions after failing release [\#3130](https://github.com/stargate/stargate/pull/3130) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v2.1.0-BETA-29](https://github.com/stargate/stargate/tree/v2.1.0-BETA-29) (2025-08-29)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.38...v2.1.0-BETA-29)
+
+**Merged pull requests:**
+
+- Add more access for workflows [\#3129](https://github.com/stargate/stargate/pull/3129) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.1 release [\#3123](https://github.com/stargate/stargate/pull/3123) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.0.38](https://github.com/stargate/stargate/tree/v2.0.38) (2025-08-29)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.37...v2.0.38)
+
+**Merged pull requests:**
+
+- ECR federated login fix to the release workflow [\#3128](https://github.com/stargate/stargate/pull/3128) ([Yuqi-Du](https://github.com/Yuqi-Du))
+- Bumping version for next v2.0 release [\#3127](https://github.com/stargate/stargate/pull/3127) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.0.37](https://github.com/stargate/stargate/tree/v2.0.37) (2025-08-28)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-28...v2.0.37)
+
+**Merged pull requests:**
+
+- ECR login changed to federated [\#3126](https://github.com/stargate/stargate/pull/3126) ([Yuqi-Du](https://github.com/Yuqi-Du))
+- Fix \#3124: Quarkus upgrade to LTS [\#3125](https://github.com/stargate/stargate/pull/3125) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.0 release [\#3122](https://github.com/stargate/stargate/pull/3122) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Bump org.apache.commons:commons-lang3 from 3.12.0 to 3.18.0 in /coordinator/cql [\#3115](https://github.com/stargate/stargate/pull/3115) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bump com.nimbusds:nimbus-jose-jwt from 9.37.3 to 9.37.4 in /coordinator [\#3114](https://github.com/stargate/stargate/pull/3114) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [v2.1.0-BETA-28](https://github.com/stargate/stargate/tree/v2.1.0-BETA-28) (2025-08-27)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-27...v2.1.0-BETA-28)
