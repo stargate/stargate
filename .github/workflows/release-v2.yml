@@ -22,6 +22,7 @@ permissions:
   id-token: write
   contents: write
   packages: write
+  pull-requests: write
 
 # global env vars, available in all jobs and steps
 env:
@@ -373,7 +374,7 @@ jobs:
 
       # repeat the same for the AWS ECR
       - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.ECR_FEDERATED_ROLE }}
           aws-region: us-east-1
@@ -459,7 +460,7 @@ jobs:
           cosign-release: ${COSIGN_VERSION}
 
       - name: Configure AWS credentials via OIDC
-        uses: aws-actions/configure-aws-credentials@v4
+        uses: aws-actions/configure-aws-credentials@v5
         with:
           role-to-assume: ${{ secrets.ECR_FEDERATED_ROLE }}
           aws-region: us-east-1
