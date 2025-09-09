@@ -1,5 +1,25 @@
 # Changelog
 
+## [v2.1.0-BETA-31](https://github.com/stargate/stargate/tree/v2.1.0-BETA-31) (2025-09-08)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-30...v2.1.0-BETA-31)
+
+## [v2.1.0-BETA-30](https://github.com/stargate/stargate/tree/v2.1.0-BETA-30) (2025-08-29)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-29...v2.1.0-BETA-30)
+
+**Merged pull requests:**
+
+- Manual bump to skip failed version publish [\#3131](https://github.com/stargate/stargate/pull/3131) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v2.1.0-BETA-29](https://github.com/stargate/stargate/tree/v2.1.0-BETA-29) (2025-08-29)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-28...v2.1.0-BETA-29)
+
+**Merged pull requests:**
+
+- Add more access for workflows [\#3129](https://github.com/stargate/stargate/pull/3129) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v2.1.0-BETA-28](https://github.com/stargate/stargate/tree/v2.1.0-BETA-28) (2025-08-27)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-27...v2.1.0-BETA-28)
