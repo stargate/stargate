@@ -1,5 +1,32 @@
 # Changelog
 
+## [v2.0.40](https://github.com/stargate/stargate/tree/v2.0.40) (2025-09-08)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.39...v2.0.40)
+
+**Merged pull requests:**
+
+- Bump version to 2.0.40-SNAPSHOT manually \(failed pr\) [\#3136](https://github.com/stargate/stargate/pull/3136) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Add permissions for "create PR for version update" action to work [\#3135](https://github.com/stargate/stargate/pull/3135) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump aws-actions/configure-aws-credentials from 4 to 5 [\#3133](https://github.com/stargate/stargate/pull/3133) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [v2.0.39](https://github.com/stargate/stargate/tree/v2.0.39) (2025-08-29)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.38...v2.0.39)
+
+**Merged pull requests:**
+
+- Manual bump of versions after failing release [\#3130](https://github.com/stargate/stargate/pull/3130) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
+## [v2.0.38](https://github.com/stargate/stargate/tree/v2.0.38) (2025-08-29)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.37...v2.0.38)
+
+**Merged pull requests:**
+
+- ECR federated login fix to the release workflow [\#3128](https://github.com/stargate/stargate/pull/3128) ([Yuqi-Du](https://github.com/Yuqi-Du))
+- Bumping version for next v2.0 release [\#3127](https://github.com/stargate/stargate/pull/3127) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.0.37](https://github.com/stargate/stargate/tree/v2.0.37) (2025-08-28)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.36...v2.0.37)
