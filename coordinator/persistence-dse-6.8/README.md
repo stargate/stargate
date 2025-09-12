@@ -5,7 +5,7 @@ the DSE (DataStax Enterprise cassandra) `6.8.x` version.
 
 ## Cassandra version update
 
-The current Cassandra version this module depends on is `6.8.55`.
+The current Cassandra version this module depends on is `6.8.59`.
 In order to update to a newer patch version, please follow the guidelines below:
 
 * Update the `dse.version` property in the [pom.xml](pom.xml).
@@ -22,3 +22,4 @@ It's always good to validate your work against the pull requests that bumped the
 * `6.8.36` -> `6.8.38` [stargate/stargate#2772](https://github.com/stargate/stargate/pull/2772)
 * `6.8.43` -> `6.8.47` [stargate/stargate#2929](https://github.com/stargate/stargate/pull/2929)
 * `6.8.50` -> `6.8.51` [stargate/stargate#3015](https://github.com/stargate/stargate/pull/3015)
+* `6.8.54` -> `6.8.55` [stargate/stargate#3084](https://github.com/stargate/stargate/pull/3084)
