@@ -1,5 +1,13 @@
 # Changelog
 
+## [v2.0.41](https://github.com/stargate/stargate/tree/v2.0.41) (2025-09-12)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.40...v2.0.41)
+
+**Merged pull requests:**
+
+- Fix \#3100: upgrade DSE-6.8 dep to 6.8.59 \(from 6.8.55\) [\#3140](https://github.com/stargate/stargate/pull/3140) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v2.0.40](https://github.com/stargate/stargate/tree/v2.0.40) (2025-09-08)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.39...v2.0.40)
