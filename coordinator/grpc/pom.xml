@@ -86,6 +86,12 @@
       <artifactId>logback-classic</artifactId>
     </dependency>
     <!-- Test dependencies -->
+    <!-- 16-Sep-2025, tatu: #3143 need to add new dependency -->
+    <dependency>
+      <groupId>io.grpc</groupId>
+      <artifactId>grpc-inprocess</artifactId>
+      <scope>test</scope>
+    </dependency>
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
