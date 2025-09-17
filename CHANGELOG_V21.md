@@ -1,5 +1,31 @@
 # Changelog
 
+## [v2.1.0-BETA-32](https://github.com/stargate/stargate/tree/v2.1.0-BETA-32) (2025-09-16)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.42...v2.1.0-BETA-32)
+
+**Merged pull requests:**
+
+- Bumping version for next v2.1 release [\#3139](https://github.com/stargate/stargate/pull/3139) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.0.42](https://github.com/stargate/stargate/tree/v2.0.42) (2025-09-16)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.41...v2.0.42)
+
+**Merged pull requests:**
+
+- Fix \#3143: update gRPC dependency to 1.70.0 [\#3144](https://github.com/stargate/stargate/pull/3144) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.0 release [\#3141](https://github.com/stargate/stargate/pull/3141) ([github-actions[bot]](https://github.com/apps/github-actions))
+
+## [v2.0.41](https://github.com/stargate/stargate/tree/v2.0.41) (2025-09-12)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-31...v2.0.41)
+
+**Merged pull requests:**
+
+- Fix \#3100: upgrade DSE-6.8 dep to 6.8.59 \(from 6.8.55\) [\#3140](https://github.com/stargate/stargate/pull/3140) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.0 release [\#3138](https://github.com/stargate/stargate/pull/3138) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.1.0-BETA-31](https://github.com/stargate/stargate/tree/v2.1.0-BETA-31) (2025-09-08)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-30...v2.1.0-BETA-31)
