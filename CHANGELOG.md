@@ -1,5 +1,13 @@
 # Changelog
 
+## [v2.0.42](https://github.com/stargate/stargate/tree/v2.0.42) (2025-09-16)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.41...v2.0.42)
+
+**Merged pull requests:**
+
+- Fix \#3143: update gRPC dependency to 1.70.0 [\#3144](https://github.com/stargate/stargate/pull/3144) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+
 ## [v2.0.41](https://github.com/stargate/stargate/tree/v2.0.41) (2025-09-12)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.40...v2.0.41)
