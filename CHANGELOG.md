@@ -2,20 +2,11 @@
 
 ## [v2.0.43](https://github.com/stargate/stargate/tree/v2.0.43) (2025-10-06)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-32...v2.0.43)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.42...v2.0.43)
 
 **Merged pull requests:**
 
 - Bump peter-evans/repository-dispatch from 3 to 4 [\#3147](https://github.com/stargate/stargate/pull/3147) ([dependabot[bot]](https://github.com/apps/dependabot))
-- Bumping version for next v2.0 release [\#3145](https://github.com/stargate/stargate/pull/3145) ([github-actions[bot]](https://github.com/apps/github-actions))
-
-## [v2.1.0-BETA-32](https://github.com/stargate/stargate/tree/v2.1.0-BETA-32) (2025-09-16)
-
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.42...v2.1.0-BETA-32)
-
-**Merged pull requests:**
-
-- Bumping version for next v2.1 release [\#3139](https://github.com/stargate/stargate/pull/3139) ([github-actions[bot]](https://github.com/apps/github-actions))
 
 ## [v2.0.42](https://github.com/stargate/stargate/tree/v2.0.42) (2025-09-16)
 
