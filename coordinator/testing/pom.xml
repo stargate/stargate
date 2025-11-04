@@ -5,7 +5,7 @@
   <parent>
     <groupId>io.stargate</groupId>
     <artifactId>stargate</artifactId>
-    <version>2.0.41-SNAPSHOT</version>
+    <version>2.0.44-SNAPSHOT</version>
   </parent>
   <!-- Artifact properties -->
   <groupId>io.stargate.it</groupId>
@@ -443,7 +443,7 @@
                 <configuration>
                   <systemPropertyVariables>
                     <ccm.dse>true</ccm.dse>
-                    <ccm.version>6.8.55</ccm.version>
+                    <ccm.version>6.8.59</ccm.version>
                     <stargate.test.nodes>1</stargate.test.nodes>
                     <stargate.enable.dsev2>true</stargate.enable.dsev2>
                   </systemPropertyVariables>
@@ -476,7 +476,7 @@
                 <configuration>
                   <systemPropertyVariables>
                     <ccm.dse>true</ccm.dse>
-                    <ccm.version>6.8.55</ccm.version>
+                    <ccm.version>6.8.59</ccm.version>
                     <stargate.test.nodes>1</stargate.test.nodes>
                     <stargate.enable.dsev2>false</stargate.enable.dsev2>
                   </systemPropertyVariables>
