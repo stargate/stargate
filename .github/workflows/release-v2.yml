@@ -569,9 +569,6 @@ jobs:
       matrix:
         repo: [ 'riptano/c2']
         include:
-          - repo: stargate/jsonapi
-            secret: SG_EVENTS_PAT
-
           - repo: riptano/c2
             secret: STARGATE_GH_RELEASE
 

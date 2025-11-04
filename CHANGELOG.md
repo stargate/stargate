@@ -1,5 +1,13 @@
 # Changelog
 
+## [v2.0.43](https://github.com/stargate/stargate/tree/v2.0.43) (2025-10-06)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.42...v2.0.43)
+
+**Merged pull requests:**
+
+- Bump peter-evans/repository-dispatch from 3 to 4 [\#3147](https://github.com/stargate/stargate/pull/3147) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [v2.0.42](https://github.com/stargate/stargate/tree/v2.0.42) (2025-09-16)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.41...v2.0.42)
