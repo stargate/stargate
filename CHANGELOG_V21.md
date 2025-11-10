@@ -1,5 +1,27 @@
 # Changelog
 
+## [v2.1.0-BETA-33](https://github.com/stargate/stargate/tree/v2.1.0-BETA-33) (2025-11-10)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.43...v2.1.0-BETA-33)
+
+**Merged pull requests:**
+
+- Fix \#3154: call correct methods for REST "getKeyspaces\(\)", "getTables\(\)" [\#3155](https://github.com/stargate/stargate/pull/3155) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump actions/upload-artifact from 4 to 5 [\#3152](https://github.com/stargate/stargate/pull/3152) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Re-do \#3149 for v2.1 wrt access checks [\#3151](https://github.com/stargate/stargate/pull/3151) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.0 release [\#3148](https://github.com/stargate/stargate/pull/3148) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Bumping version for next v2.1 release [\#3146](https://github.com/stargate/stargate/pull/3146) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Bump actions/setup-python from 5 to 6 [\#3134](https://github.com/stargate/stargate/pull/3134) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [v2.0.43](https://github.com/stargate/stargate/tree/v2.0.43) (2025-10-06)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-32...v2.0.43)
+
+**Merged pull requests:**
+
+- Bump peter-evans/repository-dispatch from 3 to 4 [\#3147](https://github.com/stargate/stargate/pull/3147) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Bumping version for next v2.0 release [\#3145](https://github.com/stargate/stargate/pull/3145) ([github-actions[bot]](https://github.com/apps/github-actions))
+
 ## [v2.1.0-BETA-32](https://github.com/stargate/stargate/tree/v2.1.0-BETA-32) (2025-09-16)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-31...v2.1.0-BETA-32)
