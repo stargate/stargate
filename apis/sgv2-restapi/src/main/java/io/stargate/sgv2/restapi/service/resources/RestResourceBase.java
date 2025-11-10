@@ -80,7 +80,7 @@ public abstract class RestResourceBase {
         : schemaManager.getKeyspace(keyspaceName);
   }
 
-  @Deprecated // non-authorized, not to be used
+  @Deprecated // no authz checking, use getKeyspacesAuthorizedAsync() instead
   protected Multi<Schema.CqlKeyspaceDescribe> getKeyspacesAsync() {
     return schemaManager.getKeyspaces();
   }
@@ -89,7 +89,7 @@ public abstract class RestResourceBase {
     return schemaManager.getKeyspacesAuthorized();
   }
 
-  @Deprecated // non-authorized, not to be used
+  @Deprecated // no authz checking, use getTablesAuthorizedAsync() instead
   protected Multi<Schema.CqlTable> getTablesAsync(String keyspaceName) {
     return schemaManager.getTables(keyspaceName, MISSING_KEYSPACE);
   }
