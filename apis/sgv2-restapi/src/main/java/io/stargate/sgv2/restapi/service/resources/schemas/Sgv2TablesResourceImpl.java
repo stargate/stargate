@@ -31,7 +31,7 @@ public class Sgv2TablesResourceImpl extends RestResourceBase implements Sgv2Tabl
 
   @Override
   public Uni<RestResponse<Object>> getAllTables(final String keyspaceName, final boolean raw) {
-    return getTablesAsync(keyspaceName)
+    return getTablesAuthorizedAsync(keyspaceName)
         .map(t -> table2table(t, keyspaceName))
         .collect()
         .asList()

@@ -80,12 +80,22 @@ public abstract class RestResourceBase {
         : schemaManager.getKeyspace(keyspaceName);
   }
 
+  @Deprecated // non-authorized, not to be used
   protected Multi<Schema.CqlKeyspaceDescribe> getKeyspacesAsync() {
     return schemaManager.getKeyspaces();
   }
 
+  protected Multi<Schema.CqlKeyspaceDescribe> getKeyspacesAuthorizedAsync() {
+    return schemaManager.getKeyspacesAuthorized();
+  }
+
+  @Deprecated // non-authorized, not to be used
   protected Multi<Schema.CqlTable> getTablesAsync(String keyspaceName) {
     return schemaManager.getTables(keyspaceName, MISSING_KEYSPACE);
+  }
+
+  protected Multi<Schema.CqlTable> getTablesAuthorizedAsync(String keyspaceName) {
+    return schemaManager.getTablesAuthorized(keyspaceName, MISSING_KEYSPACE);
   }
 
   protected Uni<Schema.CqlTable> getTableAsync(
