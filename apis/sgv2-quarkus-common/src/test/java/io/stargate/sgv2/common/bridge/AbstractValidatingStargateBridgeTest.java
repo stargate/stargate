@@ -18,8 +18,8 @@ package io.stargate.sgv2.common.bridge;
 
 import static org.mockito.Mockito.when;
 
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.mockito.InjectMock;
 import io.stargate.bridge.proto.QueryOuterClass;
 import io.stargate.bridge.proto.StargateBridge;
 import io.stargate.sgv2.api.common.StargateRequestInfo;
