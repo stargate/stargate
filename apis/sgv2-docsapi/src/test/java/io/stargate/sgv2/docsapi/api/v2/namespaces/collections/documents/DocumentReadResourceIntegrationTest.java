@@ -32,7 +32,7 @@ import static org.hamcrest.Matchers.nullValue;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.io.CharStreams;
-import io.quarkus.test.common.WithTestResource;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.config.constants.HttpConstants;
@@ -54,7 +54,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 
 @QuarkusIntegrationTest
-@WithTestResource(value = StargateTestResource.class, restrictToAnnotatedClass = false)
+@QuarkusTestResource(value = StargateTestResource.class, restrictToAnnotatedClass = false)
 class DocumentReadResourceIntegrationTest extends DocsApiIntegrationTest {
 
   public static final String BASE_PATH = "/v2/namespaces/{namespace}/collections/{collection}";

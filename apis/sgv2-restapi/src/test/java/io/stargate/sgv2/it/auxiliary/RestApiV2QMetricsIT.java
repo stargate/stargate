@@ -3,7 +3,7 @@ package io.stargate.sgv2.it.auxiliary;
 import static io.restassured.RestAssured.given;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.quarkus.test.common.WithTestResource;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
 import java.util.List;
@@ -14,7 +14,7 @@ import org.junit.jupiter.api.TestClassOrder;
 import org.junit.jupiter.api.TestInstance;
 
 @QuarkusIntegrationTest
-@WithTestResource(StargateTestResource.class)
+@QuarkusTestResource(StargateTestResource.class)
 @TestClassOrder(ClassOrderer.DisplayName.class)
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
 public class RestApiV2QMetricsIT {
