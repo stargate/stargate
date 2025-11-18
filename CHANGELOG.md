@@ -1,5 +1,28 @@
 # Changelog
 
+## [v2.0.44](https://github.com/stargate/stargate/tree/v2.0.44) (2025-11-18)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-33...v2.0.44)
+
+**Merged pull requests:**
+
+- Fix \#3154: call correct methods for REST "getKeyspaces\(\)", "getTables\(\) [\#3160](https://github.com/stargate/stargate/pull/3160) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Fix \#3158: upgrade Quarkus to next LTS \(3.20\) from 3.15 [\#3159](https://github.com/stargate/stargate/pull/3159) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump ch.qos.logback:logback-core from 1.3.15 to 1.3.16 in /coordinator [\#3153](https://github.com/stargate/stargate/pull/3153) ([dependabot[bot]](https://github.com/apps/dependabot))
+
+## [v2.1.0-BETA-33](https://github.com/stargate/stargate/tree/v2.1.0-BETA-33) (2025-11-10)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.43...v2.1.0-BETA-33)
+
+**Merged pull requests:**
+
+- Fix \#3154: call correct methods for REST "getKeyspaces\(\)", "getTables\(\)" [\#3155](https://github.com/stargate/stargate/pull/3155) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump actions/upload-artifact from 4 to 5 [\#3152](https://github.com/stargate/stargate/pull/3152) ([dependabot[bot]](https://github.com/apps/dependabot))
+- Re-do \#3149 for v2.1 wrt access checks [\#3151](https://github.com/stargate/stargate/pull/3151) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bumping version for next v2.0 release [\#3148](https://github.com/stargate/stargate/pull/3148) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Bumping version for next v2.1 release [\#3146](https://github.com/stargate/stargate/pull/3146) ([github-actions[bot]](https://github.com/apps/github-actions))
+- Bump actions/setup-python from 5 to 6 [\#3134](https://github.com/stargate/stargate/pull/3134) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [v2.0.43](https://github.com/stargate/stargate/tree/v2.0.43) (2025-10-06)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.0.42...v2.0.43)
