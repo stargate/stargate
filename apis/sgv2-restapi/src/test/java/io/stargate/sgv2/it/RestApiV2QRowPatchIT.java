@@ -2,7 +2,7 @@ package io.stargate.sgv2.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.quarkus.test.common.WithTestResource;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
@@ -14,7 +14,7 @@ import org.apache.http.HttpStatus;
 import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
-@WithTestResource(StargateTestResource.class)
+@QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QRowPatchIT extends RestApiV2QIntegrationTestBase {
   public RestApiV2QRowPatchIT() {
     super("rowptc_ks_", "rowptc_t_", KeyspaceCreation.PER_CLASS);
