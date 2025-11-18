@@ -1,5 +1,15 @@
 # Changelog
 
+## [v2.1.0-BETA-33](https://github.com/stargate/stargate/tree/v2.1.0-BETA-33) (2025-11-10)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.43...v2.1.0-BETA-33)
+
+**Merged pull requests:**
+
+- Fix \#3154: call correct methods for REST "getKeyspaces\(\)", "getTables\(\)" [\#3155](https://github.com/stargate/stargate/pull/3155) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Re-do \#3149 for v2.1 wrt access checks [\#3151](https://github.com/stargate/stargate/pull/3151) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump actions/setup-python from 5 to 6 [\#3134](https://github.com/stargate/stargate/pull/3134) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [v2.1.0-BETA-32](https://github.com/stargate/stargate/tree/v2.1.0-BETA-32) (2025-09-16)
 
 [Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-31...v2.1.0-BETA-32)
