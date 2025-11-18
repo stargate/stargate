@@ -2,7 +2,7 @@ package io.stargate.sgv2.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.quarkus.test.common.WithTestResource;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
@@ -17,7 +17,7 @@ import org.junit.jupiter.api.Test;
  * that escaped slashes are not decoded prematurely.
  */
 @QuarkusIntegrationTest
-@WithTestResource(StargateTestResource.class)
+@QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QPrimaryKeyIT extends RestApiV2QIntegrationTestBase {
   public RestApiV2QPrimaryKeyIT() {
     super("rowpk_ks_", "rowpk_t_", KeyspaceCreation.PER_CLASS);

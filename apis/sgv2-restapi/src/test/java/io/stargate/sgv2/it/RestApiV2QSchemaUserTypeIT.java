@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.matchesRegex;
 
-import io.quarkus.test.common.WithTestResource;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.restassured.http.ContentType;
 import io.stargate.sgv2.api.common.exception.model.dto.ApiError;
@@ -18,7 +18,7 @@ import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 
 @QuarkusIntegrationTest
-@WithTestResource(StargateTestResource.class)
+@QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QSchemaUserTypeIT extends RestApiV2QIntegrationTestBase {
   public RestApiV2QSchemaUserTypeIT() {
     // Need per-method due to "udtGetAll()" verifying that no UDTs exist

@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assumptions.assumeThat;
 
 import com.datastax.oss.driver.api.core.cql.ResultSet;
 import com.fasterxml.jackson.databind.JsonNode;
-import io.quarkus.test.common.WithTestResource;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.stargate.sgv2.api.common.cql.builder.CollectionIndexingType;
 import io.stargate.sgv2.common.IntegrationTestUtils;
@@ -22,7 +22,7 @@ import org.junit.jupiter.api.Test;
  * <p>Converted from Stargate V1 test {@code RestApiv2DseTest}.
  */
 @QuarkusIntegrationTest
-@WithTestResource(StargateTestResource.class)
+@QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QDSETests_IT extends RestApiV2QCqlEnabledTestBase {
   public RestApiV2QDSETests_IT() {
     super("dse_ks_", "dse_t_", KeyspaceCreation.PER_CLASS);
