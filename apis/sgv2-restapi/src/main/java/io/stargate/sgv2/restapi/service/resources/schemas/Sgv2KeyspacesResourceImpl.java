@@ -58,7 +58,7 @@ public class Sgv2KeyspacesResourceImpl extends RestResourceBase
 
   @Override
   public Uni<RestResponse<Object>> getAllKeyspaces(final boolean raw) {
-    return getKeyspacesAsync()
+    return getKeyspacesAuthorizedAsync()
         .map(ks -> convertKeyspace(ks))
         .collect()
         .asList()
