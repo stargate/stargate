@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assumptions.assumeThat;
 
 import com.datastax.oss.driver.api.core.cql.ResultSet;
-import io.quarkus.test.common.WithTestResource;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.stargate.sgv2.common.IntegrationTestUtils;
 import io.stargate.sgv2.common.testresource.StargateTestResource;
@@ -24,7 +24,7 @@ import org.slf4j.LoggerFactory;
  * not available on all backends.
  */
 @QuarkusIntegrationTest
-@WithTestResource(StargateTestResource.class)
+@QuarkusTestResource(StargateTestResource.class)
 public class RestApiV2QMaterializedViewIT extends RestApiV2QCqlEnabledTestBase {
   private static final Logger LOG = LoggerFactory.getLogger(RestApiV2QMaterializedViewIT.class);
 

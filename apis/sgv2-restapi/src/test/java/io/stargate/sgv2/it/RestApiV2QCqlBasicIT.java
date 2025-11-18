@@ -2,7 +2,7 @@ package io.stargate.sgv2.it;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import io.quarkus.test.common.WithTestResource;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.junit.QuarkusIntegrationTest;
 import io.quarkus.test.junit.QuarkusTestProfile;
 import io.quarkus.test.junit.TestProfile;
@@ -16,7 +16,7 @@ import org.junit.jupiter.api.Test;
 
 /** Integration tests for CQL endpoint (at {@code /v2/cql}) when explicitly enabled. */
 @QuarkusIntegrationTest
-@WithTestResource(StargateTestResource.class)
+@QuarkusTestResource(StargateTestResource.class)
 @TestProfile(RestApiV2QCqlBasicIT.Profile.class)
 public class RestApiV2QCqlBasicIT extends RestApiV2QIntegrationTestBase {
   // Since /cql endpoint is disabled by default, need to override
