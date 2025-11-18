@@ -50,7 +50,7 @@
   <!-- Shared properties -->
   <properties>
     <!-- Compiler -->
-    <compiler-plugin.version>3.11.0</compiler-plugin.version>
+    <compiler-plugin.version>3.14.0</compiler-plugin.version>
     <maven.compiler.source>17</maven.compiler.source>
     <maven.compiler.target>17</maven.compiler.target>
     <maven.compiler.release>17</maven.compiler.release>
@@ -60,15 +60,15 @@
     <!-- Quarkus -->
     <quarkus.platform.artifact-id>quarkus-bom</quarkus.platform.artifact-id>
     <quarkus.platform.group-id>io.quarkus.platform</quarkus.platform.group-id>
-    <!-- 28-Aug-2025, tatu: [stargate#3124] Use LTS version (3.15.x; next 3.20.x)
-      -->
-    <quarkus.platform.version>3.15.6.1</quarkus.platform.version>
+    <!-- 28-Aug-2025, tatu: [stargate#3124] Use LTS version (3.15.x; next 3.20.x) -->
+    <!-- 18-Nov-2025, tatu: [stargate#3158] Use LTS version (3.20.x; next 3.27.x) -->
+    <quarkus.platform.version>3.20.4</quarkus.platform.version>
     <!-- Cassandra dependencies -->
     <driver.version>4.17.0</driver.version>
     <!-- Testing -->
     <skipTests>false</skipTests>
     <skipUnitTests>${skipTests}</skipUnitTests>
-    <surefire-plugin.version>3.3.0</surefire-plugin.version>
+    <surefire-plugin.version>3.5.4</surefire-plugin.version>
     <!--
       Integration test properties, defaults to cassandra-40
       Please maintain default values for int-test in sync with io.stargate.sgv2.docsapi.testresource.StargateTestResource.Defaults
