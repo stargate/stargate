@@ -19,8 +19,8 @@ package io.stargate.sgv2.common.testresource;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.quarkus.test.common.DevServicesContext;
+import io.quarkus.test.common.QuarkusTestResource;
 import io.quarkus.test.common.QuarkusTestResourceLifecycleManager;
-import io.quarkus.test.common.WithTestResource;
 import io.stargate.sgv2.api.common.token.impl.FixedTokenResolver;
 import io.stargate.sgv2.common.IntegrationTestUtils;
 import java.net.URI;
@@ -43,7 +43,7 @@ import org.testcontainers.shaded.com.google.common.collect.ImmutableMap;
  * Quarkus test resource that starts Cassandra/DSE and Stargate Coordinator using test containers.
  *
  * <p>Should be used in the integration tests, that should be explicitly annotated with {@link
- * WithTestResource} class: <code>@QuarkusTestResource(value = StargateTestResource.class)</code>
+ * QuarkusTestResource} class: <code>@QuarkusTestResource(value = StargateTestResource.class)</code>
  * (and usually with {@code initArgs} property set as well).
  *
  * <p>When run from IDE, by default it uses container versions specified in {@link Defaults}. If you
