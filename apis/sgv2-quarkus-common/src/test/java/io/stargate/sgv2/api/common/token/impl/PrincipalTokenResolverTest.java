@@ -37,7 +37,7 @@ class PrincipalTokenResolverTest {
   @Inject // enabled by default
   Instance<CassandraTokenResolver> tokenResolver;
 
-  @InjectMock(returnsDeepMocks = true)
+  @InjectMock // (returnsDeepMocks = true)
   SecurityContext securityContext;
 
   @Nested

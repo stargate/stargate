@@ -56,7 +56,7 @@ class SubdomainTenantResolverWithRegexTest {
   @Inject // enabled by default
   Instance<TenantResolver> tenantResolver;
 
-  @InjectMock(returnsDeepMocks = true)
+  @InjectMock // (returnsDeepMocks = true)
   RoutingContext routingContext;
 
   @Nested

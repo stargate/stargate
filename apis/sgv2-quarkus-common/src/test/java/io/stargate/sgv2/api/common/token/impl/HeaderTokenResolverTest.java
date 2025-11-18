@@ -52,7 +52,7 @@ class HeaderTokenResolverTest {
 
   @Inject Instance<CassandraTokenResolver> tokenResolver;
 
-  @InjectMock(returnsDeepMocks = true)
+  @InjectMock // (returnsDeepMocks = true)
   RoutingContext routingContext;
 
   @Nested
