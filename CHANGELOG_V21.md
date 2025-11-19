@@ -1,8 +1,17 @@
 # Changelog
 
+## [v2.1.0-BETA-34](https://github.com/stargate/stargate/tree/v2.1.0-BETA-34) (2025-11-18)
+
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-33...v2.1.0-BETA-34)
+
+**Merged pull requests:**
+
+- Fix \#3158: upgrade Quarkus to next LTS \(3.20\) from 3.15 [\#3159](https://github.com/stargate/stargate/pull/3159) ([tatu-at-datastax](https://github.com/tatu-at-datastax))
+- Bump ch.qos.logback:logback-core from 1.3.15 to 1.3.16 in /coordinator [\#3153](https://github.com/stargate/stargate/pull/3153) ([dependabot[bot]](https://github.com/apps/dependabot))
+
 ## [v2.1.0-BETA-33](https://github.com/stargate/stargate/tree/v2.1.0-BETA-33) (2025-11-10)
 
-[Full Changelog](https://github.com/stargate/stargate/compare/v2.0.43...v2.1.0-BETA-33)
+[Full Changelog](https://github.com/stargate/stargate/compare/v2.1.0-BETA-32...v2.1.0-BETA-33)
 
 **Merged pull requests:**
 
