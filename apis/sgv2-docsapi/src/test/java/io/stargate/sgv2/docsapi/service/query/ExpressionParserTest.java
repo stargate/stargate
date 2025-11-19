@@ -26,9 +26,9 @@ import com.bpodgursky.jbool_expressions.Not;
 import com.bpodgursky.jbool_expressions.Or;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
 import io.quarkus.test.junit.TestProfile;
-import io.quarkus.test.junit.mockito.InjectMock;
 import io.stargate.bridge.grpc.Values;
 import io.stargate.sgv2.api.common.cql.builder.Predicate;
 import io.stargate.sgv2.common.testprofiles.NoGlobalResourcesTestProfile;
@@ -65,7 +65,7 @@ class ExpressionParserTest {
 
   @Inject ObjectMapper mapper;
 
-  @InjectMock(returnsDeepMocks = true)
+  @InjectMock // (returnsDeepMocks = true)
   DocumentProperties documentProperties;
 
   @Nested

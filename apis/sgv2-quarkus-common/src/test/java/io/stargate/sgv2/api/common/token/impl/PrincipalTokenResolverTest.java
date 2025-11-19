@@ -19,8 +19,8 @@ package io.stargate.sgv2.api.common.token.impl;
 
 import static org.mockito.Mockito.when;
 
+import io.quarkus.test.InjectMock;
 import io.quarkus.test.junit.QuarkusTest;
-import io.quarkus.test.junit.mockito.InjectMock;
 import io.stargate.sgv2.api.common.token.CassandraTokenResolver;
 import jakarta.enterprise.inject.Instance;
 import jakarta.inject.Inject;
@@ -37,7 +37,7 @@ class PrincipalTokenResolverTest {
   @Inject // enabled by default
   Instance<CassandraTokenResolver> tokenResolver;
 
-  @InjectMock(returnsDeepMocks = true)
+  @InjectMock // (returnsDeepMocks = true)
   SecurityContext securityContext;
 
   @Nested
