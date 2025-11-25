@@ -139,15 +139,21 @@ public class StargateGraphqlContext {
     }
 
     private BatchParameters toBatchParameters(QueryParameters queryParameters) {
-      return BatchParameters.newBuilder()
-          .setConsistency(queryParameters.getConsistency())
-          .setTracing(queryParameters.getTracing())
-          .setTimestamp(queryParameters.getTimestamp())
-          .setSerialConsistency(queryParameters.getSerialConsistency())
-          .setNowInSeconds(queryParameters.getNowInSeconds())
-          .setTracingConsistency(queryParameters.getTracingConsistency())
-          .setSkipMetadata(queryParameters.getSkipMetadata())
-          .build();
+      BatchParameters.Builder builder =
+          BatchParameters.newBuilder()
+              .setConsistency(queryParameters.getConsistency())
+              .setTracing(queryParameters.getTracing())
+              .setSerialConsistency(queryParameters.getSerialConsistency())
+              .setTracingConsistency(queryParameters.getTracingConsistency())
+              .setSkipMetadata(queryParameters.getSkipMetadata());
+
+      if (queryParameters.hasTimestamp()) {
+        builder.setTimestamp(queryParameters.getTimestamp());
+      }
+      if (queryParameters.hasNowInSeconds()) {
+        builder.setNowInSeconds(queryParameters.getNowInSeconds());
+      }
+      return builder.build();
     }
   }
 }
